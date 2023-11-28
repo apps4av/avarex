@@ -19,40 +19,53 @@ class Find extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
 
+    bool searching = true;
     return FutureBuilder(
       future: MainDatabaseHelper.db.findDestinations(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           curItems = snapshot.data;
+          searching = false;
         }
-        return makeContent(curItems);
+        return makeContent(curItems, searching);
       },
     );
   }
 
-  Widget makeContent(List<FindDestination>? items) {
-    if(null == items || query.isEmpty) {
+  Widget makeContent(List<FindDestination>? items, bool searching) {
+    if(query.isEmpty) {
       return Container();
     }
-    return Scaffold(
-        body: ListView.separated(
-          itemCount: items.length,
-          padding: const EdgeInsets.all(30),
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(items[index].id),
-              subtitle: Text("${items[index].name} - ${items[index].type}"),
-              leading: TypeIcons.getIcon(items[index].type),
-              onTap: () {},
-              onLongPress: () {},
-            );
-          },
-          separatorBuilder: (context, index) {
-            return const Divider();
-          },
+    if(null == items) {
+      if(searching) {
+        return const Center(child:CircularProgressIndicator());
+      }
+      return Container();
+    }
+    return
+      Scaffold(
+        body: Stack(children:
+          [
+            searching ? const Center(child:CircularProgressIndicator()) : Container() , // show progress indicator when searching
+            ListView.separated(
+              itemCount: items.length,
+              padding: const EdgeInsets.all(30),
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(items[index].id),
+                  subtitle: Text("${items[index].name} - ${items[index].type}"),
+                  leading: TypeIcons.getIcon(items[index].type),
+                  onTap: () {},
+                  onLongPress: () {},
+                );
+              },
+              separatorBuilder: (context, index) {
+                return const Divider();
+              },
+            )
+          ]
         )
-    );
-
+      );
   }
 }
 
