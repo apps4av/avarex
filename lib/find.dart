@@ -5,6 +5,8 @@ import 'main_database_helper.dart';
 
 class Find extends SearchDelegate {
 
+  List<FindDestination>? curItems;
+
   @override
   List<Widget>? buildActions(BuildContext context) => [];
 
@@ -17,24 +19,19 @@ class Find extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
 
-    if(query.isEmpty) {
-      return Container();
-    }
     return FutureBuilder(
       future: MainDatabaseHelper.db.findDestinations(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          return makeContent(snapshot.data);
+          curItems = snapshot.data;
         }
-        else {
-          return const Center(child:CircularProgressIndicator());
-        }
+        return makeContent(curItems);
       },
     );
   }
 
   Widget makeContent(List<FindDestination>? items) {
-    if(null == items) {
+    if(null == items || query.isEmpty) {
       return Container();
     }
     return Scaffold(
