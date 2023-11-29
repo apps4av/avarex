@@ -81,6 +81,12 @@ class DownloadListState extends State<DownloadList> {
 
   }
 
+  void dlCallback(String filename, int progress) async {
+    if(100 == progress) {
+    }
+    print("${filename} ${progress}");
+  }
+
   // Do actions on all charts
   void start() async {
     for (int category = 0; category < mAllCharts.length; category++) {
@@ -91,7 +97,7 @@ class DownloadListState extends State<DownloadList> {
         if(ct.icon == mDownloadIcon) {
           // download this chart
           Download d = Download();
-          d.downloadFile(ct.filename);
+          d.download(ct.filename, dlCallback);
         }
         if(ct.icon == mDeleteIcon) {
           // delete this chart
