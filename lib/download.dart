@@ -7,16 +7,14 @@ import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
 
+import 'download_list.dart';
+
 class Download {
 
 
 
   String cycle = "";
   static String server = "https://www.apps4av.org/new/";
-
-  static int stateInit = 0;
-  static int stateDone = 100;
-  static int stateFailed = -1;
 
   Future<void> deleteZipFile(File file) async {
     try {
@@ -48,14 +46,46 @@ class Download {
     return "$server/$cycle/$filename.zip";
   }
 
-  Future<void> download(String filename, Function(String, int)? callback) async {
+  Future<void> getChartStatus(Chart chart) async {
+    //update chart instance to reflect state on disk
+  }
+
+  Future<void> delete(Chart chart, Function(Chart, double)? callback) async {
+    String dir = await getDownloadDirPath();
+    String file = path.join(dir, chart.filename);
+    List<String> s = await File(file).readAsLines();
+    double progress = 0;
+    double lastProgress = 0;
+    for(int index = 1; index < s.length; index++) { // skip version
+      File f = File(path.join(dir, s[index]));
+      try {
+        await f.delete(recursive: true);
+      }
+      catch(e) {
+        continue; // try all
+      }
+      progress = index / s.length;
+      if (progress - lastProgress >= 0.01) { // 1% change min
+        callback!(chart, progress);
+        lastProgress = progress;
+      }
+    }
+    // delete the main file
+    try {
+      await File(file).delete();
+    }
+    catch(e) {
+    }
+  }
+
+
+  Future<void> download(Chart chart, Function(Chart, double)? callback) async {
     final Dio dio = Dio();
-    int lastProgress = 0;
-    File localFile = File(await getLocalFilePath(filename));
+    double lastProgress = 0;
+    File localFile = File(await getLocalFilePath(chart.filename));
     Directory localDir = Directory(await getDownloadDirPath());
 
     cycle = await http.read(Uri.parse("$server/version.php"));
-    print(cycle);
 
     // start fresh
     await deleteZipFile(localFile);
@@ -63,9 +93,9 @@ class Download {
     // this generate shows progress event to UI
     void showDownloadProgress(received, total) {
       if (total != -1) {
-        int progress = ((received / total) * 100).round();
-        if (progress - lastProgress > 0) {
-          callback!(filename, progress);
+        double progress = received / total * 0.5; // 0 to 0.5 for download
+        if (progress - lastProgress >= 0.01) { // 1% change min
+          callback!(chart, progress);
           lastProgress = progress;
         }
       }
@@ -73,7 +103,7 @@ class Download {
 
     try {
       Response response = await dio.get(
-        getUrlOfRemoteFile(filename),
+        getUrlOfRemoteFile(chart.filename),
         onReceiveProgress: showDownloadProgress,
         //Received data with List<int>
         options: Options(
@@ -89,31 +119,27 @@ class Download {
       raf.writeFromSync(response.data);
       await raf.close();
     } catch (e) {
-      callback!(filename, stateFailed);
+      callback!(chart, -1);
     }
 
-    lastProgress = 0;
     try {
       await ZipFile.extractToDirectory(
           zipFile: localFile,
           destinationDir: localDir,
           onExtracting: (zipEntry, progress) {
-            int intp = progress.round();
-            if (intp - lastProgress > 0) {
-              callback!(filename, intp);
-              lastProgress = intp;
+            progress = 0.5 + (progress / 200); // 0.50 to 1 for unzip
+            if (progress - lastProgress >= 0.01) {
+              callback!(chart, progress);
+              lastProgress = progress;
             }
             return ZipFileOperation.includeItem;
           });
     } catch (e) {
-      callback!(filename, stateFailed);
+      callback!(chart, -1);
     }
 
-
     // clean up
-    await deleteZipFile(localFile);
-
-
+    //await deleteZipFile(localFile);
 
   }
 }
