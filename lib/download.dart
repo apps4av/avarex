@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 
@@ -6,14 +7,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:intl/intl.dart';
 import 'download_list.dart';
 
 class Download {
 
-
-
-  String cycle = "";
+  String currentCycle = "";
   static String server = "https://www.apps4av.org/new/";
 
   Future<void> deleteZipFile(File file) async {
@@ -22,14 +21,6 @@ class Download {
     }
     catch (e) {
     }
-  }
-
-  int getCurrentCycle() {
-    DateTime now = DateTime.now();
-    DateTime epoch = DateTime.utc(2001, 1, 4);
-    int daysSinceEpoch = now.difference(epoch).inDays;
-    int cycle = (daysSinceEpoch / 28).floor() + 1;
-    return cycle;
   }
 
   Future<String> getDownloadDirPath() async {
@@ -43,19 +34,62 @@ class Download {
   }
 
   String getUrlOfRemoteFile(String filename) {
-    return "$server/$cycle/$filename.zip";
+    return "$server/$currentCycle/$filename.zip";
   }
 
-  Future<void> getChartStatus(Chart chart) async {
+  String getCurrentCycle() {
+    List<String> dates = ["2023-01-26 09:00", "2024-01-25 09:00", "2025-01-23 09:00", "2026-01-22 09:00"];
+    var now = DateTime.now();
+    var formatter = DateFormat('yy');
+    int year = int.parse(formatter.format(now));
+    DateTime givenDate = DateTime.parse(dates[year - 23]); // start in 2023
+    DateTime currentDate = DateTime.now().toUtc();
+    String passed = ((currentDate.difference(givenDate).inDays ~/ 28) + 1).toString().padLeft(2, '0');
+    String cycle = "$year$passed";
+    return cycle;
+  }
+
+  Future<String> getChartCycleLocal(Chart chart) async {
+    String dir = await getDownloadDirPath();
+    try {
+      String version = await File(path.join(dir, chart.filename))
+          .openRead()
+          .map(utf8.decode)
+          .transform(const LineSplitter()).elementAt(0);
+      return version;
+    }
+    catch(e) {
+      return "";
+    }
+  }
+
+  Future<bool> isChartExpired(Chart chart) async {
     //update chart instance to reflect state on disk
+
+    String current = getCurrentCycle();
+    String version = await getChartCycleLocal(chart);
+
+    return current != version;
   }
 
   Future<void> delete(Chart chart, Function(Chart, double)? callback) async {
+    callback!(chart, 0); // start
+
     String dir = await getDownloadDirPath();
     String file = path.join(dir, chart.filename);
-    List<String> s = await File(file).readAsLines();
+
+    List<String> s;
+    try {
+      s = await File(file).readAsLines(); // list of files to delete from manifest
+    }
+    catch(e) {
+      callback(chart, -1);
+      return;
+    }
+
     double progress = 0;
     double lastProgress = 0;
+
     for(int index = 1; index < s.length; index++) { // skip version
       File f = File(path.join(dir, s[index]));
       try {
@@ -76,6 +110,9 @@ class Download {
     }
     catch(e) {
     }
+
+    callback!(chart, 1); // done
+
   }
 
 
@@ -84,8 +121,15 @@ class Download {
     double lastProgress = 0;
     File localFile = File(await getLocalFilePath(chart.filename));
     Directory localDir = Directory(await getDownloadDirPath());
+    callback!(chart, 0); // download start signal
 
-    cycle = await http.read(Uri.parse("$server/version.php"));
+    try {
+      currentCycle = await http.read(Uri.parse("$server/version.php"));
+    }
+    catch(e) {
+      callback!(chart, -1); // cycle not known
+      return;
+    }
 
     // start fresh
     await deleteZipFile(localFile);
@@ -118,6 +162,7 @@ class Download {
       // response.data is List<int> type
       raf.writeFromSync(response.data);
       await raf.close();
+      callback!(chart, 0.5); // unzip start
     } catch (e) {
       callback!(chart, -1);
     }
@@ -126,20 +171,21 @@ class Download {
       await ZipFile.extractToDirectory(
           zipFile: localFile,
           destinationDir: localDir,
-          onExtracting: (zipEntry, progress) {
-            progress = 0.5 + (progress / 200); // 0.50 to 1 for unzip
+          onExtracting: (zipEntry, pg) {
+            double progress = 0.5 + (pg / 200); // 0.50 to 1 for unzip
             if (progress - lastProgress >= 0.01) {
               callback!(chart, progress);
               lastProgress = progress;
             }
             return ZipFileOperation.includeItem;
           });
+      callback!(chart, 1); // done
     } catch (e) {
       callback!(chart, -1);
     }
 
     // clean up
-    //await deleteZipFile(localFile);
+    await deleteZipFile(localFile);
 
   }
 }

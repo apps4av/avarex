@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -30,20 +31,28 @@ class DownloadList extends StatefulWidget {
 
 class DownloadListState extends State<DownloadList> {
 
+  DownloadListState() {
+    for (ChartCategory cg in allCharts) {
+      for (Chart chart in cg.charts) {
+        getChartStateFromLocal(chart); // start with reading from disk async
+      }
+    }
+  }
+
   // ALl that can be downloaded
   static List<ChartCategory> allCharts = [
     ChartCategory(
       'Databases',
       absentColor,
       [
-        Chart('Databases', absentColor, absentIcon, 'databases', stateAbsentNone, "", 0),
+        Chart('Databases', absentColor, absentIcon, 'databases', stateAbsentNone, "", 0, true),
       ],
     ),
     ChartCategory(
       'VFR Sectional Charts',
       absentColor,
       [
-        Chart('New York', absentColor, absentIcon, 'NewYork', stateAbsentNone, "", 0),
+        Chart('New York', absentColor, absentIcon, 'NewYork', stateAbsentNone, "", 0, true),
       ],
     ),
   ];
@@ -86,6 +95,7 @@ class DownloadListState extends State<DownloadList> {
           subtitle: Text(chart.subtitle, style: TextStyle(color: chart.color),),
           trailing: CircularProgressIndicator(value: chart.progress),
           leading: Icon(chart.icon, color:chart.color),
+          enabled: chart.enabled,
           // change icon on tap
           onTap: () {
             setState(() {
@@ -103,42 +113,34 @@ class DownloadListState extends State<DownloadList> {
     switch (chart.state) {
       case stateAbsentNone:
         chart.icon = absentIcon;
-        chart.subtitle = "";
         chart.color = absentColor;
         break;
       case stateAbsentDownload:
         chart.icon = downloadIcon;
-        chart.subtitle = "";
         chart.color = absentColor;
         break;
       case stateCurrentNone:
         chart.icon = downloadedIcon;
-        chart.subtitle = "Current";
         chart.color = currentColor;
         break;
       case stateCurrentDownload:
         chart.icon = downloadIcon;
-        chart.subtitle = "Current";
         chart.color = currentColor;
         break;
       case stateCurrentDelete:
         chart.icon = deleteIcon;
-        chart.subtitle = "Current";
         chart.color = currentColor;
         break;
       case stateExpiredNone:
         chart.icon = downloadedIcon;
-        chart.subtitle = "Expired";
         chart.color = expiredColor;
         break;
       case stateExpiredDownload:
         chart.icon = downloadIcon;
-        chart.subtitle = "Expired";
         chart.color = expiredColor;
         break;
       case stateExpiredDelete:
         chart.icon = deleteIcon;
-        chart.subtitle = "Expired";
         chart.color = expiredColor;
         break;
     }
@@ -171,20 +173,81 @@ class DownloadListState extends State<DownloadList> {
         chart.state = stateExpiredNone;
         break;
     }
-    updateChart(chart);
+    setState(() {
+      updateChart(chart);
+    });
   }
 
-  void dlCallback(Chart chart, double progress) async {
+  Future<void> getChartStateFromLocal(Chart chart) async {
+    Download dl = Download();
+    String cycle = await dl.getChartCycleLocal(chart);
+    bool expired = await dl.isChartExpired(chart);
+    setState(() {
+      if(expired && cycle != "") {
+        // available but expired
+        chart.state = stateExpiredNone;
+        chart.subtitle = cycle;
+      }
+      else if(expired && cycle == "") {
+        // missing
+        chart.state = stateAbsentNone;
+        chart.subtitle = "";
+      }
+      else {
+        // current
+        chart.state = stateCurrentNone;
+        chart.subtitle = cycle;
+      }
+      updateChart(chart);
+    });
+  }
+
+  void downloadCallback(Chart chart, double progress) async {
     setState(() {
       chart.progress = progress;
-      if(progress.round() == 1) {
-        chart.progress = 0;
+      if(0 == progress) {
+        chart.subtitle = "Downloading";
+        chart.enabled = false;
       }
-      if(-1 == progress.round()) {
+      else if(0.5 == progress) {
+        chart.subtitle = "Unzipping";
+        chart.enabled = false;
+      }
+      else if(1 == progress) {
+        chart.progress = 0;
+        chart.subtitle = "Download Success";
+        chart.enabled = true;
+      }
+      else if(-1 == progress) {
         chart.progress = 0;
         chart.subtitle = "Download Failed";
+        chart.enabled = true;
       }
     });
+    if(-1 == progress || 1 == progress) {
+      getChartStateFromLocal(chart); // something changed
+    }
+  }
+
+  void deleteCallback(Chart chart, double progress) async {
+    setState(() {
+      chart.progress = progress;
+      if(0 == progress) {
+        chart.subtitle = "Deleting";
+        chart.enabled = false;
+      }
+      else if(1 == progress) {
+        chart.progress = 0;
+        chart.enabled = true;
+      }
+      else if(-1 == progress) {
+        chart.progress = 0;
+        chart.enabled = true;
+      }
+    });
+    if(-1 == progress || 1 == progress) {
+      getChartStateFromLocal(chart); // something changed
+    }
   }
 
   // Do actions on all charts
@@ -193,28 +256,24 @@ class DownloadListState extends State<DownloadList> {
       for (int chart = 0; chart < allCharts[category].charts.length; chart++) {
         ChartCategory cg = allCharts[category];
         Chart ct = cg.charts[chart];
+        if(!ct.enabled) {
+          continue;
+        }
         // download expired or to-download item
         if(ct.state == stateAbsentDownload || ct.state == stateCurrentDownload || ct.state == stateExpiredDownload) {
           // download this chart
           Download d = Download();
-          d.download(ct, dlCallback);
+          d.download(ct, downloadCallback);
         }
         if(ct.state == stateCurrentDelete || ct.state == stateExpiredDelete) {
           // download this chart
           Download d = Download();
-          d.delete(ct, dlCallback);
+          d.delete(ct, deleteCallback);
         }
       }
     }
   }
 
-  void refreshAllCharts(String filename) {
-    for (ChartCategory cg in allCharts) {
-      for (Chart chart in cg.charts) {
-        updateChart(chart);
-      }
-    }
-  }
 }
 
 
@@ -228,7 +287,9 @@ class Chart {
   double progress; // 0 to 1 = 100%
   String subtitle;
   Color color;
-  Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress);
+  bool enabled;
+
+  Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled);
 }
 
 // Chart category like sectional, IFR, ...
