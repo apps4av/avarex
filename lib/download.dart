@@ -2,18 +2,20 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 
+import 'package:avaremp/faa_dates.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
+import 'chart.dart';
 import 'download_list.dart';
 
 class Download {
 
   String currentCycle = "";
-  static String server = "https://www.apps4av.org/new/";
+  static const String server = "https://www.apps4av.org/new/";
+  bool cancelDownloadAndDelete = false;
 
   Future<void> deleteZipFile(File file) async {
     try {
@@ -21,6 +23,10 @@ class Download {
     }
     catch (e) {
     }
+  }
+
+  void cancel() {
+    cancelDownloadAndDelete = true;
   }
 
   Future<String> getDownloadDirPath() async {
@@ -35,18 +41,6 @@ class Download {
 
   String getUrlOfRemoteFile(String filename) {
     return "$server/$currentCycle/$filename.zip";
-  }
-
-  String getCurrentCycle() {
-    List<String> dates = ["2023-01-26 09:00", "2024-01-25 09:00", "2025-01-23 09:00", "2026-01-22 09:00"];
-    var now = DateTime.now();
-    var formatter = DateFormat('yy');
-    int year = int.parse(formatter.format(now));
-    DateTime givenDate = DateTime.parse(dates[year - 23]); // start in 2023
-    DateTime currentDate = DateTime.now().toUtc();
-    String passed = ((currentDate.difference(givenDate).inDays ~/ 28) + 1).toString().padLeft(2, '0');
-    String cycle = "$year$passed";
-    return cycle;
   }
 
   Future<String> getChartCycleLocal(Chart chart) async {
@@ -66,13 +60,14 @@ class Download {
   Future<bool> isChartExpired(Chart chart) async {
     //update chart instance to reflect state on disk
 
-    String current = getCurrentCycle();
+    String current = FaaDates.getCurrentCycle();
     String version = await getChartCycleLocal(chart);
 
     return current != version;
   }
 
   Future<void> delete(Chart chart, Function(Chart, double)? callback) async {
+    cancelDownloadAndDelete = false;
     callback!(chart, 0); // start
 
     String dir = await getDownloadDirPath();
@@ -98,6 +93,10 @@ class Download {
       catch(e) {
         continue; // try all
       }
+      if(cancelDownloadAndDelete) {
+        callback!(chart, -1);
+        return;
+      }
       progress = index / s.length;
       if (progress - lastProgress >= 0.01) { // 1% change min
         callback!(chart, progress);
@@ -112,16 +111,17 @@ class Download {
     }
 
     callback!(chart, 1); // done
-
   }
 
-
   Future<void> download(Chart chart, Function(Chart, double)? callback) async {
+    cancelDownloadAndDelete = false;
     final Dio dio = Dio();
     double lastProgress = 0;
     File localFile = File(await getLocalFilePath(chart.filename));
     Directory localDir = Directory(await getDownloadDirPath());
     callback!(chart, 0); // download start signal
+    CancelToken cancelToken = CancelToken(); // this is to cancel the dio download
+
 
     try {
       currentCycle = await http.read(Uri.parse("$server/version.php"));
@@ -136,6 +136,9 @@ class Download {
 
     // this generate shows progress event to UI
     void showDownloadProgress(received, total) {
+      if(cancelDownloadAndDelete) {
+        cancelToken.cancel();
+      }
       if (total != -1) {
         double progress = received / total * 0.5; // 0 to 0.5 for download
         if (progress - lastProgress >= 0.01) { // 1% change min
@@ -149,6 +152,7 @@ class Download {
       Response response = await dio.get(
         getUrlOfRemoteFile(chart.filename),
         onReceiveProgress: showDownloadProgress,
+        cancelToken: cancelToken,
         //Received data with List<int>
         options: Options(
             responseType: ResponseType.bytes,
@@ -176,6 +180,10 @@ class Download {
             if (progress - lastProgress >= 0.01) {
               callback!(chart, progress);
               lastProgress = progress;
+            }
+            if(cancelDownloadAndDelete) {
+              callback!(chart, -1);
+              return ZipFileOperation.cancel;
             }
             return ZipFileOperation.includeItem;
           });
