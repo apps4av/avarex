@@ -22,6 +22,13 @@ class Chart {
 
 // Chart category like sectional, IFR, ...
 class ChartCategory {
+
+  static String sectional = "Sectional";
+  static String tac = "TAC";
+  static String ifrl = "IFR Low";
+  static String plates = "Plates";
+  static String databases = "Databases";
+
   String title;
   Color color;
   List<Chart> charts;

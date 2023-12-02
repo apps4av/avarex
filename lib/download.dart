@@ -3,8 +3,8 @@ import 'dart:core';
 import 'dart:io';
 
 import 'package:avaremp/faa_dates.dart';
+import 'package:avaremp/path_utils.dart';
 import 'package:dio/dio.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
@@ -28,22 +28,12 @@ class Download {
     cancelDownloadAndDelete = true;
   }
 
-  Future<String> getDownloadDirPath() async {
-    Directory dir = await getApplicationDocumentsDirectory();
-    return dir.path;
-  }
-
-  Future<String> getLocalFilePath(filename) async {
-    String dir = await getDownloadDirPath();
-    return path.join(dir, "$filename.zip");
-  }
-
   String getUrlOfRemoteFile(String filename) {
     return "$server/$currentCycle/$filename.zip";
   }
 
   Future<String> getChartCycleLocal(Chart chart) async {
-    String dir = await getDownloadDirPath();
+    String dir = await PathUtils.getDownloadDirPath();
     try {
       String version = await File(path.join(dir, chart.filename))
           .openRead()
@@ -69,7 +59,7 @@ class Download {
     cancelDownloadAndDelete = false;
     callback!(chart, 0); // start
 
-    String dir = await getDownloadDirPath();
+    String dir = await PathUtils.getDownloadDirPath();
     String file = path.join(dir, chart.filename);
 
     List<String> s;
@@ -116,8 +106,8 @@ class Download {
     cancelDownloadAndDelete = false;
     final Dio dio = Dio();
     double lastProgress = 0;
-    File localFile = File(await getLocalFilePath(chart.filename));
-    Directory localDir = Directory(await getDownloadDirPath());
+    File localFile = File(await PathUtils.getLocalFilePath(chart.filename));
+    Directory localDir = Directory(await PathUtils.getDownloadDirPath());
     callback!(chart, 0); // download start signal
     CancelToken cancelToken = CancelToken(); // this is to cancel the dio download
 

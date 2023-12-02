@@ -42,24 +42,6 @@ class DownloadListState extends State<DownloadList> {
     }
   }
 
-  // ALl that can be downloaded
-  static List<ChartCategory> allCharts = [
-    ChartCategory(
-      'Databases',
-      absentColor,
-      [
-        Chart('Databases', absentColor, absentIcon, 'databases', stateAbsentNone, "", 0, true, Download()),
-      ],
-    ),
-    ChartCategory(
-      'VFR Sectional Charts',
-      absentColor,
-      [
-        Chart('New York', absentColor, absentIcon, 'NewYork', stateAbsentNone, "", 0, true, Download()),
-      ],
-    ),
-  ];
-
   @override
   void deactivate() {
     super.deactivate();
@@ -339,6 +321,44 @@ class DownloadListState extends State<DownloadList> {
     }
   }
 
+  // ALl that can be downloaded
+  static List<ChartCategory> allCharts = [
+    ChartCategory(
+      ChartCategory.databases,
+      absentColor,
+      [
+        Chart('Databases', absentColor, absentIcon, 'databases', stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
+    ChartCategory(
+      ChartCategory.sectional,
+      absentColor,
+      [
+        Chart('New York', absentColor, absentIcon, 'NewYork', stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
+    ChartCategory(
+      ChartCategory.tac,
+      absentColor,
+      [
+        Chart('Boston', absentColor, absentIcon, 'BostonTAC', stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
+    ChartCategory(
+      ChartCategory.ifrl,
+      absentColor,
+      [
+        Chart('Northeast', absentColor, absentIcon, 'ELUS_NE', stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
+    ChartCategory(
+      ChartCategory.plates,
+      absentColor,
+      [
+        Chart('MA', absentColor, absentIcon, 'MA_PLATES', stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
+  ];
 }
 
 

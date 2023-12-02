@@ -1,4 +1,6 @@
+import 'package:avaremp/plate_screen.dart';
 import 'package:flutter/material.dart';
+import 'chart.dart';
 import 'csup.dart';
 import 'draw_canvas.dart';
 import 'find.dart';
@@ -12,14 +14,14 @@ class MainScreen extends StatefulWidget {
 
 class MainScreenState extends State<MainScreen> {
   int mSelectedIndex = 0; // for various tab screens
-  List<String> charts = ["Sectional", "TAC", "WAC"];
-  String chartSelectedValue = "Sectional";
+  List<String> charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
+  String chartSelectedValue = ChartCategory.sectional;
 
   // define tabs here
   static final List<Widget> _widgetOptions = <Widget>[
     const DrawCanvas(),
     const CSup(),
-    const DrawCanvas(),
+    const PlateScreen(),
   ];
 
   void mOnItemTapped(int index) {
