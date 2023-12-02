@@ -9,7 +9,6 @@ import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
 import 'chart.dart';
-import 'download_list.dart';
 
 class Download {
 

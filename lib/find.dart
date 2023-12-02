@@ -19,6 +19,11 @@ class Find extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
 
+    // at least 1 letter before making a query
+    if(query.isEmpty) {
+      return Container();
+    }
+
     bool searching = true;
     return FutureBuilder(
       future: MainDatabaseHelper.db.findDestinations(query),
@@ -33,9 +38,6 @@ class Find extends SearchDelegate {
   }
 
   Widget makeContent(List<FindDestination>? items, bool searching) {
-    if(query.isEmpty) {
-      return Container();
-    }
     if(null == items) {
       if(searching) {
         return const Center(child:CircularProgressIndicator());

@@ -89,7 +89,7 @@ class DownloadListState extends State<DownloadList> {
         itemCount: allCharts.length,
         itemBuilder: (context, index) {
           return ExpansionTile(
-            title: Text(allCharts[index].title),
+            title: Text(allCharts[index].title, style: TextStyle(color: allCharts[index].color)),
             children: <Widget>[
               Column(
                 children: mBuildExpandableContent(index),
@@ -216,7 +216,42 @@ class DownloadListState extends State<DownloadList> {
         chart.subtitle = "$cycle $range";
       }
       updateChart(chart);
+      updateCategory();
     });
+  }
+
+  // update color of category to reflect chart status
+  void updateCategory() {
+    for (ChartCategory cg in allCharts) {
+      bool expired = false;
+      bool current = false;
+      for (Chart chart in cg.charts) {
+        switch (chart.state) {
+          case stateExpiredNone:
+          case stateExpiredDownload:
+          case stateExpiredDelete:
+            expired = expired || true;
+            break;
+          case stateCurrentNone:
+          case stateCurrentDownload:
+          case stateCurrentDelete:
+            current = current || true;
+          default:
+            break;
+        }
+      }
+
+      if(expired) {
+        cg.color = expiredColor;
+      }
+      else if (current) {
+        cg.color = currentColor;
+      }
+      else {
+        cg.color = absentColor;
+      }
+
+    }
   }
 
   void downloadCallback(Chart chart, double progress) async {
