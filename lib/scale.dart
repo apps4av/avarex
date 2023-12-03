@@ -3,6 +3,8 @@ class Scale
   double _scaleFactor;
   int _macro;
   final double _maxScale;
+
+  double get maxScale => _maxScale;
   final double _minScale;
 
   Scale(this._maxScale, this._minScale, this._macro, this._scaleFactor);
@@ -140,4 +142,6 @@ class Scale
   {
     _scaleFactor = _minScale;
   }
+
+  double get minScale => _minScale;
 }

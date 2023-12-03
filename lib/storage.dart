@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/path_utils.dart';
-import 'package:avaremp/scale.dart';
+import 'package:flutter/cupertino.dart';
 
 class Storage {
   static final Storage _singleton = Storage._internal();
@@ -15,9 +15,7 @@ class Storage {
   }
 
   ui.Image? _imagePlate;
-
-  final Scale _scalePlate = Scale.n();
-
+  final TransformationController _plateTransformationController = TransformationController();
   String _currentPlate = "AIRPORT-DIAGRAM";
   String _currentPlateAirport = "BVY";
 
@@ -38,8 +36,6 @@ class Storage {
 
   ui.Image? get imagePlate => _imagePlate;
 
-  Scale get scalePlate => _scalePlate;
-
   String get currentPlate => _currentPlate;
 
   set currentPlate(String value) {
@@ -51,4 +47,7 @@ class Storage {
   set currentPlateAirport(String value) {
     _currentPlateAirport = value;
   }
+
+  TransformationController get plateTransformationController => _plateTransformationController;
+
 }
