@@ -7,18 +7,20 @@ import 'package:sqflite/sqflite.dart';
 class MainDatabaseHelper {
   MainDatabaseHelper._();
 
-  static final MainDatabaseHelper db = MainDatabaseHelper._();
+  static final MainDatabaseHelper _db = MainDatabaseHelper._();
+
+  static MainDatabaseHelper get db => _db;
   static Database? _database;
 
   Future<Database?> get database async {
     if (_database != null) {
       return _database;
     }
-    _database = await initDB();
+    _database = await _initDB();
     return _database;
   }
 
-  initDB() async {
+  _initDB() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "main.db");
     return

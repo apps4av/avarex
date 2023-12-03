@@ -13,9 +13,9 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  int mSelectedIndex = 0; // for various tab screens
-  List<String> charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
-  String chartSelectedValue = ChartCategory.sectional;
+  int _selectedIndex = 0; // for various tab screens
+  final List<String> _charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
+  String _chartSelectedValue = ChartCategory.sectional;
 
   // define tabs here
   static final List<Widget> _widgetOptions = <Widget>[
@@ -26,7 +26,7 @@ class MainScreenState extends State<MainScreen> {
 
   void mOnItemTapped(int index) {
     setState(() {
-      mSelectedIndex = index;
+      _selectedIndex = index;
     });
   }
 
@@ -38,9 +38,9 @@ class MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
           DropdownButton<String>( // chart selection
-            value: chartSelectedValue,
+            value: _chartSelectedValue,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            items: charts.map((String item) {
+            items: _charts.map((String item) {
               return DropdownMenuItem<String>(
                 value: item,
                 child: Text(item),
@@ -48,7 +48,7 @@ class MainScreenState extends State<MainScreen> {
             }).toList(),
             onChanged: (val) {
               setState(() {
-                chartSelectedValue = val ?? charts[0];
+                _chartSelectedValue = val ?? _charts[0];
               });
             },
           ),
@@ -57,7 +57,7 @@ class MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.blueAccent,
       ),
       body: Center(
-        child: _widgetOptions.elementAt(mSelectedIndex),
+        child: _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -77,7 +77,7 @@ class MainScreenState extends State<MainScreen> {
             label: 'PLATE',
           ),
         ],
-        currentIndex: mSelectedIndex,
+        currentIndex: _selectedIndex,
         onTap: mOnItemTapped,
       ),
     );

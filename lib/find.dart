@@ -5,7 +5,7 @@ import 'main_database_helper.dart';
 
 class Find extends SearchDelegate {
 
-  List<FindDestination>? curItems;
+  List<FindDestination>? _curItems;
 
   @override
   List<Widget>? buildActions(BuildContext context) => [];
@@ -29,10 +29,10 @@ class Find extends SearchDelegate {
       future: MainDatabaseHelper.db.findDestinations(query),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          curItems = snapshot.data;
+          _curItems = snapshot.data;
           searching = false;
         }
-        return makeContent(curItems, searching);
+        return makeContent(_curItems, searching);
       },
     );
   }
@@ -56,7 +56,7 @@ class Find extends SearchDelegate {
                 return ListTile(
                   title: Text(items[index].id),
                   subtitle: Text("${items[index].name} - ${items[index].type}"),
-                  leading: TypeIcons.getIcon(items[index].type),
+                  leading: _TypeIcons.getIcon(items[index].type),
                   onTap: () {},
                   onLongPress: () {},
                 );
@@ -71,7 +71,7 @@ class Find extends SearchDelegate {
   }
 }
 
-class TypeIcons {
+class _TypeIcons {
 
   static Icon getIcon(String type) {
     if(type == "TACAN" ||

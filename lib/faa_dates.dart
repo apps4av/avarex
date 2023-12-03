@@ -2,7 +2,7 @@ import 'package:intl/intl.dart';
 
 // FAA date stuff
 class FaaDates {
-  static int getFirstDate(int year) {
+  static int _getFirstDate(int year) {
     // Date for first cycle every year in January starting 2014
     switch(year) {
       case 2020:
@@ -31,7 +31,7 @@ class FaaDates {
   }
 
   static String getCutInDate(int year) {
-    int first = getFirstDate(year);
+    int first = _getFirstDate(year);
     return "$year-01-$first 09:00";
   }
 
@@ -46,7 +46,7 @@ class FaaDates {
 
     int cycleUpper = (cycle ~/ 100);
     int cycleLower = cycle - (cycleUpper * 100);
-    int firstDate = getFirstDate(2000 + cycleUpper);
+    int firstDate = _getFirstDate(2000 + cycleUpper);
     if (firstDate < 1) {
       return "";
     }

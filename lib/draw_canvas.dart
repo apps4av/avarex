@@ -15,7 +15,7 @@ class DrawCanvasState extends State<DrawCanvas> {
       Scaffold(
         body : Stack(
           children: [
-            CustomPaint(painter: MapPainter()),
+            CustomPaint(painter: _MapPainter()),
             Positioned(
               child: Align(
                 alignment: Alignment.bottomCenter,
@@ -29,7 +29,7 @@ class DrawCanvasState extends State<DrawCanvas> {
   }
 }
 
-class MapPainter extends CustomPainter {
+class _MapPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Define a paint object
@@ -41,6 +41,6 @@ class MapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(MapPainter oldDelegate) => false;
+  bool shouldRepaint(_MapPainter oldDelegate) => false;
 }
 

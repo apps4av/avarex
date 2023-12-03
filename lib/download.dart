@@ -12,11 +12,11 @@ import 'chart.dart';
 
 class Download {
 
-  String currentCycle = "";
-  static const String server = "https://www.apps4av.org/new/";
-  bool cancelDownloadAndDelete = false;
+  String _currentCycle = "";
+  static const String _server = "https://www.apps4av.org/new/";
+  bool _cancelDownloadAndDelete = false;
 
-  Future<void> deleteZipFile(File file) async {
+  Future<void> _deleteZipFile(File file) async {
     try {
       await file.delete();
     }
@@ -25,11 +25,11 @@ class Download {
   }
 
   void cancel() {
-    cancelDownloadAndDelete = true;
+    _cancelDownloadAndDelete = true;
   }
-
-  String getUrlOfRemoteFile(String filename) {
-    return "$server/$currentCycle/$filename.zip";
+  
+  String _getUrlOfRemoteFile(String filename) {
+    return "$_server/$_currentCycle/$filename.zip";
   }
 
   Future<String> getChartCycleLocal(Chart chart) async {
@@ -56,7 +56,7 @@ class Download {
   }
 
   Future<void> delete(Chart chart, Function(Chart, double)? callback) async {
-    cancelDownloadAndDelete = false;
+    _cancelDownloadAndDelete = false;
     callback!(chart, 0); // start
 
     String dir = await PathUtils.getDownloadDirPath();
@@ -82,7 +82,7 @@ class Download {
       catch(e) {
         continue; // try all
       }
-      if(cancelDownloadAndDelete) {
+      if(_cancelDownloadAndDelete) {
         callback!(chart, -1);
         return;
       }
@@ -103,7 +103,7 @@ class Download {
   }
 
   Future<void> download(Chart chart, Function(Chart, double)? callback) async {
-    cancelDownloadAndDelete = false;
+    _cancelDownloadAndDelete = false;
     final Dio dio = Dio();
     double lastProgress = 0;
     File localFile = File(await PathUtils.getLocalFilePath(chart.filename));
@@ -113,7 +113,7 @@ class Download {
 
 
     try {
-      currentCycle = await http.read(Uri.parse("$server/version.php"));
+      _currentCycle = await http.read(Uri.parse("$_server/version.php"));
     }
     catch(e) {
       callback!(chart, -1); // cycle not known
@@ -121,11 +121,11 @@ class Download {
     }
 
     // start fresh
-    await deleteZipFile(localFile);
+    await _deleteZipFile(localFile);
 
     // this generate shows progress event to UI
     void showDownloadProgress(received, total) {
-      if(cancelDownloadAndDelete) {
+      if(_cancelDownloadAndDelete) {
         cancelToken.cancel();
       }
       if (total != -1) {
@@ -139,7 +139,7 @@ class Download {
 
     try {
       Response response = await dio.get(
-        getUrlOfRemoteFile(chart.filename),
+        _getUrlOfRemoteFile(chart.filename),
         onReceiveProgress: showDownloadProgress,
         cancelToken: cancelToken,
         //Received data with List<int>
@@ -170,7 +170,7 @@ class Download {
               callback!(chart, progress);
               lastProgress = progress;
             }
-            if(cancelDownloadAndDelete) {
+            if(_cancelDownloadAndDelete) {
               callback!(chart, -1);
               return ZipFileOperation.cancel;
             }
@@ -182,7 +182,7 @@ class Download {
     }
 
     // clean up
-    await deleteZipFile(localFile);
+    await _deleteZipFile(localFile);
 
   }
 }

@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
 // implements a drawing screen with a center reset button.
@@ -16,21 +14,20 @@ class PlateScreen extends StatefulWidget {
 
 class PlateScreenState extends State<PlateScreen> {
 
-  String currentPlate = "AIRPORT-DIAGRAM";
-  String currentAirport = "BVY";
-  MapPainter currentPainter = MapPainter();
-  late Future<ui.Image> plateImage;
 
   String getPlateTitle() {
-    return "$currentAirport $currentPlate";
+    String airport = Storage().currentPlateAirport;
+    String plate = Storage().currentPlate;
+    return "$airport $plate";
   }
 
   @override
   Widget build(BuildContext context) {
-    return
-      Scaffold(
+    return GestureDetector(
+      onScaleUpdate: (details) {print("scale$details.scale");},
+      child: Scaffold(
         appBar: AppBar(
-          title: Text(currentPlate),
+          title: Text(Storage().currentPlate),
         ),
         drawer: Drawer(
           // Add a ListView to the drawer. This ensures the user can scroll
@@ -44,8 +41,8 @@ class PlateScreenState extends State<PlateScreen> {
                 title: const Text('AIRPORT-DIAGRAM'),
                 onTap: () {
                   setState(() {
-                    currentPlate = "AIRPORT-DIAGRAM";
-                    currentPainter.setImage(currentAirport, currentPlate);
+                    Storage().currentPlate = "AIRPORT-DIAGRAM";
+                    Storage().loadPlate();
                   });
                   Navigator.pop(context);
                 },
@@ -54,8 +51,8 @@ class PlateScreenState extends State<PlateScreen> {
                 title: const Text('RNAV-GPS-RWY-09'),
                 onTap: () {
                   setState(() {
-                    currentPlate = "RNAV-GPS-RWY-09";
-                    currentPainter.setImage(currentAirport, currentPlate);
+                    Storage().currentPlate = "RNAV-GPS-RWY-09";
+                    Storage().loadPlate();
                   });
                   Navigator.pop(context);
                 },
@@ -64,8 +61,8 @@ class PlateScreenState extends State<PlateScreen> {
           ),
         ),
         body : Stack(
-          children: [
-            CustomPaint(painter: currentPainter),
+          children: [CustomPaint(painter: _MapPainter()),
+
             Positioned(
               child: Align(
                 alignment: Alignment.bottomCenter,
@@ -75,35 +72,11 @@ class PlateScreenState extends State<PlateScreen> {
               ),
           ]
         ),
-      );
+      ));
   }
 }
 
-class MapPainter extends CustomPainter {
-
-  ui.Image? image;
-
-  Future<ui.Image> loadPlateImage(Uint8List bytes) async {
-    final Completer<ui.Image> completer = Completer();
-    ui.decodeImageFromList(bytes, (ui.Image img) {
-      return completer.complete(img);
-    });
-    return completer.future;
-  }
-
-  Future<ui.Image> loadPlate(String airport, String plate) async {
-    String path = await PathUtils.getPlateFilePath(airport, plate);
-    File file = File(path);
-    Uint8List bytes = await file.readAsBytes();
-    return await loadPlateImage(bytes);
-  }
-
-  void setImage(String airport, String plate) async {
-    if(image != null) {
-      image!.dispose();
-    }
-    image = await loadPlate(airport, plate);
-  }
+class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -113,12 +86,13 @@ class MapPainter extends CustomPainter {
       ..strokeWidth = 4.0
       ..color = Colors.white;
 
+    ui.Image? image = Storage().imagePlate;
     if(image != null) {
       canvas.drawImage(image!, const Offset(0, 0), paint);
     }
   }
 
   @override
-  bool shouldRepaint(MapPainter oldDelegate) => false;
+  bool shouldRepaint(_MapPainter oldDelegate) => false;
 }
 
