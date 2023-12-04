@@ -1,3 +1,4 @@
+import 'package:avaremp/csup.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';

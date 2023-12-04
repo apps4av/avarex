@@ -3,8 +3,6 @@ import 'dart:ui' as ui;
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
-import 'package:vector_math/vector_math_64.dart' as vector;
-
 // implements a drawing screen with a center reset button.
 
 class PlateScreen extends StatefulWidget {
@@ -126,7 +124,6 @@ class _MapPainter extends CustomPainter {
       canvas.drawCircle(Offset(image.width / 2, image.height / 2), 100, _paint);
       canvas.restore();
     }
-
 
   }
 
