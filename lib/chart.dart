@@ -82,6 +82,7 @@ class ChartCategory {
   static String ifrl = "IFR Low";
   static String plates = "Plates";
   static String databases = "Databases";
+  static String csup = "CSUP";
 
   String _title;
   Color _color;

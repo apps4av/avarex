@@ -18,17 +18,13 @@ class Storage {
   ui.Image? _imagePlate;
   final TransformationController _plateTransformationController = TransformationController();
   Map<String, IfdTag>? _exifPlate;
-  String _currentPlate = "AIRPORT-DIAGRAM";
+  String _currentPlate = "";
   String _currentPlateAirport = "BVY";
 
   ui.Image? _imageCSup;
-
-  ui.Image? get imageCSup => _imageCSup;
-
   final TransformationController _csupTransformationController = TransformationController();
-  String _currentCSup = "AIRPORT-DIAGRAM";
+  String _currentCSup = "";
   String _currentCSupAirport = "BVY";
-
 
   Future<void> loadPlate() async {
     String path = await PathUtils.getPlateFilePath(_currentPlateAirport, _currentPlate);
@@ -46,20 +42,48 @@ class Storage {
     _imagePlate = await completerPlate.future;
   }
 
-  ui.Image? get imagePlate => _imagePlate;
-
-  String get currentPlate => _currentPlate;
-
-  set currentPlate(String value) {
-    _currentPlate = value;
+  Future<void> loadCSup() async {
+    String path = await PathUtils.getCSupFilePath(_currentCSup);
+    File file = File(path);
+    Completer<ui.Image> completerCSup = Completer();
+    Uint8List bytes = await file.readAsBytes();
+    ui.decodeImageFromList(bytes, (ui.Image img) {
+      return completerCSup.complete(img);
+    });
+    if(_imageCSup != null) {
+      _imageCSup!.dispose();
+      _imageCSup = null;
+    }
+    _imageCSup = await completerCSup.future;
   }
 
+  ui.Image? get imagePlate => _imagePlate;
+  TransformationController get plateTransformationController => _plateTransformationController;
+  Map<String, IfdTag>? get exifPlate => _exifPlate;
+  String get currentPlate => _currentPlate;
   String get currentPlateAirport => _currentPlateAirport;
+
+    set currentPlate(String value) {
+    _currentPlate = value;
+  }
 
   set currentPlateAirport(String value) {
     _currentPlateAirport = value;
   }
 
-  TransformationController get plateTransformationController => _plateTransformationController;
+
+  ui.Image? get imageCSup => _imageCSup;
+  TransformationController get csupTransformationController => _csupTransformationController;
+  String get currentCSup => _currentCSup;
+  String get currentCSupAirport => _currentCSupAirport;
+
+  set currentCSup(String value) {
+    _currentCSup = value;
+  }
+
+  set currentCSupAirport(String value) {
+    _currentCSupAirport = value;
+  }
+
 
 }

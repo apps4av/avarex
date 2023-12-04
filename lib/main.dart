@@ -2,17 +2,17 @@
 import 'package:avaremp/settings_cache_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
-import 'package:wakelock/wakelock.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import 'db_general.dart';
 import 'download_screen.dart';
 import 'gps.dart';
 import 'main_screen.dart';
-import 'app_settings_screen.dart';
+import 'appsettings_screen.dart';
 
 void main()  {
   DbGeneral.set(); // set database platform
   WidgetsFlutterBinding.ensureInitialized();
-  Wakelock.enable(); // keep screen on
+  WakelockPlus.enable(); // keep screen on
   Gps.checkPermissions();
 
   initSettings().then((accentColor) {

@@ -45,12 +45,13 @@ dependencies:
   material_design_icons_flutter: ^7.0.7296
   geolocator: ^10.1.0
   geolocator_linux: ^0.2.0+1
-  wakelock: ^0.6.2
+  wakelock_plus: ^1.1.4
   dio: ^5.3.4
   flutter_archive: ^5.0.0
   intl: ^0.18.1
-  http: ^0.13.0
+  http: ^1.0.0
   exif: ^3.3.0
+  flutter_map: ^6.1.0
 
 dev_dependencies:
   flutter_test:

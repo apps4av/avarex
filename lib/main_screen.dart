@@ -1,10 +1,10 @@
-import 'package:avaremp/csup.dart';
+import 'package:avaremp/csup_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';
-import 'csup.dart';
+import 'csup_screen.dart';
 import 'draw_canvas.dart';
-import 'find.dart';
+import 'find_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,7 +21,7 @@ class MainScreenState extends State<MainScreen> {
   // define tabs here
   static final List<Widget> _widgetOptions = <Widget>[
     const DrawCanvas(),
-    const CSup(),
+    const CSupScreen(),
     const PlateScreen(),
   ];
 
@@ -53,7 +53,7 @@ class MainScreenState extends State<MainScreen> {
               });
             },
           ),
-          IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: Find()); },),
+          IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: FindScreen()); },),
         ],
         backgroundColor: Colors.blueAccent,
       ),

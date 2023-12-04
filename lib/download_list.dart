@@ -358,6 +358,13 @@ class DownloadListState extends State<DownloadList> {
         Chart('MA', _absentColor, _absentIcon, 'MA_PLATES', _stateAbsentNone, "", 0, true, Download()),
       ],
     ),
+    ChartCategory(
+      ChartCategory.csup,
+      _absentColor,
+      [
+        Chart('Northeast', _absentColor, _absentIcon, 'AFD_NE', _stateAbsentNone, "", 0, true, Download()),
+      ],
+    ),
   ];
 }
 

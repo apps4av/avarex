@@ -3,7 +3,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 
 import 'main_database_helper.dart';
 
-class Find extends SearchDelegate {
+class FindScreen extends SearchDelegate {
 
   List<FindDestination>? _curItems;
 
@@ -32,12 +32,12 @@ class Find extends SearchDelegate {
           _curItems = snapshot.data;
           searching = false;
         }
-        return makeContent(_curItems, searching);
+        return _makeContent(_curItems, searching);
       },
     );
   }
 
-  Widget makeContent(List<FindDestination>? items, bool searching) {
+  Widget _makeContent(List<FindDestination>? items, bool searching) {
     if(null == items) {
       if(searching) {
         return const Center(child:CircularProgressIndicator());

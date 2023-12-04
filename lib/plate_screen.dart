@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
@@ -17,39 +18,51 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: PathUtils.getPlateNames(Storage().currentPlateAirport),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return _makeContent(snapshot.data);
+          }
+          return _makeContent(snapshot.data);
+        }
+    );
+  }
+
+
+  Widget _makeContent(List<String>? items) {
+
+    if(null == items) {
+      return Container();
+    }
+
     return Scaffold(
-        appBar: AppBar(
+       appBar: AppBar(
           title: Text(Storage().currentPlate),
         ),
         drawer: Drawer(
           // Add a ListView to the drawer. This ensures the user can scroll
           // through the options in the drawer if there isn't enough vertical
           // space to fit everything.
-          child: ListView(
+          child: ListView.separated(
+            itemCount: items.length,
+            padding: const EdgeInsets.all(30),
             // Important: Remove any padding from the ListView.
-            padding: EdgeInsets.zero,
-            children: [
-              ListTile(
-                title: const Text('AIRPORT-DIAGRAM'),
+            itemBuilder: (context, index) {
+              return ListTile(
+                title: Text(items[index].toString()),
                 onTap: () {
                   setState(() {
-                    Storage().currentPlate = "AIRPORT-DIAGRAM";
+                    Storage().currentPlate = items[index].toString();
                     Storage().loadPlate();
                   });
                   Navigator.pop(context);
                 },
-              ),
-              ListTile(
-                title: const Text('RNAV-GPS-RWY-09'),
-                onTap: () {
-                  setState(() {
-                    Storage().currentPlate = "RNAV-GPS-RWY-09";
-                    Storage().loadPlate();
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ],
+              );
+            },
+            separatorBuilder: (context, index) {
+              return const Divider();
+            },
           ),
         ),
         body: Stack(
@@ -84,8 +97,8 @@ class PlateScreenState extends State<PlateScreen> {
             ),
           ]
         ),
-    );
-  }
+      );
+    }
 }
 
 class _MapPainter extends CustomPainter {
