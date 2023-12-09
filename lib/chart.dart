@@ -1,6 +1,5 @@
 
 // Each chart in a list, color gray mean not downloaded, green means downloaded and current, red means downloaded and expired
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 

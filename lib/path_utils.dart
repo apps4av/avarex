@@ -41,6 +41,7 @@ class PathUtils {
     for (FileSystemEntity en in entities) {
       ret.add(basenameWithoutExtension(en.path));
     }
+    ret.sort();
     return(ret);
   }
 

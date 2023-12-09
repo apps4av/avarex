@@ -1,8 +1,8 @@
 import 'package:avaremp/csup_screen.dart';
 import 'package:avaremp/plate_screen.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';
-import 'csup_screen.dart';
 import 'draw_canvas.dart';
 import 'find_screen.dart';
 
@@ -16,7 +16,6 @@ class MainScreen extends StatefulWidget {
 class MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0; // for various tab screens
   final List<String> _charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
-  String _chartSelectedValue = ChartCategory.sectional;
 
   // define tabs here
   static final List<Widget> _widgetOptions = <Widget>[
@@ -39,7 +38,7 @@ class MainScreenState extends State<MainScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
           DropdownButton<String>( // chart selection
-            value: _chartSelectedValue,
+            value: Storage().settings.getChartType(),
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
             items: _charts.map((String item) {
               return DropdownMenuItem<String>(
@@ -49,7 +48,7 @@ class MainScreenState extends State<MainScreen> {
             }).toList(),
             onChanged: (val) {
               setState(() {
-                _chartSelectedValue = val ?? _charts[0];
+                Storage().settings.setChartType(val ?? _charts[0]);
               });
             },
           ),

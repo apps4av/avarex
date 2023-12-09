@@ -21,14 +21,10 @@ class PlateScreenState extends State<PlateScreen> {
     return FutureBuilder(
         future: PathUtils.getPlateNames(Storage().currentPlateAirport),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return _makeContent(snapshot.data);
-          }
           return _makeContent(snapshot.data);
         }
     );
   }
-
 
   Widget _makeContent(List<String>? items) {
 
@@ -36,10 +32,38 @@ class PlateScreenState extends State<PlateScreen> {
       return Container();
     }
 
+    // on change of airport, reload first item of the new airport
+    if(Storage().lastPlateAirport != Storage().currentPlateAirport) {
+      Future re() async {
+        Storage().currentPlate = items[0].toString();
+        await Storage().loadPlate();
+        _counter.notifyListeners();
+        Storage().lastPlateAirport = Storage().currentPlateAirport;
+      }
+      re();
+    }
+
     return Scaffold(
        appBar: AppBar(
-          title: Text(Storage().currentPlate),
-        ),
+         title: Text(Storage().currentPlate),
+         actions: [
+           DropdownButton<String>( // airport selection
+             value: Storage().currentPlateAirport,
+             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+             items: ["BVY", "BOS"].map((String item) {
+               return DropdownMenuItem<String>(
+                 value: item,
+                 child: Text(item),
+               );
+             }).toList(),
+             onChanged: (val) {
+               setState(() {
+                 Storage().currentPlateAirport = val ?? "BVY";
+               });
+             },
+           ),
+         ],
+       ),
         drawer: Drawer(
           // Add a ListView to the drawer. This ensures the user can scroll
           // through the options in the drawer if there isn't enough vertical
@@ -134,7 +158,6 @@ class _MapPainter extends CustomPainter {
       canvas.save();
       canvas.scale(fac);
       canvas.drawImage(image, offset, _paint);
-      canvas.drawCircle(Offset(image.width / 2, image.height / 2), 100, _paint);
       canvas.restore();
     }
 

@@ -6,25 +6,56 @@ import 'dart:ui' as ui;
 import 'package:avaremp/path_utils.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+
+import 'app_settings.dart';
+import 'db_general.dart';
+import 'gps.dart';
 
 class Storage {
-  static final Storage _singleton = Storage._internal();
-  Storage._internal();
+  static final Storage _instance = Storage._internal();
 
   factory Storage() {
-    return _singleton;
+    return _instance;
   }
+
+  Storage._internal();
+
+  Future<void> init() async {
+    DbGeneral.set(); // set database platform
+    WidgetsFlutterBinding.ensureInitialized();
+    await WakelockPlus.enable(); // keep screen on
+    await Gps.checkPermissions();
+    await _settings.initSettings();
+  }
+
+  final AppSettings _settings = AppSettings();
+
+  AppSettings get settings => _settings;
 
   ui.Image? _imagePlate;
   final TransformationController _plateTransformationController = TransformationController();
   Map<String, IfdTag>? _exifPlate;
   String _currentPlate = "";
   String _currentPlateAirport = "BVY";
+  String _lastPlateAirport = "";
+
+  set lastPlateAirport(String value) {
+    _lastPlateAirport = value;
+  }
+  String get lastPlateAirport => _lastPlateAirport;
 
   ui.Image? _imageCSup;
   final TransformationController _csupTransformationController = TransformationController();
   String _currentCSup = "";
   String _currentCSupAirport = "BVY";
+  String _lastCSupAirport = "";
+
+  String get lastCSupAirport => _lastCSupAirport;
+
+  set lastCSupAirport(String value) {
+    _lastCSupAirport = value;
+  }
 
   Future<void> loadPlate() async {
     String path = await PathUtils.getPlateFilePath(_currentPlateAirport, _currentPlate);
@@ -63,11 +94,12 @@ class Storage {
   String get currentPlate => _currentPlate;
   String get currentPlateAirport => _currentPlateAirport;
 
-    set currentPlate(String value) {
+  set currentPlate(String value) {
     _currentPlate = value;
   }
 
   set currentPlateAirport(String value) {
+    _lastPlateAirport = _currentPlateAirport;
     _currentPlateAirport = value;
   }
 
@@ -84,6 +116,5 @@ class Storage {
   set currentCSupAirport(String value) {
     _currentCSupAirport = value;
   }
-
 
 }

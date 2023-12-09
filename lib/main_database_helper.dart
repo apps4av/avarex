@@ -33,9 +33,9 @@ class MainDatabaseHelper {
     if (db != null) {
       maps = await db.rawQuery(
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-        "      select LocationID, FacilityName, Type from airports where LocationID like \"$match%\" "
-        "UNION select LocationID, FacilityName, Type from nav      where LocationID like \"$match%\" "
-        "UNION select LocationID, FacilityName, Type from fix      where LocationID like \"$match%\" "
+        "      select LocationID, FacilityName, Type from airports where LocationID like '$match%' "
+        "UNION select LocationID, FacilityName, Type from nav      where LocationID like '$match%' "
+        "UNION select LocationID, FacilityName, Type from fix      where LocationID like '$match%' "
         "ORDER BY LocationID ASC"
       );
     }
@@ -52,7 +52,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select File from afd where LocationID = \"$airport\"");
+      maps = await db.rawQuery("select File from afd where LocationID = '$airport'");
     }
     return List.generate(maps.length, (i) {
       return maps[i]['File'] as String;

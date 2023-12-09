@@ -22,9 +22,6 @@ class CSupScreenState extends State<CSupScreen> {
     return FutureBuilder(
         future: MainDatabaseHelper.db.findCsup(Storage().currentCSupAirport),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return _makeContent(snapshot.data);
-          }
           return _makeContent(snapshot.data);
         }
     );
@@ -37,9 +34,37 @@ class CSupScreenState extends State<CSupScreen> {
       return Container();
     }
 
+    // on change of airport, reload first item of the new airport
+    if(Storage().lastCSupAirport != Storage().currentCSupAirport) {
+      Future re() async {
+        Storage().currentCSup = items[0].toString();
+        await Storage().loadCSup();
+        _counter.notifyListeners();
+        Storage().lastCSupAirport = Storage().currentCSupAirport;
+      }
+      re();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(Storage().currentCSup),
+        actions: [
+          DropdownButton<String>( // airport selection
+            value: Storage().currentCSupAirport,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            items: ["BVY", "MA6", "OWD"].map((String item) {
+              return DropdownMenuItem<String>(
+                value: item,
+                child: Text(item),
+              );
+            }).toList(),
+            onChanged: (val) {
+              setState(() {
+                Storage().currentCSupAirport = val ?? "BVY";
+              });
+            },
+          ),
+        ],
       ),
       drawer: Drawer(
         // Add a ListView to the drawer. This ensures the user can scroll

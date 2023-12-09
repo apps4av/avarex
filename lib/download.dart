@@ -83,12 +83,12 @@ class Download {
         continue; // try all
       }
       if(_cancelDownloadAndDelete) {
-        callback!(chart, -1);
+        callback(chart, -1);
         return;
       }
       progress = index / s.length;
       if (progress - lastProgress >= 0.01) { // 1% change min
-        callback!(chart, progress);
+        callback(chart, progress);
         lastProgress = progress;
       }
     }
@@ -99,7 +99,7 @@ class Download {
     catch(e) {
     }
 
-    callback!(chart, 1); // done
+    callback(chart, 1); // done
   }
 
   Future<void> download(Chart chart, Function(Chart, double)? callback) async {
@@ -116,7 +116,7 @@ class Download {
       _currentCycle = await http.read(Uri.parse("$_server/version.php"));
     }
     catch(e) {
-      callback!(chart, -1); // cycle not known
+      callback(chart, -1); // cycle not known
       return;
     }
 
@@ -131,7 +131,7 @@ class Download {
       if (total != -1) {
         double progress = received / total * 0.5; // 0 to 0.5 for download
         if (progress - lastProgress >= 0.01) { // 1% change min
-          callback!(chart, progress);
+          callback(chart, progress);
           lastProgress = progress;
         }
       }
@@ -155,9 +155,9 @@ class Download {
       // response.data is List<int> type
       raf.writeFromSync(response.data);
       await raf.close();
-      callback!(chart, 0.5); // unzip start
+      callback(chart, 0.5); // unzip start
     } catch (e) {
-      callback!(chart, -1);
+      callback(chart, -1);
     }
 
     try {
@@ -167,18 +167,18 @@ class Download {
           onExtracting: (zipEntry, pg) {
             double progress = 0.5 + (pg / 200); // 0.50 to 1 for unzip
             if (progress - lastProgress >= 0.01) {
-              callback!(chart, progress);
+              callback(chart, progress);
               lastProgress = progress;
             }
             if(_cancelDownloadAndDelete) {
-              callback!(chart, -1);
+              callback(chart, -1);
               return ZipFileOperation.cancel;
             }
             return ZipFileOperation.includeItem;
           });
-      callback!(chart, 1); // done
+      callback(chart, 1); // done
     } catch (e) {
-      callback!(chart, -1);
+      callback(chart, -1);
     }
 
     // clean up
