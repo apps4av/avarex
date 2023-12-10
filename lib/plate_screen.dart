@@ -162,6 +162,7 @@ class _MapPainter extends CustomPainter {
 
       canvas.save();
       canvas.scale(fac);
+      canvas.translate(0, (ih - h) / 2);
       canvas.drawImage(image, offset, _paint);
       canvas.restore();
     }

@@ -46,7 +46,7 @@ class CSupScreenState extends State<CSupScreen> {
     }
 
     Future re() async {
-      await Storage().loadPlate();
+      await Storage().loadCSup();
       Storage().lastCSupAirport = Storage().currentCSupAirport;
     }
     re().whenComplete(() => _counter.notifyListeners()); // redraw when loaded
@@ -164,6 +164,7 @@ class _MapPainter extends CustomPainter {
 
       canvas.save();
       canvas.scale(fac);
+      canvas.translate(0, (ih - h) / 2);
       canvas.drawImage(image, offset, _paint);
       canvas.restore();
     }

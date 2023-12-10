@@ -335,6 +335,7 @@ class DownloadListState extends State<DownloadList> {
       _absentColor,
       [
         Chart('New York', _absentColor, _absentIcon, 'NewYork', _stateAbsentNone, "", 0, true, Download()),
+        Chart('New York256', _absentColor, _absentIcon, 'NY', _stateAbsentNone, "", 0, true, Download()),
       ],
     ),
     ChartCategory(

@@ -15,19 +15,19 @@ class DrawCanvasState extends State<DrawCanvas> {
     return FlutterMap(
       options: const MapOptions(
         initialCenter: LatLng(42, -71),
-        initialZoom: 0,
+        initialZoom: 10,
+        maxZoom: 11,
+        minZoom: 0,
+        backgroundColor: Colors.black
       ),
       children: [
         TileLayer(
-          tileSize:512,
-          minZoom: 0,
-          maxZoom: 10,
+          tms: true,
+          tileSize:256,
           tileProvider: FileTileProvider(),
-          urlTemplate: '/data/user/0/com.apps4av.avaremp/app_flutter/tiles/0/{z}/{x}/{y}.webp',
+          urlTemplate: '/data/user/0/com.apps4av.avaremp/app_flutter/{z}/{x}/{y}.webp',
           userAgentPackageName: 'com.apps4av.avaremp',
-
         ),
-
       ],
     );
   }

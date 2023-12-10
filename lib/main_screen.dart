@@ -33,6 +33,7 @@ class MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
         actions: [
@@ -54,7 +55,7 @@ class MainScreenState extends State<MainScreen> {
           ),
           IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: FindScreen()); },),
         ],
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: const Color.fromARGB(0xBB, 0x44, 0x8a, 0xff),
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
