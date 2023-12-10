@@ -21,7 +21,12 @@ class PlateScreenState extends State<PlateScreen> {
     return FutureBuilder(
         future: PathUtils.getPlateNames(Storage().currentPlateAirport),
         builder: (context, snapshot) {
-          return _makeContent(snapshot.data);
+          if(snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent([""]);
+          }
         }
     );
   }
@@ -32,63 +37,19 @@ class PlateScreenState extends State<PlateScreen> {
       return Container();
     }
 
-    // on change of airport, reload first item of the new airport
-    if(Storage().lastPlateAirport != Storage().currentPlateAirport) {
-      Future re() async {
-        Storage().currentPlate = items[0].toString();
-        await Storage().loadPlate();
-        _counter.notifyListeners();
-        Storage().lastPlateAirport = Storage().currentPlateAirport;
-      }
-      re();
+    if((Storage().lastPlateAirport != Storage().currentPlateAirport)) {
+      Storage().currentPlate = items[0]; // new airport, change to plate 0
     }
 
+    Future re() async {
+      await Storage().loadPlate();
+      Storage().lastPlateAirport = Storage().currentPlateAirport;
+    }
+    re().whenComplete(() => _counter.notifyListeners()); // redraw when loaded
+
+    // on change of airport, reload first item of the new airport
+
     return Scaffold(
-       appBar: AppBar(
-         title: Text(Storage().currentPlate),
-         actions: [
-           DropdownButton<String>( // airport selection
-             value: Storage().currentPlateAirport,
-             padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-             items: ["BVY", "BOS"].map((String item) {
-               return DropdownMenuItem<String>(
-                 value: item,
-                 child: Text(item),
-               );
-             }).toList(),
-             onChanged: (val) {
-               setState(() {
-                 Storage().currentPlateAirport = val ?? "BVY";
-               });
-             },
-           ),
-         ],
-       ),
-        drawer: Drawer(
-          // Add a ListView to the drawer. This ensures the user can scroll
-          // through the options in the drawer if there isn't enough vertical
-          // space to fit everything.
-          child: ListView.separated(
-            itemCount: items.length,
-            padding: const EdgeInsets.all(30),
-            // Important: Remove any padding from the ListView.
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text(items[index].toString()),
-                onTap: () {
-                  setState(() {
-                    Storage().currentPlate = items[index].toString();
-                    Storage().loadPlate();
-                  });
-                  Navigator.pop(context);
-                },
-              );
-            },
-            separatorBuilder: (context, index) {
-              return const Divider();
-            },
-          ),
-        ),
         body: Stack(
           children: [
             InteractiveViewer(
@@ -103,10 +64,54 @@ class PlateScreenState extends State<PlateScreen> {
                 )
             ),
             Positioned(
+                child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: DropdownButton<String>(
+                      iconEnabledColor: Colors.blueAccent,
+                      underline: Container(),
+                      padding: const EdgeInsets.all(5),
+                      value: Storage().currentPlateAirport,
+                      items: ["BVY", "MA6", "OWD", "SBA"].map((String item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item, style: const TextStyle(color: Colors.blueAccent),),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          Storage().currentPlateAirport = val ?? items[0];
+                        });
+                      },
+                    )
+                )
+            ),
+            Positioned(
+                child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: items[0].isEmpty ? Container() : DropdownButton<String>( // airport selection
+                      padding: const EdgeInsets.all(5),
+                      iconEnabledColor: Colors.blueAccent,
+                      underline: Container(),
+                      value: Storage().currentPlate,
+                      items: items.map((String item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item, style: const TextStyle(color: Colors.blueAccent),),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          Storage().currentPlate = val ?? items[0];
+                        });
+                      },
+                    )
+                )
+            ),
+            Positioned(
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
                   child: IconButton(onPressed: () {
                     setState(() {
                       Storage().plateTransformationController.value.setEntry(0, 0, 1);

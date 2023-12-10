@@ -22,7 +22,12 @@ class CSupScreenState extends State<CSupScreen> {
     return FutureBuilder(
         future: MainDatabaseHelper.db.findCsup(Storage().currentCSupAirport),
         builder: (context, snapshot) {
-          return _makeContent(snapshot.data);
+          if(snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent([""]);
+          }
         }
     );
   }
@@ -34,63 +39,19 @@ class CSupScreenState extends State<CSupScreen> {
       return Container();
     }
 
+
     // on change of airport, reload first item of the new airport
     if(Storage().lastCSupAirport != Storage().currentCSupAirport) {
-      Future re() async {
-        Storage().currentCSup = items[0].toString();
-        await Storage().loadCSup();
-        _counter.notifyListeners();
-        Storage().lastCSupAirport = Storage().currentCSupAirport;
-      }
-      re();
+      Storage().currentCSup = items[0];
     }
 
+    Future re() async {
+      await Storage().loadPlate();
+      Storage().lastCSupAirport = Storage().currentCSupAirport;
+    }
+    re().whenComplete(() => _counter.notifyListeners()); // redraw when loaded
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(Storage().currentCSup),
-        actions: [
-          DropdownButton<String>( // airport selection
-            value: Storage().currentCSupAirport,
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-            items: ["BVY", "MA6", "OWD"].map((String item) {
-              return DropdownMenuItem<String>(
-                value: item,
-                child: Text(item),
-              );
-            }).toList(),
-            onChanged: (val) {
-              setState(() {
-                Storage().currentCSupAirport = val ?? "BVY";
-              });
-            },
-          ),
-        ],
-      ),
-      drawer: Drawer(
-        // Add a ListView to the drawer. This ensures the user can scroll
-        // through the options in the drawer if there isn't enough vertical
-        // space to fit everything.
-        child: ListView.separated(
-          itemCount: items.length,
-          padding: const EdgeInsets.all(30),
-          // Important: Remove any padding from the ListView.
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text(items[index].toString()),
-              onTap: () {
-                setState(() {
-                  Storage().currentCSup = items[index].toString();
-                  Storage().loadCSup();
-                });
-                Navigator.pop(context);
-              },
-            );
-          },
-          separatorBuilder: (context, index) {
-            return const Divider();
-          },
-        ),
-      ),
       body: Stack(
           children: [
             InteractiveViewer(
@@ -105,10 +66,54 @@ class CSupScreenState extends State<CSupScreen> {
                 )
             ),
             Positioned(
+                child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: DropdownButton<String>(
+                      iconEnabledColor: Colors.blueAccent,
+                      underline: Container(),
+                      padding: const EdgeInsets.all(5),
+                      value: Storage().currentCSupAirport,
+                      items: ["BVY", "MA6", "OWD", "SBA"].map((String item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item, style: const TextStyle(color: Colors.blueAccent),),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          Storage().currentCSupAirport = val ?? items[0];
+                        });
+                      },
+                    )
+                )
+            ),
+            Positioned(
+                child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: items[0].isEmpty ? Container() : DropdownButton<String>( // airport selection
+                      iconEnabledColor: Colors.blueAccent,
+                      underline: Container(),
+                      padding: const EdgeInsets.all(5),
+                      value: Storage().currentCSup,
+                      items: items.map((String item) {
+                        return DropdownMenuItem<String>(
+                          value: item,
+                          child: Text(item, style: const TextStyle(color: Colors.blueAccent),),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          Storage().currentCSup = val ?? items[0];
+                        });
+                      },
+                    )
+                )
+            ),
+            Positioned(
               child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
                     child: IconButton(onPressed: () {
                       setState(() {
                         Storage().csupTransformationController.value.setEntry(0, 0, 1);

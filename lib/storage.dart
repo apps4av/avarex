@@ -26,6 +26,7 @@ class Storage {
     WidgetsFlutterBinding.ensureInitialized();
     await WakelockPlus.enable(); // keep screen on
     await Gps.checkPermissions();
+    Gps.getUpdates();
     await _settings.initSettings();
   }
 

@@ -1,3 +1,5 @@
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -37,6 +39,11 @@ class FindScreen extends SearchDelegate {
     );
   }
 
+  void addRecent(FindDestination d) {
+    Recent r = Recent(d.id, d.type, d.name);
+    UserDatabaseHelper.db.addRecent(r);
+  }
+
   Widget _makeContent(List<FindDestination>? items, bool searching) {
     if(null == items) {
       if(searching) {
@@ -57,8 +64,11 @@ class FindScreen extends SearchDelegate {
                   title: Text(items[index].id),
                   subtitle: Text("${items[index].name} - ${items[index].type}"),
                   leading: _TypeIcons.getIcon(items[index].type),
-                  onTap: () {},
-                  onLongPress: () {},
+                  onTap: () {
+                    addRecent(items[index]);
+                  },
+                  onLongPress: () {
+                  },
                 );
               },
               separatorBuilder: (context, index) {
