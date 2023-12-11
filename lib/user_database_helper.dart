@@ -45,13 +45,17 @@ class UserDatabaseHelper {
     }
   }
 
-  Future<void> getRecent(Recent recent) async {
+  Future<List<String>> getRecent() async {
+    List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      await db.insert("recent", recent.toMap());
+      maps = await db.rawQuery("select * from recent");
+      return List.generate(maps.length, (i) {
+        return maps[i]['wid'] as String;
+      });
     }
+    return [];
   }
-
 }
 
 class Recent {
@@ -69,5 +73,11 @@ class Recent {
       "name": name
     };
     return map;
+  }
+
+  void fromMap(Map<String, Object?> map) {
+    wid = map["wid"] as String;
+    type = map[""] as String;
+    name = map["name"] as String;
   }
 }

@@ -33,15 +33,19 @@ class PathUtils {
 
   static Future<List<String>> getPlateNames(String airport) async {
     List<String> ret = [];
-    String dir =  await getDownloadDirPath();
-    String plates = path.join(dir, "plates");
-    String id = path.join(plates, airport);
-    final d = Directory(id);
-    final List<FileSystemEntity> entities = await d.list().toList();
-    for (FileSystemEntity en in entities) {
-      ret.add(basenameWithoutExtension(en.path));
+    try {
+      String dir = await getDownloadDirPath();
+      String plates = path.join(dir, "plates");
+      String id = path.join(plates, airport);
+      final d = Directory(id);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        ret.add(basenameWithoutExtension(en.path));
+      }
     }
-    ret.sort();
+    catch(e) {
+      ret = [];
+    }
     return(ret);
   }
 

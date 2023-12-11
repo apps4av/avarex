@@ -92,12 +92,7 @@ class Download {
         lastProgress = progress;
       }
     }
-    // delete the main file
-    try {
-      await File(file).delete();
-    }
-    catch(e) {
-    }
+    await _deleteZipFile(File(file));
 
     callback(chart, 1); // done
   }
