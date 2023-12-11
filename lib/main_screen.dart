@@ -34,6 +34,7 @@ class MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: true,
+      extendBody: true,
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
         actions: [
@@ -55,15 +56,15 @@ class MainScreenState extends State<MainScreen> {
           ),
           IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: FindScreen()); },),
         ],
-        backgroundColor: const Color.fromARGB(0xBB, 0x44, 0x8a, 0xff),
+        backgroundColor: const Color.fromARGB(0xbb, 0x44, 0x8a, 0xff),
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
+
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.grey,
+        backgroundColor: Color.fromARGB(0xbb, 0x44, 0x8a, 0xff),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.map),

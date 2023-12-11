@@ -9,7 +9,12 @@ class DrawCanvas extends StatefulWidget {
   State<StatefulWidget> createState() => DrawCanvasState();
 }
 
+void _handlePress(TapPosition tapPosition, LatLng point) {
+  print(point);
+}
+
 class DrawCanvasState extends State<DrawCanvas> {
+
   @override
   Widget build(BuildContext context) {
     return FlutterMap(
@@ -18,7 +23,8 @@ class DrawCanvasState extends State<DrawCanvas> {
         initialZoom: 10,
         maxZoom: 11,
         minZoom: 0,
-        backgroundColor: Colors.black
+        backgroundColor: Colors.black,
+        onLongPress: _handlePress,
       ),
       children: [
         TileLayer(
@@ -28,10 +34,20 @@ class DrawCanvasState extends State<DrawCanvas> {
           urlTemplate: '/data/user/0/com.apps4av.avaremp/app_flutter/{z}/{x}/{y}.webp',
           userAgentPackageName: 'com.apps4av.avaremp',
         ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: LatLng(42, -71),
+              width: 80,
+              height: 80,
+              child: FlutterLogo()
+              ),
+            ]),
       ],
     );
   }
 // implements a drawing screen with a center reset button.
+
 }
 
 

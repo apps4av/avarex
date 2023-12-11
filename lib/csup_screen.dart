@@ -35,10 +35,13 @@ class CSupScreenState extends State<CSupScreen> {
 
   Widget _makeContent(List<String>? items) {
 
+    final double bottom = MediaQuery.of(context).padding.bottom;
+    final double? top = Scaffold.of(context).appBarMaxHeight;
+    Storage().setScreenDims(top, bottom);
+
     if(null == items) {
       return Container();
     }
-
 
     // on change of airport, reload first item of the new airport
     if(Storage().lastCSupAirport != Storage().currentCSupAirport) {
@@ -67,11 +70,11 @@ class CSupScreenState extends State<CSupScreen> {
             ),
             Positioned(
                 child: Align(
-                    alignment: Alignment.bottomLeft,
+                    alignment: Alignment.bottomRight,
                     child: DropdownButton<String>(
                       iconEnabledColor: Colors.blueAccent,
                       underline: Container(),
-                      padding: const EdgeInsets.all(5),
+                      padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom),
                       value: Storage().currentCSupAirport,
                       items: ["BVY", "MA6", "OWD", "SBA"].map((String item) {
                         return DropdownMenuItem<String>(
@@ -89,11 +92,11 @@ class CSupScreenState extends State<CSupScreen> {
             ),
             Positioned(
                 child: Align(
-                    alignment: Alignment.bottomCenter,
+                    alignment: Alignment.bottomLeft,
                     child: items[0].isEmpty ? Container() : DropdownButton<String>( // airport selection
                       iconEnabledColor: Colors.blueAccent,
                       underline: Container(),
-                      padding: const EdgeInsets.all(5),
+                      padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom),
                       value: Storage().currentCSup,
                       items: items.map((String item) {
                         return DropdownMenuItem<String>(
@@ -113,7 +116,7 @@ class CSupScreenState extends State<CSupScreen> {
               child: Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
+                    padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom + 40),
                     child: IconButton(onPressed: () {
                       setState(() {
                         Storage().csupTransformationController.value.setEntry(0, 0, 1);
@@ -163,8 +166,8 @@ class _MapPainter extends CustomPainter {
       }
 
       canvas.save();
+      canvas.translate(0, Storage().screenTop);
       canvas.scale(fac);
-      canvas.translate(0, (ih - h) / 2);
       canvas.drawImage(image, offset, _paint);
       canvas.restore();
     }

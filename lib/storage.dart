@@ -118,4 +118,19 @@ class Storage {
     _currentCSupAirport = value;
   }
 
+  double _screenTop = 0;
+
+  double get screenTop => _screenTop;
+  double _screenBottom = 0;
+  void setScreenDims(double? top, double bottom) {
+    if(null == top) {
+      _screenTop = 0;
+    }
+    else {
+      _screenTop = top;
+    }
+    _screenBottom = bottom;
+  }
+
+  double get screenBottom => _screenBottom;
 }

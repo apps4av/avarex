@@ -33,6 +33,10 @@ class PlateScreenState extends State<PlateScreen> {
 
   Widget _makeContent(List<String>? items) {
 
+    final double bottom = MediaQuery.of(context).padding.bottom;
+    final double? top = Scaffold.of(context).appBarMaxHeight;
+    Storage().setScreenDims(top, bottom);
+
     if(null == items) {
       return Container();
     }
@@ -65,11 +69,11 @@ class PlateScreenState extends State<PlateScreen> {
             ),
             Positioned(
                 child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: DropdownButton<String>(
+                    alignment: Alignment.bottomRight,
+                    child: Stack(children:[DropdownButton<String>(
                       iconEnabledColor: Colors.blueAccent,
                       underline: Container(),
-                      padding: const EdgeInsets.all(5),
+                      padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom),
                       value: Storage().currentPlateAirport,
                       items: ["BVY", "MA6", "OWD", "SBA"].map((String item) {
                         return DropdownMenuItem<String>(
@@ -83,13 +87,14 @@ class PlateScreenState extends State<PlateScreen> {
                         });
                       },
                     )
+                ])
                 )
             ),
             Positioned(
                 child: Align(
-                    alignment: Alignment.bottomCenter,
+                    alignment: Alignment.bottomLeft,
                     child: items[0].isEmpty ? Container() : DropdownButton<String>( // airport selection
-                      padding: const EdgeInsets.all(5),
+                      padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom),
                       iconEnabledColor: Colors.blueAccent,
                       underline: Container(),
                       value: Storage().currentPlate,
@@ -111,7 +116,7 @@ class PlateScreenState extends State<PlateScreen> {
               child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 60),
+                  padding: EdgeInsets.fromLTRB(0, 0, 0, Storage().screenBottom + 40),
                   child: IconButton(onPressed: () {
                     setState(() {
                       Storage().plateTransformationController.value.setEntry(0, 0, 1);
@@ -161,8 +166,8 @@ class _MapPainter extends CustomPainter {
       }
 
       canvas.save();
+      canvas.translate(0, Storage().screenTop);
       canvas.scale(fac);
-      canvas.translate(0, (ih - h) / 2);
       canvas.drawImage(image, offset, _paint);
       canvas.restore();
     }
