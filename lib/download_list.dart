@@ -60,7 +60,7 @@ class DownloadListState extends State<DownloadList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Theme.of(context).dialogBackgroundColor,
         title: const Text("Download"),
         actions: [
           IconButton(icon: Icon(MdiIcons.refresh), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => {_start()},),

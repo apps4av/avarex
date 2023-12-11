@@ -56,7 +56,7 @@ class MainScreenState extends State<MainScreen> {
           ),
           IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: FindScreen()); },),
         ],
-        backgroundColor: const Color.fromARGB(0xbb, 0x44, 0x8a, 0xff),
+        backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
@@ -64,7 +64,7 @@ class MainScreenState extends State<MainScreen> {
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Color.fromARGB(0xbb, 0x44, 0x8a, 0xff),
+        backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.map),

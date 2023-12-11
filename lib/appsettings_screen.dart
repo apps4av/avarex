@@ -9,7 +9,7 @@ class AppSettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
           title: const Text("Settings"),
-          backgroundColor: Colors.blueAccent,
+          backgroundColor: Theme.of(context).dialogBackgroundColor,
       ),
       body: SafeArea(
         child:ListView(
