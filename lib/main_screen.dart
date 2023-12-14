@@ -1,7 +1,5 @@
 import 'package:avaremp/plate_screen.dart';
-import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
-import 'chart.dart';
 import 'draw_canvas.dart';
 import 'find_screen.dart';
 
@@ -19,6 +17,7 @@ class MainScreenState extends State<MainScreen> {
   static final List<Widget> _widgetOptions = <Widget>[
     const DrawCanvas(),
     const PlateScreen(),
+    const FindScreen(),
   ];
 
   void mOnItemTapped(int index) {
@@ -33,10 +32,9 @@ class MainScreenState extends State<MainScreen> {
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
         actions: [
-          IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
-          IconButton(icon: const Icon(Icons.search), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () { showSearch(context: context, delegate: FindScreen()); },),
+          IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
+          IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
         ],
         backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
       ),
@@ -55,6 +53,10 @@ class MainScreenState extends State<MainScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.book),
             label: 'PLATE',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'FIND',
           ),
         ],
         currentIndex: _selectedIndex,

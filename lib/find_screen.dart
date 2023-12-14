@@ -5,30 +5,22 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 
 import 'main_database_helper.dart';
 
-class FindScreen extends SearchDelegate {
+class FindScreen extends StatefulWidget {
+  const FindScreen({super.key});
+  @override
+  State<StatefulWidget> createState() => FindScreenState();
+}
+
+class FindScreenState extends State<FindScreen> {
 
   List<FindDestination>? _curItems;
 
   @override
-  List<Widget>? buildActions(BuildContext context) => [];
-
-  @override
-  Widget? buildLeading(BuildContext context) => IconButton(onPressed: () {close(context, 0);}, icon: const Icon(Icons.arrow_back_outlined));
-
-  @override
-  Widget buildResults(BuildContext context) => Container();
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-
-    // at least 1 letter before making a query
-    if(query.isEmpty) {
-      return Container();
-    }
+  Widget build(BuildContext context) {
 
     bool searching = true;
     return FutureBuilder(
-      future: MainDatabaseHelper.db.findDestinations(query),
+      future: MainDatabaseHelper.db.findDestinations("BOS"),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _curItems = snapshot.data;
@@ -74,7 +66,9 @@ class FindScreen extends SearchDelegate {
               separatorBuilder: (context, index) {
                 return const Divider();
               },
-            )
+            ),
+            Positioned(child: Text("sddjwidiw")),
+
           ]
         )
       );
