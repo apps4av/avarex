@@ -41,8 +41,8 @@ class MainDatabaseHelper {
     }
     return List.generate(maps.length, (i) {
       return FindDestination(
-          id: maps[i]['LocationID'] as String,
-          name: maps[i]['FacilityName'] as String,
+          locationID: maps[i]['LocationID'] as String,
+          facilityName: maps[i]['FacilityName'] as String,
           type: maps[i]['Type'] as String
       );
     });
@@ -62,13 +62,13 @@ class MainDatabaseHelper {
 }
 
 class FindDestination {
-  final String id;
+  final String locationID;
   final String type;
-  final String name;
+  final String facilityName;
 
   const FindDestination({
-    required this.id,
-    required this.name,
+    required this.locationID,
     required this.type,
+    required this.facilityName,
   });
 }

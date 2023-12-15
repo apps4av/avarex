@@ -96,7 +96,11 @@ class Storage {
 
   double get screenTop => _screenTop;
   double _screenBottom = 0;
-  void setScreenDims(double? top, double bottom) {
+  void setScreenDims(BuildContext context) {
+
+    final double bottom = MediaQuery.of(context).padding.bottom;
+    final double? top = Scaffold.of(context).appBarMaxHeight;
+
     if(null == top) {
       _screenTop = 0;
     }
@@ -115,4 +119,5 @@ class Storage {
     _plateTransformationController.value.setEntry(0, 3, 0);
     _plateTransformationController.value.setEntry(1, 3, 0);
   }
+
 }

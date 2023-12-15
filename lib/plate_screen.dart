@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/custom_widgets.dart';
@@ -25,7 +24,8 @@ class PlatesFuture {
 
   Future<void> _getAll() async {
 
-    _airports = await UserDatabaseHelper.db.getRecent();
+    // get location ID only
+    _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(Storage().currentPlateAirport.isEmpty) {
       if(null != _airports && _airports!.isNotEmpty) {
@@ -65,6 +65,9 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    Storage().setScreenDims(context);
+
     return FutureBuilder(
         future: PlatesFuture().getAll(),
         builder: (context, snapshot) {
@@ -79,10 +82,6 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
   Widget _makeContent(PlatesFuture? future) {
-
-    final double bottom = MediaQuery.of(context).padding.bottom;
-    final double? top = Scaffold.of(context).appBarMaxHeight;
-    Storage().setScreenDims(top, bottom);
 
     if(future == null) {
       return Container(); // hopeless of still not ready

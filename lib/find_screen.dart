@@ -14,13 +14,17 @@ class FindScreen extends StatefulWidget {
 class FindScreenState extends State<FindScreen> {
 
   List<FindDestination>? _curItems;
+  String _searchText = "";
+
 
   @override
   Widget build(BuildContext context) {
 
+    Storage().setScreenDims(context);
+
     bool searching = true;
     return FutureBuilder(
-      future: MainDatabaseHelper.db.findDestinations("BOS"),
+      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecentAirports() : MainDatabaseHelper.db.findDestinations(_searchText), // find recents when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _curItems = snapshot.data;
@@ -32,44 +36,58 @@ class FindScreenState extends State<FindScreen> {
   }
 
   void addRecent(FindDestination d) {
-    Recent r = Recent(d.id, d.type, d.name);
-    UserDatabaseHelper.db.addRecent(r);
+    UserDatabaseHelper.db.addRecent(d);
   }
 
   Widget _makeContent(List<FindDestination>? items, bool searching) {
-    if(null == items) {
-      if(searching) {
-        return const Center(child:CircularProgressIndicator());
-      }
-      return Container();
-    }
+
     return
       Scaffold(
-        body: Stack(children:
-          [
-            searching ? const Center(child:CircularProgressIndicator()) : Container() , // show progress indicator when searching
-            ListView.separated(
-              itemCount: items.length,
-              padding: const EdgeInsets.all(30),
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(items[index].id),
-                  subtitle: Text("${items[index].name} - ${items[index].type}"),
-                  leading: _TypeIcons.getIcon(items[index].type),
-                  onTap: () {
-                    addRecent(items[index]);
-                  },
-                  onLongPress: () {
-                  },
-                );
-              },
-              separatorBuilder: (context, index) {
-                return const Divider();
-              },
-            ),
-            Positioned(child: Text("sddjwidiw")),
-
+        body: Container(
+          padding: EdgeInsets.fromLTRB(20, Storage().screenTop, 20, 0),
+          child : Stack(children: [
+            Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
+            Column (children: [
+              Expanded(
+                  flex: 1,
+                  child: Container(
+                    alignment: Alignment.bottomLeft,
+                    child: TextFormField(
+                      onChanged: (value) {
+                        setState(() {
+                          _searchText = value;
+                          searching = true;
+                        });
+                      },
+                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
+                    )
+                  )
+              ),
+              Expanded(
+                  flex: 10,
+                  child: null == items ? Container() : ListView.separated(
+                    itemCount: items.length,
+                    padding: const EdgeInsets.all(30),
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        title: Text(items[index].locationID),
+                        subtitle: Text("${items[index].facilityName} - ${items[index].type}"),
+                        leading: _TypeIcons.getIcon(items[index].type),
+                        onTap: () {
+                          addRecent(items[index]);
+                        },
+                        onLongPress: () {
+                        },
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return const Divider();
+                    },
+                  )),
+              ]
+            )
           ]
+          )
         )
       );
   }

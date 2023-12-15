@@ -23,6 +23,9 @@ class DrawCanvasState extends State<DrawCanvas> {
 
   @override
   Widget build(BuildContext context) {
+
+    Storage().setScreenDims(context);
+
     return Scaffold(
         body:
         Stack(
