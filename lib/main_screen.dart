@@ -1,6 +1,6 @@
 import 'package:avaremp/plate_screen.dart';
 import 'package:flutter/material.dart';
-import 'draw_canvas.dart';
+import 'map_screen.dart';
 import 'find_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -15,7 +15,7 @@ class MainScreenState extends State<MainScreen> {
 
   // define tabs here
   static final List<Widget> _widgetOptions = <Widget>[
-    const DrawCanvas(),
+    const MapScreen(),
     const PlateScreen(),
     const FindScreen(),
   ];

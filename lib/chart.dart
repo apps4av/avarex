@@ -76,12 +76,12 @@ class Chart {
 // Chart category like sectional, IFR, ...
 class ChartCategory {
 
-  static String sectional = "Sectional";
-  static String tac = "TAC";
-  static String ifrl = "IFR Low";
-  static String plates = "Plates";
-  static String databases = "Databases";
-  static String csup = "CSUP";
+  static const String sectional = "Sectional";
+  static const String tac = "TAC";
+  static const String ifrl = "IFR Low";
+  static const String plates = "Plates";
+  static const String databases = "Databases";
+  static const String csup = "CSUP";
 
   String _title;
   Color _color;
@@ -105,6 +105,31 @@ class ChartCategory {
   set charts(List<Chart> value) {
     _charts = value;
   }
+
+  static String chartTypeToIndex(String type) {
+    switch(type) {
+      case sectional:
+        return "0";
+      case tac:
+        return "1";
+      case ifrl:
+        return "2";
+    }
+    return "";
+  }
+
+  static double chartTypeToZoom(String type) {
+    switch(type) {
+      case sectional:
+        return 10;
+      case tac:
+        return 12;
+      case ifrl:
+        return 10;
+    }
+    return 5;
+  }
+
 }
 
 
