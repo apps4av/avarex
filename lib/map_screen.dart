@@ -2,9 +2,11 @@ import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'chart.dart';
+import 'gps.dart';
 
 
 class MapScreen extends StatefulWidget {
@@ -18,10 +20,21 @@ class MapScreenState extends State<MapScreen> {
 
   final List<String> _charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
   String _type = Storage().settings.getChartType();
-  final MapController _mapController = MapController();
   double _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
+  final MapController _controller = MapController();
 
   void _handlePress(TapPosition tapPosition, LatLng point) {
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    // save ptz when we switch out
+    Storage().settings.setZoom(_controller.camera.zoom);
+    Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
+    Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
+    Storage().settings.setRotation(_controller.camera.rotation);
+    _controller.dispose();
   }
 
   @override
@@ -31,9 +44,11 @@ class MapScreenState extends State<MapScreen> {
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
+    // start from known location
     MapOptions opts = MapOptions(
-      initialCenter: LatLng(42, -71),
-      initialZoom: _maxZoom,
+      initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
+      initialZoom: Storage().settings.getZoom(),
+      initialRotation: Storage().settings.getRotation(),
       maxZoom: _maxZoom,
       minZoom: 0,
       backgroundColor: Colors.black,
@@ -45,23 +60,21 @@ class MapScreenState extends State<MapScreen> {
         Stack(
             children: [
               FlutterMap(
-                mapController: _mapController,
+                mapController: _controller,
                 options: opts,
                 children: [
                   TileLayer(
                     tms: true,
                     tileProvider: FileTileProvider(),
-                    //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp',
-                    urlTemplate: '/data/user/0/com.apps4av.avaremp/app_flutter/tiles/$index/{z}/{x}/{y}.webp',
+                    //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
+                    urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
-                  const MarkerLayer(
+                  MarkerLayer(
                       markers: [
                         Marker(
-                            point: LatLng(42, -71),
-                            width: 80,
-                            height: 80,
-                            child: FlutterLogo()
+                            point: Storage().position  == null ? LatLng(0, 0) : LatLng(Storage().position!.latitude, Storage().position!.longitude),
+                            child: const Image(image: AssetImage('assets/images/plane.png'))
                         ),
                       ]),
                 ],
@@ -83,7 +96,10 @@ class MapScreenState extends State<MapScreen> {
           CustomWidgets.centerButton(context,
               Storage().screenBottom,
                   () => setState(() {
-                    _mapController.move(LatLng(42, -69.7), _maxZoom);
+                    // get to current position
+                    Position? p = Storage().position;
+                    LatLng l = Gps.positionToLatLong(p);
+                    _controller.moveAndRotate(l, _maxZoom, 0);
               })
           )
         ])

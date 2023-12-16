@@ -31,4 +31,36 @@ class AppSettings {
     return Settings.getValue("key-dark-mode", defaultValue: true) as bool;
   }
 
+  void setZoom(double zoom) {
+    Settings.setValue("key-chart-zoom", zoom);
+  }
+
+  double getZoom() {
+    return Settings.getValue("key-chart-zoom", defaultValue: 0.0) as double;
+  }
+
+  void setRotation(double rotation) {
+    Settings.setValue("key-chart-rotation", rotation);
+  }
+
+  double getRotation() {
+    return Settings.getValue("key-chart-rotation", defaultValue: 0.0) as double;
+  }
+
+  void setCenterLatitude(double l) {
+    Settings.setValue("key-chart-center-latitude", l);
+  }
+
+  double getCenterLatitude() {
+    return Settings.getValue("key-chart-center-latitude", defaultValue: 37.0) as double;
+  }
+
+  void setCenterLongitude(double l) {
+    Settings.setValue("key-chart-center-longitude", l);
+  }
+
+  double getCenterLongitude() {
+    return Settings.getValue("key-chart-center-longitude", defaultValue: -95.0) as double;
+  }
+
 }

@@ -28,12 +28,14 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 2,
+          version: 1,
           onCreate: (Database db, int version) async {
             await db.execute("create table recent ("
-                "LocationID   text unique primary key on conflict replace, "
+                "id           integer primary key autoincrement, "
+                "LocationID   text, "
                 "FacilityName text, "
-                "Type         text);");
+                "Type         text, "
+                "unique(LocationID, Type) on conflict replace);");
           },
           onOpen: (db) {});
   }
@@ -55,7 +57,7 @@ class UserDatabaseHelper {
           "Type='AIRPORT' or "
           "Type='HELIPORT' or "
           "Type='ULTRALIGHT' or "
-          "Type='BALLOONPORT';");
+          "Type='BALLOONPORT' order by id desc;");
       return List.generate(maps.length, (i) {
         return FindDestination(
             locationID: maps[i]['LocationID'] as String,
@@ -65,6 +67,30 @@ class UserDatabaseHelper {
       });
     }
     return [];
+  }
+
+  Future<List<FindDestination>> getRecent() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from recent order by id desc"); // most recent first
+      return List.generate(maps.length, (i) {
+        return FindDestination(
+            locationID: maps[i]['LocationID'] as String,
+            facilityName: maps[i]['FacilityName'] as String,
+            type: maps[i]['Type'] as String
+        );
+      });
+    }
+    return [];
+  }
+
+  Future<void> deleteRecent(FindDestination destination) async {
+    final db = await database;
+    if (db != null) {
+      await db.rawQuery("delete from recent where LocationID="
+          "\"${destination.locationID}\" and Type=\"${destination.type}\"");
+    }
   }
 }
 

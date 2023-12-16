@@ -113,7 +113,7 @@ class ChartCategory {
       case tac:
         return "1";
       case ifrl:
-        return "2";
+        return "3";
     }
     return "";
   }
@@ -123,7 +123,7 @@ class ChartCategory {
       case sectional:
         return 10;
       case tac:
-        return 12;
+        return 11;
       case ifrl:
         return 10;
     }

@@ -24,7 +24,7 @@ class FindScreenState extends State<FindScreen> {
 
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecentAirports() : MainDatabaseHelper.db.findDestinations(_searchText), // find recents when not searching
+      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recents when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _curItems = snapshot.data;
@@ -44,12 +44,12 @@ class FindScreenState extends State<FindScreen> {
     return
       Scaffold(
         body: Container(
-          padding: EdgeInsets.fromLTRB(20, Storage().screenTop, 20, 0),
+          padding: EdgeInsets.fromLTRB(10, Storage().screenTop, 20, 0),
           child : Stack(children: [
             Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
             Column (children: [
               Expanded(
-                  flex: 1,
+                  flex: 2,
                   child: Container(
                     alignment: Alignment.bottomLeft,
                     child: TextFormField(
@@ -67,17 +67,26 @@ class FindScreenState extends State<FindScreen> {
                   flex: 10,
                   child: null == items ? Container() : ListView.separated(
                     itemCount: items.length,
-                    padding: const EdgeInsets.all(30),
+                    padding: const EdgeInsets.all(5),
                     itemBuilder: (context, index) {
-                      return ListTile(
-                        title: Text(items[index].locationID),
-                        subtitle: Text("${items[index].facilityName} - ${items[index].type}"),
-                        leading: _TypeIcons.getIcon(items[index].type),
-                        onTap: () {
-                          addRecent(items[index]);
+                      final item = items[index];
+                      return Dismissible( // able to delete with swipe
+                        background: Container(color: Colors.red),
+                        key: Key(item.facilityName),
+                        onDismissed:(direction) async {
+                          // Remove the item from the data source.
+                          await UserDatabaseHelper.db.deleteRecent(item);
+                          setState(() {
+                            items.removeAt(index);
+                          });
                         },
-                        onLongPress: () {
-                        },
+                        child: ListTile(
+                          title: Text(item.locationID),
+                          subtitle: Text("${item.facilityName} ( ${item.type} )"),
+                          isThreeLine: true,
+                          onTap: () {UserDatabaseHelper.db.addRecent(item);},
+                          leading: _TypeIcons.getIcon(item.type)
+                        ),
                       );
                     },
                     separatorBuilder: (context, index) {

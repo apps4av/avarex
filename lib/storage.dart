@@ -5,9 +5,9 @@ import 'dart:ui' as ui;
 
 import 'package:avaremp/path_utils.dart';
 import 'package:exif/exif.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'app_settings.dart';
@@ -27,9 +27,22 @@ class Storage {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
     await WakelockPlus.enable(); // keep screen on
-    await Gps.checkPermissions();
-    Gps.getUpdates();
+    await _gps.checkPermissions();
+    position = await Gps().getCurrentPosition();
+    position ?? Gps().getLastPosition();
+    _dataDir = await PathUtils.getDownloadDirPath();
+    _gps.getUpdates(_gpsUpdate);
     await _settings.initSettings();
+  }
+
+  final _gps = Gps();
+  String _dataDir = "";
+
+  String get dataDir => _dataDir;
+  Position? position;
+
+  _gpsUpdate(Position? p) {
+    position = p;
   }
 
   final AppSettings _settings = AppSettings();
