@@ -26,42 +26,79 @@ class MainScreenState extends State<MainScreen> {
     });
   }
 
+  Future<bool> _onPop(BuildContext context) async {
+    bool? exitResult = await showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              child: Text(
+                'Do you really want to exit the app?',
+                style: Theme.of(context).textTheme.headlineSmall,
+              )
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('CANCEL'),
+                ),
+
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('EXIT'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+    return exitResult ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      extendBody: true,
-      appBar: AppBar(
-        actions: [
-          IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
-          IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
-        ],
-        backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
-      ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
+    return WillPopScope(onWillPop: () => _onPop(context),
+      child:Scaffold(
+        extendBodyBehindAppBar: true,
+        extendBody: true,
+        appBar: AppBar(
+          actions: [
+            IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
+            IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
+          ],
+          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
+        ),
+        body: Center(
+          child: _widgetOptions.elementAt(_selectedIndex),
+        ),
 
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'MAP',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: 'PLATE',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'FIND',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: mOnItemTapped,
-      ),
+        bottomNavigationBar: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map),
+              label: 'MAP',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.book),
+              label: 'PLATE',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              label: 'FIND',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: mOnItemTapped,
+        ),
+      )
     );
   }
 }

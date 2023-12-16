@@ -16,6 +16,24 @@ class FindScreenState extends State<FindScreen> {
   List<FindDestination>? _curItems;
   String _searchText = "";
 
+  Future<bool> showDestination(BuildContext context, FindDestination destination) async {
+    bool? exitResult = await showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(10),
+              topRight: Radius.circular(10),
+            ),
+          ),
+        );
+      },
+    );
+    return exitResult ?? false;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +103,9 @@ class FindScreenState extends State<FindScreen> {
                           title: Text(item.locationID),
                           subtitle: Text("${item.facilityName} ( ${item.type} )"),
                           isThreeLine: true,
-                          onTap: () {UserDatabaseHelper.db.addRecent(item);},
+                          onTap: () {
+                            showDestination(context, item);
+                          },
                           leading: _TypeIcons.getIcon(item.type)
                         ),
                       );
