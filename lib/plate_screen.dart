@@ -18,9 +18,9 @@ class PlateScreen extends StatefulWidget {
 
 // get plates and airports
 class PlatesFuture {
-  List<String>? _plates;
-  List<String>? _airports;
-  List<String>? _csup;
+  List<String> _plates = [];
+  List<String> _airports = [];
+  List<String> _csup = [];
 
   Future<void> _getAll() async {
 
@@ -28,26 +28,26 @@ class PlatesFuture {
     _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(Storage().currentPlateAirport.isEmpty) {
-      if(null != _airports && _airports!.isNotEmpty) {
-        // start condition when no airport is known.
-        Storage().currentPlateAirport = _airports![0];
-      }
+        if(_airports.isNotEmpty) {
+          // start condition when no airport is known.
+          Storage().currentPlateAirport = _airports[0];
+        }
     }
+    else {
+      // make current airport front
+      _airports.insert(0, Storage().currentPlateAirport);
+    }
+    _airports = _airports.toSet().toList();
 
     _plates = await PathUtils.getPlateNames(Storage().currentPlateAirport);
     _csup = await MainDatabaseHelper.db.findCsup(Storage().currentPlateAirport);
 
     // combine plates and csup
-    if(null != _plates && null != _csup) {
-      for(String c in _csup!) {
-        _plates!.add("CSUP:$c");
-      }
-      _plates!.sort();
+    for(String c in _csup) {
+      _plates.add("CSUP:$c");
     }
-    else if(null == _plates && null != _csup) {
-      _plates = _csup;
-      _plates!.sort();
-    }
+    _plates = _plates.toSet().toList();
+    _plates.sort();
   }
 
   Future<PlatesFuture> getAll() async {
@@ -55,8 +55,8 @@ class PlatesFuture {
     return this;
   }
 
-  List<String>? get airports => _airports;
-  List<String>? get plates => _plates;
+  List<String> get airports => _airports;
+  List<String> get plates => _plates;
 }
 
 class PlateScreenState extends State<PlateScreen> {
@@ -87,14 +87,14 @@ class PlateScreenState extends State<PlateScreen> {
       return Container(); // hopeless of still not ready
     }
 
-    List<String>? plates = future.plates;
-    List<String>? airports = future.airports;
+    List<String> plates = future.plates;
+    List<String> airports = future.airports;
 
-    if(null == airports || airports.isEmpty) {
+    if(airports.isEmpty) {
       return Container(); // hopeless, still not ready
     }
 
-    if(null == plates || plates.isEmpty) {
+    if(plates.isEmpty) {
       // only airports
       return Scaffold(
           body: Stack(

@@ -71,8 +71,9 @@ class FindScreenState extends State<FindScreen> {
                     itemBuilder: (context, index) {
                       final item = items[index];
                       return Dismissible( // able to delete with swipe
-                        background: Container(color: Colors.red),
+                        background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
                         key: Key(item.facilityName),
+                        direction: DismissDirection.endToStart,
                         onDismissed:(direction) async {
                           // Remove the item from the data source.
                           await UserDatabaseHelper.db.deleteRecent(item);
