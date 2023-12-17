@@ -22,7 +22,7 @@ const Color _expiredColor = Colors.red;
 const IconData _absentIcon = Icons.question_mark;
 const IconData _downloadedIcon = Icons.check;
 const IconData _downloadIcon = Icons.download;
-const IconData _deleteIcon = Icons.delete;
+const IconData _deleteIcon = Icons.delete_forever;
 
 class DownloadList extends StatefulWidget {
   const DownloadList({super.key});

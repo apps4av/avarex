@@ -35,6 +35,10 @@ class Storage {
     await _settings.initSettings();
   }
 
+  final GlobalKey _globalKeyBottomNavigationBar = GlobalKey();
+  GlobalKey get globalKeyBottomNavigationBar => _globalKeyBottomNavigationBar;
+
+
   final _gps = Gps();
   String _dataDir = "";
 

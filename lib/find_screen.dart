@@ -1,3 +1,5 @@
+import 'package:avaremp/longpress_widget.dart';
+import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
@@ -20,15 +22,7 @@ class FindScreenState extends State<FindScreen> {
     bool? exitResult = await showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(10),
-              topRight: Radius.circular(10),
-            ),
-          ),
-        );
+        return LongPressWidget(destination);
       },
     );
     return exitResult ?? false;
@@ -104,6 +98,10 @@ class FindScreenState extends State<FindScreen> {
                           subtitle: Text("${item.facilityName} ( ${item.type} )"),
                           isThreeLine: true,
                           onTap: () {
+                            UserDatabaseHelper.db.addRecent(item);
+                            MainScreenState.gotoMap();
+                          },
+                          onLongPress: () {
                             showDestination(context, item);
                           },
                           leading: _TypeIcons.getIcon(item.type)

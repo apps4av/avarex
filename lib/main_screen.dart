@@ -1,4 +1,5 @@
 import 'package:avaremp/plate_screen.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
@@ -24,6 +25,18 @@ class MainScreenState extends State<MainScreen> {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  static void gotoPlate() {
+    final BottomNavigationBar navigationBar = Storage()
+        .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
+    navigationBar.onTap!(1); // go to plate screen
+  }
+
+  static void gotoMap() {
+    final BottomNavigationBar navigationBar = Storage()
+        .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
+    navigationBar.onTap!(0); // go to plate screen
   }
 
   Future<bool> _onPop(BuildContext context) async {
@@ -79,6 +92,7 @@ class MainScreenState extends State<MainScreen> {
         ),
 
         bottomNavigationBar: BottomNavigationBar(
+          key: Storage().globalKeyBottomNavigationBar,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
           items: const <BottomNavigationBarItem>[
