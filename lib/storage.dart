@@ -23,6 +23,16 @@ class Storage {
 
   Storage._internal();
 
+  // one second timer for simulation
+  Timer scheduleTimeout([int milliseconds = 1000]) =>
+      Timer(Duration(milliseconds: milliseconds), handleTimeout);
+
+  void handleTimeout() {  // callback function
+    scheduleTimeout();
+  }
+
+  final gpsUpdate = ValueNotifier<int>(0);
+
   Future<void> init() async {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
@@ -33,11 +43,13 @@ class Storage {
     _dataDir = await PathUtils.getDownloadDirPath();
     _gps.getUpdates(_gpsUpdate);
     await _settings.initSettings();
+    scheduleTimeout();
   }
 
+
+  // for navigation on tabs
   final GlobalKey _globalKeyBottomNavigationBar = GlobalKey();
   GlobalKey get globalKeyBottomNavigationBar => _globalKeyBottomNavigationBar;
-
 
   final _gps = Gps();
   String _dataDir = "";
@@ -47,6 +59,7 @@ class Storage {
 
   _gpsUpdate(Position? p) {
     position = p;
+    gpsUpdate.notifyListeners(); // tell everyone
   }
 
   final AppSettings _settings = AppSettings();

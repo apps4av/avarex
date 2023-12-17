@@ -89,14 +89,19 @@ class MapScreenState extends State<MapScreen> {
                     urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
-                  MarkerLayer(
-                      markers: [
-                        Marker(
-                            point: Storage().position  == null ? LatLng(0, 0) : LatLng(Storage().position!.latitude, Storage().position!.longitude),
-                            child: const Image(image: AssetImage('assets/images/plane.png'))
-                        ),
-                      ]),
-                ],
+                  ValueListenableBuilder<int>(
+                    valueListenable: Storage().gpsUpdate,
+                    builder: (context, position, _) {
+                      return MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: LatLng(Storage().position!.latitude, Storage().position!.longitude),
+                            child: Container(transform: Matrix4.identity()..rotateZ(Storage().position!.heading * 3.1415927 / 180), child:Image(image: AssetImage('assets/images/plane.png')),),
+                          ),
+                        ],
+                      );
+                    },
+                  ),                ],
               ),
               CustomWidgets.dropDownButton(
               context,
