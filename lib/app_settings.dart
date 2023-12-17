@@ -23,12 +23,8 @@ class AppSettings {
     return Settings.getValue("key-simulation", defaultValue: false) as bool;
   }
 
-  bool getTracks() {
-    return Settings.getValue("key-tracks", defaultValue: false) as bool;
-  }
-
-  bool getDarkMode() {
-    return Settings.getValue("key-dark-mode", defaultValue: true) as bool;
+  bool getNorthUp() {
+    return Settings.getValue("key-north-up", defaultValue: true) as bool;
   }
 
   void setZoom(double zoom) {
