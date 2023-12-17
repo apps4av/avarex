@@ -91,12 +91,15 @@ class MapScreenState extends State<MapScreen> {
                   ),
                   ValueListenableBuilder<int>(
                     valueListenable: Storage().gpsUpdate,
-                    builder: (context, position, _) {
+                    builder: (context, value, _) {
                       return MarkerLayer(
                         markers: [
-                          Marker(
+                          Marker( // our position
                             point: LatLng(Storage().position!.latitude, Storage().position!.longitude),
-                            child: Container(transform: Matrix4.identity()..rotateZ(Storage().position!.heading * 3.1415927 / 180), child:Image(image: AssetImage('assets/images/plane.png')),),
+                            child: Transform.rotate(
+                              angle: Storage().position!.heading * pi / 180,
+                              child: const Image(image: AssetImage('assets/images/plane.png')),
+                            ),
                           ),
                         ],
                       );
