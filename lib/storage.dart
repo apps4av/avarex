@@ -123,12 +123,17 @@ class Storage {
 
   double _screenTop = 0;
 
+  double _screenHeight = 0;
+
+  double get screenHeight => _screenHeight;
+
   double get screenTop => _screenTop;
   double _screenBottom = 0;
   void setScreenDims(BuildContext context) {
 
     final double bottom = MediaQuery.of(context).padding.bottom;
     final double? top = Scaffold.of(context).appBarMaxHeight;
+    _screenHeight = MediaQuery.of(context).size.height;
 
     if(null == top) {
       _screenTop = 0;
