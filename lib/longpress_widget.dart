@@ -24,6 +24,7 @@ class LongPressWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Text(_destination.locationID),
           IconButton(onPressed: () { // go to plate
             Storage().currentPlateAirport = _destination.locationID;
             MainScreenState.gotoPlate();

@@ -12,14 +12,21 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0; // for various tab screens
+
+  static const tabLocationMap = 0;
+  static const tabLocationPlates = 1;
+  static const tabLocationFind = 2;
+
+  int _selectedIndex = tabLocationMap; // for various tab screens
 
   // define tabs here
-  static final List<Widget> _widgetOptions = <Widget>[
-    const MapScreen(),
-    const PlateScreen(),
-    const FindScreen(),
-  ];
+  final List<Widget> _widgetOptions = [];
+
+  MainScreenState() {
+    _widgetOptions.insert(tabLocationMap, const MapScreen());
+    _widgetOptions.insert(tabLocationPlates, const PlateScreen());
+    _widgetOptions.insert(tabLocationFind, const FindScreen());
+  }
 
   void mOnItemTapped(int index) {
     setState(() {
@@ -30,13 +37,13 @@ class MainScreenState extends State<MainScreen> {
   static void gotoPlate() {
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
-    navigationBar.onTap!(1); // go to plate screen
+    navigationBar.onTap!(tabLocationPlates); // go to plate screen
   }
 
   static void gotoMap() {
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
-    navigationBar.onTap!(0); // go to plate screen
+    navigationBar.onTap!(tabLocationMap); // go to plate screen
   }
 
   Future<bool> _onPop(BuildContext context) async {
@@ -95,6 +102,7 @@ class MainScreenState extends State<MainScreen> {
           key: Storage().globalKeyBottomNavigationBar,
           type: BottomNavigationBarType.fixed,
           backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
+          selectedItemColor: Colors.cyanAccent,
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.map),

@@ -102,7 +102,9 @@ class FindScreenState extends State<FindScreen> {
                             MainScreenState.gotoMap();
                           },
                           onLongPress: () {
-                            showDestination(context, item);
+                            setState(() {
+                              showDestination(context, item);
+                            });
                           },
                           leading: _TypeIcons.getIcon(item.type)
                         ),

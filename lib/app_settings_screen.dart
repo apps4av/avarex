@@ -22,31 +22,22 @@ class AppSettingsScreen extends StatelessWidget {
                   title: 'Simulation',
                   enabledLabel: 'Enabled',
                   disabledLabel: 'Disabled',
-                  leading: const Icon(Icons.navigation),
-                  onChange: (value) {
-                  },
-                ),
-                SwitchSettingsTile(
-                  settingKey: 'key-tracks',
-                  title: 'Tracks',
-                  enabledLabel: 'On',
-                  disabledLabel: 'Off',
-                  leading: const Icon(Icons.east),
+                  leading: const Icon(Icons.gps_off),
                   onChange: (value) {
                   },
                 ),
               ]
             ),
           SettingsGroup(
-              title: 'APP STATE',
+              title: 'NAVIGATION',
               children: <Widget>[
                 SwitchSettingsTile(
-                  settingKey: 'key-dark-mode',
-                  title: 'Dark Mode',
-                  enabledLabel: 'Enabled',
-                  disabledLabel: 'Disabled',
+                  settingKey: 'key-north-up',
+                  title: 'Navigation',
+                  enabledLabel: 'North Up',
+                  disabledLabel: 'Track Up',
                   defaultValue: true,
-                  leading: const Icon(Icons.dark_mode),
+                  leading: const Icon(Icons.navigation),
                   onChange: (value) {
                   },
                 ),

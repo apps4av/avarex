@@ -1,4 +1,5 @@
 import 'package:avaremp/custom_widgets.dart';
+import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -7,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'chart.dart';
 import 'gps.dart';
+import 'longpress_widget.dart';
 
 
 class MapScreen extends StatefulWidget {
@@ -23,7 +25,25 @@ class MapScreenState extends State<MapScreen> {
   double _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
 
-  void _handlePress(TapPosition tapPosition, LatLng point) {
+  Future<bool> showDestination(BuildContext context, FindDestination destination) async {
+    bool? exitResult = await showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return LongPressWidget(destination);
+      },
+    );
+    return exitResult ?? false;
+  }
+
+
+  void _handlePress(TapPosition tapPosition, LatLng point) async {
+    List<FindDestination> items = await MainDatabaseHelper.db.findNear(point);
+    if(items.isEmpty) {
+      return;
+    }
+    setState(() {
+      showDestination(context, items[0]);
+    });
   }
 
   @override
@@ -56,8 +76,7 @@ class MapScreenState extends State<MapScreen> {
     );
 
     return Scaffold(
-        body:
-        Stack(
+        body: Stack(
             children: [
               FlutterMap(
                 mapController: _controller,

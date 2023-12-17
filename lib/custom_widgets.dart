@@ -9,11 +9,12 @@ class CustomWidgets {
             DropdownButton<String>( // airport selection
               padding: EdgeInsets.fromLTRB(5, 5, 5, bottom),
               underline: Container(),
+              iconEnabledColor: Colors.transparent,
               value: defaultValue,
               items: items.map((String item) {
                 return DropdownMenuItem<String>(
                   value: item,
-                  child: Text(item, style: TextStyle(backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156))),
+                  child: Text(item, style: TextStyle(color: Colors.cyanAccent, backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156))),
                 );
               }).toList(),
               onChanged: (value) {
