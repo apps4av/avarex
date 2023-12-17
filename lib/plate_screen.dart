@@ -21,26 +21,27 @@ class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
   List<String> _csup = [];
+  String _currentPlateAirport = Storage().currentPlateAirport;
 
   Future<void> _getAll() async {
 
     // get location ID only
     _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
 
-    if(Storage().currentPlateAirport.isEmpty) {
+    if(_currentPlateAirport.isEmpty) {
         if(_airports.isNotEmpty) {
           // start condition when no airport is known.
-          Storage().currentPlateAirport = _airports[0];
+          _currentPlateAirport = _airports[0];
         }
     }
     else {
       // make current airport front
-      _airports.insert(0, Storage().currentPlateAirport);
+      _airports.insert(0, _currentPlateAirport);
     }
     _airports = _airports.toSet().toList();
 
-    _plates = await PathUtils.getPlateNames(Storage().currentPlateAirport);
-    _csup = await MainDatabaseHelper.db.findCsup(Storage().currentPlateAirport);
+    _plates = await PathUtils.getPlateNames(_currentPlateAirport);
+    _csup = await MainDatabaseHelper.db.findCsup(_currentPlateAirport);
 
     // combine plates and csup
     for(String c in _csup) {
@@ -57,6 +58,7 @@ class PlatesFuture {
 
   List<String> get airports => _airports;
   List<String> get plates => _plates;
+  String get currentPlateAirport => _currentPlateAirport;
 }
 
 class PlateScreenState extends State<PlateScreen> {
@@ -89,6 +91,7 @@ class PlateScreenState extends State<PlateScreen> {
 
     List<String> plates = future.plates;
     List<String> airports = future.airports;
+    Storage().currentPlateAirport = future.currentPlateAirport;
 
     if(airports.isEmpty) {
       return Container(); // hopeless, still not ready
@@ -148,7 +151,7 @@ class PlateScreenState extends State<PlateScreen> {
               airports,
               Alignment.bottomRight,
               Storage().screenBottom,
-                  (value) {
+              (value) {
                 setState(() {
                   Storage().currentPlateAirport = value ?? airports[0];
                 });

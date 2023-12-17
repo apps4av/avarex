@@ -22,7 +22,7 @@ class FindScreenState extends State<FindScreen> {
     bool? exitResult = await showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return LongPressWidget(destination);
+        return LongPressWidget(destination: destination);
       },
     );
     return exitResult ?? false;

@@ -29,7 +29,7 @@ class MapScreenState extends State<MapScreen> {
     bool? exitResult = await showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return LongPressWidget(destination);
+        return LongPressWidget(destination: destination);
       },
     );
     return exitResult ?? false;

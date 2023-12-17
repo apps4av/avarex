@@ -104,7 +104,6 @@ class Storage {
   }
 
   set currentPlateAirport(String value) {
-    _lastPlateAirport = _currentPlateAirport;
     _currentPlateAirport = value;
   }
 

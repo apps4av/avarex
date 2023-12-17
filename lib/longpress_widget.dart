@@ -1,15 +1,19 @@
 import 'package:avaremp/main_screen.dart';
-import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
 import 'main_database_helper.dart';
 
-class LongPressWidget extends StatelessWidget {
+class LongPressWidget extends StatefulWidget {
+  final FindDestination destination;
 
-  FindDestination _destination;
+  const LongPressWidget({super.key, required this.destination});
+  @override
+  State<StatefulWidget> createState() => LongPressWidgetState();
+}
 
-  LongPressWidget(this._destination, {super.key});
+
+class LongPressWidgetState extends State<LongPressWidget> {
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +28,14 @@ class LongPressWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(_destination.locationID),
-          IconButton(onPressed: () { // go to plate
-            Storage().currentPlateAirport = _destination.locationID;
-            MainScreenState.gotoPlate();
-            Navigator.of(context).pop(); // hide bottom sheet
-          }, icon: const Icon(Icons.book)),
+          Text(widget.destination.locationID),
+          IconButton(
+            onPressed: () { // go to plate
+              Storage().currentPlateAirport = widget.destination.locationID;
+              MainScreenState.gotoPlate();
+              Navigator.of(context).pop(); // hide bottom sheet
+            },
+            icon: const Icon(Icons.book)),
         ],
       ),
     );
