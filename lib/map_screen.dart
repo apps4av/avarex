@@ -59,8 +59,6 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Storage().setScreenDims(context);
-
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
@@ -101,8 +99,8 @@ class MapScreenState extends State<MapScreen> {
                       return MarkerLayer(
                         markers: [
                           Marker( // our position
-                            width: Storage().screenHeight / 20,
-                            height: Storage().screenHeight / 20,
+                            width: MediaQuery.of(context).size.height / 20,
+                            height: MediaQuery.of(context).size.height / 20,
                             point: LatLng(Storage().position.latitude, Storage().position.longitude),
                             child: Transform.rotate(
                               angle: Storage().settings.getNorthUp() ? Storage().position.heading * pi / 180 : -Storage().position.heading * pi / 180,
@@ -121,7 +119,7 @@ class MapScreenState extends State<MapScreen> {
               _type,
               _charts,
               Alignment.bottomLeft,
-              Storage().screenBottom,
+                  MediaQuery.of(context).padding.bottom,
               (value) {
                 setState(() {
                   Storage().settings.setChartType(value ?? _charts[0]);
@@ -131,7 +129,7 @@ class MapScreenState extends State<MapScreen> {
           ),
 
           CustomWidgets.centerButton(context,
-              Storage().screenBottom,
+              MediaQuery.of(context).padding.bottom,
                   () => setState(() {
                     // get to current position
                     Position p = Storage().position;

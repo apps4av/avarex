@@ -1,6 +1,5 @@
 import 'dart:ui';
 
-import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
 
@@ -19,9 +18,9 @@ class _InstrumentListState extends State<InstrumentList> {
   // make an instrument for top line
   Widget makeInstrument(String name, String value, int index, Function onTap) {
     bool portrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    double width = Storage().screenWidth / 6; // get more instruments in
+    double width = MediaQuery.of(context).size.width / 6; // get more instruments in
     if(portrait) {
-      width = Storage().screenWidth / 4;
+      width = MediaQuery.of(context).size.width / 4;
     }
 
     return SizedBox(
@@ -37,9 +36,6 @@ class _InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
-
-    Storage().setScreenDims(context);
-
     // user can rearrange widgets
     return ReorderableListView(
       scrollDirection: Axis.horizontal,

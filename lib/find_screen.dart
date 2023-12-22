@@ -1,6 +1,5 @@
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/main_screen.dart';
-import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -17,6 +16,7 @@ class FindScreenState extends State<FindScreen> {
 
   List<FindDestination>? _curItems;
   String _searchText = "";
+  double? _height;
 
   Future<bool> showDestination(BuildContext context, FindDestination destination) async {
     bool? exitResult = await showModalBottomSheet(
@@ -31,9 +31,7 @@ class FindScreenState extends State<FindScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    Storage().setScreenDims(context);
-
+    _height = Scaffold.of(context).appBarMaxHeight;
     bool searching = true;
     return FutureBuilder(
       future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recents when not searching
@@ -53,71 +51,68 @@ class FindScreenState extends State<FindScreen> {
 
   Widget _makeContent(List<FindDestination>? items, bool searching) {
 
-    return
-      Scaffold(
-        body: Container(
-          padding: EdgeInsets.fromLTRB(10, Storage().screenTop, 20, 0),
-          child : Stack(children: [
-            Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
-            Column (children: [
-              Expanded(
-                  flex: 2,
-                  child: Container(
-                    alignment: Alignment.bottomLeft,
-                    child: TextFormField(
-                      onChanged: (value) {
+    return Container(
+        padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, 0),
+        child : Stack(children: [
+          Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
+          Column (children: [
+            Expanded(
+                flex: 2,
+                child: Container(
+                  alignment: Alignment.bottomLeft,
+                  child: TextFormField(
+                    onChanged: (value) {
+                      setState(() {
+                        _searchText = value;
+                        searching = true;
+                      });
+                    },
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
+                  )
+                )
+            ),
+            Expanded(
+                flex: 10,
+                child: null == items ? Container() : ListView.separated(
+                  itemCount: items.length,
+                  padding: const EdgeInsets.all(5),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return Dismissible( // able to delete with swipe
+                      background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
+                      key: Key(item.facilityName),
+                      direction: DismissDirection.endToStart,
+                      onDismissed:(direction) async {
+                        // Remove the item from the data source.
+                        await UserDatabaseHelper.db.deleteRecent(item);
                         setState(() {
-                          _searchText = value;
-                          searching = true;
+                          items.removeAt(index);
                         });
                       },
-                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
-                    )
-                  )
-              ),
-              Expanded(
-                  flex: 10,
-                  child: null == items ? Container() : ListView.separated(
-                    itemCount: items.length,
-                    padding: const EdgeInsets.all(5),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return Dismissible( // able to delete with swipe
-                        background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
-                        key: Key(item.facilityName),
-                        direction: DismissDirection.endToStart,
-                        onDismissed:(direction) async {
-                          // Remove the item from the data source.
-                          await UserDatabaseHelper.db.deleteRecent(item);
+                      child: ListTile(
+                        title: Text(item.locationID),
+                        subtitle: Text("${item.facilityName} ( ${item.type} )"),
+                        isThreeLine: true,
+                        onTap: () {
+                          UserDatabaseHelper.db.addRecent(item);
+                          MainScreenState.gotoMap();
+                        },
+                        onLongPress: () {
                           setState(() {
-                            items.removeAt(index);
+                            showDestination(context, item);
                           });
                         },
-                        child: ListTile(
-                          title: Text(item.locationID),
-                          subtitle: Text("${item.facilityName} ( ${item.type} )"),
-                          isThreeLine: true,
-                          onTap: () {
-                            UserDatabaseHelper.db.addRecent(item);
-                            MainScreenState.gotoMap();
-                          },
-                          onLongPress: () {
-                            setState(() {
-                              showDestination(context, item);
-                            });
-                          },
-                          leading: _TypeIcons.getIcon(item.type)
-                        ),
-                      );
-                    },
-                    separatorBuilder: (context, index) {
-                      return const Divider();
-                    },
-                  )),
-              ]
-            )
-          ]
+                        leading: _TypeIcons.getIcon(item.type)
+                      ),
+                    );
+                  },
+                  separatorBuilder: (context, index) {
+                    return const Divider();
+                  },
+                )),
+            ]
           )
+        ]
         )
       );
   }

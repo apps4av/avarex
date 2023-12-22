@@ -67,9 +67,6 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    Storage().setScreenDims(context);
-
     return FutureBuilder(
         future: PlatesFuture().getAll(),
         builder: (context, snapshot) {
@@ -85,6 +82,8 @@ class PlateScreenState extends State<PlateScreen> {
 
   Widget _makeContent(PlatesFuture? future) {
 
+    double ? _height = Scaffold.of(context).appBarMaxHeight ?? 0;
+
     if(future == null) {
       return Container(); // hopeless of still not ready
     }
@@ -99,23 +98,20 @@ class PlateScreenState extends State<PlateScreen> {
 
     if(plates.isEmpty) {
       // only airports
-      return Scaffold(
-          body: Stack(
-              children: [
-                CustomWidgets.dropDownButton(
-                  context,
-                  Storage().currentPlateAirport,
-                  airports,
-                  Alignment.bottomRight,
-                  Storage().screenBottom,
-                      (value) {
-                    setState(() {
-                      Storage().currentPlateAirport = value ?? airports[0];
-                    });
-                  },
-                ),
-              ]
-          )
+      return Stack(children: [
+          CustomWidgets.dropDownButton(
+            context,
+            Storage().currentPlateAirport,
+            airports,
+            Alignment.bottomRight,
+            MediaQuery.of(context).padding.bottom,
+                (value) {
+              setState(() {
+                Storage().currentPlateAirport = value ?? airports[0];
+              });
+            },
+          ),
+        ]
       );
     }
 
@@ -131,61 +127,62 @@ class PlateScreenState extends State<PlateScreen> {
     }
     re().whenComplete(() => _counter.notifyListeners()); // redraw when loaded
 
-    return Scaffold(
-        body: Stack(
-          children: [
-            InteractiveViewer(
-                transformationController: Storage().plateTransformationController,
-                minScale: 1,
-                maxScale: 8,
-                child:
-                  SizedBox(
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  child: CustomPaint(painter: _PlatePainter(repaint: _counter))
-                )
-            ),
-            CustomWidgets.dropDownButton(
-              context,
-              Storage().currentPlateAirport,
-              airports,
-              Alignment.bottomRight,
-              Storage().screenBottom,
-              (value) {
-                setState(() {
-                  Storage().currentPlateAirport = value ?? airports[0];
-                });
-              },
-            ),
-            CustomWidgets.dropDownButton(
-              context,
-              plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
-              plates,
-              Alignment.bottomLeft,
-              Storage().screenBottom,
-              (value) {
-                setState(() {
-                  Storage().currentPlate = value ?? plates[0];
-                });
-              },
-            ),
-            CustomWidgets.centerButton(context,
-                Storage().screenBottom,
-                () => setState(() {
-                  Storage().resetPlate();
-                })
+    return Stack(children: [
+        InteractiveViewer(
+            transformationController: Storage().plateTransformationController,
+            minScale: 1,
+            maxScale: 8,
+            child:
+              SizedBox(
+              height: MediaQuery.of(context).size.height,
+              width: MediaQuery.of(context).size.width,
+              child: CustomPaint(painter: _PlatePainter(repaint: _counter, height: _height))
             )
-          ]
         ),
-      );
-    }
+        CustomWidgets.dropDownButton(
+          context,
+          Storage().currentPlateAirport,
+          airports,
+          Alignment.bottomRight,
+          MediaQuery.of(context).padding.bottom,
+          (value) {
+            setState(() {
+              Storage().currentPlateAirport = value ?? airports[0];
+            });
+          },
+        ),
+        CustomWidgets.dropDownButton(
+          context,
+          plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+          plates,
+          Alignment.bottomLeft,
+          MediaQuery.of(context).padding.bottom,
+          (value) {
+            setState(() {
+              Storage().currentPlate = value ?? plates[0];
+            });
+          },
+        ),
+        CustomWidgets.centerButton(context,
+            MediaQuery.of(context).padding.bottom,
+            () => setState(() {
+              Storage().resetPlate();
+            })
+        )
+      ]
+    );
+  }
 }
 
 class _PlatePainter extends CustomPainter {
 
   Offset offset =  const Offset(0, 0);
 
-  _PlatePainter({required Listenable repaint}) : super(repaint: repaint);
+  _PlatePainter({required Listenable repaint, required double? height}) : super(repaint: repaint) {
+    _height = height;
+  }
+
+  double? _height;
 
   // Define a paint object
   final _paint = Paint()
@@ -212,7 +209,7 @@ class _PlatePainter extends CustomPainter {
       }
 
       canvas.save();
-      canvas.translate(0, Storage().screenTop);
+      canvas.translate(0, _height ?? 0);
       canvas.scale(fac);
       canvas.drawImage(image, offset, _paint);
       canvas.restore();

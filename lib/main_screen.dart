@@ -91,17 +91,17 @@ class MainScreenState extends State<MainScreen> {
         extendBody: true,
         drawer: Drawer(
           child: ListView(children: [
-            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: Storage().screenBottom / 2, height:Storage().screenBottom / 2,)),
+            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 64, height: 64,)),
             ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings')),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
           ],
         )),
         appBar: AppBar(
-          leadingWidth: Storage().screenWidth / 8, // for safe area
+          leadingWidth: MediaQuery.of(context).size.width / 10, // for safe area
           backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(100),
           iconTheme: const IconThemeData(color: Colors.cyanAccent),
           flexibleSpace: SafeArea(
-            minimum: EdgeInsets.fromLTRB(Storage().screenWidth / 8, 0, 0, 0),
+            minimum: EdgeInsets.fromLTRB(MediaQuery.of(context).size.width / 10, 0, 0, 0),
             child: const InstrumentList()
           ),
         ),
