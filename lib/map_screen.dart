@@ -78,7 +78,7 @@ class MapScreenState extends State<MapScreen> {
     // for track up
     Storage().gpsUpdate.addListener(() {
       // in track up mode rotate chart
-      Storage().settings.getNorthUp() ? {} : _controller.rotate(Storage().position!.heading);
+      Storage().settings.getNorthUp() ? {} : _controller.rotate(Storage().position.heading);
     });
 
     return Scaffold(
@@ -103,9 +103,9 @@ class MapScreenState extends State<MapScreen> {
                           Marker( // our position
                             width: Storage().screenHeight / 20,
                             height: Storage().screenHeight / 20,
-                            point: LatLng(Storage().position!.latitude, Storage().position!.longitude),
+                            point: LatLng(Storage().position.latitude, Storage().position.longitude),
                             child: Transform.rotate(
-                              angle: Storage().settings.getNorthUp() ? Storage().position!.heading * pi / 180 : -Storage().position!.heading * pi / 180,
+                              angle: Storage().settings.getNorthUp() ? Storage().position.heading * pi / 180 : -Storage().position.heading * pi / 180,
                               child: SvgPicture.asset(
                                 "assets/images/airplane.svg",
                               ),
@@ -134,7 +134,7 @@ class MapScreenState extends State<MapScreen> {
               Storage().screenBottom,
                   () => setState(() {
                     // get to current position
-                    Position? p = Storage().position;
+                    Position p = Storage().position;
                     LatLng l = Gps.positionToLatLong(p);
                     _controller.moveAndRotate(l, _maxZoom, 0);
               })

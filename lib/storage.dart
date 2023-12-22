@@ -27,7 +27,9 @@ class Storage {
   Timer scheduleTimeout([int milliseconds = 1000]) =>
       Timer(Duration(milliseconds: milliseconds), handleTimeout);
 
-  void handleTimeout() {  // callback function
+  void handleTimeout() async {  // callback function
+    position = await _gps.getCurrentPosition();
+    gpsUpdate.notifyListeners(); // tell everyone
     scheduleTimeout();
   }
 
@@ -37,11 +39,14 @@ class Storage {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
     await WakelockPlus.enable(); // keep screen on
-    await _gps.checkPermissions();
-    position = await Gps().getCurrentPosition();
-    position ?? Gps().getLastPosition();
+    LocationPermission permission = await _gps.checkPermissions();
+    if(LocationPermission.denied == permission ||
+        LocationPermission.deniedForever == permission ||
+        LocationPermission.unableToDetermine == permission) {
+    }
+    bool enabled = await _gps.checkEnabled();
+    position = await Gps().getLastPosition();
     _dataDir = await PathUtils.getDownloadDirPath();
-    _gps.getUpdates(_gpsUpdate);
     await _settings.initSettings();
     scheduleTimeout();
   }
@@ -55,12 +60,7 @@ class Storage {
   String _dataDir = "";
 
   String get dataDir => _dataDir;
-  Position? position;
-
-  _gpsUpdate(Position? p) {
-    position = p;
-    gpsUpdate.notifyListeners(); // tell everyone
-  }
+  late Position position;
 
   final AppSettings _settings = AppSettings();
 

@@ -55,9 +55,9 @@ class MainScreenState extends State<MainScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(20),
-              child: Text(
+              alignment: Alignment.centerLeft,
+              child: const Text(
                 'Do you really want to exit the app?',
-                style: Theme.of(context).textTheme.headlineSmall,
               )
             ),
             Row(
@@ -86,22 +86,22 @@ class MainScreenState extends State<MainScreen> {
     return WillPopScope(onWillPop: () => _onPop(context),
       child:Scaffold(
         extendBodyBehindAppBar: true,
+        drawerEdgeDragWidth: Storage().screenTop,
         extendBody: true,
-        appBar: AppBar(
-          actions: [
-            IconButton(icon: const Icon(Icons.download), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/download')),
-            IconButton(icon: const Icon(Icons.settings), padding: const EdgeInsets.fromLTRB(15, 0, 15, 0), onPressed: () => Navigator.pushNamed(context, '/settings')),
+        drawer: Drawer(
+          child: ListView(children: [
+            SizedBox(height: Storage().screenBottom, child:const DrawerHeader(decoration: BoxDecoration(color: Colors.cyanAccent,), child: null,)),
+            ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings')),
+            ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
           ],
-          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
-        ),
+        )),
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
-
         bottomNavigationBar: BottomNavigationBar(
           key: Storage().globalKeyBottomNavigationBar,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156),
+          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(100),
           selectedItemColor: Colors.cyanAccent,
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
