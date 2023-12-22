@@ -1,6 +1,8 @@
+
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'instrument_list.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
 
@@ -86,7 +88,6 @@ class MainScreenState extends State<MainScreen> {
     return WillPopScope(onWillPop: () => _onPop(context),
       child:Scaffold(
         extendBodyBehindAppBar: true,
-        drawerEdgeDragWidth: Storage().screenBottom,
         extendBody: true,
         drawer: Drawer(
           child: ListView(children: [
@@ -95,7 +96,15 @@ class MainScreenState extends State<MainScreen> {
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
           ],
         )),
-        appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: IconThemeData(color: Colors.cyanAccent),),
+        appBar: AppBar(
+          leadingWidth: Storage().screenWidth / 8, // for safe area
+          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(100),
+          iconTheme: const IconThemeData(color: Colors.cyanAccent),
+          flexibleSpace: SafeArea(
+            minimum: EdgeInsets.fromLTRB(Storage().screenWidth / 8, 0, 0, 0),
+            child: const InstrumentList()
+          ),
+        ),
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),
         ),

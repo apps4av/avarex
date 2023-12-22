@@ -124,8 +124,10 @@ class Storage {
   double _screenTop = 0;
 
   double _screenHeight = 0;
+  double _screenWidth = 0;
 
   double get screenHeight => _screenHeight;
+  double get screenWidth => _screenWidth;
 
   double get screenTop => _screenTop;
   double _screenBottom = 0;
@@ -134,6 +136,7 @@ class Storage {
     final double bottom = MediaQuery.of(context).padding.bottom;
     final double? top = Scaffold.of(context).appBarMaxHeight;
     _screenHeight = MediaQuery.of(context).size.height;
+    _screenWidth = MediaQuery.of(context).size.width;
 
     if(null == top) {
       _screenTop = 0;
