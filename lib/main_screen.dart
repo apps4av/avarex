@@ -86,15 +86,16 @@ class MainScreenState extends State<MainScreen> {
     return WillPopScope(onWillPop: () => _onPop(context),
       child:Scaffold(
         extendBodyBehindAppBar: true,
-        drawerEdgeDragWidth: Storage().screenTop,
+        drawerEdgeDragWidth: Storage().screenBottom,
         extendBody: true,
         drawer: Drawer(
           child: ListView(children: [
-            SizedBox(height: Storage().screenBottom, child:const DrawerHeader(decoration: BoxDecoration(color: Colors.cyanAccent,), child: null,)),
+            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: Storage().screenBottom / 2, height:Storage().screenBottom / 2,)),
             ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings')),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
           ],
         )),
+        appBar: AppBar(backgroundColor: Colors.transparent, iconTheme: IconThemeData(color: Colors.cyanAccent),),
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
