@@ -91,7 +91,7 @@ class MainScreenState extends State<MainScreen> {
         extendBody: true,
         drawer: Drawer(
           child: ListView(children: [
-            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 64, height: 64,)),
+            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,)),
             ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings')),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
           ],

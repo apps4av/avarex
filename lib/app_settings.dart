@@ -59,4 +59,12 @@ class AppSettings {
     return Settings.getValue("key-chart-center-longitude", defaultValue: -95.0) as double;
   }
 
+  void setInstruments(String instruments) {
+    Settings.setValue("key-instruments-v1", instruments);
+  }
+
+  String getInstruments() {
+    return Settings.getValue("key-instruments-v1", defaultValue: "Gnd Speed,Alt,Track,Up Timer") as String;
+  }
+
 }
