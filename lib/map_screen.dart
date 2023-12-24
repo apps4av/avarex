@@ -73,7 +73,7 @@ class MapScreenState extends State<MapScreen> {
     );
 
     // for track up
-    Storage().change.addListener(() {
+    Storage().gpsChange.addListener(() {
       // in track up mode rotate chart
       Storage().settings.getNorthUp() ? {} : _controller.rotate(Storage().position.heading);
     });
@@ -93,7 +93,7 @@ class MapScreenState extends State<MapScreen> {
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
                   ValueListenableBuilder<int>(
-                    valueListenable: Storage().change,
+                    valueListenable: Storage().gpsChange,
                     builder: (context, value, _) {
                       return MarkerLayer(
                         markers: [

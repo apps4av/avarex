@@ -31,7 +31,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
           Text(widget.destination.locationID),
           IconButton(
             onPressed: () { // go to plate
-              Storage().currentPlateAirport = widget.destination.locationID;
+              Storage().settings.setCurrentPlateAirport(widget.destination.locationID);
               MainScreenState.gotoPlate();
               Navigator.of(context).pop(); // hide bottom sheet
             },

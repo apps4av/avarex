@@ -28,11 +28,12 @@ class Storage extends ChangeNotifier {
 
   void handleTimeout() async {  // callback function
     position = await _gps.getCurrentPosition();
-    change.notifyListeners(); // tell everyone
+    gpsChange.notifyListeners(); // tell everyone
     scheduleTimeout();
   }
 
-  final change = ValueNotifier<int>(0);
+  final gpsChange = ValueNotifier<int>(0);
+  final plateChange = ValueNotifier<int>(1);
 
   Future<void> init() async {
     DbGeneral.set(); // set database platform
@@ -45,43 +46,33 @@ class Storage extends ChangeNotifier {
     }
     bool enabled = await _gps.checkEnabled();
     position = await Gps().getLastPosition();
-    _dataDir = await PathUtils.getDownloadDirPath();
-    await _settings.initSettings();
+    dataDir = await PathUtils.getDownloadDirPath();
+    await settings.initSettings();
     scheduleTimeout();
   }
 
 
   // for navigation on tabs
-  final GlobalKey _globalKeyBottomNavigationBar = GlobalKey();
-  GlobalKey get globalKeyBottomNavigationBar => _globalKeyBottomNavigationBar;
+  final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
 
   final _gps = Gps();
-  String _dataDir = "";
+  String dataDir = "";
 
-  String get dataDir => _dataDir;
   late Position position;
 
-  final AppSettings _settings = AppSettings();
+  final AppSettings settings = AppSettings();
 
-  AppSettings get settings => _settings;
-
-  ui.Image? _imagePlate;
-  final TransformationController _plateTransformationController = TransformationController();
-  Map<String, IfdTag>? _exifPlate;
-  String _currentPlate = "";
-  String _currentPlateAirport = "";
-  String _lastPlateAirport = "";
-
-  set lastPlateAirport(String value) {
-    _lastPlateAirport = value;
-  }
-  String get lastPlateAirport => _lastPlateAirport;
+  ui.Image? imagePlate;
+  final TransformationController plateTransformationController = TransformationController();
+  String lastPlateAirport = "";
+  String currentPlate = "";
+  List<double>? matrixPlate;
 
   Future<void> loadPlate() async {
-    String path = await PathUtils.getPlateFilePath(_currentPlateAirport, _currentPlate);
-    if(_currentPlate.startsWith("CSUP:")) {
+    String path = await PathUtils.getPlateFilePath(settings.getCurrentPlateAirport(), currentPlate);
+    if(currentPlate.startsWith("CSUP:")) {
       // all CSUP plates are appended by CSUP so remove it
-      path = await PathUtils.getCSupFilePath(_currentPlate.replaceFirst("CSUP:", ""));
+      path = await PathUtils.getCSupFilePath(currentPlate.replaceFirst("CSUP:", ""));
     }
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();
@@ -94,38 +85,39 @@ class Storage extends ChangeNotifier {
       // file bad or not found
       bytes = bd.buffer.asUint8List();
     }
-    _exifPlate = await readExifFromBytes(bytes);
+    Map<String, IfdTag>? exif = await readExifFromBytes(bytes);
+    matrixPlate = null;
+    if(null != exif) {
+      IfdTag? tag = exif["EXIF UserComment"];
+      if(null != tag) {
+        List<String> tokens = tag.toString().split("|");
+        if(tokens.length == 4) {
+          matrixPlate = [];
+          matrixPlate!.add(double.parse(tokens[0]));
+          matrixPlate!.add(double.parse(tokens[1]));
+          matrixPlate!.add(double.parse(tokens[2]));
+          matrixPlate!.add(double.parse(tokens[3]));
+        }
+      }
+    }
+
     ui.decodeImageFromList(bytes, (ui.Image img) {
       return completerPlate.complete(img);
     });
-    if(_imagePlate != null) {
-      _imagePlate!.dispose();
-      _imagePlate = null;
+    if(imagePlate != null) {
+      imagePlate!.dispose();
+      imagePlate = null;
     }
-    _imagePlate = await completerPlate.future;
-    change.notifyListeners(); // change in storage
-  }
-
-  ui.Image? get imagePlate => _imagePlate;
-  TransformationController get plateTransformationController => _plateTransformationController;
-  Map<String, IfdTag>? get exifPlate => _exifPlate;
-  String get currentPlate => _currentPlate;
-  String get currentPlateAirport => _currentPlateAirport;
-
-  set currentPlate(String value) {
-    _currentPlate = value;
-  }
-
-  set currentPlateAirport(String value) {
-    _currentPlateAirport = value;
+    imagePlate = await completerPlate.future;
+    plateChange.notifyListeners(); // change in storage
   }
 
   resetPlate() {
-    _plateTransformationController.value.setEntry(0, 0, 1);
-    _plateTransformationController.value.setEntry(1, 1, 1);
-    _plateTransformationController.value.setEntry(2, 2, 1);
-    _plateTransformationController.value.setEntry(0, 3, 0);
-    _plateTransformationController.value.setEntry(1, 3, 0);
+    plateTransformationController.value.setEntry(0, 0, 1);
+    plateTransformationController.value.setEntry(1, 1, 1);
+    plateTransformationController.value.setEntry(2, 2, 1);
+    plateTransformationController.value.setEntry(0, 3, 0);
+    plateTransformationController.value.setEntry(1, 3, 0);
   }
 
 }

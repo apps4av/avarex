@@ -5,7 +5,6 @@ import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
-import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -25,7 +24,7 @@ class PlatesFuture {
   List<String> _airports = [];
   List<String> _csup = [];
   FindAirportParams? _airportParams;
-  String _currentPlateAirport = Storage().currentPlateAirport;
+  String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
   Future<void> _getAll() async {
 
@@ -55,7 +54,7 @@ class PlatesFuture {
     _plates.sort();
 
     _airportParams = await MainDatabaseHelper.db
-        .findAirportParams(Storage().currentPlateAirport);
+        .findAirportParams(Storage().settings.getCurrentPlateAirport());
 
   }
 
@@ -87,9 +86,18 @@ class PlateScreenState extends State<PlateScreen> {
     );
   }
 
+  // on change of airport, reload first item of the new airport
+  Future _loadPlate() async {
+    // load plate in background
+    await Storage().loadPlate();
+    Storage().lastPlateAirport = Storage().settings.getCurrentPlateAirport();
+  }
+
+
   Widget _makeContent(PlatesFuture? future) {
 
-    double ? height = Scaffold.of(context).appBarMaxHeight ?? 0;
+    double height = Scaffold.of(context).appBarMaxHeight ?? 0;
+    ValueNotifier notifier = ValueNotifier(0);
 
     if(future == null) {
       return Container(); // hopeless of still not ready
@@ -97,8 +105,11 @@ class PlateScreenState extends State<PlateScreen> {
 
     List<String> plates = future.plates;
     List<String> airports = future.airports;
-    Storage().currentPlateAirport = future.currentPlateAirport;
+    Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
     FindAirportParams? params = future.airportParams;
+
+    double lon = params == null ? 0 : params.lon;
+    double lat =  params == null ? 0: params.lat;
 
     if(airports.isEmpty) {
       return Container(); // hopeless, still not ready
@@ -109,13 +120,13 @@ class PlateScreenState extends State<PlateScreen> {
       return Scaffold(body: Stack(children: [
           CustomWidgets.dropDownButton(
             context,
-            Storage().currentPlateAirport,
+            Storage().settings.getCurrentPlateAirport(),
             airports,
             Alignment.bottomRight,
             MediaQuery.of(context).padding.bottom,
                 (value) {
               setState(() {
-                Storage().currentPlateAirport = value ?? airports[0];
+                Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
               });
             },
           ),
@@ -123,17 +134,21 @@ class PlateScreenState extends State<PlateScreen> {
       ));
     }
 
-    if((Storage().lastPlateAirport != Storage().currentPlateAirport)) {
+    if((Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
       Storage().currentPlate = plates[0]; // new airport, change to plate 0
     }
 
-    // on change of airport, reload first item of the new airport
-    Future re() async {
-      // load plate in background
-      await Storage().loadPlate();
-      Storage().lastPlateAirport = Storage().currentPlateAirport;
-    }
-    re();
+    _loadPlate();
+
+    // plate load notification, repaint
+    Storage().plateChange.addListener(() {
+      notifier.notifyListeners();
+    });
+
+    Storage().gpsChange.addListener(() {
+      // gps change, repaint plate
+      notifier.notifyListeners();
+    });
 
     return Scaffold(body: Stack(children: [
         InteractiveViewer(
@@ -144,18 +159,18 @@ class PlateScreenState extends State<PlateScreen> {
               SizedBox(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
-              child: CustomPaint(painter: _PlatePainter(height: height, lon: params == null ? 0 : params.lon, lat: params == null ? 0: params.lat)),
+              child: CustomPaint(painter: _PlatePainter(height: height, lon: lon, lat: lat, repaint: notifier)),
             )
         ),
         CustomWidgets.dropDownButton(
           context,
-          Storage().currentPlateAirport,
+          Storage().settings.getCurrentPlateAirport(),
           airports,
           Alignment.bottomRight,
           MediaQuery.of(context).padding.bottom,
           (value) {
             setState(() {
-              Storage().currentPlateAirport = value ?? airports[0];
+              Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
             });
           },
         ),
@@ -184,11 +199,11 @@ class PlateScreenState extends State<PlateScreen> {
 
 class _PlatePainter extends CustomPainter {
 
-  double? _height;
-  final List<double> _matrix = [];
-  bool _tagPresent = false;
+  double _height = 0;
+  List<double>? _matrix;
   double _airportLon = 0;
   double _airportLat = 0;
+  ui.Image? _image;
 
   // Define a paint object
   final _paint = Paint();
@@ -203,40 +218,28 @@ class _PlatePainter extends CustomPainter {
     ..color = const Color.fromARGB(127, 255, 0, 0);
 
   _PlatePainter({
-    required double? height,
+    required ValueNotifier repaint,
+    required double height,
     required double lon,
-    required double lat}) : super(repaint: Storage().change) {
+    required double lat}) : super(repaint: repaint) {
     _height = height;
     _airportLat = lat;
     _airportLon = lon;
-
-    // tag of plates
-    Map<String, IfdTag>? exif = Storage().exifPlate;
-    if(null != exif) {
-      IfdTag? tag = exif["EXIF UserComment"];
-      if(null != tag) {
-        _tagPresent = true;
-        List<String> tokens = tag.toString().split("|");
-        _matrix.add(double.parse(tokens[0]));
-        _matrix.add(double.parse(tokens[1]));
-        _matrix.add(double.parse(tokens[2]));
-        _matrix.add(double.parse(tokens[3]));
-      }
-    }
   }
 
   @override
   void paint(Canvas canvas, Size size) {
 
-    ui.Image? image = Storage().imagePlate;
+    _image = Storage().imagePlate;
+    _matrix = Storage().matrixPlate;
 
-    if(image != null) {
+    if(_image != null) {
 
       // make in center
       double h = size.height - (_height ?? 0);
-      double ih = image.height.toDouble();
+      double ih = _image!.height.toDouble();
       double w = size.width;
-      double iw = image.width.toDouble();
+      double iw = _image!.width.toDouble();
       double fac = h / ih;
       double fac2 = w / iw;
       if (fac > fac2) {
@@ -246,17 +249,17 @@ class _PlatePainter extends CustomPainter {
       canvas.save();
       canvas.translate(0, _height ?? 0);
       canvas.scale(fac);
-      canvas.drawImage(image, const Offset(0, 0), _paint);
+      canvas.drawImage(_image!, const Offset(0, 0), _paint);
 
-      if(_tagPresent) {
+      if(null != _matrix) {
         double heading = Storage().position.heading;
         double lon = Storage().position.longitude;
         double lat = Storage().position.latitude;
 
-        double dx = _matrix[0];
-        double dy = _matrix[1];
-        double lonTopLeft = _matrix[2];
-        double latTopLeft = _matrix[3];
+        double dx = _matrix![0];
+        double dy = _matrix![1];
+        double lonTopLeft = _matrix![2];
+        double latTopLeft = _matrix![3];
         double pixX = (lon - lonTopLeft) * dx;
         double pixY = (lat - latTopLeft) * dy;
 
@@ -264,11 +267,12 @@ class _PlatePainter extends CustomPainter {
         double pixAirportY = (_airportLat - latTopLeft) * dy;
         Offset offsetCircle = Offset(pixAirportX, pixAirportY);
 
-        // draw circle at center of airport
+        // draw circle at center of airport of 1/16th of screen size
         canvas.drawCircle(offsetCircle, (size.height + size.width) / 32, _paintCenter);
         //draw airplane
         canvas.translate(pixX, pixY);
         canvas.rotate(heading * pi / 180);
+        // draw all based on screen width, height
         canvas.drawLine(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), _paintLine);
         canvas.drawLine(Offset(2 * (size.height + size.width) / 64, 0), Offset(-2 * (size.height + size.width) / 64, 0), _paintLine);
       }

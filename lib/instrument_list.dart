@@ -24,7 +24,7 @@ class InstrumentListState extends State<InstrumentList> {
   InstrumentListState() {
 
     // connect to GPS
-    Storage().change.addListener(() {
+    Storage().gpsChange.addListener(() {
       setState(() {
         _gndSpeed = Conversions.convertSpeed(Storage().position.speed);
         _altitude = Conversions.convertAltitude(Storage().position.altitude);
