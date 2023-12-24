@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/path_utils.dart';
@@ -14,7 +13,7 @@ import 'app_settings.dart';
 import 'db_general.dart';
 import 'gps.dart';
 
-class Storage {
+class Storage extends ChangeNotifier {
   static final Storage _instance = Storage._internal();
 
   factory Storage() {
@@ -29,11 +28,11 @@ class Storage {
 
   void handleTimeout() async {  // callback function
     position = await _gps.getCurrentPosition();
-    gpsUpdate.notifyListeners(); // tell everyone
+    change.notifyListeners(); // tell everyone
     scheduleTimeout();
   }
 
-  final gpsUpdate = ValueNotifier<int>(0);
+  final change = ValueNotifier<int>(0);
 
   Future<void> init() async {
     DbGeneral.set(); // set database platform
@@ -104,6 +103,7 @@ class Storage {
       _imagePlate = null;
     }
     _imagePlate = await completerPlate.future;
+    change.notifyListeners(); // change in storage
   }
 
   ui.Image? get imagePlate => _imagePlate;

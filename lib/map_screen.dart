@@ -3,7 +3,6 @@ import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -74,7 +73,7 @@ class MapScreenState extends State<MapScreen> {
     );
 
     // for track up
-    Storage().gpsUpdate.addListener(() {
+    Storage().change.addListener(() {
       // in track up mode rotate chart
       Storage().settings.getNorthUp() ? {} : _controller.rotate(Storage().position.heading);
     });
@@ -94,7 +93,7 @@ class MapScreenState extends State<MapScreen> {
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
                   ValueListenableBuilder<int>(
-                    valueListenable: Storage().gpsUpdate,
+                    valueListenable: Storage().change,
                     builder: (context, value, _) {
                       return MarkerLayer(
                         markers: [
@@ -104,11 +103,9 @@ class MapScreenState extends State<MapScreen> {
                             point: LatLng(Storage().position.latitude, Storage().position.longitude),
                             child: Transform.rotate(
                               angle: Storage().settings.getNorthUp() ? Storage().position.heading * pi / 180 : -Storage().position.heading * pi / 180,
-                              child: SvgPicture.asset(
-                                "assets/images/airplane.svg",
+                              child: Image.asset("assets/images/plane.png"),
                               ),
                             ),
-                          ),
                         ],
                       );
                     },

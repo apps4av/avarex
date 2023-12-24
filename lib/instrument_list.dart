@@ -24,7 +24,7 @@ class InstrumentListState extends State<InstrumentList> {
   InstrumentListState() {
 
     // connect to GPS
-    Storage().gpsUpdate.addListener(() {
+    Storage().change.addListener(() {
       setState(() {
         _gndSpeed = Conversions.convertSpeed(Storage().position.speed);
         _altitude = Conversions.convertAltitude(Storage().position.altitude);
@@ -38,6 +38,9 @@ class InstrumentListState extends State<InstrumentList> {
     if(_upTimer != null) {
       _upTimer!.cancel();
       _upTimer = null;
+      setState(() {
+        _timer = "00:00";
+      });
     }
     else {
       _upTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
@@ -57,30 +60,24 @@ class InstrumentListState extends State<InstrumentList> {
       width = MediaQuery.of(context).size.width / 4;
     }
 
-    String value;
-    Function() cb;
+    String value = "";
+    Function() cb = () {};
 
     // set callbacks and connect values
     switch(_items[index]) {
       case "Gnd Speed":
         value = _gndSpeed;
-        cb = () {};
         break;
       case "Alt":
         value = _altitude;
-        cb = () {};
         break;
       case "Track":
         value = _track;
-        cb = () {};
         break;
       case "Up Timer":
         value = _timer;
         cb = _startUpTimer;
         break;
-      default:
-        value = "";
-        cb = () {};
     }
 
     return SizedBox(

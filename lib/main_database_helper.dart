@@ -87,6 +87,33 @@ class MainDatabaseHelper {
     return([]);
   }
 
+  Future<FindAirportParams?> findAirportParams(String airport) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from airports where LocationID = '$airport'");
+    }
+    if(maps.isEmpty) {
+      return null;
+    }
+    return FindAirportParams(
+        locationID: maps[0]['LocationID'] as String,
+        lon: maps[0]['ARPLongitude'] as double,
+        lat: maps[0]['ARPLatitude'] as double
+    );
+  }
+}
+
+class FindAirportParams {
+  final String locationID;
+  final double lon;
+  final double lat;
+
+  const FindAirportParams({
+    required this.locationID,
+    required this.lon,
+    required this.lat,
+  });
 }
 
 class FindDestination {
