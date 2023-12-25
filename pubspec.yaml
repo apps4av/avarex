@@ -52,6 +52,7 @@ dependencies:
   http: ^1.0.0
   exif: ^3.3.0
   flutter_map: ^6.1.0
+  carousel_slider: ^4.2.1
 
 dev_dependencies:
   flutter_test:

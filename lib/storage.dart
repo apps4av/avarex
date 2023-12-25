@@ -85,19 +85,17 @@ class Storage extends ChangeNotifier {
       // file bad or not found
       bytes = bd.buffer.asUint8List();
     }
-    Map<String, IfdTag>? exif = await readExifFromBytes(bytes);
+    Map<String, IfdTag> exif = await readExifFromBytes(bytes);
     matrixPlate = null;
-    if(null != exif) {
-      IfdTag? tag = exif["EXIF UserComment"];
-      if(null != tag) {
-        List<String> tokens = tag.toString().split("|");
-        if(tokens.length == 4) {
-          matrixPlate = [];
-          matrixPlate!.add(double.parse(tokens[0]));
-          matrixPlate!.add(double.parse(tokens[1]));
-          matrixPlate!.add(double.parse(tokens[2]));
-          matrixPlate!.add(double.parse(tokens[3]));
-        }
+    IfdTag? tag = exif["EXIF UserComment"];
+    if(null != tag) {
+      List<String> tokens = tag.toString().split("|");
+      if(tokens.length == 4) {
+        matrixPlate = [];
+        matrixPlate!.add(double.parse(tokens[0]));
+        matrixPlate!.add(double.parse(tokens[1]));
+        matrixPlate!.add(double.parse(tokens[2]));
+        matrixPlate!.add(double.parse(tokens[3]));
       }
     }
 

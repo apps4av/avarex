@@ -1,46 +1,111 @@
+import 'dart:ui';
+
+import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
-import 'main_database_helper.dart';
+import 'airport.dart';
+import 'destination.dart';
 
 class LongPressWidget extends StatefulWidget {
-  final FindDestination destination;
+  final Destination destination;
 
   const LongPressWidget({super.key, required this.destination});
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
 }
 
+class LongPressFuture {
+
+  Destination destination;
+  AirportDestination? airport;
+
+  LongPressFuture(this.destination);
+
+  // get everything from database about this destination
+  Future<void> _getAll() async {
+    airport = await MainDatabaseHelper.db.findAirport(destination.locationID);
+  }
+
+  Future<LongPressFuture> getAll() async {
+    await _getAll();
+    return this;
+  }
+}
 
 class LongPressWidgetState extends State<LongPressWidget> {
 
   @override
   Widget build(BuildContext context) {
 
+    return FutureBuilder(
+        future: LongPressFuture(widget.destination).getAll(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent(null);
+          }
+        }
+    );
+  }
+
+  Widget _makeContent(LongPressFuture? future) {
+
+
+    if(null == future) {
+      return Container();
+    }
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(10),
           topRight: Radius.circular(10),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Text(widget.destination.locationID),
-          IconButton(
-            onPressed: () { // go to plate
-              Storage().settings.setCurrentPlateAirport(widget.destination.locationID);
-              MainScreenState.gotoPlate();
-              Navigator.of(context).pop(); // hide bottom sheet
-            },
-            icon: const Icon(Icons.book)),
+          Text("${future!.airport!.facilityName}(${future!.airport!.locationID})", style: const TextStyle(color: Colors.cyanAccent),),
+          Row(children: [
+            // top action buttons
+            TextButton(
+              child: const Text("->D"),
+              onPressed: () { // go to plate
+                MainScreenState.gotoMap();
+                Navigator.of(context).pop(); // hide bottom sheet
+              },
+            ),
+            TextButton(
+              child: const Text("Plates"),
+              onPressed: () { // go to plate
+                Storage().settings.setCurrentPlateAirport(future!.destination.locationID);
+                MainScreenState.gotoPlate();
+                Navigator.of(context).pop(); // hide bottom sheet
+              },
+            )
+          ]),
+          const Divider(),
+          // various info
+          CarouselSlider(
+            items: [
+              Card(color: Colors.black38, child:Align(alignment: Alignment.topLeft, child: SingleChildScrollView(child:Text(Airport.parseFrequencies(future!.airport!))))),
+              Card(color: Colors.black38, child:Align(alignment: Alignment.topLeft, child: SingleChildScrollView(child:Text(Airport.parseRunways(future!.airport!))))),
+            ],
+            options: CarouselOptions(
+              viewportFraction: 1,
+              enlargeFactor: 0.5,
+              enableInfiniteScroll: false,
+              enlargeCenterPage: true,
+              aspectRatio: MediaQuery.of(context).orientation == Orientation.portrait ? 0.625 : 2.5,
+            ),
+          ),
         ],
       ),
     );
-
   }
-
-
 }

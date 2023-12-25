@@ -6,6 +6,8 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'destination.dart';
+
 class MainDatabaseHelper {
   MainDatabaseHelper._();
 
@@ -29,7 +31,7 @@ class MainDatabaseHelper {
       await openDatabase(path, onOpen: (db) {});
   }
 
-  Future<List<FindDestination>> findDestinations(String match) async {
+  Future<List<Destination>> findDestinations(String match) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
@@ -42,7 +44,7 @@ class MainDatabaseHelper {
       );
     }
     return List.generate(maps.length, (i) {
-      return FindDestination(
+      return Destination(
           locationID: maps[i]['LocationID'] as String,
           facilityName: maps[i]['FacilityName'] as String,
           type: maps[i]['Type'] as String
@@ -61,7 +63,7 @@ class MainDatabaseHelper {
     });
   }
 
-  Future<List<FindDestination>> findNear(LatLng point) async {
+  Future<List<Destination>> findNear(LatLng point) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
@@ -77,7 +79,7 @@ class MainDatabaseHelper {
       maps = await db.rawQuery(qry);
 
       return List.generate(maps.length, (i) {
-        return FindDestination(
+        return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String
@@ -87,43 +89,30 @@ class MainDatabaseHelper {
     return([]);
   }
 
-  Future<FindAirportParams?> findAirportParams(String airport) async {
-    List<Map<String, dynamic>> maps = [];
+  Future<AirportDestination?> findAirport(String airport) async {
+    List<Map<String, dynamic>> mapsAirports = [];
+    List<Map<String, dynamic>> mapsFreq = [];
+    List<Map<String, dynamic>> mapsRunways = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from airports where LocationID = '$airport'");
+      mapsAirports = await db.rawQuery("select * from airports       where LocationID = '$airport'");
+      mapsFreq = await db.rawQuery(    "select * from airportfreq    where LocationID = '$airport'");
+      mapsRunways = await db.rawQuery( "select * from airportrunways where LocationID = '$airport'");
     }
-    if(maps.isEmpty) {
+    if(mapsAirports.isEmpty) {
       return null;
     }
-    return FindAirportParams(
-        locationID: maps[0]['LocationID'] as String,
-        lon: maps[0]['ARPLongitude'] as double,
-        lat: maps[0]['ARPLatitude'] as double
+
+    return AirportDestination(
+        locationID: mapsAirports[0]['LocationID'] as String,
+        lon: mapsAirports[0]['ARPLongitude'] as double,
+        lat: mapsAirports[0]['ARPLatitude'] as double,
+        facilityName: mapsAirports[0]['FacilityName'] as String,
+        type: mapsAirports[0]['Type'] as String,
+        frequencies: mapsFreq,
+        runways: mapsRunways
     );
   }
 }
 
-class FindAirportParams {
-  final String locationID;
-  final double lon;
-  final double lat;
 
-  const FindAirportParams({
-    required this.locationID,
-    required this.lon,
-    required this.lat,
-  });
-}
-
-class FindDestination {
-  final String locationID;
-  final String type;
-  final String facilityName;
-
-  const FindDestination({
-    required this.locationID,
-    required this.type,
-    required this.facilityName,
-  });
-}

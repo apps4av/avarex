@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'chart.dart';
+import 'destination.dart';
 import 'gps.dart';
 import 'longpress_widget.dart';
 
@@ -24,9 +25,11 @@ class MapScreenState extends State<MapScreen> {
   double _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
 
-  Future<bool> showDestination(BuildContext context, FindDestination destination) async {
+  Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return LongPressWidget(destination: destination);
       },
@@ -36,7 +39,7 @@ class MapScreenState extends State<MapScreen> {
 
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
-    List<FindDestination> items = await MainDatabaseHelper.db.findNear(point);
+    List<Destination> items = await MainDatabaseHelper.db.findNear(point);
     if(items.isEmpty) {
       return;
     }

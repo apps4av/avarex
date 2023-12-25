@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:avaremp/main_database_helper.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+
+import 'destination.dart';
 
 
 class UserDatabaseHelper {
@@ -40,7 +41,7 @@ class UserDatabaseHelper {
           onOpen: (db) {});
   }
 
-  Future<void> addRecent(FindDestination recent) async {
+  Future<void> addRecent(Destination recent) async {
     final db = await database;
     Map<String, Object?> map = {"LocationID": recent.locationID, "FacilityName" : recent.facilityName, "Type": recent.type};
 
@@ -49,7 +50,7 @@ class UserDatabaseHelper {
     }
   }
 
-  Future<List<FindDestination>> getRecentAirports() async {
+  Future<List<Destination>> getRecentAirports() async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
@@ -59,7 +60,7 @@ class UserDatabaseHelper {
           "Type='ULTRALIGHT' or "
           "Type='BALLOONPORT' order by id desc;");
       return List.generate(maps.length, (i) {
-        return FindDestination(
+        return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String
@@ -69,13 +70,13 @@ class UserDatabaseHelper {
     return [];
   }
 
-  Future<List<FindDestination>> getRecent() async {
+  Future<List<Destination>> getRecent() async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
       maps = await db.rawQuery("select * from recent order by id desc"); // most recent first
       return List.generate(maps.length, (i) {
-        return FindDestination(
+        return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String
@@ -85,7 +86,7 @@ class UserDatabaseHelper {
     return [];
   }
 
-  Future<void> deleteRecent(FindDestination destination) async {
+  Future<void> deleteRecent(Destination destination) async {
     final db = await database;
     if (db != null) {
       await db.rawQuery("delete from recent where LocationID="

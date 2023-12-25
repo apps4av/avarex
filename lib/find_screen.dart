@@ -4,6 +4,7 @@ import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import 'destination.dart';
 import 'main_database_helper.dart';
 
 class FindScreen extends StatefulWidget {
@@ -14,13 +15,15 @@ class FindScreen extends StatefulWidget {
 
 class FindScreenState extends State<FindScreen> {
 
-  List<FindDestination>? _curItems;
+  List<Destination>? _curItems;
   String _searchText = "";
   double? _height;
 
-  Future<bool> showDestination(BuildContext context, FindDestination destination) async {
+  Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
       context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
       builder: (BuildContext context) {
         return LongPressWidget(destination: destination);
       },
@@ -45,11 +48,11 @@ class FindScreenState extends State<FindScreen> {
     );
   }
 
-  void addRecent(FindDestination d) {
+  void addRecent(Destination d) {
     UserDatabaseHelper.db.addRecent(d);
   }
 
-  Widget _makeContent(List<FindDestination>? items, bool searching) {
+  Widget _makeContent(List<Destination>? items, bool searching) {
 
     return Container(
         padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, 0),

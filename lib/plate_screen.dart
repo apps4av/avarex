@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/custom_widgets.dart';
+import 'package:avaremp/destination.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
@@ -23,7 +24,7 @@ class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
   List<String> _csup = [];
-  FindAirportParams? _airportParams;
+  AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
   Future<void> _getAll() async {
@@ -53,8 +54,8 @@ class PlatesFuture {
     _plates = _plates.toSet().toList();
     _plates.sort();
 
-    _airportParams = await MainDatabaseHelper.db
-        .findAirportParams(Storage().settings.getCurrentPlateAirport());
+    _airportDestination = await MainDatabaseHelper.db
+        .findAirport(Storage().settings.getCurrentPlateAirport());
 
   }
 
@@ -63,7 +64,7 @@ class PlatesFuture {
     return this;
   }
 
-  FindAirportParams? get airportParams => _airportParams;
+  AirportDestination? get airportDestination => _airportDestination;
   List<String> get airports => _airports;
   List<String> get plates => _plates;
   String get currentPlateAirport => _currentPlateAirport;
@@ -106,10 +107,10 @@ class PlateScreenState extends State<PlateScreen> {
     List<String> plates = future.plates;
     List<String> airports = future.airports;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
-    FindAirportParams? params = future.airportParams;
+    AirportDestination? destination = future.airportDestination;
 
-    double lon = params == null ? 0 : params.lon;
-    double lat =  params == null ? 0: params.lat;
+    double lon = destination == null ? 0 : destination.lon;
+    double lat =  destination == null ? 0: destination.lat;
 
     if(airports.isEmpty) {
       return Container(); // hopeless, still not ready
@@ -236,7 +237,7 @@ class _PlatePainter extends CustomPainter {
     if(_image != null) {
 
       // make in center
-      double h = size.height - (_height ?? 0);
+      double h = size.height - _height;
       double ih = _image!.height.toDouble();
       double w = size.width;
       double iw = _image!.width.toDouble();
@@ -247,7 +248,7 @@ class _PlatePainter extends CustomPainter {
       }
 
       canvas.save();
-      canvas.translate(0, _height ?? 0);
+      canvas.translate(0, _height);
       canvas.scale(fac);
       canvas.drawImage(_image!, const Offset(0, 0), _paint);
 
