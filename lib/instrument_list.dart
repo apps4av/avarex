@@ -5,6 +5,8 @@ import 'package:avaremp/conversions.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
+import 'constants.dart';
+
 
 class InstrumentList extends StatefulWidget {
   const InstrumentList({super.key});
@@ -54,10 +56,10 @@ class InstrumentListState extends State<InstrumentList> {
 
   // make an instrument for top line
   Widget _makeInstrument(int index) {
-    bool portrait = MediaQuery.of(context).orientation == Orientation.portrait;
-    double width = MediaQuery.of(context).size.width / 6; // get more instruments in
+    bool portrait = Constants.isPortrait(context);
+    double width = Constants.screenWidth(context) / 6; // get more instruments in
     if(portrait) {
-      width = MediaQuery.of(context).size.width / 4;
+      width = Constants.screenWidth(context) / 4;
     }
 
     String value = "";
@@ -85,8 +87,8 @@ class InstrumentListState extends State<InstrumentList> {
         width: width,
         child:ListTile(
           onTap: cb,
-          title: Text(_items[index], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
-          subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w600)
+          title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
+          subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
           )
         )
     );

@@ -54,5 +54,12 @@ class Gps {
     }
   }
 
+  StreamSubscription<Position> getStream() {
+    const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high,);
+    StreamSubscription<Position> positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+            (Position? position) {
+        });
+    return positionStream;
+  }
 }
 

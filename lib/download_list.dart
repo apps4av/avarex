@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'chart.dart';
+import 'constants.dart';
 import 'download.dart';
 
 
@@ -15,9 +16,9 @@ const int _stateExpiredNone = 5;
 const int _stateExpiredDownload = 6;
 const int _stateExpiredDelete = 7;
 
-const Color _absentColor = Colors.grey;
-const Color _currentColor = Colors.green;
-const Color _expiredColor = Colors.red;
+const Color _absentColor = Constants.chartAbsentColor;
+const Color _currentColor = Constants.chartCurrentColor;
+const Color _expiredColor = Constants.chartExpiredColor;
 
 const IconData _absentIcon = Icons.question_mark;
 const IconData _downloadedIcon = Icons.check;
@@ -60,7 +61,7 @@ class DownloadListState extends State<DownloadList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).dialogBackgroundColor,
+        backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Download"),
         actions: [
           IconButton(icon: Icon(MdiIcons.refresh), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => {_start()},),

@@ -1,12 +1,15 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
+import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
 import 'airport.dart';
+import 'constants.dart';
 import 'destination.dart';
 
 class LongPressWidget extends StatefulWidget {
@@ -70,7 +73,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       ),
       child: Column(
         children: [
-          Text("${future!.airport!.facilityName}(${future!.airport!.locationID})", style: const TextStyle(color: Colors.cyanAccent),),
+          Text("${future.airport!.facilityName}(${future.airport!.locationID})", style: const TextStyle(color: Constants.bottomSheetTitleColor),),
           Row(children: [
             // top action buttons
             TextButton(
@@ -83,7 +86,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("Plates"),
               onPressed: () { // go to plate
-                Storage().settings.setCurrentPlateAirport(future!.destination.locationID);
+                Storage().settings.setCurrentPlateAirport(future.destination.locationID);
                 MainScreenState.gotoPlate();
                 Navigator.of(context).pop(); // hide bottom sheet
               },
@@ -93,15 +96,34 @@ class LongPressWidgetState extends State<LongPressWidget> {
           // various info
           CarouselSlider(
             items: [
-              Card(color: Colors.black38, child:Align(alignment: Alignment.topLeft, child: SingleChildScrollView(child:Text(Airport.parseFrequencies(future!.airport!))))),
-              Card(color: Colors.black38, child:Align(alignment: Alignment.topLeft, child: SingleChildScrollView(child:Text(Airport.parseRunways(future!.airport!))))),
+              Card(
+                child:Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox.expand(
+                        child:SingleChildScrollView(
+                            child:Text(Airport.parseFrequencies(future.airport!))
+                        )
+                    )
+                )
+              ),
+              Card(
+                child:Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox.expand(
+                        child:SingleChildScrollView(
+                            child:Text(Airport.parseRunways(future.airport!))
+                        )
+                    )
+                )
+              ),
             ],
+
             options: CarouselOptions(
               viewportFraction: 1,
               enlargeFactor: 0.5,
               enableInfiniteScroll: false,
               enlargeCenterPage: true,
-              aspectRatio: MediaQuery.of(context).orientation == Orientation.portrait ? 0.625 : 2.5,
+              aspectRatio: Constants.isPortrait(context) ? 0.625 : 2.5,
             ),
           ),
         ],

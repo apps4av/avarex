@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
 
+import 'constants.dart';
+
 class AppSettingsScreen extends StatelessWidget {
   const AppSettingsScreen({super.key});
 
@@ -9,7 +11,7 @@ class AppSettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
           title: const Text("Settings"),
-          backgroundColor: Theme.of(context).dialogBackgroundColor,
+          backgroundColor: Constants.appBarBackgroundColor,
       ),
       body: SafeArea(
         child:ListView(

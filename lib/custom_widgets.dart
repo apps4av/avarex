@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'constants.dart';
+
 class CustomWidgets {
   static Widget dropDownButton(BuildContext context, String defaultValue, List<String> items, Alignment align, double bottom, Function (String?) onChange) {
     return Positioned(
@@ -9,12 +11,12 @@ class CustomWidgets {
             DropdownButton<String>( // airport selection
               padding: EdgeInsets.fromLTRB(5, 5, 5, bottom),
               underline: Container(),
-              iconEnabledColor: Colors.transparent,
+              iconEnabledColor: Constants.dropDownButtonIconColor,
               value: defaultValue,
               items: items.map((String item) {
                 return DropdownMenuItem<String>(
                   value: item,
-                  child: Text(item, style: TextStyle(color: Colors.cyanAccent, backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156))),
+                  child: Text(item, style: TextStyle(color: Constants.dropDownButtonColor, backgroundColor: Constants.dropDownButtonBackgroundColor)),
                 );
               }).toList(),
               onChanged: (value) {
@@ -31,7 +33,7 @@ class CustomWidgets {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: EdgeInsets.fromLTRB(0, 0, 0, bottom + 40),
-            child: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(156), child:IconButton(
+            child: CircleAvatar(backgroundColor: Constants.centerButtonBackgroundColor, child:IconButton(
             onPressed: () {
               pressed();
             }, icon: const Icon(Icons.gps_fixed)),

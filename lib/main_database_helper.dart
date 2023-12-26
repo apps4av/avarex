@@ -93,11 +93,13 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirports = [];
     List<Map<String, dynamic>> mapsFreq = [];
     List<Map<String, dynamic>> mapsRunways = [];
+    List<Map<String, dynamic>> mapsAwos = [];
     final db = await database;
     if (db != null) {
       mapsAirports = await db.rawQuery("select * from airports       where LocationID = '$airport'");
       mapsFreq = await db.rawQuery(    "select * from airportfreq    where LocationID = '$airport'");
       mapsRunways = await db.rawQuery( "select * from airportrunways where LocationID = '$airport'");
+      mapsAwos = await db.rawQuery(    "select * from awos           where LocationID = '$airport'");
     }
     if(mapsAirports.isEmpty) {
       return null;
@@ -109,7 +111,10 @@ class MainDatabaseHelper {
         lat: mapsAirports[0]['ARPLatitude'] as double,
         facilityName: mapsAirports[0]['FacilityName'] as String,
         type: mapsAirports[0]['Type'] as String,
+        ctaf: mapsAirports[0]['CTAFFrequency'] as String,
+        unicom: mapsAirports[0]['UNICOMFrequencies'] as String,
         frequencies: mapsFreq,
+        awos: mapsAwos,
         runways: mapsRunways
     );
   }

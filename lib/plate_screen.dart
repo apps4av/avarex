@@ -9,6 +9,7 @@ import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'constants.dart';
 import 'main_database_helper.dart';
 
 // implements a drawing screen with a center reset button.
@@ -44,7 +45,7 @@ class PlatesFuture {
     }
     _airports = _airports.toSet().toList();
 
-    _plates = await PathUtils.getPlateNames(_currentPlateAirport);
+    _plates = await PathUtils.getPlateNames(Storage().dataDir, _currentPlateAirport);
     _csup = await MainDatabaseHelper.db.findCsup(_currentPlateAirport);
 
     // combine plates and csup
@@ -124,7 +125,7 @@ class PlateScreenState extends State<PlateScreen> {
             Storage().settings.getCurrentPlateAirport(),
             airports,
             Alignment.bottomRight,
-            MediaQuery.of(context).padding.bottom,
+            Constants.bottomPaddingSize(context),
                 (value) {
               setState(() {
                 Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
@@ -158,8 +159,8 @@ class PlateScreenState extends State<PlateScreen> {
             maxScale: 8,
             child:
               SizedBox(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
+              height: Constants.screenHeight(context),
+              width: Constants.screenWidth(context),
               child: CustomPaint(painter: _PlatePainter(height: height, lon: lon, lat: lat, repaint: notifier)),
             )
         ),
@@ -168,7 +169,7 @@ class PlateScreenState extends State<PlateScreen> {
           Storage().settings.getCurrentPlateAirport(),
           airports,
           Alignment.bottomRight,
-          MediaQuery.of(context).padding.bottom,
+          Constants.bottomPaddingSize(context),
           (value) {
             setState(() {
               Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
@@ -180,7 +181,7 @@ class PlateScreenState extends State<PlateScreen> {
           plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
           plates,
           Alignment.bottomLeft,
-          MediaQuery.of(context).padding.bottom,
+          Constants.bottomPaddingSize(context),
           (value) {
             setState(() {
               Storage().currentPlate = value ?? plates[0];
@@ -188,7 +189,7 @@ class PlateScreenState extends State<PlateScreen> {
           },
         ),
         CustomWidgets.centerButton(context,
-            MediaQuery.of(context).padding.bottom,
+            Constants.bottomPaddingSize(context),
             () => setState(() {
               Storage().resetPlate();
             })

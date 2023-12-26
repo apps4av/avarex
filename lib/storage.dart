@@ -7,6 +7,7 @@ import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'app_settings.dart';
@@ -22,18 +23,9 @@ class Storage extends ChangeNotifier {
 
   Storage._internal();
 
-  // one second timer for simulation
-  Timer scheduleTimeout([int milliseconds = 1000]) =>
-      Timer(Duration(milliseconds: milliseconds), handleTimeout);
-
-  void handleTimeout() async {  // callback function
-    position = await _gps.getCurrentPosition();
-    gpsChange.notifyListeners(); // tell everyone
-    scheduleTimeout();
-  }
-
   final gpsChange = ValueNotifier<int>(0);
   final plateChange = ValueNotifier<int>(1);
+
 
   Future<void> init() async {
     DbGeneral.set(); // set database platform
@@ -46,11 +38,18 @@ class Storage extends ChangeNotifier {
     }
     bool enabled = await _gps.checkEnabled();
     position = await Gps().getLastPosition();
-    dataDir = await PathUtils.getDownloadDirPath();
+    Directory dir = await getApplicationDocumentsDirectory();
+    dataDir = dir.path;
     await settings.initSettings();
-    scheduleTimeout();
+    // GPS data receive
+    _gps.getStream().onData((data) {
+      if(null == data) {
+        return;
+      }
+      position = data;
+      gpsChange.notifyListeners(); // tell everyone
+    });
   }
-
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -69,10 +68,10 @@ class Storage extends ChangeNotifier {
   List<double>? matrixPlate;
 
   Future<void> loadPlate() async {
-    String path = await PathUtils.getPlateFilePath(settings.getCurrentPlateAirport(), currentPlate);
+    String path = PathUtils.getPlateFilePath(dataDir, settings.getCurrentPlateAirport(), currentPlate);
     if(currentPlate.startsWith("CSUP:")) {
       // all CSUP plates are appended by CSUP so remove it
-      path = await PathUtils.getCSupFilePath(currentPlate.replaceFirst("CSUP:", ""));
+      path = PathUtils.getCSupFilePath(dataDir, currentPlate.replaceFirst("CSUP:", ""));
     }
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();

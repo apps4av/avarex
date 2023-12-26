@@ -2,6 +2,7 @@
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'constants.dart';
 import 'instrument_list.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
@@ -97,11 +98,11 @@ class MainScreenState extends State<MainScreen> {
           ],
         )),
         appBar: AppBar(
-          leadingWidth: MediaQuery.of(context).size.width / 10, // for safe area
-          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(100),
-          iconTheme: const IconThemeData(color: Colors.cyanAccent),
+          leadingWidth: Constants.screenWidth(context) / 10, // for safe area
+          backgroundColor: Constants.appBarBackgroundColor,
+          iconTheme: const IconThemeData(color: Constants.appBarButtonColor),
           flexibleSpace: SafeArea(
-            minimum: EdgeInsets.fromLTRB(MediaQuery.of(context).size.width / 10, 0, 0, 0),
+            minimum: EdgeInsets.fromLTRB(Constants.screenWidth(context) / 10, 0, 0, 0),
             child: const InstrumentList()
           ),
         ),
@@ -111,8 +112,8 @@ class MainScreenState extends State<MainScreen> {
         bottomNavigationBar: BottomNavigationBar(
           key: Storage().globalKeyBottomNavigationBar,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).dialogBackgroundColor.withAlpha(100),
-          selectedItemColor: Colors.cyanAccent,
+          backgroundColor: Constants.bottomNavBarBackgroundColor,
+          selectedItemColor: Constants.bottomNavBarButtonColor,
           items: const <BottomNavigationBarItem>[
             BottomNavigationBarItem(
               icon: Icon(Icons.map),

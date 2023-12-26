@@ -14,10 +14,13 @@ class Destination {
 
 class AirportDestination extends Destination {
 
-  double lon;
-  double lat;
+  final double lon;
+  final double lat;
   final List<Map<String, dynamic>> frequencies;
   final List<Map<String, dynamic>> runways;
+  final List<Map<String, dynamic>> awos;
+  final String unicom;
+  final String ctaf;
 
   AirportDestination({
     required super.locationID,
@@ -26,7 +29,10 @@ class AirportDestination extends Destination {
     required this.lon,
     required this.lat,
     required this.frequencies,
+    required this.awos,
     required this.runways,
+    required this.unicom,
+    required this.ctaf
   });
 
 }

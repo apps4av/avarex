@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'chart.dart';
+import 'constants.dart';
 import 'destination.dart';
 import 'gps.dart';
 import 'longpress_widget.dart';
@@ -71,14 +72,14 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       maxZoom: _maxZoom,
       minZoom: 0,
-      backgroundColor: Colors.black,
+      backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
     );
 
     // for track up
     Storage().gpsChange.addListener(() {
       // in track up mode rotate chart
-      Storage().settings.getNorthUp() ? {} : _controller.rotate(Storage().position.heading);
+      Storage().settings.getNorthUp() ? {} : _controller.rotate(-Storage().position.heading);
     });
 
     return Scaffold(
@@ -101,11 +102,11 @@ class MapScreenState extends State<MapScreen> {
                       return MarkerLayer(
                         markers: [
                           Marker( // our position
-                            width: MediaQuery.of(context).size.height / 20,
-                            height: MediaQuery.of(context).size.height / 20,
+                            width: Constants.screenHeight(context) / 20,
+                            height: Constants.screenHeight(context) / 20,
                             point: LatLng(Storage().position.latitude, Storage().position.longitude),
                             child: Transform.rotate(
-                              angle: Storage().settings.getNorthUp() ? Storage().position.heading * pi / 180 : -Storage().position.heading * pi / 180,
+                              angle: Storage().position.heading * pi / 180,
                               child: Image.asset("assets/images/plane.png"),
                               ),
                             ),
@@ -119,7 +120,7 @@ class MapScreenState extends State<MapScreen> {
               _type,
               _charts,
               Alignment.bottomLeft,
-                  MediaQuery.of(context).padding.bottom,
+                  Constants.bottomPaddingSize(context),
               (value) {
                 setState(() {
                   Storage().settings.setChartType(value ?? _charts[0]);
@@ -129,7 +130,7 @@ class MapScreenState extends State<MapScreen> {
           ),
 
           CustomWidgets.centerButton(context,
-              MediaQuery.of(context).padding.bottom,
+              Constants.bottomPaddingSize(context),
                   () => setState(() {
                     // get to current position
                     Position p = Storage().position;

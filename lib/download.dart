@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter_archive/flutter_archive.dart';
@@ -33,7 +34,7 @@ class Download {
   }
 
   Future<String> getChartCycleLocal(Chart chart) async {
-    String dir = await PathUtils.getDownloadDirPath();
+    String dir = Storage().dataDir;
     try {
       String version = await File(path.join(dir, chart.filename))
           .openRead()
@@ -59,7 +60,7 @@ class Download {
     _cancelDownloadAndDelete = false;
     callback!(chart, 0); // start
 
-    String dir = await PathUtils.getDownloadDirPath();
+    String dir = Storage().dataDir;
     String file = path.join(dir, chart.filename);
 
     List<String> s;
@@ -101,8 +102,8 @@ class Download {
     _cancelDownloadAndDelete = false;
     final Dio dio = Dio();
     double lastProgress = 0;
-    File localFile = File(await PathUtils.getLocalFilePath(chart.filename));
-    Directory localDir = Directory(await PathUtils.getDownloadDirPath());
+    File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
+    Directory localDir = Directory(Storage().dataDir);
     callback!(chart, 0); // download start signal
     CancelToken cancelToken = CancelToken(); // this is to cancel the dio download
 
