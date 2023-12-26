@@ -49,19 +49,30 @@ class PathUtils {
     csup = await MainDatabaseHelper.db.findCsup(airport);
 
     // combine plates and csup
-    for(String c in csup) {
-      plates.add("CSUP:$c");
-    }
+    plates.addAll(csup);
     plates = plates.toSet().toList();
-    plates.sort();
+    plates.sort((a,b) {
+      if(a == "AIRPORT-DIAGRAM") return -1;
+      if(b == "AIRPORT-DIAGRAM") return 1;
+      if(a.startsWith("ne_")) return -1;
+      if(b.startsWith("ne_")) return 1;
+      if(a.startsWith("HOT-SPOT")) return -1;
+      if(b.startsWith("HOT-SPOT")) return 1;
+      if(a.startsWith("LAHSO")) return -1;
+      if(b.startsWith("LAHSO")) return 1;
+      return a.compareTo(b);
+
+    });
     return(plates);
   }
 
   static String getPlatePath(String base, String airport, String name) {
     String path = PathUtils.getPlateFilePath(base, airport, name);
-    if(name.startsWith("CSUP:")) {
-      // all CSUP plates are appended by CSUP so remove it
-      path = PathUtils.getCSupFilePath(base, name.replaceFirst("CSUP:", ""));
+    if(
+      name.startsWith("ne_") || name.startsWith("nc_") || name.startsWith("nw_") ||
+      name.startsWith("se_") || name.startsWith("sc_") || name.startsWith("sw_") ||
+      name.startsWith("ec_") || name.startsWith("ak_") || name.startsWith("pac_")) {
+      path = PathUtils.getCSupFilePath(base, name);
     }
     return(path);
   }

@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'airport.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
@@ -45,7 +46,9 @@ class MapScreenState extends State<MapScreen> {
       return;
     }
     setState(() {
-      showDestination(context, items[0]);
+      if(Airport.isAirport(items[0].type)) {
+        showDestination(context, items[0]);
+      }
     });
   }
 

@@ -6,6 +6,15 @@ import 'package:flutter/material.dart';
 
 class Airport {
 
+  static bool isAirport(String type) {
+    return type == "AIRPORT" ||
+        type == "SEAPLANE BAS" ||
+        type == "HELIPORT" ||
+        type == "ULTRALIGHT" ||
+        type == "GLIDERPORT" ||
+        type == "BALLOONPORT";
+  }
+
   static String parseFrequencies(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
@@ -115,7 +124,7 @@ class FrequencyPainter extends CustomPainter {
           textAlign: TextAlign.left,
           textDirection: TextDirection.ltr);
       tp.layout();
-      tp.paint(canvas, const Offset(5, 5));
+      tp.paint(canvas, const Offset(0, 0));
     }
     catch (e) {}
   }
@@ -144,7 +153,6 @@ class RunwayPainter extends CustomPainter {
     String info = "";
     double scale = size.width > size.height ? size.height : size.width;
 
-
     double maxLat = -180;
     double minLat = 180;
     double maxLon = -180;
@@ -169,7 +177,30 @@ class RunwayPainter extends CustomPainter {
     }
 
     Rect bounds = Rect.fromLTRB(minLon, maxLat, maxLon, minLat);
-    double avg = max(bounds.width.abs(), bounds.height.abs()) / 1.5;
+    double avg = max(bounds.width.abs(), bounds.height.abs()) / 1.6; // give margin for airport off center, ideally 2 if in center
+
+    for(Map<String, dynamic> r in runways) {
+
+      try {
+
+        if(r['Length'] == "0") { // odd stuff like 0 length runways
+          continue;
+        }
+        info += "${r['LEIdent']}/${r['HEIdent']} ${r['Length']}x${r['Width']} ${r['Surface']}\n";
+        info += "    ${r['LEIdent']} ${r['LEPattern'] == 'Y' ? '*R' : ''} ${r['LELights']} ${r['LEILS']} ${r['LEVGSI']}\n";
+        info += "    ${r['HEIdent']} ${r['HEPattern'] == 'Y' ? '*R' : ''} ${r['HELights']} ${r['HEILS']} ${r['HEVGSI']}\n";
+
+      }
+      catch(e) {}
+    }
+
+    TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: info);
+    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+    tp.layout();
+    tp.paint(canvas, const Offset(0, 0));
+
+    double offsetX = size.width > size.height ? tp.size.width : 0;
+    double offsetY = size.height > size.width ? tp.size.height : 0;
 
     for(Map<String, dynamic> r in runways) {
 
@@ -189,8 +220,7 @@ class RunwayPainter extends CustomPainter {
         double top = apLat + avg;
         double bottom = apLat - avg;
 
-        double offsetX = size.width > size.height ? size.width / 2.3 : 0;
-        double offsetY = size.width > size.height ? 0 : size.height / 2.3;
+        // move down and to the side
 
         double px = scale / (left - right);
         double py = scale / (top - bottom);
@@ -211,18 +241,9 @@ class RunwayPainter extends CustomPainter {
         tp.layout();
         tp.paint(canvas, Offset(hx + offsetX, hy + offsetY));
 
-        info += "${r['LEIdent']}/${r['HEIdent']} ${r['Length']}x${r['Width']} ${r['Surface']}\n";
-        info += "    ${r['LEIdent']} ${r['LEPattern'] == 'Y' ? '*R' : '*L'} ${r['LELights']} ${r['LEILS']} ${r['LEVGSI']}\n";
-        info += "    ${r['HEIdent']} ${r['HEPattern'] == 'Y' ? '*R' : '*L'} ${r['HELights']} ${r['HEILS']} ${r['HEVGSI']}\n";
-
       }
       catch(e) {}
     }
-
-    TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: info);
-    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, const Offset(5, 5));
 
   }
 

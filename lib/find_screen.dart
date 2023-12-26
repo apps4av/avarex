@@ -4,6 +4,7 @@ import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import 'airport.dart';
 import 'destination.dart';
 import 'main_database_helper.dart';
 
@@ -102,7 +103,9 @@ class FindScreenState extends State<FindScreen> {
                         },
                         onLongPress: () {
                           setState(() {
-                            showDestination(context, item);
+                            if(Airport.isAirport(item.type)) {
+                              showDestination(context, item);
+                            }
                           });
                         },
                         leading: _TypeIcons.getIcon(item.type)
@@ -137,13 +140,7 @@ class _TypeIcons {
 
       return Icon(MdiIcons.hexagonOutline);
     }
-    else if(
-    type == "AIRPORT" ||
-        type == "SEAPLANE BAS" ||
-        type == "HELIPORT" ||
-        type == "ULTRALIGHT" ||
-        type == "GLIDERPORT" ||
-        type == "BALLOONPORT") {
+    else if(Airport.isAirport(type)) {
       return Icon(MdiIcons.airport);
     }
     else if(
