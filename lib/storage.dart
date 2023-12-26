@@ -68,11 +68,7 @@ class Storage extends ChangeNotifier {
   List<double>? matrixPlate;
 
   Future<void> loadPlate() async {
-    String path = PathUtils.getPlateFilePath(dataDir, settings.getCurrentPlateAirport(), currentPlate);
-    if(currentPlate.startsWith("CSUP:")) {
-      // all CSUP plates are appended by CSUP so remove it
-      path = PathUtils.getCSupFilePath(dataDir, currentPlate.replaceFirst("CSUP:", ""));
-    }
+    String path = PathUtils.getPlatePath(dataDir, settings.getCurrentPlateAirport(), currentPlate);
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();
     Uint8List bytes;

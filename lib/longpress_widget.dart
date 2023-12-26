@@ -24,12 +24,25 @@ class LongPressFuture {
 
   Destination destination;
   AirportDestination? airport;
+  Image? airportPlate;
 
   LongPressFuture(this.destination);
 
   // get everything from database about this destination
   Future<void> _getAll() async {
     airport = await MainDatabaseHelper.db.findAirport(destination.locationID);
+
+    if(null != airport) {
+      // show first plate
+      List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, airport!.locationID);
+      if(plates.isNotEmpty) {
+        File ad = File(PathUtils.getPlatePath(
+            Storage().dataDir, airport!.locationID, plates[0]));
+        if (await ad.exists()) {
+          airportPlate = Image.file(ad);
+        }
+      }
+    }
   }
 
   Future<LongPressFuture> getAll() async {
@@ -59,9 +72,40 @@ class LongPressWidgetState extends State<LongPressWidget> {
   Widget _makeContent(LongPressFuture? future) {
 
 
-    if(null == future) {
+    if(null == future || null == future.airport) {
       return Container();
     }
+
+    // carousel
+    List<Card> cards = [];
+
+    String frequencies = Airport.parseFrequencies(future.airport!);
+    if(frequencies.isNotEmpty) {
+      cards.add(Card(
+          child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox.expand(
+                  child: Airport.frequenciesWidget(frequencies)
+              )
+          )
+      )
+      );
+    }
+
+    cards.add(Card(
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox.expand(
+                  child: Airport.runwaysWidget(future.airport!)
+              )
+          )
+        )
+    );
+
+    if(future.airportPlate != null) {
+      cards.add(Card(child:future.airportPlate));
+    }
+
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -95,29 +139,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
           const Divider(),
           // various info
           CarouselSlider(
-            items: [
-              Card(
-                child:Align(
-                    alignment: Alignment.topLeft,
-                    child: SizedBox.expand(
-                        child:SingleChildScrollView(
-                            child:Text(Airport.parseFrequencies(future.airport!))
-                        )
-                    )
-                )
-              ),
-              Card(
-                child:Align(
-                    alignment: Alignment.topLeft,
-                    child: SizedBox.expand(
-                        child:SingleChildScrollView(
-                            child:Text(Airport.parseRunways(future.airport!))
-                        )
-                    )
-                )
-              ),
-            ],
-
+            items: cards,
             options: CarouselOptions(
               viewportFraction: 1,
               enlargeFactor: 0.5,

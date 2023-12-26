@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:avaremp/main_database_helper.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
 
@@ -38,6 +39,31 @@ class PathUtils {
       ret = [];
     }
     return(ret);
+  }
+
+  static Future<List<String>> getPlatesAndCSupSorted(String base, String airport) async {
+    List<String> plates = [];
+    List<String> csup = [];
+
+    plates = await PathUtils.getPlateNames(base, airport);
+    csup = await MainDatabaseHelper.db.findCsup(airport);
+
+    // combine plates and csup
+    for(String c in csup) {
+      plates.add("CSUP:$c");
+    }
+    plates = plates.toSet().toList();
+    plates.sort();
+    return(plates);
+  }
+
+  static String getPlatePath(String base, String airport, String name) {
+    String path = PathUtils.getPlateFilePath(base, airport, name);
+    if(name.startsWith("CSUP:")) {
+      // all CSUP plates are appended by CSUP so remove it
+      path = PathUtils.getCSupFilePath(base, name.replaceFirst("CSUP:", ""));
+    }
+    return(path);
   }
 
 }

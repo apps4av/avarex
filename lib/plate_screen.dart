@@ -24,7 +24,6 @@ class PlateScreen extends StatefulWidget {
 class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
-  List<String> _csup = [];
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
@@ -45,19 +44,10 @@ class PlatesFuture {
     }
     _airports = _airports.toSet().toList();
 
-    _plates = await PathUtils.getPlateNames(Storage().dataDir, _currentPlateAirport);
-    _csup = await MainDatabaseHelper.db.findCsup(_currentPlateAirport);
-
-    // combine plates and csup
-    for(String c in _csup) {
-      _plates.add("CSUP:$c");
-    }
-    _plates = _plates.toSet().toList();
-    _plates.sort();
+    _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
 
     _airportDestination = await MainDatabaseHelper.db
         .findAirport(Storage().settings.getCurrentPlateAirport());
-
   }
 
   Future<PlatesFuture> getAll() async {
