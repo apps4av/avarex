@@ -109,6 +109,7 @@ class MainDatabaseHelper {
         locationID: mapsAirports[0]['LocationID'] as String,
         lon: mapsAirports[0]['ARPLongitude'] as double,
         lat: mapsAirports[0]['ARPLatitude'] as double,
+        elevation: double.parse(mapsAirports[0]['ARPElevation'] as String),
         facilityName: mapsAirports[0]['FacilityName'] as String,
         type: mapsAirports[0]['Type'] as String,
         ctaf: mapsAirports[0]['CTAFFrequency'] as String,

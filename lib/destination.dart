@@ -16,6 +16,7 @@ class AirportDestination extends Destination {
 
   final double lon;
   final double lat;
+  final double elevation;
   final List<Map<String, dynamic>> frequencies;
   final List<Map<String, dynamic>> runways;
   final List<Map<String, dynamic>> awos;
@@ -26,6 +27,7 @@ class AirportDestination extends Destination {
     required super.locationID,
     required super.type,
     required super.facilityName,
+    required this.elevation,
     required this.lon,
     required this.lat,
     required this.frequencies,

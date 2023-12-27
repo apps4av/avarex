@@ -9,9 +9,12 @@ import 'destination.dart';
 import 'main_database_helper.dart';
 
 class FindScreen extends StatefulWidget {
-  const FindScreen({super.key});
+  FindScreen({super.key});
   @override
   State<StatefulWidget> createState() => FindScreenState();
+
+  final ScrollController controller = ScrollController();
+
 }
 
 class FindScreenState extends State<FindScreen> {
@@ -61,7 +64,7 @@ class FindScreenState extends State<FindScreen> {
           Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
           Column (children: [
             Expanded(
-                flex: 2,
+                flex: 3,
                 child: Container(
                   alignment: Alignment.bottomLeft,
                   child: TextFormField(
@@ -69,6 +72,7 @@ class FindScreenState extends State<FindScreen> {
                       setState(() {
                         _searchText = value;
                         searching = true;
+                        widget.controller.jumpTo(0);
                       });
                     },
                     decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
@@ -76,10 +80,11 @@ class FindScreenState extends State<FindScreen> {
                 )
             ),
             Expanded(
-                flex: 10,
+                flex: 20,
                 child: null == items ? Container() : ListView.separated(
                   itemCount: items.length,
                   padding: const EdgeInsets.all(5),
+                  controller: widget.controller,
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return Dismissible( // able to delete with swipe
@@ -96,6 +101,7 @@ class FindScreenState extends State<FindScreen> {
                       child: ListTile(
                         title: Text(item.locationID),
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
+                        dense: true,
                         isThreeLine: true,
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);

@@ -28,7 +28,7 @@ class MainScreenState extends State<MainScreen> {
   MainScreenState() {
     _widgetOptions.insert(tabLocationMap, const MapScreen());
     _widgetOptions.insert(tabLocationPlates, const PlateScreen());
-    _widgetOptions.insert(tabLocationFind, const FindScreen());
+    _widgetOptions.insert(tabLocationFind, FindScreen());
   }
 
   void mOnItemTapped(int index) {
@@ -112,30 +112,31 @@ class MainScreenState extends State<MainScreen> {
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          key: Storage().globalKeyBottomNavigationBar,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Constants.bottomNavBarBackgroundColor,
-          selectedItemColor: Constants.bottomNavBarButtonColor,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: 'MAP',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.book),
-              label: 'PLATE',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search),
-              label: 'FIND',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          onTap: mOnItemTapped,
-        ),
-      )
-    );
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(5),
+          child:BottomNavigationBar(
+            key: Storage().globalKeyBottomNavigationBar,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Constants.bottomNavBarBackgroundColor,
+            items: const <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map),
+                label: 'MAP',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.book),
+                label: 'PLATE',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search),
+                label: 'FIND',
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            onTap: mOnItemTapped,
+          ),
+        )
+    ));
   }
 }
 

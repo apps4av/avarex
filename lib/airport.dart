@@ -60,7 +60,9 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "";
+    String ret = "Coordinates ${airport.lon.toStringAsFixed(4)}, ${airport.lat.toStringAsFixed(4)}\n";
+    ret += "Elevation ${airport.elevation.toString()}\n\n";
+
     if(tower.isNotEmpty) {
       ret += "Tower\n    ";
       ret += tower.join("\n    ");
@@ -107,10 +109,6 @@ class FrequencyPainter extends CustomPainter {
 
   String frequencies;
 
-  final _paintLine = Paint()
-    ..strokeWidth = 5
-    ..color = const Color.fromARGB(127, 255, 255, 0);
-
   FrequencyPainter(this.frequencies);
 
   @override
@@ -136,10 +134,6 @@ class FrequencyPainter extends CustomPainter {
 class RunwayPainter extends CustomPainter {
 
   AirportDestination airport;
-
-  final _paintLine = Paint()
-  ..strokeWidth = 5
-  ..color = Constants.runwayColor; // runway color
 
   RunwayPainter(this.airport);
 
@@ -201,11 +195,23 @@ class RunwayPainter extends CustomPainter {
 
     for(Map<String, dynamic> r in runways) {
 
+      double width = 0; // draw runways to width
+      try {
+        String w = r['Width'];
+        width = double.parse(w);
+      }
+      catch (e) {
+        width = 50;
+      }
+      width = width / 20;
+
+
       try {
         double leLat = double.parse(r['LELatitude']);
         double heLat = double.parse(r['HELatitude']);
         double leLon = double.parse(r['LELongitude']);
         double heLon = double.parse(r['HELongitude']);
+
 
         double apLat = airport.lat;
         double apLon = airport.lon;
@@ -226,7 +232,11 @@ class RunwayPainter extends CustomPainter {
         double hx = (left - heLon) * px;
         double hy = (top - heLat) * py;
 
-        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), _paintLine);
+        final paintLine = Paint()
+          ..strokeWidth = width
+          ..color = Constants.runwayColor; // runway color
+
+        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
         TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: "${r['LEIdent']}");
         TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);

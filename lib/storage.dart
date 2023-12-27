@@ -43,9 +43,6 @@ class Storage extends ChangeNotifier {
     await settings.initSettings();
     // GPS data receive
     _gps.getStream().onData((data) {
-      if(null == data) {
-        return;
-      }
       position = data;
       gpsChange.notifyListeners(); // tell everyone
     });

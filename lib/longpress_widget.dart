@@ -122,7 +122,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
         Column(
         children: [
-          Text("${future.airport!.facilityName}(${future.airport!.locationID})", style: const TextStyle(color: Constants.bottomSheetTitleColor),),
+          Text("${future.airport!.facilityName}(${future.airport!.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),),
           Row(children: [
             // top action buttons
             TextButton(
@@ -154,11 +154,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
             ),
           ),
         ],
-      ),
+        ),
         Align(alignment: Alignment.bottomRight, child:
         TextButton(
           child: const Text("Next"), // Go Through pages of carousel
           onPressed: () => widget.controller.nextPage()
+        )),
+        Align(alignment: Alignment.bottomLeft, child:
+        TextButton(
+            child: const Text("Last"), // Go Through pages of carousel
+            onPressed: () => widget.controller.previousPage()
         )),
       ],
     ));

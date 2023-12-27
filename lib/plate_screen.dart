@@ -178,12 +178,6 @@ class PlateScreenState extends State<PlateScreen> {
             });
           },
         ),
-        CustomWidgets.centerButton(context,
-            Constants.bottomPaddingSize(context),
-            () => setState(() {
-              Storage().resetPlate();
-            })
-        )
       ]
     ));
   }

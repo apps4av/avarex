@@ -6,9 +6,7 @@ class Constants {
   static const int tileWidth = 512;
   static const int tileHeight = 512;
 
-  static const Color appBarButtonColor = Colors.cyanAccent;
-  static const Color bottomNavBarButtonColor = Colors.cyanAccent;
-  static const Color bottomSheetTitleColor = Colors.cyanAccent;
+  static const Color appBarButtonColor = Colors.white;
 
   static const Color dropDownButtonColor = Colors.cyanAccent;
   static const Color dropDownButtonIconColor = Colors.transparent;
@@ -26,7 +24,7 @@ class Constants {
   static const Color instrumentsNormalLabelColor = Colors.white;
 
   static Color appBarBackgroundColor = Colors.black.withAlpha(100);
-  static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(100);
+  static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
 
   static double carouselAspectRatio(BuildContext context) {
     return isPortrait(context) ? 0.625 : 2.5;
