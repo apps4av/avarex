@@ -4,6 +4,8 @@ import 'package:avaremp/destination.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'constants.dart';
+
 class Airport {
 
   static bool isAirport(String type) {
@@ -115,23 +117,19 @@ class FrequencyPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     double scale = size.width > size.height ? size.height : size.width;
 
-    try {
-
-      TextSpan span = TextSpan(
-          style: TextStyle(color: Colors.white, fontSize: scale / 30),
-          text: frequencies);
-      TextPainter tp = TextPainter(text: span,
-          textAlign: TextAlign.left,
-          textDirection: TextDirection.ltr);
-      tp.layout();
-      tp.paint(canvas, const Offset(0, 0));
-    }
-    catch (e) {}
+    TextSpan span = TextSpan(
+        style: TextStyle(color: Colors.white, fontSize: scale / 30),
+        text: frequencies);
+    TextPainter tp = TextPainter(text: span,
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr);
+    tp.layout();
+    tp.paint(canvas, const Offset(0, 0));
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
+    return false;
   }
 }
 
@@ -141,8 +139,7 @@ class RunwayPainter extends CustomPainter {
 
   final _paintLine = Paint()
   ..strokeWidth = 5
-  ..color = const Color.fromARGB(127, 255, 255, 0); // runway color
-
+  ..color = Constants.runwayColor; // runway color
 
   RunwayPainter(this.airport);
 
@@ -205,7 +202,6 @@ class RunwayPainter extends CustomPainter {
     for(Map<String, dynamic> r in runways) {
 
       try {
-
         double leLat = double.parse(r['LELatitude']);
         double heLat = double.parse(r['HELatitude']);
         double leLon = double.parse(r['LELongitude']);
@@ -249,7 +245,7 @@ class RunwayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
-  return true;
+  return false;
   }
 
 

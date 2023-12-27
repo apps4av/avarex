@@ -9,6 +9,7 @@ class CustomWidgets {
             alignment: align,
             child: items[0].isEmpty ? Container() :
             DropdownButton<String>( // airport selection
+              borderRadius:BorderRadius.circular(5),
               padding: EdgeInsets.fromLTRB(5, 5, 5, bottom),
               underline: Container(),
               iconEnabledColor: Constants.dropDownButtonIconColor,
@@ -33,10 +34,15 @@ class CustomWidgets {
           alignment: Alignment.bottomCenter,
           child: Padding(
             padding: EdgeInsets.fromLTRB(0, 0, 0, bottom + 40),
-            child: CircleAvatar(backgroundColor: Constants.centerButtonBackgroundColor, child:IconButton(
-            onPressed: () {
-              pressed();
-            }, icon: const Icon(Icons.gps_fixed)),
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Constants.centerButtonBackgroundColor,
+                padding: const EdgeInsets.all(5.0),
+              ),
+              onPressed: () {
+                pressed();
+              },
+              child: const Text("Center"),
           ))
       ),
     );

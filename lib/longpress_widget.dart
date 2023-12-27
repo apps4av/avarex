@@ -15,7 +15,11 @@ import 'destination.dart';
 class LongPressWidget extends StatefulWidget {
   final Destination destination;
 
-  const LongPressWidget({super.key, required this.destination});
+  // it crashes if not static
+  final CarouselController controller = CarouselController();
+
+  LongPressWidget({super.key, required this.destination});
+
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
 }
@@ -106,16 +110,17 @@ class LongPressWidgetState extends State<LongPressWidget> {
       cards.add(Card(child:future.airportPlate));
     }
 
-
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(5),
       decoration: const BoxDecoration(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(10),
           topRight: Radius.circular(10),
         ),
       ),
-      child: Column(
+      child: Stack(children:[
+
+        Column(
         children: [
           Text("${future.airport!.facilityName}(${future.airport!.locationID})", style: const TextStyle(color: Constants.bottomSheetTitleColor),),
           Row(children: [
@@ -134,22 +139,28 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 MainScreenState.gotoPlate();
                 Navigator.of(context).pop(); // hide bottom sheet
               },
-            )
+            ),
           ]),
-          const Divider(),
           // various info
           CarouselSlider(
+            carouselController: widget.controller,
             items: cards,
             options: CarouselOptions(
               viewportFraction: 1,
               enlargeFactor: 0.5,
               enableInfiniteScroll: false,
               enlargeCenterPage: true,
-              aspectRatio: Constants.isPortrait(context) ? 0.625 : 2.5,
+              aspectRatio: Constants.carouselAspectRatio(context),
             ),
           ),
         ],
       ),
-    );
+        Align(alignment: Alignment.bottomRight, child:
+        TextButton(
+          child: const Text("Next"), // Go Through pages of carousel
+          onPressed: () => widget.controller.nextPage()
+        )),
+      ],
+    ));
   }
 }

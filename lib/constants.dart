@@ -14,6 +14,7 @@ class Constants {
   static const Color dropDownButtonIconColor = Colors.transparent;
   static Color dropDownButtonBackgroundColor = Colors.black.withAlpha(156);
   static Color centerButtonBackgroundColor = Colors.black.withAlpha(156);
+  static Color runwayColor = Colors.white.withAlpha(100);
 
   static const Color chartAbsentColor = Colors.grey;
   static const Color chartCurrentColor = Colors.green;
@@ -27,8 +28,9 @@ class Constants {
   static Color appBarBackgroundColor = Colors.black.withAlpha(100);
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(100);
 
-
-
+  static double carouselAspectRatio(BuildContext context) {
+    return isPortrait(context) ? 0.625 : 2.5;
+  }
 
   static double bottomPaddingSize(BuildContext context) {
     return MediaQuery.of(context).padding.bottom;
