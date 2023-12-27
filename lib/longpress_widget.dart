@@ -129,6 +129,10 @@ class LongPressWidgetState extends State<LongPressWidget> {
               child: const Text("->D"),
               onPressed: () { // go to plate
                 UserDatabaseHelper.db.addRecent(future.airport!);
+                Storage().setDestination(future.airport);
+                if(Airport.isAirport(future.airport!.type)) {
+                  Storage().settings.setCurrentPlateAirport(future.destination.locationID);
+                }
                 MainScreenState.gotoMap();
                 Navigator.of(context).pop(); // hide bottom sheet
               },
@@ -136,7 +140,9 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("Plates"),
               onPressed: () { // go to plate
-                Storage().settings.setCurrentPlateAirport(future.destination.locationID);
+                if(Airport.isAirport(future.airport!.type)) {
+                  Storage().settings.setCurrentPlateAirport(future.destination.locationID);
+                }
                 MainScreenState.gotoPlate();
                 Navigator.of(context).pop(); // hide bottom sheet
               },

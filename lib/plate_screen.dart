@@ -133,7 +133,6 @@ class PlateScreenState extends State<PlateScreen> {
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
       InteractiveViewer(
-          transformationController: Storage().plateTransformationController,
           minScale: 1,
           maxScale: 8,
           child:

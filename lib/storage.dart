@@ -12,6 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'app_settings.dart';
 import 'db_general.dart';
+import 'destination.dart';
 import 'gps.dart';
 
 class Storage {
@@ -23,9 +24,36 @@ class Storage {
 
   Storage._internal();
 
+  // on gps update
   final gpsChange = ValueNotifier<Position>(Gps.centerUSAPosition());
+  // when plate changes
   final plateChange = ValueNotifier<int>(0);
+  // when destination changes
+  final destinationChange = ValueNotifier<Destination?>(null);
 
+  // gps
+  final _gps = Gps();
+  // where all data is place. This is set on init in main
+  String dataDir = "";
+  Position position = Gps.centerUSAPosition();
+  final AppSettings settings = AppSettings();
+
+  Destination? _currentDestination;
+
+  // make it double buffer to get rid of plate load flicker
+  ui.Image? imagePlate;
+  // to move the plate
+  String lastPlateAirport = "";
+  String currentPlate = "";
+  List<double>? matrixPlate;
+
+  // for navigation on tabs
+  final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
+
+  setDestination(Destination? destination) {
+    _currentDestination = destination;
+    destinationChange.value = destination;
+  }
 
   Future<void> init() async {
     DbGeneral.set(); // set database platform
@@ -47,22 +75,6 @@ class Storage {
       gpsChange.value = position; // tell everyone
     });
   }
-
-  // for navigation on tabs
-  final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
-
-  final _gps = Gps();
-  String dataDir = "";
-
-  late Position position;
-
-  final AppSettings settings = AppSettings();
-
-  ui.Image? imagePlate;
-  final TransformationController plateTransformationController = TransformationController();
-  String lastPlateAirport = "";
-  String currentPlate = "";
-  List<double>? matrixPlate;
 
   Future<void> loadPlate() async {
     String path = PathUtils.getPlatePath(dataDir, settings.getCurrentPlateAirport(), currentPlate);
@@ -101,13 +113,4 @@ class Storage {
     imagePlate = await completerPlate.future;
     plateChange.value++; // change in storage
   }
-
-  resetPlate() {
-    plateTransformationController.value.setEntry(0, 0, 1);
-    plateTransformationController.value.setEntry(1, 1, 1);
-    plateTransformationController.value.setEntry(2, 2, 1);
-    plateTransformationController.value.setEntry(0, 3, 0);
-    plateTransformationController.value.setEntry(1, 3, 0);
-  }
-
 }

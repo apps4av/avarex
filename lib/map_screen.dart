@@ -92,6 +92,7 @@ class MapScreenState extends State<MapScreen> {
                 mapController: _controller,
                 options: opts,
                 children: [
+                  // map layer
                   TileLayer(
                     tms: true,
                     tileProvider: FileTileProvider(),
@@ -99,6 +100,25 @@ class MapScreenState extends State<MapScreen> {
                     urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
+                  // route layer
+                  ValueListenableBuilder<Destination?>(
+                    valueListenable: Storage().destinationChange,
+                    builder: (context, value, _) {
+                      return PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            borderStrokeWidth: 2,
+                            borderColor: Colors.black,
+                            strokeWidth: 5,
+                            strokeCap: StrokeCap.round,
+                            points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.lat, value == null? Storage().position.latitude : value.lon),],
+                            color: Colors.purpleAccent,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  // aircraft layer
                   ValueListenableBuilder<Position>(
                     valueListenable: Storage().gpsChange,
                     builder: (context, value, _) {
@@ -116,7 +136,8 @@ class MapScreenState extends State<MapScreen> {
                         ],
                       );
                     },
-                  ),                ],
+                  ),
+                ],
               ),
               CustomWidgets.dropDownButton(
               context,
