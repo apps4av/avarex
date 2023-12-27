@@ -1,10 +1,10 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/user_database_helper.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
@@ -128,6 +128,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("->D"),
               onPressed: () { // go to plate
+                UserDatabaseHelper.db.addRecent(future.airport!);
                 MainScreenState.gotoMap();
                 Navigator.of(context).pop(); // hide bottom sheet
               },

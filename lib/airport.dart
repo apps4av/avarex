@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:avaremp/destination.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'constants.dart';

@@ -14,7 +14,7 @@ import 'app_settings.dart';
 import 'db_general.dart';
 import 'gps.dart';
 
-class Storage extends ChangeNotifier {
+class Storage {
   static final Storage _instance = Storage._internal();
 
   factory Storage() {
@@ -23,8 +23,8 @@ class Storage extends ChangeNotifier {
 
   Storage._internal();
 
-  final gpsChange = ValueNotifier<int>(0);
-  final plateChange = ValueNotifier<int>(1);
+  final gpsChange = ValueNotifier<Position>(Gps.centerUSAPosition());
+  final plateChange = ValueNotifier<int>(0);
 
 
   Future<void> init() async {
@@ -44,7 +44,7 @@ class Storage extends ChangeNotifier {
     // GPS data receive
     _gps.getStream().onData((data) {
       position = data;
-      gpsChange.notifyListeners(); // tell everyone
+      gpsChange.value = position; // tell everyone
     });
   }
 
@@ -99,7 +99,7 @@ class Storage extends ChangeNotifier {
       imagePlate = null;
     }
     imagePlate = await completerPlate.future;
-    plateChange.notifyListeners(); // change in storage
+    plateChange.value++; // change in storage
   }
 
   resetPlate() {

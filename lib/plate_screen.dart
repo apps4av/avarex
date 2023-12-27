@@ -7,7 +7,6 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'constants.dart';
 import 'main_database_helper.dart';
@@ -88,11 +87,11 @@ class PlateScreenState extends State<PlateScreen> {
 
   Widget _makeContent(PlatesFuture? future) {
 
-    double height = Scaffold.of(context).appBarMaxHeight ?? 0;
+    double height = Constants.appbarMaxSize(context) ?? 0;
     ValueNotifier notifier = ValueNotifier(0);
 
     if(future == null) {
-      return Container(); // hopeless of still not ready
+      return makePlateView([], [], height, 0, 0, notifier);
     }
 
     List<String> plates = future.plates;
@@ -104,26 +103,11 @@ class PlateScreenState extends State<PlateScreen> {
     double lat =  destination == null ? 0: destination.lat;
 
     if(airports.isEmpty) {
-      return Container(); // hopeless, still not ready
+      return makePlateView([], plates, height, lon, lat, notifier);
     }
 
     if(plates.isEmpty) {
-      // only airports
-      return Scaffold(body: Stack(children: [
-          CustomWidgets.dropDownButton(
-            context,
-            Storage().settings.getCurrentPlateAirport(),
-            airports,
-            Alignment.bottomRight,
-            Constants.bottomPaddingSize(context),
-                (value) {
-              setState(() {
-                Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
-              });
-            },
-          ),
-        ]
-      ));
+      return makePlateView(airports, [], height, lon, lat, notifier);
     }
 
     if((Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
@@ -134,51 +118,58 @@ class PlateScreenState extends State<PlateScreen> {
 
     // plate load notification, repaint
     Storage().plateChange.addListener(() {
-      notifier.notifyListeners();
+      notifier.value++;
     });
 
     Storage().gpsChange.addListener(() {
       // gps change, repaint plate
-      notifier.notifyListeners();
+      notifier.value++;
     });
 
+    return makePlateView(airports, plates, height, lon, lat, notifier);
+  }
+
+  Widget makePlateView(List<String> airports, List<String> plates, double height, double lon, double lat, ValueNotifier notifier) {
     return Scaffold(body: Stack(children: [
-        InteractiveViewer(
-            transformationController: Storage().plateTransformationController,
-            minScale: 1,
-            maxScale: 8,
-            child:
-              SizedBox(
-              height: Constants.screenHeight(context),
-              width: Constants.screenWidth(context),
-              child: CustomPaint(painter: _PlatePainter(height: height, lon: lon, lat: lat, repaint: notifier)),
-            )
-        ),
-        CustomWidgets.dropDownButton(
-          context,
-          Storage().settings.getCurrentPlateAirport(),
-          airports,
-          Alignment.bottomRight,
-          Constants.bottomPaddingSize(context),
-          (value) {
-            setState(() {
-              Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
-            });
-          },
-        ),
-        CustomWidgets.dropDownButton(
-          context,
-          plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
-          plates,
-          Alignment.bottomLeft,
-          Constants.bottomPaddingSize(context),
-          (value) {
-            setState(() {
-              Storage().currentPlate = value ?? plates[0];
-            });
-          },
-        ),
-      ]
+      // always return this so to reduce flicker
+      InteractiveViewer(
+          transformationController: Storage().plateTransformationController,
+          minScale: 1,
+          maxScale: 8,
+          child:
+          SizedBox(
+            height: Constants.screenHeight(context),
+            width: Constants.screenWidth(context),
+            child: CustomPaint(painter: _PlatePainter(height: height, lon: lon, lat: lat, repaint: notifier)),
+          )
+      ),
+      airports.isEmpty ? Container() : // nothing to show here is airports is empty
+      CustomWidgets.dropDownButton(
+        context,
+        Storage().settings.getCurrentPlateAirport(),
+        airports,
+        Alignment.bottomRight,
+        Constants.bottomPaddingSize(context),
+            (value) {
+          setState(() {
+            Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
+          });
+        },
+      ),
+      plates.isEmpty ? Container() : // nothing to show here if plates is empty
+      CustomWidgets.dropDownButton(
+        context,
+        plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+        plates,
+        Alignment.bottomLeft,
+        Constants.bottomPaddingSize(context),
+            (value) {
+          setState(() {
+            Storage().currentPlate = value ?? plates[0];
+          });
+        },
+      ),
+    ]
     ));
   }
 }

@@ -37,17 +37,20 @@ class MainDatabaseHelper {
     if (db != null) {
       maps = await db.rawQuery(
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-        "      select LocationID, FacilityName, Type from airports where LocationID like '$match%' "
-        "UNION select LocationID, FacilityName, Type from nav      where LocationID like '$match%' "
-        "UNION select LocationID, FacilityName, Type from fix      where LocationID like '$match%' "
+        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where LocationID like '$match%' "
+        "UNION select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where LocationID like '$match%' "
+        "UNION select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where LocationID like '$match%' "
         "ORDER BY LocationID ASC"
       );
     }
+
     return List.generate(maps.length, (i) {
       return Destination(
           locationID: maps[i]['LocationID'] as String,
           facilityName: maps[i]['FacilityName'] as String,
-          type: maps[i]['Type'] as String
+          type: maps[i]['Type'] as String,
+          lon: maps[i]['ARPLongitude'] as double,
+          lat: maps[i]['ARPLatitude'] as double,
       );
     });
   }
@@ -73,7 +76,7 @@ class MainDatabaseHelper {
           .toDouble()} + (ARPLatitude - ${point
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
-      String qry = "select LocationID, FacilityName, Type, $asDistance as distance "
+      String qry = "select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance "
           "from airports where distance < 0.001 "
           "order by distance";
       maps = await db.rawQuery(qry);
@@ -82,7 +85,9 @@ class MainDatabaseHelper {
         return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String
+            type: maps[i]['Type'] as String,
+            lon: maps[i]['ARPLongitude'] as double,
+            lat: maps[i]['ARPLatitude'] as double,
         );
       });
     }
@@ -107,10 +112,10 @@ class MainDatabaseHelper {
 
     return AirportDestination(
         locationID: mapsAirports[0]['LocationID'] as String,
-        lon: mapsAirports[0]['ARPLongitude'] as double,
-        lat: mapsAirports[0]['ARPLatitude'] as double,
         elevation: double.parse(mapsAirports[0]['ARPElevation'] as String),
         facilityName: mapsAirports[0]['FacilityName'] as String,
+        lon: mapsAirports[0]['ARPLongitude'] as double,
+        lat: mapsAirports[0]['ARPLatitude'] as double,
         type: mapsAirports[0]['Type'] as String,
         ctaf: mapsAirports[0]['CTAFFrequency'] as String,
         unicom: mapsAirports[0]['UNICOMFrequencies'] as String,

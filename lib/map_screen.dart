@@ -99,7 +99,7 @@ class MapScreenState extends State<MapScreen> {
                     urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
                     userAgentPackageName: 'com.apps4av.avaremp',
                   ),
-                  ValueListenableBuilder<int>(
+                  ValueListenableBuilder<Position>(
                     valueListenable: Storage().gpsChange,
                     builder: (context, value, _) {
                       return MarkerLayer(
@@ -107,9 +107,9 @@ class MapScreenState extends State<MapScreen> {
                           Marker( // our position
                             width: Constants.screenHeight(context) / 20,
                             height: Constants.screenHeight(context) / 20,
-                            point: LatLng(Storage().position.latitude, Storage().position.longitude),
+                            point: LatLng(value.latitude, value.longitude),
                             child: Transform.rotate(
-                              angle: Storage().position.heading * pi / 180,
+                              angle: value.heading * pi / 180,
                               child: Image.asset("assets/images/plane.png"),
                               ),
                             ),

@@ -1,5 +1,6 @@
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/main_screen.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -72,7 +73,7 @@ class FindScreenState extends State<FindScreen> {
                       setState(() {
                         _searchText = value;
                         searching = true;
-                        widget.controller.jumpTo(0);
+                        items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
                     decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
@@ -105,6 +106,8 @@ class FindScreenState extends State<FindScreen> {
                         isThreeLine: true,
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
+                          Storage().settings.setCenterLongitude(item.lon);
+                          Storage().settings.setCenterLatitude(item.lat);
                           MainScreenState.gotoMap();
                         },
                         onLongPress: () {

@@ -36,6 +36,8 @@ class UserDatabaseHelper {
                 "LocationID   text, "
                 "FacilityName text, "
                 "Type         text, "
+                "ARPLatitude  float, "
+                "ARPLongitude float, "
                 "unique(LocationID, Type) on conflict replace);");
           },
           onOpen: (db) {});
@@ -43,7 +45,13 @@ class UserDatabaseHelper {
 
   Future<void> addRecent(Destination recent) async {
     final db = await database;
-    Map<String, Object?> map = {"LocationID": recent.locationID, "FacilityName" : recent.facilityName, "Type": recent.type};
+    Map<String, Object?> map = {
+      "LocationID": recent.locationID,
+      "FacilityName" : recent.facilityName,
+      "Type": recent.type,
+      "ARPLatitude": recent.lat,
+      "ARPLongitude": recent.lon,
+    };
 
     if (db != null) {
       await db.insert("recent", map);
@@ -63,7 +71,9 @@ class UserDatabaseHelper {
         return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String
+            type: maps[i]['Type'] as String,
+            lon: maps[i]['ARPLongitude'] as double,
+            lat: maps[i]['ARPLatitude'] as double
         );
       });
     }
@@ -79,7 +89,9 @@ class UserDatabaseHelper {
         return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String
+            type: maps[i]['Type'] as String,
+            lon: maps[i]['ARPLongitude'] as double,
+            lat: maps[i]['ARPLatitude'] as double
         );
       });
     }
