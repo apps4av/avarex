@@ -127,10 +127,16 @@ class MapScreenState extends State<MapScreen> {
                       return MarkerLayer(
                         markers: [
                           Marker( // our position
-                            width: Constants.screenHeight(context) / 4,
-                            height: Constants.screenHeight(context) / 4,
+                            width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
+                            height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
                             point: LatLng(value.latitude, value.longitude),
-                            child: CustomPaint(painter: Sky()),
+                            child: Image.asset("assets/images/compass.png"),
+                          ),
+                          Marker( // our position
+                            width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
+                            height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
+                            point: LatLng(value.latitude, value.longitude),
+                            child: CustomPaint(painter: Plane(value.heading)),
                               ),
                         ],
                       );
@@ -180,21 +186,29 @@ class MapScreenState extends State<MapScreen> {
 
 
 
-class Sky extends CustomPainter {
+class Plane extends CustomPainter {
+
+  final double _rotate;
+
+  Plane(this._rotate);
 
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
-    ..strokeWidth = 5
-    ..color = const Color.fromARGB(255, 255, 0, 0);
-  final _paint = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 3
+    ..strokeWidth = 4
+    ..strokeCap = StrokeCap.square
     ..color = const Color.fromARGB(255, 255, 0, 0);
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2, 0), _paintCenter);
-    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 4, _paint);
+
+    // draw plane
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(_rotate * pi / 180);
+    canvas.translate(-size.width / 2, -size.height / 2);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintCenter);
+    canvas.drawLine(Offset(size.width / 2 - 16, size.height / 2), Offset(size.width / 2 + 16, size.height / 2), _paintCenter);
+    canvas.restore();
   }
 
 
@@ -204,7 +218,5 @@ class Sky extends CustomPainter {
   // from the constructor) then we would return true if any
   // of them differed from the same fields on the oldDelegate.
   @override
-  bool shouldRepaint(Sky oldDelegate) => false;
-  @override
-  bool shouldRebuildSemantics(Sky oldDelegate) => false;
+  bool shouldRepaint(Plane oldDelegate) => false;
 }
