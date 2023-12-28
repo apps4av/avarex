@@ -65,6 +65,19 @@ class MainDatabaseHelper {
     });
   }
 
+  Future<List<String>> findAlternates(String airport) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery(
+          "select File from takeoff where LocationID = '$airport' "
+          "union select File from alternate where LocationID = '$airport'");
+    }
+    return List.generate(maps.length, (i) {
+      return maps[i]['File'] as String;
+    });
+  }
+
   Future<List<Destination>> findNear(Coordinate point) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;

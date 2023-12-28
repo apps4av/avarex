@@ -7,6 +7,16 @@ import 'package:path/path.dart' as path;
 
 class PathUtils {
 
+  static final RegExp _expCsup = RegExp(r"^(ne_)|^(nc_)|^(_nw)|^(se_)|^(sc_)|^(sw_)|^(ec_)|^(ak_)|^(pac_)");
+
+  static final RegExp _expAlt = RegExp(
+      r"^(PAC\d*TO.*)|^(PAC\d*ALT.*)|"
+      r"^(EC\d*TO.*)|^(EC\d*ALT.*)|"
+      r"^(AK\d*TO.*)|^(AK\d*ALT.*)|"
+      r"^(NE\d*TO.*)|^(NE\d*ALT.*)|^(NC\d*TO.*)|^(NC\d*ALT.*)|^(NW\d*TO.*)|^(NW\d*ALT.*)|"
+      r"^(SE\d*TO.*)|^(SE\d*ALT.*)|^(SC\d*TO.*)|^(SC\d*ALT.*)|^(SW\d*TO.*)|^(SW\d*ALT.*)"
+  );
+
   static String getLocalFilePath(String base, String filename) {
     return path.join(base, "$filename.zip");
   }
@@ -21,6 +31,12 @@ class PathUtils {
   static String getCSupFilePath(String base, String csup) {
     String afd = path.join(base, "afd");
     String filename = path.join(afd, "$csup.png");
+    return(filename);
+  }
+
+  static String getMinimumsFilePath(String base, String name) {
+    String afd = path.join(base, "minimums");
+    String filename = path.join(afd, "${name[0]}/$name.png");
     return(filename);
   }
 
@@ -44,18 +60,23 @@ class PathUtils {
   static Future<List<String>> getPlatesAndCSupSorted(String base, String airport) async {
     List<String> plates = [];
     List<String> csup = [];
+    List<String> alternates = [];
 
     plates = await PathUtils.getPlateNames(base, airport);
     csup = await MainDatabaseHelper.db.findCsup(airport);
+    alternates = await MainDatabaseHelper.db.findAlternates(airport);
 
     // combine plates and csup
     plates.addAll(csup);
+    plates.addAll(alternates);
     plates = plates.toSet().toList();
     plates.sort((a,b) {
       if(a == "AIRPORT-DIAGRAM") return -1;
       if(b == "AIRPORT-DIAGRAM") return 1;
-      if(a.startsWith("ne_")) return -1;
-      if(b.startsWith("ne_")) return 1;
+      if(_expCsup.hasMatch(a)) return -1;
+      if(_expCsup.hasMatch(b)) return 1;
+      if(_expAlt.hasMatch(a)) return -1;
+      if(_expAlt.hasMatch(b)) return 1;
       if(a.startsWith("HOT-SPOT")) return -1;
       if(b.startsWith("HOT-SPOT")) return 1;
       if(a.startsWith("LAHSO")) return -1;
@@ -67,13 +88,18 @@ class PathUtils {
   }
 
   static String getPlatePath(String base, String airport, String name) {
-    String path = PathUtils.getPlateFilePath(base, airport, name);
-    if(
-      name.startsWith("ne_") || name.startsWith("nc_") || name.startsWith("nw_") ||
-      name.startsWith("se_") || name.startsWith("sc_") || name.startsWith("sw_") ||
-      name.startsWith("ec_") || name.startsWith("ak_") || name.startsWith("pac_")) {
-      path = PathUtils.getCSupFilePath(base, name);
+
+    // this should be simplified in server code. Just put CSUP and minimums in each airport where it belongs
+    String path = getPlateFilePath(base, airport, name);
+
+    if(_expCsup.hasMatch(name)) {
+      return getCSupFilePath(base, name);
     }
+
+    if(_expAlt.hasMatch(name)) {
+      return getMinimumsFilePath(base, name);
+    }
+
     return(path);
   }
 
