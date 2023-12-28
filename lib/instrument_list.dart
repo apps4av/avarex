@@ -26,6 +26,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _timerUp = "00:00";
   String _destination = "";
   String _bearing = "0\u00b0";
+  String _distance = "";
   String _utc = "00:00";
   Timer? _clockTimer;
   int _countUp = 0;
@@ -35,14 +36,15 @@ class InstrumentListState extends State<InstrumentList> {
 
     _startClock(); // this always runs
 
-    String getBearing() {
+    (String, String) getDistanceBearing() {
       Destination? d = Storage().currentDestination;
       Position position = Storage().position;
       if(d != null) {
-        Projection p = Projection(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
-        return "${p.getBearing().round()}\u00b0";
+        double distance = Projection.getStaticDistance(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
+        double bearing = Projection.getStaticBearing(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
+        return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
-      return "0\u00b0";
+      return ("", "0\u00b0");
     }
 
     // connect to GPS
@@ -51,7 +53,9 @@ class InstrumentListState extends State<InstrumentList> {
         _gndSpeed = Conversions.convertSpeed(Storage().position.speed);
         _altitude = Conversions.convertAltitude(Storage().position.altitude);
         _track = Conversions.convertTrack(Storage().position.heading);
-        _bearing = getBearing();
+        var (distance, bearing) = getDistanceBearing();
+        _distance = distance;
+        _bearing = bearing;
       });
     });
 
@@ -60,7 +64,9 @@ class InstrumentListState extends State<InstrumentList> {
       setState(() {
         Destination? d = Storage().currentDestination;
         _destination = d != null? d.locationID : "";
-        _bearing = getBearing();
+        var (distance, bearing) = getDistanceBearing();
+        _distance = distance;
+        _bearing = bearing;
       });
     });
   }
@@ -122,6 +128,9 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "Bearing":
         value = _bearing;
+        break;
+      case "Distance":
+        value = _distance;
         break;
       case "UTC":
         value = _utc;

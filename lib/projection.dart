@@ -36,7 +36,7 @@ class Projection {
     double y = (sin(dLon) * cos(lat2));
     double x = ((cos(lat1) * sin(lat2)) - ((sin(lat1) * cos(lat2)) * cos(dLon)));
     double dLat = (lat2 - lat1);
-    double a = ((sin(dLat ~/ 2) * sin(dLat ~/ 2)) + (((cos(lat1) * cos(lat2)) * sin(dLon ~/ 2)) * sin(dLon ~/ 2)));
+    double a = ((sin(dLat / 2) * sin(dLat / 2)) + (((cos(lat1) * cos(lat2)) * sin(dLon / 2)) * sin(dLon / 2)));
     double c = (2 * atan2(sqrt(a), sqrt(1 - a)));
     _distance = (earthRadiusConversion * c);
     _bearing = ((toDegrees(atan2(y, x)) + 360) % 360);
@@ -62,7 +62,7 @@ class Projection {
     lat2 = toRadians(lat2);
     double dLon = (lon2 - lon1);
     double dLat = (lat2 - lat1);
-    double a = ((sin(dLat ~/ 2) * sin(dLat ~/ 2)) + (((cos(lat1) * cos(lat2)) * sin(dLon ~/ 2)) * sin(dLon ~/ 2)));
+    double a = ((sin(dLat / 2) * sin(dLat / 2)) + (((cos(lat1) * cos(lat2)) * sin(dLon / 2)) * sin(dLon / 2)));
     double c = (2 * atan2(sqrt(a), sqrt(1 - a)));
     return earthRadiusConversion * c;
   }
@@ -91,8 +91,8 @@ class Projection {
     double lat1 = toRadians(latitude);
     double lon1 = toRadians(longitude);
     double brg = toRadians(bearing);
-    double lat2 = asin((sin(lat1) * cos(distance ~/ earthRadiusConversion)) + ((cos(lat1) * sin(distance ~/ earthRadiusConversion)) * cos(brg)));
-    double lon2 = (lon1 + atan2((sin(brg) * sin(distance ~/ earthRadiusConversion)) * cos(lat1), cos(distance ~/ earthRadiusConversion) - (sin(lat1) * sin(lat2))));
+    double lat2 = asin((sin(lat1) * cos(distance / earthRadiusConversion)) + ((cos(lat1) * sin(distance / earthRadiusConversion)) * cos(brg)));
+    double lon2 = (lon1 + atan2((sin(brg) * sin(distance / earthRadiusConversion)) * cos(lat1), cos(distance / earthRadiusConversion) - (sin(lat1) * sin(lat2))));
     return Coordinate(Longitude(toDegrees(lon2)), Latitude(toDegrees(lat2)));
   }
 

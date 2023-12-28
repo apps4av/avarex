@@ -126,7 +126,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
           Row(children: [
             // top action buttons
             TextButton(
-              child: const Text("->D"),
+              child: const Text("->D", style: TextStyle(fontSize: 20)),
               onPressed: () { // go to plate
                 UserDatabaseHelper.db.addRecent(future.airport!);
                 Storage().setDestination(future.airport);

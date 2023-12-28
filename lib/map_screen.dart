@@ -13,7 +13,7 @@ import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'longpress_widget.dart';
-
+import 'package:avaremp/projection.dart' as proj;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -39,6 +39,10 @@ class MapScreenState extends State<MapScreen> {
       },
     );
     return exitResult ?? false;
+  }
+
+  void _handlePointerDown(PointerDownEvent event, LatLng point) {
+
   }
 
 
@@ -79,6 +83,7 @@ class MapScreenState extends State<MapScreen> {
       minZoom: 0,
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
+      onPointerDown: _handlePointerDown,
     );
 
     // for track up
@@ -108,6 +113,7 @@ class MapScreenState extends State<MapScreen> {
                     builder: (context, value, _) {
                       return PolylineLayer(
                         polylines: [
+                          // route
                           Polyline(
                             borderStrokeWidth: 2,
                             borderColor: Colors.black,
@@ -126,18 +132,18 @@ class MapScreenState extends State<MapScreen> {
                     builder: (context, value, _) {
                       return MarkerLayer(
                         markers: [
-                          Marker( // our position
+                          Marker( // compass
                             width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
                             height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
                             point: LatLng(value.latitude, value.longitude),
                             child: Image.asset("assets/images/compass.png"),
                           ),
-                          Marker( // our position
+                          Marker( // our position and heading to destination
                             width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
                             height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
                             point: LatLng(value.latitude, value.longitude),
-                            child: CustomPaint(painter: Plane(value.heading)),
-                              ),
+                            child: CustomPaint(painter: Plane(value))
+                          ),
                         ],
                       );
                     },
@@ -188,9 +194,9 @@ class MapScreenState extends State<MapScreen> {
 
 class Plane extends CustomPainter {
 
-  final double _rotate;
+  final Position _position;
 
-  Plane(this._rotate);
+  Plane(this._position);
 
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
@@ -198,13 +204,32 @@ class Plane extends CustomPainter {
     ..strokeCap = StrokeCap.square
     ..color = const Color.fromARGB(255, 255, 0, 0);
 
+  final _paintToDestination = Paint()
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 4
+    ..strokeCap = StrokeCap.square
+    ..color = const Color.fromARGB(255, 0, 0, 255);
+
   @override
   void paint(Canvas canvas, Size size) {
+
+    double rotate = _position == null ? 0 : _position.heading;
+    Destination? destination = Storage().currentDestination;
+    // path to destination always points to dest
+    double rotate2 = (null == destination)? 0: proj.Projection.getStaticBearing(_position.longitude, _position.latitude,
+          destination.coordinate.longitude.value, destination.coordinate.latitude.value);
+    // draw path to dest
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.rotate(rotate2 * pi / 180);
+    canvas.translate(-size.width / 2, -size.height / 2);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintToDestination);
+    canvas.restore();
 
     // draw plane
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(_rotate * pi / 180);
+    canvas.rotate(rotate * pi / 180);
     canvas.translate(-size.width / 2, -size.height / 2);
     canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintCenter);
     canvas.drawLine(Offset(size.width / 2 - 16, size.height / 2), Offset(size.width / 2 + 16, size.height / 2), _paintCenter);
