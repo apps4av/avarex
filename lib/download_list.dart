@@ -322,6 +322,20 @@ class DownloadListState extends State<DownloadList> {
     }
   }
 
+  // all chart categories that are downloadable
+  static List<String> getCategories() {
+
+    List<String> ret = [];
+
+    for(ChartCategory cg in _allCharts) {
+      if(cg.isChart) {
+        ret.add(cg.title);
+      }
+    }
+
+    return(ret);
+  }
+
   // ALl that can be downloaded
   static final List<ChartCategory> _allCharts = [
     ChartCategory(
@@ -330,6 +344,7 @@ class DownloadListState extends State<DownloadList> {
       [
         Chart('Databases', _absentColor, _absentIcon, 'databases', _stateAbsentNone, "", 0, true, Download()),
       ],
+      false,
     ),
     ChartCategory(
       ChartCategory.sectional,
@@ -389,7 +404,7 @@ class DownloadListState extends State<DownloadList> {
         Chart('Twin Cities', _absentColor, _absentIcon, 'TwinCities', _stateAbsentNone, "", 0, true, Download()),
         Chart('Washington', _absentColor, _absentIcon, 'Washington', _stateAbsentNone, "", 0, true, Download()),
         Chart('Wichita', _absentColor, _absentIcon, 'Wichita', _stateAbsentNone, "", 0, true, Download()),
-      ],
+      ], true,
     ),
     ChartCategory(
       ChartCategory.tac,
@@ -429,7 +444,8 @@ class DownloadListState extends State<DownloadList> {
         Chart('San Francisco', _absentColor, _absentIcon, 'SanFranciscoTAC', _stateAbsentNone, "", 0, true, Download()),
         Chart('Seattle', _absentColor, _absentIcon, 'SeattleTAC', _stateAbsentNone, "", 0, true, Download()),
         Chart('St Louis', _absentColor, _absentIcon, 'StLouisTAC', _stateAbsentNone, "", 0, true, Download()),
-        Chart('Tampa', _absentColor, _absentIcon, 'TampaTAC', _stateAbsentNone, "", 0, true, Download()),      ],
+        Chart('Tampa', _absentColor, _absentIcon, 'TampaTAC', _stateAbsentNone, "", 0, true, Download()),
+      ], true,
     ),
     ChartCategory(
       ChartCategory.ifrl,
@@ -443,12 +459,95 @@ class DownloadListState extends State<DownloadList> {
         Chart('SW', _absentColor, _absentIcon, 'ELIS_SW', _stateAbsentNone, "", 0, true, Download()),
         Chart('AK', _absentColor, _absentIcon, 'ELUS_AK', _stateAbsentNone, "", 0, true, Download()),
         Chart('HI', _absentColor, _absentIcon, 'ELUS_HI', _stateAbsentNone, "", 0, true, Download()),
-      ],
+      ], true,
     ),
+    ChartCategory(
+      ChartCategory.ifrh,
+      _absentColor,
+      [
+        Chart('NE', _absentColor, _absentIcon, 'EHUS_NE', _stateAbsentNone, "", 0, true, Download()),
+        Chart('NC', _absentColor, _absentIcon, 'EHUS_NC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('NW', _absentColor, _absentIcon, 'EHUS_NW', _stateAbsentNone, "", 0, true, Download()),
+        Chart('SE', _absentColor, _absentIcon, 'EHUS_SE', _stateAbsentNone, "", 0, true, Download()),
+        Chart('SC', _absentColor, _absentIcon, 'EHUS_SC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('SW', _absentColor, _absentIcon, 'EHIS_SW', _stateAbsentNone, "", 0, true, Download()),
+        Chart('AK', _absentColor, _absentIcon, 'EHUS_AK', _stateAbsentNone, "", 0, true, Download()),
+      ], true,
+    ),
+    ChartCategory(
+      ChartCategory.ifra,
+      _absentColor,
+      [
+        Chart('Anchorage', _absentColor, _absentIcon, 'ENRA_ANC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Atlanta', _absentColor, _absentIcon, 'ENRA_ATL', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Washington DC', _absentColor, _absentIcon, 'ENRA_DCA', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Denver', _absentColor, _absentIcon, 'ENRA_DEN', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Detroit', _absentColor, _absentIcon, 'ENRA_DET', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Dallas-FtWorth', _absentColor, _absentIcon, 'ENRA_DFW', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Fairbanks', _absentColor, _absentIcon, 'ENRA_FAI', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Guam', _absentColor, _absentIcon, 'ENRA_GUA', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Jacksonville', _absentColor, _absentIcon, 'ENRA_JAX', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Juneau', _absentColor, _absentIcon, 'ENRA_JNU', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Los Angeles', _absentColor, _absentIcon, 'ENRA_LAX', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Miami', _absentColor, _absentIcon, 'ENRA_MIA', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Kansas City Municipal', _absentColor, _absentIcon, 'ENRA_MKC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Minneapolis', _absentColor, _absentIcon, 'ENRA_MSP', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Nome', _absentColor, _absentIcon, 'ENRA_OME', _stateAbsentNone, "", 0, true, Download()),
+        Chart('OHare', _absentColor, _absentIcon, 'ENRA_ORD', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Phoenix', _absentColor, _absentIcon, 'ENRA_PHX', _stateAbsentNone, "", 0, true, Download()),
+        Chart('San Fransisco', _absentColor, _absentIcon, 'ENRA_SFO', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Seattle', _absentColor, _absentIcon, 'ENRA_STL', _stateAbsentNone, "", 0, true, Download()),
+      ], true,
+    ),
+    ChartCategory(
+      ChartCategory.heli,
+      _absentColor,
+      [
+        Chart('Grand Canyon', _absentColor, _absentIcon, 'GrandCanyon', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Baltimore Heli', _absentColor, _absentIcon, 'BaltimoreHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Boston Heli', _absentColor, _absentIcon, 'BostonHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Chicago Heli', _absentColor, _absentIcon, 'ChicagoHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Dallas-FtWorth', _absentColor, _absentIcon, 'Dallas-FtWorthHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Detroit', _absentColor, _absentIcon, 'DetroitHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Houston', _absentColor, _absentIcon, 'HoustonHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Los Angeles', _absentColor, _absentIcon, 'LosAngelesHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('New York', _absentColor, _absentIcon, 'NewYorkHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('US Gulf Coast', _absentColor, _absentIcon, 'USGulfCoastHeli', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Washington', _absentColor, _absentIcon, 'WashingtonHeli', _stateAbsentNone, "", 0, true, Download()),
+      ], true,
+    ),
+    ChartCategory(
+      ChartCategory.flyway,
+      _absentColor,
+      [
+        Chart('Atlanta', _absentColor, _absentIcon, 'AtlantaFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Baltimore-Washington', _absentColor, _absentIcon, 'Baltimore-WashingtonFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Charlotte', _absentColor, _absentIcon, 'CharlotteFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Chicago', _absentColor, _absentIcon, 'ChicagoFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Cincinnati', _absentColor, _absentIcon, 'CincinnatiFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Dallas-FtWorth', _absentColor, _absentIcon, 'Dallas-FtWorthFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Denver', _absentColor, _absentIcon, 'DenverFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Detroit', _absentColor, _absentIcon, 'DetroitFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Houston', _absentColor, _absentIcon, 'HoustonFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Las Vegas', _absentColor, _absentIcon, 'LasVegasFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Los Angeles', _absentColor, _absentIcon, 'LosAngelesFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Miami', _absentColor, _absentIcon, 'MiamiFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('New Orleans', _absentColor, _absentIcon, 'NewOrleansFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Orlando', _absentColor, _absentIcon, 'OrlandoFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Salt Lake City', _absentColor, _absentIcon, 'SaltLakeCityFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('San Diego', _absentColor, _absentIcon, 'SanDiegoFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('San Francisco', _absentColor, _absentIcon, 'SanFranciscoFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Seattle', _absentColor, _absentIcon, 'SeattleFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('St Louis', _absentColor, _absentIcon, 'StLouisFLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Tampa', _absentColor, _absentIcon, 'TampaFLY', _stateAbsentNone, "", 0, true, Download()),
+      ], true,
+    ),
+
     ChartCategory(
       ChartCategory.plates,
       _absentColor,
       [
+        Chart('Takeoff/Alternate Minimums', _absentColor, _absentIcon, 'alternates', _stateAbsentNone, "", 0, true, Download()),
         Chart('AK', _absentColor, _absentIcon, 'AK_PLATES', _stateAbsentNone, "", 0, true, Download()),
         Chart('AZ', _absentColor, _absentIcon, 'AZ_PLATES', _stateAbsentNone, "", 0, true, Download()),
         Chart('AR', _absentColor, _absentIcon, 'AR_PLATES', _stateAbsentNone, "", 0, true, Download()),
@@ -501,7 +600,8 @@ class DownloadListState extends State<DownloadList> {
         Chart('WV', _absentColor, _absentIcon, 'WV_PLATES', _stateAbsentNone, "", 0, true, Download()),
         Chart('WI', _absentColor, _absentIcon, 'WI_PLATES', _stateAbsentNone, "", 0, true, Download()),
         Chart('WY', _absentColor, _absentIcon, 'WY_PLATES', _stateAbsentNone, "", 0, true, Download()),
-        Chart('XX', _absentColor, _absentIcon, 'XX_PLATES', _stateAbsentNone, "", 0, true, Download()),      ],
+        Chart('XX', _absentColor, _absentIcon, 'XX_PLATES', _stateAbsentNone, "", 0, true, Download()),
+      ], false,
     ),
     ChartCategory(
       ChartCategory.csup,
@@ -516,10 +616,8 @@ class DownloadListState extends State<DownloadList> {
         Chart('EC', _absentColor, _absentIcon, 'AFD_EC', _stateAbsentNone, "", 0, true, Download()),
         Chart('AK', _absentColor, _absentIcon, 'AFD_AK', _stateAbsentNone, "", 0, true, Download()),
         Chart('PAC', _absentColor, _absentIcon, 'AFD_PAC', _stateAbsentNone, "", 0, true, Download()),
-      ],
+      ], false,
     ),
+
   ];
 }
-
-
-

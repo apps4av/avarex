@@ -23,16 +23,17 @@ class InstrumentListState extends State<InstrumentList> {
   String _gndSpeed = "0";
   String _altitude = "0";
   String _track = "0\u00b0";
-  String _timer = "00:00";
+  String _timerUp = "00:00";
   String _destination = "";
   String _bearing = "0\u00b0";
   String _utc = "00:00";
-  Timer? _upTimer;
-  Timer? _timeTimer;
+  Timer? _clockTimer;
+  int _countUp = 0;
+  bool _doCountUp = false;
 
   InstrumentListState() {
 
-    _startClockTimer(); // this always runs
+    _startClock(); // this always runs
 
     String getBearing() {
       Destination? d = Storage().currentDestination;
@@ -66,32 +67,26 @@ class InstrumentListState extends State<InstrumentList> {
 
   // up timer
   void _startUpTimer() {
-    if(_upTimer != null) {
-      _upTimer!.cancel();
-      _upTimer = null;
-      setState(() {
-        _timer = "00:00";
-      });
-    }
-    else {
-      _upTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
-        setState(() {
-          Duration d = Duration(seconds: tim.tick);
-          _timer = d.toString().substring(2, 7);
-        });
-      });
-    }
+    _doCountUp = _doCountUp ? false : true;
+    _countUp = 0;
+    Duration d = Duration(seconds: _countUp);
+    setState(() {
+      _timerUp = d.toString().substring(2, 7);
+    });
   }
 
   // up timer
-  void _startClockTimer() {
-    if(_timeTimer != null) {
-      _timeTimer!.cancel();
-      _timeTimer = null;
+  void _startClock() {
+    if(_clockTimer != null) {
+      _clockTimer!.cancel();
+      _clockTimer = null;
     }
     else {
-      _timeTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
+      _clockTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
         setState(() {
+          _countUp = _doCountUp ? _countUp + 1 : _countUp;
+          Duration d = Duration(seconds: _countUp);
+          _timerUp = d.toString().substring(2, 7);
           DateFormat formatter = DateFormat('HH:mm');
           _utc =   formatter.format(DateTime.now().toUtc());
         });
@@ -132,7 +127,7 @@ class InstrumentListState extends State<InstrumentList> {
         value = _utc;
         break;
       case "Up Timer":
-        value = _timer;
+        value = _timerUp;
         cb = _startUpTimer;
         break;
     }

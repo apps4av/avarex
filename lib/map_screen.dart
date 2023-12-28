@@ -1,4 +1,5 @@
 import 'package:avaremp/custom_widgets.dart';
+import 'package:avaremp/download_list.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,8 @@ class MapScreen extends StatefulWidget {
 
 class MapScreenState extends State<MapScreen> {
 
-  final List<String> _charts = [ChartCategory.sectional, ChartCategory.tac, ChartCategory.ifrl];
+  final List<String> _charts = DownloadListState.getCategories();
+
   String _type = Storage().settings.getChartType();
   double _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();

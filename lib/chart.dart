@@ -26,6 +26,10 @@ class ChartCategory {
   static const String sectional = "Sectional";
   static const String tac = "TAC";
   static const String ifrl = "IFR Low";
+  static const String ifrh = "IFR High";
+  static const String ifra = "IFR Area";
+  static const String flyway = "Flyway";
+  static const String heli = "Helicopter";
   static const String plates = "Plates";
   static const String databases = "Databases";
   static const String csup = "CSUP";
@@ -33,8 +37,9 @@ class ChartCategory {
   String title;
   Color color;
   List<Chart> charts;
-  ChartCategory(this.title, this.color, this.charts);
+  bool isChart;
 
+  ChartCategory(this.title, this.color, this.charts, this.isChart);
 
   static String chartTypeToIndex(String type) {
     switch(type) {
@@ -44,6 +49,14 @@ class ChartCategory {
         return "1";
       case ifrl:
         return "3";
+      case ifrh:
+        return "4";
+      case ifra:
+        return "5";
+      case heli:
+        return "9";
+      case flyway:
+        return "13";
     }
     return "";
   }
@@ -56,6 +69,14 @@ class ChartCategory {
         return 11;
       case ifrl:
         return 10;
+      case ifrh:
+        return 9;
+      case ifra:
+        return 11;
+      case heli:
+        return 12;
+      case flyway:
+        return 11;
     }
     return 5;
   }

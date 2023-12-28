@@ -60,7 +60,7 @@ class Airport {
     }
 
     String ret = "Coordinates ${airport.coordinate.toString()}\n";
-    ret += "Elevation ${airport.elevation.toString()}\n\n";
+    ret += "Elevation ${airport.elevation.round().toString()}\n\n";
 
     if(tower.isNotEmpty) {
       ret += "Tower\n    ";
