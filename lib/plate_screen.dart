@@ -99,8 +99,8 @@ class PlateScreenState extends State<PlateScreen> {
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
     AirportDestination? destination = future.airportDestination;
 
-    double lon = destination == null ? 0 : destination.lon;
-    double lat =  destination == null ? 0: destination.lat;
+    double lon = destination == null ? 0 : destination.coordinate.longitude.value;
+    double lat =  destination == null ? 0: destination.coordinate.latitude.value;
 
     if(airports.isEmpty) {
       return makePlateView([], plates, height, lon, lat, notifier);

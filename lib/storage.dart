@@ -38,7 +38,7 @@ class Storage {
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
 
-  Destination? _currentDestination;
+  Destination? currentDestination;
 
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
@@ -51,7 +51,7 @@ class Storage {
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
 
   setDestination(Destination? destination) {
-    _currentDestination = destination;
+    currentDestination = destination;
     destinationChange.value = destination;
   }
 

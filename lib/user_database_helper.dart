@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:avaremp/coordinate.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -49,8 +50,8 @@ class UserDatabaseHelper {
       "LocationID": recent.locationID,
       "FacilityName" : recent.facilityName,
       "Type": recent.type,
-      "ARPLatitude": recent.lat,
-      "ARPLongitude": recent.lon,
+      "ARPLatitude": recent.coordinate.latitude.value,
+      "ARPLongitude": recent.coordinate.longitude.value,
     };
 
     if (db != null) {
@@ -72,8 +73,7 @@ class UserDatabaseHelper {
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String,
-            lon: maps[i]['ARPLongitude'] as double,
-            lat: maps[i]['ARPLatitude'] as double
+            coordinate: Coordinate(Longitude(maps[i]['ARPLongitude'] as double), Latitude(maps[i]['ARPLatitude'] as double)),
         );
       });
     }
@@ -90,8 +90,7 @@ class UserDatabaseHelper {
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String,
-            lon: maps[i]['ARPLongitude'] as double,
-            lat: maps[i]['ARPLatitude'] as double
+            coordinate: Coordinate(Longitude(maps[i]['ARPLongitude'] as double), Latitude(maps[i]['ARPLatitude'] as double))
         );
       });
     }

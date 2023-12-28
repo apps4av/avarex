@@ -23,7 +23,7 @@ class CustomWidgets {
                     items: items.map((String item) {
                       return DropdownMenuItem<String>(
                         value: item,
-                        child: Text(item)
+                        child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -36,23 +36,4 @@ class CustomWidgets {
     );
   }
 
-  static Widget centerButton(BuildContext context, double bottom, Function() pressed) {
-    return Positioned(
-      child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(0, 0, 0, bottom),
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Constants.centerButtonBackgroundColor,
-                padding: const EdgeInsets.all(5.0),
-              ),
-              onPressed: () {
-                pressed();
-              },
-              child: const Text("Center"),
-          ))
-      ),
-    );
-  }
 }

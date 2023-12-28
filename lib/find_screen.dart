@@ -106,8 +106,8 @@ class FindScreenState extends State<FindScreen> {
                         isThreeLine: true,
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
-                          Storage().settings.setCenterLongitude(item.lon);
-                          Storage().settings.setCenterLatitude(item.lat);
+                          Storage().settings.setCenterLongitude(item.coordinate.longitude.value);
+                          Storage().settings.setCenterLatitude(item.coordinate.latitude.value);
                           MainScreenState.gotoMap();
                         },
                         onLongPress: () {

@@ -61,12 +61,11 @@ class FaaDates {
 
   // this will work till 2026
   static String getCurrentCycle() {
-    var now = DateTime.now();
-    var formatter = DateFormat('yy');
+    DateTime now = DateTime.now().toUtc();
+    DateFormat formatter = DateFormat('yy');
     int year = int.parse(formatter.format(now));
     DateTime givenDate = DateTime.parse(getCutInDate(2000 + year));
-    DateTime currentDate = DateTime.now().toUtc();
-    String passed = ((currentDate.difference(givenDate).inDays ~/ 28) + 1).toString().padLeft(2, '0');
+    String passed = ((now.difference(givenDate).inDays ~/ 28) + 1).toString().padLeft(2, '0');
     String cycle = "$year$passed";
     return cycle;
   }

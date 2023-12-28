@@ -25,6 +25,8 @@ class Constants {
   static Color appBarBackgroundColor = Colors.black.withAlpha(100);
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
 
+  static double dropDownButtonFontSize = 14;
+
   static double carouselAspectRatio(BuildContext context) {
     return isPortrait(context) ? 0.625 : 2.5;
   }

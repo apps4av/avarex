@@ -64,7 +64,7 @@ class AppSettings {
   }
 
   String getInstruments() {
-    return Settings.getValue("key-instruments-v1", defaultValue: "Gnd Speed,Alt,Track,Up Timer") as String;
+    return Settings.getValue("key-instruments-v2", defaultValue: "Gnd Speed,Alt,Track,Dest.,Bearing,UTC,Up Timer") as String;
   }
 
   void setCurrentPlateAirport(String name) {

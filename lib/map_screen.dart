@@ -6,11 +6,11 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'coordinate.dart';
 import 'airport.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
-import 'gps.dart';
 import 'longpress_widget.dart';
 
 
@@ -41,7 +41,7 @@ class MapScreenState extends State<MapScreen> {
 
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
-    List<Destination> items = await MainDatabaseHelper.db.findNear(point);
+    List<Destination> items = await MainDatabaseHelper.db.findNear(Coordinate(Longitude(point.longitude), Latitude(point.latitude)));
     if(items.isEmpty) {
       return;
     }
@@ -111,7 +111,7 @@ class MapScreenState extends State<MapScreen> {
                             borderColor: Colors.black,
                             strokeWidth: 5,
                             strokeCap: StrokeCap.round,
-                            points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.lat, value == null? Storage().position.latitude : value.lon),],
+                            points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.coordinate.latitude.value, value == null? Storage().position.longitude : value.coordinate.longitude.value),],
                             color: Colors.purpleAccent,
                           ),
                         ],
@@ -125,14 +125,11 @@ class MapScreenState extends State<MapScreen> {
                       return MarkerLayer(
                         markers: [
                           Marker( // our position
-                            width: Constants.screenHeight(context) / 20,
-                            height: Constants.screenHeight(context) / 20,
+                            width: Constants.screenHeight(context) / 4,
+                            height: Constants.screenHeight(context) / 4,
                             point: LatLng(value.latitude, value.longitude),
-                            child: Transform.rotate(
-                              angle: value.heading * pi / 180,
-                              child: Image.asset("assets/images/plane.png"),
+                            child: CustomPaint(painter: Sky()),
                               ),
-                            ),
                         ],
                       );
                     },
@@ -153,14 +150,24 @@ class MapScreenState extends State<MapScreen> {
               }
           ),
 
-          CustomWidgets.centerButton(context,
-              Constants.bottomPaddingSize(context),
-                  () => setState(() {
-                    // get to current position
-                    Position p = Storage().position;
-                    LatLng l = Gps.positionToLatLong(p);
-                    _controller.moveAndRotate(l, _maxZoom, 0);
-              })
+          Positioned(
+            child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                    padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.bottomPaddingSize(context)),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Constants.centerButtonBackgroundColor,
+                        padding: const EdgeInsets.all(5.0),
+                      ),
+                      onPressed: () {
+                        Position p = Storage().position;
+                        LatLng l = LatLng(p.latitude, p.longitude);
+                        _controller.moveAndRotate(l, _maxZoom, 0);
+                      },
+                      child: const Text("Center"),
+                    ))
+            ),
           )
         ])
     );
@@ -170,3 +177,32 @@ class MapScreenState extends State<MapScreen> {
 }
 
 
+
+class Sky extends CustomPainter {
+
+  final _paintCenter = Paint()
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 5
+    ..color = const Color.fromARGB(255, 255, 0, 0);
+  final _paint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3
+    ..color = const Color.fromARGB(255, 255, 0, 0);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2, 0), _paintCenter);
+    canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.width / 4, _paint);
+  }
+
+
+  // Since this Sky painter has no fields, it always paints
+  // the same thing and semantics information is the same.
+  // Therefore we return false here. If we had fields (set
+  // from the constructor) then we would return true if any
+  // of them differed from the same fields on the oldDelegate.
+  @override
+  bool shouldRepaint(Sky oldDelegate) => false;
+  @override
+  bool shouldRebuildSemantics(Sky oldDelegate) => false;
+}

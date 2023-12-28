@@ -1,10 +1,14 @@
 import 'dart:async';
 
 import 'package:avaremp/conversions.dart';
+import 'package:avaremp/projection.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
 
 import 'constants.dart';
+import 'destination.dart';
 
 
 class InstrumentList extends StatefulWidget {
@@ -20,9 +24,25 @@ class InstrumentListState extends State<InstrumentList> {
   String _altitude = "0";
   String _track = "0\u00b0";
   String _timer = "00:00";
+  String _destination = "";
+  String _bearing = "0\u00b0";
+  String _utc = "00:00";
   Timer? _upTimer;
+  Timer? _timeTimer;
 
   InstrumentListState() {
+
+    _startClockTimer(); // this always runs
+
+    String getBearing() {
+      Destination? d = Storage().currentDestination;
+      Position position = Storage().position;
+      if(d != null) {
+        Projection p = Projection(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
+        return "${p.getBearing().round()}\u00b0";
+      }
+      return "0\u00b0";
+    }
 
     // connect to GPS
     Storage().gpsChange.addListener(() {
@@ -30,6 +50,16 @@ class InstrumentListState extends State<InstrumentList> {
         _gndSpeed = Conversions.convertSpeed(Storage().position.speed);
         _altitude = Conversions.convertAltitude(Storage().position.altitude);
         _track = Conversions.convertTrack(Storage().position.heading);
+        _bearing = getBearing();
+      });
+    });
+
+    // connect to dest change
+    Storage().destinationChange.addListener(() {
+      setState(() {
+        Destination? d = Storage().currentDestination;
+        _destination = d != null? d.locationID : "";
+        _bearing = getBearing();
       });
     });
   }
@@ -53,6 +83,23 @@ class InstrumentListState extends State<InstrumentList> {
     }
   }
 
+  // up timer
+  void _startClockTimer() {
+    if(_timeTimer != null) {
+      _timeTimer!.cancel();
+      _timeTimer = null;
+    }
+    else {
+      _timeTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
+        setState(() {
+          DateFormat formatter = DateFormat('HH:mm');
+          _utc =   formatter.format(DateTime.now().toUtc());
+        });
+      });
+    }
+  }
+
+
   // make an instrument for top line
   Widget _makeInstrument(int index) {
     bool portrait = Constants.isPortrait(context);
@@ -74,6 +121,15 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "Track":
         value = _track;
+        break;
+      case "Dest.":
+        value = _destination;
+        break;
+      case "Bearing":
+        value = _bearing;
+        break;
+      case "UTC":
+        value = _utc;
         break;
       case "Up Timer":
         value = _timer;

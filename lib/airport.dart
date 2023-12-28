@@ -59,7 +59,7 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "Coordinates ${airport.lon.toStringAsFixed(4)}, ${airport.lat.toStringAsFixed(4)}\n";
+    String ret = "Coordinates ${airport.coordinate.toString()}\n";
     ret += "Elevation ${airport.elevation.toString()}\n\n";
 
     if(tower.isNotEmpty) {
@@ -212,8 +212,8 @@ class RunwayPainter extends CustomPainter {
         double heLon = double.parse(r['HELongitude']);
 
 
-        double apLat = airport.lat;
-        double apLon = airport.lon;
+        double apLat = airport.coordinate.latitude.value;
+        double apLon = airport.coordinate.longitude.value;
 
         // adding this factor should cover all airport in US from center of the airport.
         double left = apLon - avg;

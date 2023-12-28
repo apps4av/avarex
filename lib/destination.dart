@@ -1,18 +1,18 @@
 // destination base class
+import 'package:avaremp/coordinate.dart';
+
 class Destination {
 
   final String locationID;
   final String type;
   final String facilityName;
-  final double lon;
-  final double lat;
+  final Coordinate coordinate;
 
   const Destination({
     required this.locationID,
     required this.type,
     required this.facilityName,
-    required this.lon,
-    required this.lat,
+    required this.coordinate,
   });
 }
 
@@ -29,8 +29,7 @@ class AirportDestination extends Destination {
     required super.locationID,
     required super.type,
     required super.facilityName,
-    required super.lon,
-    required super.lat,
+    required super.coordinate,
     required this.elevation,
     required this.frequencies,
     required this.awos,
@@ -38,6 +37,5 @@ class AirportDestination extends Destination {
     required this.unicom,
     required this.ctaf
   });
-
 }
 
