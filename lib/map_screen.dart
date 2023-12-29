@@ -31,7 +31,7 @@ class MapScreenState extends State<MapScreen> {
   final List<String> _charts = DownloadListState.getCategories();
 
   String _type = Storage().settings.getChartType();
-  double _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
+  int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
@@ -85,8 +85,6 @@ class MapScreenState extends State<MapScreen> {
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
       initialRotation: Storage().settings.getRotation(),
-      maxZoom: _maxZoom,
-      minZoom: 0,
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
       onMapEvent: (event) {
@@ -115,6 +113,7 @@ class MapScreenState extends State<MapScreen> {
       // map layer charts
       TileLayer(
         tms: true,
+        maxNativeZoom: _maxZoom,
         tileProvider: ChartTileProvider(),
         //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
         urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
@@ -203,7 +202,7 @@ class MapScreenState extends State<MapScreen> {
                       onPressed: () {
                         Position p = Storage().position;
                         LatLng l = LatLng(p.latitude, p.longitude);
-                        _controller.moveAndRotate(l, _maxZoom, 0);
+                        _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);
                       },
                       child: const Text("Center"),
                     ))

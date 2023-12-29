@@ -14,7 +14,7 @@ import 'chart.dart';
 class Download {
 
   String _currentCycle = "";
-  static const String _server = "https://www.apps4av.org/new/";
+  static const String _server = "https://osprey.ceas.wmich.edu/avare/256/";
   bool _cancelDownloadAndDelete = false;
 
   Future<void> _deleteZipFile(File file) async {

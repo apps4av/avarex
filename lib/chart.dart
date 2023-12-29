@@ -61,22 +61,22 @@ class ChartCategory {
     return "";
   }
 
-  static double chartTypeToZoom(String type) {
+  static int chartTypeToZoom(String type) {
     switch(type) {
       case sectional:
-        return 10;
+        return 11;
       case tac:
-        return 11;
-      case ifrl:
-        return 10;
-      case ifrh:
-        return 9;
-      case ifra:
-        return 11;
-      case heli:
         return 12;
-      case flyway:
+      case ifrl:
         return 11;
+      case ifrh:
+        return 10;
+      case ifra:
+        return 12;
+      case heli:
+        return 13;
+      case flyway:
+        return 12;
     }
     return 5;
   }
