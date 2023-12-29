@@ -6,6 +6,7 @@ import 'package:avaremp/path_utils.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -81,6 +82,9 @@ class Storage {
     ByteData data = await rootBundle.load("assets/images/256.png");
     List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     await File(path).writeAsBytes(bytes);
+    await FlutterMapTileCaching.initialise();
+    await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
+
   }
 
    Future<void> checkDataExpiry() async {

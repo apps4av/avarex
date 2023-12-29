@@ -7,6 +7,7 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -73,11 +74,6 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
 
-    TileLayer chartLayer;
-    TileLayer osmLayer;
-    MarkerLayer airplaneLayer;
-    PolylineLayer routeLayer;
-
     //add layers
     List<Widget> layers = [];
 
@@ -107,17 +103,17 @@ class MapScreenState extends State<MapScreen> {
     if(Storage().settings.showOSMBackground()) {
       layers.add(
         // map layer OSM for backup
-        osmLayer = TileLayer(
-          tileProvider: NetworkTileProvider(),
+        TileLayer(
           urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
           userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+          tileProvider: FMTC.instance('mapStore').getTileProvider(),
         ),
       );
     }
 
     layers.add(
       // map layer charts
-      chartLayer = TileLayer(
+      TileLayer(
         tms: true,
         tileProvider: ChartTileProvider(),
         //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
@@ -130,7 +126,7 @@ class MapScreenState extends State<MapScreen> {
       ValueListenableBuilder<Destination?>(
         valueListenable: Storage().destinationChange,
         builder: (context, value, _) {
-          return routeLayer = PolylineLayer(
+          return PolylineLayer(
             polylines: [
               // route
               Polyline(
@@ -152,7 +148,7 @@ class MapScreenState extends State<MapScreen> {
       ValueListenableBuilder<Position>(
         valueListenable: Storage().gpsChange,
         builder: (context, value, _) {
-          return airplaneLayer = MarkerLayer(
+          return MarkerLayer(
             markers: [
               Marker( // our position and heading to destination
                   width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,

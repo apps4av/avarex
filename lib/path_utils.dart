@@ -7,6 +7,9 @@ import 'package:path/path.dart' as path;
 
 class PathUtils {
 
+  // do not delete tiles below level 8
+  static final RegExp _expNoDelete = RegExp(r"^tiles/[0-9]*/[0-7]/.*");
+
   static final RegExp _expCsup = RegExp(r"^(ne_)|^(nc_)|^(_nw)|^(se_)|^(sc_)|^(sw_)|^(ec_)|^(ak_)|^(pac_)");
 
   static final RegExp _expAlt = RegExp(
@@ -101,6 +104,10 @@ class PathUtils {
     }
 
     return(path);
+  }
+
+  static bool shouldNotDelete(String name) {
+    return _expNoDelete.hasMatch(name);
   }
 
 }

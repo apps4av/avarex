@@ -76,6 +76,10 @@ class Download {
     double lastProgress = 0;
 
     for(int index = 1; index < s.length; index++) { // skip version
+      if(PathUtils.shouldNotDelete(s[index])) {
+        // save some files forever
+        continue;
+      }
       File f = File(path.join(dir, s[index]));
       try {
         await f.delete(recursive: true);
