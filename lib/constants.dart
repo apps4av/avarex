@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 class Constants {
 
-  static const int tileWidth = 512;
+  static double metersToKnots(double meters) {
+    return 0.000539957 * meters;
+  }
   static const int tileHeight = 512;
 
   static const Color appBarButtonColor = Colors.white;

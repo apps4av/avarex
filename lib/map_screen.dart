@@ -18,7 +18,6 @@ import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'longpress_widget.dart';
-import 'package:avaremp/projection.dart' as proj;
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -86,19 +85,13 @@ class MapScreenState extends State<MapScreen> {
       initialZoom: Storage().settings.getZoom(),
       minZoom: 0,
       maxZoom: 18,
+      interactionOptions: InteractionOptions(flags: Storage().settings.getNorthUp() ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
       onMapEvent: (event) {
       },
     );
-
-    // for track up
-    Storage().gpsChange.addListener(() {
-      // in track up mode rotate chart
-      Storage().settings.getNorthUp() ? {} : _controller.rotate(-Storage().position.heading);
-    });
-
 
     if(Storage().settings.showOSMBackground()) {
       layers.add(
@@ -204,7 +197,12 @@ class MapScreenState extends State<MapScreen> {
                       onPressed: () {
                         Position p = Storage().position;
                         LatLng l = LatLng(p.latitude, p.longitude);
-                        _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);
+                        if(Storage().settings.getNorthUp()) {
+                          _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                        }
+                        else {
+                          _controller.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                        }
                       },
                       child: const Text("Center"),
                     ))
@@ -248,15 +246,16 @@ class Plane extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
 
-    double rotate = position.heading;
+    double rotate = position.heading  * pi / 180;
     Destination? destination = Storage().currentDestination;
     // path to destination always points to dest
-    double rotate2 = (null == destination)? 0: proj.Projection.getStaticBearing(position.longitude, position.latitude,
-          destination.coordinate.longitude.value, destination.coordinate.latitude.value);
+    double rotate2 = (null == destination)? 0 : Geolocator.bearingBetween(position.latitude, position.longitude,
+          destination.coordinate.latitude.value, destination.coordinate.longitude.value)  * pi / 180;
+
     // draw path to dest
     canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(rotate2 * pi / 180);
+    canvas.translate(size.width / 2, size.height / 2);canvas.rotate(rotate2 * pi / 180);
+    canvas.rotate(rotate2);
     canvas.translate(-size.width / 2, -size.height / 2);
     canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2, 0), _paintToDestination);
     canvas.restore();
@@ -264,7 +263,7 @@ class Plane extends CustomPainter {
     // draw plane
     canvas.save();
     canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(rotate * pi / 180);
+    canvas.rotate(rotate);
     canvas.translate(-size.width / 2, -size.height / 2);
     canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintCenter);
     canvas.drawLine(Offset(size.width / 2 - 16, size.height / 2), Offset(size.width / 2 + 16, size.height / 2), _paintCenter);

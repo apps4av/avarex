@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:avaremp/conversions.dart';
-import 'package:avaremp/projection.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -40,8 +39,12 @@ class InstrumentListState extends State<InstrumentList> {
       Destination? d = Storage().currentDestination;
       Position position = Storage().position;
       if(d != null) {
-        double distance = Projection.getStaticDistance(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
-        double bearing = Projection.getStaticBearing(position.longitude, position.latitude, d.coordinate.longitude.value, d.coordinate.latitude.value);
+        double distance = Constants.metersToKnots(Geolocator.distanceBetween(
+            position.latitude, position.longitude,
+            d.coordinate.latitude.value, d.coordinate.longitude.value));
+        double bearing = Geolocator.bearingBetween(
+            position.latitude, position.longitude,
+            d.coordinate.latitude.value, d.coordinate.longitude.value);
         return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
       return ("", "0\u00b0");
