@@ -7,6 +7,7 @@ import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -75,6 +76,11 @@ class Storage {
     });
     await checkChartsExist();
     await checkDataExpiry();
+
+    String path = join(dataDir, "256.png");
+    ByteData data = await rootBundle.load("assets/images/256.png");
+    List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    await File(path).writeAsBytes(bytes);
   }
 
    Future<void> checkDataExpiry() async {
@@ -115,11 +121,12 @@ class Storage {
     ui.decodeImageFromList(bytes, (ui.Image img) {
       return completerPlate.complete(img);
     });
+    ui.Image? image = await completerPlate.future; // double buffering
     if(imagePlate != null) {
       imagePlate!.dispose();
       imagePlate = null;
     }
-    imagePlate = await completerPlate.future;
+    imagePlate = image;
     plateChange.value++; // change in storage
   }
 }
