@@ -75,5 +75,9 @@ class AppSettings {
     return Settings.getValue("key-current-plate-airport", defaultValue: "") as String;
   }
 
+  bool showOSMBackground() {
+    return Settings.getValue("key-show-osm-background", defaultValue: true) as bool;
+  }
+
 
 }

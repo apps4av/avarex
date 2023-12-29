@@ -1,3 +1,4 @@
+
 import 'package:avaremp/faa_dates.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -178,6 +179,32 @@ class DownloadListState extends State<DownloadList> {
     });
   }
 
+  static Future<bool> isAnyChartExpired() async {
+
+    for(ChartCategory cg in _allCharts) {
+      for(Chart chart in cg.charts) {
+        bool expired = await chart.download.isChartExpired(chart);
+        if(expired) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  static Future<bool> doesAnyChartExists() async {
+
+    for(ChartCategory cg in _allCharts) {
+      for(Chart chart in cg.charts) {
+        bool exists = (await chart.download.getChartCycleLocal(chart)).isNotEmpty;
+        if(exists) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   Future<void> _getChartStateFromLocal(Chart chart) async {
     String cycle = await chart.download.getChartCycleLocal(chart);
     bool expired = await chart.download.isChartExpired(chart);
@@ -258,6 +285,7 @@ class DownloadListState extends State<DownloadList> {
         chart.progress = 0;
         chart.subtitle = "Download Success";
         chart.enabled = true;
+        // re-check all charts expiry
       }
       else if(-1 == progress) {
         chart.progress = 0;

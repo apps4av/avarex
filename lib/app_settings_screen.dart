@@ -43,6 +43,16 @@ class AppSettingsScreen extends StatelessWidget {
                   onChange: (value) {
                   },
                 ),
+                SwitchSettingsTile(
+                  settingKey: 'key-show-osm-background',
+                  title: 'OSM Background',
+                  enabledLabel: 'Shown',
+                  disabledLabel: 'Not Shown',
+                  defaultValue: true,
+                  leading: const Icon(Icons.map_sharp),
+                  onChange: (value) {
+                  },
+                ),
               ]
             ),
           ] //

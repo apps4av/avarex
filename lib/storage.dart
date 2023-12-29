@@ -13,6 +13,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
 import 'db_general.dart';
 import 'destination.dart';
+import 'download_list.dart';
 import 'gps.dart';
 
 class Storage {
@@ -46,6 +47,8 @@ class Storage {
   String lastPlateAirport = "";
   String currentPlate = "";
   List<double>? matrixPlate;
+  bool dataExpired = false;
+  bool chartsExist = false;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -70,6 +73,16 @@ class Storage {
       position = data;
       gpsChange.value = position; // tell everyone
     });
+    await checkChartsExist();
+    await checkDataExpiry();
+  }
+
+   Future<void> checkDataExpiry() async {
+    dataExpired = await DownloadListState.isAnyChartExpired();
+  }
+
+  Future<void> checkChartsExist() async {
+    chartsExist = await DownloadListState.doesAnyChartExists();
   }
 
   Future<void> loadPlate() async {

@@ -46,8 +46,8 @@ class MapScreenState extends State<MapScreen> {
 
   }
 
-
   void _handlePress(TapPosition tapPosition, LatLng point) async {
+
     List<Destination> items = await MainDatabaseHelper.db.findNear(Coordinate(Longitude(point.longitude), Latitude(point.latitude)));
     if(items.isEmpty) {
       return;
@@ -72,6 +72,15 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+
+    TileLayer chartLayer;
+    TileLayer osmLayer;
+    MarkerLayer airplaneLayer;
+    PolylineLayer routeLayer;
+
+    //add layers
+    List<Widget> layers = [];
+
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
@@ -93,6 +102,75 @@ class MapScreenState extends State<MapScreen> {
       Storage().settings.getNorthUp() ? {} : _controller.rotate(-Storage().position.heading);
     });
 
+
+    if(Storage().settings.showOSMBackground()) {
+      layers.add(
+        // map layer OSM for backup
+        osmLayer = TileLayer(
+          tileProvider: NetworkTileProvider(),
+          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+          userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+        ),
+      );
+    }
+
+    layers.add(
+      // map layer charts
+      chartLayer = TileLayer(
+        tms: true,
+        tileProvider: FileTileProvider(),
+        //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
+        urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
+        userAgentPackageName: 'com.apps4av.avaremp',
+      ),
+    );
+
+    layers.add( // route layer
+      ValueListenableBuilder<Destination?>(
+        valueListenable: Storage().destinationChange,
+        builder: (context, value, _) {
+          return routeLayer = PolylineLayer(
+            polylines: [
+              // route
+              Polyline(
+                borderStrokeWidth: 2,
+                borderColor: Colors.black,
+                strokeWidth: 5,
+                strokeCap: StrokeCap.round,
+                points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.coordinate.latitude.value, value == null? Storage().position.longitude : value.coordinate.longitude.value),],
+                color: Colors.purpleAccent,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    layers.add(
+      // aircraft layer
+      ValueListenableBuilder<Position>(
+        valueListenable: Storage().gpsChange,
+        builder: (context, value, _) {
+          return airplaneLayer = MarkerLayer(
+            markers: [
+              Marker( // compass
+                width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
+                height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
+                point: LatLng(value.latitude, value.longitude),
+                child: Image.asset("assets/images/compass.png"),
+              ),
+              Marker( // our position and heading to destination
+                  width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
+                  height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
+                  point: LatLng(value.latitude, value.longitude),
+                  child: CustomPaint(painter: Plane(value))
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
           child: const WarningsWidget(),
@@ -103,57 +181,7 @@ class MapScreenState extends State<MapScreen> {
               FlutterMap(
                 mapController: _controller,
                 options: opts,
-                children: [
-                  // map layer
-                  TileLayer(
-                    tms: true,
-                    tileProvider: FileTileProvider(),
-                    //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
-                    urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
-                    userAgentPackageName: 'com.apps4av.avaremp',
-                  ),
-                  // route layer
-                  ValueListenableBuilder<Destination?>(
-                    valueListenable: Storage().destinationChange,
-                    builder: (context, value, _) {
-                      return PolylineLayer(
-                        polylines: [
-                          // route
-                          Polyline(
-                            borderStrokeWidth: 2,
-                            borderColor: Colors.black,
-                            strokeWidth: 5,
-                            strokeCap: StrokeCap.round,
-                            points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.coordinate.latitude.value, value == null? Storage().position.longitude : value.coordinate.longitude.value),],
-                            color: Colors.purpleAccent,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  // aircraft layer
-                  ValueListenableBuilder<Position>(
-                    valueListenable: Storage().gpsChange,
-                    builder: (context, value, _) {
-                      return MarkerLayer(
-                        markers: [
-                          Marker( // compass
-                            width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
-                            height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 10,
-                            point: LatLng(value.latitude, value.longitude),
-                            child: Image.asset("assets/images/compass.png"),
-                          ),
-                          Marker( // our position and heading to destination
-                            width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
-                            height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
-                            point: LatLng(value.latitude, value.longitude),
-                            child: CustomPaint(painter: Plane(value))
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ],
+                children: layers,
               ),
               CustomWidgets.dropDownButton(
               context,
@@ -202,11 +230,8 @@ class MapScreenState extends State<MapScreen> {
       )
     );
   }
-// implements a drawing screen with a center reset button.
-
+  // implements a drawing screen with a center reset button.
 }
-
-
 
 class Plane extends CustomPainter {
 
@@ -216,13 +241,13 @@ class Plane extends CustomPainter {
 
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
-    ..strokeWidth = 4
+    ..strokeWidth = 6
     ..strokeCap = StrokeCap.square
     ..color = const Color.fromARGB(255, 255, 0, 0);
 
   final _paintToDestination = Paint()
     ..style = PaintingStyle.fill
-    ..strokeWidth = 4
+    ..strokeWidth = 6
     ..strokeCap = StrokeCap.square
     ..color = const Color.fromARGB(255, 0, 0, 255);
 

@@ -95,6 +95,8 @@ class Download {
     }
     await _deleteZipFile(File(file));
 
+    await Storage().checkChartsExist();
+
     callback(chart, 1); // done
   }
 
@@ -172,6 +174,8 @@ class Download {
             }
             return ZipFileOperation.includeItem;
           });
+      await Storage().checkDataExpiry();
+      await Storage().checkChartsExist();
       callback(chart, 1); // done
     } catch (e) {
       callback(chart, -1);
