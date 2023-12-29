@@ -84,6 +84,8 @@ class MapScreenState extends State<MapScreen> {
     MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
+      minZoom: 0,
+      maxZoom: 18,
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
