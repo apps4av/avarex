@@ -90,17 +90,19 @@ class MainScreenState extends State<MainScreen> {
       child:Scaffold(
         extendBodyBehindAppBar: true,
         extendBody: true,
+        endDrawerEnableOpenDragGesture: false,
         drawerEnableOpenDragGesture: false,
         drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
           child: Drawer(
             child: ListView(children: [
-              ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,)),
-              ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings')),
-              ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download')),
+              ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
+              ListTile(title: const Text("Settings"), leading: const Icon(Icons.settings), onTap: () => Navigator.pushNamed(context, '/settings'), dense: true,),
+              ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
             ],
           ))
         ),
         appBar: AppBar(
+          actions: [Container()], // do not show warnings button
           leadingWidth: Constants.screenWidth(context) / 10, // for safe area
           backgroundColor: Constants.appBarBackgroundColor,
           iconTheme: const IconThemeData(color: Constants.appBarButtonColor),

@@ -2,6 +2,7 @@ import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/download_list.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/warnings_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -93,6 +94,10 @@ class MapScreenState extends State<MapScreen> {
     });
 
     return Scaffold(
+        endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
+          child: const WarningsWidget(),
+        ),
+        endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
               FlutterMap(
@@ -182,8 +187,19 @@ class MapScreenState extends State<MapScreen> {
                       child: const Text("Center"),
                     ))
             ),
+          ),
+
+          const Positioned(
+            child: Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
+                    child: WarningsButtonWidget()
+                )
+            ),
           )
-        ])
+        ]
+      )
     );
   }
 // implements a drawing screen with a center reset button.
@@ -213,7 +229,7 @@ class Plane extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
 
-    double rotate = _position == null ? 0 : _position.heading;
+    double rotate = _position.heading;
     Destination? destination = Storage().currentDestination;
     // path to destination always points to dest
     double rotate2 = (null == destination)? 0: proj.Projection.getStaticBearing(_position.longitude, _position.latitude,
@@ -223,7 +239,7 @@ class Plane extends CustomPainter {
     canvas.translate(size.width / 2, size.height / 2);
     canvas.rotate(rotate2 * pi / 180);
     canvas.translate(-size.width / 2, -size.height / 2);
-    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintToDestination);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2, 0), _paintToDestination);
     canvas.restore();
 
     // draw plane

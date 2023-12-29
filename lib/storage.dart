@@ -59,12 +59,8 @@ class Storage {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
     await WakelockPlus.enable(); // keep screen on
-    LocationPermission permission = await _gps.checkPermissions();
-    if(LocationPermission.denied == permission ||
-        LocationPermission.deniedForever == permission ||
-        LocationPermission.unableToDetermine == permission) {
-    }
-    bool enabled = await _gps.checkEnabled();
+    // ask for GPS permission
+    await _gps.checkPermissions();
     position = await Gps().getLastPosition();
     Directory dir = await getApplicationDocumentsDirectory();
     dataDir = dir.path;
