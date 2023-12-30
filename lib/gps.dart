@@ -53,10 +53,36 @@ class Gps {
   }
 
   StreamSubscription<Position> getStream() {
-    const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high,);
-    StreamSubscription<Position> positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-            (Position? position) {
-        });
+
+    StreamSubscription<Position> positionStream;
+
+    if(false) {
+      final Stream<Position> stream = Stream<Position>.periodic(
+          const Duration(seconds: 1),
+              (count) {
+            Position p = Position(
+                longitude: -71 + count.toDouble() / 500,
+                latitude: 42 + count.toDouble() / 500,
+                timestamp: DateTime.timestamp(),
+                accuracy: 0,
+                altitude: 1000,
+                altitudeAccuracy: 0,
+                heading: 30,
+                headingAccuracy: 0,
+                speed: 10,
+                speedAccuracy: 0);
+            return p;
+          });
+
+      positionStream = stream.listen((Position? position) {});
+    }
+    else {
+      const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high,);
+
+      positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position? position) {
+      });
+    }
+
     return positionStream;
   }
 

@@ -47,7 +47,6 @@ class Storage {
   String dataDir = "";
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
-  bool disableGps = true;
 
 
   // make it double buffer to get rid of plate load flicker
@@ -82,10 +81,8 @@ class Storage {
     await settings.initSettings();
     // GPS data receive
     _gps.getStream().onData((data) {
-      if(!disableGps) {
-        position = data;
-        gpsChange.value = position; // tell everyone
-      }
+      position = data;
+      gpsChange.value = position; // tell everyone
     });
     await checkChartsExist();
     await checkDataExpiry();
@@ -111,19 +108,9 @@ class Storage {
         gpsDisabled = !(await Gps().checkEnabled());
         warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
       }
-
-      if(disableGps) {
-        LatLng current = const LatLng(42, -71);
-        LatLng next = GeoCalculations().calculateOffset(current, dit+=0.1, 300);
-        position = Position(longitude: next.longitude, latitude: next.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 300, headingAccuracy: 0, speed: 0, speedAccuracy: 0);
-        gpsChange.value = position;
-      }
-
       // check GPS enabled
     });
   }
-
-  double dit = 0;
 
   Future<void> checkDataExpiry() async {
     dataExpired = await DownloadScreenState.isAnyChartExpired();
