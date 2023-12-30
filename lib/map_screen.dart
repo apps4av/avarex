@@ -17,6 +17,7 @@ import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'download_screen.dart';
+import 'gps.dart';
 import 'longpress_widget.dart';
 
 class MapScreen extends StatefulWidget {
@@ -28,6 +29,7 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   final List<String> _charts = DownloadScreenState.getCategories();
+  LatLng? _previousPosition;
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -67,7 +69,20 @@ class MapScreenState extends State<MapScreen> {
     Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
     Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
     Storage().settings.setRotation(_controller.camera.rotation);
+    Storage().gpsChange.removeListener(listen);
+    _previousPosition = null;
     _controller.dispose();
+  }
+
+  // this pans camera on move
+  void listen() {
+    LatLng cur = Gps.toLatLng(Storage().position);
+    _previousPosition ??= cur;
+    LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude, cur.longitude - _previousPosition!.longitude);
+    LatLng now = _controller.camera.center;
+    LatLng next = LatLng(now.latitude + diff.latitude, now.longitude + diff.longitude);
+    _controller.move(next, _controller.camera.zoom);
+    _previousPosition = Gps.toLatLng(Storage().position);
   }
 
   @override
@@ -95,6 +110,7 @@ class MapScreenState extends State<MapScreen> {
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
       minZoom: 0,
+      keepAlive: true,
       maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: Storage().settings.getNorthUp() ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
@@ -189,10 +205,9 @@ class MapScreenState extends State<MapScreen> {
       options: opts,
       children: layers,
     );
-
-
-    Storage().gpsChange.addListener(() {
-    });
+    
+    // move with airplane but do not hold the map
+    Storage().gpsChange.addListener(listen);
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
