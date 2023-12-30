@@ -33,6 +33,7 @@ class Storage {
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
   final destinationChange = ValueNotifier<Destination?>(null);
+  final timeChange = ValueNotifier<int>(0);
 
   // gps
   final _gps = Gps();
@@ -85,9 +86,13 @@ class Storage {
     await FlutterMapTileCaching.initialise();
     await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
 
+    Timer.periodic(const Duration(seconds: 1), (tim) {
+      // this provides time to apps
+      timeChange.value++;
+    });
   }
 
-   Future<void> checkDataExpiry() async {
+  Future<void> checkDataExpiry() async {
     dataExpired = await DownloadListState.isAnyChartExpired();
   }
 

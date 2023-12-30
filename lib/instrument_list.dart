@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:avaremp/conversions.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -27,13 +25,10 @@ class InstrumentListState extends State<InstrumentList> {
   String _bearing = "0\u00b0";
   String _distance = "";
   String _utc = "00:00";
-  Timer? _clockTimer;
   int _countUp = 0;
   bool _doCountUp = false;
 
   InstrumentListState() {
-
-    _startClock(); // this always runs
 
     (String, String) getDistanceBearing() {
       Destination? d = Storage().currentDestination;
@@ -72,6 +67,19 @@ class InstrumentListState extends State<InstrumentList> {
         _bearing = bearing;
       });
     });
+
+
+    // up timer
+    Storage().timeChange.addListener(() {
+      setState(() {
+        _countUp = _doCountUp ? _countUp + 1 : _countUp;
+        Duration d = Duration(seconds: _countUp);
+        _timerUp = d.toString().substring(2, 7);
+        DateFormat formatter = DateFormat('HH:mm');
+        _utc =   formatter.format(DateTime.now().toUtc());
+      });
+    });
+
   }
 
   // up timer
@@ -82,25 +90,6 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = d.toString().substring(2, 7);
     });
-  }
-
-  // up timer
-  void _startClock() {
-    if(_clockTimer != null) {
-      _clockTimer!.cancel();
-      _clockTimer = null;
-    }
-    else {
-      _clockTimer = Timer.periodic(const Duration(seconds: 1), (tim) {
-        setState(() {
-          _countUp = _doCountUp ? _countUp + 1 : _countUp;
-          Duration d = Duration(seconds: _countUp);
-          _timerUp = d.toString().substring(2, 7);
-          DateFormat formatter = DateFormat('HH:mm');
-          _utc =   formatter.format(DateTime.now().toUtc());
-        });
-      });
-    }
   }
 
 

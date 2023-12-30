@@ -5,7 +5,6 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
-import 'constants.dart';
 import 'gps.dart';
 
 class WarningsFuture {
@@ -49,14 +48,12 @@ class WarningsButtonWidget extends StatelessWidget {
                 snapshot.data!.dataAvailable == false ||
                 snapshot.data!.dataCurrent == false;
             if(warn) {
-              return CircleAvatar(
-                  backgroundColor: Constants.centerButtonBackgroundColor,
-                  child: IconButton(icon: const Icon(Icons.warning, color: Colors.red),
-                    onPressed: () {
-                      Scaffold.of(context).openEndDrawer();
-                    },
-                  )
-              );
+              return IconButton(
+                icon: const Icon(Icons.warning, color: Colors.red, size: 64),
+                  onPressed: () {
+                    Scaffold.of(context).openEndDrawer();
+                  },
+                );
             }
           }
           return(Container());

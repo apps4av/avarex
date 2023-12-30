@@ -12,11 +12,11 @@ class AppSettings {
   }
 
   void setChartType(String chart) {
-    Settings.setValue("key-chart", chart);
+    Settings.setValue("key-chart-v1", chart);
   }
 
   String getChartType() {
-    return Settings.getValue("key-chart", defaultValue: ChartCategory.sectional) as String;
+    return Settings.getValue("key-chart-v1", defaultValue: ChartCategory.sectional) as String;
   }
 
   bool getSimulationMode() {

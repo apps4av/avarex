@@ -29,6 +29,7 @@ class ChartCategory {
   static const String ifrh = "IFR High";
   static const String ifra = "IFR Area";
   static const String flyway = "Flyway";
+  static const String osm = "OSM";
   static const String heli = "Helicopter";
   static const String plates = "Plates";
   static const String databases = "Databases";
@@ -57,6 +58,8 @@ class ChartCategory {
         return "9";
       case flyway:
         return "13";
+      case osm:
+        return "90";
     }
     return "";
   }
@@ -77,8 +80,14 @@ class ChartCategory {
         return 13;
       case flyway:
         return 12;
+      case osm:
+        return 20;
     }
     return 5;
+  }
+
+  static bool isNetworkMap(String type) {
+    return type == ChartCategory.osm;
   }
 
 }

@@ -84,7 +84,7 @@ class MapScreenState extends State<MapScreen> {
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
       minZoom: 0,
-      maxZoom: 18,
+      maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: Storage().settings.getNorthUp() ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
@@ -93,7 +93,34 @@ class MapScreenState extends State<MapScreen> {
       },
     );
 
-    if(Storage().settings.showOSMBackground()) {
+
+    // for USGS and OSM type, use Network Provider
+    bool isNetworkMap = ChartCategory.isNetworkMap(_type);
+    if(!isNetworkMap) {
+      // for local maps, add back layer of OSM if allowed by settings
+      if (Storage().settings.showOSMBackground()) {
+        layers.add(
+          // map layer OSM for backup
+          TileLayer(
+            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+            tileProvider: FMTC.instance('mapStore').getTileProvider(),
+          ),
+        );
+        layers.add(
+          // map layer charts
+          TileLayer(
+            tms: true,
+            maxNativeZoom: _maxZoom,
+            tileProvider: ChartTileProvider(),
+            //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
+            urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
+            userAgentPackageName: 'com.apps4av.avaremp',
+          ),
+        );
+      }
+    }
+    else {
       layers.add(
         // map layer OSM for backup
         TileLayer(
@@ -103,18 +130,6 @@ class MapScreenState extends State<MapScreen> {
         ),
       );
     }
-
-    layers.add(
-      // map layer charts
-      TileLayer(
-        tms: true,
-        maxNativeZoom: _maxZoom,
-        tileProvider: ChartTileProvider(),
-        //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
-        urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
-        userAgentPackageName: 'com.apps4av.avaremp',
-      ),
-    );
 
     layers.add( // route layer
       ValueListenableBuilder<Destination?>(
@@ -145,11 +160,11 @@ class MapScreenState extends State<MapScreen> {
           return MarkerLayer(
             markers: [
               Marker( // our position and heading to destination
-                  width: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
+                  width:32,
                   height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
                   point: LatLng(value.latitude, value.longitude),
-                  child: CustomPaint(painter: Plane(value))
-              ),
+                  child: Transform.rotate(angle: value.heading * pi / 180, child: CustomPaint(painter: Plane())
+              )),
             ],
           );
         },
@@ -208,13 +223,31 @@ class MapScreenState extends State<MapScreen> {
                     ))
             ),
           ),
-
-          const Positioned(
+          Positioned(
             child: Align(
-                alignment: Alignment.centerRight,
+                alignment: Alignment.topLeft,
                 child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, 5, 5, 5),
-                    child: WarningsButtonWidget()
+                    padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Constants.centerButtonBackgroundColor,
+                        padding: const EdgeInsets.all(5.0),
+                      ),
+                      onPressed: () {
+                        Scaffold.of(context).openDrawer();
+                      },
+                      child: const Text("Menu"),
+                    )
+                )
+            ),
+          ),
+
+          Positioned(
+            child: Align(
+                alignment: Alignment.topRight,
+                child: Padding(
+                    padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                    child: const WarningsButtonWidget()
                 )
             ),
           )
@@ -227,9 +260,6 @@ class MapScreenState extends State<MapScreen> {
 
 class Plane extends CustomPainter {
 
-  Position position;
-
-  Plane(this.position);
 
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
@@ -237,41 +267,17 @@ class Plane extends CustomPainter {
     ..strokeCap = StrokeCap.square
     ..color = const Color.fromARGB(255, 255, 0, 0);
 
-  final _paintToDestination = Paint()
-    ..style = PaintingStyle.fill
-    ..strokeWidth = 6
-    ..strokeCap = StrokeCap.square
-    ..color = const Color.fromARGB(255, 0, 0, 0);
-
   @override
   void paint(Canvas canvas, Size size) {
 
-    double rotate = position.heading  * pi / 180;
-    Destination? destination = Storage().currentDestination;
-    // path to destination always points to dest
-    double rotate2 = (null == destination)? 0 : Geolocator.bearingBetween(position.latitude, position.longitude,
-          destination.coordinate.latitude.value, destination.coordinate.longitude.value)  * pi / 180;
-
-    // draw path to dest
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);canvas.rotate(rotate2 * pi / 180);
-    canvas.rotate(rotate2);
-    canvas.translate(-size.width / 2, -size.height / 2);
-    canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2, 0), _paintToDestination);
-    canvas.restore();
-
     // draw plane
-    canvas.save();
-    canvas.translate(size.width / 2, size.height / 2);
-    canvas.rotate(rotate);
-    canvas.translate(-size.width / 2, -size.height / 2);
-    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, 0), _paintCenter);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, size.height / 2 + 16), _paintCenter);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 8), Offset(size.width / 2, 0), _paintCenter);
     canvas.drawLine(Offset(size.width / 2 - 16, size.height / 2), Offset(size.width / 2 + 16, size.height / 2), _paintCenter);
-    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(Plane oldDelegate) => true;
+  bool shouldRepaint(Plane oldDelegate) => false;
 }
 
 // custom tile provider

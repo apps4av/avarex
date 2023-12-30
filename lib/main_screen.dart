@@ -103,12 +103,12 @@ class MainScreenState extends State<MainScreen> {
         ),
         appBar: AppBar(
           actions: [Container()], // do not show warnings button
-          leadingWidth: Constants.screenWidth(context) / 10, // for safe area
+          leading: Container(),
           backgroundColor: Constants.appBarBackgroundColor,
           iconTheme: const IconThemeData(color: Constants.appBarButtonColor),
-          flexibleSpace: SafeArea(
-            minimum: EdgeInsets.fromLTRB(Constants.screenWidth(context) / 10, 0, 0, 0),
-            child: const InstrumentList()
+          flexibleSpace: const SafeArea(
+            minimum: EdgeInsets.fromLTRB(0, 0, 0, 0),
+            child: InstrumentList()
           ),
         ),
         body: Center(
