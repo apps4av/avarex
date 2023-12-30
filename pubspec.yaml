@@ -56,6 +56,7 @@ dependencies:
   multi_split_view: ^2.4.0
   dropdown_button2: ^2.3.9
   flutter_map_tile_caching: ^9.0.0-dev.5
+  latlong2: ^0.9.0
 
 dev_dependencies:
   flutter_test:

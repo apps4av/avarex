@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
 class WarningsButtonWidget extends StatefulWidget {
-  WarningsButtonWidget({super.key, required this.warning});
+  const WarningsButtonWidget({super.key, required this.warning});
 
-  bool warning;
+  final bool warning;
 
   @override
   State<StatefulWidget> createState() => WarningsButtonWidgetState();
@@ -33,13 +33,13 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 }
 
 class WarningsWidget extends StatefulWidget {
-  WarningsWidget({super.key, required this.gpsNotPermitted,
+  const WarningsWidget({super.key, required this.gpsNotPermitted,
     required this.gpsDisabled, required this.chartsMissing, required this.dataExpired});
 
-  bool gpsNotPermitted;
-  bool gpsDisabled;
-  bool chartsMissing;
-  bool dataExpired;
+  final bool gpsNotPermitted;
+  final bool gpsDisabled;
+  final bool chartsMissing;
+  final bool dataExpired;
 
   @override
   State<StatefulWidget> createState() => WarningsWidgetState();

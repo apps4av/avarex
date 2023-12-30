@@ -1,8 +1,58 @@
 library com.ds.avare.position;
 import 'dart:math';
 
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
+
+import 'constants.dart';
 import 'coordinate.dart';
 
+
+class GeoCalculations {
+
+  static const double segmentLength = 100; // nm
+  static const double earthRadiusConversion = 3440.069; // nm
+
+  static double toDegrees(double radians) {
+    return radians * 180.0 / pi;
+  }
+  static double toRadians(double degrees) {
+    return degrees * pi / 180.0;
+  }
+  // points on greater circle
+  static List<LatLng> findPoints(LatLng begin, LatLng end) {
+
+
+    List<LatLng> coordinates = [];
+    double lat1 = toRadians(begin.latitude);
+    double lon1 = toRadians(begin.longitude);
+    double lat2 = toRadians(end.latitude);
+    double lon2 = toRadians(end.longitude);
+
+    if(lat1 == lat2 && lon1 == lon2) {
+      return []; // same point
+    }
+
+    double distance = Constants.metersToKnots(Geolocator.distanceBetween(begin.latitude, begin.longitude, end.latitude, end.longitude));
+    double num = (distance / segmentLength).roundToDouble();
+    num = num < 2 ? 2 : num;
+    double d = (distance / earthRadiusConversion);
+    double step = (num / (num - 1));
+    for (double i = 0; i < num; i = i + 1) {
+      double f = (i * step) / num;
+      double A = (sin((1 - f) * d) / sin(d));
+      double B = (sin(f * d) / sin(d));
+      double x = (((A * cos(lat1)) * cos(lon1)) + ((B * cos(lat2)) * cos(lon2)));
+      double y = (((A * cos(lat1)) * sin(lon1)) + ((B * cos(lat2)) * sin(lon2)));
+      double z = ((A * sin(lat1)) + (B * sin(lat2)));
+      double degreeLat = toDegrees(atan2(z, sqrt((x * x) + (y * y))));
+      double degreeLon = toDegrees(atan2(y, x));
+      coordinates.add(LatLng(degreeLat, degreeLon));
+    }
+
+    return coordinates;
+  }
+}
 
 class Projection {
   double _bearing = 0;

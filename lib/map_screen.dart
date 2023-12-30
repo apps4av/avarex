@@ -17,6 +17,7 @@ import 'airport.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
+import 'geo_calculations.dart';
 import 'longpress_widget.dart';
 
 class MapScreen extends StatefulWidget {
@@ -73,11 +74,22 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
 
-    //add layers
-    List<Widget> layers = [];
-
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
+
+    //add layers
+    List<Widget> layers = [];
+    TileLayer networkLayer = TileLayer(
+      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
+      tileProvider: FMTC.instance('mapStore').getTileProvider());
+    TileLayer chartLayer = TileLayer(
+      tms: true,
+      maxNativeZoom: _maxZoom,
+      tileProvider: ChartTileProvider(),
+      //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
+      urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
+      userAgentPackageName: 'com.apps4av.avaremp');
 
     // start from known location
     MapOptions opts = MapOptions(
@@ -93,48 +105,25 @@ class MapScreenState extends State<MapScreen> {
       },
     );
 
-
     // for USGS and OSM type, use Network Provider
-    bool isNetworkMap = ChartCategory.isNetworkMap(_type);
-    if(!isNetworkMap) {
-      // for local maps, add back layer of OSM if allowed by settings
-      if (Storage().settings.showOSMBackground()) {
-        layers.add(
-          // map layer OSM for backup
-          TileLayer(
-            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-            userAgentPackageName: 'dev.fleaflet.flutter_map.example',
-            tileProvider: FMTC.instance('mapStore').getTileProvider(),
-          ),
-        );
-        layers.add(
-          // map layer charts
-          TileLayer(
-            tms: true,
-            maxNativeZoom: _maxZoom,
-            tileProvider: ChartTileProvider(),
-            //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
-            urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
-            userAgentPackageName: 'com.apps4av.avaremp',
-          ),
-        );
-      }
+    if(ChartCategory.isNetworkMap(_type)) {
+      layers.add(networkLayer);
     }
     else {
-      layers.add(
-        // map layer OSM for backup
-        TileLayer(
-          urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-          userAgentPackageName: 'dev.fleaflet.flutter_map.example',
-          tileProvider: FMTC.instance('mapStore').getTileProvider(),
-        ),
-      );
+      if(Storage().settings.showOSMBackground()) {
+        layers.add(networkLayer);
+      }
+      layers.add(chartLayer);
     }
 
     layers.add( // route layer
       ValueListenableBuilder<Destination?>(
         valueListenable: Storage().destinationChange,
         builder: (context, value, _) {
+
+          LatLng current = LatLng(Storage().position.latitude, Storage().position.longitude);
+          LatLng next = value == null ? current : LatLng(value.coordinate.latitude.value, value.coordinate.longitude.value);
+
           return PolylineLayer(
             polylines: [
               // route
@@ -143,8 +132,31 @@ class MapScreenState extends State<MapScreen> {
                 borderColor: Colors.black,
                 strokeWidth: 4,
                 strokeCap: StrokeCap.round,
-                points: [LatLng(Storage().position.latitude, Storage().position.longitude), LatLng(value == null? Storage().position.latitude : value.coordinate.latitude.value, value == null? Storage().position.longitude : value.coordinate.longitude.value),],
+                points: GeoCalculations.findPoints(current, next),
                 color: Colors.purpleAccent,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    layers.add( // track layer
+      ValueListenableBuilder<Position>(
+        valueListenable: Storage().gpsChange,
+        builder: (context, value, _) {
+
+          LatLng current = LatLng(value.latitude, value.longitude);
+          Destination? destination = Storage().currentDestination;
+          LatLng next = destination == null ? current : LatLng(destination.coordinate.latitude.value, destination.coordinate.longitude.value);
+
+          return PolylineLayer(
+            polylines: [
+              Polyline(
+                isDotted: true,
+                strokeWidth: 4,
+                points: GeoCalculations.findPoints(current, next),
+                color: Colors.black,
               ),
             ],
           );
@@ -157,12 +169,14 @@ class MapScreenState extends State<MapScreen> {
       ValueListenableBuilder<Position>(
         valueListenable: Storage().gpsChange,
         builder: (context, value, _) {
+          LatLng current = LatLng(value.latitude, value.longitude);
+
           return MarkerLayer(
             markers: [
               Marker( // our position and heading to destination
                   width:32,
                   height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
-                  point: LatLng(value.latitude, value.longitude),
+                  point: current,
                   child: Transform.rotate(angle: value.heading * pi / 180, child: CustomPaint(painter: Plane())
               )),
             ],
