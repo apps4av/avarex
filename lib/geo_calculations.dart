@@ -1,4 +1,3 @@
-library com.ds.avare.position;
 import 'dart:math';
 
 import 'package:latlong2/latlong.dart';

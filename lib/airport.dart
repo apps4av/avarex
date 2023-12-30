@@ -59,7 +59,7 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "${airport.coordinate.toString()}\n";
+    String ret = "${airport.coordinate.toSexagesimal()}\n";
     ret += "Elevation ${airport.elevation.round().toString()}\n\n";
 
     if(tower.isNotEmpty) {

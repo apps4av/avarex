@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/plan_route.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,10 +35,11 @@ class Storage {
   // when plate changes
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
-  final destinationChange = ValueNotifier<Destination?>(null);
+  final routeChange = ValueNotifier<PlanRoute?>(null);
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
 
+  PlanRoute? route;
 
   // gps
   final _gps = Gps();
@@ -45,10 +47,8 @@ class Storage {
   String dataDir = "";
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
-  bool disableGps = false;
+  bool disableGps = true;
 
-
-  Destination? currentDestination;
 
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
@@ -65,8 +65,9 @@ class Storage {
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
 
   setDestination(Destination? destination) {
-    currentDestination = destination;
-    destinationChange.value = destination;
+    route = PlanRoute(Gps.toLatLng(position));
+    destination != null ? route!.addWaypoint(destination) : {};
+    routeChange.value = route;
   }
 
   Future<void> init() async {
@@ -111,9 +112,18 @@ class Storage {
         warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
       }
 
+      if(disableGps) {
+        LatLng current = const LatLng(42, -71);
+        LatLng next = GeoCalculations().calculateOffset(current, dit+=0.1, 300);
+        position = Position(longitude: next.longitude, latitude: next.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 300, headingAccuracy: 0, speed: 0, speedAccuracy: 0);
+        gpsChange.value = position;
+      }
+
       // check GPS enabled
     });
   }
+
+  double dit = 0;
 
   Future<void> checkDataExpiry() async {
     dataExpired = await DownloadScreenState.isAnyChartExpired();

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/main_database_helper.dart';
+import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:flutter/material.dart';
@@ -16,7 +17,6 @@ import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'download_screen.dart';
-import 'geo_calculations.dart';
 import 'longpress_widget.dart';
 
 class MapScreen extends StatefulWidget {
@@ -100,7 +100,13 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
-      onMapEvent: (event) {
+      onMapEvent: (mapEvent) {
+        if (mapEvent is MapEventMoveStart) {
+          // do something
+        }
+        if (mapEvent is MapEventMoveEnd) {
+          // do something
+        }
       },
     );
 
@@ -116,13 +122,9 @@ class MapScreenState extends State<MapScreen> {
     }
 
     layers.add( // route layer
-      ValueListenableBuilder<Destination?>(
-        valueListenable: Storage().destinationChange,
+      ValueListenableBuilder<PlanRoute?>(
+        valueListenable: Storage().routeChange,
         builder: (context, value, _) {
-
-          LatLng current = LatLng(Storage().position.latitude, Storage().position.longitude);
-          LatLng next = value == null ? current : value.coordinate;
-
           return PolylineLayer(
             polylines: [
               // route
@@ -131,7 +133,7 @@ class MapScreenState extends State<MapScreen> {
                 borderColor: Colors.black,
                 strokeWidth: 4,
                 strokeCap: StrokeCap.round,
-                points: GeoCalculations().findPoints(current, next),
+                points: value == null ? [] : value.getRoute(),
                 color: Colors.purpleAccent,
               ),
             ],
@@ -144,17 +146,15 @@ class MapScreenState extends State<MapScreen> {
       ValueListenableBuilder<Position>(
         valueListenable: Storage().gpsChange,
         builder: (context, value, _) {
-
-          LatLng current = LatLng(value.latitude, value.longitude);
-          Destination? destination = Storage().currentDestination;
-          LatLng next = destination == null ? current : destination.coordinate;
-
+          // this leg
+          PlanRoute thisRoute = PlanRoute(LatLng(value.latitude, value.longitude));
+          Storage().route != null && Storage().route!.getNextWaypoint() != null ? thisRoute.addWaypoint(Storage().route!.getNextWaypoint()!) : {};
           return PolylineLayer(
             polylines: [
               Polyline(
                 isDotted: true,
                 strokeWidth: 4,
-                points: GeoCalculations().findPoints(current, next),
+                points: thisRoute.getRoute(),
                 color: Colors.black,
               ),
             ],
@@ -189,6 +189,10 @@ class MapScreenState extends State<MapScreen> {
       options: opts,
       children: layers,
     );
+
+
+    Storage().gpsChange.addListener(() {
+    });
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),

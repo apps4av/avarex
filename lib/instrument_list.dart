@@ -1,5 +1,6 @@
 import 'package:avaremp/conversions.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -33,13 +34,18 @@ class InstrumentListState extends State<InstrumentList> {
   InstrumentListState() {
 
     (String, String) getDistanceBearing() {
-      Destination? d = Storage().currentDestination;
       LatLng position = Gps.toLatLng(Storage().position);
 
-      if(d != null) {
-        double distance = GeoCalculations().calculateDistance(position, d.coordinate);
-        double bearing = GeoCalculations().calculateDistance(position, d.coordinate);
-        return (distance.round().toString(), "${bearing.round()}\u00b0");
+      PlanRoute? route = Storage().route;
+      if(route != null) {
+        Destination? d = Storage().route!.getNextWaypoint();
+        if (d != null) {
+          double distance = GeoCalculations().calculateDistance(
+              position, d.coordinate);
+          double bearing = GeoCalculations().calculateDistance(
+              position, d.coordinate);
+          return (distance.round().toString(), "${bearing.round()}\u00b0");
+        }
       }
       return ("", "0\u00b0");
     }
@@ -57,16 +63,19 @@ class InstrumentListState extends State<InstrumentList> {
     });
 
     // connect to dest change
-    Storage().destinationChange.addListener(() {
+    Storage().routeChange.addListener(() {
       setState(() {
-        Destination? d = Storage().currentDestination;
-        _destination = d != null? d.locationID : "";
-        var (distance, bearing) = getDistanceBearing();
-        _distance = distance;
-        _bearing = bearing;
+        PlanRoute? route = Storage().route;
+
+        if (route != null) {
+          Destination? d = route.getNextWaypoint();
+          _destination = d != null ? d.locationID : "";
+          var (distance, bearing) = getDistanceBearing();
+          _distance = distance;
+          _bearing = bearing;
+        }
       });
     });
-
 
     // up timer
     Storage().timeChange.addListener(() {
@@ -78,7 +87,6 @@ class InstrumentListState extends State<InstrumentList> {
         _utc =   formatter.format(DateTime.now().toUtc());
       });
     });
-
   }
 
   // up timer
