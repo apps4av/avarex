@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 
 class Constants {
 
-  static double metersToKnots(double meters) {
-    return 0.000539957 * meters;
-  }
+  static double metersToKnots(double meters) {return 0.000539957 * meters;}
+  static num knotsToMeters(distance) {return distance / 0.000539957;}
 
   static const Color appBarButtonColor = Colors.white;
 
@@ -48,5 +47,7 @@ class Constants {
   static bool isPortrait(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
+
+
 
 }

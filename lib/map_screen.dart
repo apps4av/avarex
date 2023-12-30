@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:avaremp/custom_widgets.dart';
-import 'package:avaremp/download_list.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
@@ -12,11 +11,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 
-import 'coordinate.dart';
 import 'airport.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
+import 'download_screen.dart';
 import 'geo_calculations.dart';
 import 'longpress_widget.dart';
 
@@ -28,7 +27,7 @@ class MapScreen extends StatefulWidget {
 
 class MapScreenState extends State<MapScreen> {
 
-  final List<String> _charts = DownloadListState.getCategories();
+  final List<String> _charts = DownloadScreenState.getCategories();
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -49,7 +48,7 @@ class MapScreenState extends State<MapScreen> {
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
 
-    List<Destination> items = await MainDatabaseHelper.db.findNear(Coordinate(Longitude(point.longitude), Latitude(point.latitude)));
+    List<Destination> items = await MainDatabaseHelper.db.findNear(point);
     if(items.isEmpty) {
       return;
     }
@@ -122,7 +121,7 @@ class MapScreenState extends State<MapScreen> {
         builder: (context, value, _) {
 
           LatLng current = LatLng(Storage().position.latitude, Storage().position.longitude);
-          LatLng next = value == null ? current : LatLng(value.coordinate.latitude.value, value.coordinate.longitude.value);
+          LatLng next = value == null ? current : value.coordinate;
 
           return PolylineLayer(
             polylines: [
@@ -132,7 +131,7 @@ class MapScreenState extends State<MapScreen> {
                 borderColor: Colors.black,
                 strokeWidth: 4,
                 strokeCap: StrokeCap.round,
-                points: GeoCalculations.findPoints(current, next),
+                points: GeoCalculations().findPoints(current, next),
                 color: Colors.purpleAccent,
               ),
             ],
@@ -148,14 +147,14 @@ class MapScreenState extends State<MapScreen> {
 
           LatLng current = LatLng(value.latitude, value.longitude);
           Destination? destination = Storage().currentDestination;
-          LatLng next = destination == null ? current : LatLng(destination.coordinate.latitude.value, destination.coordinate.longitude.value);
+          LatLng next = destination == null ? current : destination.coordinate;
 
           return PolylineLayer(
             polylines: [
               Polyline(
                 isDotted: true,
                 strokeWidth: 4,
-                points: GeoCalculations.findPoints(current, next),
+                points: GeoCalculations().findPoints(current, next),
                 color: Colors.black,
               ),
             ],

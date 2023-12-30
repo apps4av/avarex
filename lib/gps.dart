@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 
 class Gps {
@@ -57,6 +58,10 @@ class Gps {
             (Position? position) {
         });
     return positionStream;
+  }
+
+  static LatLng toLatLng(Position position) {
+    return LatLng(position.latitude, position.longitude);
   }
 }
 

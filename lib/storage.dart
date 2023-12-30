@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:avaremp/download_screen.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -15,7 +18,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
 import 'db_general.dart';
 import 'destination.dart';
-import 'download_list.dart';
 import 'gps.dart';
 
 class Storage {
@@ -43,6 +45,8 @@ class Storage {
   String dataDir = "";
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
+  bool disableGps = false;
+
 
   Destination? currentDestination;
 
@@ -77,9 +81,11 @@ class Storage {
     await settings.initSettings();
     // GPS data receive
     _gps.getStream().onData((data) {
+      if(!disableGps) {
         position = data;
         gpsChange.value = position; // tell everyone
-      });
+      }
+    });
     await checkChartsExist();
     await checkDataExpiry();
 
@@ -103,7 +109,6 @@ class Storage {
 
         gpsDisabled = !(await Gps().checkEnabled());
         warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
-
       }
 
       // check GPS enabled
@@ -111,11 +116,11 @@ class Storage {
   }
 
   Future<void> checkDataExpiry() async {
-    dataExpired = await DownloadListState.isAnyChartExpired();
+    dataExpired = await DownloadScreenState.isAnyChartExpired();
   }
 
   Future<void> checkChartsExist() async {
-    chartsMissing = !(await DownloadListState.doesAnyChartExists());
+    chartsMissing = !(await DownloadScreenState.doesAnyChartExists());
   }
 
   Future<void> loadPlate() async {

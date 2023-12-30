@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:avaremp/coordinate.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -49,7 +49,7 @@ class MainDatabaseHelper {
           locationID: maps[i]['LocationID'] as String,
           facilityName: maps[i]['FacilityName'] as String,
           type: maps[i]['Type'] as String,
-          coordinate: Coordinate(Longitude(maps[i]['ARPLongitude'] as double), Latitude(maps[i]['ARPLatitude'] as double)),
+          coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
       );
     });
   }
@@ -78,15 +78,15 @@ class MainDatabaseHelper {
     });
   }
 
-  Future<List<Destination>> findNear(Coordinate point) async {
+  Future<List<Destination>> findNear(LatLng point) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      num corrFactor = pow(cos(point.latitude.value * pi / 180.0), 2);
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
       String asDistance = "((ARPLongitude - ${point
-          .longitude.value}) * (ARPLongitude - ${point.longitude.value}) * ${corrFactor
+          .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
           .toDouble()} + (ARPLatitude - ${point
-          .latitude.value}) * (ARPLatitude - ${point.latitude.value}))";
+          .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry = "select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance "
           "from airports where distance < 0.001 "
@@ -98,7 +98,7 @@ class MainDatabaseHelper {
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
             type: maps[i]['Type'] as String,
-            coordinate: Coordinate(Longitude(maps[i]['ARPLongitude'] as double), Latitude(maps[i]['ARPLatitude'] as double)),
+            coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
         );
       });
     }
@@ -125,7 +125,7 @@ class MainDatabaseHelper {
         locationID: mapsAirports[0]['LocationID'] as String,
         elevation: double.parse(mapsAirports[0]['ARPElevation'] as String),
         facilityName: mapsAirports[0]['FacilityName'] as String,
-        coordinate: Coordinate(Longitude(mapsAirports[0]['ARPLongitude'] as double), Latitude(mapsAirports[0]['ARPLatitude'] as double)),
+        coordinate: LatLng(mapsAirports[0]['ARPLatitude'] as double, mapsAirports[0]['ARPLongitude'] as double),
         type: mapsAirports[0]['Type'] as String,
         ctaf: mapsAirports[0]['CTAFFrequency'] as String,
         unicom: mapsAirports[0]['UNICOMFrequencies'] as String,

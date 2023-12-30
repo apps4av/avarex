@@ -1,11 +1,13 @@
 import 'package:avaremp/conversions.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
 import 'destination.dart';
+import 'gps.dart';
 
 
 class InstrumentList extends StatefulWidget {
@@ -32,14 +34,11 @@ class InstrumentListState extends State<InstrumentList> {
 
     (String, String) getDistanceBearing() {
       Destination? d = Storage().currentDestination;
-      Position position = Storage().position;
+      LatLng position = Gps.toLatLng(Storage().position);
+
       if(d != null) {
-        double distance = Constants.metersToKnots(Geolocator.distanceBetween(
-            position.latitude, position.longitude,
-            d.coordinate.latitude.value, d.coordinate.longitude.value));
-        double bearing = Geolocator.bearingBetween(
-            position.latitude, position.longitude,
-            d.coordinate.latitude.value, d.coordinate.longitude.value);
+        double distance = GeoCalculations().calculateDistance(position, d.coordinate);
+        double bearing = GeoCalculations().calculateDistance(position, d.coordinate);
         return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
       return ("", "0\u00b0");

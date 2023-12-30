@@ -1,12 +1,13 @@
 // destination base class
-import 'package:avaremp/coordinate.dart';
+
+import 'package:latlong2/latlong.dart';
 
 class Destination {
 
   final String locationID;
   final String type;
   final String facilityName;
-  final Coordinate coordinate;
+  final LatLng coordinate;
 
   const Destination({
     required this.locationID,
