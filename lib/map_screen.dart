@@ -249,7 +249,12 @@ class MapScreenState extends State<MapScreen> {
                 alignment: Alignment.topRight,
                 child: Padding(
                     padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
-                    child: WarningsButtonWidget(warning: Storage().warningActive)
+                    child: ValueListenableBuilder<bool>(
+                        valueListenable: Storage().warningChange,
+                        builder: (context, value, _) {
+                          return WarningsButtonWidget(warning: value);
+                        }
+                      )
                 )
             ),
           )

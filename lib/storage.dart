@@ -34,6 +34,8 @@ class Storage {
   // when destination changes
   final destinationChange = ValueNotifier<Destination?>(null);
   final timeChange = ValueNotifier<int>(0);
+  final warningChange = ValueNotifier<bool>(false);
+
 
   // gps
   final _gps = Gps();
@@ -54,7 +56,6 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  bool warningActive = false;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -76,9 +77,9 @@ class Storage {
     await settings.initSettings();
     // GPS data receive
     _gps.getStream().onData((data) {
-      position = data;
-      gpsChange.value = position; // tell everyone
-    });
+        position = data;
+        gpsChange.value = position; // tell everyone
+      });
     await checkChartsExist();
     await checkDataExpiry();
 
@@ -101,7 +102,7 @@ class Storage {
             LocationPermission.unableToDetermine == permission);
 
         gpsDisabled = !(await Gps().checkEnabled());
-        warningActive = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
+        warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
 
       }
 
