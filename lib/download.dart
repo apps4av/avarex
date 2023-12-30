@@ -100,6 +100,7 @@ class Download {
     await _deleteZipFile(File(file));
 
     await Storage().checkChartsExist();
+    await Storage().checkDataExpiry();
 
     callback(chart, 1); // done
   }

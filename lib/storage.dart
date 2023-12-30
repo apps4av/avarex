@@ -51,7 +51,10 @@ class Storage {
   String currentPlate = "";
   List<double>? matrixPlate;
   bool dataExpired = false;
-  bool chartsExist = false;
+  bool chartsMissing = false;
+  bool gpsNotPermitted = false;
+  bool gpsDisabled = false;
+  bool warningActive = false;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -86,9 +89,23 @@ class Storage {
     await FlutterMapTileCaching.initialise();
     await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
 
-    Timer.periodic(const Duration(seconds: 1), (tim) {
+    Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
       timeChange.value++;
+
+      if(timeChange.value % 5 == 0) {
+        // check system for any issues
+        LocationPermission permission = await Gps().checkPermissions();
+        gpsNotPermitted = (LocationPermission.denied == permission ||
+            LocationPermission.deniedForever == permission ||
+            LocationPermission.unableToDetermine == permission);
+
+        gpsDisabled = !(await Gps().checkEnabled());
+        warningActive = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
+
+      }
+
+      // check GPS enabled
     });
   }
 
@@ -97,7 +114,7 @@ class Storage {
   }
 
   Future<void> checkChartsExist() async {
-    chartsExist = await DownloadListState.doesAnyChartExists();
+    chartsMissing = !(await DownloadListState.doesAnyChartExists());
   }
 
   Future<void> loadPlate() async {

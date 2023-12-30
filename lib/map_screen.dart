@@ -179,7 +179,9 @@ class MapScreenState extends State<MapScreen> {
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
-          child: const WarningsWidget(),
+          child: WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
+            gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
+            dataExpired: Storage().dataExpired,),
         ),
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
@@ -247,7 +249,7 @@ class MapScreenState extends State<MapScreen> {
                 alignment: Alignment.topRight,
                 child: Padding(
                     padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
-                    child: const WarningsButtonWidget()
+                    child: WarningsButtonWidget(warning: Storage().warningActive)
                 )
             ),
           )

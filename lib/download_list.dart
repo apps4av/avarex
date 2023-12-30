@@ -183,8 +183,12 @@ class DownloadListState extends State<DownloadList> {
 
     for(ChartCategory cg in _allCharts) {
       for(Chart chart in cg.charts) {
-        bool expired = await chart.download.isChartExpired(chart);
-        if(expired) {
+        String current = FaaDates.getCurrentCycle();
+        String cycle = await chart.download.getChartCycleLocal(chart);
+        if(cycle.isEmpty) {
+          continue;
+        }
+        if(cycle != current) {
           return true;
         }
       }
