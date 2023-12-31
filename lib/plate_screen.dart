@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 
-import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/destination.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
 import 'constants.dart';
@@ -143,31 +143,72 @@ class PlateScreenState extends State<PlateScreen> {
           )
       ),
       airports.isEmpty ? Container() : // nothing to show here is airports is empty
-      CustomWidgets.dropDownButton(
-        context,
-        Storage().settings.getCurrentPlateAirport(),
-        airports,
-        Alignment.bottomRight,
-        Constants.bottomPaddingSize(context),
-            (value) {
-          setState(() {
-            Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
-          });
-        },
+
+
+      Positioned(
+          child: Align(
+              alignment: Alignment.bottomRight,
+              child: airports[0].isEmpty ? Container() : Container(
+                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                  child:DropdownButtonHideUnderline(
+                      child:DropdownButton2<String>( // airport selection
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        isExpanded: false,
+                        value: Storage().settings.getCurrentPlateAirport(),
+                        items: airports.map((String item) {
+                          return DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
+                          });
+                        },
+                      )
+                  )
+              )
+          )
       ),
+
       plates.isEmpty ? Container() : // nothing to show here if plates is empty
-      CustomWidgets.dropDownButton(
-        context,
-        plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
-        plates,
-        Alignment.bottomLeft,
-        Constants.bottomPaddingSize(context),
-            (value) {
-          setState(() {
-            Storage().currentPlate = value ?? plates[0];
-          });
-        },
-      ),
+        Positioned(
+          child: Align(
+              alignment: Alignment.bottomLeft,
+              child: plates[0].isEmpty ? Container() : Container(
+                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                  child:DropdownButtonHideUnderline(
+                      child:DropdownButton2<String>( // airport selection
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        isExpanded: false,
+                        value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+                        items: plates.map((String item) {
+                          return DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            Storage().currentPlate = value ?? plates[0];
+                          });
+                        },
+                      )
+                  )
+              )
+          )
+      )
     ]
     ));
   }

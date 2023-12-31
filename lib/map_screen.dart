@@ -1,15 +1,16 @@
 import 'dart:io';
 
-import 'package:avaremp/custom_widgets.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path/path.dart';
 
 import 'airport.dart';
@@ -38,6 +39,7 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<bool> _layersState = Storage().settings.getLayersState();
+  bool _northUp = Storage().settings.getNorthUp();
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
@@ -50,7 +52,6 @@ class MapScreenState extends State<MapScreen> {
     );
     return exitResult ?? false;
   }
-
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
 
@@ -102,6 +103,7 @@ class MapScreenState extends State<MapScreen> {
         _controller!.move(next, _controller!.camera.zoom);
       }
     }
+
     _previousPosition = Gps.toLatLng(Storage().position);
   }
 
@@ -131,7 +133,7 @@ class MapScreenState extends State<MapScreen> {
       initialZoom: Storage().settings.getZoom(),
       minZoom: 0,
       maxZoom: 20, // max for USGS
-      interactionOptions: InteractionOptions(flags: Storage().settings.getNorthUp() ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
+      interactionOptions: InteractionOptions(flags: _northUp ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
@@ -156,7 +158,7 @@ class MapScreenState extends State<MapScreen> {
       layers.add(chartLayer);
     }
 
-    lIndex = _layers.indexOf('Navigation');
+    lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // route layer
         ValueListenableBuilder<PlanRoute?>(
@@ -245,125 +247,168 @@ class MapScreenState extends State<MapScreen> {
                   gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
                   dataExpired: Storage().dataExpired,);
               }
-              )
+            )
         ),
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
-              map,
+              map, // map
 
-              CustomWidgets.dropDownButton(
-              context,
-              _type,
-              _charts,
-              Alignment.bottomLeft,
-              Constants.bottomPaddingSize(context),
-              (value) {
-                setState(() {
-                  Storage().settings.setChartType(value ?? _charts[0]);
-                  _type = Storage().settings.getChartType();
-                });
-              }
-            ),
-
-            // switch layers on off
-            Positioned(
+              // warn
+              Positioned(
                 child: Align(
-                    alignment: Alignment.bottomRight,
-                    child:
-                    Container(
-                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
-                        child:PopupMenuButton( // airport selection
-                          icon: const CircleAvatar(child: Icon(Icons.layers)),
-                          initialValue: _layers[0],
-                          itemBuilder: (BuildContext context) =>
-                              List.generate(_layers.length, (int index) => PopupMenuItem(
-                                child: StatefulBuilder(
-                                  builder: (context1, setState1) =>
-                                  Row(
-                                      children:[
-                                        Switch(
-                                          value: _layersState[index],
-                                          onChanged: (bool value) {
-                                            setState1(() {
-                                              _layersState[index] = value; // this is state for the switch
-                                            });
-                                            // now save to settings
-                                            Storage().settings.setLayersState(_layersState);
-                                            setState(() {
-                                              _layersState[index] = value; // this is the state for the map
-                                            });
-                                          },
-                                        ),
-                                        Text(_layers[index])
-                                      ]
-                                  )
-                                )
-                              ),
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                        padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                        child: ValueListenableBuilder<bool>(
+                            valueListenable: Storage().warningChange,
+                            builder: (context, value, _) {
+                              return WarningsButtonWidget(warning: value);
+                            }
                         )
                     )
-                )
-            )),
+                ),
+              ),
 
-            Positioned(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                    padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.bottomPaddingSize(context)),
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Constants.centerButtonBackgroundColor,
-                        padding: const EdgeInsets.all(5.0),
-                      ),
-                      onPressed: () {
-                        Position p = Storage().position;
-                        LatLng l = LatLng(p.latitude, p.longitude);
-                        if(Storage().settings.getNorthUp()) {
-                          _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
-                        }
-                        else {
-                          _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
-                        }
-                      },
-                      child: const Text("Center"),
-                    ))
-            ),
-          ),
-          Positioned(
-            child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Constants.centerButtonBackgroundColor,
-                        padding: const EdgeInsets.all(5.0),
-                      ),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                      child: const Text("ooo"),
-                    )
-                )
-            ),
-          ),
-
-          Positioned(
-            child: Align(
-                alignment: Alignment.topRight,
-                child: Padding(
-                    padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
-                    child: ValueListenableBuilder<bool>(
-                        valueListenable: Storage().warningChange,
-                        builder: (context, value, _) {
-                          return WarningsButtonWidget(warning: value);
-                        }
+              // center
+              Positioned(
+                  child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child:
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                        child:
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: Constants.centerButtonBackgroundColor,
+                            padding: const EdgeInsets.all(5.0),
+                          ),
+                          onPressed: () {
+                            Position p = Storage().position;
+                            LatLng l = LatLng(p.latitude, p.longitude);
+                            if(_northUp) {
+                              _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                            }
+                            else {
+                              _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                            }
+                          },
+                          child: const Text("Center"),
+                        ),
                       )
-                )
-            ),
-          )
-        ]
-      )
+                  )
+              ),
+
+              // menus
+              Positioned(
+                  child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Padding(
+                          padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                          child: Row(children:[
+                            // menu
+                            Container(
+                                padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                                child:
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    backgroundColor: Constants.centerButtonBackgroundColor,
+                                    padding: const EdgeInsets.all(5.0),
+                                  ),
+                                  onPressed: () {
+                                    Scaffold.of(context).openDrawer();
+                                  },
+                                  child: const Text("Menu"),
+                                )),
+
+                            // chart select
+                            DropdownButtonHideUnderline(
+                                child:DropdownButton2<String>(
+
+                                  buttonStyleData: ButtonStyleData(
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                                  ),
+                                  dropdownStyleData: DropdownStyleData(
+                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  isExpanded: false,
+                                  value: _type,
+                                  items: _charts.map((String item) {
+                                    return DropdownMenuItem<String>(
+                                        value: item,
+                                        child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      Storage().settings.setChartType(value ?? _charts[0]);
+                                      _type = Storage().settings.getChartType();
+                                    });
+                                  },
+                                )
+                            ),
+
+                            // switch layers on off
+                            PopupMenuButton( // airport selection
+
+                                padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                                icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
+                                initialValue: _layers[0],
+                                itemBuilder: (BuildContext context) =>
+                                    List.generate(_layers.length, (int index) => PopupMenuItem(
+                                        child: StatefulBuilder(
+                                            builder: (context1, setState1) =>
+                                                ListTile(
+                                                  dense: true,
+                                                  title: Text(_layers[index]),
+                                                  subtitle: _layersState[index] ? Text("Layer is On") : Text("Layer is Off"),
+                                                  leading: Switch(
+                                                    value: _layersState[index],
+                                                    onChanged: (bool value) {
+                                                      setState1(() {
+                                                        _layersState[index] = value; // this is state for the switch
+                                                      });
+                                                      // now save to settings
+                                                      Storage().settings.setLayersState(_layersState);
+                                                      setState(() {
+                                                        _layersState[index] = value; // this is the state for the map
+                                                      });
+                                                    },
+                                                  ),
+                                                ),
+                                        ),
+                                      )
+                                    ),
+                            ),
+
+
+                            // north up
+                            IconButton(
+                              padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                              onPressed: () {
+                                setState(() {
+                                  _northUp = _northUp ? false : true;
+                                });
+                                Storage().settings.setNorthUp(_northUp); // save
+                              },
+                              icon: ValueListenableBuilder<Position>(
+                                valueListenable: Storage().gpsChange,
+                                builder: (context, value, _) {
+                                  return CircleAvatar( // in track up, rotate icon
+                                      backgroundColor: Constants.dropDownButtonBackgroundColor,
+                                      child: _northUp ? Icon(MdiIcons.navigation) :
+                                      Transform.rotate(
+                                          angle: value.heading * pi / 180,
+                                          child: Icon(MdiIcons.arrowUpThinCircleOutline)));
+                                }
+                              )),
+                          ]
+                        )
+                      )
+                  )
+              )
+            ]
+        )
     );
   }
   // implements a drawing screen with a center reset button.

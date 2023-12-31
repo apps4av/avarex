@@ -3,7 +3,6 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'download_screen.dart';
 import 'main_screen.dart';
-import 'app_settings_screen.dart';
 
 void main()  {
 
@@ -24,7 +23,6 @@ class MainApp extends StatelessWidget {
       routes: {
         '/': (context) => const MainScreen(),
         '/download': (context) => const DownloadScreen(),
-        '/settings': (context) => const AppSettingsScreen(),
       },
       theme : ThemeData(
         brightness: Brightness.dark,

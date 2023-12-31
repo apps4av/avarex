@@ -7,7 +7,6 @@ class Constants {
 
   static const Color appBarButtonColor = Colors.white;
 
-  static const Color dropDownButtonColor = Colors.cyanAccent;
   static const Color dropDownButtonIconColor = Colors.transparent;
   static Color dropDownButtonBackgroundColor = Colors.black.withAlpha(156);
   static Color centerButtonBackgroundColor = Colors.black.withAlpha(156);

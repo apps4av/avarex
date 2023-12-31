@@ -23,6 +23,10 @@ class AppSettings {
     return Settings.getValue("key-north-up", defaultValue: true) as bool;
   }
 
+  void setNorthUp(bool northUp) {
+    Settings.setValue("key-north-up", northUp);
+  }
+
   void setZoom(double zoom) {
     Settings.setValue("key-chart-zoom", zoom);
   }
@@ -64,15 +68,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (Settings.getValue("key-layers-v3", defaultValue: "OSM,Chart,Navigation") as String).split(",");
+    return (Settings.getValue("key-layers-v4", defaultValue: "Nav,Chart,OSM") as String).split(",");
   }
 
   List<bool> getLayersState() {
-    return (Settings.getValue("key-layers-state-v3", defaultValue: "true,true,true") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (Settings.getValue("key-layers-state-v4", defaultValue: "true,true,true") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
-    Settings.setValue("key-layers-state-v3", state.map((bool e) => e.toString()).toList().join(","));
+    Settings.setValue("key-layers-state-v4", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {

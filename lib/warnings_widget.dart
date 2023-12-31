@@ -2,6 +2,7 @@
 import 'dart:core';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class WarningsButtonWidget extends StatefulWidget {
   const WarningsButtonWidget({super.key, required this.warning});
@@ -21,7 +22,7 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 
     if(widget.warning) {
       return IconButton(
-        icon: const Icon(Icons.warning, color: Colors.red, size: 64),
+        icon: Icon(MdiIcons.alertCircle, color: Colors.red, size: 48),
           onPressed: () {
             Scaffold.of(context).openEndDrawer();
           },
@@ -51,10 +52,10 @@ class WarningsWidgetState extends State<WarningsWidget> {
   Widget build(BuildContext context) {
 
     List<ListTile> list = [
-      const ListTile(
-        title: Text("Issues", style: TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: Text("Tapping on the issue will help you resolve it."),
-        leading: Icon(Icons.warning, color: Colors.red,), dense: false,)];
+      ListTile(
+        title: const Text("Issues", style: TextStyle(fontWeight: FontWeight.w900)),
+        subtitle: const Text("Tapping on the issue will help you resolve it."),
+        leading: Icon(MdiIcons.alertCircle, color: Colors.red,), dense: false,)];
 
     String gpsPermissionMessage = !widget.gpsNotPermitted ? "" :
     "GPS permission is denied, please enable it in device settings.";

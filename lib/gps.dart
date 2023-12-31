@@ -65,11 +65,11 @@ class Gps {
                 latitude: 42 + count.toDouble() / 500,
                 timestamp: DateTime.timestamp(),
                 accuracy: 0,
-                altitude: 1000,
+                altitude: count.toDouble(),
                 altitudeAccuracy: 0,
-                heading: 30,
+                heading: count.toDouble(),
                 headingAccuracy: 0,
-                speed: 10,
+                speed: count.toDouble() / 10,
                 speedAccuracy: 0);
             return p;
           });
