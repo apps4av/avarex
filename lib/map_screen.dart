@@ -34,7 +34,10 @@ class MapScreenState extends State<MapScreen> {
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
-  final MapController _controller = MapController();
+  MapController? _controller;
+  // get layers and states from settings
+  final List<String> _layers = Storage().settings.getLayers();
+  final List<bool> _layersState = Storage().settings.getLayersState();
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
@@ -63,27 +66,41 @@ class MapScreenState extends State<MapScreen> {
   }
 
   @override
+  void initState() {
+    _controller = MapController();
+    super.initState();
+  }
+
+  @override
   void dispose() {
     super.dispose();
     // save ptz when we switch out
-    Storage().settings.setZoom(_controller.camera.zoom);
-    Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
-    Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
-    Storage().settings.setRotation(_controller.camera.rotation);
-    Storage().gpsChange.removeListener(listen);
-    _previousPosition = null;
-    _controller.dispose();
+    if(_controller != null) {
+      Storage().settings.setZoom(_controller!.camera.zoom);
+      Storage().settings.setCenterLatitude(_controller!.camera.center.latitude);
+      Storage().settings.setCenterLongitude(
+          _controller!.camera.center.longitude);
+      Storage().settings.setRotation(_controller!.camera.rotation);
+      Storage().gpsChange.removeListener(listen);
+      _previousPosition = null;
+      _controller!.dispose();
+      _controller = null;
+    }
   }
 
   // this pans camera on move
   void listen() {
     LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
-    LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude, cur.longitude - _previousPosition!.longitude);
-    LatLng now = _controller.camera.center;
-    LatLng next = LatLng(now.latitude + diff.latitude, now.longitude + diff.longitude);
-    if(!_interacting) { // do not move when user is moving map
-      _controller.move(next, _controller.camera.zoom);
+    if(null != _controller) {
+      LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
+          cur.longitude - _previousPosition!.longitude);
+      LatLng now = _controller!.camera.center;
+      LatLng next = LatLng(
+          now.latitude + diff.latitude, now.longitude + diff.longitude);
+      if (!_interacting) { // do not move when user is moving map
+        _controller!.move(next, _controller!.camera.zoom);
+      }
     }
     _previousPosition = Gps.toLatLng(Storage().position);
   }
@@ -113,7 +130,6 @@ class MapScreenState extends State<MapScreen> {
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
       minZoom: 0,
-      keepAlive: true,
       maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: Storage().settings.getNorthUp() ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
@@ -131,115 +147,166 @@ class MapScreenState extends State<MapScreen> {
       },
     );
 
-    // for USGS and OSM type, use Network Provider
-    if(ChartCategory.isNetworkMap(_type)) {
+    int lIndex = _layers.indexOf('OSM');
+    if(_layersState[lIndex]) {
       layers.add(networkLayer);
     }
-    else {
-      if(Storage().settings.showOSMBackground()) {
-        layers.add(networkLayer);
-      }
+    lIndex = _layers.indexOf('Chart');
+    if(_layersState[lIndex]) {
       layers.add(chartLayer);
     }
 
-    layers.add( // route layer
-      ValueListenableBuilder<PlanRoute?>(
-        valueListenable: Storage().routeChange,
-        builder: (context, value, _) {
-          return PolylineLayer(
-            polylines: [
-              // route
-              Polyline(
-                borderStrokeWidth: 2,
-                borderColor: Colors.black,
-                strokeWidth: 4,
-                strokeCap: StrokeCap.round,
-                points: value == null ? [] : value.getRoute(),
-                color: Colors.purpleAccent,
-              ),
-            ],
-          );
-        },
-      ),
-    );
+    lIndex = _layers.indexOf('Navigation');
+    if(_layersState[lIndex]) {
+      layers.add( // route layer
+        ValueListenableBuilder<PlanRoute?>(
+          valueListenable: Storage().routeChange,
+          builder: (context, value, _) {
+            return PolylineLayer(
+              polylines: [
+                // route
+                Polyline(
+                  borderStrokeWidth: 2,
+                  borderColor: Colors.black,
+                  strokeWidth: 4,
+                  strokeCap: StrokeCap.round,
+                  points: value == null ? [] : value.getRoute(),
+                  color: Colors.purpleAccent,
+                ),
+              ],
+            );
+          },
+        ),
+      );
 
-    layers.add( // track layer
-      ValueListenableBuilder<Position>(
-        valueListenable: Storage().gpsChange,
-        builder: (context, value, _) {
-          // this leg
-          PlanRoute thisRoute = PlanRoute(LatLng(value.latitude, value.longitude));
-          Storage().route != null && Storage().route!.getNextWaypoint() != null ? thisRoute.addWaypoint(Storage().route!.getNextWaypoint()!) : {};
-          return PolylineLayer(
-            polylines: [
-              Polyline(
-                isDotted: true,
-                strokeWidth: 4,
-                points: thisRoute.getRoute(),
-                color: Colors.black,
-              ),
-            ],
-          );
-        },
-      ),
-    );
+      layers.add( // track layer
+        ValueListenableBuilder<Position>(
+          valueListenable: Storage().gpsChange,
+          builder: (context, value, _) {
+            // this leg
+            PlanRoute thisRoute = PlanRoute(
+                LatLng(value.latitude, value.longitude));
+            Storage().route != null &&
+                Storage().route!.getNextWaypoint() != null ? thisRoute
+                .addWaypoint(Storage().route!.getNextWaypoint()!) : {};
+            return PolylineLayer(
+              polylines: [
+                Polyline(
+                  isDotted: true,
+                  strokeWidth: 4,
+                  points: thisRoute.getRoute(),
+                  color: Colors.black,
+                ),
+              ],
+            );
+          },
+        ),
+      );
 
-    layers.add(
-      // aircraft layer
-      ValueListenableBuilder<Position>(
-        valueListenable: Storage().gpsChange,
-        builder: (context, value, _) {
-          LatLng current = LatLng(value.latitude, value.longitude);
+      layers.add(
+        // aircraft layer
+        ValueListenableBuilder<Position>(
+          valueListenable: Storage().gpsChange,
+          builder: (context, value, _) {
+            LatLng current = LatLng(value.latitude, value.longitude);
 
-          return MarkerLayer(
-            markers: [
-              Marker( // our position and heading to destination
-                  width:32,
-                  height: (Constants.screenWidth(context) + Constants.screenHeight(context)) / 4,
-                  point: current,
-                  child: Transform.rotate(angle: value.heading * pi / 180, child: CustomPaint(painter: Plane())
-              )),
-            ],
-          );
-        },
-      ),
-    );
+            return MarkerLayer(
+              markers: [
+                Marker( // our position and heading to destination
+                    width: 32,
+                    height: (Constants.screenWidth(context) +
+                        Constants.screenHeight(context)) / 4,
+                    point: current,
+                    child: Transform.rotate(angle: value.heading * pi / 180,
+                        child: CustomPaint(painter: Plane())
+                    )),
+              ],
+            );
+          },
+        ),
+      );
+    }
 
     FlutterMap map = FlutterMap(
       mapController: _controller,
       options: opts,
       children: layers,
     );
-    
+
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(listen);
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
-          child: WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
-            gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
-            dataExpired: Storage().dataExpired,),
+          child: ValueListenableBuilder<bool>(
+              valueListenable: Storage().warningChange,
+              builder: (context, value, _) {
+                return WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
+                  gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
+                  dataExpired: Storage().dataExpired,);
+              }
+              )
         ),
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
               map,
+
               CustomWidgets.dropDownButton(
               context,
               _type,
               _charts,
               Alignment.bottomLeft,
-                  Constants.bottomPaddingSize(context),
+              Constants.bottomPaddingSize(context),
               (value) {
                 setState(() {
                   Storage().settings.setChartType(value ?? _charts[0]);
                   _type = Storage().settings.getChartType();
                 });
               }
-          ),
+            ),
 
-          Positioned(
-            child: Align(
+            // switch layers on off
+            Positioned(
+                child: Align(
+                    alignment: Alignment.bottomRight,
+                    child:
+                    Container(
+                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                        child:PopupMenuButton( // airport selection
+                          icon: const CircleAvatar(child: Icon(Icons.layers)),
+                          initialValue: _layers[0],
+                          itemBuilder: (BuildContext context) =>
+                              List.generate(_layers.length, (int index) => PopupMenuItem(
+                                child: StatefulBuilder(
+                                  builder: (context1, setState1) =>
+                                  Row(
+                                      children:[
+                                        Switch(
+                                          value: _layersState[index],
+                                          onChanged: (bool value) {
+                                            setState1(() {
+                                              _layersState[index] = value; // this is state for the switch
+                                            });
+                                            // now save to settings
+                                            Storage().settings.setLayersState(_layersState);
+                                            setState(() {
+                                              _layersState[index] = value; // this is the state for the map
+                                            });
+                                          },
+                                        ),
+                                        Text(_layers[index])
+                                      ]
+                                  )
+                                )
+                              ),
+                        )
+                    )
+                )
+            )),
+
+            Positioned(
+              child: Align(
                 alignment: Alignment.bottomCenter,
                 child: Padding(
                     padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.bottomPaddingSize(context)),
@@ -252,10 +319,10 @@ class MapScreenState extends State<MapScreen> {
                         Position p = Storage().position;
                         LatLng l = LatLng(p.latitude, p.longitude);
                         if(Storage().settings.getNorthUp()) {
-                          _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                          _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
                         }
                         else {
-                          _controller.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                          _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
                         }
                       },
                       child: const Text("Center"),
@@ -275,7 +342,7 @@ class MapScreenState extends State<MapScreen> {
                       onPressed: () {
                         Scaffold.of(context).openDrawer();
                       },
-                      child: const Text("Menu"),
+                      child: const Text("ooo"),
                     )
                 )
             ),

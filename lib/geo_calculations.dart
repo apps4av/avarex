@@ -106,7 +106,9 @@ class GeoCalculations {
   }
 
   double calculateBearing(ll1, ll2) {
-    return _distance.bearing(ll1, ll2);
+    double bearing = _distance.bearing(ll1, ll2);
+    bearing = bearing < 0 ? bearing + 360 : bearing;
+    return bearing;
   }
 
   LatLng calculateOffset(from, distance, heading) {

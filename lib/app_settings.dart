@@ -19,10 +19,6 @@ class AppSettings {
     return Settings.getValue("key-chart-v1", defaultValue: ChartCategory.sectional) as String;
   }
 
-  bool getSimulationMode() {
-    return Settings.getValue("key-simulation", defaultValue: false) as bool;
-  }
-
   bool getNorthUp() {
     return Settings.getValue("key-north-up", defaultValue: true) as bool;
   }
@@ -60,11 +56,23 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    Settings.setValue("key-instruments-v3", instruments);
+    Settings.setValue("key-instruments-v4", instruments);
   }
 
   String getInstruments() {
-    return Settings.getValue("key-instruments-v3", defaultValue: "Gnd Speed,Alt,Track,Dest.,Distance,Bearing,Up Timer,UTC") as String;
+    return Settings.getValue("key-instruments-v4", defaultValue: "Gnd Speed,Alt,Track,Next,Distance,Bearing,Up Timer,UTC") as String;
+  }
+
+  List<String> getLayers() {
+    return (Settings.getValue("key-layers-v3", defaultValue: "OSM,Chart,Navigation") as String).split(",");
+  }
+
+  List<bool> getLayersState() {
+    return (Settings.getValue("key-layers-state-v3", defaultValue: "true,true,true") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+  }
+
+  void setLayersState(List<bool> state) {
+    Settings.setValue("key-layers-state-v3", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
@@ -73,10 +81,6 @@ class AppSettings {
 
   String getCurrentPlateAirport() {
     return Settings.getValue("key-current-plate-airport", defaultValue: "") as String;
-  }
-
-  bool showOSMBackground() {
-    return Settings.getValue("key-show-osm-background", defaultValue: true) as bool;
   }
 
 

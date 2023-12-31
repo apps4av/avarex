@@ -122,7 +122,7 @@ class InstrumentListState extends State<InstrumentList> {
       case "Track":
         value = _track;
         break;
-      case "Dest.":
+      case "Next":
         value = _destination;
         break;
       case "Bearing":

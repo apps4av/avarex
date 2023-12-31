@@ -650,11 +650,5 @@ class DownloadScreenState extends State<DownloadScreen> {
         Chart('PAC', _absentColor, _absentIcon, 'AFD_PAC', _stateAbsentNone, "", 0, true, Download()),
       ], false,
     ),
-    ChartCategory(
-      ChartCategory.osm,
-      _absentColor,
-      [
-      ], true,
-    ),
   ];
 }

@@ -16,20 +16,6 @@ class AppSettingsScreen extends StatelessWidget {
       body: SafeArea(
         child:ListView(
           children: [
-            SettingsGroup(
-              title: 'GENERAL',
-              children: <Widget>[
-                SwitchSettingsTile(
-                  settingKey: 'key-simulation',
-                  title: 'Simulation',
-                  enabledLabel: 'Enabled',
-                  disabledLabel: 'Disabled',
-                  leading: const Icon(Icons.gps_off),
-                  onChange: (value) {
-                  },
-                ),
-              ]
-            ),
           SettingsGroup(
               title: 'NAVIGATION',
               children: <Widget>[
@@ -40,16 +26,6 @@ class AppSettingsScreen extends StatelessWidget {
                   disabledLabel: 'Track Up',
                   defaultValue: true,
                   leading: const Icon(Icons.navigation),
-                  onChange: (value) {
-                  },
-                ),
-                SwitchSettingsTile(
-                  settingKey: 'key-show-osm-background',
-                  title: 'OSM Background',
-                  enabledLabel: 'Shown',
-                  disabledLabel: 'Not Shown',
-                  defaultValue: true,
-                  leading: const Icon(Icons.map_sharp),
                   onChange: (value) {
                   },
                 ),
