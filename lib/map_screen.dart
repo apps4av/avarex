@@ -30,6 +30,7 @@ class MapScreenState extends State<MapScreen> {
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
+  bool _interacting = false;
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -81,7 +82,9 @@ class MapScreenState extends State<MapScreen> {
     LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude, cur.longitude - _previousPosition!.longitude);
     LatLng now = _controller.camera.center;
     LatLng next = LatLng(now.latitude + diff.latitude, now.longitude + diff.longitude);
-    _controller.move(next, _controller.camera.zoom);
+    if(!_interacting) { // do not move when user is moving map
+      _controller.move(next, _controller.camera.zoom);
+    }
     _previousPosition = Gps.toLatLng(Storage().position);
   }
 
@@ -119,9 +122,11 @@ class MapScreenState extends State<MapScreen> {
       onMapEvent: (mapEvent) {
         if (mapEvent is MapEventMoveStart) {
           // do something
+          _interacting = true;
         }
         if (mapEvent is MapEventMoveEnd) {
           // do something
+          _interacting = false;
         }
       },
     );

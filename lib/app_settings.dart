@@ -60,7 +60,7 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    Settings.setValue("key-instruments-v1", instruments);
+    Settings.setValue("key-instruments-v3", instruments);
   }
 
   String getInstruments() {

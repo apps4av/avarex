@@ -102,7 +102,7 @@ class GeoCalculations {
 
 
   double calculateDistance(ll1, ll2) {
-    return Constants.metersToKnots(_distance.as(LengthUnit.Meter, ll1, ll2));
+    return Constants.metersToKnots(_distance(ll1, ll2));
   }
 
   double calculateBearing(ll1, ll2) {

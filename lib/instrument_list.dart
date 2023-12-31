@@ -42,7 +42,7 @@ class InstrumentListState extends State<InstrumentList> {
         if (d != null) {
           double distance = GeoCalculations().calculateDistance(
               position, d.coordinate);
-          double bearing = GeoCalculations().calculateDistance(
+          double bearing = GeoCalculations().calculateBearing(
               position, d.coordinate);
           return (distance.round().toString(), "${bearing.round()}\u00b0");
         }
