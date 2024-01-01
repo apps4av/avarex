@@ -1,4 +1,3 @@
-import 'package:avaremp/conversions.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -53,9 +52,9 @@ class InstrumentListState extends State<InstrumentList> {
     // connect to GPS
     Storage().gpsChange.addListener(() {
       setState(() {
-        _gndSpeed = Conversions.convertSpeed(Storage().position.speed);
-        _altitude = Conversions.convertAltitude(Storage().position.altitude);
-        _track = Conversions.convertTrack(Storage().position.heading);
+        _gndSpeed = GeoCalculations.convertSpeed(Storage().position.speed);
+        _altitude = GeoCalculations.convertAltitude(Storage().position.altitude);
+        _track = GeoCalculations.convertTrack(Storage().position.heading);
         var (distance, bearing) = getDistanceBearing();
         _distance = distance;
         _bearing = bearing;

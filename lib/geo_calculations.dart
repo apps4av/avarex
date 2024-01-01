@@ -102,7 +102,7 @@ class GeoCalculations {
 
 
   double calculateDistance(ll1, ll2) {
-    return Constants.metersToKnots(_distance(ll1, ll2));
+    return Constants.nmToKnots(_distance(ll1, ll2));
   }
 
   double calculateBearing(ll1, ll2) {
@@ -112,7 +112,17 @@ class GeoCalculations {
   }
 
   LatLng calculateOffset(from, distance, heading) {
-    return _distance.offset(from, Constants.knotsToMeters(distance), heading);
+    return _distance.offset(from, Constants.nmToMeters(distance), heading);
+  }
+
+  static String convertSpeed(double gpsSpeed) {
+    return (gpsSpeed * 1.94384).round().toString();
+  }
+  static String convertAltitude(double gpsAltitude) {
+    return (gpsAltitude * 3.28084).round().toString();
+  }
+  static String convertTrack(double gpsHeading) {
+    return "${gpsHeading.round().toString()}\u00b0";
   }
 
 }

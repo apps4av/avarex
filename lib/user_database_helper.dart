@@ -101,7 +101,7 @@ class UserDatabaseHelper {
     final db = await database;
     if (db != null) {
       await db.rawQuery("delete from recent where LocationID="
-          "\"${destination.locationID}\" and Type=\"${destination.type}\"");
+          "'${destination.locationID}' and Type='${destination.type}'");
     }
   }
 }

@@ -152,6 +152,39 @@ class MapScreenState extends State<MapScreen> {
       layers.add(chartLayer);
     }
 
+    lIndex = _layers.indexOf('Circles');
+    if(_layersState[lIndex]) {
+      layers.add( // route layer
+        ValueListenableBuilder<Position>(
+          valueListenable: Storage().gpsChange,
+          builder: (context, value, _) {
+            return CircleLayer(
+              circles: [
+                // 10 nm circle
+                CircleMarker(
+                  borderStrokeWidth: 4,
+                  borderColor: const Color.fromARGB(156, 102, 0, 51),
+                  color: Colors.transparent,
+                  radius: Constants.nmToMeters(10), // 10 nm circle
+                  useRadiusInMeter: true,
+                  point: Gps.toLatLng(value),
+                ),
+                // speed marker
+                CircleMarker(
+                  borderStrokeWidth: 4,
+                  borderColor: const Color.fromARGB(156, 0, 255, 0),
+                  color: Colors.transparent,
+                  radius: value.speed / 60, // 1 minute speed
+                  useRadiusInMeter: true,
+                  point: Gps.toLatLng(value),
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+
     lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // route layer
