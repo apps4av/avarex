@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/destination.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
@@ -272,23 +273,49 @@ class _PlatePainter extends CustomPainter {
         double heading = Storage().position.heading;
         double lon = Storage().position.longitude;
         double lat = Storage().position.latitude;
+        double pixX = 0;
+        double pixY = 0;
+        Offset offsetCircle = const Offset(0, 0);
+        double angle = 0;
 
-        double dx = _matrix![0];
-        double dy = _matrix![1];
-        double lonTopLeft = _matrix![2];
-        double latTopLeft = _matrix![3];
-        double pixX = (lon - lonTopLeft) * dx;
-        double pixY = (lat - latTopLeft) * dy;
+        if(_matrix!.length == 4) {
+          double dx = _matrix![0];
+          double dy = _matrix![1];
+          double lonTopLeft = _matrix![2];
+          double latTopLeft = _matrix![3];
+          pixX = (lon - lonTopLeft) * dx;
+          pixY = (lat - latTopLeft) * dy;
+          double pixAirportX = (_airportLon - lonTopLeft) * dx;
+          double pixAirportY = (_airportLat - latTopLeft) * dy;
+          offsetCircle = Offset(pixAirportX, pixAirportY);
+          angle = 0;
+        }
+        else if(_matrix!.length == 12) {
+          double wftA = _matrix![6];
+          double wftB = _matrix![7];
+          double wftC = _matrix![8];
+          double wftD = _matrix![9];
+          double wftE = _matrix![10];
+          double wftF = _matrix![11];
 
-        double pixAirportX = (_airportLon - lonTopLeft) * dx;
-        double pixAirportY = (_airportLat - latTopLeft) * dy;
-        Offset offsetCircle = Offset(pixAirportX, pixAirportY);
+          pixX = (wftA * lon + wftC * lat + wftE) / 2;
+          pixY = (wftB * lon + wftD * lat + wftF) / 2;
+          double pixAirportX = (wftA * _airportLon + wftC * _airportLat + wftE) / 2;
+          double pixAirportY = (wftB * _airportLon + wftD * _airportLat + wftF) / 2;
+          offsetCircle = Offset(pixAirportX, pixAirportY);
+
+          double pixXn = (wftA * lon + wftC * (lat + 0.1) + wftE) / 2;
+          double pixYn = (wftB * lon + wftD * (lat + 0.1) + wftF) / 2;
+          double diffX = pixXn - pixX;
+          double diffY = pixYn - pixY;
+          angle = GeoCalculations.toDegrees(atan2(diffX, -diffY));
+        }
 
         // draw circle at center of airport of 1/16th of screen size
         canvas.drawCircle(offsetCircle, (size.height + size.width) / 32, _paintCenter);
         //draw airplane
         canvas.translate(pixX, pixY);
-        canvas.rotate(heading * pi / 180);
+        canvas.rotate((heading + angle) * pi / 180);
         // draw all based on screen width, height
         canvas.drawLine(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), _paintLine);
         canvas.drawLine(Offset(2 * (size.height + size.width) / 64, 0), Offset(-2 * (size.height + size.width) / 64, 0), _paintLine);

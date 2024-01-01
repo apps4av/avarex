@@ -18,6 +18,7 @@ import 'app_settings.dart';
 import 'db_general.dart';
 import 'destination.dart';
 import 'gps.dart';
+import 'main_database_helper.dart';
 
 class Storage {
   static final Storage _instance = Storage._internal();
@@ -120,7 +121,8 @@ class Storage {
   }
 
   Future<void> loadPlate() async {
-    String path = PathUtils.getPlatePath(dataDir, settings.getCurrentPlateAirport(), currentPlate);
+    String plateAirport = settings.getCurrentPlateAirport();
+    String path = PathUtils.getPlatePath(dataDir, plateAirport, currentPlate);
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();
     Uint8List bytes;
@@ -144,6 +146,11 @@ class Storage {
         matrixPlate!.add(double.parse(tokens[2]));
         matrixPlate!.add(double.parse(tokens[3]));
       }
+    }
+
+    // this should come from exif but it is legacy and needs to be fixed
+    if(currentPlate == "AIRPORT-DIAGRAM") {
+      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
     }
 
     ui.decodeImageFromList(bytes, (ui.Image img) {
