@@ -37,10 +37,10 @@ class MainDatabaseHelper {
     if (db != null) {
       maps = await db.rawQuery(
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where LocationID like '$match%' "
-        "UNION select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where LocationID like '$match%' "
-        "UNION select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where LocationID like '$match%' "
-        "ORDER BY LocationID ASC"
+        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%' or FacilityName like '$match%') "
+        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where  LocationID like '$match%' "
+        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where  LocationID like '$match%' "
+        "order by Type asc"
       );
     }
 
@@ -70,7 +70,7 @@ class MainDatabaseHelper {
     final db = await database;
     if (db != null) {
       maps = await db.rawQuery(
-          "select File from takeoff where LocationID = '$airport' "
+          "      select File from takeoff   where LocationID = '$airport' "
           "union select File from alternate where LocationID = '$airport'");
     }
     return List.generate(maps.length, (i) {
@@ -79,8 +79,8 @@ class MainDatabaseHelper {
   }
 
   Future<List<Destination>> findNear(LatLng point) async {
-    List<Map<String, dynamic>> maps = [];
     final db = await database;
+    List<Destination> ret = [];
     if (db != null) {
       num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
       String asDistance = "((ARPLongitude - ${point
@@ -88,12 +88,14 @@ class MainDatabaseHelper {
           .toDouble()} + (ARPLatitude - ${point
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
-      String qry = "select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance "
-          "from airports where distance < 0.001 "
-          "order by distance";
-      maps = await db.rawQuery(qry);
+      String qry =
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "order by Type asc, distance asc";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
-      return List.generate(maps.length, (i) {
+      ret = List.generate(maps.length, (i) {
         return Destination(
             locationID: maps[i]['LocationID'] as String,
             facilityName: maps[i]['FacilityName'] as String,
@@ -102,7 +104,10 @@ class MainDatabaseHelper {
         );
       });
     }
-    return([]);
+    // always add touch point of GPS, GPS is not a database type so prefix with _
+    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    ret.add(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
+    return(ret);
   }
 
   Future<AirportDestination?> findAirport(String airport) async {
@@ -121,9 +126,15 @@ class MainDatabaseHelper {
       return null;
     }
 
+    double elevation = 0;
+    try {
+      elevation = double.parse(mapsAirports[0]['ARPElevation'] as String);
+    }
+    catch(e) {}
+
     return AirportDestination(
         locationID: mapsAirports[0]['LocationID'] as String,
-        elevation: double.parse(mapsAirports[0]['ARPElevation'] as String),
+        elevation: elevation,
         facilityName: mapsAirports[0]['FacilityName'] as String,
         coordinate: LatLng(mapsAirports[0]['ARPLatitude'] as double, mapsAirports[0]['ARPLongitude'] as double),
         type: mapsAirports[0]['Type'] as String,
@@ -134,6 +145,47 @@ class MainDatabaseHelper {
         runways: mapsRunways
     );
   }
+
+  Future<NavDestination?> findNav(String nav) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from nav where LocationID = '$nav'");
+    }
+    if(maps.isEmpty) {
+      return null;
+    }
+
+    return NavDestination(
+        locationID: maps[0]['LocationID'] as String,
+        type: maps[0]['Type'] as String,
+        facilityName: maps[0]['FacilityName'] as String,
+        coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
+        elevation: double.parse(maps[0]['Elevation'] as String),
+        variation: maps[0]['Variation'] as int,
+        hiwas: maps[0]['Hiwas'] as String,
+        class_: maps[0]['Class'] as String,
+    );
+  }
+
+  Future<FixDestination?> findFix(String fix) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from fix where LocationID = '$fix'");
+    }
+    if(maps.isEmpty) {
+      return null;
+    }
+
+    return FixDestination(
+      locationID: maps[0]['LocationID'] as String,
+      type: maps[0]['Type'] as String,
+      facilityName: maps[0]['FacilityName'] as String,
+      coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
+    );
+  }
+
 }
 
 

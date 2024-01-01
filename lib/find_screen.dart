@@ -5,7 +5,6 @@ import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
-import 'airport.dart';
 import 'destination.dart';
 import 'main_database_helper.dart';
 
@@ -112,9 +111,7 @@ class FindScreenState extends State<FindScreen> {
                         },
                         onLongPress: () {
                           setState(() {
-                            if(Airport.isAirport(item.type)) {
-                              showDestination(context, item);
-                            }
+                            showDestination(context, item);
                           });
                         },
                         leading: _TypeIcons.getIcon(item.type)
@@ -136,52 +133,17 @@ class FindScreenState extends State<FindScreen> {
 class _TypeIcons {
 
   static Icon getIcon(String type) {
-    if(type == "TACAN" ||
-        type == "NDB/DME" ||
-        type == "MARINE NDB" ||
-        type == "UHF/NDB" ||
-        type == "NDB" ||
-        type == "VOR/DME" ||
-        type == "VOT" ||
-        type == "VORTAC" ||
-        type == "FAN MARKER" ||
-        type == "VOR") {
-
+    if(Destination.isNav(type)) {
       return Icon(MdiIcons.hexagonOutline);
     }
-    else if(Airport.isAirport(type)) {
+    else if(Destination.isAirport(type)) {
       return Icon(MdiIcons.airport);
     }
-    else if(
-    type == "YREP-PT" ||
-        type == "YRNAV-WP" ||
-        type == "NARTCC-BDRY" ||
-        type == "NAWY-INTXN" ||
-        type == "NTURN-PT" ||
-        type == "YWAYPOINT" ||
-        type == "YMIL-REP-PT" ||
-        type == "YCOORDN-FIX" ||
-        type == "YMIL-WAYPOINT" ||
-        type == "YNRS-WAYPOINT" ||
-        type == "YVFR-WP" ||
-        type == "YGPS-WP" ||
-        type == "YCNF" ||
-        type == "YRADAR" ||
-        type == "NDME-FIX" ||
-        type == "NNOT-ASSIGNED" ||
-        type == "NDP-TRANS-XING" ||
-        type == "NSTAR-TRANS-XIN" ||
-        type == "NBRG-INTXN") {
+    else if(Destination.isFix(type)) {
       return Icon(MdiIcons.triangleOutline);
     }
-    else if(type == "GPS") {
+    else if(Destination.isGps(type)) {
       return Icon(MdiIcons.crosshairsGps);
-    }
-    else if(type == "Maps") {
-      return Icon(MdiIcons.mapMarker);
-    }
-    else if(type == "UDW") {
-      return Icon(MdiIcons.flagTriangle);
     }
     return Icon(MdiIcons.help);
   }

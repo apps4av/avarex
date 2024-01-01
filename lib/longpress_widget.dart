@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'airport.dart';
 import 'constants.dart';
 import 'destination.dart';
+import 'nav.dart';
 
 class LongPressWidget extends StatefulWidget {
   final Destination destination;
@@ -28,23 +29,51 @@ class LongPressFuture {
 
   Destination destination;
   AirportDestination? airport;
-  Image? airportPlate;
-
-  LongPressFuture(this.destination);
+  NavDestination? nav;
+  FixDestination? fix;
+  GpsDestination? gps;
+  Destination showDestination;
+  LongPressFuture(this.destination) : showDestination =
+      Destination( // GPS default then others
+          locationID: Destination.formatSexagesimal(
+              destination.coordinate.toSexagesimal()),
+              type: Destination.typeGps,
+              facilityName: Destination.typeGps,
+              coordinate: destination.coordinate);
+  List<Widget> pages = [];
 
   // get everything from database about this destination
   Future<void> _getAll() async {
-    airport = await MainDatabaseHelper.db.findAirport(destination.locationID);
-
-    if(null != airport) {
-      // show first plate
-      List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, airport!.locationID);
-      if(plates.isNotEmpty) {
-        File ad = File(PathUtils.getPlatePath(
-            Storage().dataDir, airport!.locationID, plates[0]));
-        if (await ad.exists()) {
-          airportPlate = Image.file(ad);
+    // make airport cards
+    if(Destination.isAirport(destination.type)) {
+      airport = await MainDatabaseHelper.db.findAirport(destination.locationID);
+      if(null != airport) {
+        pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(airport!)));
+        pages.add(Airport.runwaysWidget(airport!));
+        showDestination = airport!;
+        // show first plate
+        List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, airport!.locationID);
+        if(plates.isNotEmpty) {
+          File ad = File(PathUtils.getPlatePath(
+              Storage().dataDir, airport!.locationID, plates[0]));
+          if (await ad.exists()) {
+            Image? airportPlate = Image.file(ad);
+            pages.add(Card(child:airportPlate));
+          }
         }
+      }
+    }
+    else if(Destination.isNav(destination.type)) {
+      nav = await MainDatabaseHelper.db.findNav(destination.locationID);
+      if(null != nav) {
+        showDestination = nav!;
+        pages.add(Nav.mainWidget(Nav.parse(nav!)));
+      }
+    }
+    else if(Destination.isFix(destination.type)) {
+      fix = await MainDatabaseHelper.db.findFix(destination.locationID);
+      if(null != fix) {
+        showDestination = fix!;
       }
     }
   }
@@ -75,39 +104,21 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
   Widget _makeContent(LongPressFuture? future) {
 
-
-    if(null == future || null == future.airport) {
+    if(null == future) {
       return Container();
     }
 
     // carousel
     List<Card> cards = [];
-
-    String frequencies = Airport.parseFrequencies(future.airport!);
-    if(frequencies.isNotEmpty) {
+    for (Widget page in future.pages) {
       cards.add(Card(
           child: Align(
               alignment: Alignment.topLeft,
               child: SizedBox.expand(
-                  child: Airport.frequenciesWidget(frequencies)
+                  child: page
               )
           )
-      )
-      );
-    }
-
-    cards.add(Card(
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox.expand(
-                  child: Airport.runwaysWidget(future.airport!)
-              )
-          )
-        )
-    );
-
-    if(future.airportPlate != null) {
-      cards.add(Card(child:future.airportPlate));
+      ));
     }
 
     return Container(
@@ -122,26 +133,27 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
         Column(
         children: [
-          Text("${future.airport!.facilityName}(${future.airport!.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),),
+          Text("${future.showDestination.facilityName}(${future.showDestination.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),),
           Row(children: [
             // top action buttons
             TextButton(
               child: const Text("->D", style: TextStyle(fontSize: 20)),
-              onPressed: () { // go to plate
-                UserDatabaseHelper.db.addRecent(future.airport!);
-                Storage().setDestination(future.airport);
-                if(Airport.isAirport(future.airport!.type)) {
-                  Storage().settings.setCurrentPlateAirport(future.destination.locationID);
+              onPressed: () {
+                UserDatabaseHelper.db.addRecent(future.showDestination);
+                Storage().setDestination(future.showDestination);
+                if(Destination.isAirport(future.showDestination.type)) {
+                  Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
                 }
                 MainScreenState.gotoMap();
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
+            !Destination.isAirport(future.showDestination.type) ? Container() :
             TextButton(
               child: const Text("Plates"),
               onPressed: () { // go to plate
-                if(Airport.isAirport(future.airport!.type)) {
-                  Storage().settings.setCurrentPlateAirport(future.destination.locationID);
+                if(Destination.isAirport(future.showDestination.type)) {
+                  Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
                 }
                 MainScreenState.gotoPlate();
                 Navigator.of(context).pop(); // hide bottom sheet

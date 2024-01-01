@@ -7,15 +7,6 @@ import 'constants.dart';
 
 class Airport {
 
-  static bool isAirport(String type) {
-    return type == "AIRPORT" ||
-        type == "SEAPLANE BAS" ||
-        type == "HELIPORT" ||
-        type == "ULTRALIGHT" ||
-        type == "GLIDERPORT" ||
-        type == "BALLOONPORT";
-  }
-
   static String parseFrequencies(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
@@ -59,7 +50,7 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "${airport.coordinate.toSexagesimal()}\n";
+    String ret = "${Destination.formatSexagesimal(airport.coordinate.toSexagesimal())}\n";
     ret += "Elevation ${airport.elevation.round().toString()}\n\n";
 
     if(tower.isNotEmpty) {

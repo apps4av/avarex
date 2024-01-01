@@ -13,7 +13,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path/path.dart';
 
-import 'airport.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
@@ -56,13 +55,8 @@ class MapScreenState extends State<MapScreen> {
   void _handlePress(TapPosition tapPosition, LatLng point) async {
 
     List<Destination> items = await MainDatabaseHelper.db.findNear(point);
-    if(items.isEmpty) {
-      return;
-    }
     setState(() {
-      if(Airport.isAirport(items[0].type)) {
-        showDestination(this.context, items[0]);
-      }
+      showDestination(this.context, items[0]);
     });
   }
 
@@ -361,7 +355,7 @@ class MapScreenState extends State<MapScreen> {
                                                 ListTile(
                                                   dense: true,
                                                   title: Text(_layers[index]),
-                                                  subtitle: _layersState[index] ? Text("Layer is On") : Text("Layer is Off"),
+                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
                                                   leading: Switch(
                                                     value: _layersState[index],
                                                     onChanged: (bool value) {
