@@ -17,6 +17,38 @@ class Destination {
   });
 }
 
+class NavDestination extends Destination {
+  NavDestination({
+  required super.locationID,
+  required super.type,
+  required super.facilityName,
+  required super.coordinate,});
+}
+
+class FixDestination extends Destination {
+  FixDestination({
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,});
+}
+
+class GpsDestination extends Destination {
+  GpsDestination({
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,});
+}
+
+class NonFaaDestination extends Destination {
+  NonFaaDestination({
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,});
+}
+
 class AirportDestination extends Destination {
 
   final double elevation;

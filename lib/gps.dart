@@ -18,13 +18,19 @@ class Gps {
     return(position);
   }
 
-  Future<LocationPermission> checkPermissions() async {
+
+  Future<void> requestPermissions() async {
+    final GeolocatorPlatform platform = GeolocatorPlatform.instance;
+    await platform.requestPermission();
+  }
+
+
+  Future<bool> checkPermissions() async {
     final GeolocatorPlatform platform = GeolocatorPlatform.instance;
     LocationPermission permission = await platform.checkPermission();
-    if(permission != LocationPermission.always) {
-      permission = await platform.requestPermission();
-    }
-    return permission;
+    return (LocationPermission.denied == permission ||
+        LocationPermission.deniedForever == permission ||
+        LocationPermission.unableToDetermine == permission);
   }
 
   Future<bool> checkEnabled() async {

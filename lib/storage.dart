@@ -92,17 +92,18 @@ class Storage {
     await FlutterMapTileCaching.initialise();
     await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
 
+    gpsNotPermitted = await Gps().checkPermissions();
+    if(!gpsNotPermitted) {
+      Gps().requestPermissions();
+    }
+
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
       timeChange.value++;
 
       if(timeChange.value % 5 == 0) {
         // check system for any issues
-        LocationPermission permission = await Gps().checkPermissions();
-        gpsNotPermitted = (LocationPermission.denied == permission ||
-            LocationPermission.deniedForever == permission ||
-            LocationPermission.unableToDetermine == permission);
-
+        gpsNotPermitted = await Gps().checkPermissions();
         gpsDisabled = !(await Gps().checkEnabled());
         warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
       }
