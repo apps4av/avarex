@@ -1,11 +1,35 @@
 import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination.dart';
 import 'package:flutter/material.dart';
 
 import 'constants.dart';
 
 class Airport {
+
+  static String parseRunways(AirportDestination airport) {
+
+    String info = "";
+    List<Map<String, dynamic>> runways = airport.runways;
+
+    for(Map<String, dynamic> r in runways) {
+
+      try {
+
+        if(r['Length'] == "0") { // odd stuff like 0 length runways
+          continue;
+        }
+        info += "${r['LEIdent']}/${r['HEIdent']} ${r['Length']}x${r['Width']} ${r['Surface']}\n";
+        info += "    ${r['LEIdent']} ${r['LEPattern'] == 'Y' ? '*R' : ''} ${r['LELights']} ${r['LEILS']} ${r['LEVGSI']}\n";
+        info += "    ${r['HEIdent']} ${r['HEPattern'] == 'Y' ? '*R' : ''} ${r['HELights']} ${r['HEILS']} ${r['HEVGSI']}\n";
+
+      }
+      catch(e) {}
+    }
+
+    return(info);
+  }
 
   static String parseFrequencies(AirportDestination airport) {
 
@@ -51,7 +75,7 @@ class Airport {
     }
 
     String ret = "${Destination.formatSexagesimal(airport.coordinate.toSexagesimal())}\n";
-    ret += "Elevation ${airport.elevation.round().toString()}\n\n";
+    ret += "Elevation ${airport.elevation.round().toString()}\n";
 
     if(tower.isNotEmpty) {
       ret += "Tower\n    ";
@@ -85,40 +109,27 @@ class Airport {
     return ret;
   }
 
-  static Widget runwaysWidget(AirportDestination airport) {
-    return CustomPaint(painter : RunwayPainter(airport));
+  static Widget runwaysWidget(AirportDestination airport, double width, double height) {
+    String info = parseRunways(airport);
+    if(height > width) {
+      return Column(children:[
+        Expanded(flex: 1, child: AutoSizeText(info, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible)),
+        Expanded(flex: 2, child: CustomPaint(size: const Size(double.infinity, double.infinity), painter: RunwayPainter(airport))),
+      ]);
+    }
+    else {
+      return Row(children:[
+        Expanded(flex: 1, child: AutoSizeText(info, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible)),
+        Expanded(flex: 2, child: CustomPaint(size: const Size(double.infinity, double.infinity), painter: RunwayPainter(airport))),
+      ]);
+
+    }
   }
 
   static Widget frequenciesWidget(String frequencies) {
-    return CustomPaint(painter : FrequencyPainter(frequencies));
+    return AutoSizeText(frequencies, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible);
   }
 
-}
-
-class FrequencyPainter extends CustomPainter {
-
-  String frequencies;
-
-  FrequencyPainter(this.frequencies);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    double scale = size.width > size.height ? size.height : size.width;
-
-    TextSpan span = TextSpan(
-        style: TextStyle(color: Colors.white, fontSize: scale / 30),
-        text: frequencies);
-    TextPainter tp = TextPainter(text: span,
-        textAlign: TextAlign.left,
-        textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, const Offset(0, 0));
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
-  }
 }
 
 class RunwayPainter extends CustomPainter {
@@ -131,7 +142,7 @@ class RunwayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
 
     List<Map<String, dynamic>> runways = airport.runways;
-    String info = "";
+
     double scale = size.width > size.height ? size.height : size.width;
 
     double maxLat = -180;
@@ -162,29 +173,6 @@ class RunwayPainter extends CustomPainter {
 
     for(Map<String, dynamic> r in runways) {
 
-      try {
-
-        if(r['Length'] == "0") { // odd stuff like 0 length runways
-          continue;
-        }
-        info += "${r['LEIdent']}/${r['HEIdent']} ${r['Length']}x${r['Width']} ${r['Surface']}\n";
-        info += "    ${r['LEIdent']} ${r['LEPattern'] == 'Y' ? '*R' : ''} ${r['LELights']} ${r['LEILS']} ${r['LEVGSI']}\n";
-        info += "    ${r['HEIdent']} ${r['HEPattern'] == 'Y' ? '*R' : ''} ${r['HELights']} ${r['HEILS']} ${r['HEVGSI']}\n";
-
-      }
-      catch(e) {}
-    }
-
-    TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: info);
-    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, const Offset(0, 0));
-
-    double offsetX = size.width > size.height ? tp.size.width : 0;
-    double offsetY = size.height > size.width ? tp.size.height : 0;
-
-    for(Map<String, dynamic> r in runways) {
-
       double width = 0; // draw runways to width
       try {
         String w = r['Width'];
@@ -193,8 +181,7 @@ class RunwayPainter extends CustomPainter {
       catch (e) {
         width = 50;
       }
-      width = width / 20;
-
+      width = width / 30;
 
       try {
         double leLat = double.parse(r['LELatitude']);
@@ -226,6 +213,9 @@ class RunwayPainter extends CustomPainter {
           ..strokeWidth = width
           ..color = Constants.runwayColor; // runway color
 
+        double offsetX = 0;
+        double offsetY = 0;
+
         canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
         TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: "${r['LEIdent']}");
@@ -236,7 +226,6 @@ class RunwayPainter extends CustomPainter {
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(hx + offsetX, hy + offsetY));
-
       }
       catch(e) {}
     }

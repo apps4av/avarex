@@ -13,9 +13,6 @@ class PlanScreen extends StatefulWidget {
 
 }
 
-
-
-
 class PlanScreenState extends State<PlanScreen> {
 
   Widget makeWaypoint(List<Destination> items, int index) {
@@ -38,26 +35,31 @@ class PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) {
     final PlanRoute? route = Storage().route;
-    if(null == route) {
-      return Container();
+
+    Destination? origin;
+    List<Destination>? waypoints;
+    Destination? destination;
+
+    if(null != route) {
+      origin = route.origin;
+      waypoints = route.waypoints;
+      destination = route.destination;
     }
-    Destination? origin = route.origin;
-    List<Destination>? waypoints = route.route;
-    Destination? destination = route.destination;
+
     double? height = Constants.appbarMaxSize(context);
     double? bottom = Constants.bottomPaddingSize(context);
-
 
     // user can rearrange widgets
     return Container(padding: EdgeInsets.fromLTRB(5, height!, 5, bottom),
         child:Column(
           children:[
-            Expanded(flex: 1, child: Divider()),
-            Expanded(flex: 10, child:ListTile(leading: Icon(MdiIcons.rayStartArrow), subtitle: Text(origin!.facilityName), title: Text(origin.locationID))),
-            Expanded(flex: 1, child: Divider()),
+            const Expanded(flex: 1, child: Divider()),
+            Expanded(flex: 10,
+                child: origin == null ? Container() : ListTile(leading: Icon(MdiIcons.rayStartArrow), subtitle: Text(origin.facilityName), title: Text(origin.locationID))),
+            const Expanded(flex: 1, child: Divider()),
 
             Expanded(flex: 60,
-                child:ReorderableListView(
+                child: waypoints == null ? Container() : ReorderableListView(
                 scrollDirection: Axis.vertical,
                 buildDefaultDragHandles: false,
                 children: <Widget>[
@@ -68,15 +70,16 @@ class PlanScreenState extends State<PlanScreen> {
                     newIndex -= 1;
                   }
                   final Destination item = waypoints!.removeAt(oldIndex);
-                  waypoints.insert(newIndex, item);
+                  waypoints!.insert(newIndex, item);
                   });
                 }
               )
             ),
 
-            Expanded(flex: 1, child: Divider()),
-            Expanded(flex: 10, child: ListTile(leading: Icon(Icons.pin_end), subtitle: Text(destination!.facilityName), title: Text(destination.locationID))),
-            Expanded(flex: 1, child: Divider()),
+            const Expanded(flex: 1, child: Divider()),
+            Expanded(flex: 10,
+                child: destination == null ? Container() : ListTile(leading: Icon(Icons.pin_end), subtitle: Text(destination.facilityName), title: Text(destination.locationID))),
+            const Expanded(flex: 1, child: Divider()),
     ]));
 
   }

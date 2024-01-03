@@ -17,9 +17,8 @@ class LongPressWidget extends StatefulWidget {
   final Destination destination;
 
   // it crashes if not static
-  final CarouselController controller = CarouselController();
 
-  LongPressWidget({super.key, required this.destination});
+  const LongPressWidget({super.key, required this.destination});
 
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
@@ -33,7 +32,9 @@ class LongPressFuture {
   FixDestination? fix;
   GpsDestination? gps;
   Destination showDestination;
-  LongPressFuture(this.destination) : showDestination =
+  double width;
+  double height;
+  LongPressFuture(this.destination, this.width, this.height) : showDestination =
       Destination( // GPS default then others
           locationID: Destination.formatSexagesimal(
               destination.coordinate.toSexagesimal()),
@@ -49,7 +50,7 @@ class LongPressFuture {
       airport = await MainDatabaseHelper.db.findAirport(destination.locationID);
       if(null != airport) {
         pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(airport!)));
-        pages.add(Airport.runwaysWidget(airport!));
+        pages.add(Airport.runwaysWidget(airport!, width, height));
         showDestination = airport!;
         // show first plate
         List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, airport!.locationID);
@@ -89,8 +90,9 @@ class LongPressWidgetState extends State<LongPressWidget> {
   @override
   Widget build(BuildContext context) {
 
+
     return FutureBuilder(
-        future: LongPressFuture(widget.destination).getAll(),
+        future: LongPressFuture(widget.destination, Constants.screenWidth(context), Constants.screenHeight(context)).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -130,11 +132,10 @@ class LongPressWidgetState extends State<LongPressWidget> {
         ),
       ),
       child: Stack(children:[
-
         Column(
         children: [
           Text("${future.showDestination.facilityName}(${future.showDestination.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),),
-          Row(children: [
+          Expanded(flex: 1, child: Row(children: [
             // top action buttons
             TextButton(
               child: const Text("->D", style: TextStyle(fontSize: 20)),
@@ -159,10 +160,9 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
-          ]),
+          ])),
           // various info
-          CarouselSlider(
-            carouselController: widget.controller,
+          Expanded(flex: 10, child: CarouselSlider(
             items: cards,
             options: CarouselOptions(
               viewportFraction: 1,
@@ -171,19 +171,9 @@ class LongPressWidgetState extends State<LongPressWidget> {
               enlargeCenterPage: true,
               aspectRatio: Constants.carouselAspectRatio(context),
             ),
-          ),
+          )),
         ],
         ),
-        Align(alignment: Alignment.bottomRight, child:
-        TextButton(
-          child: const Text("Next"), // Go Through pages of carousel
-          onPressed: () => widget.controller.nextPage()
-        )),
-        Align(alignment: Alignment.bottomLeft, child:
-        TextButton(
-            child: const Text("Last"), // Go Through pages of carousel
-            onPressed: () => widget.controller.previousPage()
-        )),
       ],
     ));
   }

@@ -10,7 +10,7 @@ class PlanRoute {
 
   // all segments
   Destination? _origin;
-  List<Destination>? _route;
+  List<Destination>? _waypoints;
   Destination? _destination;
 
   List<LatLng>? _points;
@@ -24,7 +24,7 @@ class PlanRoute {
     List<Destination> complete = [];
 
     complete.add(_origin!);
-    _route != null ? complete.addAll(_route!) : {};
+    _waypoints != null ? complete.addAll(_waypoints!) : {};
     complete.add(_destination!);
 
     GeoCalculations calc = GeoCalculations();
@@ -50,8 +50,8 @@ class PlanRoute {
 
 
   void addWaypoint(Destination waypoint) {
-    _route = _route ?? [];
-    _route!.add(waypoint);
+    _waypoints = _waypoints ?? [];
+    _waypoints!.add(waypoint);
   }
 
   List<LatLng>? getPath() {
@@ -64,11 +64,11 @@ class PlanRoute {
       // never return origin
     }
     // if no route then destination
-    if(_route == null || _route!.isEmpty) {
+    if(_waypoints == null || _waypoints!.isEmpty) {
       return(_destination);
     }
     // otherwise route
-    return _route![_next];
+    return _waypoints![_next];
 
   }
 
@@ -86,6 +86,6 @@ class PlanRoute {
   }
 
   Destination? get origin => _origin; // complete route of all segments
-  List<Destination>? get route => _route;
+  List<Destination>? get waypoints => _waypoints;
   Destination? get destination => _destination;
 }
