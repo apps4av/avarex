@@ -63,9 +63,13 @@ class Storage {
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
 
   setDestination(Destination? destination) {
-    route = PlanRoute(Gps.toLatLng(position));
-    destination != null ? route!.addWaypoint(destination) : {};
-    routeChange.value = route;
+    if(destination != null) {
+      PlanRoute r = PlanRoute();
+      r.setDestination(destination);
+      r.setOrigin(Destination.dummy(Gps.toLatLng(position)));
+      route = r;
+      routeChange.value = r;
+    }
   }
 
   Future<void> init() async {

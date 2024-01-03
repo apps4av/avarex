@@ -70,6 +70,10 @@ class Destination {
   static bool isGps(String type) {
     return type == "GPS";
   }
+
+  static Destination dummy(LatLng coordinate) {
+    return Destination(locationID: "", type: "", facilityName: "", coordinate: coordinate);
+  }
 }
 
 class NavDestination extends Destination {

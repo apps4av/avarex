@@ -30,6 +30,11 @@ class InstrumentListState extends State<InstrumentList> {
   int _countUp = 0;
   bool _doCountUp = false;
 
+  String truncate(String value) {
+    int maxLength = 5;
+    return value.length > maxLength ? value.substring(0, maxLength) : value;
+  }
+
   InstrumentListState() {
 
     (String, String) getDistanceBearing() {
@@ -52,12 +57,12 @@ class InstrumentListState extends State<InstrumentList> {
     // connect to GPS
     Storage().gpsChange.addListener(() {
       setState(() {
-        _gndSpeed = GeoCalculations.convertSpeed(Storage().position.speed);
-        _altitude = GeoCalculations.convertAltitude(Storage().position.altitude);
-        _track = GeoCalculations.convertTrack(Storage().position.heading);
+        _gndSpeed = truncate(GeoCalculations.convertSpeed(Storage().position.speed));
+        _altitude = truncate(GeoCalculations.convertAltitude(Storage().position.altitude));
+        _track = truncate(GeoCalculations.convertTrack(Storage().position.heading));
         var (distance, bearing) = getDistanceBearing();
-        _distance = distance;
-        _bearing = bearing;
+        _distance = truncate(distance);
+        _bearing = truncate(bearing);
       });
     });
 
@@ -68,10 +73,10 @@ class InstrumentListState extends State<InstrumentList> {
 
         if (route != null) {
           Destination? d = route.getNextWaypoint();
-          _destination = d != null ? d.locationID : "";
+          _destination = truncate(d != null ? d.locationID : "");
           var (distance, bearing) = getDistanceBearing();
-          _distance = distance;
-          _bearing = bearing;
+          _distance = truncate(distance);
+          _bearing = truncate(bearing);
         }
       });
     });
@@ -81,9 +86,9 @@ class InstrumentListState extends State<InstrumentList> {
       setState(() {
         _countUp = _doCountUp ? _countUp + 1 : _countUp;
         Duration d = Duration(seconds: _countUp);
-        _timerUp = d.toString().substring(2, 7);
+        _timerUp = truncate(d.toString().substring(2, 7));
         DateFormat formatter = DateFormat('HH:mm');
-        _utc =   formatter.format(DateTime.now().toUtc());
+        _utc = truncate(formatter.format(DateTime.now().toUtc()));
       });
     });
   }
@@ -94,7 +99,7 @@ class InstrumentListState extends State<InstrumentList> {
     _countUp = 0;
     Duration d = Duration(seconds: _countUp);
     setState(() {
-      _timerUp = d.toString().substring(2, 7);
+      _timerUp = truncate(d.toString().substring(2, 7));
     });
   }
 
@@ -142,10 +147,13 @@ class InstrumentListState extends State<InstrumentList> {
     return SizedBox(
         key: Key(index.toString()),
         width: width,
-        child:ListTile(
-          onTap: cb,
-          title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
-          subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
+        child:ReorderableDragStartListener(
+          index: index,
+          child:ListTile(
+            onTap: cb,
+            title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
+            subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
+            )
           )
         )
     );
@@ -156,6 +164,7 @@ class InstrumentListState extends State<InstrumentList> {
 
     // user can rearrange widgets
     return ReorderableListView(
+      buildDefaultDragHandles: false,
       scrollDirection: Axis.horizontal,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)

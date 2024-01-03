@@ -1,4 +1,5 @@
 
+import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +19,8 @@ class MainScreenState extends State<MainScreen> {
 
   static const tabLocationMap = 0;
   static const tabLocationPlates = 1;
-  static const tabLocationFind = 2;
+  static const tabLocationPlan = 2;
+  static const tabLocationFind = 3;
 
   int _selectedIndex = tabLocationMap; // for various tab screens
 
@@ -28,6 +30,7 @@ class MainScreenState extends State<MainScreen> {
   MainScreenState() {
     _widgetOptions.insert(tabLocationMap, const MapScreen());
     _widgetOptions.insert(tabLocationPlates, const PlateScreen());
+    _widgetOptions.insert(tabLocationPlan, const PlanScreen());
     _widgetOptions.insert(tabLocationFind, FindScreen());
   }
 
@@ -127,6 +130,10 @@ class MainScreenState extends State<MainScreen> {
               BottomNavigationBarItem(
                 icon: Icon(Icons.book),
                 label: 'PLATE',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.route),
+                label: 'PLAN',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.search),

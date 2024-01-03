@@ -199,7 +199,7 @@ class MapScreenState extends State<MapScreen> {
                   borderColor: Colors.black,
                   strokeWidth: 4,
                   strokeCap: StrokeCap.round,
-                  points: value == null ? [] : value.getRoute(),
+                  points: value == null ? [] : value.getPath() ?? [],
                   color: Colors.purpleAccent,
                 ),
               ],
@@ -212,18 +212,14 @@ class MapScreenState extends State<MapScreen> {
         ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
-            // this leg
-            PlanRoute thisRoute = PlanRoute(
-                LatLng(value.latitude, value.longitude));
-            Storage().route != null &&
-                Storage().route!.getNextWaypoint() != null ? thisRoute
-                .addWaypoint(Storage().route!.getNextWaypoint()!) : {};
+            // this place
+            PlanRoute here = PlanRoute.makeFromLocation(value, Storage().route);
             return PolylineLayer(
               polylines: [
                 Polyline(
                   isDotted: true,
                   strokeWidth: 4,
-                  points: thisRoute.getRoute(),
+                  points: here.getPath() ?? [],
                   color: Colors.black,
                 ),
               ],
