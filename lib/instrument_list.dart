@@ -164,7 +164,6 @@ class InstrumentListState extends State<InstrumentList> {
 
     // user can rearrange widgets
     return ReorderableListView(
-      buildDefaultDragHandles: false,
       scrollDirection: Axis.horizontal,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)
