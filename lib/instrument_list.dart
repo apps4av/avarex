@@ -145,15 +145,12 @@ class InstrumentListState extends State<InstrumentList> {
     }
 
     return SizedBox(
-        key: Key(index.toString()),
-        width: width,
-        child:ReorderableDragStartListener(
-          index: index,
-          child:ListTile(
-            onTap: cb,
-            title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
-            subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
-            )
+      key: Key(index.toString()),
+      width: width,
+        child:ListTile(
+          onTap: cb,
+          title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
+          subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
           )
         )
     );
