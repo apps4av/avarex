@@ -1,4 +1,5 @@
 
+import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,6 +15,23 @@ class PlanRoute {
   Destination? _next;
   final change = ValueNotifier<int>(0);
 
+  void _airwayAdjust(AirwayDestination d) {
+
+    // adjust airways, nothing to do when airway is not in the middle of points
+    int index = _waypoints.indexOf(d);
+    // need a start and end
+    d.adjustedPoints = [];
+    if(index == 0 || index == _waypoints.length - 1) {
+      return;
+    }
+
+    // replace the airway with the new airway with the right points
+    List<Destination> points = Airway.find(_waypoints[index - 1], d, _waypoints[index + 1]);
+    if(points.isNotEmpty) {
+      d.adjustedPoints = points;
+    }
+  }
+
   void _update() {
 
     if(_waypoints.isNotEmpty) {
@@ -25,12 +43,26 @@ class PlanRoute {
       return;
     }
 
+    // find path
+    List<Destination> path = [];
+    for(int index = 0; index < _waypoints.length; index++) {
+      Destination d = _waypoints[index];
+      if(d is AirwayDestination) {
+        _airwayAdjust(d); // add all V ways
+        path.addAll(d.adjustedPoints);
+      }
+      else {
+        path.add(d);
+      }
+
+    }
+
     GeoCalculations calc = GeoCalculations();
     //2 at a time
     _points = [];
-    for(int index = 0; index < _waypoints.length - 1; index++) {
-      LatLng d1 = _waypoints[index].coordinate;
-      LatLng d2 = _waypoints[index + 1].coordinate;
+    for(int index = 0; index < path.length - 1; index++) {
+      LatLng d1 = path[index].coordinate;
+      LatLng d2 = path[index + 1].coordinate;
       List<LatLng> routeIntermediate = calc.findPoints(d1, d2);
       _points.addAll(routeIntermediate);
     }
@@ -44,9 +76,9 @@ class PlanRoute {
     return(d);
   }
 
-  void insertDirectTo(Destination waypoint) {
-    _waypoints.insert(0, waypoint);
-    _next = _waypoints[0]; // go here
+  void addDirectTo(Destination waypoint) {
+    addWaypoint(waypoint);
+    _next = _waypoints[_waypoints.indexOf(waypoint)]; // go here
     _update();
     change.value++;
   }

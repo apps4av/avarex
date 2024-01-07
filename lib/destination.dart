@@ -24,6 +24,11 @@ class Destination {
   }
 
   static const String typeGps = "GPS";
+  static const String typeAirway = "Airway";
+
+  static bool isAirway(String type) {
+    return type == typeAirway;
+  }
 
   static bool isNav(String type) {
     return type == "TACAN" ||
@@ -145,21 +150,41 @@ class AirportDestination extends Destination {
   });
 }
 
+class AirwayDestination extends Destination {
+
+  List<Destination> points; // this has many waypoints
+  List<Destination> adjustedPoints = []; // when this fits into a plan
+
+  AirwayDestination({
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,
+    required this.points
+  });
+}
+
+
 class TypeIcons {
 
-  static Widget getIcon(String type) {
+  static Widget getIcon(String type, Color? color) {
+    color = color ?? Colors.white;
     if(Destination.isNav(type)) {
-      return Transform.rotate(angle: 90 * pi / 180, child: Icon(MdiIcons.hexagonOutline)); // hexagon rotated looks like a vor
+      return Transform.rotate(angle: 90 * pi / 180, child: Icon(MdiIcons.hexagonOutline, color: color,)); // hexagon rotated looks like a vor
     }
     else if(Destination.isAirport(type)) {
-      return Icon(MdiIcons.airport);
+      return Icon(MdiIcons.airport, color: color);
     }
     else if(Destination.isFix(type)) {
-      return Icon(MdiIcons.triangleOutline);
+      return Icon(MdiIcons.triangleOutline, color: color);
     }
     else if(Destination.isGps(type)) {
-      return Icon(MdiIcons.crosshairsGps);
+      return Icon(MdiIcons.crosshairsGps, color: color);
     }
-    return Icon(MdiIcons.help);
+    else if(Destination.isAirway(type)) {
+      return Icon(MdiIcons.rayStartVertexEnd, color: color);
+    }
+    return Icon(MdiIcons.help, color: color);
   }
+
 }

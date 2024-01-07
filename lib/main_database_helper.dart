@@ -33,18 +33,23 @@ class MainDatabaseHelper {
 
   Future<List<Destination>> findDestinations(String match) async {
     List<Map<String, dynamic>> maps = [];
+    List<Map<String, dynamic>> mapsAirways = [];
     final db = await database;
     if (db != null) {
       maps = await db.rawQuery(
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%' or FacilityName like '$match%') "
-        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where  LocationID like '$match%' "
-        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where  LocationID like '$match%' "
+        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
+        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
+        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
         "order by Type asc"
+      );
+      mapsAirways = await db.rawQuery(
+        "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
+        "order by cast(sequence as integer) asc"
       );
     }
 
-    return List.generate(maps.length, (i) {
+    List<Destination> ret = List.generate(maps.length, (i) {
       return Destination(
           locationID: maps[i]['LocationID'] as String,
           facilityName: maps[i]['FacilityName'] as String,
@@ -52,6 +57,27 @@ class MainDatabaseHelper {
           coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
       );
     });
+
+    List<Destination> ret2 = List.generate(mapsAirways.length, (i) {
+      return Destination(
+        locationID: mapsAirways[i]['name'] as String,
+        facilityName: mapsAirways[i]['name'] as String,
+        type: Destination.typeAirway,
+        coordinate: LatLng(mapsAirways[i]['Latitude'] as double, mapsAirways[i]['Longitude'] as double),
+      );
+    });
+
+    if(ret2.isNotEmpty) { // add airway, only 1 due to above select
+      AirwayDestination airwayDestination = AirwayDestination(
+          locationID: ret2[0].locationID,
+          type: ret2[0].type,
+          facilityName: ret2[0].facilityName,
+          coordinate: ret2[0].coordinate,
+          points: ret2);
+      ret.add(airwayDestination);
+    }
+
+    return ret;
   }
 
   Future<List<String>> findCsup(String airport) async {

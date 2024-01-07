@@ -46,6 +46,12 @@ class MainScreenState extends State<MainScreen> {
     navigationBar.onTap!(tabLocationPlates); // go to plate screen
   }
 
+  static void gotoPlan() {
+    final BottomNavigationBar navigationBar = Storage()
+        .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
+    navigationBar.onTap!(tabLocationPlan); // go to plate screen
+  }
+
   static void gotoMap() {
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;

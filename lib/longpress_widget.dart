@@ -31,6 +31,7 @@ class LongPressFuture {
   NavDestination? nav;
   FixDestination? fix;
   GpsDestination? gps;
+  AirwayDestination? airway;
   Destination showDestination;
   double width;
   double height;
@@ -76,6 +77,9 @@ class LongPressFuture {
       if(null != fix) {
         showDestination = fix!;
       }
+    }
+    else if(Destination.isAirway(destination.type)) {
+      showDestination = destination;
     }
   }
 
@@ -152,7 +156,9 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("+Plan"),
               onPressed: () {
+                UserDatabaseHelper.db.addRecent(future.showDestination);
                 Storage().route.addWaypoint(future.showDestination);
+                MainScreenState.gotoPlan();
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),

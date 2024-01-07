@@ -69,7 +69,7 @@ class Storage {
 
   setDestination(Destination? destination) {
     if(destination != null) {
-      route.insertDirectTo(destination);
+      route.addDirectTo(destination);
     }
   }
 
