@@ -94,7 +94,7 @@ class MapScreenState extends State<MapScreen> {
       LatLng next = LatLng(
           now.latitude + diff.latitude, now.longitude + diff.longitude);
       if (!_interacting) { // do not move when user is moving map
-        _controller!.move(next, _controller!.camera.zoom);
+        _controller!.moveAndRotate(next, _controller!.camera.zoom, _northUp ? 0 : -Storage().position.heading);
       }
     }
 
@@ -154,7 +154,7 @@ class MapScreenState extends State<MapScreen> {
 
     lIndex = _layers.indexOf('Circles');
     if(_layersState[lIndex]) {
-      layers.add( // route layer
+      layers.add( // circle layer
         ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
@@ -163,18 +163,18 @@ class MapScreenState extends State<MapScreen> {
                 // 10 nm circle
                 CircleMarker(
                   borderStrokeWidth: 4,
-                  borderColor: const Color.fromARGB(156, 102, 0, 51),
+                  borderColor: Constants.distanceCircleColor,
                   color: Colors.transparent,
-                  radius: Constants.nmToMeters(10), // 10 nm circle
+                  radius: Constants.nmToM(10), // 10 nm circle
                   useRadiusInMeter: true,
                   point: Gps.toLatLng(value),
                 ),
                 // speed marker
                 CircleMarker(
                   borderStrokeWidth: 4,
-                  borderColor: const Color.fromARGB(156, 0, 255, 0),
+                  borderColor: Constants.speedCircleColor,
                   color: Colors.transparent,
-                  radius: value.speed / 60, // 1 minute speed
+                  radius: value.speed * 60, // 1 minute speed
                   useRadiusInMeter: true,
                   point: Gps.toLatLng(value),
                 ),
@@ -188,19 +188,19 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // route layer
-        ValueListenableBuilder<PlanRoute?>(
-          valueListenable: Storage().routeChange,
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().route.change,
           builder: (context, value, _) {
             return PolylineLayer(
               polylines: [
                 // route
                 Polyline(
                   borderStrokeWidth: 2,
-                  borderColor: Colors.black,
+                  borderColor: Constants.planBorderColor,
                   strokeWidth: 4,
                   strokeCap: StrokeCap.round,
-                  points: value == null ? [] : value.getPath() ?? [],
-                  color: Colors.purpleAccent,
+                  points: Storage().route.getPath(),
+                  color: Constants.planActiveColor,
                 ),
               ],
             );
@@ -213,14 +213,15 @@ class MapScreenState extends State<MapScreen> {
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             // this place
-            PlanRoute here = PlanRoute.makeFromLocation(value, Storage().route);
+            PlanRoute here = Storage().route;
+            List<LatLng> path = here.getPathFromLocation(value);
             return PolylineLayer(
               polylines: [
                 Polyline(
                   isDotted: true,
                   strokeWidth: 4,
-                  points: here.getPath() ?? [],
-                  color: Colors.black,
+                  points: path,
+                  color: Constants.trackColor,
                 ),
               ],
             );
@@ -444,7 +445,7 @@ class Plane extends CustomPainter {
     ..style = PaintingStyle.fill
     ..strokeWidth = 6
     ..strokeCap = StrokeCap.square
-    ..color = const Color.fromARGB(255, 255, 0, 0);
+    ..color = Constants.planeColor;
 
   @override
   void paint(Canvas canvas, Size size) {

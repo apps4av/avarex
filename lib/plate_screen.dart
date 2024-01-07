@@ -229,11 +229,11 @@ class _PlatePainter extends CustomPainter {
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
     ..strokeWidth = 10
-    ..color = const Color.fromARGB(100, 0, 255, 0);
+    ..color = Constants.plateMarkColor;
 
   final _paintLine = Paint()
     ..strokeWidth = 10
-    ..color = const Color.fromARGB(127, 255, 0, 0);
+    ..color = Constants.planeColor;
 
   _PlatePainter({
     required ValueNotifier repaint,

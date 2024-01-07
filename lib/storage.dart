@@ -34,11 +34,10 @@ class Storage {
   // when plate changes
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
-  final routeChange = ValueNotifier<PlanRoute?>(null);
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
 
-  PlanRoute? route;
+  PlanRoute route = PlanRoute();
 
   // gps
   final _gps = Gps();
@@ -47,6 +46,12 @@ class Storage {
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
 
+
+  int _key = 1111;
+
+  String getKey() {
+    return (_key++).toString();
+  }
 
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
@@ -64,11 +69,7 @@ class Storage {
 
   setDestination(Destination? destination) {
     if(destination != null) {
-      PlanRoute r = PlanRoute();
-      r.setDestination(destination);
-      r.setOrigin(Destination.dummy(Gps.toLatLng(position)));
-      route = r;
-      routeChange.value = r;
+      route.insertDirectTo(destination);
     }
   }
 

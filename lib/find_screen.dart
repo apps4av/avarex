@@ -3,7 +3,6 @@ import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'destination.dart';
 import 'main_database_helper.dart';
@@ -89,7 +88,7 @@ class FindScreenState extends State<FindScreen> {
                     final item = items[index];
                     return Dismissible( // able to delete with swipe
                       background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
-                      key: Key(item.facilityName),
+                      key: Key(Storage().getKey()),
                       direction: DismissDirection.endToStart,
                       onDismissed:(direction) async {
                         // Remove the item from the data source.
@@ -114,7 +113,7 @@ class FindScreenState extends State<FindScreen> {
                             showDestination(context, item);
                           });
                         },
-                        leading: _TypeIcons.getIcon(item.type)
+                        leading: TypeIcons.getIcon(item.type)
                       ),
                     );
                   },
@@ -127,25 +126,6 @@ class FindScreenState extends State<FindScreen> {
         ]
         )
       );
-  }
-}
-
-class _TypeIcons {
-
-  static Icon getIcon(String type) {
-    if(Destination.isNav(type)) {
-      return Icon(MdiIcons.hexagonOutline);
-    }
-    else if(Destination.isAirport(type)) {
-      return Icon(MdiIcons.airport);
-    }
-    else if(Destination.isFix(type)) {
-      return Icon(MdiIcons.triangleOutline);
-    }
-    else if(Destination.isGps(type)) {
-      return Icon(MdiIcons.crosshairsGps);
-    }
-    return Icon(MdiIcons.help);
   }
 }
 

@@ -40,16 +40,13 @@ class InstrumentListState extends State<InstrumentList> {
     (String, String) getDistanceBearing() {
       LatLng position = Gps.toLatLng(Storage().position);
 
-      PlanRoute? route = Storage().route;
-      if(route != null) {
-        Destination? d = Storage().route!.getNextWaypoint();
-        if (d != null) {
-          double distance = GeoCalculations().calculateDistance(
-              position, d.coordinate);
-          double bearing = GeoCalculations().calculateBearing(
-              position, d.coordinate);
-          return (distance.round().toString(), "${bearing.round()}\u00b0");
-        }
+      Destination? d = Storage().route.getNextWaypoint();
+      if (d != null) {
+        double distance = GeoCalculations().calculateDistance(
+            position, d.coordinate);
+        double bearing = GeoCalculations().calculateBearing(
+            position, d.coordinate);
+        return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
       return ("", "0\u00b0");
     }
@@ -67,17 +64,14 @@ class InstrumentListState extends State<InstrumentList> {
     });
 
     // connect to dest change
-    Storage().routeChange.addListener(() {
+    Storage().route.change.addListener(() {
       setState(() {
         PlanRoute? route = Storage().route;
-
-        if (route != null) {
-          Destination? d = route.getNextWaypoint();
-          _destination = truncate(d != null ? d.locationID : "");
-          var (distance, bearing) = getDistanceBearing();
-          _distance = truncate(distance);
-          _bearing = truncate(bearing);
-        }
+        Destination? d = route.getNextWaypoint();
+        _destination = truncate(d != null ? d.locationID : "");
+        var (distance, bearing) = getDistanceBearing();
+        _distance = truncate(distance);
+        _bearing = truncate(bearing);
       });
     });
 
@@ -107,9 +101,9 @@ class InstrumentListState extends State<InstrumentList> {
   // make an instrument for top line
   Widget _makeInstrument(int index) {
     bool portrait = Constants.isPortrait(context);
-    double width = Constants.screenWidth(context) / 6; // get more instruments in
+    double width = Constants.screenWidth(context) / 9; // get more instruments in
     if(portrait) {
-      width = Constants.screenWidth(context) / 4;
+      width = Constants.screenWidth(context) / 5;
     }
 
     String value = "";
@@ -147,11 +141,14 @@ class InstrumentListState extends State<InstrumentList> {
     return SizedBox(
       key: Key(index.toString()),
       width: width,
-        child:ListTile(
+        child: GestureDetector(
           onTap: cb,
-          title: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic),),
-          subtitle: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 24, fontWeight: FontWeight.w600)
-          )
+          child: Column(
+            children: [
+              Expanded(flex: 2, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
+              Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic), maxLines: 1,)),
+            ]
+          ),
         )
     );
   }

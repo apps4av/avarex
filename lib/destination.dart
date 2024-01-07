@@ -1,6 +1,8 @@
 // destination base class
 
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 class Destination {
 
@@ -15,6 +17,11 @@ class Destination {
     required this.facilityName,
     required this.coordinate,
   });
+
+  @override
+  toString() {
+    return locationID;
+  }
 
   static const String typeGps = "GPS";
 
@@ -71,9 +78,6 @@ class Destination {
     return type == "GPS";
   }
 
-  static Destination dummy(LatLng coordinate) {
-    return Destination(locationID: "", type: "", facilityName: "", coordinate: coordinate);
-  }
 }
 
 class NavDestination extends Destination {
@@ -84,14 +88,14 @@ class NavDestination extends Destination {
   int variation;
 
   NavDestination({
-  required super.locationID,
-  required super.type,
-  required super.facilityName,
-  required super.coordinate,
-  required this.elevation,
-  required this.class_,
-  required this.hiwas,
-  required this.variation});
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,
+    required this.elevation,
+    required this.class_,
+    required this.hiwas,
+    required this.variation});
 }
 
 class FixDestination extends Destination {
@@ -141,3 +145,21 @@ class AirportDestination extends Destination {
   });
 }
 
+class TypeIcons {
+
+  static Widget getIcon(String type) {
+    if(Destination.isNav(type)) {
+      return Transform.rotate(angle: 90 * pi / 180, child: Icon(MdiIcons.hexagonOutline)); // hexagon rotated looks like a vor
+    }
+    else if(Destination.isAirport(type)) {
+      return Icon(MdiIcons.airport);
+    }
+    else if(Destination.isFix(type)) {
+      return Icon(MdiIcons.triangleOutline);
+    }
+    else if(Destination.isGps(type)) {
+      return Icon(MdiIcons.crosshairsGps);
+    }
+    return Icon(MdiIcons.help);
+  }
+}

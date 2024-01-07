@@ -28,11 +28,10 @@ class GeoCalculations {
     double lat2 = toRadians(end.latitude);
     double lon2 = toRadians(end.longitude);
 
-    if(lat1 == lat2 && lon1 == lon2) {
+    double distance = calculateDistance(begin, end);
+    if(0 == distance) {
       return []; // same point
     }
-
-    double distance = calculateDistance(begin, end);
     double num = (distance / segmentLength).roundToDouble();
     num = num < 2 ? 2 : num;
     double d = (distance / earthRadiusConversion);
@@ -102,7 +101,7 @@ class GeoCalculations {
 
 
   double calculateDistance(ll1, ll2) {
-    return Constants.nmToKnots(_distance(ll1, ll2));
+    return Constants.mToNm(_distance(ll1, ll2));
   }
 
   double calculateBearing(ll1, ll2) {
@@ -112,7 +111,7 @@ class GeoCalculations {
   }
 
   LatLng calculateOffset(from, distance, heading) {
-    return _distance.offset(from, Constants.nmToMeters(distance), heading);
+    return _distance.offset(from, Constants.nmToM(distance), heading);
   }
 
   static String convertSpeed(double gpsSpeed) {

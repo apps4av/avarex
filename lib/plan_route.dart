@@ -1,91 +1,101 @@
 
 import 'package:avaremp/geo_calculations.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'destination.dart';
-import 'gps.dart';
 
 class PlanRoute {
 
   // all segments
-  Destination? _origin;
-  List<Destination>? _waypoints;
-  Destination? _destination;
+  final List<Destination> _waypoints = [];
+  List<LatLng> _points = [];
+  Destination? _next;
+  final change = ValueNotifier<int>(0);
 
-  List<LatLng>? _points;
-  int _next = 0;
+  void _update() {
 
-  void update() {
-    if(null == _origin || null == _destination) {
-      return;
+    if(_waypoints.isNotEmpty) {
+      _next ??= _waypoints[0];
     }
 
-    List<Destination> complete = [];
-
-    complete.add(_origin!);
-    _waypoints != null ? complete.addAll(_waypoints!) : {};
-    complete.add(_destination!);
+    if(_waypoints.length < 2) {
+      _points = [];
+      return;
+    }
 
     GeoCalculations calc = GeoCalculations();
     //2 at a time
     _points = [];
-    for(int index = 0; index < complete.length - 1; index++) {
-      LatLng d1 = complete[index].coordinate;
-      LatLng d2 = complete[index + 1].coordinate;
+    for(int index = 0; index < _waypoints.length - 1; index++) {
+      LatLng d1 = _waypoints[index].coordinate;
+      LatLng d2 = _waypoints[index + 1].coordinate;
       List<LatLng> routeIntermediate = calc.findPoints(d1, d2);
-      _points!.addAll(routeIntermediate);
+      _points.addAll(routeIntermediate);
     }
   }
 
-  void setOrigin(Destination origin) {
-    _origin = origin;
-    update();
-  }
-  void setDestination(Destination destination) {
-    _destination = destination;
-    update();
+  Destination removeWaypointAt(int index) {
+    Destination d = _waypoints.removeAt(index);
+    _next = (d == _next) ? null : _next; // clear next its removed
+    _update();
+    change.value++;
+    return(d);
   }
 
-
+  void insertDirectTo(Destination waypoint) {
+    _waypoints.insert(0, waypoint);
+    _next = _waypoints[0]; // go here
+    _update();
+    change.value++;
+  }
 
   void addWaypoint(Destination waypoint) {
-    _waypoints = _waypoints ?? [];
-    _waypoints!.add(waypoint);
+    _waypoints.add(waypoint);
+    _update();
+    change.value++;
   }
 
-  List<LatLng>? getPath() {
+  void moveWaypoint(int from, int to) {
+    Destination d = _waypoints.removeAt(from);
+    _waypoints.insert(to, d);
+    _update();
+    change.value++;
+  }
+
+  void setNext(int index) {
+    _next = _waypoints[index];
+    _update();
+    change.value++;
+  }
+
+  Destination? get next => _next;
+
+  Destination getWaypointAt(int index) {
+    return _waypoints[index];
+  }
+
+  List<LatLng> getPath() {
     return _points;
   }
 
+  List<LatLng> getPathFromLocation(Position position) {
+    Destination? d = getNextWaypoint();
+    if(d == null) {
+      return [];
+    }
+    LatLng d1 = LatLng(position.latitude, position.longitude);
+    LatLng d2 = d.coordinate;
+    List<LatLng> points = GeoCalculations().findPoints(d1, d2);
+    return points;
+  }
+
   Destination? getNextWaypoint() {
-    if(null == _origin || null == _destination) {
-      return null;
-      // never return origin
-    }
     // if no route then destination
-    if(_waypoints == null || _waypoints!.isEmpty) {
-      return(_destination);
-    }
-    // otherwise route
-    return _waypoints![_next];
-
+    return _next;
   }
 
-  static PlanRoute makeFromLocation(Position start, PlanRoute? route) {
-    PlanRoute r = PlanRoute();
-    Destination dummy = Destination.dummy(Gps.toLatLng(start));
-    r.setOrigin(dummy);
-    if(route != null && route.getNextWaypoint() != null) {
-      r.setDestination(route.getNextWaypoint()!);
-    }
-    else {
-      r.setDestination(dummy);
-    }
-    return r;
-  }
+  List<Destination> get waypoints => _waypoints;
 
-  Destination? get origin => _origin; // complete route of all segments
-  List<Destination>? get waypoints => _waypoints;
-  Destination? get destination => _destination;
 }

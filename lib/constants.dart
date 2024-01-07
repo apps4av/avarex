@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 class Constants {
 
-  static double nmToKnots(double meters) {return 0.000539957 * meters;}
-  static double nmToMeters(distance) {return distance / 0.000539957;}
+  static double mToNm(double meters) {return 0.000539957 * meters;}
+  static double nmToM(distance) {return distance / 0.000539957;}
 
   static const Color appBarButtonColor = Colors.white;
 
@@ -21,7 +21,7 @@ class Constants {
   static const Color instrumentsNormalValueColor = Colors.white;
   static const Color instrumentsNormalLabelColor = Colors.white;
 
-  static Color appBarBackgroundColor = Colors.black.withAlpha(100);
+  static Color appBarBackgroundColor = Colors.black.withAlpha(156);
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
 
   static double dropDownButtonFontSize = 14;
@@ -47,6 +47,12 @@ class Constants {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
 
-
+  static const Color distanceCircleColor = Color.fromARGB(156, 102, 0, 51);
+  static const Color speedCircleColor = Color.fromARGB(156, 0, 255, 0);
+  static const Color planActiveColor = Colors.purpleAccent;
+  static const Color trackColor = Colors.black;
+  static const Color planBorderColor = Colors.black;
+  static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
+  static const Color plateMarkColor = Color.fromARGB(100, 0, 255, 0);
 
 }

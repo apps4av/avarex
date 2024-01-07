@@ -149,17 +149,24 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
-            !Destination.isAirport(future.showDestination.type) ? Container() :
             TextButton(
-              child: const Text("Plates"),
-              onPressed: () { // go to plate
-                if(Destination.isAirport(future.showDestination.type)) {
-                  Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
-                }
-                MainScreenState.gotoPlate();
+              child: const Text("+Plan"),
+              onPressed: () {
+                Storage().route.addWaypoint(future.showDestination);
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
+            !Destination.isAirport(future.showDestination.type) ?
+              Container() : TextButton(
+                child: const Text("Plates"),
+                onPressed: () { // go to plate
+                  if(Destination.isAirport(future.showDestination.type)) {
+                    Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
+                  }
+                  MainScreenState.gotoPlate();
+                  Navigator.of(context).pop(); // hide bottom sheet
+                },
+              ),
           ])),
           // various info
           Expanded(flex: 10, child: CarouselSlider(
