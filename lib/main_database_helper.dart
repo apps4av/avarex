@@ -110,7 +110,7 @@ class MainDatabaseHelper {
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
-          "order by Type asc, distance asc";
+          "order by distance asc, Type asc";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {
@@ -174,12 +174,18 @@ class MainDatabaseHelper {
       return null;
     }
 
+    double elevation = 0;
+    try {
+      elevation = double.parse(maps[0]['Elevation'] as String);
+    }
+    catch(e) {}
+
     return NavDestination(
         locationID: maps[0]['LocationID'] as String,
         type: maps[0]['Type'] as String,
         facilityName: maps[0]['FacilityName'] as String,
         coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
-        elevation: double.parse(maps[0]['Elevation'] as String),
+        elevation: elevation,
         variation: maps[0]['Variation'] as int,
         hiwas: maps[0]['Hiwas'] as String,
         class_: maps[0]['Class'] as String,

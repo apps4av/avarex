@@ -39,7 +39,8 @@ class PlanRoute {
     }
   }
 
-  void _update(bool pathsOnly) {
+
+  void _update(bool changeInPath) {
 
     if(_waypoints.isNotEmpty) {
       _current ??= _waypoints[0];
@@ -59,7 +60,7 @@ class PlanRoute {
     for(int index = 0; index < _waypoints.length; index++) {
       Destination destination = _waypoints[index].destination;
       if(Destination.isAirway(destination.type)) {
-        pathsOnly ? _airwayAdjust(_waypoints[index]) : {}; // add all airways
+        changeInPath ? _airwayAdjust(_waypoints[index]) : {}; // add all airways
         path.addAll(_waypoints[index].airwaySegmentsOnRoute);
         index == cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 0)) : {};
         index > cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 1)) : {};

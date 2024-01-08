@@ -14,28 +14,31 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return
-      Column(
+    return Column(
         children: [
-          const Row(
-            children: [
-              Expanded(flex: 1, child: Text("Dist")),
-              Expanded(flex: 1, child: Text("Hdng")),
-              Expanded(flex: 1, child: Text("Time")),
-              Expanded(flex: 1, child: Text("Altd")),
-              Expanded(flex: 1, child: Text("Fuel")),
-          ]),
-          Row(
-            children: [
-              Expanded(flex: 1, child: Text("---")),
-              Expanded(flex: 1, child: Text("---")),
-              Expanded(flex: 1, child: Text("--:--")),
-              Expanded(flex: 1, child: Text("-----")),
-              Expanded(flex: 1, child: Text("---")),
-          ]),
+          getNullFields()
         ]
       );
+  }
 
+  static Widget getHeading() {
+    return const Row(children: [
+      Expanded(flex: 1, child: Text("Dist")),
+      Expanded(flex: 1, child: Text("Hdng")),
+      Expanded(flex: 1, child: Text("Time")),
+      Expanded(flex: 1, child: Text("Alt")),
+      Expanded(flex: 1, child: Text("Fuel")),
+    ]);
+  }
+
+  static Widget getNullFields() {
+    return const Row(children: [
+    Expanded(flex: 1, child: Text("---")),
+    Expanded(flex: 1, child: Text("---")),
+    Expanded(flex: 1, child: Text("--:--")),
+    Expanded(flex: 1, child: Text("-----")),
+    Expanded(flex: 1, child: Text("---")),
+    ]);
   }
 
 }
