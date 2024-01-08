@@ -1,14 +1,15 @@
+import 'package:avaremp/plan_route.dart';
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'destination.dart';
 
 class PlanItemWidget extends StatefulWidget {
-  final Destination destination;
+  final Waypoint waypoint;
   final bool next;
 
   // it crashes if not static
 
-  const PlanItemWidget({super.key, required this.destination, required this.next});
+  const PlanItemWidget({super.key, required this.waypoint, required this.next});
 
   @override
   State<StatefulWidget> createState() => PlanItemWidgetState();
@@ -20,15 +21,12 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
   @override
   Widget build(BuildContext context) {
 
-    Color color = Colors.white;
-    if(widget.destination is AirwayDestination && (widget.destination as AirwayDestination).adjustedPoints.isEmpty) {
-      color = Colors.red;
-    }
+    Color iconColor = Destination.isAirway(widget.waypoint.destination.type) && widget.waypoint.adjustedPoints.isEmpty ? Colors.red : Colors.white;
 
     return Column(children: [
       ListTile(
-        leading: TypeIcons.getIcon(widget.destination.type, color),
-        subtitle: Text(widget.destination.locationID, style: TextStyle(color: widget.next ? Constants.planActiveColor : Colors.white))),
+        leading: TypeIcons.getIcon(widget.waypoint.destination.type, iconColor),
+        subtitle: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white))),
       const Divider(),
     ]);
 

@@ -153,7 +153,6 @@ class AirportDestination extends Destination {
 class AirwayDestination extends Destination {
 
   List<Destination> points; // this has many waypoints
-  List<Destination> adjustedPoints = []; // when this fits into a plan
 
   AirwayDestination({
     required super.locationID,

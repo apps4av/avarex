@@ -45,7 +45,7 @@ class MainDatabaseHelper {
       );
       mapsAirways = await db.rawQuery(
         "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
-        "order by cast(sequence as integer) asc"
+        "order by cast(sequence as integer) asc limit 1"
       );
     }
 
@@ -58,23 +58,15 @@ class MainDatabaseHelper {
       );
     });
 
-    List<Destination> ret2 = List.generate(mapsAirways.length, (i) {
-      return Destination(
-        locationID: mapsAirways[i]['name'] as String,
-        facilityName: mapsAirways[i]['name'] as String,
-        type: Destination.typeAirway,
-        coordinate: LatLng(mapsAirways[i]['Latitude'] as double, mapsAirways[i]['Longitude'] as double),
-      );
-    });
 
-    if(ret2.isNotEmpty) { // add airway, only 1 due to above select
-      AirwayDestination airwayDestination = AirwayDestination(
-          locationID: ret2[0].locationID,
-          type: ret2[0].type,
-          facilityName: ret2[0].facilityName,
-          coordinate: ret2[0].coordinate,
-          points: ret2);
-      ret.add(airwayDestination);
+    if(mapsAirways.isNotEmpty) {
+      Destination d = Destination(
+          locationID: mapsAirways[0]['name'] as String,
+          facilityName: mapsAirways[0]['name'] as String,
+          type: Destination.typeAirway,
+          coordinate: LatLng(mapsAirways[0]['Latitude'] as double, mapsAirways[0]['Longitude'] as double),
+        );
+      ret.add(d);
     }
 
     return ret;
@@ -211,6 +203,40 @@ class MainDatabaseHelper {
       coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
     );
   }
+
+  Future<AirwayDestination?> findAirway(String airway) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select name, sequence, Longitude, Latitude from airways where name = '$airway' COLLATE NOCASE "
+          "order by cast(sequence as integer) asc");
+    }
+    if(maps.isEmpty) {
+      return null;
+    }
+
+    List<Destination> ret2 = List.generate(maps.length, (i) {
+      return Destination(
+        locationID: maps[i]['name'] as String,
+        facilityName: maps[i]['name'] as String,
+        type: Destination.typeAirway,
+        coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
+      );
+    });
+
+    if(ret2.isNotEmpty) { // add all airway points
+      AirwayDestination airwayDestination = AirwayDestination(
+          locationID: ret2[0].locationID,
+          type: ret2[0].type,
+          facilityName: ret2[0].facilityName,
+          coordinate: ret2[0].coordinate,
+          points: ret2);
+      return airwayDestination;
+    }
+
+    return null;
+  }
+
 
   Future<List<double>?> findAirportDiagramMatrix(String id) async {
     List<Map<String, dynamic>> maps = [];

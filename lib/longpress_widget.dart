@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -79,7 +80,10 @@ class LongPressFuture {
       }
     }
     else if(Destination.isAirway(destination.type)) {
-      showDestination = destination;
+      airway = await MainDatabaseHelper.db.findAirway(destination.locationID);
+      if(null != airway) {
+        showDestination = airway!;
+      }
     }
   }
 
@@ -157,7 +161,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
               child: const Text("+Plan"),
               onPressed: () {
                 UserDatabaseHelper.db.addRecent(future.showDestination);
-                Storage().route.addWaypoint(future.showDestination);
+                Storage().route.addWaypoint(Waypoint(future.showDestination));
                 MainScreenState.gotoPlan();
                 Navigator.of(context).pop(); // hide bottom sheet
               },

@@ -4,8 +4,6 @@ import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
-import 'destination.dart';
-
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
   @override
@@ -15,7 +13,7 @@ class PlanScreen extends StatefulWidget {
 
 class PlanScreenState extends State<PlanScreen> {
 
-  Widget makeWaypoint(List<Destination> items, int index) {
+  Widget makeWaypoint(List<Waypoint> items, int index) {
       return Dismissible( // able to delete with swipe
         background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
         key: Key(Storage().getKey()),
@@ -24,8 +22,8 @@ class PlanScreenState extends State<PlanScreen> {
           items.removeAt(index);
         },
         child: ListTile(
-          title: Text(items[index].locationID),
-          subtitle: Text("${items[index].facilityName} ( ${items[index].type} )"),
+          title: Text(items[index].destination.locationID),
+          subtitle: Text("${items[index].destination.facilityName} ( ${items[index].destination.type} )"),
           dense: true,
           isThreeLine: true,
         ),
@@ -47,7 +45,7 @@ class PlanScreenState extends State<PlanScreen> {
                 child: ReorderableListView(
                   scrollDirection: Axis.vertical,
                   children: <Widget>[
-                    for(int index = 0; index < route.waypoints.length; index++)
+                    for(int index = 0; index < route.length; index++)
                       Dismissible( // able to delete with swipe
                         background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
                         key: Key(Storage().getKey()),
@@ -58,7 +56,7 @@ class PlanScreenState extends State<PlanScreen> {
                           });
                         },
                         child: GestureDetector(
-                          child:PlanItemWidget(destination: route.getWaypointAt(index), next: route.getWaypointAt(index) == route.next),
+                          child:PlanItemWidget(waypoint: route.getWaypointAt(index), next: route.isNext(index)),
                           onTap: () {
                             setState(() {
                               Storage().route.setNext(index);
@@ -81,6 +79,5 @@ class PlanScreenState extends State<PlanScreen> {
           ]
         )
     );
-
   }
 }

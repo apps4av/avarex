@@ -40,7 +40,7 @@ class InstrumentListState extends State<InstrumentList> {
     (String, String) getDistanceBearing() {
       LatLng position = Gps.toLatLng(Storage().position);
 
-      Destination? d = Storage().route.getNextWaypoint();
+      Destination? d = Storage().route.getCurrentWaypoint()?.destination;
       if (d != null) {
         double distance = GeoCalculations().calculateDistance(
             position, d.coordinate);
@@ -67,7 +67,7 @@ class InstrumentListState extends State<InstrumentList> {
     Storage().route.change.addListener(() {
       setState(() {
         PlanRoute? route = Storage().route;
-        Destination? d = route.getNextWaypoint();
+        Destination? d = route.getCurrentWaypoint()?.destination;
         _destination = truncate(d != null ? d.locationID : "");
         var (distance, bearing) = getDistanceBearing();
         _distance = truncate(distance);

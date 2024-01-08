@@ -57,7 +57,7 @@ class Airway {
       }
       i++;
     }
-    return minD == 0 ? index : -1; // do not fly this V way as its disjoint
+    return minD == 0 ? index : -1; // do not fly this airway as its disjointed
   }
 
   // Find all points between start and end on an airway
@@ -104,7 +104,7 @@ class Airway {
         }
         lastCoordinate = c;
         // add it
-        Destination d = Destination(locationID: "", type: "", facilityName: "", coordinate: lastCoordinate);
+        Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
         ret.add(d);
       }
     }
@@ -119,7 +119,7 @@ class Airway {
         lastCoordinate = c;
 
         // add it
-        Destination d = Destination(locationID: "", type: "", facilityName: "", coordinate: lastCoordinate);
+        Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
         ret.add(d);
       }
     }
