@@ -57,7 +57,7 @@ class PlanScreenState extends State<PlanScreen> {
                         },
                         child: GestureDetector(
                           child:PlanItemWidget(waypoint: route.getWaypointAt(index), next: route.isNext(index)),
-                          onTap: () {
+                          onLongPress: () {
                             setState(() {
                               Storage().route.setNext(index);
                             });

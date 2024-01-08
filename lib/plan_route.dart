@@ -115,6 +115,13 @@ class PlanRoute {
     change.value++;
   }
 
+
+  void setNextWithWaypoint(Waypoint waypoint) {
+    _current = _waypoints[_waypoints.indexOf(waypoint)];
+    _update();
+    change.value++;
+  }
+
   void setNext(int index) {
     _current = _waypoints[index];
     _update();
