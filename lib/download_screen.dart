@@ -76,7 +76,7 @@ class DownloadScreenState extends State<DownloadScreen> {
             title: Text(_allCharts[index].title, style: TextStyle(color: _allCharts[index].color)),
             children: <Widget>[
               Column(
-                children: mBuildExpandableContent(index),
+                children: _buildExpandableContent(index),
               ),
             ],
           );
@@ -85,7 +85,7 @@ class DownloadScreenState extends State<DownloadScreen> {
     );
   }
 
-  List<Widget> mBuildExpandableContent(int index) {
+  List<Widget> _buildExpandableContent(int index) {
     List<Widget> columnContent = [];
     ChartCategory chartCategory = _allCharts[index];
 

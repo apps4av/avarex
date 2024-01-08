@@ -1,6 +1,7 @@
 
 import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/main_database_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -17,12 +18,12 @@ class PlanRoute {
   Waypoint? _current;
   final change = ValueNotifier<int>(0);
 
-  void _airwayAdjust(Waypoint d) {
+  void _airwayAdjust(Waypoint waypoint) {
 
-    d.adjustedPoints = [];
+    waypoint.airwaySegmentsOnRoute = [];
 
     // adjust airways, nothing to do when airway is not in the middle of points
-    int index = _waypoints.indexOf(d);
+    int index = _waypoints.indexOf(waypoint);
     // need a start and end
     if(index == 0 || index == _waypoints.length - 1) {
       return;
@@ -34,7 +35,7 @@ class PlanRoute {
         _waypoints[index].destination as AirwayDestination,
         _waypoints[index + 1].destination);
     if(points.isNotEmpty) {
-      d.adjustedPoints = points;
+      waypoint.airwaySegmentsOnRoute = points;
     }
   }
 
@@ -56,16 +57,16 @@ class PlanRoute {
     List<int> status = [];
     int cIndex = _current == null ? 0 : _waypoints.indexOf(_current!);
     for(int index = 0; index < _waypoints.length; index++) {
-      Destination d = _waypoints[index].destination;
-      if(Destination.isAirway(d.type)) {
+      Destination destination = _waypoints[index].destination;
+      if(Destination.isAirway(destination.type)) {
         _airwayAdjust(_waypoints[index]); // add all airways
-        path.addAll(_waypoints[index].adjustedPoints);
-        index == cIndex ? status.addAll(_waypoints[index].adjustedPoints.map((e) => 0)) : {};
-        index > cIndex ? status.addAll(_waypoints[index].adjustedPoints.map((e) => 1)) : {};
-        index < cIndex ? status.addAll(_waypoints[index].adjustedPoints.map((e) => -1)) : {};
+        path.addAll(_waypoints[index].airwaySegmentsOnRoute);
+        index == cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 0)) : {};
+        index > cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 1)) : {};
+        index < cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => -1)) : {};
       }
       else {
-        path.add(d);
+        path.add(destination);
         index == cIndex ? status.add(0) : {};
         index > cIndex ? status.add(1) : {};
         index < cIndex ? status.add(-1) : {};
@@ -78,9 +79,9 @@ class PlanRoute {
     _pointsCurrent = [];
     _pointsNext = [];
     for(int index = 0; index < path.length - 1; index++) {
-      LatLng d1 = path[index].coordinate;
-      LatLng d2 = path[index + 1].coordinate;
-      List<LatLng> routeIntermediate = calc.findPoints(d1, d2);
+      LatLng destination1 = path[index].coordinate;
+      LatLng destination2 = path[index + 1].coordinate;
+      List<LatLng> routeIntermediate = calc.findPoints(destination1, destination2);
       (status[index] == 0) ? _pointsCurrent.addAll(routeIntermediate) : {};
       (status[index] == 1) ? _pointsNext.addAll(routeIntermediate) : {};
       (status[index] == -1) ? _pointsPassed.addAll(routeIntermediate) : {};
@@ -88,11 +89,11 @@ class PlanRoute {
   }
 
   Waypoint removeWaypointAt(int index) {
-    Waypoint d = _waypoints.removeAt(index);
-    _current = (d == _current) ? null : _current; // clear next its removed
+    Waypoint waypoint = _waypoints.removeAt(index);
+    _current = (waypoint == _current) ? null : _current; // clear next its removed
     _update();
     change.value++;
-    return(d);
+    return(waypoint);
   }
 
   void addDirectTo(Waypoint waypoint) {
@@ -109,8 +110,8 @@ class PlanRoute {
   }
 
   void moveWaypoint(int from, int to) {
-    Waypoint d = _waypoints.removeAt(from);
-    _waypoints.insert(to, d);
+    Waypoint waypoint = _waypoints.removeAt(from);
+    _waypoints.insert(to, waypoint);
     _update();
     change.value++;
   }
@@ -145,13 +146,13 @@ class PlanRoute {
   }
 
   List<LatLng> getPathFromLocation(Position position) {
-    Destination? d = getCurrentWaypoint()?.destination;
-    if(d == null) {
+    Destination? destination = getCurrentWaypoint()?.destination;
+    if(destination == null) {
       return [];
     }
-    LatLng d1 = LatLng(position.latitude, position.longitude);
-    LatLng d2 = d.coordinate;
-    List<LatLng> points = GeoCalculations().findPoints(d1, d2);
+    LatLng destination1 = LatLng(position.latitude, position.longitude);
+    LatLng destination2 = destination.coordinate;
+    List<LatLng> points = GeoCalculations().findPoints(destination1, destination2);
     return points;
   }
 
@@ -175,13 +176,13 @@ class PlanRoute {
 class Waypoint {
 
   final Destination _destination;
-  List<Destination> adjustedPoints = [];
-  int next = 0;
+  List<Destination> airwaySegmentsOnRoute = [];
+  int currentAirwaySegment = 0;
 
   Waypoint(this._destination);
 
   Destination get destination {
-    return adjustedPoints.isNotEmpty ? adjustedPoints[next] : _destination;
+    return airwaySegmentsOnRoute.isNotEmpty ? airwaySegmentsOnRoute[currentAirwaySegment] : _destination;
   }
 
 }

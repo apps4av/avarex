@@ -13,23 +13,6 @@ class PlanScreen extends StatefulWidget {
 
 class PlanScreenState extends State<PlanScreen> {
 
-  Widget makeWaypoint(List<Waypoint> items, int index) {
-      return Dismissible( // able to delete with swipe
-        background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
-        key: Key(Storage().getKey()),
-        direction: DismissDirection.endToStart,
-        onDismissed:(direction) {
-          items.removeAt(index);
-        },
-        child: ListTile(
-          title: Text(items[index].destination.locationID),
-          subtitle: Text("${items[index].destination.facilityName} ( ${items[index].destination.type} )"),
-          dense: true,
-          isThreeLine: true,
-        ),
-      );
-  }
-
   @override
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
@@ -55,15 +38,12 @@ class PlanScreenState extends State<PlanScreen> {
                             route.removeWaypointAt(index);
                           });
                         },
-                        child: GestureDetector(
-                          child:PlanItemWidget(waypoint: route.getWaypointAt(index), next: route.isNext(index)),
-                          onLongPress: () {
-                            setState(() {
-                              Storage().route.setNext(index);
-                            });
-                          },
-                        ),
-                    ),
+                        child:PlanItemWidget(waypoint: route.getWaypointAt(index), next: route.isNext(index), onTap: () {
+                          setState(() {
+                            Storage().route.setNext(index);
+                          });
+                        },),
+                      ),
                   ],
                   onReorder: (int oldIndex, int newIndex) {
                     setState(() {
