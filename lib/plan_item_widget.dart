@@ -1,3 +1,5 @@
+import 'package:avaremp/main_database_helper.dart';
+import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:flutter/material.dart';
 import 'constants.dart';
@@ -16,7 +18,6 @@ class PlanItemWidget extends StatefulWidget {
   State<StatefulWidget> createState() => PlanItemWidgetState();
 }
 
-
 class PlanItemWidgetState extends State<PlanItemWidget> {
 
   @override
@@ -25,44 +26,66 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     // different tiles for airways
     return Destination.isAirway(widget.waypoint.destination.type) ?
 
-      Column(children: [
-        ExpansionTile(
-          leading: TypeIcons.getIcon(widget.waypoint.destination.type, widget.waypoint.airwaySegmentsOnRoute.isEmpty ? Colors.red : Colors.white),
-          title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white),),
-          children: <Widget>[
-            Column(
-              children: _buildExpandableContent(),
-            ),
-          ],
-        ),
-        const Divider()
-     ])
+     FutureBuilder(
+        future: AirwayLookupFuture(widget.waypoint).getAll(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent(null);
+          }
+        }
+    )
 
-     :
+    :
 
-     Column(children: [
-       ListTile(
-         leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
-         subtitle: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white)),
-         onTap: () {
-           widget.onTap();
-         }
+    Column(children: [
+      ListTile(
+          leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
+          title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white)),
+          subtitle: const PlanLineWidget(),
+          onTap: () {
+            widget.onTap();
+          }
       ),
-       const Divider(),
-     ]);
+    ]);
+
   }
 
-  List<Widget> _buildExpandableContent() {
+  Widget _makeContent(AirwayLookupFuture? future) {
+
+    return Column(children: [
+      ExpansionTile(
+        leading: TypeIcons.getIcon(widget.waypoint.destination.type, widget.waypoint.airwaySegmentsOnRoute.isEmpty ? Colors.red : Colors.white),
+        title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white),),
+        subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwaySegment].locationID),
+        children: <Widget>[
+          Column(children: _buildExpandableContent(future),)
+        ],
+      ),
+    ]);
+
+  }
+
+  List<Widget> _buildExpandableContent(AirwayLookupFuture? future) {
     List<Widget> columnContent = [];
 
-    for (Destination destination in widget.waypoint.airwaySegmentsOnRoute) {
+    if(null == future) {
+      return [];
+    }
+
+    List<Destination> destinations = widget.waypoint.airwaySegmentsOnRoute;
+
+    for (int index = 0; index < destinations.length; index++) {
       columnContent.add(
         ListTile(
-          subtitle: Text(destination.locationID, style : TextStyle(color : (destination == widget.waypoint.airwaySegmentsOnRoute[widget.waypoint.currentAirwaySegment] && widget.next) ? Constants.planCurrentColor : Colors.white)),
+          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwaySegmentsOnRoute[widget.waypoint.currentAirwaySegment] && widget.next) ? Constants.planCurrentColor : Colors.white)),
+          subtitle: const PlanLineWidget(),
           leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
           onTap: () {
             setState(() {
-              widget.waypoint.currentAirwaySegment = widget.waypoint.airwaySegmentsOnRoute.indexOf(destination);
+              widget.waypoint.currentAirwaySegment = widget.waypoint.airwaySegmentsOnRoute.indexOf(destinations[index]);
               widget.onTap();// go to this point in airway
             });
           }
@@ -70,5 +93,25 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
       );
     }
     return columnContent;
+  }
+}
+
+class AirwayLookupFuture {
+
+  Waypoint waypoint;
+  List<Destination> lookupAirwaySegments = [];
+  AirwayLookupFuture(this.waypoint);
+
+  // get everything from database about this airway
+  Future<void> _getAll() async {
+    for(Destination destination in waypoint.airwaySegmentsOnRoute) {
+      List<Destination> destinations = await MainDatabaseHelper.db.findNear(destination.coordinate);
+      lookupAirwaySegments.add(destinations[0]);
+    }
+  }
+
+  Future<AirwayLookupFuture> getAll() async {
+    await _getAll();
+    return this;
   }
 }

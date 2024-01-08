@@ -1,7 +1,6 @@
 
 import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/main_database_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -20,6 +19,7 @@ class PlanRoute {
 
   void _airwayAdjust(Waypoint waypoint) {
 
+    waypoint.currentAirwaySegment = 0; // on change to airway, reset it
     waypoint.airwaySegmentsOnRoute = [];
 
     // adjust airways, nothing to do when airway is not in the middle of points
@@ -39,7 +39,7 @@ class PlanRoute {
     }
   }
 
-  void _update() {
+  void _update(bool pathsOnly) {
 
     if(_waypoints.isNotEmpty) {
       _current ??= _waypoints[0];
@@ -59,7 +59,7 @@ class PlanRoute {
     for(int index = 0; index < _waypoints.length; index++) {
       Destination destination = _waypoints[index].destination;
       if(Destination.isAirway(destination.type)) {
-        _airwayAdjust(_waypoints[index]); // add all airways
+        pathsOnly ? _airwayAdjust(_waypoints[index]) : {}; // add all airways
         path.addAll(_waypoints[index].airwaySegmentsOnRoute);
         index == cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 0)) : {};
         index > cIndex ? status.addAll(_waypoints[index].airwaySegmentsOnRoute.map((e) => 1)) : {};
@@ -91,7 +91,7 @@ class PlanRoute {
   Waypoint removeWaypointAt(int index) {
     Waypoint waypoint = _waypoints.removeAt(index);
     _current = (waypoint == _current) ? null : _current; // clear next its removed
-    _update();
+    _update(true);
     change.value++;
     return(waypoint);
   }
@@ -99,33 +99,33 @@ class PlanRoute {
   void addDirectTo(Waypoint waypoint) {
     addWaypoint(waypoint);
     _current = _waypoints[_waypoints.indexOf(waypoint)]; // go here
-    _update();
+    _update(true);
     change.value++;
   }
 
   void addWaypoint(Waypoint waypoint) {
     _waypoints.add(waypoint);
-    _update();
+    _update(true);
     change.value++;
   }
 
   void moveWaypoint(int from, int to) {
     Waypoint waypoint = _waypoints.removeAt(from);
     _waypoints.insert(to, waypoint);
-    _update();
+    _update(true);
     change.value++;
   }
 
 
   void setNextWithWaypoint(Waypoint waypoint) {
     _current = _waypoints[_waypoints.indexOf(waypoint)];
-    _update();
+    _update(false);
     change.value++;
   }
 
   void setNext(int index) {
     _current = _waypoints[index];
-    _update();
+    _update(false);
     change.value++;
   }
 
