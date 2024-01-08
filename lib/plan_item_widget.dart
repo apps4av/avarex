@@ -57,9 +57,9 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
 
     return Column(children: [
       ExpansionTile(
-        leading: TypeIcons.getIcon(widget.waypoint.destination.type, widget.waypoint.airwaySegmentsOnRoute.isEmpty ? Colors.red : Colors.white),
+        leading: TypeIcons.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Colors.white),
         title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white),),
-        subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwaySegment].locationID),
+        subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwayDestinationIndex].locationID),
         children: <Widget>[
           Column(children: _buildExpandableContent(future),)
         ],
@@ -75,17 +75,17 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
       return [];
     }
 
-    List<Destination> destinations = widget.waypoint.airwaySegmentsOnRoute;
+    List<Destination> destinations = widget.waypoint.airwayDestinationsOnRoute;
 
     for (int index = 0; index < destinations.length; index++) {
       columnContent.add(
         ListTile(
-          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwaySegmentsOnRoute[widget.waypoint.currentAirwaySegment] && widget.next) ? Constants.planCurrentColor : Colors.white)),
+          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.next) ? Constants.planCurrentColor : Colors.white)),
           subtitle: const PlanLineWidget(),
           leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
           onTap: () {
             setState(() {
-              widget.waypoint.currentAirwaySegment = widget.waypoint.airwaySegmentsOnRoute.indexOf(destinations[index]);
+              widget.waypoint.currentAirwayDestinationIndex = widget.waypoint.airwayDestinationsOnRoute.indexOf(destinations[index]);
               widget.onTap();// go to this point in airway
             });
           }
@@ -104,7 +104,7 @@ class AirwayLookupFuture {
 
   // get everything from database about this airway
   Future<void> _getAll() async {
-    for(Destination destination in waypoint.airwaySegmentsOnRoute) {
+    for(Destination destination in waypoint.airwayDestinationsOnRoute) {
       List<Destination> destinations = await MainDatabaseHelper.db.findNear(destination.coordinate);
       lookupAirwaySegments.add(destinations[0]);
     }

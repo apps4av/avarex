@@ -44,9 +44,9 @@ class PlanScreenState extends State<PlanScreen> {
                           route.removeWaypointAt(index - 1);
                         });
                       },
-                      child:PlanItemWidget(waypoint: route.getWaypointAt(index - 1), next: route.isNext(index - 1), onTap: () {
+                      child:PlanItemWidget(waypoint: route.getWaypointAt(index - 1), next: route.isCurrent(index - 1), onTap: () {
                         setState(() {
-                          Storage().route.setNext(index - 1);
+                          Storage().route.setCurrentWaypoint(index - 1);
                         });
                       },),
                     ),
