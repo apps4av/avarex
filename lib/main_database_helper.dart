@@ -130,7 +130,6 @@ class MainDatabaseHelper {
 
   Future<Destination> findNearNavOrFixElseGps(LatLng point) async {
     final db = await database;
-    List<Destination> ret = [];
     if (db != null) {
       num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
       String asDistance = "((ARPLongitude - ${point
