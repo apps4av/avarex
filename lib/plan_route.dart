@@ -46,7 +46,8 @@ class PlanRoute {
     for(int index = 0; index < waypoints.length; index++) {
       Destination destination = waypoints[index].destination;
       // expand airways
-      Destination.isAirway(destination.type) ? destinationsExpanded.addAll(waypoints[index].airwayDestinationsOnRoute) : destinationsExpanded.add(destination);
+      Destination.isAirway(destination.type) ?
+        destinationsExpanded.addAll(waypoints[index].airwayDestinationsOnRoute) : destinationsExpanded.add(destination);
     }
     return destinationsExpanded;
   }

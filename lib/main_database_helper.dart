@@ -110,7 +110,7 @@ class MainDatabaseHelper {
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
-          "order by distance asc, Type asc";
+          "order by Type asc, distance asc";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {
@@ -126,6 +126,33 @@ class MainDatabaseHelper {
     String gps = Destination.formatSexagesimal(point.toSexagesimal());
     ret.add(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
     return(ret);
+  }
+
+  Future<Destination> findNearNavOrFixElseGps(LatLng point) async {
+    final db = await database;
+    List<Destination> ret = [];
+    if (db != null) {
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
+      String asDistance = "((ARPLongitude - ${point
+          .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
+          .toDouble()} + (ARPLatitude - ${point
+          .latitude}) * (ARPLatitude - ${point.latitude}))";
+
+      String qry =
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "order by distance asc";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+
+      return Destination(
+        locationID: maps[0]['LocationID'] as String,
+        facilityName: maps[0]['FacilityName'] as String,
+        type: maps[0]['Type'] as String,
+        coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double));
+    }
+    // always add touch point of GPS, GPS is not a database type so prefix with _
+    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    return Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point);
   }
 
   Future<AirportDestination?> findAirport(String airport) async {

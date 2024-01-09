@@ -105,8 +105,8 @@ class AirwayLookupFuture {
   // get everything from database about this airway
   Future<void> _getAll() async {
     for(Destination destination in waypoint.airwayDestinationsOnRoute) {
-      List<Destination> destinations = await MainDatabaseHelper.db.findNear(destination.coordinate);
-      lookupAirwaySegments.add(destinations[0]);
+      Destination destinationFound = await MainDatabaseHelper.db.findNearNavOrFixElseGps(destination.coordinate);
+      lookupAirwaySegments.add(destinationFound);
     }
   }
 
