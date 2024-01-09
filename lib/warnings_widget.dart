@@ -64,7 +64,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
           leading: const Icon(Icons.gpp_good_sharp),
           subtitle: Text(gpsPermissionMessage),
           dense: true,
-          onTap: () => { Geolocator.openAppSettings()}));
+          onTap: () { Geolocator.openAppSettings(); Scaffold.of(context).closeEndDrawer();}));
     }
 
     String gpsEnabledMessage = !widget.gpsDisabled ? "" :
@@ -74,7 +74,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
           leading: const Icon(Icons.gps_off_sharp),
           subtitle: Text(gpsEnabledMessage),
           dense: true,
-          onTap: () => {Geolocator.openLocationSettings()}));
+          onTap: () {Geolocator.openLocationSettings(); Scaffold.of(context).closeEndDrawer();}));
     }
 
     String dataAvailableMessage = !widget.chartsMissing ? "" :
@@ -84,7 +84,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
           leading: const Icon(Icons.download),
           subtitle: Text(dataAvailableMessage),
           dense: true,
-          onTap: () => {Navigator.pushNamed(context, '/download')}));
+          onTap: () {Navigator.pushNamed(context, '/download'); Scaffold.of(context).closeEndDrawer();}));
     }
 
     String dataCurrentMessage = !widget.dataExpired ? "" :
@@ -94,7 +94,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
           leading: const Icon(Icons.update),
           subtitle: Text(dataCurrentMessage),
           dense: true,
-          onTap: () => {Navigator.pushNamed(context, '/download')}));
+          onTap: () {Navigator.pushNamed(context, '/download'); Scaffold.of(context).closeEndDrawer();}));
     }
 
     return Drawer(

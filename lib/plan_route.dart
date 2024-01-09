@@ -46,8 +46,16 @@ class PlanRoute {
     for(int index = 0; index < waypoints.length; index++) {
       Destination destination = waypoints[index].destination;
       // expand airways
-      Destination.isAirway(destination.type) ?
-        destinationsExpanded.addAll(waypoints[index].airwayDestinationsOnRoute) : destinationsExpanded.add(destination);
+      if(Destination.isAirway(destination.type)) {
+        // skip empty airways
+        if(waypoints[index].airwayDestinationsOnRoute.isEmpty) {
+          continue;
+        }
+        destinationsExpanded.addAll(waypoints[index].airwayDestinationsOnRoute);
+      }
+      else {
+        destinationsExpanded.add(destination);
+      }
     }
     return destinationsExpanded;
   }
@@ -89,6 +97,16 @@ class PlanRoute {
       return;
     }
 
+    // On change in path, adjust airway
+    if(changeInPath) {
+      for (int index = 0; index < _waypoints.length; index++) {
+        Destination destination = _waypoints[index].destination;
+        if (Destination.isAirway(destination.type)) {
+          _airwayAdjust(_waypoints[index]); // add all airways
+        }
+      }
+    }
+
     int cIndex = _current == null ? 0 : _waypoints.indexOf(_current!);
     List<Waypoint> waypointsPassed = cIndex == 0 ? [] : _waypoints.sublist(0, cIndex);
     Waypoint current = _waypoints[cIndex];
@@ -118,15 +136,6 @@ class PlanRoute {
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
 
-    // On change in path, adjust airway
-    if(changeInPath) {
-      for (int index = 0; index < _waypoints.length; index++) {
-        Destination destination = _waypoints[index].destination;
-        if (Destination.isAirway(destination.type)) {
-          _airwayAdjust(_waypoints[index]); // add all airways
-        }
-      }
-    }
   }
 
   Waypoint removeWaypointAt(int index) {

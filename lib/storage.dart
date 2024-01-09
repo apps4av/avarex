@@ -73,6 +73,28 @@ class Storage {
     }
   }
 
+  StreamSubscription<Position>? _gpsStream;
+
+  void startGps() {
+    // GPS data receive
+    _gpsStream = _gps.getStream();
+    _gpsStream?.onDone(() {
+    });
+    _gpsStream?.onError((obj){
+    });
+    _gpsStream?.onData((data) {
+      position = data;
+      gpsChange.value = position; // tell everyone
+    });
+  }
+
+  stopGps() {
+    try {
+      _gpsStream?.cancel();
+    }
+    catch(e) {}
+  }
+
   Future<void> init() async {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
@@ -83,11 +105,6 @@ class Storage {
     Directory dir = await getApplicationDocumentsDirectory();
     dataDir = dir.path;
     await settings.initSettings();
-    // GPS data receive
-    _gps.getStream().onData((data) {
-      position = data;
-      gpsChange.value = position; // tell everyone
-    });
     await checkChartsExist();
     await checkDataExpiry();
 

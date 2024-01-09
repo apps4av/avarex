@@ -50,8 +50,8 @@ class Constants {
   static const Color distanceCircleColor = Color.fromARGB(156, 102, 0, 51);
   static const Color speedCircleColor = Color.fromARGB(156, 0, 255, 0);
   static const Color planCurrentColor = Colors.purpleAccent;
-  static const Color planNextColor = Colors.blueAccent;
-  static const Color planPassedColor = Colors.greenAccent;
+  static const Color planNextColor = Colors.purpleAccent;
+  static const Color planPassedColor = Colors.cyanAccent;
   static const Color trackColor = Colors.black;
   static const Color planBorderColor = Colors.black;
   static const Color planeColor = Color.fromARGB(150, 255, 0, 0);

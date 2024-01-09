@@ -195,12 +195,12 @@ class MapScreenState extends State<MapScreen> {
               polylines: [
                 // route
                 Polyline(
-                  borderStrokeWidth: 2,
-                  borderColor: Constants.planBorderColor,
-                  strokeWidth: 4,
-                  strokeCap: StrokeCap.round,
-                  points: Storage().route.getPathPassed(),
-                  color: Constants.planPassedColor,
+                    borderStrokeWidth: 1,
+                    borderColor: Constants.planBorderColor,
+                    strokeWidth: 6,
+                    points: Storage().route.getPathPassed(),
+                    color: Constants.planPassedColor,
+                    isDotted: true
                 ),
                 Polyline(
                   borderStrokeWidth: 2,
@@ -211,12 +211,12 @@ class MapScreenState extends State<MapScreen> {
                   color: Constants.planCurrentColor,
                 ),
                 Polyline(
-                  borderStrokeWidth: 2,
+                  borderStrokeWidth: 1,
                   borderColor: Constants.planBorderColor,
-                  strokeWidth: 4,
-                  strokeCap: StrokeCap.round,
+                  strokeWidth: 6,
                   points: Storage().route.getPathNext(),
                   color: Constants.planNextColor,
+                  isDotted: true
                 ),
               ],
             );

@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 
 class Gps {
 
-  bool useSim = false; // sim GPS for testing
+  bool useSim = false;
 
   static Position centerUSAPosition() {
     return Position(longitude: -97, latitude: 38, accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, headingAccuracy: 0, speed: 0, speedAccuracy: 0, timestamp: DateTime.now());

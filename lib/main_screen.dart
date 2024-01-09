@@ -15,7 +15,7 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => MainScreenState();
 }
 
-class MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { // for checking GPS state on app resume
 
   static const tabLocationMap = 0;
   static const tabLocationPlates = 1;
@@ -151,6 +151,25 @@ class MainScreenState extends State<MainScreen> {
           ),
         )
     ));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // start GPS
+        Storage().startGps();
+        break;
+      default:
+        Storage().stopGps();
+        break;
+    }
   }
 }
 
