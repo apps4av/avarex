@@ -125,6 +125,8 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(5),
           child:BottomNavigationBar(
+            unselectedFontSize: 10,
+            selectedFontSize: 14,
             key: Storage().globalKeyBottomNavigationBar,
             type: BottomNavigationBarType.fixed,
             backgroundColor: Constants.bottomNavBarBackgroundColor,
