@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import 'main_database_helper.dart';
+
 class Destination {
 
   final String locationID;
@@ -83,6 +85,25 @@ class Destination {
     return type == "GPS";
   }
 
+  factory Destination.fromMap(Map<String, dynamic> maps) {
+    return Destination(
+      locationID: maps['LocationID'] as String,
+      facilityName: maps['FacilityName'] as String,
+      type: maps['Type'] as String,
+      coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double));
+  }
+
+  Map<String, Object?> toMap() {
+    Map<String, Object?> map  = {
+      "LocationID": locationID,
+      "FacilityName" : facilityName,
+      "Type": type,
+      "ARPLatitude": coordinate.latitude,
+      "ARPLongitude": coordinate.longitude,
+    };
+    return map;
+  }
+
 }
 
 class NavDestination extends Destination {
@@ -101,6 +122,27 @@ class NavDestination extends Destination {
     required this.class_,
     required this.hiwas,
     required this.variation});
+
+  factory NavDestination.fromMap(Map<String, dynamic> maps) {
+
+    double elevation = 0;
+    try {
+      elevation = double.parse(maps['Elevation'] as String);
+    }
+    catch(e) {}
+
+    return NavDestination(
+      locationID: maps['LocationID'] as String,
+      type: maps['Type'] as String,
+      facilityName: maps['FacilityName'] as String,
+      coordinate: LatLng(
+          maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
+      elevation: elevation,
+      variation: maps['Variation'] as int,
+      hiwas: maps['Hiwas'] as String,
+      class_: maps['Class'] as String,
+    );
+  }
 }
 
 class FixDestination extends Destination {
@@ -109,18 +151,19 @@ class FixDestination extends Destination {
     required super.type,
     required super.facilityName,
     required super.coordinate,});
+
+  factory FixDestination.fromMap(Map<String, dynamic> maps) {
+    return FixDestination(
+        locationID: maps['LocationID'] as String,
+        facilityName: maps['FacilityName'] as String,
+        type: maps['Type'] as String,
+        coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double));
+  }
+
 }
 
 class GpsDestination extends Destination {
   GpsDestination({
-    required super.locationID,
-    required super.type,
-    required super.facilityName,
-    required super.coordinate,});
-}
-
-class NonFaaDestination extends Destination {
-  NonFaaDestination({
     required super.locationID,
     required super.type,
     required super.facilityName,
@@ -148,6 +191,33 @@ class AirportDestination extends Destination {
     required this.unicom,
     required this.ctaf
   });
+
+
+  factory AirportDestination.fromMap(Map<String, dynamic> maps,
+      List<Map<String, dynamic>> mapsFreq,
+      List<Map<String, dynamic>> mapsAwos,
+      List<Map<String, dynamic>> mapsRunways) {
+
+    double elevation = 0;
+    try {
+      elevation = double.parse(maps['ARPElevation'] as String);
+    }
+    catch(e) {}
+
+    return AirportDestination(
+        locationID: maps['LocationID'] as String,
+        elevation: elevation,
+        facilityName: maps['FacilityName'] as String,
+        coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
+        type: maps['Type'] as String,
+        ctaf: maps['CTAFFrequency'] as String,
+        unicom: maps['UNICOMFrequencies'] as String,
+        frequencies: mapsFreq,
+        awos: mapsAwos,
+        runways: mapsRunways
+    );
+  }
+
 }
 
 class AirwayDestination extends Destination {
@@ -161,10 +231,57 @@ class AirwayDestination extends Destination {
     required super.coordinate,
     required this.points
   });
+
+  factory AirwayDestination.fromMap(List<Map<String, dynamic>> maps) {
+
+    // airway has multiple entries for sequences
+    List<Destination> ret = List.generate(maps.length, (i) {
+      return Destination(
+        locationID: maps[i]['name'] as String,
+        facilityName: maps[i]['name'] as String,
+        type: Destination.typeAirway,
+        coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
+      );
+    });
+
+    return AirwayDestination(
+        locationID: ret[0].locationID,
+        type: ret[0].type,
+        facilityName: ret[0].facilityName,
+        coordinate: ret[0].coordinate,
+        points: ret);
+  }
 }
 
+class DestinationFactory {
 
-class TypeIcons {
+  // make a destination from a generic destination through db query.
+  static Future<Destination> make(Destination d) async {
+
+    String type = d.type;
+    Destination ret = d;
+
+    if (Destination.isNav(type)) {
+      NavDestination? destination = await MainDatabaseHelper.db.findNav(d.locationID);
+      ret = destination ?? d;
+    }
+    else if (Destination.isAirport(type)) {
+      AirportDestination? destination = await MainDatabaseHelper.db.findAirport(d.locationID);
+      ret = destination ?? d;
+    }
+    else if (Destination.isFix(type)) {
+      FixDestination? destination = await MainDatabaseHelper.db.findFix(d.locationID);
+      ret = destination ?? d;
+    }
+    else if (Destination.isAirway(type)) {
+      AirwayDestination? destination = await MainDatabaseHelper.db.findAirway(d.locationID);
+      ret = destination ?? d;
+    }
+    else if (Destination.isGps(type)) {
+    }
+
+    return ret;
+  }
 
   static Widget getIcon(String type, Color? color) {
     color = color ?? Colors.white;

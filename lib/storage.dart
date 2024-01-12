@@ -37,7 +37,7 @@ class Storage {
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
 
-  PlanRoute route = PlanRoute();
+  PlanRoute route = PlanRoute("New Plan");
 
   // gps
   final _gps = Gps();

@@ -1,6 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-import 'package:latlong2/latlong.dart';
+import 'package:avaremp/plan_route.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -38,24 +39,23 @@ class UserDatabaseHelper {
                 "FacilityName text, "
                 "Type         text, "
                 "ARPLatitude  float, "
-                "ARPLongitude float, "
-                "unique(LocationID, Type) on conflict replace);");
+                "ARPLongitude float);");
+
+            await db.execute("create table plan ("
+                "id           integer primary key autoincrement, "
+                "name         text, "
+                "route        text, "
+                "unique(name) on conflict replace);");
+
           },
           onOpen: (db) {});
   }
 
   Future<void> addRecent(Destination recent) async {
     final db = await database;
-    Map<String, Object?> map = {
-      "LocationID": recent.locationID,
-      "FacilityName" : recent.facilityName,
-      "Type": recent.type,
-      "ARPLatitude": recent.coordinate.latitude,
-      "ARPLongitude": recent.coordinate.longitude,
-    };
 
     if (db != null) {
-      await db.insert("recent", map);
+      await db.insert("recent", recent.toMap());
     }
   }
 
@@ -69,12 +69,7 @@ class UserDatabaseHelper {
           "Type='ULTRALIGHT' or "
           "Type='BALLOONPORT' order by id desc;");
       return List.generate(maps.length, (i) {
-        return Destination(
-            locationID: maps[i]['LocationID'] as String,
-            facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String,
-            coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
-        );
+        return Destination.fromMap(maps[i]);
       });
     }
     return [];
@@ -86,12 +81,7 @@ class UserDatabaseHelper {
     if (db != null) {
       maps = await db.rawQuery("select * from recent order by id desc"); // most recent first
       return List.generate(maps.length, (i) {
-        return Destination(
-            locationID: maps[i]['LocationID'] as String,
-            facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String,
-            coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double)
-        );
+        return Destination.fromMap(maps[i]);
       });
     }
     return [];
@@ -104,5 +94,46 @@ class UserDatabaseHelper {
           "'${destination.locationID}' and Type='${destination.type}'");
     }
   }
+
+  Future<void> addPlan(String name, PlanRoute route) async {
+    final db = await database;
+
+    if (db != null && route.isNotEmpty) { // do not add empty plans
+      await db.insert("plan", route.toMap(name));
+    }
+  }
+
+  Future<void> deletePlan(String name) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.rawQuery("delete from plan where name='$name'");
+    }
+  }
+
+  Future<List<PlanRoute>> getPlans() async {
+    List<Map<String, dynamic>> maps = [];
+    List<PlanRoute> ret = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from plan order by id desc"); // most recent first
+    }
+
+    for(Map<String, dynamic> map in maps) {
+      String json = map['route'] as String;
+      List<dynamic> decoded = jsonDecode(json);
+      PlanRoute route = PlanRoute.fromMap(map);
+      List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
+
+      for (Destination d in destinations) {
+        Destination expanded = await DestinationFactory.make(d);
+        Waypoint w = Waypoint(expanded);
+        route.addWaypoint(w);
+      }
+      ret.add(route);
+    }
+    return ret;
+  }
+
 }
 

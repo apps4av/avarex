@@ -42,7 +42,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
 
     Column(children: [
       ListTile(
-          leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
+          leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
           title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white)),
           subtitle: const PlanLineWidget(),
           onTap: () {
@@ -57,7 +57,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
 
     return Column(children: [
       ExpansionTile(
-        leading: TypeIcons.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Colors.white),
+        leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Colors.white),
         title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white),),
         subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwayDestinationIndex].locationID),
         children: <Widget>[
@@ -82,7 +82,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
         ListTile(
           title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.next) ? Constants.planCurrentColor : Colors.white)),
           subtitle: const PlanLineWidget(),
-          leading: TypeIcons.getIcon(widget.waypoint.destination.type, Colors.white),
+          leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
           onTap: () {
             setState(() {
               widget.waypoint.currentAirwayDestinationIndex = widget.waypoint.airwayDestinationsOnRoute.indexOf(destinations[index]);

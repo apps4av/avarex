@@ -50,12 +50,7 @@ class MainDatabaseHelper {
     }
 
     List<Destination> ret = List.generate(maps.length, (i) {
-      return Destination(
-          locationID: maps[i]['LocationID'] as String,
-          facilityName: maps[i]['FacilityName'] as String,
-          type: maps[i]['Type'] as String,
-          coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
-      );
+      return Destination.fromMap(maps[i]);
     });
 
 
@@ -114,12 +109,7 @@ class MainDatabaseHelper {
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {
-        return Destination(
-            locationID: maps[i]['LocationID'] as String,
-            facilityName: maps[i]['FacilityName'] as String,
-            type: maps[i]['Type'] as String,
-            coordinate: LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double),
-        );
+        return Destination.fromMap(maps[i]);
       });
     }
     // always add touch point of GPS, GPS is not a database type so prefix with _
@@ -143,11 +133,7 @@ class MainDatabaseHelper {
           "order by distance asc";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
-      return Destination(
-        locationID: maps[0]['LocationID'] as String,
-        facilityName: maps[0]['FacilityName'] as String,
-        type: maps[0]['Type'] as String,
-        coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double));
+      return Destination.fromMap(maps[0]);
     }
     // always add touch point of GPS, GPS is not a database type so prefix with _
     String gps = Destination.formatSexagesimal(point.toSexagesimal());
@@ -170,24 +156,7 @@ class MainDatabaseHelper {
       return null;
     }
 
-    double elevation = 0;
-    try {
-      elevation = double.parse(mapsAirports[0]['ARPElevation'] as String);
-    }
-    catch(e) {}
-
-    return AirportDestination(
-        locationID: mapsAirports[0]['LocationID'] as String,
-        elevation: elevation,
-        facilityName: mapsAirports[0]['FacilityName'] as String,
-        coordinate: LatLng(mapsAirports[0]['ARPLatitude'] as double, mapsAirports[0]['ARPLongitude'] as double),
-        type: mapsAirports[0]['Type'] as String,
-        ctaf: mapsAirports[0]['CTAFFrequency'] as String,
-        unicom: mapsAirports[0]['UNICOMFrequencies'] as String,
-        frequencies: mapsFreq,
-        awos: mapsAwos,
-        runways: mapsRunways
-    );
+    return AirportDestination.fromMap(mapsAirports[0], mapsFreq, mapsAwos, mapsRunways);
   }
 
   Future<NavDestination?> findNav(String nav) async {
@@ -200,22 +169,7 @@ class MainDatabaseHelper {
       return null;
     }
 
-    double elevation = 0;
-    try {
-      elevation = double.parse(maps[0]['Elevation'] as String);
-    }
-    catch(e) {}
-
-    return NavDestination(
-        locationID: maps[0]['LocationID'] as String,
-        type: maps[0]['Type'] as String,
-        facilityName: maps[0]['FacilityName'] as String,
-        coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
-        elevation: elevation,
-        variation: maps[0]['Variation'] as int,
-        hiwas: maps[0]['Hiwas'] as String,
-        class_: maps[0]['Class'] as String,
-    );
+    return NavDestination.fromMap(maps[0]);
   }
 
   Future<FixDestination?> findFix(String fix) async {
@@ -228,12 +182,7 @@ class MainDatabaseHelper {
       return null;
     }
 
-    return FixDestination(
-      locationID: maps[0]['LocationID'] as String,
-      type: maps[0]['Type'] as String,
-      facilityName: maps[0]['FacilityName'] as String,
-      coordinate: LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double),
-    );
+    return FixDestination.fromMap(maps[0]);
   }
 
   Future<AirwayDestination?> findAirway(String airway) async {
@@ -247,26 +196,7 @@ class MainDatabaseHelper {
       return null;
     }
 
-    List<Destination> ret2 = List.generate(maps.length, (i) {
-      return Destination(
-        locationID: maps[i]['name'] as String,
-        facilityName: maps[i]['name'] as String,
-        type: Destination.typeAirway,
-        coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
-      );
-    });
-
-    if(ret2.isNotEmpty) { // add all airway points
-      AirwayDestination airwayDestination = AirwayDestination(
-          locationID: ret2[0].locationID,
-          type: ret2[0].type,
-          facilityName: ret2[0].facilityName,
-          coordinate: ret2[0].coordinate,
-          points: ret2);
-      return airwayDestination;
-    }
-
-    return null;
+    return AirwayDestination.fromMap(maps);
   }
 
 

@@ -1,4 +1,6 @@
 
+import 'dart:convert';
+
 import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:flutter/cupertino.dart';
@@ -15,6 +17,7 @@ class PlanRoute {
   List<LatLng> _pointsCurrent = [];
   List<LatLng> _pointsNext = [];
   Waypoint? _current;
+  String name;
   final change = ValueNotifier<int>(0);
 
   void _airwayAdjust(Waypoint waypoint) {
@@ -220,6 +223,33 @@ class PlanRoute {
 
   int get length => _waypoints.length;
 
+  // convert route to json
+  Map<String, Object?> toMap(String name) {
+
+    // put all destinations in json
+    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
+    String json = jsonEncode(maps);
+
+    Map<String, Object?> jsonMap = {'name' : name, 'route' : json};
+
+    return jsonMap;
+  }
+
+  // default constructor creates empty route
+  PlanRoute(this.name);
+
+  // convert json to Route
+  factory PlanRoute.fromMap(Map<String, Object?> maps) {
+    PlanRoute route = PlanRoute(maps['name'] as String);
+    return route;
+  }
+
+  bool get isNotEmpty => _waypoints.isNotEmpty;
+
+  @override
+  String toString() {
+    return _waypoints.map((e) => e.destination.locationID).toList().join("->");
+  }
 }
 
 class Waypoint {
@@ -246,7 +276,6 @@ class Waypoint {
 
   // return points passed, current, next
   List<Destination> getDestinationsPassed() {
-
     if(airwayDestinationsOnRoute.isNotEmpty) {
       return currentAirwayDestinationIndex == 0 ?
         [] : airwayDestinationsOnRoute.sublist(0, currentAirwayDestinationIndex);

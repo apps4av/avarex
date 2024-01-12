@@ -40,7 +40,7 @@ class FindScreenState extends State<FindScreen> {
     _height = Scaffold.of(context).appBarMaxHeight;
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recents when not searching
+      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _curItems = snapshot.data;
@@ -113,7 +113,7 @@ class FindScreenState extends State<FindScreen> {
                             showDestination(context, item);
                           });
                         },
-                        leading: TypeIcons.getIcon(item.type, null)
+                        leading: DestinationFactory.getIcon(item.type, null)
                       ),
                     );
                   },
