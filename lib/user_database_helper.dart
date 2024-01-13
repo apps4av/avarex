@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'package:avaremp/plan_route.dart';
 import 'package:path/path.dart';
@@ -45,8 +44,8 @@ class UserDatabaseHelper {
             await db.execute("create table plan ("
                 "id           integer primary key autoincrement, "
                 "name         text, "
-                "route        text);");
-
+                "route        text, "
+                "unique(name) on conflict replace);");
           },
           onOpen: (db) {});
   }
@@ -111,29 +110,29 @@ class UserDatabaseHelper {
     }
   }
 
-  Future<List<PlanRoute>> getPlans() async {
+  Future<List<String>> getPlans() async {
     List<Map<String, dynamic>> maps = [];
-    List<PlanRoute> ret = [];
+    List<String> ret = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from plan order by id desc"); // most recent first
+      maps = await db.rawQuery("select name from plan order by id desc"); // most recent first
     }
 
     for(Map<String, dynamic> map in maps) {
-      String json = map['route'] as String;
-      List<dynamic> decoded = jsonDecode(json);
-      PlanRoute route = PlanRoute.fromMap(map);
-      List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
-
-      for (Destination d in destinations) {
-        Destination expanded = await DestinationFactory.make(d);
-        Waypoint w = Waypoint(expanded);
-        route.addWaypoint(w);
-      }
-      ret.add(route);
+      ret.add(map['name']);
     }
     return ret;
   }
 
+  Future<PlanRoute> getPlan(String name) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from plan where name='$name'"); // most recent first
+    }
+
+    PlanRoute route = await PlanRoute.fromMap(maps[0]);
+    return route;
+  }
 }
 

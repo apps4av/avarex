@@ -16,7 +16,7 @@ class PlanRoute {
   List<LatLng> _pointsPassed = [];
   List<LatLng> _pointsCurrent = [];
   List<LatLng> _pointsNext = [];
-  Waypoint? _current;
+  Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
 
@@ -141,6 +141,27 @@ class PlanRoute {
 
   }
 
+  void advance() {
+    if(_current != null) {
+      if(Destination.isAirway(_current!.destination.type)) {
+        if(_current!.currentAirwayDestinationIndex < _current!.airwayDestinationsOnRoute.length - 1) {
+          // flying on airway and not done
+          _current!.currentAirwayDestinationIndex++;
+          _update(false);
+          change.value++;
+          return;
+        }
+      }
+      int index = _waypoints.indexOf(_current!);
+      index++;
+      if (index < _waypoints.length) {
+        _current = _waypoints[index];
+      }
+      _update(false);
+      change.value++;
+    }
+  }
+
   Waypoint removeWaypointAt(int index) {
     Waypoint waypoint = _waypoints.removeAt(index);
     _current = (waypoint == _current) ? null : _current; // clear next its removed
@@ -168,7 +189,6 @@ class PlanRoute {
     _update(true);
     change.value++;
   }
-
 
   void setCurrentWaypointWithWaypoint(Waypoint waypoint) {
     _current = _waypoints[_waypoints.indexOf(waypoint)];
@@ -239,8 +259,17 @@ class PlanRoute {
   PlanRoute(this.name);
 
   // convert json to Route
-  factory PlanRoute.fromMap(Map<String, Object?> maps) {
+  static Future<PlanRoute> fromMap(Map<String, Object?> maps) async {
     PlanRoute route = PlanRoute(maps['name'] as String);
+    String json = maps['route'] as String;
+    List<dynamic> decoded = jsonDecode(json);
+    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
+
+    for (Destination d in destinations) {
+      Destination expanded = await DestinationFactory.make(d);
+      Waypoint w = Waypoint(expanded);
+      route.addWaypoint(w);
+    }
     return route;
   }
 

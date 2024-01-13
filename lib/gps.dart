@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -60,27 +63,46 @@ class Gps {
     }
   }
 
+  static int num = 0;
+
   StreamSubscription<Position> getStream() {
 
     StreamSubscription<Position> positionStream;
 
     if(useSim) {
-      final Stream<Position> stream = Stream<Position>.periodic(
-          const Duration(seconds: 1),
-              (count) {
-            Position p = Position(
-                longitude: -71 + count.toDouble() / 500,
-                latitude: 42 + count.toDouble() / 500,
-                timestamp: DateTime.timestamp(),
-                accuracy: 0,
-                altitude: count.toDouble(),
-                altitudeAccuracy: 0,
-                heading: count.toDouble(),
-                headingAccuracy: 0,
-                speed: count.toDouble() / 10,
-                speedAccuracy: 0);
-            return p;
-          });
+      // always fly to destination
+      final Stream<Position> stream = Stream<Position>.periodic(const Duration(seconds: 1), (count) {
+
+        List<LatLng> points = Storage().route.getPathCurrent();
+
+        if(points.isNotEmpty) {
+          if (num >= points.length - 1) {
+            Storage().route.advance();
+            points = Storage().route.getPathCurrent();
+            num = 0;
+          }
+        }
+
+        double latitude = points.isNotEmpty ? points[num].latitude : 0;
+        double longitude = points.isNotEmpty ? points[num].longitude : 0;
+
+        double heading = points.isNotEmpty ? GeoCalculations().calculateBearing(points[num], points[num + 1]) : 0;
+
+        num++;
+
+        Position p = Position(
+            longitude: longitude,
+            latitude: latitude,
+            timestamp: DateTime.timestamp(),
+            accuracy: 0,
+            altitude: count.toDouble(),
+            altitudeAccuracy: 0,
+            heading: heading,
+            headingAccuracy: 0,
+            speed: Constants.nmToM(1),
+            speedAccuracy: 0);
+        return p;
+      });
 
       positionStream = stream.listen((Position? position) {});
     }

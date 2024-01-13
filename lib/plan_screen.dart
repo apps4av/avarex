@@ -16,7 +16,7 @@ class PlanScreen extends StatefulWidget {
 class PlanScreenState extends State<PlanScreen> {
 
   String _name = "";
-  List<PlanRoute> _currentItems = [];
+  List<String> _currentItems = [];
 
   Widget _makeContent() {
 
@@ -44,7 +44,7 @@ class PlanScreenState extends State<PlanScreen> {
                           onPressed: () {
                             setState1(() {
                               Storage().route.name = _name;
-                              _currentItems.insert(0, Storage().route);
+                              _currentItems.insert(0, Storage().route.name);
                             });
                             UserDatabaseHelper.db.addPlan(_name, Storage().route);
                           },
@@ -61,26 +61,29 @@ class PlanScreenState extends State<PlanScreen> {
                 itemCount: _currentItems.length,
                 itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(_currentItems[index].name),
-                  subtitle: Text(_currentItems[index].toString()),
+                  title: Text(_currentItems[index].toString()),
                   trailing: PopupMenuButton(
                     itemBuilder: (BuildContext context)  => <PopupMenuEntry<String>>[
                     PopupMenuItem<String>(
                       child: const Text('Load'),
                       onTap: () {
-                        setState1(() {
-                          Storage().route = _currentItems[index];
-                        });
-                        setState(() {
-                          Storage().route = _currentItems[index];
-                        });
+                        re() async {
+                          PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index]);
+                          setState1(() {
+                            Storage().route = route;
+                          });
+                          setState(() {
+                            Storage().route = route;
+                          });
+                        }
+                        re();
                         Navigator.pop(context);
                       },
                     ),
                     PopupMenuItem<String>(
                       child: const Text('Delete'),
                       onTap: () {
-                        UserDatabaseHelper.db.deletePlan(_currentItems[index].name);
+                        UserDatabaseHelper.db.deletePlan(_currentItems[index]);
                         setState1(() {
                           _currentItems.removeAt(index);
                         });
@@ -154,15 +157,21 @@ class PlanScreenState extends State<PlanScreen> {
                         route.removeWaypointAt(index);
                       });
                     },
-                    child:PlanItemWidget(
-                      waypoint: route.getWaypointAt(index),
-                      current: route.isCurrent(index),
-                      onTap: () {
-                        setState(() {
-                          Storage().route.setCurrentWaypoint(index);
-                        });
-                      },),
-                  ),
+                    child: ValueListenableBuilder<int>( // update in plan change
+                      valueListenable: route.change,
+                      builder: (context, value, _) {
+                        return PlanItemWidget(
+                          waypoint: route.getWaypointAt(index),
+                          current: route.isCurrent(index),
+                          onTap: () {
+                            setState(() {
+                              Storage().route.setCurrentWaypoint(index);
+                            });
+                          },
+                        );
+                     },
+                  )
+                ),
               ],
               onReorder: (int oldIndex, int newIndex) {
                 setState(() {
@@ -179,6 +188,11 @@ class PlanScreenState extends State<PlanScreen> {
             alignment: Alignment.bottomCenter,
             child: IconButton(icon: const Icon(Icons.horizontal_rule),
               onPressed: () { _showPlans(context); },)),
+        Align(
+            alignment: Alignment.bottomRight,
+            child: TextButton(onPressed: () {
+              Storage().route.advance();
+              }, child: const Text("Next")))
       ])
     );
   }
