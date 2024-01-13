@@ -43,6 +43,7 @@ class MapScreenState extends State<MapScreen> {
   Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       useSafeArea: true,
       isScrollControlled: true,
       builder: (BuildContext context) {

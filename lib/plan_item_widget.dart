@@ -7,12 +7,12 @@ import 'destination.dart';
 
 class PlanItemWidget extends StatefulWidget {
   final Waypoint waypoint;
-  final bool next;
+  final bool current;
   final Function onTap;
 
   // it crashes if not static
 
-  const PlanItemWidget({super.key, required this.waypoint, required this.next, required this.onTap});
+  const PlanItemWidget({super.key, required this.waypoint, required this.current, required this.onTap});
 
   @override
   State<StatefulWidget> createState() => PlanItemWidgetState();
@@ -43,7 +43,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     Column(children: [
       ListTile(
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
-          title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white)),
+          title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Colors.white)),
           subtitle: const PlanLineWidget(),
           onTap: () {
             widget.onTap();
@@ -58,7 +58,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     return Column(children: [
       ExpansionTile(
         leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Colors.white),
-        title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.next ? Constants.planCurrentColor : Colors.white),),
+        title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Colors.white),),
         subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwayDestinationIndex].locationID),
         children: <Widget>[
           Column(children: _buildExpandableContent(future),)
@@ -80,7 +80,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     for (int index = 0; index < destinations.length; index++) {
       columnContent.add(
         ListTile(
-          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.next) ? Constants.planCurrentColor : Colors.white)),
+          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.current) ? Constants.planCurrentColor : Colors.white)),
           subtitle: const PlanLineWidget(),
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
           onTap: () {

@@ -119,10 +119,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
       child: Stack(children:[
         Column(
         children: [
-          const Expanded(
-              flex: 1,
-              child: Icon(Icons.drag_handle)),
-
           Expanded(flex: 1, child: Text("${future.showDestination.facilityName}(${future.showDestination.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),)),
           Expanded(flex: 1, child: Row(children: [
             // top action buttons
@@ -160,7 +156,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
               ) : Container(),
           ])),
           // various info
-          Expanded(flex: 20, child: CarouselSlider(
+          Expanded(flex: 18, child: CarouselSlider(
             items: cards,
             options: CarouselOptions(
               viewportFraction: 1,

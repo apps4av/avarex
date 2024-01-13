@@ -18,7 +18,7 @@ class FindScreen extends StatefulWidget {
 
 class FindScreenState extends State<FindScreen> {
 
-  List<Destination>? _curItems;
+  List<Destination>? _currentItems;
   String _searchText = "";
   double? _height;
 
@@ -26,6 +26,7 @@ class FindScreenState extends State<FindScreen> {
     bool? exitResult = await showModalBottomSheet(
       context: context,
       useSafeArea: true,
+      showDragHandle: true,
       isScrollControlled: true,
       builder: (BuildContext context) {
         return LongPressWidget(destination: destination);
@@ -43,10 +44,10 @@ class FindScreenState extends State<FindScreen> {
       future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
-          _curItems = snapshot.data;
+          _currentItems = snapshot.data;
           searching = false;
         }
-        return _makeContent(_curItems, searching);
+        return _makeContent(_currentItems, searching);
       },
     );
   }

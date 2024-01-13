@@ -39,13 +39,13 @@ class UserDatabaseHelper {
                 "FacilityName text, "
                 "Type         text, "
                 "ARPLatitude  float, "
-                "ARPLongitude float);");
+                "ARPLongitude float, "
+                "unique(LocationID, Type) on conflict replace);");
 
             await db.execute("create table plan ("
                 "id           integer primary key autoincrement, "
                 "name         text, "
-                "route        text, "
-                "unique(name) on conflict replace);");
+                "route        text);");
 
           },
           onOpen: (db) {});
@@ -98,7 +98,7 @@ class UserDatabaseHelper {
   Future<void> addPlan(String name, PlanRoute route) async {
     final db = await database;
 
-    if (db != null && route.isNotEmpty) { // do not add empty plans
+    if (db != null) { // do not add empty plans
       await db.insert("plan", route.toMap(name));
     }
   }
