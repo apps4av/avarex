@@ -68,7 +68,7 @@ class PlanScreenState extends State<PlanScreen> {
                       child: const Text('Load'),
                       onTap: () {
                         re() async {
-                          PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index]);
+                          PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], false);
                           setState1(() {
                             Storage().route = route;
                           });
@@ -80,6 +80,22 @@ class PlanScreenState extends State<PlanScreen> {
                         Navigator.pop(context);
                       },
                     ),
+                      PopupMenuItem<String>(
+                        child: const Text('Load Reversed'),
+                        onTap: () {
+                          re() async {
+                            PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], true);
+                            setState1(() {
+                              Storage().route = route;
+                            });
+                            setState(() {
+                              Storage().route = route;
+                            });
+                          }
+                          re();
+                          Navigator.pop(context);
+                        },
+                      ),
                     PopupMenuItem<String>(
                       child: const Text('Delete'),
                       onTap: () {

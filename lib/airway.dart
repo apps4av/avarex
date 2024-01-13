@@ -94,9 +94,11 @@ class Airway {
     }
 
     // Add all points on the route, skip start and end points
-    LatLng lastCoordinate = coordinates[startIndex];
     if(startIndex < endIndex) {
-      for(int i = startIndex + 1; i < endIndex - 1; i++) {
+      startIndex++;
+      endIndex--; // remove entry and exit as they are in the plan already
+      LatLng lastCoordinate = coordinates[startIndex];
+      for(int i = startIndex; i <= endIndex; i++) {
         LatLng c = coordinates[i];
         // Keep far away airways out
         if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
@@ -109,8 +111,11 @@ class Airway {
       }
     }
     else {
+      startIndex--;
+      endIndex++;
+      LatLng lastCoordinate = coordinates[startIndex];
       // Flying it reverse
-      for(int i = startIndex - 1; i >= endIndex + 1; i--) {
+      for(int i = startIndex; i >= endIndex; i--) {
         LatLng c = coordinates[i];
         // Keep far away airways out
         if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {

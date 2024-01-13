@@ -124,14 +124,14 @@ class UserDatabaseHelper {
     return ret;
   }
 
-  Future<PlanRoute> getPlan(String name) async {
+  Future<PlanRoute> getPlan(String name, bool reverse) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
       maps = await db.rawQuery("select * from plan where name='$name'"); // most recent first
     }
 
-    PlanRoute route = await PlanRoute.fromMap(maps[0]);
+    PlanRoute route = await PlanRoute.fromMap(maps[0], reverse);
     return route;
   }
 }
