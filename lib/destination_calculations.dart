@@ -22,6 +22,9 @@ class DestinationCalculations {
     GeoCalculations calculations = GeoCalculations();
     List<LatLng> points = calculations.findPoints(_from.coordinate, _to.coordinate);
     // take initial bearing only
+    if(points.length < 2) {
+      return;
+    }
     bearing = calculations.calculateBearing(points[0], points[1]);
     distance = 0;
     for(int index = 0; index < points.length - 1; index++) {

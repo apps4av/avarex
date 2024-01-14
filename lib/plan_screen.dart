@@ -208,8 +208,10 @@ class PlanScreenState extends State<PlanScreen> {
         Align(
             alignment: Alignment.bottomRight,
             child: TextButton(onPressed: () {
-              Storage().route.advance();
-              }, child: const Text("Next")))
+              setState(() {
+                Storage().route.advance();
+              });
+            }, child: const Text("Next")))
       ])
     );
   }

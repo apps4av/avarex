@@ -59,105 +59,66 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     navigationBar.onTap!(tabLocationMap); // go to plate screen
   }
 
-  Future<bool> _onPop(BuildContext context) async {
-    bool? exitResult = await showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              alignment: Alignment.centerLeft,
-              child: const Text(
-                'Do you really want to exit the app?',
-              )
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('CANCEL'),
-                ),
-
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('EXIT'),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-    return exitResult ?? false;
-  }
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        await _onPop(context) ? SystemNavigator.pop() : {};
-      },
-      child:Scaffold(
-        extendBodyBehindAppBar: true,
-        extendBody: true,
-        endDrawerEnableOpenDragGesture: false,
-        drawerEnableOpenDragGesture: false,
-        drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
-          child: Drawer(
-            child: ListView(children: [
-              ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
-              ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
-            ],
-          ))
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      endDrawerEnableOpenDragGesture: false,
+      drawerEnableOpenDragGesture: false,
+      drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
+        child: Drawer(
+          child: ListView(children: [
+            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () {  },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
+            ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
+          ],
+        ))
+      ),
+      appBar: AppBar(
+        actions: [Container()], // do not show warnings button
+        leading: Container(),
+        backgroundColor: Constants.appBarBackgroundColor,
+        iconTheme: const IconThemeData(color: Constants.appBarButtonColor),
+        flexibleSpace: const SafeArea(
+          minimum: EdgeInsets.fromLTRB(0, 0, 0, 0),
+          child: InstrumentList()
         ),
-        appBar: AppBar(
-          actions: [Container()], // do not show warnings button
-          leading: Container(),
-          backgroundColor: Constants.appBarBackgroundColor,
-          iconTheme: const IconThemeData(color: Constants.appBarButtonColor),
-          flexibleSpace: const SafeArea(
-            minimum: EdgeInsets.fromLTRB(0, 0, 0, 0),
-            child: InstrumentList()
-          ),
+      ),
+      body: Center(
+        child: _widgetOptions.elementAt(_selectedIndex),
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(5),
+        child:BottomNavigationBar(
+          unselectedFontSize: 10,
+          selectedFontSize: 14,
+          key: Storage().globalKeyBottomNavigationBar,
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Constants.bottomNavBarBackgroundColor,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map),
+              label: 'MAP',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.book),
+              label: 'PLATE',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.route),
+              label: 'PLAN',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search),
+              label: 'FIND',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: mOnItemTapped,
         ),
-        body: Center(
-          child: _widgetOptions.elementAt(_selectedIndex),
-        ),
-        bottomNavigationBar: Container(
-          padding: const EdgeInsets.all(5),
-          child:BottomNavigationBar(
-            unselectedFontSize: 10,
-            selectedFontSize: 14,
-            key: Storage().globalKeyBottomNavigationBar,
-            type: BottomNavigationBarType.fixed,
-            backgroundColor: Constants.bottomNavBarBackgroundColor,
-            items: const <BottomNavigationBarItem>[
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map),
-                label: 'MAP',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.book),
-                label: 'PLATE',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.route),
-                label: 'PLAN',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.search),
-                label: 'FIND',
-              ),
-            ],
-            currentIndex: _selectedIndex,
-            onTap: mOnItemTapped,
-          ),
-        )
-    ));
+      )
+    );
   }
 
   @override
