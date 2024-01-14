@@ -1,10 +1,14 @@
+import 'package:avaremp/destination_calculations.dart';
 import 'package:flutter/material.dart';
+
+import 'constants.dart';
+import 'destination.dart';
 
 class PlanLineWidget extends StatefulWidget {
 
-  // it crashes if not static
+  final Destination destination;
 
-  const PlanLineWidget({super.key, });
+  const PlanLineWidget({super.key, required this.destination, });
 
   @override
   State<StatefulWidget> createState() => PlanLineWidgetState();
@@ -16,7 +20,7 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
   Widget build(BuildContext context) {
     return Column(
         children: [
-          getNullFields()
+          _getFields()
         ]
       );
   }
@@ -26,19 +30,32 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
       Expanded(flex: 1, child: Text("Dist")),
       Expanded(flex: 1, child: Text("Hdng")),
       Expanded(flex: 1, child: Text("Time")),
-      Expanded(flex: 1, child: Text("Alt")),
       Expanded(flex: 1, child: Text("Fuel")),
     ]);
   }
 
   static Widget getNullFields() {
     return const Row(children: [
-    Expanded(flex: 1, child: Text("---")),
-    Expanded(flex: 1, child: Text("---")),
-    Expanded(flex: 1, child: Text("--:--")),
-    Expanded(flex: 1, child: Text("-----")),
-    Expanded(flex: 1, child: Text("---")),
+      Expanded(flex: 1, child: Text("---")),
+      Expanded(flex: 1, child: Text("---")),
+      Expanded(flex: 1, child: Text("--:--")),
+      Expanded(flex: 1, child: Text("---")),
     ]);
+  }
+
+  static Widget getFieldsFromCalculations(DestinationCalculations? calculations) {
+    return null == calculations ?
+      getNullFields() :
+      Row(children: [
+        Expanded(flex: 1, child: Text(calculations.distance.round().toString())),
+        Expanded(flex: 1, child: Text(calculations.bearing.round().toString())),
+        Expanded(flex: 1, child: Text(Constants.secondsToHHmm(calculations.time.round()))),
+        Expanded(flex: 1, child: Text(calculations.fuel.toStringAsFixed(1))),
+      ]);
+  }
+
+  Widget _getFields() {
+    return getFieldsFromCalculations(widget.destination.calculations);
   }
 
 }

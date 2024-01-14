@@ -93,40 +93,26 @@ class Airway {
       return ret;
     }
 
+    List<LatLng> selected = [];
+
     // Add all points on the route, skip start and end points
     if(startIndex < endIndex) {
-      startIndex++;
-      endIndex--; // remove entry and exit as they are in the plan already
-      LatLng lastCoordinate = coordinates[startIndex];
-      for(int i = startIndex; i <= endIndex; i++) {
-        LatLng c = coordinates[i];
-        // Keep far away airways out
-        if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
-          continue;
-        }
-        lastCoordinate = c;
-        // add it
-        Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
-        ret.add(d);
-      }
+      selected = coordinates.sublist(startIndex + 1, endIndex);
     }
     else {
-      startIndex--;
-      endIndex++;
-      LatLng lastCoordinate = coordinates[startIndex];
-      // Flying it reverse
-      for(int i = startIndex; i >= endIndex; i--) {
-        LatLng c = coordinates[i];
-        // Keep far away airways out
-        if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
-          continue;
-        }
-        lastCoordinate = c;
+      selected = coordinates.sublist(endIndex + 1, startIndex).reversed.toList();
+    }
 
-        // add it
-        Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
-        ret.add(d);
+    LatLng lastCoordinate = selected[0];
+    for(LatLng c in selected) {
+      // Keep far away airways out
+      if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
+        continue;
       }
+      lastCoordinate = c;
+      // add it
+      Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
+      ret.add(d);
     }
 
     return ret;

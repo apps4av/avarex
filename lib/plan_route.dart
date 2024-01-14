@@ -3,11 +3,14 @@ import 'dart:convert';
 
 import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/waypoint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'destination.dart';
+import 'destination_calculations.dart';
 
 class PlanRoute {
 
@@ -19,6 +22,12 @@ class PlanRoute {
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
+
+  DestinationCalculations? totalCalculations;
+
+  int get length => _waypoints.length;
+  bool get isNotEmpty => _waypoints.isNotEmpty;
+
 
   void _airwayAdjust(Waypoint waypoint) {
 
@@ -65,7 +74,7 @@ class PlanRoute {
 
   // connect d0 to d1, modify d1, last destination of d0 goes as first of d1
   void _connect(List<Destination> d0, List<Destination> d1) {
-    if (d1.isEmpty || d0.isEmpty) {
+    if (d0.isEmpty) {
       return;
     }
     d1.insert(0, d0[d0.length - 1]);
@@ -131,13 +140,40 @@ class PlanRoute {
       destinationsCurrent.add(current.destination);
     }
 
+    // everything in plan needs to be calculated in plan
+    List<Destination> allDestinations = destinationsPassed;
+    allDestinations.addAll(destinationsCurrent);
+    allDestinations.addAll(destinationsNext);
+
+    // calculate plan
+    for(int index = 0; index < allDestinations.length - 1; index++) {
+      DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
+          Storage().settings.getTas(),
+          Storage().settings.getFuelBurn());
+      calc.calculateTo();
+      allDestinations[index + 1].calculations = calc;
+    }
+
     //make connections to paths
     _connect(destinationsPassed, destinationsCurrent); // current now has last passed
     _connect(destinationsCurrent, destinationsNext); // next has now current
 
+    totalCalculations = null;
+    if(destinationsNext.isEmpty) {
+      // last leg
+      totalCalculations = allDestinations[allDestinations.length - 1].calculations;
+    }
+
+    for(int index = 0; index < destinationsNext.length; index++) {
+      totalCalculations = (totalCalculations == null) ?
+        destinationsNext[index].calculations : totalCalculations!.sum(destinationsNext[index].calculations!);
+    }
+
+    // make paths
     _pointsPassed = _makePathPoints(destinationsPassed);
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
+
 
   }
 
@@ -241,8 +277,6 @@ class PlanRoute {
     return _waypoints.indexOf(_current!) == index;
   }
 
-  int get length => _waypoints.length;
-
   // convert route to json
   Map<String, Object?> toMap(String name) {
 
@@ -257,6 +291,16 @@ class PlanRoute {
 
   // default constructor creates empty route
   PlanRoute(this.name);
+
+  // copy a plan into this
+  void copyFrom(PlanRoute other) {
+    name = other.name;
+    _current = null;
+    _waypoints.removeRange(0, _waypoints.length);
+    for(Waypoint w in other._waypoints) {
+      addWaypoint(w);
+    }
+  }
 
   // convert json to Route
   static Future<PlanRoute> fromMap(Map<String, Object?> maps, bool reverse) async {
@@ -276,51 +320,8 @@ class PlanRoute {
     return route;
   }
 
-  bool get isNotEmpty => _waypoints.isNotEmpty;
-
   @override
   String toString() {
     return _waypoints.map((e) => e.destination.locationID).toList().join("->");
   }
-}
-
-class Waypoint {
-
-  final Destination _destination;
-  List<Destination> airwayDestinationsOnRoute = [];
-  int currentAirwayDestinationIndex = 0;
-
-  Waypoint(this._destination);
-
-  Destination get destination {
-    return airwayDestinationsOnRoute.isNotEmpty ?
-      airwayDestinationsOnRoute[currentAirwayDestinationIndex] : _destination;
-  }
-
-  // return points passed, current, next
-  List<Destination> getDestinationsNext() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return currentAirwayDestinationIndex == (airwayDestinationsOnRoute.length - 1) ?
-        [] : airwayDestinationsOnRoute.sublist(currentAirwayDestinationIndex + 1, airwayDestinationsOnRoute.length);
-    }
-    return [];
-  }
-
-  // return points passed, current, next
-  List<Destination> getDestinationsPassed() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return currentAirwayDestinationIndex == 0 ?
-        [] : airwayDestinationsOnRoute.sublist(0, currentAirwayDestinationIndex);
-    }
-    return [];
-  }
-
-  // return points passed, current, next
-  List<Destination> getDestinationsCurrent() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return [airwayDestinationsOnRoute[currentAirwayDestinationIndex]];
-    }
-    return [];
-  }
-
 }

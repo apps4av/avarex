@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/waypoint.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,7 +38,8 @@ class Storage {
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
 
-  PlanRoute route = PlanRoute("New Plan");
+  final PlanRoute _route = PlanRoute("New Plan");
+  PlanRoute get route => _route;
 
   // gps
   final _gps = Gps();

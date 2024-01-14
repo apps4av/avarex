@@ -69,11 +69,12 @@ class PlanScreenState extends State<PlanScreen> {
                       onTap: () {
                         re() async {
                           PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], false);
+                          Storage().route.copyFrom(route);
                           setState1(() {
-                            Storage().route = route;
+                            Storage().route.setCurrentWaypoint(0);
                           });
                           setState(() {
-                            Storage().route = route;
+                            Storage().route.setCurrentWaypoint(0);
                           });
                         }
                         re();
@@ -85,11 +86,12 @@ class PlanScreenState extends State<PlanScreen> {
                         onTap: () {
                           re() async {
                             PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], true);
+                            Storage().route.copyFrom(route);
                             setState1(() {
-                              Storage().route = route;
+                              Storage().route.setCurrentWaypoint(0);
                             });
                             setState(() {
-                              Storage().route = route;
+                              Storage().route.setCurrentWaypoint(0);
                             });
                           }
                           re();
@@ -156,8 +158,7 @@ class PlanScreenState extends State<PlanScreen> {
               key: Key(Storage().getKey()),
               leading: const Icon(Icons.summarize_outlined),
               title: PlanLineWidgetState.getHeading(),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10),),
-              subtitle: PlanLineWidgetState.getNullFields(),
+              subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations),
             )), // heading for dist, time etc.
             Expanded(flex: 5, child: ReorderableListView(
               scrollDirection: Axis.vertical,

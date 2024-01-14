@@ -1,6 +1,6 @@
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_line_widget.dart';
-import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/waypoint.dart';
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import 'destination.dart';
@@ -44,7 +44,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
       ListTile(
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
           title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Colors.white)),
-          subtitle: const PlanLineWidget(),
+          subtitle: PlanLineWidget(destination: widget.waypoint.destination),
           onTap: () {
             widget.onTap();
           }
@@ -81,7 +81,7 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
       columnContent.add(
         ListTile(
           title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.current) ? Constants.planCurrentColor : Colors.white)),
-          subtitle: const PlanLineWidget(),
+          subtitle: PlanLineWidget(destination: future.lookupAirwaySegments[index],),
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Colors.white),
           onTap: () {
             setState(() {
@@ -105,8 +105,11 @@ class AirwayLookupFuture {
   // get everything from database about this airway
   Future<void> _getAll() async {
     for(Destination destination in waypoint.airwayDestinationsOnRoute) {
+      // fill up actual names of places in the airway segments
       Destination destinationFound = await MainDatabaseHelper.db.findNearNavOrFixElseGps(destination.coordinate);
       lookupAirwaySegments.add(destinationFound);
+      // keep the calculations as they are same
+      destinationFound.calculations = destination.calculations;
     }
   }
 

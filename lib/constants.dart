@@ -4,6 +4,11 @@ class Constants {
 
   static double mToNm(double meters) {return 0.000539957 * meters;}
   static double nmToM(distance) {return distance / 0.000539957;}
+  static String secondsToHHmm(int seconds) {
+    final Duration duration = Duration(seconds: seconds);
+    final List<String> tokens = duration.toString().split(":");
+    return("${tokens[0].padLeft(2, "0")}:${tokens[1].padLeft(2, "0")}");
+  }
 
   static const Color appBarButtonColor = Colors.white;
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
+import 'destination_calculations.dart';
 import 'main_database_helper.dart';
 
 class Destination {
@@ -12,8 +13,9 @@ class Destination {
   final String type;
   final String facilityName;
   final LatLng coordinate;
+  DestinationCalculations? calculations; // how to get there
 
-  const Destination({
+  Destination({
     required this.locationID,
     required this.type,
     required this.facilityName,
@@ -103,7 +105,6 @@ class Destination {
     };
     return map;
   }
-
 }
 
 class NavDestination extends Destination {
