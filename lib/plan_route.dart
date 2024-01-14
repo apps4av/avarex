@@ -106,6 +106,7 @@ class PlanRoute {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNext = [];
+      totalCalculations = null;
       return;
     }
 
@@ -141,12 +142,14 @@ class PlanRoute {
     }
 
     // everything in plan needs to be calculated in plan
-    List<Destination> allDestinations = destinationsPassed;
+    List<Destination> allDestinations = [];
+    allDestinations.addAll(destinationsPassed);
     allDestinations.addAll(destinationsCurrent);
     allDestinations.addAll(destinationsNext);
 
     // calculate plan
     for(int index = 0; index < allDestinations.length - 1; index++) {
+      allDestinations[0].calculations = null;
       DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
           Storage().settings.getTas(),
           Storage().settings.getFuelBurn());
@@ -166,15 +169,14 @@ class PlanRoute {
 
     for(int index = 0; index < destinationsNext.length; index++) {
       totalCalculations = (totalCalculations == null) ?
-        destinationsNext[index].calculations : totalCalculations!.sum(destinationsNext[index].calculations!);
+        destinationsNext[index].calculations :
+        totalCalculations!.sum(destinationsNext[index].calculations!);
     }
 
     // make paths
     _pointsPassed = _makePathPoints(destinationsPassed);
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
-
-
   }
 
   void advance() {

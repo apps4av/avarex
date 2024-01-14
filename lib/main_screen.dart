@@ -3,6 +3,7 @@ import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'constants.dart';
 import 'instrument_list.dart';
 import 'map_screen.dart';
@@ -95,7 +96,11 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(onWillPop: () => _onPop(context),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        await _onPop(context) ? SystemNavigator.pop() : {};
+      },
       child:Scaffold(
         extendBodyBehindAppBar: true,
         extendBody: true,
