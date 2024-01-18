@@ -22,6 +22,8 @@ class PlanRoute {
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
+  String? altitude = "3000";
+  String? fore = "0";
 
   DestinationCalculations? totalCalculations;
 

@@ -4,13 +4,13 @@ import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
 class PlanScreen extends StatefulWidget {
-  const PlanScreen({super.key});
+  PlanScreen({super.key});
   @override
   State<StatefulWidget> createState() => PlanScreenState();
-
 }
 
 class PlanScreenState extends State<PlanScreen> {
@@ -206,12 +206,40 @@ class PlanScreenState extends State<PlanScreen> {
             child: IconButton(icon: const Icon(Icons.horizontal_rule),
               onPressed: () { _showPlans(context); },)),
         Align(
-            alignment: Alignment.bottomRight,
-            child: TextButton(onPressed: () {
-              setState(() {
-                Storage().route.advance();
-              });
-            }, child: const Text("Skip")))
+            alignment: Alignment.topRight,
+            child: Column(children:[
+              DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                isExpanded: false,
+                isDense: true,
+                value: Storage().route.altitude,
+                items: [
+                  for(int altitude = 3000; altitude <= 30000; altitude += 500)
+                    DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft"))
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    Storage().route.altitude = value;
+                  });
+                },
+              )),
+              DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                isExpanded: false,
+                isDense: true,
+                value: Storage().route.fore,
+                items: const [
+                  DropdownMenuItem<String>(value : "0", child: Text("00H")),
+                  DropdownMenuItem<String>(value : "6", child: Text("06H")),
+                  DropdownMenuItem<String>(value : "12", child: Text("12H"))
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    Storage().route.fore = value;
+                  });
+                },
+              )
+              )
+            ]
+        )),
       ])
     );
   }

@@ -15,10 +15,11 @@ import 'nav.dart';
 
 class LongPressWidget extends StatefulWidget {
   final Destination destination;
+  final CarouselController buttonCarouselController = CarouselController();
 
   // it crashes if not static
 
-  const LongPressWidget({super.key, required this.destination});
+  LongPressWidget({super.key, required this.destination});
 
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
@@ -154,9 +155,23 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ) : Container(),
+
+            cards.length > 1 ? // left right arrows
+              IconButton(
+                onPressed: () => widget.buttonCarouselController.previousPage(
+                    duration: const Duration(milliseconds: 300), curve: Curves.linear),
+                icon: const Icon(Icons.chevron_left),
+              ) : Container(),
+            cards.length > 1 ? // left right arrows
+            IconButton(
+              onPressed: () => widget.buttonCarouselController.nextPage(
+                  duration: const Duration(milliseconds: 300), curve: Curves.linear),
+              icon: const Icon(Icons.chevron_right),
+            ) : Container(),
           ])),
           // various info
           Expanded(flex: 18, child: CarouselSlider(
+            carouselController: widget.buttonCarouselController,
             items: cards,
             options: CarouselOptions(
               viewportFraction: 1,

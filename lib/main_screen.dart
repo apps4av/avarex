@@ -3,7 +3,6 @@ import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'constants.dart';
 import 'instrument_list.dart';
 import 'map_screen.dart';
@@ -31,7 +30,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   MainScreenState() {
     _widgetOptions.insert(tabLocationMap, const MapScreen());
     _widgetOptions.insert(tabLocationPlates, const PlateScreen());
-    _widgetOptions.insert(tabLocationPlan, const PlanScreen());
+    _widgetOptions.insert(tabLocationPlan, PlanScreen());
     _widgetOptions.insert(tabLocationFind, FindScreen());
   }
 
