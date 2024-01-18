@@ -131,6 +131,7 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
   Widget makePlateView(List<String> airports, List<String> plates, double height, double lon, double lat, ValueNotifier notifier) {
+
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
       InteractiveViewer(
@@ -160,7 +161,7 @@ class PlateScreenState extends State<PlateScreen> {
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
                         ),
                         isExpanded: false,
-                        value: Storage().settings.getCurrentPlateAirport(),
+                        value: airports.contains(Storage().settings.getCurrentPlateAirport()) ? Storage().settings.getCurrentPlateAirport() : airports[0],
                         items: airports.map((String item) {
                           return DropdownMenuItem<String>(
                               value: item,

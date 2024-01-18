@@ -145,8 +145,8 @@ class InstrumentListState extends State<InstrumentList> {
           onTap: cb,
           child: Column(
             children: [
-              Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic), maxLines: 1,)),
               Expanded(flex: 2, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
+              Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic), maxLines: 1,)),
             ]
           ),
         )

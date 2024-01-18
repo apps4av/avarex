@@ -1,99 +1,116 @@
+import 'dart:async';
+import 'dart:collection';
+
+import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
+import 'package:sqflite/sqflite.dart';
 
 class SettingsCacheProvider extends SharePreferenceCache {
-  /*
+
+  final HashMap<String, String> _cache = HashMap();
+  Database? _db;
+
   @override
   bool containsKey(String key) {
-    // TODO: implement containsKey
-    throw UnimplementedError();
+    bool contains = _cache.containsKey(key);
+    return contains;
   }
 
   @override
   bool? getBool(String key, {bool? defaultValue}) {
-    // TODO: implement getBool
-    throw UnimplementedError();
+    return _cache[key] == null ? defaultValue : _cache[key] == "false" ? false : true;
   }
 
   @override
   double? getDouble(String key, {double? defaultValue}) {
-    // TODO: implement getDouble
-    throw UnimplementedError();
+    return _cache[key] == null ? defaultValue : double.parse(_cache[key]!);
   }
 
   @override
   int? getInt(String key, {int? defaultValue}) {
-    // TODO: implement getInt
-    throw UnimplementedError();
+    return _cache[key] == null ? defaultValue : int.parse(_cache[key]!);
   }
 
   @override
   Set getKeys() {
-    // TODO: implement getKeys
-    throw UnimplementedError();
+    return _cache.keys.toSet();
   }
 
   @override
   String? getString(String key, {String? defaultValue}) {
-    // TODO: implement getString
-    throw UnimplementedError();
+    return _cache[key] == null ? defaultValue : _cache[key]!;
   }
 
   @override
   T? getValue<T>(String key, {T? defaultValue}) {
-    // TODO: implement getValue
-    throw UnimplementedError();
+
+    if(T == double) {
+      return getDouble(key, defaultValue : defaultValue as double) as T;
+    }
+    else if(T == String) {
+      return getString(key, defaultValue : defaultValue as String) as T;
+    }
+    else if(T == bool) {
+      return getBool(key, defaultValue : defaultValue as bool) as T;
+    }
+    else if(T == int) {
+      return getInt(key, defaultValue : defaultValue as int) as T;
+    }
+    return defaultValue;
   }
 
   @override
-  Future<void> init() {
-    // TODO: implement init
-    throw UnimplementedError();
+  Future<void> init() async {
+    _db = await UserDatabaseHelper.db.database;
+    _cache.clear();
+    // read into hashmap
+    List<Map<String, dynamic>> maps = await UserDatabaseHelper.getAllSettings(_db);
+    for(Map<String, dynamic> map in maps) {
+      _cache[map['key']] = map['value'];
+    }
   }
 
   @override
   Future<void> remove(String key) {
-    // TODO: implement remove
-    throw UnimplementedError();
+    _cache.remove(key);
+    return UserDatabaseHelper.deleteSetting(_db, key);
   }
 
   @override
   Future<void> removeAll() {
-    // TODO: implement removeAll
-    throw UnimplementedError();
+    _cache.clear();
+    return UserDatabaseHelper.deleteAllSettings(_db);
   }
 
   @override
   Future<void> setBool(String key, bool? value) {
-    // TODO: implement setBool
-    throw UnimplementedError();
+    _cache[key] = value.toString();
+    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
   }
 
   @override
   Future<void> setDouble(String key, double? value) {
-    // TODO: implement setDouble
-    throw UnimplementedError();
+    _cache[key] = value.toString();
+    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
   }
 
   @override
   Future<void> setInt(String key, int? value) {
-    // TODO: implement setInt
-    throw UnimplementedError();
+    _cache[key] = value.toString();
+    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
   }
 
   @override
   Future<void> setObject<T>(String key, T? value) {
-    // TODO: implement setObject
-    throw UnimplementedError();
+    _cache[key] = value.toString();
+    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
   }
 
   @override
   Future<void> setString(String key, String? value) {
-    // TODO: implement setString
-    throw UnimplementedError();
+    _cache[key] = value.toString();
+    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
   }
-///...
-///implement the methods as you want
-///...
 
-   */
+
 }

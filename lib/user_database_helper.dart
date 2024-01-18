@@ -46,6 +46,12 @@ class UserDatabaseHelper {
                 "name         text, "
                 "route        text, "
                 "unique(name) on conflict replace);");
+
+            await db.execute("create table settings ("
+                "key          text primary key, "
+                "value        text, "
+                "unique(key)  on conflict replace);");
+
           },
           onOpen: (db) {});
   }
@@ -134,5 +140,43 @@ class UserDatabaseHelper {
     PlanRoute route = await PlanRoute.fromMap(maps[0], reverse);
     return route;
   }
+
+  static Future<void> insertSetting(Database? db, String key, String? value) {
+    Completer<void> completer = Completer();
+    Map<String, String?> map = {};
+    map[key] = value;
+
+    if(db != null) {
+      db.rawQuery("insert into settings (key, value) values ('$key', '$value')").then((value) => completer.complete());
+    }
+    return completer.future;
+  }
+
+  static Future<void> deleteSetting(Database? db, String key) {
+    Completer<void> completer = Completer();
+
+    if(db != null) {
+      db.rawQuery("delete from settings where key=$key;").then((value) => completer.complete());
+    }
+    return completer.future;
+  }
+
+  static Future<void> deleteAllSettings(Database? db) {
+    Completer<void> completer = Completer();
+
+    if(db != null) {
+      db.rawQuery("delete * settings;").then((value) => completer.complete());
+    }
+    return completer.future;
+  }
+
+  static Future<List<Map<String, dynamic>>> getAllSettings(Database? db) async {
+    if(db != null) {
+      List<Map<String, dynamic>> maps = await db.rawQuery("select * from settings;");
+      return maps;
+    }
+    return [];
+  }
+
 }
 

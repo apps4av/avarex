@@ -211,7 +211,7 @@ class PlanScreenState extends State<PlanScreen> {
               setState(() {
                 Storage().route.advance();
               });
-            }, child: const Text("Next")))
+            }, child: const Text("Skip")))
       ])
     );
   }
