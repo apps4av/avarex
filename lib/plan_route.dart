@@ -23,7 +23,6 @@ class PlanRoute {
   String name;
   final change = ValueNotifier<int>(0);
   String? altitude = "3000";
-  String? fore = "0";
 
   DestinationCalculations? totalCalculations;
 
@@ -153,8 +152,8 @@ class PlanRoute {
     for(int index = 0; index < allDestinations.length - 1; index++) {
       allDestinations[0].calculations = null;
       DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
-          Storage().settings.getTas(),
-          Storage().settings.getFuelBurn());
+          Storage().settings.getTas().toDouble(),
+          Storage().settings.getFuelBurn().toDouble(), 0, 0);
       calc.calculateTo();
       allDestinations[index + 1].calculations = calc;
     }
@@ -200,6 +199,10 @@ class PlanRoute {
       _update(false);
       change.value++;
     }
+  }
+
+  void update() {
+    _update(false);
   }
 
   Waypoint removeWaypointAt(int index) {

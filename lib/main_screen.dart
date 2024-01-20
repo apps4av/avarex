@@ -30,7 +30,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   MainScreenState() {
     _widgetOptions.insert(tabLocationMap, const MapScreen());
     _widgetOptions.insert(tabLocationPlates, const PlateScreen());
-    _widgetOptions.insert(tabLocationPlan, PlanScreen());
+    _widgetOptions.insert(tabLocationPlan, const PlanScreen());
     _widgetOptions.insert(tabLocationFind, FindScreen());
   }
 

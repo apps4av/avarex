@@ -87,12 +87,20 @@ class AppSettings {
     return Settings.getValue("key-current-plate-airport", defaultValue: "") as String;
   }
 
-  double getTas() {
-    return Settings.getValue("key-airplane-tas", defaultValue: 100.0) as double;
+  int getTas() {
+    return Settings.getValue("key-airplane-tas-v2", defaultValue: 100) as int;
   }
 
-  double getFuelBurn() {
-    return Settings.getValue("key-airplane-fuel-burn", defaultValue: 10.0) as double;
+  void setTas(int value) {
+    Settings.setValue("key-airplane-tas-v2", value);
+  }
+
+  int getFuelBurn() {
+    return Settings.getValue("key-airplane-fuel-burn-v2", defaultValue: 10) as int;
+  }
+
+  void setFuelBurn(int value) {
+    Settings.setValue("key-airplane-fuel-burn-v2", value);
   }
 
 }

@@ -112,7 +112,6 @@ class NavDestination extends Destination {
   double elevation;
   String class_;
   String hiwas;
-  int variation;
 
   NavDestination({
     required super.locationID,
@@ -121,8 +120,7 @@ class NavDestination extends Destination {
     required super.coordinate,
     required this.elevation,
     required this.class_,
-    required this.hiwas,
-    required this.variation});
+    required this.hiwas,});
 
   factory NavDestination.fromMap(Map<String, dynamic> maps) {
 
@@ -139,7 +137,6 @@ class NavDestination extends Destination {
       coordinate: LatLng(
           maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
       elevation: elevation,
-      variation: maps['Variation'] as int,
       hiwas: maps['Hiwas'] as String,
       class_: maps['Class'] as String,
     );

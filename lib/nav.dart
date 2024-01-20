@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 class Nav {
   static String parse(NavDestination nav) {
-    return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\nVariation ${nav.variation}";
+    return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\n";
   }
 
   static Widget mainWidget(String data) {

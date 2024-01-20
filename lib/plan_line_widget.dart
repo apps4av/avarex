@@ -28,7 +28,8 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
   static Widget getHeading() {
     return const Row(children: [
       Expanded(flex: 1, child: Text("Dist")),
-      Expanded(flex: 1, child: Text("Hdng")),
+      Expanded(flex: 1, child: Text("GSpd")),
+      Expanded(flex: 1, child: Text("Crs")),
       Expanded(flex: 1, child: Text("Time")),
       Expanded(flex: 1, child: Text("Fuel")),
     ]);
@@ -36,6 +37,7 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
 
   static Widget getNullFields() {
     return const Row(children: [
+      Expanded(flex: 1, child: Text("---")),
       Expanded(flex: 1, child: Text("---")),
       Expanded(flex: 1, child: Text("---")),
       Expanded(flex: 1, child: Text("--:--")),
@@ -48,7 +50,8 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
       getNullFields() :
       Row(children: [
         Expanded(flex: 1, child: Text(calculations.distance.round().toString())),
-        Expanded(flex: 1, child: Text(calculations.bearing.round().toString())),
+        Expanded(flex: 1, child: Text(calculations.groundSpeed.round().toString())),
+        Expanded(flex: 1, child: Text(calculations.course.round().toString())),
         Expanded(flex: 1, child: Text(Constants.secondsToHHmm(calculations.time.round()))),
         Expanded(flex: 1, child: Text(calculations.fuel.toStringAsFixed(1))),
       ]);

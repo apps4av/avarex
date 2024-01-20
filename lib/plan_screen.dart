@@ -8,7 +8,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
 class PlanScreen extends StatefulWidget {
-  PlanScreen({super.key});
+  const PlanScreen({super.key});
   @override
   State<StatefulWidget> createState() => PlanScreenState();
 }
@@ -199,48 +199,61 @@ class PlanScreenState extends State<PlanScreen> {
                 });
               })
             ),
+            Expanded(flex: 1,child: Row(
+              children:[ // header
+                TextButton(
+                  onPressed: () { _showPlans(context); }, child: const Text("Plans"),),
+                DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                  isExpanded: false,
+                  isDense: true,
+                  value: Storage().settings.getTas().toString(),
+                  items: [
+                    for(int speed = 10; speed <= 500; speed+=10)
+                      DropdownMenuItem<String>(value : speed.toString(), child: Text("${speed}KT", style: const TextStyle(fontSize: 12)))
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      Storage().settings.setTas(int.parse(value ?? Storage().settings.getTas().toString()));
+                      Storage().route.update();
+                    });
+                  },
+                )),
+                DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                  isExpanded: false,
+                  isDense: true,
+                  value: Storage().settings.getFuelBurn().toString(),
+                  items: [
+                    for(int fuel = 1; fuel < 100; fuel++)
+                      DropdownMenuItem<String>(value : fuel.toString(), child: Text("${fuel}GPH", style: const TextStyle(fontSize: 12)))
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      Storage().settings.setFuelBurn(int.parse(value ?? Storage().settings.getFuelBurn().toString()));
+                      Storage().route.update();
+                    });
+                  },
+                )),
+                DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                  isExpanded: false,
+                  isDense: true,
+                  value: Storage().route.altitude,
+                  items: [
+                    for(int altitude = 3000; altitude <= 30000; altitude += 500)
+                      DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft", style: const TextStyle(fontSize: 12)))
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      Storage().route.altitude = value;
+                      Storage().route.update();
+                    });
+                  },
+                )),
+              ]
+            ))
           ]
-        ),
-        Align(
-            alignment: Alignment.bottomCenter,
-            child: IconButton(icon: const Icon(Icons.horizontal_rule),
-              onPressed: () { _showPlans(context); },)),
-        Align(
-            alignment: Alignment.topRight,
-            child: Column(children:[
-              DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                isExpanded: false,
-                isDense: true,
-                value: Storage().route.altitude,
-                items: [
-                  for(int altitude = 3000; altitude <= 30000; altitude += 500)
-                    DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft"))
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    Storage().route.altitude = value;
-                  });
-                },
-              )),
-              DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                isExpanded: false,
-                isDense: true,
-                value: Storage().route.fore,
-                items: const [
-                  DropdownMenuItem<String>(value : "0", child: Text("00H")),
-                  DropdownMenuItem<String>(value : "6", child: Text("06H")),
-                  DropdownMenuItem<String>(value : "12", child: Text("12H"))
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    Storage().route.fore = value;
-                  });
-                },
-              )
-              )
-            ]
-        )),
-      ])
+        )
+      ]
+      ),
     );
   }
 }

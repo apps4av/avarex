@@ -48,7 +48,6 @@ dependencies:
   wakelock_plus: ^1.1.4
   dio: ^5.3.4
   flutter_archive: ^5.0.0
-  intl: ^0.18.1
   http: ^1.0.0
   exif: ^3.3.0
   flutter_map: ^6.1.0
@@ -58,6 +57,7 @@ dependencies:
   flutter_map_tile_caching: ^9.0.0-dev.5
   latlong2: ^0.9.0
   auto_size_text: ^3.0.0
+  geomag: ^0.2.1
 
 dev_dependencies:
   flutter_test:
