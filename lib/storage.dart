@@ -6,6 +6,7 @@ import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/winds_aloft.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,6 +38,8 @@ class Storage {
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
+  final WindsParser winds = WindsParser();
+
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -134,6 +137,9 @@ class Storage {
       }
       // check GPS enabled
     });
+
+    winds.init();
+
   }
 
   Future<void> checkDataExpiry() async {

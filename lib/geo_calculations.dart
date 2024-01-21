@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:geomag/geomag.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
@@ -8,6 +9,7 @@ import 'constants.dart';
 class GeoCalculations {
 
   final Distance _distance = const Distance();
+  final GeoMag _mag = GeoMag();
 
   static const double segmentLength = 100; // nm
   static const double earthRadiusConversion = 3440.069; // nm
@@ -100,17 +102,21 @@ class GeoCalculations {
   }
 
 
-  double calculateDistance(ll1, ll2) {
+  double calculateDistance(LatLng ll1, LatLng ll2) {
     return Constants.mToNm(_distance(ll1, ll2));
   }
 
-  double calculateBearing(ll1, ll2) {
+  double calculateBearing(LatLng ll1, LatLng ll2) {
     double bearing = _distance.bearing(ll1, ll2);
     bearing = bearing < 0 ? bearing + 360 : bearing;
     return bearing;
   }
 
-  LatLng calculateOffset(from, distance, heading) {
+  double getVariation(LatLng ll1) {
+    return _mag.calculate(ll1.latitude, ll1.longitude).dec;
+  }
+
+  LatLng calculateOffset(LatLng from, double distance, double heading) {
     return _distance.offset(from, Constants.nmToM(distance), heading);
   }
 

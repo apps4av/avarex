@@ -39,13 +39,14 @@ class InstrumentListState extends State<InstrumentList> {
 
     (String, String) getDistanceBearing() {
       LatLng position = Gps.toLatLng(Storage().position);
+      GeoCalculations calculations = GeoCalculations();
 
       Destination? d = Storage().route.getCurrentWaypoint()?.destination;
       if (d != null) {
-        double distance = GeoCalculations().calculateDistance(
+        double distance = calculations.calculateDistance(
             position, d.coordinate);
-        double bearing = GeoCalculations().calculateBearing(
-            position, d.coordinate);
+        double bearing = calculations.calculateBearing(
+            position, d.coordinate) + calculations.getVariation(d.coordinate);
         return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
       return ("", "0\u00b0");

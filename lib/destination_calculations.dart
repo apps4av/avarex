@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:avaremp/destination.dart';
-import 'package:geomag/geomag.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'geo_calculations.dart';
@@ -12,8 +11,8 @@ class DestinationCalculations {
   final Destination _to;
   final double _speed;
   final double _fuelBurn;
-  final double _ws;
-  final double _wd;
+  final double? _ws;
+  final double? _wd;
 
   double distance = 0;
   double course = 0;
@@ -21,7 +20,7 @@ class DestinationCalculations {
   double fuel = 0;
   double groundSpeed = 0;
 
-  DestinationCalculations(this._from, this._to, this._speed, this._fuelBurn, this._ws, this._wd);
+  DestinationCalculations(this._from, this._to, this._speed, this._fuelBurn, this._wd, this._ws);
 
   // calculate all params like dist, bearing, time, altitude and fuel
   void calculateTo() {
@@ -38,26 +37,19 @@ class DestinationCalculations {
       distance = distance + calculations.calculateDistance(points[index], points[index + 1]);
     }
 
-    GeoMag geoMag = GeoMag();
-    double variation1 = geoMag.calculate(_to.coordinate.latitude, _to.coordinate.longitude).dec;
-    double variation2 = geoMag.calculate(_from.coordinate.latitude, _from.coordinate.longitude).dec;
+    double variation1 = calculations.getVariation(_to.coordinate);
+    double variation2 = calculations.getVariation(_from.coordinate);
+
+    double ws = _ws?? 0;
+    double wd = _wd?? 0;
 
     double variation = (variation1 + variation2) / 2.0; // avg of two variation
-    groundSpeed = sqrt(_ws * _ws + _speed * _speed - 2 * _ws * _speed * cos((heading - _wd) * pi / 180.0));
-    double windCorrectionAngle = -GeoCalculations.toDegrees(atan2(_ws * sin((heading - _wd) * pi / 180.0), _speed - _ws * cos((heading - _wd) * pi / 180.0)));
+    groundSpeed = sqrt(ws * ws + _speed * _speed - 2 * ws * _speed * cos((heading - wd) * pi / 180.0));
+    double windCorrectionAngle = -GeoCalculations.toDegrees(atan2(ws * sin((heading - wd) * pi / 180.0), _speed - ws * cos((heading - wd) * pi / 180.0)));
     course = (heading + windCorrectionAngle + variation + 360) % 360;
 
     time = 3600 * distance / groundSpeed; //sec
     fuel = _fuelBurn * time / 3600; // gallon per hour use
-  }
-
-  // sum 2 destination calculations and return a new object
-  DestinationCalculations sum(DestinationCalculations other) {
-    DestinationCalculations calc = DestinationCalculations(_from, _to, _speed, _fuelBurn, _ws, _wd);
-    calc.distance = other.distance + distance;
-    calc.time = other.time + time;
-    calc.fuel = other.fuel + fuel;
-    return calc;
   }
 
 }

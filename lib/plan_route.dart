@@ -22,7 +22,7 @@ class PlanRoute {
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
-  String? altitude = "3000";
+  String altitude = "3000";
 
   DestinationCalculations? totalCalculations;
 
@@ -151,9 +151,12 @@ class PlanRoute {
     // calculate plan
     for(int index = 0; index < allDestinations.length - 1; index++) {
       allDestinations[0].calculations = null;
+      double? ws;
+      double? wd;
+      (wd, ws) = Storage().winds.getWind(double.parse(altitude), allDestinations[index].coordinate);
       DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
-          Storage().settings.getFuelBurn().toDouble(), 0, 0);
+          Storage().settings.getFuelBurn().toDouble(), wd, ws);
       calc.calculateTo();
       allDestinations[index + 1].calculations = calc;
     }
@@ -162,22 +165,41 @@ class PlanRoute {
     _connect(destinationsPassed, destinationsCurrent); // current now has last passed
     _connect(destinationsCurrent, destinationsNext); // next has now current
 
-    totalCalculations = null;
+    // do total calculations
+    double speed = 0;
+    double distance = 0;
+    double time = 0;
+    double fuel = 0;
+
     if(destinationsNext.isEmpty) {
       // last leg
       totalCalculations = allDestinations[allDestinations.length - 1].calculations;
     }
-
-    for(int index = 0; index < destinationsNext.length; index++) {
-      totalCalculations = (totalCalculations == null) ?
-        destinationsNext[index].calculations :
-        totalCalculations!.sum(destinationsNext[index].calculations!);
+    // sum
+    else {
+      for (int index = 0; index < destinationsNext.length; index++) {
+        if (destinationsNext[index].calculations != null) {
+          totalCalculations ??= destinationsNext[index].calculations;
+          speed += destinationsNext[index].calculations!.groundSpeed;
+          distance += destinationsNext[index].calculations!.distance;
+          time += destinationsNext[index].calculations!.time;
+          fuel += destinationsNext[index].calculations!.fuel;
+        }
+      }
+      if(totalCalculations != null) {
+        totalCalculations!.groundSpeed = speed / destinationsNext.length;
+        totalCalculations!.distance = distance;
+        totalCalculations!.time = time;
+        totalCalculations!.fuel = fuel;
+        totalCalculations!.course = _current != null && _current!.destination.calculations != null ? _current!.destination.calculations!.course : 0;
+      }
     }
 
     // make paths
     _pointsPassed = _makePathPoints(destinationsPassed);
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
+
   }
 
   void advance() {
