@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -7,6 +8,7 @@ import 'package:avaremp/user_database_helper.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'airport.dart';
 import 'constants.dart';
@@ -109,6 +111,13 @@ class LongPressWidgetState extends State<LongPressWidget> {
       ));
     }
 
+    // general direction from where we are
+    GeoCalculations geo = GeoCalculations();
+    LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
+    double distance = geo.calculateDistance(ll, widget.destination.coordinate);
+    double bearing = geo.calculateBearing(ll, widget.destination.coordinate);
+    String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, geo.getVariation(ll))}");
+
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: const BoxDecoration(
@@ -120,7 +129,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       child: Stack(children:[
         Column(
         children: [
-          Expanded(flex: 1, child: Text("${future.showDestination.facilityName}(${future.showDestination.locationID})", style: const TextStyle(fontWeight: FontWeight.w700),)),
+          Expanded(flex: 1, child: Text("${future.showDestination.facilityName}(${future.showDestination.locationID}) $direction", style: const TextStyle(fontWeight: FontWeight.w700),)),
           Expanded(flex: 1, child: Row(children: [
             // top action buttons
             TextButton(

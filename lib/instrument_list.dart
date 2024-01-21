@@ -45,8 +45,8 @@ class InstrumentListState extends State<InstrumentList> {
       if (d != null) {
         double distance = calculations.calculateDistance(
             position, d.coordinate);
-        double bearing = calculations.calculateBearing(
-            position, d.coordinate) + calculations.getVariation(d.coordinate);
+        double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
+            position, d.coordinate), calculations.getVariation(d.coordinate));
         return (distance.round().toString(), "${bearing.round()}\u00b0");
       }
       return ("", "0\u00b0");
