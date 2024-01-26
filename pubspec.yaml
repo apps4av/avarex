@@ -58,6 +58,7 @@ dependencies:
   latlong2: ^0.9.0
   auto_size_text: ^3.0.0
   geomag: ^0.2.1
+  intl: ^0.17.0
 
 dev_dependencies:
   flutter_test:
