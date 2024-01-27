@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'package:avaremp/metar_cache.dart';
+import 'package:avaremp/taf_cache.dart';
 import 'package:avaremp/weather.dart';
 import 'package:avaremp/weather_database_helper.dart';
 import 'package:avaremp/winds_cache.dart';
@@ -23,7 +27,7 @@ class WeatherCache {
     }
     _isDownloading = true;
     http.Response response = await http.get(Uri.parse(_url));
-    parse(response.body);
+    await parse(response.bodyBytes);
     await initialize();
     _isDownloading = false;
   }
@@ -42,12 +46,11 @@ class WeatherCache {
     }
     if(w.isExpired()) {
       download();
-      return(null);
     }
     return w;
   }
 
-  void parse(dynamic data) {
+  Future<void> parse(Uint8List data) async {
     // override this or nothing happens
     throw UnimplementedError();
   }
@@ -61,9 +64,27 @@ class WeatherCache {
   }
 
   static WeatherCache make(Type type) {
-    WeatherCache w = WindsCache("https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
-        WeatherDatabaseHelper.db.getAllWindsAloft);
-    return w;
+
+    if(type == MetarCache) {
+      MetarCache cache = MetarCache("https://aviationweather.gov/data/cache/metars.cache.csv.gz",
+          WeatherDatabaseHelper.db.getAllMetar);
+      return cache;
+    }
+    else if(type == TafCache) {
+      TafCache cache = TafCache("https://aviationweather.gov/data/cache/tafs.cache.csv.gz",
+          WeatherDatabaseHelper.db.getAllTaf);
+      return cache;
+    }
+    else if(type == WindsCache) {
+      // default
+      WeatherCache cache = WindsCache(
+          "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
+          WeatherDatabaseHelper.db.getAllWindsAloft);
+      return cache;
+    }
+    else {
+      throw UnimplementedError();
+    }
   }
 
 }

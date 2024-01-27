@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:avaremp/taf.dart';
 import 'package:avaremp/winds_aloft.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+
+import 'metar.dart';
 
 class WeatherDatabaseHelper {
   WeatherDatabaseHelper._();
@@ -43,6 +46,19 @@ class WeatherDatabaseHelper {
                 "w34k          text, "
                 "w39k          text, "
                 "unique(station) on conflict replace);");
+            await db.execute("create table metar ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "raw           text, "
+                "category      text, "
+                "unique(station) on conflict replace);");
+            await db.execute("create table taf ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "raw           text, "
+                "unique(station) on conflict replace);");
           },
           onOpen: (db) {});
   }
@@ -52,6 +68,20 @@ class WeatherDatabaseHelper {
 
     if (db != null) {
       await db.insert("windsAloft", wa.toMap());
+    }
+  }
+
+  Future<void> addWindsAlofts(List<WindsAloft> wa) async {
+    final db = await database;
+
+    if (db != null && wa.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(WindsAloft w in wa) {
+          batch.insert("windsAloft", w.toMap());
+        }
+        await batch.commit();
+      });
     }
   }
 
@@ -79,6 +109,107 @@ class WeatherDatabaseHelper {
     final db = await database;
     if (db != null) {
       await db.rawQuery("delete from windsAloft where station='$station'");
+    }
+  }
+
+  Future<void> addMetar(Metar metar) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("metar", metar.toMap());
+    }
+  }
+
+  Future<void> addMetars(List<Metar> metar) async {
+    final db = await database;
+
+    if (db != null && metar.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(Metar m in metar) {
+          batch.insert("metar", m.toMap());
+        }
+        await batch.commit();
+      });
+    }
+  }
+
+
+  Future<Metar?> getMetar(String station) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from metar where station='$station'");
+      return Metar.fromMap(maps[0]);
+    }
+    return null;
+  }
+
+  Future<List<Metar>> getAllMetar() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from metar");
+      return List.generate(maps.length, (index) => Metar.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<void> deleteMetar(String station) async {
+    final db = await database;
+    if (db != null) {
+      await db.rawQuery("delete from metar where station='$station'");
+    }
+  }
+
+
+  Future<void> addTafr(Taf taf) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("taf", taf.toMap());
+    }
+  }
+
+  Future<void> addTafs(List<Taf> taf) async {
+    final db = await database;
+
+    if (db != null && taf.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(Taf t in taf) {
+          batch.insert("taf", t.toMap());
+        }
+        await batch.commit();
+      });
+    }
+  }
+
+
+  Future<Taf?> getTaf(String station) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from taf where station='$station'");
+      return Taf.fromMap(maps[0]);
+    }
+    return null;
+  }
+
+  Future<List<Taf>> getAllTaf() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from taf");
+      return List.generate(maps.length, (index) => Taf.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<void> deleteTaf(String station) async {
+    final db = await database;
+    if (db != null) {
+      await db.rawQuery("delete from taf where station='$station'");
     }
   }
 

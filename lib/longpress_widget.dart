@@ -4,8 +4,10 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/taf.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/weather.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -13,6 +15,7 @@ import 'package:latlong2/latlong.dart';
 import 'airport.dart';
 import 'constants.dart';
 import 'destination.dart';
+import 'metar.dart';
 import 'nav.dart';
 
 class LongPressWidget extends StatefulWidget {
@@ -60,6 +63,17 @@ class LongPressFuture {
           Image? airportPlate = Image.file(ad);
           pages.add(Card(child:airportPlate));
         }
+      }
+      Weather? w = Storage().metar.get("K${showDestination.locationID}");
+      Weather? w1 = Storage().taf.get("K${showDestination.locationID}");
+
+      if(w != null || w1 != null) {
+        pages.add(ListView(
+          children: [
+            w != null ? ListTile(title: const Text("METAR"), subtitle: Text((w as Metar).text), leading: Icon(Icons.circle_outlined, color: w.getColor(),),) : Container(),
+            w1 != null ? ListTile(title: const Text("TAF"), subtitle: Text((w1 as Taf).text), leading: const Icon(Icons.circle)) : Container(),
+          ],
+        ));
       }
     }
     else if(showDestination is NavDestination) {

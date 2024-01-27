@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/weather_cache.dart';
 import 'package:avaremp/weather_database_helper.dart';
@@ -10,12 +13,16 @@ class WindsCache extends WeatherCache {
   WindsCache(super.url, super.dbCall);
 
   @override
-  void parse(dynamic data) {
+  Future<void> parse(Uint8List data) async {
+
+    List<WindsAloft> winds = [];
+    String dataString = utf8.decode(data);
+
     // parse winds, set expire time
     RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
     DateTime? expires;
 
-    List<String> lines = (data as String).split('\n');
+    List<String> lines = dataString.split('\n');
     for (String line in lines) {
       line = line.trim();
       RegExpMatch? match = exp1.firstMatch(line);
@@ -67,9 +74,10 @@ class WindsCache extends WeatherCache {
           continue;
         }
         WindsAloft w = WindsAloft(station, expires, k3, k6, k9, k12, k18, k24, k30, k34, k39);
-        WeatherDatabaseHelper.db.addWindsAloft(w); // add to database
+        winds.add(w);
       }
       catch (e) {}
+      WeatherDatabaseHelper.db.addWindsAlofts(winds); // add to database
     }
   }
 

@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/taf_cache.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather_cache.dart';
 import 'package:avaremp/winds_cache.dart';
@@ -22,6 +23,7 @@ import 'db_general.dart';
 import 'destination.dart';
 import 'gps.dart';
 import 'main_database_helper.dart';
+import 'metar_cache.dart';
 
 class Storage {
   static final Storage _instance = Storage._internal();
@@ -40,6 +42,8 @@ class Storage {
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final WindsCache winds = WeatherCache.make(WindsCache) as WindsCache;
+  final MetarCache metar = WeatherCache.make(MetarCache) as MetarCache;
+  final TafCache taf = WeatherCache.make(TafCache) as TafCache;
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
