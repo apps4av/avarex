@@ -81,8 +81,7 @@ class WindsCache extends WeatherCache {
     }
   }
 
-  // dir, speed
-  (double?, double?) getWind(double altitude, LatLng location) {
+  static String? locateNearestStation(LatLng location) {
     // find distance
     GeoCalculations geo = GeoCalculations();
     double distanceMin = double.maxFinite;
@@ -94,7 +93,12 @@ class WindsCache extends WeatherCache {
         station = map.key;
       }
     }
-    WindsAloft? w = get(station) as WindsAloft?;
+    return station;
+  }
+
+  // dir, speed
+  static (double?, double?) getWindAtAltitude(double altitude, WindsAloft? w) {
+    // find distance
     if(w == null) {
       return(null, null);
     }

@@ -36,17 +36,37 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirways = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery(
-        // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-        "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
-        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
-        "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
-        "order by Type asc"
-      );
-      mapsAirways = await db.rawQuery(
-        "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
-        "order by cast(sequence as integer) asc limit 1"
-      );
+      if(match.startsWith("@")) {
+        maps = await db.rawQuery(
+          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%')"
+        );
+      }
+      else if(match.startsWith(".")) {
+        maps = await db.rawQuery(
+          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%')"
+        );
+      }
+      else if(match.startsWith("!")) {
+        maps = await db.rawQuery(
+          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%')"
+        );
+      }
+      else {
+        maps = await db.rawQuery(
+          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
+            "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
+            "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
+            "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
+            "order by Type asc"
+        );
+        mapsAirways = await db.rawQuery(
+            "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
+                "order by cast(sequence as integer) asc limit 1"
+        );
+      }
     }
 
     List<Destination> ret = List.generate(maps.length, (i) {

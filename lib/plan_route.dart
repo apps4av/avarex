@@ -5,6 +5,8 @@ import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/winds_aloft.dart';
+import 'package:avaremp/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -153,7 +155,8 @@ class PlanRoute {
       allDestinations[0].calculations = null;
       double? ws;
       double? wd;
-      (wd, ws) = Storage().winds.getWind(double.parse(altitude), allDestinations[index].coordinate);
+      String? station = WindsCache.locateNearestStation(allDestinations[index].coordinate);
+      (wd, ws) = WindsCache.getWindAtAltitude(double.parse(altitude), Storage().winds.get(station) as WindsAloft);
       DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);
