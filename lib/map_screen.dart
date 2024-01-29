@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/main_database_helper.dart';
+import 'package:avaremp/metar_cache.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
@@ -151,6 +152,30 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Chart');
     if(_layersState[lIndex]) {
       layers.add(chartLayer);
+    }
+
+    lIndex = _layers.indexOf('METAR');
+    if(_layersState[lIndex]) {
+      layers.add(
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().metar.change,
+              builder: (context, value, _) {
+                return OverlayImageLayer(
+                  overlayImages: [
+                    if(null != Storage().metar.image)
+                      OverlayImage(
+                        bounds: LatLngBounds(
+                          MetarCache.topLeft,
+                          MetarCache.bottomRight,
+                        ),
+                        opacity: 0.5,
+                        imageProvider: MemoryImage(Storage().metar.image!),
+                      ),
+                  ],
+                );
+              }
+          )
+      );
     }
 
     lIndex = _layers.indexOf('Circles');
