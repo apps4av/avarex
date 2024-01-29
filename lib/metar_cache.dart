@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'constants.dart';
 import 'metar.dart';
 import 'dart:ui' as ui;
 
@@ -31,11 +32,16 @@ class MetarCache extends WeatherCache {
     for (List<dynamic> row in rows) {
       DateTime time = DateTime.now().toUtc();
       // observation time like 2024-01-27T18:26:00Z in row[2]
-      time = time.add(const Duration(minutes: 10)); // they update every minute but that's too fast
+      time = time.add(const Duration(minutes: Constants.metarUpdateTimeMin)); // they update every minute but that's too fast
 
       Metar m;
       try {
         m = Metar(row[1], time, row[0], row[30], LatLng(row[3], row[4]));
+        if(!m.station.startsWith("K")) { // db limitation, legacy
+          if(Constants.useK) {
+            continue;
+          }
+        }
         metars.add(m);
       }
       catch(e) {
@@ -77,14 +83,14 @@ class MetarCache extends WeatherCache {
     // draw
     for(Weather w in getAll()) {
       Metar m = w as Metar;
-      Paint paint = Paint()..color = m.getColor();
       LatLng ll = m.coordinate;
       Point p = projection.project(ll);
       double x = px * (tl.x - p.x);
       double y = py * (tl.y - p.y);
-      if(x > xSize || y > ySize) {
+      if(x > xSize || y > ySize || x < 0 || y < 0) {
         continue;
       }
+      Paint paint = Paint()..color = m.getColor();
       canvas.drawCircle(Offset(x, y), 1, paint);
     }
     var pic = recorder.endRecording();

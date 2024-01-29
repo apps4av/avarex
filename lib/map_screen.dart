@@ -113,15 +113,18 @@ class MapScreenState extends State<MapScreen> {
     List<Widget> layers = [];
     TileLayer networkLayer = TileLayer(
       urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      userAgentPackageName: 'dev.fleaflet.flutter_map.example',
       tileProvider: FMTC.instance('mapStore').getTileProvider());
     TileLayer chartLayer = TileLayer(
       tms: true,
       maxNativeZoom: _maxZoom,
       tileProvider: ChartTileProvider(),
-      //urlTemplate: 'c:\\temp\\tiles\\$index\\{z}\\{x}\\{y}.webp' for testing on PC,
-      urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp",
-      userAgentPackageName: 'com.apps4av.avaremp');
+      urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
+
+    TileLayer nexradLayer = TileLayer(
+        maxNativeZoom: 10,
+        minNativeZoom: 4,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
+        tileProvider: FMTC.instance('mapStore').getTileProvider());
 
     // start from known location
     MapOptions opts = MapOptions(
@@ -176,6 +179,11 @@ class MapScreenState extends State<MapScreen> {
               }
           )
       );
+    }
+
+    lIndex = _layers.indexOf('NEXRAD');
+    if(_layersState[lIndex]) {
+      layers.add(nexradLayer);
     }
 
     lIndex = _layers.indexOf('Circles');

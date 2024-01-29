@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Constants {
+  static const bool useK = true;
+  static const metarUpdateTimeMin = 10;
 
   static double mToNm(double meters) {return 0.000539957 * meters;}
   static double nmToM(distance) {return distance / 0.000539957;}

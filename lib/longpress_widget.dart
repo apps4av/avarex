@@ -64,8 +64,10 @@ class LongPressFuture {
           pages.add(Card(child:airportPlate));
         }
       }
-      Weather? w = Storage().metar.get("K${showDestination.locationID}");
-      Weather? w1 = Storage().taf.get("K${showDestination.locationID}");
+
+      String k = Constants.useK ? "K" : "";
+      Weather? w = Storage().metar.get("$k${showDestination.locationID}");
+      Weather? w1 = Storage().taf.get("$k${showDestination.locationID}");
 
       if(w != null || w1 != null) {
         pages.add(ListView(
