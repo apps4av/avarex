@@ -52,6 +52,8 @@ class WeatherDatabaseHelper {
                 "utcMs         int, "
                 "raw           text, "
                 "category      text, "
+                "ARPLatitude   float, "
+                "ARPLongitude  float, "
                 "unique(station) on conflict replace);");
             await db.execute("create table taf ("
                 "id            integer primary key autoincrement, "

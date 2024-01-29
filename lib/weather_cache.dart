@@ -50,6 +50,10 @@ class WeatherCache {
     return w;
   }
 
+  List<Weather> getAll() {
+    return _map.values.toList();
+  }
+
   Future<void> parse(Uint8List data) async {
     // override this or nothing happens
     throw UnimplementedError();

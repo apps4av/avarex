@@ -1,11 +1,13 @@
 import 'package:avaremp/weather.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 class Metar extends Weather {
   String text;
   String category;
+  LatLng coordinate;
 
-  Metar(super.station, super.expires, this.text, this.category);
+  Metar(super.station, super.expires, this.text, this.category, this.coordinate);
 
   Map<String, Object?> toMap() {
     Map<String, Object?> map  = {
@@ -13,6 +15,8 @@ class Metar extends Weather {
       "utcMs": expires.millisecondsSinceEpoch,
       "raw": text,
       "category": category,
+      "ARPLatitude": coordinate.latitude,
+      "ARPLongitude": coordinate.longitude,
     };
     return map;
   }
@@ -20,10 +24,11 @@ class Metar extends Weather {
   factory Metar.fromMap(Map<String, dynamic> maps) {
 
     return Metar(
-      maps['station'] as String,
-      DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
-      maps['raw'] as String,
-      maps['category'] as String,
+      maps["station"] as String,
+      DateTime.fromMillisecondsSinceEpoch(maps["utcMs"] as int),
+      maps["raw"] as String,
+      maps["category"] as String,
+      LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double),
     );
   }
 
