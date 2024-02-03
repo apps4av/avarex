@@ -156,7 +156,8 @@ class PlanRoute {
       double? ws;
       double? wd;
       String? station = WindsCache.locateNearestStation(allDestinations[index].coordinate);
-      (wd, ws) = WindsCache.getWindAtAltitude(double.parse(altitude), Storage().winds.get(station) as WindsAloft);
+      WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
+      (wd, ws) = WindsCache.getWindAtAltitude(double.parse(altitude), wa);
       DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);

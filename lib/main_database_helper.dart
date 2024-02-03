@@ -16,6 +16,8 @@ class MainDatabaseHelper {
   static MainDatabaseHelper get db => _db;
   static Database? _database;
 
+  static const String _limit = "10"; // limit results
+
   Future<Database?> get database async {
     if (_database != null) {
       return _database;
@@ -36,22 +38,22 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirways = [];
     final db = await database;
     if (db != null) {
-      if(match.startsWith("@")) {
+      if(match.startsWith(" ") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%') limit 10"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
-      else if(match.startsWith(".")) {
+      else if(match.startsWith(".") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%') limit 10"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
-      else if(match.startsWith("!")) {
+      else if(match.startsWith(",") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%') limit 10"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
       else {
@@ -60,7 +62,7 @@ class MainDatabaseHelper {
             "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
             "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
             "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
-            "order by Type asc limit 10"
+            "order by Type asc limit $_limit"
         );
         mapsAirways = await db.rawQuery(
             "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
@@ -125,7 +127,7 @@ class MainDatabaseHelper {
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
-          "order by Type asc, distance asc limit 10";
+          "order by Type asc, distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {
@@ -138,7 +140,7 @@ class MainDatabaseHelper {
     return(ret);
   }
 
-  Future<List<Destination>> findNearestAirports(LatLng point) async {
+  Future<List<Destination>> findNearestAirportsWithRunways(LatLng point, int runwayLength) async {
     final db = await database;
     List<Destination> ret = [];
     if (db != null) {
@@ -149,14 +151,22 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports "
-          "where Type='AIRPORT' "
-          "order by distance asc limit 10";
+          "select airports.LocationID, airports.FacilityName, airports.Type, airports.ARPLongitude, airports.ARPLatitude, airportrunways.Length, $asDistance as distance from airports "
+          "left join airportrunways where "
+          "airports.LocationID = airportrunways.LocationID and airports.Type='AIRPORT' and cast (airportrunways.Length as INTEGER) >= $runwayLength "
+          "order by distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
-      ret = List.generate(maps.length, (i) {
-        return Destination.fromMap(maps[i]);
-      });
+      List<String> duplicates = [];
+      // get rid of duplicates
+      for(Map<String, dynamic> map in maps) {
+        if(duplicates.contains(map['LocationID'])) {
+          continue;
+        }
+        ret.add(Destination.fromMap(map));
+        duplicates.add(map['LocationID']);
+      }
+
     }
     return(ret);
   }
@@ -173,7 +183,7 @@ class MainDatabaseHelper {
       String qry =
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
-          "order by distance asc";
+          "order by distance asc limit 1";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       return Destination.fromMap(maps[0]);

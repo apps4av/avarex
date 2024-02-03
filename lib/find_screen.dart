@@ -4,7 +4,6 @@ import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
@@ -18,7 +17,6 @@ class FindScreen extends StatefulWidget {
   State<StatefulWidget> createState() => FindScreenState();
 
   final ScrollController controller = ScrollController();
-
 }
 
 class FindScreenState extends State<FindScreen> {
@@ -26,6 +24,7 @@ class FindScreenState extends State<FindScreen> {
   List<Destination>? _currentItems;
   String _searchText = "";
   bool _recent = true;
+  int _runwayLength = 0;
   double? _height;
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
@@ -41,13 +40,12 @@ class FindScreenState extends State<FindScreen> {
     return exitResult ?? false;
   }
 
-
   @override
   Widget build(BuildContext context) {
     _height = Constants.appbarMaxSize(context);
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirports(Gps.toLatLng(Storage().position))), // find recent when not searching
+      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -65,6 +63,8 @@ class FindScreenState extends State<FindScreen> {
   Widget _makeContent(List<Destination>? items, bool searching) {
 
     GeoCalculations geo = GeoCalculations();
+    LatLng position = Gps.toLatLng(Storage().position);
+
 
     return Container(
         padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, Constants.bottomPaddingSize(context)),
@@ -83,12 +83,12 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (e.g. @BOS .BOS !BOSOX V1)')
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (Use space, dot, comma for filters)')
                   )
                 )
             ),
             Expanded(
-                flex: 20,
+                flex: 10,
                 child: null == items ? Container() : ListView.separated(
                   itemCount: items.length,
                   padding: const EdgeInsets.all(5),
@@ -111,15 +111,7 @@ class FindScreenState extends State<FindScreen> {
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
                         dense: true,
                         isThreeLine: true,
-                        trailing: ValueListenableBuilder<Position>(
-                          valueListenable: Storage().gpsChange,
-                            builder: (context, value, _) {
-                              LatLng position = Gps.toLatLng(value);
-                              int distance = geo.calculateDistance(item.coordinate, position).round();
-                              int dir = geo.calculateBearing(position, item.coordinate).round();
-                              return Text("${distance}nm\n$dir\u00b0");
-                          }
-                        ),
+                        trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}nm\n${geo.calculateBearing(position, item.coordinate).round()}\u00b0"),
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
                           Storage().settings.setCenterLongitude(item.coordinate.longitude);
@@ -141,18 +133,31 @@ class FindScreenState extends State<FindScreen> {
                 )
             ),
             Expanded(
-              flex: 2,
+              flex: 3,
               child: Row(children:[
                 TextButton(onPressed: () {
                   setState(() {
                     _recent = true;
                   });
-                }, child: Text("Recent"),),
+                }, child: const Text("Recent"),),
                 TextButton(onPressed: () {
                   setState(() {
                     _recent = false;
+                    _runwayLength = 0;
                   });
-                }, child: Text("Nearest"),),
+                }, child: const Text("Nearest"),),
+                TextButton(onPressed: () {
+                  setState(() {
+                    _runwayLength = 2000;
+                    _recent = false;
+                  });
+                }, child: const Text("Nearest 2K"),),
+                TextButton(onPressed: () {
+                  setState(() {
+                    _runwayLength = 4000;
+                    _recent = false;
+                  });
+                }, child: const Text("Nearest 4K"),),
               ]
             ))
           ]),
