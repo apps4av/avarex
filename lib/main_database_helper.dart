@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -25,7 +26,7 @@ class MainDatabaseHelper {
   }
 
   _initDB() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "main.db");
     return
       await openDatabase(path, onOpen: (db) {});

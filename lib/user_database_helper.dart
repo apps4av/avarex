@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/storage.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
@@ -25,7 +26,7 @@ class UserDatabaseHelper {
   }
 
   _initDB() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "user.db");
     return
       await openDatabase(

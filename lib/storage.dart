@@ -41,9 +41,9 @@ class Storage {
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
-  final WindsCache winds = WeatherCache.make(WindsCache) as WindsCache;
-  final MetarCache metar = WeatherCache.make(MetarCache) as MetarCache;
-  final TafCache taf = WeatherCache.make(TafCache) as TafCache;
+  late WindsCache winds;
+  late MetarCache metar;
+  late TafCache taf;
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -51,7 +51,7 @@ class Storage {
   // gps
   final _gps = Gps();
   // where all data is place. This is set on init in main
-  String dataDir = "";
+  late String dataDir;
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
 
@@ -123,6 +123,10 @@ class Storage {
     await File(path).writeAsBytes(bytes);
     await FlutterMapTileCaching.initialise();
     await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
+
+    winds = WeatherCache.make(WindsCache) as WindsCache;
+    metar = WeatherCache.make(MetarCache) as MetarCache;
+    taf = WeatherCache.make(TafCache) as TafCache;
 
     gpsNotPermitted = await Gps().checkPermissions();
     if(!gpsNotPermitted) {

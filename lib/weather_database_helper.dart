@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/taf.dart';
 import 'package:avaremp/winds_aloft.dart';
 import 'package:path/path.dart';
@@ -25,7 +26,7 @@ class WeatherDatabaseHelper {
   }
 
   _initDB() async {
-    Directory documentsDirectory = await getApplicationDocumentsDirectory();
+    Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "weather.db");
     return
       await openDatabase(

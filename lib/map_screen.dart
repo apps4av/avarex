@@ -120,12 +120,6 @@ class MapScreenState extends State<MapScreen> {
       tileProvider: ChartTileProvider(),
       urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
 
-    TileLayer nexradLayer = TileLayer(
-        maxNativeZoom: 10,
-        minNativeZoom: 4,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
-        tileProvider: FMTC.instance('mapStore').getTileProvider());
-
     // start from known location
     MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
@@ -171,7 +165,7 @@ class MapScreenState extends State<MapScreen> {
                           MetarCache.topLeft,
                           MetarCache.bottomRight,
                         ),
-                        opacity: 0.5,
+                        opacity: 0.7,
                         imageProvider: MemoryImage(Storage().metar.image!),
                       ),
                   ],
@@ -179,11 +173,6 @@ class MapScreenState extends State<MapScreen> {
               }
           )
       );
-    }
-
-    lIndex = _layers.indexOf('NEXRAD');
-    if(_layersState[lIndex]) {
-      layers.add(nexradLayer);
     }
 
     lIndex = _layers.indexOf('Circles');

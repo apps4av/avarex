@@ -173,6 +173,7 @@ class PlanRoute {
     double distance = 0;
     double time = 0;
     double fuel = 0;
+    double total = 0;
 
     if(destinationsNext.isEmpty) {
       // last leg
@@ -182,6 +183,7 @@ class PlanRoute {
     else {
       for (int index = 0; index < destinationsNext.length; index++) {
         if (destinationsNext[index].calculations != null) {
+          total++;
           totalCalculations ??= destinationsNext[index].calculations;
           speed += destinationsNext[index].calculations!.groundSpeed;
           distance += destinationsNext[index].calculations!.distance;
@@ -190,7 +192,7 @@ class PlanRoute {
         }
       }
       if(totalCalculations != null) {
-        totalCalculations!.groundSpeed = speed / destinationsNext.length;
+        totalCalculations!.groundSpeed = speed / total;
         totalCalculations!.distance = distance;
         totalCalculations!.time = time;
         totalCalculations!.fuel = fuel;

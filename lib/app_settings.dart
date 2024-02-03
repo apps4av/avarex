@@ -68,15 +68,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (Settings.getValue("key-layers-v9", defaultValue: "Nav,Circles,Chart,OSM,METAR,NEXRAD") as String).split(",");
+    return (Settings.getValue("key-layers-v19", defaultValue: "Nav,Circles,Chart,OSM,METAR") as String).split(",");
   }
 
   List<bool> getLayersState() {
-    return (Settings.getValue("key-layers-state-v9", defaultValue: "true,false,true,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (Settings.getValue("key-layers-state-v10", defaultValue: "true,false,true,true,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
-    Settings.setValue("key-layers-state-v9", state.map((bool e) => e.toString()).toList().join(","));
+    Settings.setValue("key-layers-state-v10", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
