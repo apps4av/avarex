@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'destination.dart';
@@ -40,19 +39,19 @@ class MainDatabaseHelper {
       if(match.startsWith("@")) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%')"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%') limit 10"
         );
       }
       else if(match.startsWith(".")) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%')"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%') limit 10"
         );
       }
       else if(match.startsWith("!")) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%')"
+            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%') limit 10"
         );
       }
       else {
@@ -61,7 +60,7 @@ class MainDatabaseHelper {
             "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
             "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
             "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
-            "order by Type asc"
+            "order by Type asc limit 10"
         );
         mapsAirways = await db.rawQuery(
             "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
@@ -126,7 +125,7 @@ class MainDatabaseHelper {
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
-          "order by Type asc, distance asc";
+          "order by Type asc, distance asc limit 10";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {
@@ -136,6 +135,29 @@ class MainDatabaseHelper {
     // always add touch point of GPS, GPS is not a database type so prefix with _
     String gps = Destination.formatSexagesimal(point.toSexagesimal());
     ret.add(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
+    return(ret);
+  }
+
+  Future<List<Destination>> findNearestAirports(LatLng point) async {
+    final db = await database;
+    List<Destination> ret = [];
+    if (db != null) {
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
+      String asDistance = "((ARPLongitude - ${point
+          .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
+          .toDouble()} + (ARPLatitude - ${point
+          .latitude}) * (ARPLatitude - ${point.latitude}))";
+
+      String qry =
+          "select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports "
+          "where Type='AIRPORT' "
+          "order by distance asc limit 10";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+
+      ret = List.generate(maps.length, (i) {
+        return Destination.fromMap(maps[i]);
+      });
+    }
     return(ret);
   }
 

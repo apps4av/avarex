@@ -4,7 +4,6 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/taf.dart';
 import 'package:avaremp/winds_aloft.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'metar.dart';

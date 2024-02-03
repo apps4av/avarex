@@ -1,10 +1,15 @@
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/user_database_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
+import 'constants.dart';
 import 'destination.dart';
+import 'gps.dart';
 import 'main_database_helper.dart';
 
 class FindScreen extends StatefulWidget {
@@ -20,6 +25,7 @@ class FindScreenState extends State<FindScreen> {
 
   List<Destination>? _currentItems;
   String _searchText = "";
+  bool _recent = true;
   double? _height;
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
@@ -38,10 +44,10 @@ class FindScreenState extends State<FindScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _height = Scaffold.of(context).appBarMaxHeight;
+    _height = Constants.appbarMaxSize(context);
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isEmpty? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findDestinations(_searchText), // find recent when not searching
+      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirports(Gps.toLatLng(Storage().position))), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -58,8 +64,10 @@ class FindScreenState extends State<FindScreen> {
 
   Widget _makeContent(List<Destination>? items, bool searching) {
 
+    GeoCalculations geo = GeoCalculations();
+
     return Container(
-        padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, 0),
+        padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, Constants.bottomPaddingSize(context)),
         child : Stack(children: [
           Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
           Column (children: [
@@ -75,7 +83,7 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find')
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (e.g. @BOS .BOS !BOSOX V1)')
                   )
                 )
             ),
@@ -103,6 +111,15 @@ class FindScreenState extends State<FindScreen> {
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
                         dense: true,
                         isThreeLine: true,
+                        trailing: ValueListenableBuilder<Position>(
+                          valueListenable: Storage().gpsChange,
+                            builder: (context, value, _) {
+                              LatLng position = Gps.toLatLng(value);
+                              int distance = geo.calculateDistance(item.coordinate, position).round();
+                              int dir = geo.calculateBearing(position, item.coordinate).round();
+                              return Text("${distance}nm\n$dir\u00b0");
+                          }
+                        ),
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
                           Storage().settings.setCenterLongitude(item.coordinate.longitude);
@@ -121,12 +138,27 @@ class FindScreenState extends State<FindScreen> {
                   separatorBuilder: (context, index) {
                     return const Divider();
                   },
-                )),
-            ]
-          )
+                )
+            ),
+            Expanded(
+              flex: 2,
+              child: Row(children:[
+                TextButton(onPressed: () {
+                  setState(() {
+                    _recent = true;
+                  });
+                }, child: Text("Recent"),),
+                TextButton(onPressed: () {
+                  setState(() {
+                    _recent = false;
+                  });
+                }, child: Text("Nearest"),),
+              ]
+            ))
+          ]),
         ]
-        )
-      );
+      )
+    );
   }
 }
 

@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'destination.dart';
