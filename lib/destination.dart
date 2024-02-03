@@ -276,6 +276,7 @@ class DestinationFactory {
       ret = destination ?? d;
     }
     else if (Destination.isGps(type)) {
+      ret = GpsDestination(locationID: d.locationID, type: d.type, facilityName: d.facilityName, coordinate: d.coordinate);
     }
 
     return ret;

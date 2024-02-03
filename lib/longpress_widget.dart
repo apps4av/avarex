@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -28,6 +29,7 @@ class LongPressWidget extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
+
 }
 
 class LongPressFuture {
@@ -36,7 +38,9 @@ class LongPressFuture {
   Destination showDestination;
   double width;
   double height;
-  LongPressFuture(this.destination, this.width, this.height) : showDestination =
+  Function(String value) labelCallback;
+
+  LongPressFuture(this.destination, this.width, this.height, this.labelCallback) : showDestination =
       Destination( // GPS default then others
           locationID: Destination.formatSexagesimal(
               destination.coordinate.toSexagesimal()),
@@ -81,6 +85,25 @@ class LongPressFuture {
     else if(showDestination is NavDestination) {
       pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));
     }
+    else if(showDestination is FixDestination) {
+    }
+    else if(showDestination is AirwayDestination) {
+    }
+    else if (showDestination is GpsDestination) {
+      // add labeling support
+      pages.add(Container(padding: const EdgeInsets.all(50), child:TextFormField(
+        decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Set Label'),
+        onFieldSubmitted: (value) {
+          Destination d = GpsDestination(
+              locationID: showDestination.locationID,
+              type: showDestination.type,
+              facilityName: value,
+              coordinate: showDestination.coordinate);
+          UserDatabaseHelper.db.addRecent(d);
+
+          labelCallback(value);
+      },)));
+    }
   }
 
   Future<LongPressFuture> getAll() async {
@@ -91,12 +114,16 @@ class LongPressFuture {
 
 class LongPressWidgetState extends State<LongPressWidget> {
 
+  void labelCallback(String value) {
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
 
 
     return FutureBuilder(
-        future: LongPressFuture(widget.destination, Constants.screenWidth(context), Constants.screenHeight(context)).getAll(),
+        future: LongPressFuture(widget.destination, Constants.screenWidth(context), Constants.screenHeight(context), labelCallback).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);

@@ -228,8 +228,8 @@ class _PlatePainter extends CustomPainter {
   final _paint = Paint();
   // Define a paint object for circle
   final _paintCenter = Paint()
-    ..style = PaintingStyle.fill
-    ..strokeWidth = 10
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 5
     ..color = Constants.plateMarkColor;
 
   final _paintLine = Paint()
@@ -313,7 +313,7 @@ class _PlatePainter extends CustomPainter {
         }
 
         // draw circle at center of airport of 1/16th of screen size
-        canvas.drawCircle(offsetCircle, (size.height + size.width) / 32, _paintCenter);
+        canvas.drawCircle(offsetCircle, (size.height + size.width) / 48, _paintCenter);
         //draw airplane
         canvas.translate(pixX, pixY);
         canvas.rotate((heading + angle) * pi / 180);

@@ -16,7 +16,7 @@ class MainDatabaseHelper {
   static MainDatabaseHelper get db => _db;
   static Database? _database;
 
-  static const String _limit = "10"; // limit results
+  static const String _limit = "20"; // limit results
 
   Future<Database?> get database async {
     if (_database != null) {
