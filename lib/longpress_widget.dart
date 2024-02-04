@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
