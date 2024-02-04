@@ -21,7 +21,7 @@ class InstrumentListState extends State<InstrumentList> {
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
   String _gndSpeed = "0";
   String _altitude = "0";
-  String _track = "0\u00b0";
+  String _magneticHeading = "0\u00b0";
   String _timerUp = "00:00";
   String _destination = "";
   String _bearing = "0\u00b0";
@@ -54,10 +54,11 @@ class InstrumentListState extends State<InstrumentList> {
 
     // connect to GPS
     Storage().gpsChange.addListener(() {
+      double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
       setState(() {
         _gndSpeed = truncate(GeoCalculations.convertSpeed(Storage().position.speed));
         _altitude = truncate(GeoCalculations.convertAltitude(Storage().position.altitude));
-        _track = truncate(GeoCalculations.convertTrack(Storage().position.heading));
+        _magneticHeading = truncate(GeoCalculations.convertMagneticHeading(GeoCalculations.getMagneticHeading(Storage().position.heading, variation)));
         var (distance, bearing) = getDistanceBearing();
         _distance = truncate(distance);
         _bearing = truncate(bearing);
@@ -112,28 +113,28 @@ class InstrumentListState extends State<InstrumentList> {
 
     // set callbacks and connect values
     switch(_items[index]) {
-      case "Gnd Speed":
+      case "GS":
         value = _gndSpeed;
         break;
-      case "Alt":
+      case "ALT":
         value = _altitude;
         break;
-      case "Track":
-        value = _track;
+      case "MH":
+        value = _magneticHeading;
         break;
-      case "Next":
+      case "NXT":
         value = _destination;
         break;
-      case "Bearing":
+      case "BRG":
         value = _bearing;
         break;
-      case "Distance":
+      case "DST":
         value = _distance;
         break;
       case "UTC":
         value = _utc;
         break;
-      case "Up Timer":
+      case "UPT":
         value = _timerUp;
         cb = _startUpTimer;
         break;
@@ -147,8 +148,8 @@ class InstrumentListState extends State<InstrumentList> {
         onTap: cb,
         child: Column(
           children: [
-            Expanded(flex: 2, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
-            Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 10, fontStyle: FontStyle.italic), maxLines: 1,)),
+            Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,)),
+            Expanded(flex: 1, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
           ]
         ),
       )

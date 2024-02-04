@@ -113,7 +113,7 @@ class GeoCalculations {
   }
 
   double getVariation(LatLng ll1) {
-    return _mag.calculate(ll1.latitude, ll1.longitude).dec;
+    return -_mag.calculate(ll1.latitude, ll1.longitude).dec; // somehow the package sends inverse
   }
 
   LatLng calculateOffset(LatLng from, double distance, double heading) {
@@ -126,8 +126,8 @@ class GeoCalculations {
   static String convertAltitude(double gpsAltitude) {
     return (gpsAltitude * 3.28084).round().toString();
   }
-  static String convertTrack(double gpsHeading) {
-    return "${gpsHeading.round().toString()}\u00b0";
+  static String convertMagneticHeading(double heading) {
+    return "${heading.round().toString()}\u00b0";
   }
 
 }

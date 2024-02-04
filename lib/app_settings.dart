@@ -60,11 +60,11 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    Settings.setValue("key-instruments-v4", instruments);
+    Settings.setValue("key-instruments-v6", instruments);
   }
 
   String getInstruments() {
-    return Settings.getValue("key-instruments-v4", defaultValue: "Gnd Speed,Alt,Track,Next,Distance,Bearing,Up Timer,UTC") as String;
+    return Settings.getValue("key-instruments-v6", defaultValue: "GS,ALT,MH,NXT,DST,BRG,UPT,UTC") as String;
   }
 
   List<String> getLayers() {

@@ -46,7 +46,7 @@ class DestinationCalculations {
     double variation = (variation1 + variation2) / 2.0; // avg of two variation
     groundSpeed = sqrt(ws * ws + _speed * _speed - 2 * ws * _speed * cos((heading - wd) * pi / 180.0));
     double windCorrectionAngle = -GeoCalculations.toDegrees(atan2(ws * sin((heading - wd) * pi / 180.0), _speed - ws * cos((heading - wd) * pi / 180.0)));
-    course = (heading + windCorrectionAngle + variation + 360) % 360;
+    course = GeoCalculations.getMagneticHeading(heading + windCorrectionAngle, variation);
 
     time = 3600 * distance / groundSpeed; //sec
     fuel = _fuelBurn * time / 3600; // gallon per hour use

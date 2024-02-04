@@ -111,7 +111,7 @@ class FindScreenState extends State<FindScreen> {
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
                         dense: true,
                         isThreeLine: true,
-                        trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}nm\n${geo.calculateBearing(position, item.coordinate).round()}\u00b0"),
+                        trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}nm\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0"),
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
                           Storage().settings.setCenterLongitude(item.coordinate.longitude);

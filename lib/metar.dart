@@ -22,13 +22,19 @@ class Metar extends Weather {
   }
 
   factory Metar.fromMap(Map<String, dynamic> maps) {
+    LatLng ll = const LatLng(0, 0);
+
+    try {
+      ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
+    }
+    catch(e) {}
 
     return Metar(
       maps["station"] as String,
       DateTime.fromMillisecondsSinceEpoch(maps["utcMs"] as int),
       maps["raw"] as String,
       maps["category"] as String,
-      LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double),
+      ll,
     );
   }
 
