@@ -2,6 +2,7 @@ import 'package:intl/intl.dart';
 
 // FAA date stuff
 class FaaDates {
+
   static int _getFirstDate(int year) {
     // Date for first cycle every year in January starting 2014
     switch(year) {
@@ -30,11 +31,6 @@ class FaaDates {
     }
   }
 
-  static String getCutInDate(int year) {
-    int first = _getFirstDate(year);
-    return "$year-01-$first 09:00";
-  }
-
   // based on cycle get start and end times
   static String getVersionRange(String cycleName) {
     int cycle;
@@ -59,15 +55,31 @@ class FaaDates {
     return "($fmt1-$fmt2)";
   }
 
-  // this will work till 2026
+  // this will work till 2029
   static String getCurrentCycle() {
-    DateTime now = DateTime.now().toUtc();
-    DateFormat formatter = DateFormat('yy');
-    int year = int.parse(formatter.format(now));
-    DateTime givenDate = DateTime.parse(getCutInDate(2000 + year));
-    String passed = ((now.difference(givenDate).inDays ~/ 28) + 1).toString().padLeft(2, '0');
-    String cycle = "$year$passed";
-    return cycle;
+    final DateTime epoch = DateTime.parse("2024-01-25 00:09:00Z");
+    const int validYears = 5;
+    int lastYear = epoch.year % 2000;
+    int cycle = 0;
+    // x years worth
+    for(int day = 0; day < validYears * 365; day += 28) {
+      DateTime date = epoch.add(Duration(days: day));
+      int year = (date.year % 2000);
+      if(lastYear == year) {
+        cycle++;
+      }
+      else {
+        cycle = 1;
+        lastYear = year;
+      }
+      String faaCycle = "$year${cycle.toString().padLeft(2, '0')}";
+      DateTime now = DateTime.now().toUtc();
+      Duration diff = now.difference(date);
+      if(diff.inSeconds > 0 && diff.inSeconds < const Duration(days:28).inSeconds) {
+        return faaCycle;
+      }
+    }
+    return ("0000");
   }
 
 }
