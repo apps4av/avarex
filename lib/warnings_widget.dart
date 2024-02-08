@@ -110,7 +110,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
     }
 
     String signMessage = widget.signed ? "" :
-    "You must sign the terms of use to use this software.";
+    "You must sign the Terms of Use to use this software.";
     if(signMessage.isNotEmpty) {
       list.add(ListTile(title: const Text("Sign Terms of Use"),
           leading: const Icon(Icons.verified_user_outlined),

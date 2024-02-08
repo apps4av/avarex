@@ -111,4 +111,12 @@ class AppSettings {
     Settings.setValue("key-signed", value);
   }
 
+  bool showIntro() {
+    return Settings.getValue("key-intro", defaultValue: true) as bool;
+  }
+
+  void setIntro(bool value) {
+    Settings.setValue("key-intro", value);
+  }
+
 }
