@@ -28,7 +28,8 @@ class Constants {
   static const Color instrumentsNormalValueColor = Colors.white;
   static const Color instrumentsNormalLabelColor = Colors.white;
 
-  static Color appBarBackgroundColor = Colors.black.withAlpha(156);
+  static Color appBarBackgroundColor = Colors.transparent;
+  static Color instrumentBackgroundColor = Colors.black26.withAlpha(156);
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
 
   static double dropDownButtonFontSize = 14;
@@ -54,7 +55,7 @@ class Constants {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
 
-  static const Color distanceCircleColor = Color.fromARGB(156, 102, 0, 51);
+  static const Color distanceCircleColor = Color.fromARGB(156, 255, 0, 255);
   static const Color speedCircleColor = Color.fromARGB(156, 0, 255, 0);
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.purpleAccent;

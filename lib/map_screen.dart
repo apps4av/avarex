@@ -192,6 +192,14 @@ class MapScreenState extends State<MapScreen> {
                   useRadiusInMeter: true,
                   point: Gps.toLatLng(value),
                 ),
+                CircleMarker(
+                  borderStrokeWidth: 4,
+                  borderColor: Constants.distanceCircleColor,
+                  color: Colors.transparent,
+                  radius: Constants.nmToM(15), // 15 nm circle
+                  useRadiusInMeter: true,
+                  point: Gps.toLatLng(value),
+                ),
                 // speed marker
                 CircleMarker(
                   borderStrokeWidth: 4,
@@ -308,7 +316,9 @@ class MapScreenState extends State<MapScreen> {
               builder: (context, value, _) {
                 return WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
                   gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
-                  dataExpired: Storage().dataExpired,);
+                  dataExpired: Storage().dataExpired,
+                  signed: Storage().settings.isSigned(),
+                  gpsLocked: Storage().gpsLocked,);
               }
             )
         ),
@@ -320,7 +330,7 @@ class MapScreenState extends State<MapScreen> {
               // warn
               Positioned(
                 child: Align(
-                    alignment: Alignment.topRight,
+                    alignment: Alignment.centerRight,
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
                         child: ValueListenableBuilder<bool>(

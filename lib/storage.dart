@@ -47,6 +47,8 @@ class Storage {
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
+  bool gpsLocked = true;
+  int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
 
   // gps
   final _gps = Gps();
@@ -94,6 +96,7 @@ class Storage {
     _gpsStream?.onData((data) {
       position = data;
       gpsChange.value = position; // tell everyone
+      _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
     });
   }
 
@@ -142,6 +145,13 @@ class Storage {
         gpsNotPermitted = await Gps().checkPermissions();
         gpsDisabled = !(await Gps().checkEnabled());
         warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
+        int diff = DateTime.now().millisecondsSinceEpoch - _lastMsGpsSignal;
+        if(diff > 60000) { // 60 seconds, no GPS signal, send warning
+          gpsLocked = false;
+        }
+        else {
+          gpsLocked = true;
+        }
       }
       // check GPS enabled
     });

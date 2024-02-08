@@ -143,7 +143,7 @@ class InstrumentListState extends State<InstrumentList> {
     return Container(
       key: Key(index.toString()),
       width: width,
-      decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 0.5), borderRadius: BorderRadius.circular(5)),
+      decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 0.5), borderRadius: BorderRadius.circular(0), color: Constants.instrumentBackgroundColor),
       child: GestureDetector(
         onTap: cb,
         child: Column(

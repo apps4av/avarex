@@ -35,12 +35,14 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 
 class WarningsWidget extends StatefulWidget {
   const WarningsWidget({super.key, required this.gpsNotPermitted,
-    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired});
+    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired, required this.signed, required this.gpsLocked});
 
   final bool gpsNotPermitted;
   final bool gpsDisabled;
   final bool chartsMissing;
   final bool dataExpired;
+  final bool signed;
+  final bool gpsLocked;
 
   @override
   State<StatefulWidget> createState() => WarningsWidgetState();
@@ -77,6 +79,16 @@ class WarningsWidgetState extends State<WarningsWidget> {
           onTap: () {Geolocator.openLocationSettings(); Scaffold.of(context).closeEndDrawer();}));
     }
 
+    String gpsLockedMessage = widget.gpsLocked ? "" :
+    "GPS lock cannot be obtained. Move to an open area where GPS signal can be received.";
+    if(gpsLockedMessage.isNotEmpty) {
+      list.add(ListTile(title: const Text("GPS Signal"),
+          leading: const Icon(Icons.gps_not_fixed),
+          subtitle: Text(gpsLockedMessage),
+          dense: true,
+          onTap: () {Navigator.pop(context);}));
+    }
+
     String dataAvailableMessage = !widget.chartsMissing ? "" :
     "Critical data is missing, please download the databases and some charts using the Download menu.";
     if(dataAvailableMessage.isNotEmpty) {
@@ -95,6 +107,16 @@ class WarningsWidgetState extends State<WarningsWidget> {
           subtitle: Text(dataCurrentMessage),
           dense: true,
           onTap: () {Navigator.pushNamed(context, '/download'); Scaffold.of(context).closeEndDrawer();}));
+    }
+
+    String signMessage = widget.signed ? "" :
+    "You must sign the terms of use to use this software.";
+    if(signMessage.isNotEmpty) {
+      list.add(ListTile(title: const Text("Sign Terms of Use"),
+          leading: const Icon(Icons.verified_user_outlined),
+          subtitle: Text(signMessage),
+          dense: true,
+          onTap: () {Navigator.pushNamed(context, '/terms'); Scaffold.of(context).closeEndDrawer();}));
     }
 
     return Drawer(

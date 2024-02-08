@@ -103,4 +103,12 @@ class AppSettings {
     Settings.setValue("key-airplane-fuel-burn-v2", value);
   }
 
+  bool isSigned() {
+    return Settings.getValue("key-signed", defaultValue: false) as bool;
+  }
+
+  void setSign(bool value) {
+    Settings.setValue("key-signed", value);
+  }
+
 }
