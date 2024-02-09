@@ -41,16 +41,31 @@ class Metar extends Weather {
   Color getColor() {
     switch(category) {
       case "VFR":
-        return Colors.green;
+        return const Color(0xAA00FF00);
       case "MVFR":
-        return Colors.blue;
+        return const Color(0xAA0000FF);
       case "IFR":
-        return Colors.red;
+        return const Color(0xAAFF0000);
       case "LIFR":
-        return Colors.deepPurple;
+        return const Color(0xAA673AB7);
     }
 
-    return Colors.white;
+    return const Color(0xAAFFFFFF);
+  }
+
+  Icon getIcon() {
+    switch (category) {
+      case "VFR":
+        return const Icon(Icons.circle, color: Color(0xAA00FF00));
+      case "MVFR":
+        return const Icon(Icons.circle, color: Color(0xAA0000FF));
+      case "IFR":
+        return const Icon(Icons.circle, color: Color(0xAAFF0000));
+      case "LIFR":
+        return const Icon(Icons.circle, color: Color(0xAA673AB7));
+    }
+
+    return const Icon(Icons.circle, color: Color(0xAAFFFFFF));
   }
 
 }

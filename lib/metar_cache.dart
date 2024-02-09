@@ -53,7 +53,7 @@ class MetarCache extends WeatherCache {
 
   @override
   Future<void> initialize() async {
-    super.initialize().then((value) => generateImage());
+    super.initialize().then((value) => ()); //generateImage()); use this when needed to show Metars in image. Not needed yet.
   }
 
   generateImage() async {

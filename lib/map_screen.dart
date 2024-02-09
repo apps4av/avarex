@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:avaremp/main_database_helper.dart';
-import 'package:avaremp/metar_cache.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/warnings_widget.dart';
+import 'package:avaremp/weather.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -20,6 +21,7 @@ import 'destination.dart';
 import 'download_screen.dart';
 import 'gps.dart';
 import 'longpress_widget.dart';
+import 'metar.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -150,25 +152,31 @@ class MapScreenState extends State<MapScreen> {
     if(_layersState[lIndex]) {
       layers.add(chartLayer);
     }
-
     lIndex = _layers.indexOf('METAR');
     if(_layersState[lIndex]) {
       layers.add(
           ValueListenableBuilder<int>(
               valueListenable: Storage().metar.change,
               builder: (context, value, _) {
-                return OverlayImageLayer(
-                  overlayImages: [
-                    if(null != Storage().metar.image)
-                      OverlayImage(
-                        bounds: LatLngBounds(
-                          MetarCache.topLeft,
-                          MetarCache.bottomRight,
-                        ),
-                        opacity: 0.7,
-                        imageProvider: MemoryImage(Storage().metar.image!),
-                      ),
-                  ],
+                List<Weather> weather = Storage().metar.getAll();
+                List<Metar> metars = weather.map((e) => e as Metar).toList();
+                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
+                    options: MarkerClusterLayerOptions(
+                        maxClusterRadius: 50,
+                        size: const Size(50, 50),
+                    markers: [
+                      for(Metar m in metars)
+                        Marker(point: m.coordinate, child: m.getIcon())
+                    ],
+                    builder: (context, markers) {
+                      return Container(
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(1),
+                            color: Colors.transparent),
+                        child: const Center()
+                      );
+                    },
+                  )
                 );
               }
           )
