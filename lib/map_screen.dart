@@ -170,8 +170,7 @@ class MapScreenState extends State<MapScreen> {
                     ],
                     builder: (context, markers) {
                       return Container(
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(1),
+                        decoration: const BoxDecoration(
                             color: Colors.transparent),
                         child: const Center()
                       );

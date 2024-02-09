@@ -22,7 +22,7 @@ class TafCache extends WeatherCache {
       try {
         // valid till time like 2024-01-27T18:26:00Z in row[5]
         DateTime time = DateTime.parse(row[5]).toUtc();
-        t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM"));
+        t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"));
         tafs.add(t);
       }
       catch(e) {

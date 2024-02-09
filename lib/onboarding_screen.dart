@@ -135,8 +135,8 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         ),
         PageViewModel(
           title: "Join the Forum",
-          body: "For 24/7 help, join our forum\napps4av-forum@googlegroups.com.\nPress the Done button to start using the app.\nYou may not exit this introduction till you have signed the Terms of Use.",
-          image: _buildFullscreenImage('forum.png'),
+          body: "For 24/7 help, join our forum apps4av-forum@googlegroups.com.\nYou may exit this introduction with the Done button, after you have signed the Terms of Use.",
+          image: _buildImage('forum.png'),
           decoration: pageDecoration,
         ),
       ],
