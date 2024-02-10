@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -72,23 +71,17 @@ class Gps {
     if(useSim) {
       // always fly to destination
       final Stream<Position> stream = Stream<Position>.periodic(const Duration(seconds: 1), (count) {
+        List<LatLng> points = GeoCalculations().findPoints(const LatLng(41, -71), const LatLng(45, -69), 1);
 
-        List<LatLng> points = Storage().route.getPathCurrent();
+        double latitude = points[num].latitude;
+        double longitude = points[num].longitude;
 
-        if(points.isNotEmpty) {
-          if (num >= points.length - 1) {
-            Storage().route.advance();
-            points = Storage().route.getPathCurrent();
-            num = 0;
-          }
-        }
-
-        double latitude = points.isNotEmpty ? points[num].latitude : 0;
-        double longitude = points.isNotEmpty ? points[num].longitude : 0;
-
-        double heading = points.isNotEmpty ? GeoCalculations().calculateBearing(points[num], points[num + 1]) : 0;
+        double heading = GeoCalculations().calculateBearing(points[num], points[num + 1]);
 
         num++;
+        if(num == points.length - 2) {
+          num = 0;
+        }
 
         Position p = Position(
             longitude: longitude,

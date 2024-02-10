@@ -13,6 +13,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'destination.dart';
 import 'destination_calculations.dart';
+import 'gps.dart';
 
 class PlanRoute {
 
@@ -110,6 +111,7 @@ class PlanRoute {
       _pointsCurrent = [];
       _pointsNext = [];
       totalCalculations = null;
+      change.value++;
       return;
     }
 
@@ -158,9 +160,22 @@ class PlanRoute {
       String? station = WindsCache.locateNearestStation(allDestinations[index].coordinate);
       WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
       (wd, ws) = WindsCache.getWindAtAltitude(double.parse(altitude), wa);
-      DestinationCalculations calc = DestinationCalculations(allDestinations[index], allDestinations[index + 1],
+
+      DestinationCalculations calc;
+      // calculate total from current position to active route
+      if(current.destination == allDestinations[index + 1]) {
+        calc = DestinationCalculations(
+          Destination.fromLatLng(Gps.toLatLng(Storage().position)),
+          allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);
+      }
+      else {
+        calc = DestinationCalculations(
+            allDestinations[index], allDestinations[index + 1],
+            Storage().settings.getTas().toDouble(),
+            Storage().settings.getFuelBurn().toDouble(), wd, ws);
+      }
       calc.calculateTo();
       allDestinations[index + 1].calculations = calc;
     }
@@ -206,6 +221,7 @@ class PlanRoute {
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
 
+    change.value++;
   }
 
   void advance() {
@@ -214,8 +230,7 @@ class PlanRoute {
         if(_current!.currentAirwayDestinationIndex < _current!.airwayDestinationsOnRoute.length - 1) {
           // flying on airway and not done
           _current!.currentAirwayDestinationIndex++;
-          _update(false);
-          change.value++;
+          update();
           return;
         }
       }
@@ -224,8 +239,7 @@ class PlanRoute {
       if (index < _waypoints.length) {
         _current = _waypoints[index];
       }
-      _update(false);
-      change.value++;
+      update();
     }
   }
 
@@ -237,7 +251,6 @@ class PlanRoute {
     Waypoint waypoint = _waypoints.removeAt(index);
     _current = (waypoint == _current) ? null : _current; // clear next its removed
     _update(true);
-    change.value++;
     return(waypoint);
   }
 
@@ -245,32 +258,27 @@ class PlanRoute {
     addWaypoint(waypoint);
     _current = _waypoints[_waypoints.indexOf(waypoint)]; // go here
     _update(true);
-    change.value++;
   }
 
   void addWaypoint(Waypoint waypoint) {
     _waypoints.add(waypoint);
     _update(true);
-    change.value++;
   }
 
   void moveWaypoint(int from, int to) {
     Waypoint waypoint = _waypoints.removeAt(from);
     _waypoints.insert(to, waypoint);
     _update(true);
-    change.value++;
   }
 
   void setCurrentWaypointWithWaypoint(Waypoint waypoint) {
     _current = _waypoints[_waypoints.indexOf(waypoint)];
-    _update(false);
-    change.value++;
+    update();
   }
 
   void setCurrentWaypoint(int index) {
     _current = _waypoints[index];
-    _update(false);
-    change.value++;
+    update();
   }
 
   Waypoint getWaypointAt(int index) {

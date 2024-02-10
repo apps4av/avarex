@@ -21,8 +21,7 @@ class GeoCalculations {
     return degrees * pi / 180.0;
   }
   // points on greater circle
-  List<LatLng> findPoints(LatLng begin, LatLng end) {
-
+  List<LatLng> findPoints(LatLng begin, LatLng end, [int? segmentLengthIn]) {
 
     List<LatLng> coordinates = [];
     double lat1 = toRadians(begin.latitude);
@@ -34,7 +33,7 @@ class GeoCalculations {
     if(0 == distance) {
       return []; // same point
     }
-    double num = (distance / segmentLength).roundToDouble();
+    double num = (distance / (segmentLengthIn?? segmentLength)).roundToDouble();
     num = num < 2 ? 2 : num;
     double d = (distance / earthRadiusConversion);
     double step = (num / (num - 1));

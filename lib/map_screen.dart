@@ -34,7 +34,6 @@ class MapScreenState extends State<MapScreen> {
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
-  int _pointers = 0;
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -81,7 +80,7 @@ class MapScreenState extends State<MapScreen> {
       Storage().settings.setCenterLongitude(
           _controller!.camera.center.longitude);
       Storage().settings.setRotation(_controller!.camera.rotation);
-      Storage().gpsChange.removeListener(listen);
+      Storage().gpsChange.removeListener(_listen);
       _previousPosition = null;
       _controller!.dispose();
       _controller = null;
@@ -89,7 +88,7 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // this pans camera on move
-  void listen() {
+  void _listen() {
     LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
     if(null != _controller) {
@@ -133,11 +132,9 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
-      onPointerDown: (event, position) {
-        _pointers++;
+      onPointerDown: (event, position) { // calculate down pointers here
       },
       onPointerUp: (event, position) {
-        _pointers--;
       },
       onMapEvent: (MapEvent mapEvent) {
         if (mapEvent is MapEventMoveStart) {
@@ -319,7 +316,7 @@ class MapScreenState extends State<MapScreen> {
     );
 
     // move with airplane but do not hold the map
-    Storage().gpsChange.addListener(listen);
+    Storage().gpsChange.addListener(_listen);
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),

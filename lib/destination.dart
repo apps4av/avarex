@@ -105,6 +105,14 @@ class Destination {
     };
     return map;
   }
+
+  factory Destination.fromLatLng(LatLng ll) {
+    return Destination(
+        locationID: ll.toString(),
+        facilityName: ll.toString(),
+        type: Destination.typeGps,
+        coordinate: ll);
+  }
 }
 
 class NavDestination extends Destination {

@@ -70,9 +70,6 @@ class PlanScreenState extends State<PlanScreen> {
                         re() async {
                           PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], false);
                           Storage().route.copyFrom(route);
-                          setState1(() {
-                            Storage().route.setCurrentWaypoint(0);
-                          });
                           setState(() {
                             Storage().route.setCurrentWaypoint(0);
                           });
@@ -87,9 +84,6 @@ class PlanScreenState extends State<PlanScreen> {
                           re() async {
                             PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], true);
                             Storage().route.copyFrom(route);
-                            setState1(() {
-                              Storage().route.setCurrentWaypoint(0);
-                            });
                             setState(() {
                               Storage().route.setCurrentWaypoint(0);
                             });
@@ -154,12 +148,18 @@ class PlanScreenState extends State<PlanScreen> {
       child: Stack(children:[
         Column(
           children: [
-            Expanded(flex: 1, child: ListTile( // header
-              key: Key(Storage().getKey()),
-              leading: const Icon(Icons.summarize_outlined),
-              title: PlanLineWidgetState.getHeading(),
-              subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations),
-            )), // heading for dist, time etc.
+            Expanded(flex: 1,
+              child: ValueListenableBuilder<int>( // update in plan change
+                valueListenable: route.change,
+                builder: (context, value, _) {
+                  return ListTile( // header
+                    key: Key(Storage().getKey()),
+                    leading: const Icon(Icons.summarize_outlined),
+                    title: PlanLineWidgetState.getHeading(),
+                    subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
+                }
+              )
+            ), // heading for dist, time etc.
             Expanded(flex: 5, child: ReorderableListView(
               scrollDirection: Axis.vertical,
               children: <Widget>[

@@ -1,4 +1,3 @@
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -50,7 +49,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       key: introKey,
       globalBackgroundColor: Colors.white,
       allowImplicitScrolling: false,
-      safeAreaList: [false, false, true, false],
+      safeAreaList: const [false, false, true, false],
       pages: [
         PageViewModel(
           title: "Welcome to AvareMP!",

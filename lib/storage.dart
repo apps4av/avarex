@@ -74,6 +74,7 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
+  bool _gotGpsPosition = false;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -97,6 +98,8 @@ class Storage {
       position = data;
       gpsChange.value = position; // tell everyone
       _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+      _gotGpsPosition = true;
+      route.update(); // change to route
     });
   }
 
@@ -142,6 +145,9 @@ class Storage {
       timeChange.value++;
 
       if(timeChange.value % 5 == 0) {
+        if(!_gotGpsPosition) {
+          gpsChange.value = position; // if GPS not sending, then keep sending last location
+        }
         // check system for any issues
         gpsNotPermitted = await Gps().checkPermissions();
         gpsDisabled = !(await Gps().checkEnabled());
