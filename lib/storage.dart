@@ -135,6 +135,7 @@ class Storage {
     if(!gpsNotPermitted) {
       Gps().requestPermissions();
     }
+    gpsDisabled = !(await Gps().checkEnabled());
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps

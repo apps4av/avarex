@@ -37,11 +37,6 @@ class MetarCache extends WeatherCache {
       Metar m;
       try {
         m = Metar(row[1], time, row[0], row[30], LatLng(row[3], row[4]));
-        if(!m.station.startsWith("K")) { // db limitation, legacy
-          if(Constants.useK) {
-            continue;
-          }
-        }
         metars.add(m);
       }
       catch(e) {

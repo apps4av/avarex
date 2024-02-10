@@ -34,6 +34,7 @@ class MapScreenState extends State<MapScreen> {
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
+  int _pointers = 0;
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -132,7 +133,13 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
-      onMapEvent: (mapEvent) {
+      onPointerDown: (event, position) {
+        _pointers++;
+      },
+      onPointerUp: (event, position) {
+        _pointers--;
+      },
+      onMapEvent: (MapEvent mapEvent) {
         if (mapEvent is MapEventMoveStart) {
           // do something
           _interacting = true;
@@ -161,9 +168,7 @@ class MapScreenState extends State<MapScreen> {
                 List<Weather> weather = Storage().metar.getAll();
                 List<Metar> metars = weather.map((e) => e as Metar).toList();
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                        maxClusterRadius: 50,
-                        size: const Size(50, 50),
+                  options: MarkerClusterLayerOptions(
                     markers: [
                       for(Metar m in metars)
                         Marker(point: m.coordinate, child: m.getIcon())

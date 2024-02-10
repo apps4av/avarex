@@ -1,5 +1,7 @@
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'main_screen.dart';
 
 import 'package:introduction_screen/introduction_screen.dart';
@@ -41,10 +43,14 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       imagePadding: EdgeInsets.zero,
     );
 
+    String gpsEnabledMessage = Storage().gpsDisabled ? "Make sure the GPS is enabled on this device." : "";
+    String gpsDeniedMessage = Storage().gpsNotPermitted ? "Make sure the app has permissions to use this device's GPS." : "";
+
     return IntroductionScreen(
       key: introKey,
       globalBackgroundColor: Colors.white,
       allowImplicitScrolling: false,
+      safeAreaList: [false, false, true, false],
       pages: [
         PageViewModel(
           title: "Welcome to AvareMP!",
@@ -54,7 +60,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
         ),
         PageViewModel(
           title: "Internet",
-          body: "Connect this device to the Internet.\nOn the Wi-Fi setting, choose the Wi-Fi network you want, connect to it.\nMake sure the Internet is available on this network.",
+          bodyWidget: const Text("Connect this device to the Internet.\nOn the Wi-Fi setting, choose the Wi-Fi network you want, connect to it.\nMake sure the Internet is available on this network."),
           image: _buildImage('wifi.png'),
           decoration: pageDecoration,
         ),
@@ -105,13 +111,14 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         ),
         PageViewModel(
           title: "GPS",
-          bodyWidget: Column(children:[
-            const Text("Make sure you are in an area where GPS signals are strong."),
-            Storage().gpsNotPermitted ? const Text("Make sure the app has permissions to use this device's GPS.") : Container(),
-            Storage().gpsNotPermitted ? TextButton(onPressed: () {  }, child: const Text("GPS Permissions"),) : Container(),
-            Storage().gpsDisabled ? const Text("Make sure the GPS is enabled on this device.") : Container(),
-            Storage().gpsDisabled ? TextButton(onPressed: () {  }, child: const Text("Enable GPS")) : Container(),
-          ]),
+          bodyWidget: Column(
+            children:[
+              Text("Make sure you are in an area where GPS signals are strong.\n$gpsDeniedMessage\n$gpsEnabledMessage"),
+              Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
+              Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),
+            ]
+          ),
+
           decoration: pageDecoration,
         ),
         PageViewModel(
@@ -130,12 +137,12 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         PageViewModel(
           title: "Keep Warnings in Check",
           image: _buildImage('warning.png'),
-          body: "Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible.",
+          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
           decoration: pageDecoration,
         ),
         PageViewModel(
           title: "Join the Forum",
-          body: "For 24/7 help, join our forum apps4av-forum@googlegroups.com.\nYou may exit this introduction with the Done button, after you have signed the Terms of Use.",
+          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com.\n\nYou may exit this introduction with the Done button, after you have signed the Terms of Use."),
           image: _buildImage('forum.png'),
           decoration: pageDecoration,
         ),
