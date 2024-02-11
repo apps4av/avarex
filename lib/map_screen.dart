@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
@@ -35,6 +36,7 @@ class MapScreenState extends State<MapScreen> {
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
+  final Ruler _ruler = Ruler();
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
@@ -59,6 +61,7 @@ class MapScreenState extends State<MapScreen> {
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
 
+    _ruler.init(); // this will guard against double long press
     List<Destination> items = await MainDatabaseHelper.db.findNear(point);
     setState(() {
       showDestination(this.context, items[0]);
@@ -134,9 +137,11 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: _handlePress,
-      onPointerDown: (event, position) { // calculate down pointers here
+      onPointerDown: (PointerDownEvent event, position) { // calculate down pointers here
+        _ruler.setPointer(event.pointer, position);
       },
-      onPointerUp: (event, position) {
+      onPointerUp: (PointerUpEvent event, position) {
+        _ruler.unsetPointer(event.pointer);
       },
       onMapEvent: (MapEvent mapEvent) {
         if (mapEvent is MapEventMoveStart) {
@@ -153,6 +158,11 @@ class MapScreenState extends State<MapScreen> {
     int lIndex = _layers.indexOf('OSM');
     if(_layersState[lIndex]) {
       layers.add(networkLayer);
+      layers.add( // OSM attribution
+        Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.bottomPaddingSize(context)),
+          child: const RichAttributionWidget(attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
+        ),
+      ));
     }
     lIndex = _layers.indexOf('Chart');
     if(_layersState[lIndex]) {
@@ -313,7 +323,33 @@ class MapScreenState extends State<MapScreen> {
           },
         ),
       );
-    }
+
+      layers.add(
+        // ruler layer
+        ValueListenableBuilder<int>(
+          valueListenable: _ruler.change,
+          builder: (context, value, _) {
+
+            int? distance = _ruler.getDistance();
+            LatLng? location = _ruler.getMiddle();
+
+            if(distance == null || location == null) {
+              return const MarkerLayer(markers: [],);
+            }
+
+            return MarkerLayer(
+              markers: [
+                Marker( // text
+                    alignment: Alignment.bottomRight,
+                    point: location,
+                    child: AutoSizeText(distance.toString(), style: TextStyle(fontSize: 20, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
+              ],
+            );
+          },
+        ),
+      );
+
+    } // all nav layers
 
     FlutterMap map = FlutterMap(
       mapController: _controller,
@@ -347,7 +383,7 @@ class MapScreenState extends State<MapScreen> {
                 child: Align(
                     alignment: Alignment.centerRight,
                     child: Padding(
-                        padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                        padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
                         child: ValueListenableBuilder<bool>(
                             valueListenable: Storage().warningChange,
                             builder: (context, value, _) {
@@ -392,7 +428,7 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.topLeft,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, Constants.appbarMaxSize(context) ?? 5, 5, 5),
+                          padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
                           child: Row(children:[
                             // menu
                             Container(
@@ -535,4 +571,65 @@ class ChartTileProvider extends TileProvider {
     }
     return FileImage(File(join(Storage().dataDir, "256.png")));
   }
+}
+
+// for scale measurement
+class Ruler {
+
+  int? _pointer0id;
+  int? _pointer1id;
+  LatLng? _ll0;
+  LatLng? _ll1;
+  final change = ValueNotifier<int>(0);
+  final GeoCalculations geo = GeoCalculations();
+
+  void init() {
+    _pointer0id = null;
+    _ll0 = null;
+    _pointer1id = null;
+    _ll1 = null;
+    change.value++;
+  }
+
+  void setPointer(int id, LatLng position) {
+    if(null == _pointer0id)  {
+      _pointer0id = id;
+      _ll0 = position;
+
+    }
+    else if(null == _pointer1id)  {
+      _pointer1id = id;
+      _ll1 = position;
+      change.value++;
+
+    }
+  }
+
+  void unsetPointer(int id) {
+    if(null != _pointer0id && id == _pointer0id)  {
+      _pointer0id = null;
+      _ll0 = null;
+      change.value++; // not in double touch anymore
+    }
+    if(null != _pointer1id && id == _pointer1id)  {
+      _pointer1id = null;
+      _ll1 = null;
+      change.value++; // not in double touch anymore
+    }
+  }
+
+  LatLng? getMiddle() {
+    if(_ll1 != null && _ll0 != null) {
+      return LatLng((_ll0!.latitude + _ll1!.latitude) / 2, (_ll0!.longitude + _ll1!.longitude) / 2);
+    }
+    return null;
+  }
+
+  int? getDistance() {
+    if(_ll1 != null && _ll0 != null) {
+      return geo.calculateDistance(_ll0!, _ll1!).round();
+    }
+    return null;
+  }
+
 }

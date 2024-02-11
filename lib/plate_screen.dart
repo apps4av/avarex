@@ -88,7 +88,7 @@ class PlateScreenState extends State<PlateScreen> {
 
   Widget _makeContent(PlatesFuture? future) {
 
-    double height = Constants.appbarMaxSize(context) ?? 0;
+    double height = 0;
     ValueNotifier notifier = ValueNotifier(0);
 
     if(future == null) {

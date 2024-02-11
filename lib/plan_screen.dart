@@ -140,11 +140,11 @@ class PlanScreenState extends State<PlanScreen> {
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
 
-    double? height = Constants.appbarMaxSize(context);
-    double? bottom = Constants.bottomPaddingSize(context);
+    double height = 0;
+    double bottom = Constants.bottomPaddingSize(context);
 
     // user can rearrange widgets
-    return Container(padding: EdgeInsets.fromLTRB(5, height! + 10, 5, bottom),
+    return Container(padding: EdgeInsets.fromLTRB(5, height + 10, 5, bottom),
       child: Stack(children:[
         Column(
           children: [

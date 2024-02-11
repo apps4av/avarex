@@ -25,7 +25,6 @@ class FindScreenState extends State<FindScreen> {
   String _searchText = "";
   bool _recent = true;
   int _runwayLength = 0;
-  double? _height;
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
     bool? exitResult = await showModalBottomSheet(
@@ -42,7 +41,6 @@ class FindScreenState extends State<FindScreen> {
 
   @override
   Widget build(BuildContext context) {
-    _height = Constants.appbarMaxSize(context);
     bool searching = true;
     return FutureBuilder(
       future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
@@ -81,7 +79,7 @@ class FindScreenState extends State<FindScreen> {
     LatLng position = Gps.toLatLng(Storage().position);
 
     return Container(
-        padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, Constants.bottomPaddingSize(context)),
+        padding: EdgeInsets.fromLTRB(10, 0, 20, Constants.bottomPaddingSize(context)),
         child : Stack(children: [
           Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
           Column (children: [

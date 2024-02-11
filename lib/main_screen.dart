@@ -62,7 +62,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       extendBody: true,
       endDrawerEnableOpenDragGesture: false,
       drawerEnableOpenDragGesture: false,

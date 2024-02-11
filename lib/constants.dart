@@ -38,9 +38,6 @@ class Constants {
     return isPortrait(context) ? 0.625 : 2.5;
   }
 
-  static double? appbarMaxSize(BuildContext context) {
-    return Scaffold.of(context).appBarMaxHeight;
-  }
   static double bottomPaddingSize(BuildContext context) {
     return MediaQuery.of(context).padding.bottom;
   }
