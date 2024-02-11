@@ -56,15 +56,29 @@ class FindScreenState extends State<FindScreen> {
     );
   }
 
-  void addRecent(Destination d) {
-    UserDatabaseHelper.db.addRecent(d);
+  String _filterToDescription() {
+    if(_searchText.isEmpty) {
+      return "Anything";
+    }
+    if(_searchText.startsWith(" ")) {
+      return "Airport by ID";
+    }
+    if(_searchText.startsWith(".")) {
+      return "Navigation AID";
+    }
+    if(_searchText.startsWith(",")) {
+      return "Fix";
+    }
+    if(_searchText.startsWith("!")) {
+      return "Airport by Name";
+    }
+    return("Anything");
   }
 
   Widget _makeContent(List<Destination>? items, bool searching) {
 
     GeoCalculations geo = GeoCalculations();
     LatLng position = Gps.toLatLng(Storage().position);
-
 
     return Container(
         padding: EdgeInsets.fromLTRB(10, _height ?? 0, 20, Constants.bottomPaddingSize(context)),
@@ -83,7 +97,7 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (Prefix Filters: space . , !)')
+                    decoration: InputDecoration(border: const UnderlineInputBorder(), hintText: "Prefix Filters: space . , !", labelText: 'Find ${_filterToDescription()}')
                   )
                 )
             ),
