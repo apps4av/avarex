@@ -324,31 +324,21 @@ class MapScreenState extends State<MapScreen> {
         ),
       );
 
-      layers.add(
-        // ruler layer
+      // ruler
+      layers.add(Container(alignment: Alignment.bottomLeft, padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+        child:
         ValueListenableBuilder<int>(
           valueListenable: _ruler.change,
           builder: (context, value, _) {
-
             int? distance = _ruler.getDistance();
             LatLng? location = _ruler.getMiddle();
-
             if(distance == null || location == null) {
-              return const MarkerLayer(markers: [],);
+              return Container();
             }
-
-            return MarkerLayer(
-              markers: [
-                Marker( // text
-                    alignment: Alignment.bottomRight,
-                    point: location,
-                    child: AutoSizeText(distance.toString(), style: TextStyle(fontSize: 20, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
-              ],
-            );
+            return AutoSizeText("${distance.toString()} NM", maxFontSize: 20, minFontSize: 10, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor));
           },
         ),
-      );
-
+      ));
     } // all nav layers
 
     FlutterMap map = FlutterMap(
