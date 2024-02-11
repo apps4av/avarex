@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -110,6 +111,7 @@ class MapScreenState extends State<MapScreen> {
 
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
+    GeoCalculations geo = GeoCalculations();
 
     //add layers
     List<Widget> layers = [];
@@ -184,7 +186,7 @@ class MapScreenState extends State<MapScreen> {
       );
     }
 
-    lIndex = _layers.indexOf('Circles');
+    lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // circle layer
         ValueListenableBuilder<Position>(
@@ -223,10 +225,7 @@ class MapScreenState extends State<MapScreen> {
           },
         ),
       );
-    }
 
-    lIndex = _layers.indexOf('Nav');
-    if(_layersState[lIndex]) {
       layers.add( // route layer
         ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
@@ -302,6 +301,13 @@ class MapScreenState extends State<MapScreen> {
                     child: Transform.rotate(angle: value.heading * pi / 180,
                         child: CustomPaint(painter: Plane())
                     )),
+                // circle labels
+                  Marker( // text
+                      point: geo.calculateOffset(current, 10, 360),
+                      child: Text("10", style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
+                  Marker( // text
+                      point: geo.calculateOffset(current, 15, 360),
+                      child: Text("15", style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
               ],
             );
           },
