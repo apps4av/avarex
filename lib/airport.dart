@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
 
@@ -130,6 +132,44 @@ class Airport {
     return AutoSizeText(frequencies, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible);
   }
 
+  static List<MapRunway> getRunwaysForMap(AirportDestination destination) {
+    GeoCalculations geo = GeoCalculations();
+    // pairs of two where a line will be drawn for runway, first is runway threshold, second 10 miles out
+    List<MapRunway> runways = [];
+    for(Map<String, dynamic> r in destination.runways) {
+      try {
+        double lat = double.parse(r['LELatitude']);
+        double length = double.parse(r['Length']);
+        double lon = double.parse(r['LELongitude']);
+        double heading = double.parse(r['LEHeadingT']);
+        LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
+        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
+        runways.add(MapRunway(start, end, r['HEIdent']));
+      }
+      catch (e) {}
+
+      try {
+        double lat = double.parse(r['HELatitude']);
+        double length = double.parse(r['Length']);
+        double lon = double.parse(r['HELongitude']);
+        double heading = double.parse(r['LEHeadingT']) + 180; // note HE h not in db
+        LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
+        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
+        runways.add(MapRunway(start, end, r['LEIdent']));
+      }
+      catch (e) {}
+    }
+    return runways;
+  }
+}
+
+class MapRunway {
+  static const double lengthStart = 4; // nm
+
+  LatLng start;
+  LatLng end;
+  String name;
+  MapRunway(this.start, this.end, this.name);
 }
 
 class RunwayPainter extends CustomPainter {

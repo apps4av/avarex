@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/airport.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
@@ -117,7 +118,6 @@ class MapScreenState extends State<MapScreen> {
 
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
-    GeoCalculations geo = GeoCalculations();
 
     //add layers
     List<Widget> layers = [];
@@ -243,6 +243,14 @@ class MapScreenState extends State<MapScreen> {
         ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
+            // we draw runways here.
+            List<MapRunway> runways = [];
+            if(Storage().route.getCurrentWaypoint() != null) {
+              Destination destination = Storage().route.getCurrentWaypoint()!.destination;
+              if(destination is AirportDestination) {
+                runways = Airport.getRunwaysForMap(destination);
+              }
+            }
             return PolylineLayer(
               polylines: [
                 // route
@@ -270,6 +278,37 @@ class MapScreenState extends State<MapScreen> {
                   color: Constants.planNextColor,
                   isDotted: true
                 ),
+                for(MapRunway r in runways)
+                  Polyline(
+                      borderStrokeWidth: 1,
+                      borderColor: Constants.planBorderColor,
+                      strokeWidth: 2,
+                      points: [r.start, r.end],
+                      color: Constants.instrumentsNormalValueColor,
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+
+      layers.add( // route layer for runway numbers
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().route.change,
+          builder: (context, value, _) {
+            // we draw runways here.
+            List<MapRunway> runways = [];
+            if(Storage().route.getCurrentWaypoint() != null) {
+              Destination destination = Storage().route.getCurrentWaypoint()!.destination;
+              if(destination is AirportDestination) {
+                runways = Airport.getRunwaysForMap(destination);
+              }
+            }
+            return MarkerLayer(
+                markers: [
+                for(MapRunway r in runways)
+                  Marker(point: r.end,
+                    child: Text(r.name, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
               ],
             );
           },
@@ -307,20 +346,14 @@ class MapScreenState extends State<MapScreen> {
             return MarkerLayer(
               markers: [
                 Marker( // our position and heading to destination
-                    width: 32,
-                    height: (Constants.screenWidth(context) +
-                        Constants.screenHeight(context)) / 4,
-                    point: current,
-                    child: Transform.rotate(angle: value.heading * pi / 180,
-                        child: CustomPaint(painter: Plane())
-                    )),
-                // circle labels
-                  Marker( // text
-                      point: geo.calculateOffset(current, 10, 360),
-                      child: Text("10", style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
-                  Marker( // text
-                      point: geo.calculateOffset(current, 15, 360),
-                      child: Text("15", style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
+                  width: 32,
+                  height: (Constants.screenWidth(context) +
+                      Constants.screenHeight(context)) / 4,
+                  point: current,
+                  child: Transform.rotate(angle: value.heading * pi / 180,
+                      child: CustomPaint(painter: Plane())
+                  )
+                ),
               ],
             );
           },
