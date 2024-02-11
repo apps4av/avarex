@@ -61,6 +61,9 @@ class MapScreenState extends State<MapScreen> {
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
 
+    if(_ruler.isDoubleTouch()) {
+      return; // on double touch, do not set destination as it is ambiguous
+    }
     _ruler.init(); // this will guard against double long press
     List<Destination> items = await MainDatabaseHelper.db.findNear(point);
     setState(() {
@@ -579,6 +582,10 @@ class Ruler {
     _pointer1id = null;
     _ll1 = null;
     change.value++;
+  }
+
+  bool isDoubleTouch() {
+    return _pointer0id != null && _pointer1id != null;
   }
 
   void setPointer(int id, LatLng position) {
