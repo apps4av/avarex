@@ -83,7 +83,7 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (Prefix Filters: space dot comma)')
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Find (Prefix Filters: space . , !)')
                   )
                 )
             ),

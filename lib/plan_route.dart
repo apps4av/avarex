@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:avaremp/airway.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/passage.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/winds_aloft.dart';
@@ -26,6 +27,7 @@ class PlanRoute {
   String name;
   final change = ValueNotifier<int>(0);
   String altitude = "3000";
+  Passage? _passage;
 
   DestinationCalculations? totalCalculations;
 
@@ -169,6 +171,17 @@ class PlanRoute {
           allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);
+        // calculate passage
+        Passage? p = _passage;
+        if(null == p) {
+          p = Passage(allDestinations[index + 1].coordinate);
+          _passage = p;
+        }
+        if(p.update(Gps.toLatLng(Storage().position))) {
+          // passed
+          advance();
+          _passage = null;
+        }
       }
       else {
         calc = DestinationCalculations(
@@ -238,6 +251,9 @@ class PlanRoute {
       index++;
       if (index < _waypoints.length) {
         _current = _waypoints[index];
+      }
+      if (index >= _waypoints.length) {
+        _current = _waypoints[0]; // done, go back
       }
       update();
     }
