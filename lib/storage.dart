@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+// put all singletons here.
+
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
@@ -12,6 +14,7 @@ import 'package:avaremp/winds_cache.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:path/path.dart';
@@ -216,4 +219,20 @@ class Storage {
     imagePlate = image;
     plateChange.value++; // change in storage
   }
+}
+
+
+class FileCacheManager {
+
+  static final FileCacheManager _instance = FileCacheManager._internal();
+
+  factory FileCacheManager() {
+    return _instance;
+  }
+
+  FileCacheManager._internal();
+
+  // this must be in a singleton class.
+  final CacheManager networkCacheManager = CacheManager(Config("customCache", stalePeriod: const Duration(minutes: 1)));
+
 }

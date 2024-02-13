@@ -1,5 +1,6 @@
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'documents_screen.dart';
 import 'download_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
@@ -23,6 +24,7 @@ class MainApp extends StatelessWidget {
       routes: {
         '/': (context) => Storage().settings.showIntro() ? const OnBoardingScreen() : const MainScreen(),
         '/download': (context) => const DownloadScreen(),
+        '/documents': (context) => const DocumentsScreen(),
       },
       theme : ThemeData(
         brightness: Brightness.dark,
