@@ -55,22 +55,19 @@ class FindScreenState extends State<FindScreen> {
   }
 
   String _filterToDescription() {
-    if(_searchText.isEmpty) {
-      return "Anything";
-    }
     if(_searchText.startsWith(" ")) {
-      return "Airport by ID";
+      return "Airport by ID ( )";
     }
-    if(_searchText.startsWith(".")) {
-      return "Navigation AID";
+    else if(_searchText.startsWith(".")) {
+      return "Navigation AID (.)";
     }
-    if(_searchText.startsWith(",")) {
-      return "Fix";
+    else if(_searchText.startsWith(",")) {
+      return "Fix (,)";
     }
-    if(_searchText.startsWith("!")) {
-      return "Airport by Name";
+    else if(_searchText.startsWith("!")) {
+      return "Airport by Name (!)";
     }
-    return("Anything");
+    return("( .,!)");
   }
 
   Widget _makeContent(List<Destination>? items, bool searching) {
@@ -84,7 +81,7 @@ class FindScreenState extends State<FindScreen> {
           Align(alignment: Alignment.center, child: searching? const CircularProgressIndicator() : const SizedBox(width: 0, height:  0,),), // search indication
           Column (children: [
             Expanded(
-                flex: 3,
+                flex: 2,
                 child: Container(
                   alignment: Alignment.bottomLeft,
                   child: TextFormField(
@@ -95,12 +92,12 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: InputDecoration(border: const UnderlineInputBorder(), hintText: "Prefix Filters: space . , !", labelText: 'Find ${_filterToDescription()}')
+                    decoration: InputDecoration(border: const UnderlineInputBorder(), labelText: 'Find ${_filterToDescription()}')
                   )
                 )
             ),
             Expanded(
-                flex: 10,
+                flex: 7,
                 child: null == items ? Container() : ListView.separated(
                   itemCount: items.length,
                   padding: const EdgeInsets.all(5),
@@ -145,7 +142,7 @@ class FindScreenState extends State<FindScreen> {
                 )
             ),
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Row(children:[
                 TextButton(onPressed: () {
                   setState(() {

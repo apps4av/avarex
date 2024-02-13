@@ -175,7 +175,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
           Expanded(flex: 1, child: Row(children: [
             // top action buttons
             TextButton(
-              child: const Text("->D", style: TextStyle(fontSize: 20)),
+              child: const Text("->D"),
               onPressed: () {
                 UserDatabaseHelper.db.addRecent(future.showDestination);
                 Storage().setDestination(future.showDestination);
@@ -221,7 +221,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             ) : Container(),
           ])),
           // various info
-          Expanded(flex: 18, child: CarouselSlider(
+          Expanded(flex: 7, child: CarouselSlider(
             carouselController: widget.buttonCarouselController,
             items: cards,
             options: CarouselOptions(
