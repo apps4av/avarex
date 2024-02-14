@@ -11,6 +11,7 @@ import 'package:avaremp/weather.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:widget_zoom/widget_zoom.dart';
 
 import 'airport.dart';
 import 'constants.dart';
@@ -20,11 +21,10 @@ import 'nav.dart';
 
 class LongPressWidget extends StatefulWidget {
   final Destination destination;
-  final CarouselController buttonCarouselController = CarouselController();
 
   // it crashes if not static
 
-  LongPressWidget({super.key, required this.destination});
+  const LongPressWidget({super.key, required this.destination});
 
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
@@ -35,11 +35,13 @@ class LongPressFuture {
 
   Destination destination;
   Destination showDestination;
-  double width;
-  double height;
+  double dimensions;
   Function(String value) labelCallback;
+  Image? airportPlate;
+  Widget? ad;
+  int? metarPage;
 
-  LongPressFuture(this.destination, this.width, this.height, this.labelCallback) : showDestination =
+  LongPressFuture(this.destination, this.dimensions, this.labelCallback) : showDestination =
       Destination( // GPS default then others
           locationID: Destination.formatSexagesimal(
               destination.coordinate.toSexagesimal()),
@@ -55,24 +57,27 @@ class LongPressFuture {
     showDestination = await DestinationFactory.make(destination);
 
     if(showDestination is AirportDestination) {
-      pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(showDestination as AirportDestination)));
-      pages.add(Airport.runwaysWidget(showDestination as AirportDestination, width, height));
+
+      // made up airport dia
+      ad = Airport.runwaysWidget(showDestination as AirportDestination, dimensions);
+
       // show first plate
       List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, showDestination.locationID);
       if(plates.isNotEmpty) {
-        File ad = File(PathUtils.getPlatePath(
-            Storage().dataDir, showDestination.locationID, plates[0]));
-        if (await ad.exists()) {
-          Image? airportPlate = Image.file(ad);
-          pages.add(Card(child:airportPlate));
+        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, plates[0]));
+        if (await file.exists()) {
+          airportPlate = Image.file(file);
         }
       }
+
+      pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(showDestination as AirportDestination)));
 
       String k = Constants.useK ? "K" : "";
       Weather? w = Storage().metar.get("$k${showDestination.locationID}");
       Weather? w1 = Storage().taf.get("$k${showDestination.locationID}");
 
       if(w != null || w1 != null) {
+        metarPage = pages.length;
         pages.add(ListView(
           children: [
             w != null ? ListTile(title: const Text("METAR"), subtitle: Text((w as Metar).text), leading: Icon(Icons.circle_outlined, color: w.getColor(),),) : Container(),
@@ -113,6 +118,8 @@ class LongPressFuture {
 
 class LongPressWidgetState extends State<LongPressWidget> {
 
+  final CarouselController _controller = CarouselController();
+
   void labelCallback(String value) {
     Navigator.of(context).pop();
   }
@@ -120,9 +127,12 @@ class LongPressWidgetState extends State<LongPressWidget> {
   @override
   Widget build(BuildContext context) {
 
+    double width = Constants.screenWidth(context);
+    double height = Constants.screenHeight(context);
+    double dimensions = width > height ? height : width;
 
     return FutureBuilder(
-        future: LongPressFuture(widget.destination, Constants.screenWidth(context), Constants.screenHeight(context), labelCallback).getAll(),
+        future: LongPressFuture(widget.destination, dimensions, labelCallback).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -169,8 +179,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
         ),
       ),
       child: Stack(children:[
-        Column(
-        children: [
+        Column(children: [
           Expanded(flex: 1, child: Text("${future.showDestination.facilityName}(${future.showDestination.locationID}) $direction", style: const TextStyle(fontWeight: FontWeight.w700),)),
           Expanded(flex: 1, child: Row(children: [
             // top action buttons
@@ -195,7 +204,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
-            future.showDestination is AirportDestination ?
+            if(future.showDestination is AirportDestination)
               TextButton(
                 child: const Text("Plates"),
                 onPressed: () { // go to plate
@@ -205,24 +214,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   MainScreenState.gotoPlate();
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
-              ) : Container(),
-
-            cards.length > 1 ? // left right arrows
-              IconButton(
-                onPressed: () => widget.buttonCarouselController.previousPage(
-                    duration: const Duration(milliseconds: 300), curve: Curves.linear),
-                icon: const Icon(Icons.chevron_left),
-              ) : Container(),
-            cards.length > 1 ? // left right arrows
-            IconButton(
-              onPressed: () => widget.buttonCarouselController.nextPage(
-                  duration: const Duration(milliseconds: 300), curve: Curves.linear),
-              icon: const Icon(Icons.chevron_right),
-            ) : Container(),
+              ),
+            if (future.metarPage != null)
+              TextButton(
+                child: const Text("METAR"),
+                onPressed: () => _controller.animateToPage(future.metarPage!)
+              )
           ])),
           // various info
           Expanded(flex: 7, child: CarouselSlider(
-            carouselController: widget.buttonCarouselController,
+            carouselController: _controller,
             items: cards,
             options: CarouselOptions(
               viewportFraction: 1,
@@ -234,7 +235,27 @@ class LongPressWidgetState extends State<LongPressWidget> {
           )),
         ],
         ),
+        // add various buttons that expand to diagrams
+        Positioned(child: Align(
+          alignment: Alignment.bottomRight,
+          child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
+            if (future.ad != null)
+              SizedBox(width: 32, height: 32,
+                  child: WidgetZoom(zoomWidget: future.ad!, heroAnimationTag: "runwaysAd",)),
+            if (future.ad != null)
+              const Text("AD/CS"),
+            if (future.airportPlate != null)
+              const SizedBox(width: 32, child: Divider()),
+            if (future.airportPlate != null)
+              SizedBox(width: 32, height: 32,
+                  child: WidgetZoom(zoomWidget: future.airportPlate!, heroAnimationTag: "airportPlate",)),
+            if (future.airportPlate != null)
+              const Text("Plate"),
+          ]
+          ),
+        )),
       ],
-    ));
+    )
+    );
   }
 }
