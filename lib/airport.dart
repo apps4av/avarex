@@ -10,29 +10,6 @@ import 'constants.dart';
 
 class Airport {
 
-  static String parseRunways(AirportDestination airport) {
-
-    String info = "";
-    List<Map<String, dynamic>> runways = airport.runways;
-
-    for(Map<String, dynamic> r in runways) {
-
-      try {
-
-        if(r['Length'] == "0") { // odd stuff like 0 length runways
-          continue;
-        }
-        info += "${r['LEIdent']}/${r['HEIdent']} ${r['Length']}x${r['Width']} ${r['Surface']}\n";
-        info += "    ${r['LEIdent']} ${r['LEPattern'] == 'Y' ? '*R' : ''} ${r['LELights']} ${r['LEILS']} ${r['LEVGSI']}\n";
-        info += "    ${r['HEIdent']} ${r['HEPattern'] == 'Y' ? '*R' : ''} ${r['HELights']} ${r['HEILS']} ${r['HEVGSI']}\n";
-
-      }
-      catch(e) {}
-    }
-
-    return(info);
-  }
-
   static String parseFrequencies(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
@@ -111,21 +88,8 @@ class Airport {
     return ret;
   }
 
-  static Widget runwaysWidget(AirportDestination airport, double width, double height) {
-    String info = parseRunways(airport);
-    if(height > width) {
-      return Column(children:[
-        Expanded(flex: 1, child: AutoSizeText(info, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible)),
-        Expanded(flex: 2, child: CustomPaint(size: const Size(double.infinity, double.infinity), painter: RunwayPainter(airport))),
-      ]);
-    }
-    else {
-      return Row(children:[
-        Expanded(flex: 1, child: AutoSizeText(info, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible)),
-        Expanded(flex: 2, child: CustomPaint(size: const Size(double.infinity, double.infinity), painter: RunwayPainter(airport))),
-      ]);
-
-    }
+  static Widget runwaysWidget(AirportDestination airport, double dimensions) {
+    return CustomPaint(size: Size(dimensions, dimensions), painter: RunwayPainter(airport));
   }
 
   static Widget frequenciesWidget(String frequencies) {
@@ -209,7 +173,15 @@ class RunwayPainter extends CustomPainter {
     }
 
     Rect bounds = Rect.fromLTRB(minLon, maxLat, maxLon, minLat);
-    double avg = max(bounds.width.abs(), bounds.height.abs()) / 1.6; // give margin for airport off center, ideally 2 if in center
+    double avg = max(bounds.width.abs(), bounds.height.abs());
+
+    final paintBox = Paint()
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke
+      ..color = Constants.runwayColor; // runway color
+
+    // make a square around this dia
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paintBox);
 
     for(Map<String, dynamic> r in runways) {
 
@@ -229,6 +201,9 @@ class RunwayPainter extends CustomPainter {
         double leLon = double.parse(r['LELongitude']);
         double heLon = double.parse(r['HELongitude']);
 
+        if(r['Length'] == "0") { // odd stuff like 0 length runways
+          continue;
+        }
 
         double apLat = airport.coordinate.latitude;
         double apLon = airport.coordinate.longitude;
@@ -258,11 +233,24 @@ class RunwayPainter extends CustomPainter {
 
         canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
-        TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: "${r['LEIdent']}");
+        String ident = "${r['LEIdent']} ";
+        String pattern = r['LEPattern'] == 'Y' ? 'RP ' : '';
+        String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
+        String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
+        String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
+        TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 96), text:
+          "$ident$pattern$lights$ils$vgsi\n${r['Length']}x${r['Width']} ${r['Surface']}");
         TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(lx + offsetX, ly + offsetY));
-        span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 30), text: "${r['HEIdent']}");
+
+        ident = "${r['HEIdent']} ";
+        pattern = r['HEPattern'] == 'Y' ? 'RP ' : '';
+        lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
+        ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
+        vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
+        span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 96), text:
+          "$ident$pattern$lights$ils$vgsi");
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(hx + offsetX, hy + offsetY));
