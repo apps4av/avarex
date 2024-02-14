@@ -146,7 +146,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
           decoration: pageDecoration,
         ),
       ],
-      onDone: () {if(Storage().settings.isSigned()) {_onIntroEnd(context);} }, // do not exit till terms is signed
+      onDone: () {if(Storage().settings.isSigned()) {Storage().settings.setIntro(false); _onIntroEnd(context); } }, // do not exit till terms is signed
       skipOrBackFlex: 0,
       nextFlex: 0,
       showBackButton: true,

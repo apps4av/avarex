@@ -60,20 +60,36 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     Product("Clouds Forecast 12H",    "https://www.aviationweather.gov/data/products/gfa/F12_gfa_clouds_us.png"),
     Product("Clouds Forecast 15H",    "https://www.aviationweather.gov/data/products/gfa/F15_gfa_clouds_us.png"),
     Product("Clouds Forecast 18H",    "https://www.aviationweather.gov/data/products/gfa/F18_gfa_clouds_us.png"),
+    Product("Winds/Temp 5000 06HR",   "https://aviationweather.gov/data/products/fax/F06_wind_050_b1.gif"),
+    Product("Winds/Temp 10000 06HR",  "https://aviationweather.gov/data/products/fax/F06_wind_100_b1.gif"),
+    Product("Winds/Temp 18000 06HR",  "https://aviationweather.gov/data/products/fax/F06_wind_180_b1.gif"),
+    Product("Winds/Temp 24000 06HR",  "https://aviationweather.gov/data/products/fax/F06_wind_240_b1.gif"),
+    Product("Winds/Temp 30000 06HR",  "https://aviationweather.gov/data/products/fax/F06_wind_300_b1.gif"),
+    Product("Winds/Temp 5000 12HR",   "https://aviationweather.gov/data/products/fax/F12_wind_050_b1.gif"),
+    Product("Winds/Temp 10000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_100_b1.gif"),
+    Product("Winds/Temp 18000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_180_b1.gif"),
+    Product("Winds/Temp 24000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_240_b1.gif"),
+    Product("Winds/Temp 30000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_300_b1.gif"),
   ];
 
   //if you don't want widget full screen then use center widget
-  Widget smallImage(String name, String url) => Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
-    child: Center(
-            child:Column(
-              children:[
-                SizedBox(width: 256, height: 128, child: WidgetZoom(heroAnimationTag: name, zoomWidget:
-                CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager,))),
-                Text(name),
-            ]
-          )),
+  Widget smallImage(String name, String url) {
+     Widget widget = WidgetZoom(
+        heroAnimationTag: name,
+        zoomWidget: CachedNetworkImage(
+          imageUrl: url,
+          cacheManager: FileCacheManager().networkCacheManager,));
 
-  );
+    return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
+      child: Center(
+          child: Column(
+              children: [
+                SizedBox(width: 256, height: 128, child: widget),
+                Text(name),
+              ]
+          )),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +97,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Documents"),
+        actions: const [],
       ),
       body: SingleChildScrollView(
           child: GridView.count(

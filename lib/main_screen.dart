@@ -3,6 +3,7 @@ import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'constants.dart';
 import 'instrument_list.dart';
 import 'map_screen.dart';
@@ -69,9 +70,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
         child: Drawer(
           child: ListView(children: [
-            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: const Icon(Icons.help), onPressed: () { },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
+            ListTile(title: const Text("avareMp"), subtitle: const Text("0.0.1"), trailing: IconButton(icon: Icon(MdiIcons.signatureImage), onPressed: () { Storage().settings.setIntro(true); },), leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
-            ListTile(title: const Text("Documents"), leading: const Icon(Icons.document_scanner), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),
+            ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),
           ],
         ))
       ),

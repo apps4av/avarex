@@ -112,7 +112,7 @@ class AppSettings {
   }
 
   bool showIntro() {
-return true;//    return Settings.getValue("key-intro", defaultValue: true) as bool;
+    return Settings.getValue("key-intro", defaultValue: true) as bool;
   }
 
   void setIntro(bool value) {
