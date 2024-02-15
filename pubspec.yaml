@@ -47,7 +47,7 @@ dependencies:
   geolocator_linux: ^0.2.0+1
   wakelock_plus: ^1.1.4
   dio: ^5.3.4
-  flutter_archive: ^5.0.0
+  archive: ^3.4.10
   http: ^1.0.0
   exif: ^3.3.0
   flutter_map: ^6.1.0

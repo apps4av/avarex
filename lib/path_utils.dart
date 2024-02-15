@@ -24,6 +24,10 @@ class PathUtils {
     return path.join(base, "$filename.zip");
   }
 
+  static String getUnzipFilePath(String base, String filename) {
+    return path.join(base, filename);
+  }
+
   static String getPlateFilePath(String base, String airport, String plate) {
     String plates = path.join(base, "plates");
     String id = path.join(plates, airport);

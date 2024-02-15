@@ -7,9 +7,9 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
-import 'package:flutter_archive/flutter_archive.dart';
 import 'package:http/http.dart' as http;
 import 'chart.dart';
+import 'package:archive/archive_io.dart';
 
 class Download {
 
@@ -110,7 +110,6 @@ class Download {
     final Dio dio = Dio();
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
-    Directory localDir = Directory(Storage().dataDir);
     callback!(chart, 0); // download start signal
     CancelToken cancelToken = CancelToken(); // this is to cancel the dio download
 
@@ -164,21 +163,28 @@ class Download {
     }
 
     try {
-      await ZipFile.extractToDirectory(
-          zipFile: localFile,
-          destinationDir: localDir,
-          onExtracting: (zipEntry, pg) {
-            double progress = 0.5 + (pg / 200); // 0.50 to 1 for unzip
-            if (progress - lastProgress >= 0.01) {
-              callback(chart, progress);
-              lastProgress = progress;
-            }
-            if(_cancelDownloadAndDelete) {
-              callback(chart, -1);
-              return ZipFileOperation.cancel;
-            }
-            return ZipFileOperation.includeItem;
-          });
+      final inputStream = InputFileStream(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
+      final archive = ZipDecoder().decodeBuffer(inputStream);
+
+      double num = 1; // file number being decoded
+      for(var file in archive) {
+        if (file.isFile) {
+          final outputStream = OutputFileStream(PathUtils.getUnzipFilePath(Storage().dataDir, file.name));
+          file.writeContent(outputStream);
+          outputStream.close();
+          if(_cancelDownloadAndDelete) {
+            callback(chart, -1);
+          }
+        }
+        double fraction = num++ / archive.length.toDouble();
+        double progress = 0.5 + (fraction / 2); // 0.50 to 1
+        if (progress - lastProgress >= 0.1) { // unzip is faster than download
+          callback(chart, progress);
+          lastProgress = progress;
+        }
+      }
+
+      inputStream.close();
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
       callback(chart, 1); // done
