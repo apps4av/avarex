@@ -63,6 +63,15 @@ class PlatesFuture {
 
 class PlateScreenState extends State<PlateScreen> {
 
+  final ValueNotifier _notifier = ValueNotifier(0);
+
+  @override
+  void dispose() {
+    super.dispose();
+    Storage().plateChange.removeListener(_notifyPaint);
+    Storage().gpsChange.removeListener(_notifyPaint);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -86,13 +95,16 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
 
+  void _notifyPaint() {
+    _notifier.value++;
+  }
+
   Widget _makeContent(PlatesFuture? future) {
 
     double height = 0;
-    ValueNotifier notifier = ValueNotifier(0);
 
     if(future == null) {
-      return makePlateView([], [], height, 0, 0, notifier);
+      return makePlateView([], [], height, 0, 0, _notifier);
     }
 
     List<String> plates = future.plates;
@@ -104,11 +116,11 @@ class PlateScreenState extends State<PlateScreen> {
     double lat =  destination == null ? 0: destination.coordinate.latitude;
 
     if(airports.isEmpty) {
-      return makePlateView([], plates, height, lon, lat, notifier);
+      return makePlateView([], plates, height, lon, lat, _notifier);
     }
 
     if(plates.isEmpty) {
-      return makePlateView(airports, [], height, lon, lat, notifier);
+      return makePlateView(airports, [], height, lon, lat, _notifier);
     }
 
     if((Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
@@ -118,16 +130,10 @@ class PlateScreenState extends State<PlateScreen> {
     _loadPlate();
 
     // plate load notification, repaint
-    Storage().plateChange.addListener(() {
-      notifier.value++;
-    });
+    Storage().plateChange.addListener(_notifyPaint);
+    Storage().gpsChange.addListener(_notifyPaint);
 
-    Storage().gpsChange.addListener(() {
-      // gps change, repaint plate
-      notifier.value++;
-    });
-
-    return makePlateView(airports, plates, height, lon, lat, notifier);
+    return makePlateView(airports, plates, height, lon, lat, _notifier);
   }
 
   Widget makePlateView(List<String> airports, List<String> plates, double height, double lon, double lat, ValueNotifier notifier) {

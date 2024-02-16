@@ -30,63 +30,75 @@ class InstrumentListState extends State<InstrumentList> {
   int _countUp = 0;
   bool _doCountUp = false;
 
-  String truncate(String value) {
+  @override
+  void dispose() {
+    Storage().gpsChange.removeListener(_gpsListener);
+    Storage().route.change.removeListener(_routeListener);
+    Storage().timeChange.removeListener(_timeListener);
+    super.dispose();
+  }
+
+  String _truncate(String value) {
     int maxLength = 5;
     return value.length > maxLength ? value.substring(0, maxLength) : value;
   }
 
+  (String, String) _getDistanceBearing() {
+    LatLng position = Gps.toLatLng(Storage().position);
+    GeoCalculations calculations = GeoCalculations();
+
+    Destination? d = Storage().route.getCurrentWaypoint()?.destination;
+    if (d != null) {
+      double distance = calculations.calculateDistance(
+          position, d.coordinate);
+      double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
+          position, d.coordinate), calculations.getVariation(d.coordinate));
+      return (distance.round().toString(), "${bearing.round()}\u00b0");
+    }
+    return ("", "0\u00b0");
+  }
+
+  void _gpsListener() {
+    // connect to GPS
+    double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
+    setState(() {
+      _gndSpeed = _truncate(GeoCalculations.convertSpeed(Storage().position.speed));
+      _altitude = _truncate(GeoCalculations.convertAltitude(Storage().position.altitude));
+      _magneticHeading = _truncate(GeoCalculations.convertMagneticHeading(GeoCalculations.getMagneticHeading(Storage().position.heading, variation)));
+      var (distance, bearing) = _getDistanceBearing();
+      _distance = _truncate(distance);
+      _bearing = _truncate(bearing);
+    });
+  }
+
+  void _routeListener() {
+    setState(() {
+      PlanRoute? route = Storage().route;
+      Destination? d = route.getCurrentWaypoint()?.destination;
+      _destination = _truncate(d != null ? d.locationID : "");
+      var (distance, bearing) = _getDistanceBearing();
+      _distance = _truncate(distance);
+      _bearing = _truncate(bearing);
+    });
+  }
+
+  void _timeListener() {
+    setState(() {
+      _countUp = _doCountUp ? _countUp + 1 : _countUp;
+      Duration d = Duration(seconds: _countUp);
+      _timerUp = _truncate(d.toString().substring(2, 7));
+      DateFormat formatter = DateFormat('HH:mm');
+      _utc = _truncate(formatter.format(DateTime.now().toUtc()));
+    });
+  }
+
   InstrumentListState() {
 
-    (String, String) getDistanceBearing() {
-      LatLng position = Gps.toLatLng(Storage().position);
-      GeoCalculations calculations = GeoCalculations();
-
-      Destination? d = Storage().route.getCurrentWaypoint()?.destination;
-      if (d != null) {
-        double distance = calculations.calculateDistance(
-            position, d.coordinate);
-        double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
-            position, d.coordinate), calculations.getVariation(d.coordinate));
-        return (distance.round().toString(), "${bearing.round()}\u00b0");
-      }
-      return ("", "0\u00b0");
-    }
-
-    // connect to GPS
-    Storage().gpsChange.addListener(() {
-      double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
-      setState(() {
-        _gndSpeed = truncate(GeoCalculations.convertSpeed(Storage().position.speed));
-        _altitude = truncate(GeoCalculations.convertAltitude(Storage().position.altitude));
-        _magneticHeading = truncate(GeoCalculations.convertMagneticHeading(GeoCalculations.getMagneticHeading(Storage().position.heading, variation)));
-        var (distance, bearing) = getDistanceBearing();
-        _distance = truncate(distance);
-        _bearing = truncate(bearing);
-      });
-    });
-
+    Storage().gpsChange.addListener(_gpsListener);
     // connect to dest change
-    Storage().route.change.addListener(() {
-      setState(() {
-        PlanRoute? route = Storage().route;
-        Destination? d = route.getCurrentWaypoint()?.destination;
-        _destination = truncate(d != null ? d.locationID : "");
-        var (distance, bearing) = getDistanceBearing();
-        _distance = truncate(distance);
-        _bearing = truncate(bearing);
-      });
-    });
-
+    Storage().route.change.addListener(_routeListener);
     // up timer
-    Storage().timeChange.addListener(() {
-      setState(() {
-        _countUp = _doCountUp ? _countUp + 1 : _countUp;
-        Duration d = Duration(seconds: _countUp);
-        _timerUp = truncate(d.toString().substring(2, 7));
-        DateFormat formatter = DateFormat('HH:mm');
-        _utc = truncate(formatter.format(DateTime.now().toUtc()));
-      });
-    });
+    Storage().timeChange.addListener(_timeListener);
   }
 
   // up timer
@@ -95,10 +107,9 @@ class InstrumentListState extends State<InstrumentList> {
     _countUp = 0;
     Duration d = Duration(seconds: _countUp);
     setState(() {
-      _timerUp = truncate(d.toString().substring(2, 7));
+      _timerUp = _truncate(d.toString().substring(2, 7));
     });
   }
-
 
   // make an instrument for top line
   Widget _makeInstrument(int index) {
