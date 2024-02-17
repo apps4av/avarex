@@ -6,6 +6,8 @@ import 'package:avaremp/weather_cache.dart';
 import 'package:avaremp/weather_database_helper.dart';
 import 'package:csv/csv.dart';
 
+import 'constants.dart';
+
 class TafCache extends WeatherCache {
 
   TafCache(super.url, super.dbCall);
@@ -16,12 +18,14 @@ class TafCache extends WeatherCache {
     final List<Taf> tafs = [];
     String decoded = utf8.decode(decodedData, allowMalformed: true);
     List<List<dynamic>> rows = const CsvToListConverter().convert(decoded, eol: "\n");
+
+    DateTime time = DateTime.now().toUtc();
+    time = time.add(const Duration(minutes: Constants.tafUpdateTimeMin)); // they update every minute but that's too fast
+
     for (List<dynamic> row in rows) {
 
       Taf t;
       try {
-        // valid till time like 2024-01-27T18:26:00Z in row[5]
-        DateTime time = DateTime.parse(row[5]).toUtc();
         t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"));
         tafs.add(t);
       }

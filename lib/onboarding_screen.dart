@@ -59,8 +59,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
         ),
         PageViewModel(
           title: "Internet",
-          bodyWidget: const Text("Connect this device to the Internet.\nOn the Wi-Fi setting, choose the Wi-Fi network you want, connect to it.\nMake sure the Internet is available on this network."),
-          image: _buildImage('wifi.png'),
+          bodyWidget: const Text("Connect this device to the Internet.\nInternet connection is required to download charts and weather.\nThe connection may be turned off during the flight."),
           decoration: pageDecoration,
         ),
         PageViewModel(
@@ -123,7 +122,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         PageViewModel(
           title: "Databases and Aviation Maps",
           bodyWidget: Column(children:[
-            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the download button on top right. Wait for the selected items to turn green."),
+            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the go button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
             TextButton(onPressed: () {
                 Navigator.pushNamed(context, "/download");
               },
