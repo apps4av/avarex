@@ -63,10 +63,10 @@ class TfrCache extends WeatherCache {
           var code = tfrGroup.findAllElements("codeId");
 
           String info = "";
-          info += effective.isNotEmpty ? "In Effect Starting ${effective.first.innerText}\n" : "";
-          info += expire.isNotEmpty ? "Expires ${expire.first.innerText}\n" : "";
-          info += upper.isNotEmpty ? "Upper Altitude ${upper.first.innerText}\n" : "";
-          info += lower.isNotEmpty ? "Lower Altitude ${lower.first.innerText}\n" : "";
+          info += effective.isNotEmpty ? "Starts ${effective.first.innerText}\n" : "";
+          info += expire.isNotEmpty ? "Ends ${expire.first.innerText}\n" : "";
+          info += upper.isNotEmpty ? "Top Altitude ${upper.first.innerText}\n" : "";
+          info += lower.isNotEmpty ? "Bottom Altitude ${lower.first.innerText}\n" : "";
 
           List<LatLng> ll = [];
           for(int count = 0; count < latitudes.length; count++) {

@@ -140,8 +140,14 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         ),
         PageViewModel(
           title: "Join the Forum",
-          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com.\n\nYou may exit this introduction with the Done button, after you have signed the Terms of Use."),
+          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
           image: _buildImage('forum.png'),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Let us Fly!",
+          bodyWidget: const Text("\n\nYou may exit this introduction with the Done button, after you have signed the Terms of Use."),
+          image: _buildFullscreenImage('takeoff.png'),
           decoration: pageDecoration,
         ),
       ],

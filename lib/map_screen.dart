@@ -229,6 +229,7 @@ class MapScreenState extends State<MapScreen> {
           builder: (context, value, _) {
             List<Weather> weather = Storage().tfr.getAll();
             List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+
             return MarkerLayer(
               markers: [
                 for (Tfr tfr in tfrs)
@@ -237,6 +238,7 @@ class MapScreenState extends State<MapScreen> {
                     point: tfr.coordinates[0],
                     child: Tooltip(message: tfr.info,
                       triggerMode: TooltipTriggerMode.tap,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
                       showDuration: const Duration(seconds: 30),
                       child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
                   ),
