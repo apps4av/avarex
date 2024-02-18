@@ -40,7 +40,7 @@ class TfrCache extends WeatherCache {
       // parse XML XML
 
       DateTime time = DateTime.now().toUtc();
-      time = time.add(const Duration(minutes: Constants.tafUpdateTimeMin)); // they update every minute but that's too fast
+      time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
 
       final Iterable<XmlElement> tfrGroups;
       try {

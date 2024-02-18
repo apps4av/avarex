@@ -32,7 +32,7 @@ class MetarCache extends WeatherCache {
     for (List<dynamic> row in rows) {
       DateTime time = DateTime.now().toUtc();
       // observation time like 2024-01-27T18:26:00Z in row[2]
-      time = time.add(const Duration(minutes: Constants.metarUpdateTimeMin)); // they update every minute but that's too fast
+      time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
 
       Metar m;
       try {

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 // put all singletons here.
 
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
@@ -139,7 +140,10 @@ class Storage {
     metar = WeatherCache.make(MetarCache) as MetarCache;
     taf = WeatherCache.make(TafCache) as TafCache;
     tfr = WeatherCache.make(TfrCache) as TfrCache;
-    tfr.get("0000"); // get TFRs on init
+    winds.download();
+    metar.download();
+    taf.download();
+    tfr.download();
 
     gpsNotPermitted = await Gps().checkPermissions();
     if(!gpsNotPermitted) {
@@ -166,6 +170,12 @@ class Storage {
         else {
           gpsLocked = true;
         }
+      }
+      if((timeChange.value % (Constants.weatherUpdateTimeMin * 60)) == 0) {
+        winds.download();
+        metar.download();
+        taf.download();
+        tfr.download();
       }
       // check GPS enabled
     });

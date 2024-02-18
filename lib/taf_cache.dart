@@ -20,7 +20,7 @@ class TafCache extends WeatherCache {
     List<List<dynamic>> rows = const CsvToListConverter().convert(decoded, eol: "\n");
 
     DateTime time = DateTime.now().toUtc();
-    time = time.add(const Duration(minutes: Constants.tafUpdateTimeMin)); // they update every minute but that's too fast
+    time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
 
     for (List<dynamic> row in rows) {
 

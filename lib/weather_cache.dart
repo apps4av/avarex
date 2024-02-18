@@ -40,9 +40,8 @@ class WeatherCache {
     }
     Weather? w = _map[station];
 
-    // if not found or if found and expired, try downloading and return null
+    // if not found or if found and expired, return null
     if(w == null) {
-      download();
       return(null);
     }
     if(w.isExpired()) {
