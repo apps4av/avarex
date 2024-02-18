@@ -8,6 +8,7 @@ import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/taf_cache.dart';
+import 'package:avaremp/tfr_cache.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather_cache.dart';
 import 'package:avaremp/winds_cache.dart';
@@ -47,6 +48,7 @@ class Storage {
   late WindsCache winds;
   late MetarCache metar;
   late TafCache taf;
+  late TfrCache tfr;
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -136,6 +138,8 @@ class Storage {
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;
     taf = WeatherCache.make(TafCache) as TafCache;
+    tfr = WeatherCache.make(TfrCache) as TfrCache;
+    tfr.get("0000"); // get TFRs on init
 
     gpsNotPermitted = await Gps().checkPermissions();
     if(!gpsNotPermitted) {

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/metar_cache.dart';
 import 'package:avaremp/taf_cache.dart';
+import 'package:avaremp/tfr_cache.dart';
 import 'package:avaremp/weather.dart';
 import 'package:avaremp/weather_database_helper.dart';
 import 'package:avaremp/winds_cache.dart';
@@ -84,6 +85,13 @@ class WeatherCache {
       WeatherCache cache = WindsCache(
           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
           WeatherDatabaseHelper.db.getAllWindsAloft);
+      return cache;
+    }
+    else if(type == TfrCache) {
+      // default
+      WeatherCache cache = TfrCache(
+          "https://tfr.faa.gov/tfr2/list.html",
+          WeatherDatabaseHelper.db.getAllTfr);
       return cache;
     }
     else {

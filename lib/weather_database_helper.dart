@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/taf.dart';
+import 'package:avaremp/tfr.dart';
 import 'package:avaremp/winds_aloft.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -61,6 +62,12 @@ class WeatherDatabaseHelper {
                 "utcMs         int, "
                 "raw           text, "
                 "unique(station) on conflict replace);");
+            await db.execute("create table tfr ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "info          text, "
+                "coordinates   text);");
           },
           onOpen: (db) {});
   }
@@ -165,7 +172,7 @@ class WeatherDatabaseHelper {
   }
 
 
-  Future<void> addTafr(Taf taf) async {
+  Future<void> addTaf(Taf taf) async {
     final db = await database;
 
     if (db != null) {
@@ -212,6 +219,57 @@ class WeatherDatabaseHelper {
     final db = await database;
     if (db != null) {
       await db.rawQuery("delete from taf where station='$station'");
+    }
+  }
+
+
+  Future<void> addTfr(Tfr tfr) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("tfr", tfr.toMap());
+    }
+  }
+
+  Future<void> addTfrs(List<Tfr> tfr) async {
+    final db = await database;
+
+    if (db != null && tfr.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(Tfr t in tfr) {
+          batch.insert("tfr", t.toMap());
+        }
+        await batch.commit();
+      });
+    }
+  }
+
+
+  Future<Tfr?> getTfr(String station) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from tfr where station='$station'");
+      return Tfr.fromMap(maps[0]);
+    }
+    return null;
+  }
+
+  Future<List<Tfr>> getAllTfr() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from tfr");
+      return List.generate(maps.length, (index) => Tfr.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<void> deleteTfr(String station) async {
+    final db = await database;
+    if (db != null) {
+      await db.rawQuery("delete from tfr where station='$station'");
     }
   }
 

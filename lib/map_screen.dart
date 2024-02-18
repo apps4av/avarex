@@ -6,6 +6,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -197,6 +198,54 @@ class MapScreenState extends State<MapScreen> {
               }
           )
       );
+    }
+
+    lIndex = _layers.indexOf('TFR');
+    if(_layersState[lIndex]) {
+      layers.add( // route layer
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().tfr.change,
+          builder: (context, value, _) {
+            List<Weather> weather = Storage().tfr.getAll();
+            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+            return PolylineLayer(
+              polylines: [
+                for (Tfr tfr in tfrs)
+                  // route
+                  Polyline(
+                    strokeWidth: 4,
+                    points: tfr.coordinates,
+                    color: Constants.tfrColor,
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+
+      layers.add( // route layer
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().tfr.change,
+          builder: (context, value, _) {
+            List<Weather> weather = Storage().tfr.getAll();
+            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+            return MarkerLayer(
+              markers: [
+                for (Tfr tfr in tfrs)
+                // route
+                  Marker(
+                    point: tfr.coordinates[0],
+                    child: Tooltip(message: tfr.info,
+                      triggerMode: TooltipTriggerMode.tap,
+                      showDuration: const Duration(seconds: 30),
+                      child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
+                  ),
+              ],
+            );
+          },
+        ),
+      );
+
     }
 
     lIndex = _layers.indexOf('Nav');
