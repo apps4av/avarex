@@ -145,6 +145,14 @@ class Storage {
     });
   }
 
+  stopUdp() {
+    try {
+      _udpStream?.cancel();
+      _udp.finish();
+    }
+    catch(e) {}
+  }
+
   Future<void> init() async {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
@@ -179,9 +187,6 @@ class Storage {
       Gps().requestPermissions();
     }
     gpsDisabled = !(await Gps().checkEnabled());
-
-    // do this only once
-    startUdp();
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
