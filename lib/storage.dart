@@ -6,10 +6,13 @@ import 'dart:ui' as ui;
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/download_screen.dart';
+import 'package:avaremp/gdl90/gdl90_buffer.dart';
+import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/taf_cache.dart';
 import 'package:avaremp/tfr_cache.dart';
+import 'package:avaremp/udp_receiver.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather_cache.dart';
 import 'package:avaremp/winds_cache.dart';
@@ -58,6 +61,7 @@ class Storage {
 
   // gps
   final _gps = Gps();
+  final _udp = UdpReceiver();
   // where all data is place. This is set on init in main
   late String dataDir;
   Position position = Gps.centerUSAPosition();
@@ -92,6 +96,7 @@ class Storage {
   }
 
   StreamSubscription<Position>? _gpsStream;
+  StreamSubscription<Uint8List>? _udpStream;
 
   void startGps() {
     // GPS data receive
@@ -114,6 +119,30 @@ class Storage {
       _gpsStream?.cancel();
     }
     catch(e) {}
+  }
+
+
+  final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
+
+  void startUdp() {
+    // GPS data receive
+    _udpStream = _udp.getStream();
+    _udpStream?.onDone(() {
+    });
+    _udpStream?.onError((obj){
+    });
+    _udpStream?.onData((data) {
+      _gdl90Buffer.put(data);
+      while(true) {
+        Uint8List? message = _gdl90Buffer.get();
+        if (null != message) {
+          MessageFactory.buildMessage(message);
+        }
+        else {
+          break;
+        }
+      }
+    });
   }
 
   Future<void> init() async {
@@ -150,6 +179,9 @@ class Storage {
       Gps().requestPermissions();
     }
     gpsDisabled = !(await Gps().checkEnabled());
+
+    // do this only once
+    startUdp();
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps

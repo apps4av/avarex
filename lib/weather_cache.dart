@@ -27,8 +27,11 @@ class WeatherCache {
       return;
     }
     _isDownloading = true;
-    http.Response response = await http.get(Uri.parse(_url));
-    await parse(response.bodyBytes);
+    try {
+      http.Response response = await http.get(Uri.parse(_url));
+      await parse(response.bodyBytes);
+    }
+    catch(e) {}
     await initialize();
     _isDownloading = false;
   }
