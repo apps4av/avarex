@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 
+import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
+
 import 'message.dart';
+import 'ownship_message.dart';
 
 class MessageFactory
 {
@@ -25,8 +28,10 @@ class MessageFactory
       case MessageType.uplink:
         break;
       case MessageType.ownShip:
+        m = OwnShipMessage(type);
         break;
       case MessageType.ownShipGeometricAltitude:
+        m = OwnShipGeometricAltitudeMessage(type);
         break;
       case MessageType.trafficReport:
         break;

@@ -52,8 +52,8 @@ class Constants {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
 
-  static const Color distanceCircleColor = Color.fromARGB(200, 100, 100, 100);
-  static const Color speedCircleColor = Color.fromARGB(156, 0, 255, 0);
+  static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
+  static const Color speedCircleColor = Color.fromARGB(200, 0, 255, 0);
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.purpleAccent;
   static const Color planPassedColor = Colors.cyanAccent;

@@ -260,7 +260,7 @@ class MapScreenState extends State<MapScreen> {
               circles: [
                 // 10 nm circle
                 CircleMarker(
-                  borderStrokeWidth: 4,
+                  borderStrokeWidth: 3,
                   borderColor: Constants.distanceCircleColor,
                   color: Colors.transparent,
                   radius: Constants.nmToM(10), // 10 nm circle
@@ -268,7 +268,7 @@ class MapScreenState extends State<MapScreen> {
                   point: Gps.toLatLng(value),
                 ),
                 CircleMarker(
-                  borderStrokeWidth: 4,
+                  borderStrokeWidth: 3,
                   borderColor: Constants.distanceCircleColor,
                   color: Colors.transparent,
                   radius: Constants.nmToM(15), // 15 nm circle
@@ -277,7 +277,7 @@ class MapScreenState extends State<MapScreen> {
                 ),
                 // speed marker
                 CircleMarker(
-                  borderStrokeWidth: 4,
+                  borderStrokeWidth: 3,
                   borderColor: Constants.speedCircleColor,
                   color: Colors.transparent,
                   radius: value.speed * 60, // 1 minute speed

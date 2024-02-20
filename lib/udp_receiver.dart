@@ -25,7 +25,9 @@ class UdpReceiver {
 
   StreamSubscription<Uint8List> getStream() {
     _controller = StreamController<Uint8List>();
-    initChannel(43211, true); //Skyradar
+    initChannel(43211, false); //Skyradar
+    initChannel(4000, false); //Stratus
+    // Xplane and MSFS use 49002 but they are NMEA
     return _controller.stream.listen((event) { });
   }
 
