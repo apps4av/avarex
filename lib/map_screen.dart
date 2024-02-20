@@ -211,12 +211,13 @@ class MapScreenState extends State<MapScreen> {
             return PolylineLayer(
               polylines: [
                 for (Tfr tfr in tfrs)
-                  // route
-                  Polyline(
-                    strokeWidth: 4,
-                    points: tfr.coordinates,
-                    color: Constants.tfrColor,
-                  ),
+                  if(tfr.isRelevant())
+                    // route
+                    Polyline(
+                      strokeWidth: 4,
+                      points: tfr.coordinates, // red if in effect, orange if in future
+                      color: tfr.isInEffect() ? Constants.tfrColor : Constants.tfrColorFuture,
+                    ),
               ],
             );
           },
@@ -233,15 +234,16 @@ class MapScreenState extends State<MapScreen> {
             return MarkerLayer(
               markers: [
                 for (Tfr tfr in tfrs)
-                // route
-                  Marker(
-                    point: tfr.coordinates[0],
-                    child: Tooltip(message: tfr.info,
-                      triggerMode: TooltipTriggerMode.tap,
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
-                      showDuration: const Duration(seconds: 30),
-                      child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
-                  ),
+                  if(tfr.isRelevant())
+                  // route
+                    Marker(
+                      point: tfr.coordinates[0],
+                      child: Tooltip(message: tfr.toString(),
+                        triggerMode: TooltipTriggerMode.tap,
+                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
+                        showDuration: const Duration(seconds: 30),
+                        child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
+                    ),
               ],
             );
           },

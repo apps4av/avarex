@@ -4,10 +4,13 @@ import 'package:avaremp/weather.dart';
 import 'package:latlong2/latlong.dart';
 
 class Tfr extends Weather {
-  String info;
   List<LatLng> coordinates;
+  String upperAltitude;
+  String lowerAltitude;
+  int msEffective;
+  int msExpires;
 
-  Tfr(super.station, super.expires, this.info, this.coordinates);
+  Tfr(super.station, super.expires, this.coordinates, this.upperAltitude, this.lowerAltitude, this.msEffective, this.msExpires);
 
   Map<String, Object?> toMap() {
 
@@ -16,12 +19,14 @@ class Tfr extends Weather {
       ll.add([c.latitude, c.longitude]);
     }
 
-
     Map<String, Object?> map  = {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
-      "info": info,
-      "coordinates": jsonEncode(ll)
+      "coordinates": jsonEncode(ll),
+      "upperAltitude": upperAltitude,
+      "lowerAltitude": lowerAltitude,
+      "msEffective": msEffective,
+      "msExpires": msExpires
     };
     return map;
   }
@@ -37,9 +42,31 @@ class Tfr extends Weather {
     return Tfr(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
-      maps['info'],
-      ll
+      ll,
+      maps['upperAltitude'] as String,
+      maps['lowerAltitude'] as String,
+      maps['msEffective'] as int,
+      maps['msExpires'] as int,
     );
+  }
+
+  @override
+  String toString() {
+    return
+      "Top $upperAltitude\n"
+      "Bottom $lowerAltitude\n"
+      "Begins ${DateTime.fromMillisecondsSinceEpoch(msEffective).toString().replaceAll(".000", "")}\n"
+      "Ends ${DateTime.fromMillisecondsSinceEpoch(msExpires).toString().replaceAll(".000", "")}";
+  }
+
+  bool isInEffect() {
+    int now = DateTime.now().millisecondsSinceEpoch;
+    return (now >= msEffective && now <= msExpires);
+  }
+
+
+  bool isRelevant() {
+    return DateTime.now().millisecondsSinceEpoch < msExpires;
   }
 
 }

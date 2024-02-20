@@ -69,27 +69,27 @@ class GeoCalculations {
     String dir;
     double bearing = getMagneticHeading(bearingIn, declination);
     if ((bearing > dirDegrees) && (bearing <= (90 - dirDegrees))) {
-      dir = "SW";
+      dir = "SW of";
     } else {
       if ((bearing > (90 - dirDegrees)) && (bearing <= (90 + dirDegrees))) {
-        dir = "W";
+        dir = "W of";
       } else {
         if ((bearing > (90 + dirDegrees)) && (bearing <= (180 - dirDegrees))) {
-          dir = "NW";
+          dir = "NW of";
         } else {
           if ((bearing > (180 - dirDegrees)) && (bearing <= (180 + dirDegrees))) {
-            dir = "N";
+            dir = "N of";
           } else {
             if ((bearing > (180 + dirDegrees)) && (bearing <= (270 - dirDegrees))) {
-              dir = "NE";
+              dir = "NE of";
             } else {
               if ((bearing > (270 - dirDegrees)) && (bearing <= (270 + dirDegrees))) {
-                dir = "E";
+                dir = "E of";
               } else {
                 if ((bearing > (270 + dirDegrees)) && (bearing <= (360 - dirDegrees))) {
-                  dir = "SE";
+                  dir = "SE of";
                 } else {
-                  dir = "S";
+                  dir = "S of";
                 }
               }
             }

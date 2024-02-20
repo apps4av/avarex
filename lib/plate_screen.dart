@@ -171,7 +171,9 @@ class PlateScreenState extends State<PlateScreen> {
                         items: airports.map((String item) {
                           return DropdownMenuItem<String>(
                               value: item,
-                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                              child: SizedBox(width: Constants.screenWidth(context) / 5,
+                                child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                              )
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -204,7 +206,8 @@ class PlateScreenState extends State<PlateScreen> {
                         items: plates.map((String item) {
                           return DropdownMenuItem<String>(
                               value: item,
-                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                              child: SizedBox(width: Constants.screenWidth(context) / 3,
+                                child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -234,8 +237,7 @@ class _PlatePainter extends CustomPainter {
   final _paint = Paint();
   // Define a paint object for circle
   final _paintCenter = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 5
+    ..style = PaintingStyle.fill
     ..color = Constants.plateMarkColor;
 
   final _paintLine = Paint()
@@ -318,8 +320,8 @@ class _PlatePainter extends CustomPainter {
           angle = GeoCalculations.toDegrees(atan2(diffX, -diffY));
         }
 
-        // draw circle at center of airport of 1/16th of screen size
-        canvas.drawCircle(offsetCircle, (size.height + size.width) / 48, _paintCenter);
+        // draw circle at center of airport
+        canvas.drawCircle(offsetCircle, 16  , _paintCenter);
         //draw airplane
         canvas.translate(pixX, pixY);
         canvas.rotate((heading + angle) * pi / 180);

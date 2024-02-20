@@ -37,9 +37,10 @@ class LongPressFuture {
   Destination showDestination;
   double dimensions;
   Function(String value) labelCallback;
-  Image? airportPlate;
+  Image? airportDiagram;
   Widget? ad;
   int? metarPage;
+  int? elevation;
 
   LongPressFuture(this.destination, this.dimensions, this.labelCallback) : showDestination =
       Destination( // GPS default then others
@@ -58,15 +59,17 @@ class LongPressFuture {
 
     if(showDestination is AirportDestination) {
 
+      elevation = (showDestination as AirportDestination).elevation.round();
+
       // made up airport dia
       ad = Airport.runwaysWidget(showDestination as AirportDestination, dimensions);
 
       // show first plate
       List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, showDestination.locationID);
       if(plates.isNotEmpty) {
-        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, plates[0]));
+        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, "AIRPORT-DIAGRAM"));
         if (await file.exists()) {
-          airportPlate = Image.file(file);
+          airportDiagram = Image.file(file);
         }
       }
 
@@ -169,6 +172,17 @@ class LongPressWidgetState extends State<LongPressWidget> {
     double distance = geo.calculateDistance(ll, widget.destination.coordinate);
     double bearing = geo.calculateBearing(ll, widget.destination.coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, geo.getVariation(ll))}");
+    String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
+    String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}ft";
+    String label = "$facility (${future.showDestination.locationID})$elevation, $direction";
+
+    Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD
+    if(future.airportDiagram != null) {
+      airportDiagram = future.airportDiagram;
+    }
+    else if (future.ad != null) {
+      airportDiagram = future.ad;
+    }
 
     return Container(
       padding: const EdgeInsets.all(5),
@@ -180,7 +194,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       ),
       child: Stack(children:[
         Column(children: [
-          Expanded(flex: 1, child: Text("${future.showDestination.facilityName}(${future.showDestination.locationID}) $direction", style: const TextStyle(fontWeight: FontWeight.w700),)),
+          Expanded(flex: 1, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
           Expanded(flex: 1, child: Row(children: [
             // top action buttons
             TextButton(
@@ -235,27 +249,20 @@ class LongPressWidgetState extends State<LongPressWidget> {
           )),
         ],
         ),
-        // add various buttons that expand to diagrams
-        Positioned(child: Align(
-          alignment: Alignment.bottomRight,
-          child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
-            if (future.ad != null)
-              SizedBox(width: 32, height: 32,
-                  child: WidgetZoom(zoomWidget: future.ad!, heroAnimationTag: "runwaysAd",)),
-            if (future.ad != null)
-              const Text("AD/CS"),
-            if (future.airportPlate != null)
-              const SizedBox(width: 32, child: Divider()),
-            if (future.airportPlate != null)
-              SizedBox(width: 32, height: 32,
-                  child: WidgetZoom(zoomWidget: future.airportPlate!, heroAnimationTag: "airportPlate",)),
-            if (future.airportPlate != null)
-              const Text("Plate"),
-          ]
-          ),
-        )),
-      ],
-    )
+        // add various buttons that expand to diagram
+        if(airportDiagram != null)
+          Positioned(child: Align(
+            alignment: Alignment.bottomRight,
+            child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
+                SizedBox(
+                  width: 32, height: 32,
+                  child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
+                const Text("AD"),
+              ]
+            ),
+          )),
+        ],
+      )
     );
   }
 }

@@ -53,8 +53,7 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "${Destination.formatSexagesimal(airport.coordinate.toSexagesimal())}\n";
-    ret += "Elevation ${airport.elevation.round().toString()}\n";
+    String ret = "";
 
     if(tower.isNotEmpty) {
       ret += "Tower\n    ";
@@ -183,6 +182,8 @@ class RunwayPainter extends CustomPainter {
     // make a square around this dia
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paintBox);
 
+    String info = "";
+
     for(Map<String, dynamic> r in runways) {
 
       double width = 0; // draw runways to width
@@ -238,26 +239,32 @@ class RunwayPainter extends CustomPainter {
         String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
         String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
         String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
-        TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 96), text:
-          "$ident$pattern$lights$ils$vgsi\n${r['Length']}x${r['Width']} ${r['Surface']}");
+        TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: ident);
         TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(lx + offsetX, ly + offsetY));
+
+        info += "$ident$pattern$lights$ils$vgsi\n";
 
         ident = "${r['HEIdent']} ";
         pattern = r['HEPattern'] == 'Y' ? 'RP ' : '';
         lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
         ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
         vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
-        span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 96), text:
-          "$ident$pattern$lights$ils$vgsi");
+        span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: ident);
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(hx + offsetX, hy + offsetY));
+
+        info += "$ident$pattern$lights$ils$vgsi\n";
+        info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
       }
       catch(e) {}
     }
-
+    TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: info);
+    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+    tp.layout();
+    tp.paint(canvas, const Offset(10, 10))  ;
   }
 
   @override

@@ -52,21 +52,34 @@ class TfrCache extends WeatherCache {
       }
       for(var tfrGroup in tfrGroups) {
 
+        String upper = "Check NOTAMs";
+        String lower = "Check NOTAMs";
+        String effective = "2000-01-01T00:00:00";
+        String expire = "2100-01-01T00:00:00";
+
+        try {
+          upper = tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString();
+        }
+        catch(e) {}
+        try {
+          lower = tfrGroup.findAllElements("valDistVerLower").first.innerText.toString();
+        }
+        catch(e) {}
+        try {
+          effective = tfrGroup.findAllElements("dateEffective").first.innerText.toString();
+        }
+        catch(e) {}
+        try {
+          expire = tfrGroup.findAllElements("dateExpire").first.innerText.toString();
+        }
+        catch(e) {}
+
+
         try {
           var area = tfrGroup.findAllElements("abdMergedArea").first;
           var latitudes = area.findAllElements("geoLat");
           var longitudes = area.findAllElements("geoLong");
-          var upper = tfrGroup.findAllElements("valDistVerUpper");
-          var lower = tfrGroup.findAllElements("valDistVerLower");
-          var effective = tfrGroup.findAllElements("dateEffective");
-          var expire = tfrGroup.findAllElements("dateExpire");
           var code = tfrGroup.findAllElements("codeId");
-
-          String info = "";
-          info += effective.isNotEmpty ? "Starts ${effective.first.innerText}\n" : "";
-          info += expire.isNotEmpty ? "Ends ${expire.first.innerText}\n" : "";
-          info += upper.isNotEmpty ? "Top Altitude ${upper.first.innerText}\n" : "";
-          info += lower.isNotEmpty ? "Bottom Altitude ${lower.first.innerText}\n" : "";
 
           List<LatLng> ll = [];
           for(int count = 0; count < latitudes.length; count++) {
@@ -87,11 +100,16 @@ class TfrCache extends WeatherCache {
             ll.add(LatLng(double.parse(latitude), double.parse(longitude)));
           }
 
-          Tfr tfr = Tfr(code.first.toString(), time, info, ll);
+          DateTime startsDt = DateTime.parse(effective);
+          DateTime endsDt = DateTime.parse(expire);
+
+          Tfr tfr = Tfr(code.first.toString(), time, ll, upper.toString(), lower.toString(),
+              startsDt.millisecondsSinceEpoch, endsDt.millisecondsSinceEpoch);
           tfrs.add(tfr);
 
         }
         catch(e) {
+          // no coordinates
           continue;
         }
 

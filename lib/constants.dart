@@ -60,7 +60,8 @@ class Constants {
   static const Color trackColor = Colors.black;
   static const Color planBorderColor = Colors.black;
   static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
-  static const Color plateMarkColor = Color.fromARGB(150, 153, 0, 76);
+  static const Color plateMarkColor = Color.fromARGB(150, 0, 255, 0);
   static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
+  static const Color tfrColorFuture = Color.fromARGB(150, 255, 103, 2);
 
 }

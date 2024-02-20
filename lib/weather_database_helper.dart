@@ -66,8 +66,12 @@ class WeatherDatabaseHelper {
                 "id            integer primary key autoincrement, "
                 "station       text, "
                 "utcMs         int, "
-                "info          text, "
-                "coordinates   text);");
+                "coordinates   text, "
+                "upperAltitude text, "
+                "lowerAltitude text, "
+                "msEffective   int, "
+                "msExpires     int, "
+                "unique(station) on conflict replace);");
           },
           onOpen: (db) {});
   }
