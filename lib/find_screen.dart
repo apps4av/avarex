@@ -116,15 +116,30 @@ class FindScreenState extends State<FindScreen> {
                         });
                       },
                       child: ListTile(
-                        title: Text(item.locationID),
+                        title: Row(
+                            children:[
+                              Text(item.locationID),
+                              TextButton(
+                                onPressed: () {
+                                  UserDatabaseHelper.db.addRecent(item);
+                                  Storage().settings.setCenterLongitude(item.coordinate.longitude);
+                                  Storage().settings.setCenterLatitude(item.coordinate.latitude);
+                                  MainScreenState.gotoMap();
+                                },
+                                child: const Text("Show")
+                              )
+                            ]
+                        ),
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
                         dense: true,
                         isThreeLine: true,
                         trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}NM\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0"),
                         onTap: () {
                           UserDatabaseHelper.db.addRecent(item);
-                          Storage().settings.setCenterLongitude(item.coordinate.longitude);
-                          Storage().settings.setCenterLatitude(item.coordinate.latitude);
+                          Storage().setDestination(item);
+                          if(Destination.isAirport(item.type)) {
+                            Storage().settings.setCurrentPlateAirport(item.locationID);
+                          }
                           MainScreenState.gotoMap();
                         },
                         onLongPress: () {
