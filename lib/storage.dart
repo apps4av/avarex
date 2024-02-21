@@ -201,19 +201,25 @@ class Storage {
       timeChange.value++;
 
       if(timeChange.value % 5 == 0) {
-        if(!_gotGpsPosition) {
-          gpsChange.value = position; // if GPS not sending, then keep sending last location
-        }
-        // check system for any issues
-        gpsNotPermitted = await Gps().checkPermissions();
-        gpsDisabled = !(await Gps().checkEnabled());
-        warningChange.value = gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
-        int diff = DateTime.now().millisecondsSinceEpoch - _lastMsGpsSignal;
-        if(diff > 60000) { // 60 seconds, no GPS signal, send warning
-          gpsLocked = false;
-        }
-        else {
-          gpsLocked = true;
+        if(settings.isInternalGps()) { // only for internal GPS
+          if (!_gotGpsPosition) {
+            gpsChange.value =
+                position; // if GPS not sending, then keep sending last location
+          }
+          // check system for any issues
+          gpsNotPermitted = await Gps().checkPermissions();
+          gpsDisabled = !(await Gps().checkEnabled());
+          warningChange.value =
+              gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
+          int diff = DateTime
+              .now()
+              .millisecondsSinceEpoch - _lastMsGpsSignal;
+          if (diff > 60000) { // 60 seconds, no GPS signal, send warning
+            gpsLocked = false;
+          }
+          else {
+            gpsLocked = true;
+          }
         }
       }
       if((timeChange.value % (Constants.weatherUpdateTimeMin * 60)) == 0) {

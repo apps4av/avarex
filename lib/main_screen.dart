@@ -142,8 +142,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     switch (state) {
       case AppLifecycleState.resumed:
         // start GPS
-        Storage().startGps();
-        Storage().startUdp();
+        Storage().settings.isInternalGps() ? Storage().startGps() : Storage().startUdp();
         break;
       default:
         Storage().stopGps();

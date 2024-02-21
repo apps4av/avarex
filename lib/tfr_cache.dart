@@ -112,9 +112,7 @@ class TfrCache extends WeatherCache {
           // no coordinates
           continue;
         }
-
       }
-
     }
     WeatherDatabaseHelper.db.addTfrs(tfrs);
   }

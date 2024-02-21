@@ -157,14 +157,14 @@ class InstrumentListState extends State<InstrumentList> {
       decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 0.5), borderRadius: BorderRadius.circular(0), color: Constants.instrumentBackgroundColor),
       child: GestureDetector(
         onTap: cb,
-        child: Column(
+        child: ReorderableDelayedDragStartListener(index: index, child:Column(
           children: [
             Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,)),
             Expanded(flex: 1, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
           ]
         ),
       )
-    );
+    ));
   }
 
   @override
@@ -173,6 +173,7 @@ class InstrumentListState extends State<InstrumentList> {
     // user can rearrange widgets
     return ReorderableListView(
       scrollDirection: Axis.horizontal,
+      buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)
           _makeInstrument(index),
