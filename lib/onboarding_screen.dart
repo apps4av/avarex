@@ -45,6 +45,42 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
     String gpsEnabledMessage = Storage().gpsDisabled ? "Make sure the GPS is enabled on this device." : "";
     String gpsDeniedMessage = Storage().gpsNotPermitted ? "Make sure the app has permissions to use this device's GPS." : "";
 
+    // make GPS page, this requires logic.
+    PageViewModel gpsPage = PageViewModel(
+      title: "GPS",
+      bodyWidget: Column(
+          children:[
+            const Text("Make sure you are in an area where GPS signals are strong.\n\n"
+              "Select your source of GPS signal (Internal, External).\n"
+              "Internal GPS is easy to setup. It requires GPS permissions for the app, and increases battery consumption.\n"
+              "External GPS may additionally provide ADS-B signals."),
+            DropdownButton(
+              value: Storage().settings.isInternalGps()? "Internal" : "External",
+              items: const [
+                DropdownMenuItem(value: "Internal", child: Text("Internal")),
+                DropdownMenuItem(value: "External", child: Text("External"))
+              ],
+              onChanged: (value) {
+                setState(() {
+                  Storage().settings.setInternalGps(value == "Internal" ? true : false);
+                });
+              },
+            ),
+            if(!Storage().settings.isInternalGps())
+              const Text("Connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.",),
+            if(Storage().settings.isInternalGps())
+              Text("$gpsDeniedMessage\n$gpsEnabledMessage\n"),
+            if(Storage().settings.isInternalGps())
+              Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
+            if(Storage().settings.isInternalGps())
+              Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),
+          ]
+      ),
+
+      decoration: pageDecoration,
+    );
+
+
     return IntroductionScreen(
       key: introKey,
       globalBackgroundColor: Colors.white,
@@ -107,18 +143,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
           ]),
           decoration: pageDecoration,
         ),
-        PageViewModel(
-          title: "GPS",
-          bodyWidget: Column(
-            children:[
-              Text("Make sure you are in an area where GPS signals are strong.\n$gpsDeniedMessage\n$gpsEnabledMessage"),
-              Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
-              Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),
-            ]
-          ),
-
-          decoration: pageDecoration,
-        ),
+        gpsPage,
         PageViewModel(
           title: "Databases and Aviation Maps",
           bodyWidget: Column(children:[

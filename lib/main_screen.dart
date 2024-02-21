@@ -73,7 +73,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
           child: ListView(children: [
             ListTile(title: const Text("avareMp"),
               subtitle: const Text("0.0.1"),
-              trailing: IconButton(icon: Icon(MdiIcons.signatureImage),
+              trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
                 onPressed: () {
                   Storage().settings.setIntro(true);
                   Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const OnBoardingScreen()),);
