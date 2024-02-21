@@ -107,7 +107,15 @@ class Airport {
         double heading = double.parse(r['LEHeadingT']);
         LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
         LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
-        runways.add(MapRunway(start, end, r['HEIdent']));
+        bool leftPattern = r['HEPattern'] == 'Y' ? false : true;
+        LatLng endNotch;
+        if(leftPattern) {
+          endNotch = geo.calculateOffset(end, 2, 90 + heading);
+        }
+        else {
+          endNotch = geo.calculateOffset(end, 2, -90 + heading);
+        }
+        runways.add(MapRunway(start, end, endNotch, r['HEIdent']));
       }
       catch (e) {}
 
@@ -115,10 +123,18 @@ class Airport {
         double lat = double.parse(r['HELatitude']);
         double length = double.parse(r['Length']);
         double lon = double.parse(r['HELongitude']);
-        double heading = double.parse(r['LEHeadingT']) + 180; // note HE h not in db
+        double heading = double.parse(r['LEHeadingT']) + 180; // note HE heading not in db
         LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
         LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
-        runways.add(MapRunway(start, end, r['LEIdent']));
+        bool leftPattern = r['LEPattern'] == 'Y' ? false : true;
+        LatLng endNotch;
+        if(leftPattern) {
+          endNotch = geo.calculateOffset(end, 2, 90 + heading);
+        }
+        else {
+          endNotch = geo.calculateOffset(end, 2, -90 + heading);
+        }
+        runways.add(MapRunway(start, end, endNotch, r['LEIdent']));
       }
       catch (e) {}
     }
@@ -132,7 +148,8 @@ class MapRunway {
   LatLng start;
   LatLng end;
   String name;
-  MapRunway(this.start, this.end, this.name);
+  LatLng endNotch;
+  MapRunway(this.start, this.end, this.endNotch, this.name);
 }
 
 class RunwayPainter extends CustomPainter {

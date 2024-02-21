@@ -18,6 +18,7 @@ class Constants {
   static Color dropDownButtonBackgroundColor = Colors.black.withAlpha(156);
   static Color centerButtonBackgroundColor = Colors.black.withAlpha(156);
   static Color runwayColor = Colors.white.withAlpha(100);
+  static Color runwayMapColor = Colors.pinkAccent;
 
   static const Color chartAbsentColor = Colors.grey;
   static const Color chartCurrentColor = Colors.green;

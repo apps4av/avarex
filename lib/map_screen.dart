@@ -336,8 +336,8 @@ class MapScreenState extends State<MapScreen> {
                       borderStrokeWidth: 1,
                       borderColor: Constants.planBorderColor,
                       strokeWidth: 2,
-                      points: [r.start, r.end],
-                      color: Constants.instrumentsNormalValueColor,
+                      points: [r.start, r.end, r.endNotch],
+                      color: Constants.runwayMapColor,
                   ),
               ],
             );
