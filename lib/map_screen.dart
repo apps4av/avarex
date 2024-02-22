@@ -123,13 +123,13 @@ class MapScreenState extends State<MapScreen> {
     //add layers
     List<Widget> layers = [];
     TileLayer networkLayer = TileLayer(
-      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      tileProvider: FMTC.instance('mapStore').getTileProvider());
+        urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        tileProvider: FMTC.instance('mapStore').getTileProvider());
     TileLayer chartLayer = TileLayer(
-      tms: true,
-      maxNativeZoom: _maxZoom,
-      tileProvider: ChartTileProvider(),
-      urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
+        tms: true,
+        maxNativeZoom: _maxZoom,
+        tileProvider: ChartTileProvider(),
+        urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
 
     // start from known location
     MapOptions opts = MapOptions(
@@ -163,10 +163,10 @@ class MapScreenState extends State<MapScreen> {
     if(_layersState[lIndex]) {
       layers.add(networkLayer);
       layers.add( // OSM attribution
-        Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.bottomPaddingSize(context)),
-          child: const RichAttributionWidget(attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
-        ),
-      ));
+          Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
+            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
+            ),
+          ));
     }
     lIndex = _layers.indexOf('Chart');
     if(_layersState[lIndex]) {
@@ -181,19 +181,19 @@ class MapScreenState extends State<MapScreen> {
                 List<Weather> weather = Storage().metar.getAll();
                 List<Metar> metars = weather.map((e) => e as Metar).toList();
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                  options: MarkerClusterLayerOptions(
-                    markers: [
-                      for(Metar m in metars)
-                        Marker(point: m.coordinate, child: m.getIcon())
-                    ],
-                    builder: (context, markers) {
-                      return Container(
-                        decoration: const BoxDecoration(
-                            color: Colors.transparent),
-                        child: const Center()
-                      );
-                    },
-                  )
+                    options: MarkerClusterLayerOptions(
+                      markers: [
+                        for(Metar m in metars)
+                          Marker(point: m.coordinate, child: m.getIcon())
+                      ],
+                      builder: (context, markers) {
+                        return Container(
+                            decoration: const BoxDecoration(
+                                color: Colors.transparent),
+                            child: const Center()
+                        );
+                      },
+                    )
                 );
               }
           )
@@ -212,7 +212,7 @@ class MapScreenState extends State<MapScreen> {
               polylines: [
                 for (Tfr tfr in tfrs)
                   if(tfr.isRelevant())
-                    // route
+                  // route
                     Polyline(
                       strokeWidth: 4,
                       points: tfr.coordinates, // red if in effect, orange if in future
@@ -237,12 +237,12 @@ class MapScreenState extends State<MapScreen> {
                   if(tfr.isRelevant())
                   // route
                     Marker(
-                      point: tfr.coordinates[0],
-                      child: Tooltip(message: tfr.toString(),
-                        triggerMode: TooltipTriggerMode.tap,
-                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
-                        showDuration: const Duration(seconds: 30),
-                        child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
+                        point: tfr.coordinates[0],
+                        child: Tooltip(message: tfr.toString(),
+                          triggerMode: TooltipTriggerMode.tap,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
+                          showDuration: const Duration(seconds: 30),
+                          child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
                     ),
               ],
             );
@@ -324,20 +324,20 @@ class MapScreenState extends State<MapScreen> {
                   color: Constants.planCurrentColor,
                 ),
                 Polyline(
-                  borderStrokeWidth: 1,
-                  borderColor: Constants.planBorderColor,
-                  strokeWidth: 6,
-                  points: Storage().route.getPathNext(),
-                  color: Constants.planNextColor,
-                  isDotted: true
+                    borderStrokeWidth: 1,
+                    borderColor: Constants.planBorderColor,
+                    strokeWidth: 6,
+                    points: Storage().route.getPathNext(),
+                    color: Constants.planNextColor,
+                    isDotted: true
                 ),
                 for(MapRunway r in runways)
                   Polyline(
-                      borderStrokeWidth: 1,
-                      borderColor: Constants.planBorderColor,
-                      strokeWidth: 2,
-                      points: [r.start, r.end, r.endNotch],
-                      color: Constants.runwayMapColor,
+                    borderStrokeWidth: 1,
+                    borderColor: Constants.planBorderColor,
+                    strokeWidth: 2,
+                    points: [r.start, r.end, r.endNotch],
+                    color: Constants.runwayMapColor,
                   ),
               ],
             );
@@ -358,10 +358,10 @@ class MapScreenState extends State<MapScreen> {
               }
             }
             return MarkerLayer(
-                markers: [
+              markers: [
                 for(MapRunway r in runways)
                   Marker(point: r.end,
-                    child: Text(r.name, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
+                      child: Text(r.name, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
               ],
             );
           },
@@ -399,13 +399,13 @@ class MapScreenState extends State<MapScreen> {
             return MarkerLayer(
               markers: [
                 Marker( // our position and heading to destination
-                  width: 32,
-                  height: (Constants.screenWidth(context) +
-                      Constants.screenHeight(context)) / 4,
-                  point: current,
-                  child: Transform.rotate(angle: value.heading * pi / 180,
-                      child: CustomPaint(painter: Plane())
-                  )
+                    width: 32,
+                    height: (Constants.screenWidth(context) +
+                        Constants.screenHeight(context)) / 4,
+                    point: current,
+                    child: Transform.rotate(angle: value.heading * pi / 180,
+                        child: CustomPaint(painter: Plane())
+                    )
                 ),
               ],
             );
@@ -414,7 +414,7 @@ class MapScreenState extends State<MapScreen> {
       );
 
       // ruler
-      layers.add(Container(alignment: Alignment.bottomLeft, padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+      layers.add(Container(alignment: Alignment.topLeft, padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
         child:
         ValueListenableBuilder<int>(
           valueListenable: _ruler.change,
@@ -441,26 +441,25 @@ class MapScreenState extends State<MapScreen> {
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
-          child: ValueListenableBuilder<bool>(
-              valueListenable: Storage().warningChange,
-              builder: (context, value, _) {
-                return WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
-                  gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
-                  dataExpired: Storage().dataExpired,
-                  signed: Storage().settings.isSigned(),
-                  gpsLocked: Storage().gpsLocked,);
-              }
+            child: ValueListenableBuilder<bool>(
+                valueListenable: Storage().warningChange,
+                builder: (context, value, _) {
+                  return WarningsWidget(gpsNotPermitted: Storage().gpsNotPermitted,
+                    gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
+                    dataExpired: Storage().dataExpired,
+                    signed: Storage().settings.isSigned(),
+                    gpsLocked: Storage().gpsLocked,);
+                }
             )
         ),
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
               map, // map
-
               // warn
               Positioned(
                 child: Align(
-                    alignment: Alignment.centerRight,
+                    alignment: Alignment.topRight,
                     child: Padding(
                         padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
                         child: ValueListenableBuilder<bool>(
@@ -473,31 +472,28 @@ class MapScreenState extends State<MapScreen> {
                 ),
               ),
 
-              // center
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomCenter,
-                      child:
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
-                        child:
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: Constants.centerButtonBackgroundColor,
-                            padding: const EdgeInsets.all(5.0),
-                          ),
-                          onPressed: () {
-                            Position p = Storage().position;
-                            LatLng l = LatLng(p.latitude, p.longitude);
-                            if(_northUp) {
-                              _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
-                            }
-                            else {
-                              _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
-                            }
-                          },
-                          child: const Text("Center"),
-                        ),
+                      child: Padding(
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: Constants.centerButtonBackgroundColor,
+                              padding: const EdgeInsets.all(5.0),
+                            ),
+                            onPressed: () {
+                              Position p = Storage().position;
+                              LatLng l = LatLng(p.latitude, p.longitude);
+                              if(_northUp) {
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                              }
+                              else {
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                              }
+                            },
+                            child: const Text("Center"),
+                          )
                       )
                   )
               ),
@@ -505,29 +501,84 @@ class MapScreenState extends State<MapScreen> {
               // menus
               Positioned(
                   child: Align(
-                      alignment: Alignment.topLeft,
+                      alignment: Alignment.bottomLeft,
                       child: Padding(
-                          padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
                           child: Row(children:[
                             // menu
-                            Container(
-                                padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                                child:
-                                TextButton(
-                                  style: TextButton.styleFrom(
-                                    backgroundColor: Constants.centerButtonBackgroundColor,
-                                    padding: const EdgeInsets.all(5.0),
-                                  ),
-                                  onPressed: () {
-                                    Scaffold.of(context).openDrawer();
-                                  },
-                                  child: const Text("Menu"),
+                            TextButton(
+                              style: TextButton.styleFrom(
+                                backgroundColor: Constants.centerButtonBackgroundColor,
+                              ),
+                              onPressed: () {
+                                Scaffold.of(context).openDrawer();
+                              },
+                              child: const Text("Menu"),
+                            ),
+
+                            // north up
+                            IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _northUp = _northUp ? false : true;
+                                  });
+                                  Storage().settings.setNorthUp(_northUp); // save
+                                },
+                                icon: ValueListenableBuilder<Position>(
+                                    valueListenable: Storage().gpsChange,
+                                    builder: (context, value, _) {
+                                      return CircleAvatar( // in track up, rotate icon
+                                          backgroundColor: Constants.dropDownButtonBackgroundColor,
+                                          child: _northUp ? Icon(MdiIcons.navigation) :
+                                          Transform.rotate(
+                                              angle: value.heading * pi / 180,
+                                              child: Icon(MdiIcons.arrowUpThinCircleOutline)));
+                                    }
                                 )),
 
+                          ])
+                      )
+                  )
+              ),
+
+              Positioned(
+                  child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
+                            // switch layers on off
+                            PopupMenuButton( // airport selection
+                              icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
+                              initialValue: _layers[0],
+                              itemBuilder: (BuildContext context) =>
+                                  List.generate(_layers.length, (int index) => PopupMenuItem(
+                                    child: StatefulBuilder(
+                                      builder: (context1, setState1) =>
+                                          ListTile(
+                                            dense: true,
+                                            title: Text(_layers[index]),
+                                            subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
+                                            leading: Switch(
+                                              value: _layersState[index],
+                                              onChanged: (bool value) {
+                                                setState1(() {
+                                                  _layersState[index] = value; // this is state for the switch
+                                                });
+                                                // now save to settings
+                                                Storage().settings.setLayersState(_layersState);
+                                                setState(() {
+                                                  _layersState[index] = value; // this is the state for the map
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                    ),)
+                                  ),
+                            ),
                             // chart select
                             DropdownButtonHideUnderline(
                                 child:DropdownButton2<String>(
-
                                   buttonStyleData: ButtonStyleData(
                                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
                                   ),
@@ -550,63 +601,7 @@ class MapScreenState extends State<MapScreen> {
                                   },
                                 )
                             ),
-
-                            // switch layers on off
-                            PopupMenuButton( // airport selection
-
-                                padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                                icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
-                                initialValue: _layers[0],
-                                itemBuilder: (BuildContext context) =>
-                                    List.generate(_layers.length, (int index) => PopupMenuItem(
-                                        child: StatefulBuilder(
-                                            builder: (context1, setState1) =>
-                                                ListTile(
-                                                  dense: true,
-                                                  title: Text(_layers[index]),
-                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
-                                                  leading: Switch(
-                                                    value: _layersState[index],
-                                                    onChanged: (bool value) {
-                                                      setState1(() {
-                                                        _layersState[index] = value; // this is state for the switch
-                                                      });
-                                                      // now save to settings
-                                                      Storage().settings.setLayersState(_layersState);
-                                                      setState(() {
-                                                        _layersState[index] = value; // this is the state for the map
-                                                      });
-                                                    },
-                                                  ),
-                                                ),
-                                        ),
-                                      )
-                                    ),
-                            ),
-
-
-                            // north up
-                            IconButton(
-                              padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
-                              onPressed: () {
-                                setState(() {
-                                  _northUp = _northUp ? false : true;
-                                });
-                                Storage().settings.setNorthUp(_northUp); // save
-                              },
-                              icon: ValueListenableBuilder<Position>(
-                                valueListenable: Storage().gpsChange,
-                                builder: (context, value, _) {
-                                  return CircleAvatar( // in track up, rotate icon
-                                      backgroundColor: Constants.dropDownButtonBackgroundColor,
-                                      child: _northUp ? Icon(MdiIcons.navigation) :
-                                      Transform.rotate(
-                                          angle: value.heading * pi / 180,
-                                          child: Icon(MdiIcons.arrowUpThinCircleOutline)));
-                                }
-                              )),
-                          ]
-                        )
+                          ])
                       )
                   )
               )
@@ -614,7 +609,7 @@ class MapScreenState extends State<MapScreen> {
         )
     );
   }
-  // implements a drawing screen with a center reset button.
+// implements a drawing screen with a center reset button.
 }
 
 class Plane extends CustomPainter {

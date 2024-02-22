@@ -134,14 +134,6 @@ class FindScreenState extends State<FindScreen> {
                         dense: true,
                         isThreeLine: true,
                         trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}NM\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0"),
-                        onTap: () {
-                          UserDatabaseHelper.db.addRecent(item);
-                          Storage().setDestination(item);
-                          if(Destination.isAirport(item.type)) {
-                            Storage().settings.setCurrentPlateAirport(item.locationID);
-                          }
-                          MainScreenState.gotoMap();
-                        },
                         onLongPress: () {
                           setState(() {
                             showDestination(context, item);

@@ -221,6 +221,10 @@ class Storage {
             gpsLocked = true;
           }
         }
+        else {
+          // remove GPS warnings as its external now
+          warningChange.value = dataExpired || chartsMissing;
+        }
       }
       if((timeChange.value % (Constants.weatherUpdateTimeMin * 60)) == 0) {
         winds.download();

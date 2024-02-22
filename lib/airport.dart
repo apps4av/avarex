@@ -106,7 +106,7 @@ class Airport {
         double lon = double.parse(r['LELongitude']);
         double heading = double.parse(r['LEHeadingT']);
         LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
-        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
+        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, heading);
         bool leftPattern = r['HEPattern'] == 'Y' ? false : true;
         LatLng endNotch;
         if(leftPattern) {
@@ -125,7 +125,7 @@ class Airport {
         double lon = double.parse(r['HELongitude']);
         double heading = double.parse(r['LEHeadingT']) + 180; // note HE heading not in db
         LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
-        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 1000, heading);
+        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, heading);
         bool leftPattern = r['LEPattern'] == 'Y' ? false : true;
         LatLng endNotch;
         if(leftPattern) {
@@ -281,7 +281,7 @@ class RunwayPainter extends CustomPainter {
     TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: info);
     TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
     tp.layout();
-    tp.paint(canvas, const Offset(10, 10))  ;
+    tp.paint(canvas, Offset(10, scale.toInt() / 4))  ;
   }
 
   @override

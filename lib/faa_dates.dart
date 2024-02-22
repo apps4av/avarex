@@ -57,7 +57,7 @@ class FaaDates {
 
   // this will work till 2029
   static String getCurrentCycle() {
-    final DateTime epoch = DateTime.parse("2024-01-25 00:09:00Z");
+    final DateTime epoch = DateTime.parse("2024-01-25 09:00:00Z");
     const int validYears = 5;
     int lastYear = epoch.year % 2000;
     int cycle = 0;

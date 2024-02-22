@@ -68,7 +68,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       extendBody: true,
       endDrawerEnableOpenDragGesture: false,
       drawerEnableOpenDragGesture: false,
-      drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
+      drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
         child: Drawer(
           child: ListView(children: [
             ListTile(title: const Text("avareMp"),
