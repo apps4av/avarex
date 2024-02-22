@@ -1,4 +1,4 @@
-import 'package:avaremp/main_database_helper.dart';
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:flutter/material.dart';

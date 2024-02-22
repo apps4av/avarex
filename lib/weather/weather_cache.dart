@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
-import 'package:avaremp/metar_cache.dart';
-import 'package:avaremp/taf_cache.dart';
-import 'package:avaremp/tfr_cache.dart';
-import 'package:avaremp/weather.dart';
-import 'package:avaremp/weather_database_helper.dart';
-import 'package:avaremp/winds_cache.dart';
+import 'package:avaremp/weather/metar_cache.dart';
+import 'package:avaremp/weather/taf_cache.dart';
+import 'package:avaremp/weather/tfr_cache.dart';
+import 'package:avaremp/weather/weather.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:http/http.dart' as http;
+
+import 'airep_cache.dart';
+import 'airsigmet_cache.dart';
 
 class WeatherCache {
 
@@ -94,6 +97,20 @@ class WeatherCache {
       WeatherCache cache = TfrCache(
           "https://tfr.faa.gov/tfr2/list.html",
           WeatherDatabaseHelper.db.getAllTfr);
+      return cache;
+    }
+    else if(type == AirepCache) {
+      // default
+      WeatherCache cache = AirepCache(
+          "https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz",
+          WeatherDatabaseHelper.db.getAllAirep);
+      return cache;
+    }
+    else if(type == AirSigmetCache) {
+      // default
+      WeatherCache cache = AirSigmetCache(
+          "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
+          WeatherDatabaseHelper.db.getAllAirSigmet);
       return cache;
     }
     else {

@@ -4,10 +4,10 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/taf.dart';
-import 'package:avaremp/user_database_helper.dart';
+import 'package:avaremp/weather/taf.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/waypoint.dart';
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -16,7 +16,7 @@ import 'package:widget_zoom/widget_zoom.dart';
 import 'airport.dart';
 import 'constants.dart';
 import 'destination.dart';
-import 'metar.dart';
+import 'weather/metar.dart';
 import 'nav.dart';
 
 class LongPressWidget extends StatefulWidget {

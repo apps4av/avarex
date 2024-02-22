@@ -1,4 +1,4 @@
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 
 class Taf extends Weather {
   String text;

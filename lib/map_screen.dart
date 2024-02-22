@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/main_database_helper.dart';
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/tfr.dart';
+import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -25,7 +25,7 @@ import 'destination.dart';
 import 'download_screen.dart';
 import 'gps.dart';
 import 'longpress_widget.dart';
-import 'metar.dart';
+import 'weather/metar.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});

@@ -5,12 +5,12 @@ import 'package:avaremp/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/user_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
 import 'constants.dart';
-import 'main_database_helper.dart';
+import 'data/main_database_helper.dart';
 
 // implements a drawing screen with a center reset button.
 

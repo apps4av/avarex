@@ -5,7 +5,7 @@ import 'package:avaremp/storage.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'destination.dart';
+import '../destination.dart';
 
 
 class UserDatabaseHelper {

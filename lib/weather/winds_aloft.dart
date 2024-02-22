@@ -1,4 +1,4 @@
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 
 class WindsAloft extends Weather {
   String w3k;

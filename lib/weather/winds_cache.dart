@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/weather_cache.dart';
-import 'package:avaremp/weather_database_helper.dart';
-import 'package:avaremp/winds_aloft.dart';
+import 'package:avaremp/weather/weather_cache.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
 
 

@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 import 'package:latlong2/latlong.dart';
 
 class Tfr extends Weather {

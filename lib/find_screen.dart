@@ -2,14 +2,14 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/user_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
 import 'destination.dart';
 import 'gps.dart';
-import 'main_database_helper.dart';
+import 'data/main_database_helper.dart';
 
 class FindScreen extends StatefulWidget {
   FindScreen({super.key});

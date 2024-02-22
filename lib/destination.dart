@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'destination_calculations.dart';
-import 'main_database_helper.dart';
+import 'data/main_database_helper.dart';
 
 class Destination {
 

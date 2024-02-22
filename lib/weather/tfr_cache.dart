@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:avaremp/tfr.dart';
-import 'package:avaremp/weather_cache.dart';
-import 'package:avaremp/weather_database_helper.dart';
+import 'package:avaremp/weather/tfr.dart';
+import 'package:avaremp/weather/weather_cache.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 
-import 'constants.dart';
+import '../constants.dart';
 
 class TfrCache extends WeatherCache {
 

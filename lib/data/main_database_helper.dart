@@ -6,7 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'destination.dart';
+import '../destination.dart';
 
 class MainDatabaseHelper {
   MainDatabaseHelper._();

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:avaremp/user_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
 import 'package:sqflite/sqflite.dart';
 

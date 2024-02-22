@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/taf.dart';
-import 'package:avaremp/tfr.dart';
-import 'package:avaremp/winds_aloft.dart';
+import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/taf.dart';
+import 'package:avaremp/weather/tfr.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import 'metar.dart';
+import '../weather/airep.dart';
+import '../weather/metar.dart';
 
 class WeatherDatabaseHelper {
   WeatherDatabaseHelper._();
@@ -71,6 +73,23 @@ class WeatherDatabaseHelper {
                 "lowerAltitude text, "
                 "msEffective   int, "
                 "msExpires     int, "
+                "unique(station) on conflict replace);");
+            await db.execute("create table airep ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "raw           text, "
+                "coordinates   text, "
+                "unique(station) on conflict replace);");
+            await db.execute("create table airsigmet ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "raw           text, "
+                "coordinates   text, "
+                "hazard        text, "
+                "severity      text, "
+                "type          text, "
                 "unique(station) on conflict replace);");
           },
           onOpen: (db) {});
@@ -226,7 +245,6 @@ class WeatherDatabaseHelper {
     }
   }
 
-
   Future<void> addTfr(Tfr tfr) async {
     final db = await database;
 
@@ -248,7 +266,6 @@ class WeatherDatabaseHelper {
       });
     }
   }
-
 
   Future<Tfr?> getTfr(String station) async {
     List<Map<String, dynamic>> maps = [];
@@ -276,6 +293,55 @@ class WeatherDatabaseHelper {
       await db.rawQuery("delete from tfr where station='$station'");
     }
   }
+
+  Future<List<Airep>> getAllAirep() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from airep");
+      return List.generate(maps.length, (index) => Airep.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<void> addAireps(List<Airep> aireps) async {
+    final db = await database;
+
+    if (db != null && aireps.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(Airep a in aireps) {
+          batch.insert("airep", a.toMap());
+        }
+        await batch.commit();
+      });
+    }
+  }
+
+  Future<List<AirSigmet>> getAllAirSigmet() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from airsigmet");
+      return List.generate(maps.length, (index) => AirSigmet.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<void> addAirSigmets(List<AirSigmet> airSigmet) async {
+    final db = await database;
+
+    if (db != null && airSigmet.isNotEmpty) {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        for(AirSigmet a in airSigmet) {
+          batch.insert("airsigmet", a.toMap());
+        }
+        await batch.commit();
+      });
+    }
+  }
+
 
 }
 

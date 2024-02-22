@@ -11,12 +11,14 @@ import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
-import 'package:avaremp/taf_cache.dart';
-import 'package:avaremp/tfr_cache.dart';
+import 'package:avaremp/weather/airep_cache.dart';
+import 'package:avaremp/weather/airsigmet_cache.dart';
+import 'package:avaremp/weather/taf_cache.dart';
+import 'package:avaremp/weather/tfr_cache.dart';
 import 'package:avaremp/udp_receiver.dart';
 import 'package:avaremp/waypoint.dart';
-import 'package:avaremp/weather_cache.dart';
-import 'package:avaremp/winds_cache.dart';
+import 'package:avaremp/weather/weather_cache.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,12 +30,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'app_settings.dart';
-import 'db_general.dart';
+import 'data/db_general.dart';
 import 'destination.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
-import 'main_database_helper.dart';
-import 'metar_cache.dart';
+import 'data/main_database_helper.dart';
+import 'weather/metar_cache.dart';
 
 class Storage {
   static final Storage _instance = Storage._internal();
@@ -55,6 +57,8 @@ class Storage {
   late MetarCache metar;
   late TafCache taf;
   late TfrCache tfr;
+  late AirepCache airep;
+  late AirSigmetCache airSigmet;
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -185,10 +189,14 @@ class Storage {
     metar = WeatherCache.make(MetarCache) as MetarCache;
     taf = WeatherCache.make(TafCache) as TafCache;
     tfr = WeatherCache.make(TfrCache) as TfrCache;
+    airep = WeatherCache.make(AirepCache) as AirepCache;
+    airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
     winds.download();
     metar.download();
     taf.download();
     tfr.download();
+    airep.download();
+    airSigmet.download();
 
     gpsNotPermitted = await Gps().checkPermissions();
     if(!gpsNotPermitted) {

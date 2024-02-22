@@ -1,4 +1,4 @@
-import 'package:avaremp/weather.dart';
+import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
