@@ -44,11 +44,5 @@ class AirSigmetCache extends WeatherCache {
     WeatherDatabaseHelper.db.addAirSigmets(airSigmet);
 
   }
-
-  @override
-  Future<void> initialize() async {
-    super.initialize().then((value) => (change.value++)); //generateImage()); use this when needed to show Metars in image. Not needed yet.
-  }
-
 }
 

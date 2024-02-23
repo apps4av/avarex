@@ -16,7 +16,6 @@ class WeatherCache {
 
   final change = ValueNotifier<int>(0);
 
-
   final Map<String, Weather> _map = {};
   bool _isDownloading = false;
   final String _url;
@@ -75,6 +74,7 @@ class WeatherCache {
     for(Weather element in elements) {
       _map[element.station] = element;
     }
+    change.value++;
   }
 
   static WeatherCache make(Type type) {

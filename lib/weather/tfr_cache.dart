@@ -113,11 +113,5 @@ class TfrCache extends WeatherCache {
     }
     WeatherDatabaseHelper.db.addTfrs(tfrs);
   }
-
-  @override
-  Future<void> initialize() async {
-    super.initialize().then((value) => (change.value++));
-  }
-
 }
 

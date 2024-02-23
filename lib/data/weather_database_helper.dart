@@ -29,7 +29,7 @@ class WeatherDatabaseHelper {
 
   _initDB() async {
     Directory documentsDirectory = Directory(Storage().dataDir);
-    String path = join(documentsDirectory.path, "weather_v1.db"); // this is cache and can be versioned without fear of losing data
+    String path = join(documentsDirectory.path, "weather.db"); // this is cache and can be versioned without fear of losing data
     return
       await openDatabase(
           path,
@@ -107,9 +107,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && wa.isNotEmpty) {
-      await db.rawQuery("delete from windsAloft"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("windsAloft");
         for(WindsAloft w in wa) {
           batch.insert("windsAloft", w.toMap());
         }
@@ -157,9 +157,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && metar.isNotEmpty) {
-      await db.rawQuery("delete from metar"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("metar");
         for(Metar m in metar) {
           batch.insert("metar", m.toMap());
         }
@@ -209,9 +209,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && taf.isNotEmpty) {
-      await db.rawQuery("delete from taf"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("taf");
         for(Taf t in taf) {
           batch.insert("taf", t.toMap());
         }
@@ -260,9 +260,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && tfr.isNotEmpty) {
-      await db.rawQuery("delete from tfr"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("tfr");
         for(Tfr t in tfr) {
           batch.insert("tfr", t.toMap());
         }
@@ -312,9 +312,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && aireps.isNotEmpty) {
-      await db.rawQuery("delete from airep"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("airep");
         for(Airep a in aireps) {
           batch.insert("airep", a.toMap());
         }
@@ -337,9 +337,9 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && airSigmet.isNotEmpty) {
-      await db.rawQuery("delete from airsigmet"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
+        batch.delete("airsigmet");
         for(AirSigmet a in airSigmet) {
           batch.insert("airsigmet", a.toMap());
         }
