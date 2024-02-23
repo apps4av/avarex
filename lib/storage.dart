@@ -13,6 +13,7 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/weather/airep_cache.dart';
 import 'package:avaremp/weather/airsigmet_cache.dart';
+import 'package:avaremp/weather/notam_cache.dart';
 import 'package:avaremp/weather/taf_cache.dart';
 import 'package:avaremp/weather/tfr_cache.dart';
 import 'package:avaremp/udp_receiver.dart';
@@ -59,6 +60,7 @@ class Storage {
   late TfrCache tfr;
   late AirepCache airep;
   late AirSigmetCache airSigmet;
+  late NotamCache notam;
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -191,6 +193,7 @@ class Storage {
     tfr = WeatherCache.make(TfrCache) as TfrCache;
     airep = WeatherCache.make(AirepCache) as AirepCache;
     airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
+    notam = WeatherCache.make(NotamCache) as NotamCache;
     winds.download();
     metar.download();
     taf.download();

@@ -10,6 +10,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../weather/airep.dart';
 import '../weather/metar.dart';
+import '../weather/notam.dart';
 
 class WeatherDatabaseHelper {
   WeatherDatabaseHelper._();
@@ -90,6 +91,12 @@ class WeatherDatabaseHelper {
                 "hazard        text, "
                 "severity      text, "
                 "type          text, "
+                "unique(station) on conflict replace);");
+            await db.execute("create table notam ("
+                "id            integer primary key autoincrement, "
+                "station       text, "
+                "utcMs         int, "
+                "raw           text, "
                 "unique(station) on conflict replace);");
           },
           onOpen: (db) {});
@@ -348,6 +355,34 @@ class WeatherDatabaseHelper {
     }
   }
 
+  Future<List<Notam>> getAllNotams() async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from notam");
+      return List.generate(maps.length, (index) => Notam.fromMap(maps[index]));
+    }
+    return [];
+  }
+
+  Future<Notam?> getNotam(String station) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from notam where station='$station'");
+      return Notam.fromMap(maps[0]);
+    }
+    return null;
+  }
+
+  Future<void> addNotam(Notam notam) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("notam", notam.toMap());
+    }
+  }
 
 }
+
 

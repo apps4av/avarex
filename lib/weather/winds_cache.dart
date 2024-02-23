@@ -13,7 +13,7 @@ class WindsCache extends WeatherCache {
   WindsCache(super.url, super.dbCall);
 
   @override
-  Future<void> parse(Uint8List data) async {
+  Future<void> parse(Uint8List data, [String? argument]) async {
 
     List<WindsAloft> winds = [];
     String dataString = utf8.decode(data);

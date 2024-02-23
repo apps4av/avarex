@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 
 import 'airep_cache.dart';
 import 'airsigmet_cache.dart';
+import 'notam_cache.dart';
 
 class WeatherCache {
 
@@ -18,15 +19,15 @@ class WeatherCache {
 
   final Map<String, Weather> _map = {};
   bool _isDownloading = false;
-  final String _url;
+  final String url;
   final Future<List<Weather>>Function() _dbCall;
 
-  WeatherCache(this._url, this._dbCall) {
+  WeatherCache(this.url, this._dbCall) {
     initialize();
   }
 
   // Download and parse
-  Future<void> download() async {
+  Future<void> download([String? argument]) async {
 
     // do not start download if one already happening
     if(_isDownloading) {
@@ -34,7 +35,7 @@ class WeatherCache {
     }
     _isDownloading = true;
     try {
-      http.Response response = await http.get(Uri.parse(_url));
+      http.Response response = await http.get(Uri.parse(url));
       await parse(response.bodyBytes);
     }
     catch(e) {}
@@ -54,7 +55,7 @@ class WeatherCache {
       return(null);
     }
     if(w.isExpired()) {
-      download();
+      download(station);
     }
     return w;
   }
@@ -63,7 +64,7 @@ class WeatherCache {
     return _map.values.toList();
   }
 
-  Future<void> parse(Uint8List data) async {
+  Future<void> parse(Uint8List data, [String? argument]) async {
     // override this or nothing happens
     throw UnimplementedError();
   }
@@ -115,6 +116,13 @@ class WeatherCache {
       WeatherCache cache = AirSigmetCache(
           "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
           WeatherDatabaseHelper.db.getAllAirSigmet);
+      return cache;
+    }
+    else if(type == NotamCache) {
+      // default
+      WeatherCache cache = NotamCache(
+          "https://www.notams.faa.gov/dinsQueryWeb/queryRetrievalMapAction.do",
+          WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }
     else {
