@@ -31,5 +31,9 @@ class Airep extends Weather {
     );
   }
 
+  @override
+  String toString() {
+    return text;
+  }
 }
 

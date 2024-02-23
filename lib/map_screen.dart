@@ -6,6 +6,8 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/airep.dart';
+import 'package:avaremp/weather/airsigmet.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
@@ -172,7 +174,7 @@ class MapScreenState extends State<MapScreen> {
     if(_layersState[lIndex]) {
       layers.add(chartLayer);
     }
-    lIndex = _layers.indexOf('METAR');
+    lIndex = _layers.indexOf('Weather');
     if(_layersState[lIndex]) {
       layers.add(
           ValueListenableBuilder<int>(
@@ -198,6 +200,84 @@ class MapScreenState extends State<MapScreen> {
               }
           )
       );
+
+      layers.add(
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().airep.change,
+              builder: (context, value, _) {
+                List<Weather> weather = Storage().airep.getAll();
+                List<Airep> airep = weather.map((e) => e as Airep).toList();
+                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
+                    options: MarkerClusterLayerOptions(
+                      markers: [
+                        for(Airep a in airep)
+                          Marker(point: a.coordinates,
+                              child:Tooltip(message: a.toString(),
+                                triggerMode: TooltipTriggerMode.tap,
+                                decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
+                                showDuration: const Duration(seconds: 30),
+                                child: const Icon(Icons.person, color: Colors.black,)))
+                      ],
+                      builder: (context, markers) {
+                        return Container(
+                            decoration: const BoxDecoration(
+                                color: Colors.transparent),
+                            child: const Center()
+                        );
+                      },
+                    )
+                );
+              }
+          )
+      );
+
+      layers.add(
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().airSigmet.change,
+              builder: (context, value, _) {
+                List<Weather> weather = Storage().airSigmet.getAll();
+                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+                return PolylineLayer(
+                  polylines: [
+                    // route
+                    for(AirSigmet a in airSigmet)
+                      Polyline(
+                          borderStrokeWidth: 1,
+                          borderColor: Colors.white,
+                          strokeWidth: 2,
+                          points: a.coordinates,
+                          color: a.getColor(),
+                      ),
+                  ],
+                );
+             }
+          )
+      );
+
+      layers.add(
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().airSigmet.change,
+              builder: (context, value, _) {
+                List<Weather> weather = Storage().airSigmet.getAll();
+                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+                return MarkerLayer(
+                  markers: [
+                    // route
+                    for(AirSigmet a in airSigmet)
+                      Marker(
+                        point: a.coordinates[0],
+                        child: Tooltip(message: a.toString(),
+                          triggerMode: TooltipTriggerMode.tap,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
+                          showDuration: const Duration(seconds: 30),
+                          child: const Icon(Icons.ac_unit_rounded, color: Colors.black,),))
+                  ],
+                );
+
+              }
+          )
+      );
+
     }
 
     lIndex = _layers.indexOf('TFR');

@@ -6,12 +6,16 @@ import 'package:avaremp/weather/tfr_cache.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/weather/winds_cache.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
 import 'airep_cache.dart';
 import 'airsigmet_cache.dart';
 
 class WeatherCache {
+
+  final change = ValueNotifier<int>(0);
+
 
   final Map<String, Weather> _map = {};
   bool _isDownloading = false;

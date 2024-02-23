@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:avaremp/weather/weather.dart';
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class AirSigmet extends Weather {
@@ -48,6 +49,27 @@ class AirSigmet extends Weather {
       maps['severity'] as String,
       maps['type'] as String,
     );
+  }
+
+  Color getColor() {
+    if(hazard == "TURB") {
+      return Colors.deepOrangeAccent;
+    }
+    if(hazard == "IFR") {
+      return Colors.purpleAccent;
+    }
+    if(hazard == "ICE") {
+      return Colors.blueAccent;
+    }
+    if(hazard == "MTN OBSCN") {
+      return Colors.greenAccent;
+    }
+    return Colors.black;
+
+  }
+  @override
+  String toString() {
+    return text;
   }
 
 }

@@ -19,8 +19,6 @@ class MetarCache extends WeatherCache {
 
   Uint8List? image;
 
-  final change = ValueNotifier<int>(0);
-
   MetarCache(super.url, super.dbCall);
 
   @override
