@@ -236,16 +236,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
-            if (future.metarPage != null)
-              TextButton(
-                child: const Text("METAR"),
-                onPressed: () => _controller.animateToPage(future.metarPage!)
-              ),
-            if (future.notamPage != null)
-              TextButton(
-                  child: const Text("NOTAM"),
-                  onPressed: () => _controller.animateToPage(future.notamPage!)
-              )
           ])),
           // various info
           Expanded(flex: 7, child: CarouselSlider(
@@ -265,11 +255,20 @@ class LongPressWidgetState extends State<LongPressWidget> {
         if(airportDiagram != null)
           Positioned(child: Align(
             alignment: Alignment.bottomRight,
-            child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
-                SizedBox(
+            child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+              if (future.metarPage != null)
+                TextButton(
+                    child: const Text("METAR"),
+                    onPressed: () => _controller.animateToPage(future.metarPage!)
+                ),
+              if (future.notamPage != null)
+                TextButton(
+                    child: const Text("NOTAM"),
+                    onPressed: () => _controller.animateToPage(future.notamPage!)
+                ),
+              SizedBox(
                   width: 32, height: 32,
                   child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
-                const Text("AD"),
               ]
             ),
           )),
