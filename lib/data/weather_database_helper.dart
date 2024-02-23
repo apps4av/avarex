@@ -29,7 +29,7 @@ class WeatherDatabaseHelper {
 
   _initDB() async {
     Directory documentsDirectory = Directory(Storage().dataDir);
-    String path = join(documentsDirectory.path, "weather.db");
+    String path = join(documentsDirectory.path, "weather_v1.db"); // this is cache and can be versioned without fear of losing data
     return
       await openDatabase(
           path,
@@ -107,6 +107,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && wa.isNotEmpty) {
+      await db.rawQuery("delete from windsAloft"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(WindsAloft w in wa) {
@@ -156,6 +157,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && metar.isNotEmpty) {
+      await db.rawQuery("delete from metar"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(Metar m in metar) {
@@ -207,6 +209,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && taf.isNotEmpty) {
+      await db.rawQuery("delete from taf"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(Taf t in taf) {
@@ -257,6 +260,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && tfr.isNotEmpty) {
+      await db.rawQuery("delete from tfr"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(Tfr t in tfr) {
@@ -308,6 +312,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && aireps.isNotEmpty) {
+      await db.rawQuery("delete from airep"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(Airep a in aireps) {
@@ -332,6 +337,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && airSigmet.isNotEmpty) {
+      await db.rawQuery("delete from airsigmet"); // clean up
       await db.transaction((txn) async {
         Batch batch = txn.batch();
         for(AirSigmet a in airSigmet) {
