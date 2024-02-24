@@ -26,6 +26,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -84,6 +85,11 @@ class Storage {
 
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
+  Uint8List? imageBytesPlate;
+  LatLng? topLeftPlate;
+  LatLng? bottomRightPlate;
+
+
   // to move the plate
   String lastPlateAirport = "";
   String currentPlate = "";
@@ -269,6 +275,26 @@ class Storage {
       // file bad or not found
       bytes = bd.buffer.asUint8List();
     }
+    imageBytesPlate = bytes;
+
+    // this should come from exif but it is legacy and needs to be fixed
+    if(currentPlate == "AIRPORT-DIAGRAM") {
+      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
+    }
+
+    topLeftPlate = null;
+    bottomRightPlate = null;
+
+    ui.decodeImageFromList(bytes, (ui.Image img) {
+      return completerPlate.complete(img);
+    });
+    ui.Image? image = await completerPlate.future; // double buffering
+    if(imagePlate != null) {
+      imagePlate!.dispose();
+      imagePlate = null;
+    }
+    imagePlate = image;
+
     Map<String, IfdTag> exif = await readExifFromBytes(bytes);
     matrixPlate = null;
     IfdTag? tag = exif["EXIF UserComment"];
@@ -280,23 +306,18 @@ class Storage {
         matrixPlate!.add(double.parse(tokens[1]));
         matrixPlate!.add(double.parse(tokens[2]));
         matrixPlate!.add(double.parse(tokens[3]));
+
+        double dx = matrixPlate![0];
+        double dy = matrixPlate![1];
+        double lonTopLeft = matrixPlate![2];
+        double latTopLeft = matrixPlate![3];
+        double latBottomRight = latTopLeft + image.height / dy;
+        double lonBottomRight = lonTopLeft + image.width / dx;
+        topLeftPlate = LatLng(latTopLeft, lonTopLeft);
+        bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
       }
-    }
+  }
 
-    // this should come from exif but it is legacy and needs to be fixed
-    if(currentPlate == "AIRPORT-DIAGRAM") {
-      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
-    }
-
-    ui.decodeImageFromList(bytes, (ui.Image img) {
-      return completerPlate.complete(img);
-    });
-    ui.Image? image = await completerPlate.future; // double buffering
-    if(imagePlate != null) {
-      imagePlate!.dispose();
-      imagePlate = null;
-    }
-    imagePlate = image;
     plateChange.value++; // change in storage
   }
 }

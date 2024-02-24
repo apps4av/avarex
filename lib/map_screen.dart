@@ -332,6 +332,33 @@ class MapScreenState extends State<MapScreen> {
 
     }
 
+    lIndex = _layers.indexOf('Plate');
+    if(_layersState[lIndex]) {
+      layers.add( // circle layer
+        ValueListenableBuilder<int>(
+            valueListenable: Storage().plateChange,
+            builder: (context, value, _) {
+              return OverlayImageLayer(
+                overlayImages: [
+                  if(Storage().imageBytesPlate != null &&
+                      Storage().bottomRightPlate != null &&
+                      Storage().topLeftPlate != null)
+                    OverlayImage(
+                      opacity: 0.9,
+                      bounds: LatLngBounds(
+                          Storage().topLeftPlate!,
+                          Storage().bottomRightPlate!
+                      ),
+                      imageProvider: MemoryImage(Storage().imageBytesPlate!),
+                    ),
+                ],
+              );
+            }
+        ),
+      );
+    }
+
+
     lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // circle layer
@@ -415,7 +442,7 @@ class MapScreenState extends State<MapScreen> {
                   Polyline(
                     borderStrokeWidth: 1,
                     borderColor: Constants.planBorderColor,
-                    strokeWidth: 2,
+                    strokeWidth: 4,
                     points: [r.start, r.end, r.endNotch],
                     color: Constants.runwayMapColor,
                   ),
@@ -441,7 +468,7 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(MapRunway r in runways)
                   Marker(point: r.end,
-                      child: Text(r.name, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
+                      child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
               ],
             );
           },

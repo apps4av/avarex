@@ -39,8 +39,6 @@ class LongPressFuture {
   Function(String value) labelCallback;
   Image? airportDiagram;
   Widget? ad;
-  int? metarPage;
-  int? notamPage;
   int? elevation;
 
   LongPressFuture(this.destination, this.dimensions, this.labelCallback) : showDestination =
@@ -76,24 +74,6 @@ class LongPressFuture {
 
       pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(showDestination as AirportDestination)));
 
-      String k = Constants.useK ? "K" : "";
-      Weather? w = Storage().metar.get("$k${showDestination.locationID}");
-      Weather? w1 = Storage().taf.get("$k${showDestination.locationID}");
-
-      if(w != null || w1 != null) {
-        metarPage = pages.length;
-        pages.add(ListView(
-          children: [
-            w != null ? ListTile(title: const Text("METAR"), subtitle: Text((w as Metar).text), leading: Icon(Icons.circle_outlined, color: w.getColor(),),) : Container(),
-            w1 != null ? ListTile(title: const Text("TAF"), subtitle: Text((w1 as Taf).text), leading: const Icon(Icons.circle)) : Container(),
-          ],
-        ));
-      }
-      Weather? w2 = await Storage().notam.getSync("$k${showDestination.locationID}"); // get sync as there is no bulk download for notams
-      if(w2 != null) {
-        notamPage = pages.length;
-        pages.add(SingleChildScrollView(child:Text(w2.toString())));
-      }
     }
     else if(showDestination is NavDestination) {
       pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));
@@ -159,18 +139,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
       return Container();
     }
 
-    // carousel
-    List<Card> cards = [];
-    for (Widget page in future.pages) {
-      cards.add(Card(
-          child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox.expand(
-                  child: page
-              )
-          )
-      ));
-    }
 
     // general direction from where we are
     GeoCalculations geo = GeoCalculations();
@@ -188,6 +156,60 @@ class LongPressWidgetState extends State<LongPressWidget> {
     }
     else if (future.ad != null) {
       airportDiagram = future.ad;
+    }
+
+
+    String k = Constants.useK ? "K" : "";
+    Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
+    Weather? w1 = Storage().taf.get("$k${future.showDestination.locationID}");
+
+    int? metarPage;
+    if(w != null || w1 != null) {
+      metarPage = future.pages.length;
+      future.pages.add(ListView(
+        children: [
+          w != null
+              ? ListTile(title: const Text("METAR"),
+            subtitle: Text((w as Metar).text),
+            leading: Icon(Icons.circle_outlined, color: w.getColor(),),)
+              : Container(),
+          w1 != null ? ListTile(title: const Text("TAF"),
+              subtitle: Text((w1 as Taf).text),
+              leading: const Icon(Icons.circle)) : Container(),
+        ],
+      ));
+    }
+
+    // NOATMS get downloaded so make this a future.
+    int notamPage = future.pages.length;
+    future.pages.add(FutureBuilder(future: Storage().notam.getSync("$k${future.showDestination.locationID}"),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            Weather? w2 = snapshot.data;
+            if(w2 != null) {
+              return SingleChildScrollView(child: Text(w2.toString()));
+            }
+            else {
+              return Container();
+            }
+          }
+          else {
+            return const ListTile(leading: CircularProgressIndicator());
+          }
+        }
+    ));
+
+    // carousel
+    List<Card> cards = [];
+    for (Widget page in future.pages) {
+      cards.add(Card(
+          child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox.expand(
+                  child: page
+              )
+          )
+      ));
     }
 
     return Container(
@@ -255,20 +277,19 @@ class LongPressWidgetState extends State<LongPressWidget> {
           Positioned(child: Align(
             alignment: Alignment.bottomRight,
             child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-              if (future.metarPage != null)
+              if (metarPage != null)
                 TextButton(
                     child: const Text("METAR"),
-                    onPressed: () => _controller.animateToPage(future.metarPage!)
+                    onPressed: () => _controller.animateToPage(metarPage!)
                 ),
-              if (future.notamPage != null)
-                TextButton(
-                    child: const Text("NOTAM"),
-                    onPressed: () => _controller.animateToPage(future.notamPage!)
-                ),
-              SizedBox(
-                  width: 32, height: 32,
-                  child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
-              ]
+            TextButton(
+              child: const Text("NOTAM"),
+              onPressed: () => _controller.animateToPage(notamPage)
+            ),
+            SizedBox(
+                width: 32, height: 32,
+                child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
+            ]
             ),
           )),
         ],
