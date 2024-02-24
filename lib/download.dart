@@ -132,7 +132,7 @@ class Download {
       }
       if (total != -1) {
         double progress = received / total * 0.5; // 0 to 0.5 for download
-        if (progress - lastProgress >= 0.01) { // 1% change min
+        if (progress - lastProgress >= 0.1) { // 10% change min
           callback(chart, progress);
           lastProgress = progress;
         }

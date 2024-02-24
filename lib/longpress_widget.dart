@@ -79,7 +79,6 @@ class LongPressFuture {
       String k = Constants.useK ? "K" : "";
       Weather? w = Storage().metar.get("$k${showDestination.locationID}");
       Weather? w1 = Storage().taf.get("$k${showDestination.locationID}");
-      Weather? w2 = Storage().notam.get("$k${showDestination.locationID}");
 
       if(w != null || w1 != null) {
         metarPage = pages.length;
@@ -90,11 +89,11 @@ class LongPressFuture {
           ],
         ));
       }
+      Weather? w2 = await Storage().notam.getSync("$k${showDestination.locationID}"); // get sync as there is no bulk download for notams
       if(w2 != null) {
         notamPage = pages.length;
         pages.add(SingleChildScrollView(child:Text(w2.toString())));
       }
-
     }
     else if(showDestination is NavDestination) {
       pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));

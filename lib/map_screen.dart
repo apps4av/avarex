@@ -270,7 +270,7 @@ class MapScreenState extends State<MapScreen> {
                           triggerMode: TooltipTriggerMode.tap,
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
                           showDuration: const Duration(seconds: 30),
-                          child: const Icon(Icons.ac_unit_rounded, color: Colors.black,),))
+                          child: Icon(Icons.ac_unit_rounded, color: a.getColor(),),))
                   ],
                 );
 

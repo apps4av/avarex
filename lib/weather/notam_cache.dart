@@ -31,7 +31,6 @@ class NotamCache extends WeatherCache {
     Notam notam = Notam(argument, time, notamText);
 
     WeatherDatabaseHelper.db.addNotam(notam);
-
   }
 
   // Download and parse, override because this is a POST
@@ -56,11 +55,13 @@ class NotamCache extends WeatherCache {
     await initialize();
   }
 
-  @override
-  Weather? get(String? station) {
+  // wait till we get it either from cache or from internet
+  Future<Weather?> getSync(String? station) async {
     Weather? w = super.get(station);
-    if(null == w && null != station) {
-      download(station);
+    if(null == w || w.isExpired()) {
+      // if not found, download
+      await download(station);
+      w = super.get(station);
     }
     return w;
   }

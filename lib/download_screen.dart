@@ -268,7 +268,7 @@ class DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  void _downloadCallback(Chart chart, double progress) async {
+  void _downloadCallback(Chart chart, double progress) {
     if(_stopped) { // view switched, cancel
       chart.enabled = true;
       chart.progress = 0;
@@ -302,7 +302,7 @@ class DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  void _deleteCallback(Chart chart, double progress) async {
+  void _deleteCallback(Chart chart, double progress) {
     if(_stopped) {
       chart.enabled = true;
       chart.progress = 0;
