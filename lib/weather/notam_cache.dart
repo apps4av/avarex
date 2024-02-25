@@ -58,7 +58,7 @@ class NotamCache extends WeatherCache {
   // wait till we get it either from cache or from internet
   Future<Weather?> getSync(String? station) async {
     Weather? w = super.get(station);
-    if(null == w || w.isExpired()) {
+    if(null == w) {
       // if not found, download
       await download(station);
       w = super.get(station);

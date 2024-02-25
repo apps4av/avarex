@@ -160,44 +160,48 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
 
     String k = Constants.useK ? "K" : "";
-    Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
-    Weather? w1 = Storage().taf.get("$k${future.showDestination.locationID}");
 
     int? metarPage;
-    if(w != null || w1 != null) {
-      metarPage = future.pages.length;
-      future.pages.add(ListView(
-        children: [
-          w != null
-              ? ListTile(title: const Text("METAR"),
-            subtitle: Text((w as Metar).text),
-            leading: Icon(Icons.circle_outlined, color: w.getColor(),),)
-              : Container(),
-          w1 != null ? ListTile(title: const Text("TAF"),
-              subtitle: Text((w1 as Taf).text),
-              leading: const Icon(Icons.circle)) : Container(),
-        ],
-      ));
-    }
+    int? notamPage;
 
-    // NOATMS get downloaded so make this a future.
-    int notamPage = future.pages.length;
-    future.pages.add(FutureBuilder(future: Storage().notam.getSync("$k${future.showDestination.locationID}"),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            Weather? w2 = snapshot.data;
-            if(w2 != null) {
-              return SingleChildScrollView(child: Text(w2.toString()));
+    if(future.showDestination is AirportDestination) {
+      Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
+      Weather? w1 = Storage().taf.get("$k${future.showDestination.locationID}");
+      if(w != null || w1 != null) {
+        metarPage = future.pages.length;
+        future.pages.add(ListView(
+          children: [
+            w != null
+                ? ListTile(title: const Text("METAR"),
+              subtitle: Text((w as Metar).text),
+              leading: Icon(Icons.circle_outlined, color: w.getColor(),),)
+                : Container(),
+            w1 != null ? ListTile(title: const Text("TAF"),
+                subtitle: Text((w1 as Taf).text),
+                leading: const Icon(Icons.circle)) : Container(),
+          ],
+        ));
+      }
+      // NOATMS get downloaded on the fly so make this a future.
+      notamPage = future.pages.length;
+      future.pages.add(FutureBuilder(future: Storage().notam.getSync(
+          "$k${future.showDestination.locationID}"),
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              Weather? w2 = snapshot.data;
+              if (w2 != null) {
+                return SingleChildScrollView(child: Text(w2.toString()));
+              }
+              else {
+                return Container();
+              }
             }
             else {
-              return Container();
+              return const ListTile(leading: CircularProgressIndicator());
             }
           }
-          else {
-            return const ListTile(leading: CircularProgressIndicator());
-          }
-        }
-    ));
+      ));
+    }
 
     // carousel
     List<Card> cards = [];
@@ -282,10 +286,11 @@ class LongPressWidgetState extends State<LongPressWidget> {
                     child: const Text("METAR"),
                     onPressed: () => _controller.animateToPage(metarPage!)
                 ),
-            TextButton(
-              child: const Text("NOTAM"),
-              onPressed: () => _controller.animateToPage(notamPage)
-            ),
+            if(notamPage != null)
+              TextButton(
+                child: const Text("NOTAM"),
+                onPressed: () => _controller.animateToPage(notamPage!)
+              ),
             SizedBox(
                 width: 32, height: 32,
                 child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),

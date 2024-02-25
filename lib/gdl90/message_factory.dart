@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
-
+import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'message.dart';
 import 'ownship_message.dart';
 
@@ -34,10 +34,11 @@ class MessageFactory
         m = OwnShipGeometricAltitudeMessage(type);
         break;
       case MessageType.trafficReport:
+        m = TrafficReportMessage(type);
         break;
-      case MessageType.basicReport:
+      case MessageType.basicReport: // this screws up traffic report, leave it for now
         break;
-      case MessageType.longReport:
+      case MessageType.longReport: // this screws up traffic report, leave it for now
         break;
       case MessageType.ahrsReport:
         break;

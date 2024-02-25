@@ -1,25 +1,26 @@
 import 'dart:typed_data';
+import 'package:avaremp/gdl90/ownship_message.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'message.dart';
 
-class OwnShipMessage extends Message {
-
+class TrafficReportMessage extends Message {
   double altitude = -305;
   LatLng coordinates = const LatLng(0, 0);
   int icao = 0;
   double velocity = 0;
   double verticalSpeed = 0;
   double heading = 0;
+  String callSign = "";
 
-  OwnShipMessage(super.type);
+  TrafficReportMessage(super.type);
 
   @override
   void parse(Uint8List message) {
 
     icao = (((message[1]).toInt() & 0xFF) << 16) + ((((message[2].toInt()) & 0xFF) << 8)) + (((message[3].toInt()) & 0xFF));
-    double lat = calculateDegrees((message[4].toInt() & 0xFF), (message[5].toInt() & 0xFF), (message[6].toInt() & 0xFF));
-    double lon = calculateDegrees((message[7].toInt() & 0xFF), (message[8].toInt() & 0xFF), (message[9].toInt() & 0xFF));
+    double lat = OwnShipMessage.calculateDegrees((message[4].toInt() & 0xFF), (message[5].toInt() & 0xFF), (message[6].toInt() & 0xFF));
+    double lon = OwnShipMessage.calculateDegrees((message[7].toInt() & 0xFF), (message[8].toInt() & 0xFF), (message[9].toInt() & 0xFF));
     coordinates = LatLng(lat, lon);
 
     int upper = ((message[10].toInt() & 0xFF)) << 4;
@@ -31,9 +32,8 @@ class OwnShipMessage extends Message {
       if (alt < -1000) {
         alt = -1000;
       }
-      // meter
-      altitude = alt.toDouble() / 3.28084;
     }
+    altitude = alt.toDouble();
 
     upper = ((message[13].toInt() & 0xFF)) << 4;
     lower = ((message[14].toInt() & 0xF0)) >> 4;
@@ -41,7 +41,7 @@ class OwnShipMessage extends Message {
     if (upper == 0xFF0 && lower == 0xF) {
     }
     else {
-      // m/s
+      // knots
       velocity = ((upper.toDouble() + lower.toDouble()) * 0.514444);
     }
 
@@ -58,33 +58,11 @@ class OwnShipMessage extends Message {
 
     // heading / track
     heading = ((message[16].toInt() & 0xFF).toDouble() * 1.40625); // heading resolution 1.40625
+
+    // call sign from 18 to 25
+    Uint8List call = message.sublist(18, 26);
+    callSign = String.fromCharCodes(call);
+
   }
 
-  static double calculateDegrees(int highByte, int midByte, int lowByte) {
-    int position = 0;
-    double xx;
-
-    position = highByte;
-    position <<= 8;
-    position |= midByte;
-    position <<= 8;
-    position |= lowByte;
-    position &= 0xFFFFFFFF;
-
-    if ((position & 0x800000) != 0) {
-      int yy;
-
-      position |= 0xFFFFFFFFFF000000; //ints are 64 bit in dart
-
-      yy = position;
-      xx = yy.toDouble();
-    }
-    else {
-      xx = (position & 0x7FFFFF).toDouble();
-    }
-
-    xx *= 2.1457672E-5; // low lat resolution
-
-    return xx;
-  }
 }
