@@ -468,6 +468,7 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(MapRunway r in runways)
                   Marker(point: r.end,
+                      width: 34,
                       child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
               ],
             );

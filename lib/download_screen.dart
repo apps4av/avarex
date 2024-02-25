@@ -35,6 +35,8 @@ class DownloadScreen extends StatefulWidget {
 class DownloadScreenState extends State<DownloadScreen> {
 
   bool _stopped = false;
+  int _total = 0;
+  int _totalStartWith = 1;
 
   DownloadScreenState() {
     for (ChartCategory cg in _allCharts) {
@@ -58,6 +60,26 @@ class DownloadScreenState extends State<DownloadScreen> {
     _stopped = false;
   }
 
+  void _addToTotal() {
+    setState(() {
+      _total++;
+      _totalStartWith++;
+    });
+  }
+
+  void _initTotal() {
+    setState(() {
+      _totalStartWith = 1;
+      _total = 0;
+    });
+  }
+
+  void _removeFromTotal() {
+    setState(() {
+      _total--;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -65,6 +87,8 @@ class DownloadScreenState extends State<DownloadScreen> {
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Download"),
         actions: [
+          if(_total != 0)
+            CircularProgressIndicator(value : (_totalStartWith.toDouble() - _total.toDouble()) / _totalStartWith.toDouble()),
           IconButton(icon: Icon(MdiIcons.refresh), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => {_start()},),
         ],
       ),
@@ -273,6 +297,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       chart.enabled = true;
       chart.progress = 0;
       chart.download.cancel();
+      _removeFromTotal();
       return;
     }
     setState(() {
@@ -298,6 +323,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       }
     });
     if(-1 == progress || 1 == progress) {
+      _removeFromTotal();
       _getChartStateFromLocal(chart); // something changed
     }
   }
@@ -307,6 +333,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       chart.enabled = true;
       chart.progress = 0;
       chart.download.cancel();
+      _removeFromTotal();
       return;
     }
     setState(() {
@@ -325,12 +352,14 @@ class DownloadScreenState extends State<DownloadScreen> {
       }
     });
     if(-1 == progress || 1 == progress) {
+      _removeFromTotal();
       _getChartStateFromLocal(chart); // something changed
     }
   }
 
   // Do actions on all charts
   void _start() async {
+    _initTotal();
     for (int category = 0; category < _allCharts.length; category++) {
       for (int chart = 0; chart < _allCharts[category].charts.length; chart++) {
         ChartCategory cg = _allCharts[category];
@@ -345,11 +374,13 @@ class DownloadScreenState extends State<DownloadScreen> {
             ct.state == _stateExpiredDownload) {
           // download this chart
           ct.download.download(ct, _downloadCallback);
+          _addToTotal();
         }
         if (ct.state == _stateCurrentDelete ||
             ct.state == _stateExpiredDelete) {
           // delete this chart
           ct.download.delete(ct, _deleteCallback);
+          _addToTotal();
         }
       }
     }
