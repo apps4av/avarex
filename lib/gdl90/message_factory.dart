@@ -9,12 +9,11 @@ class MessageFactory
 {
   static Message? buildMessage(Uint8List dataIn)
   {
-    if (dataIn.length < 5) {
+    if (dataIn.length < 3) {
       return null;
     }
     // remove 7e at start and end
-    Uint8List dataInNoHeader = dataIn.sublist(1, dataIn.length - 1);
-    Uint8List? processedDataIn = _process(dataInNoHeader);
+    Uint8List? processedDataIn = _process(dataIn);
     if (null == processedDataIn) {
       return null;
     }

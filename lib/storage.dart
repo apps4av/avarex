@@ -9,6 +9,7 @@ import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
+import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/weather/airep_cache.dart';
@@ -156,6 +157,9 @@ class Storage {
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             position = p;
             gpsChange.value = p;
+          }
+          if(m != null && m.type == MessageType.trafficReport) {
+            TrafficReportMessage m0 = m as TrafficReportMessage;
           }
         }
         else {
