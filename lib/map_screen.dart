@@ -420,7 +420,6 @@ class MapScreenState extends State<MapScreen> {
                     strokeWidth: 6,
                     points: Storage().route.getPathPassed(),
                     color: Constants.planPassedColor,
-                    isDotted: true
                 ),
                 Polyline(
                   borderStrokeWidth: 2,
@@ -436,7 +435,6 @@ class MapScreenState extends State<MapScreen> {
                     strokeWidth: 6,
                     points: Storage().route.getPathNext(),
                     color: Constants.planNextColor,
-                    isDotted: true
                 ),
                 for(MapRunway r in runways)
                   Polyline(
@@ -486,7 +484,6 @@ class MapScreenState extends State<MapScreen> {
             return PolylineLayer(
               polylines: [
                 Polyline(
-                  isDotted: true,
                   strokeWidth: 4,
                   points: path,
                   color: Constants.trackColor,
