@@ -1,14 +1,10 @@
 import 'dart:async';
 
-import 'package:avaremp/constants.dart';
-import 'package:avaremp/geo_calculations.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
 
 class Gps {
-
-  bool useSim = false;
 
   static Position centerUSAPosition() {
     return Position(longitude: -97, latitude: 38, accuracy: 0, altitude: 0, altitudeAccuracy: 0, heading: 0, headingAccuracy: 0, speed: 0, speedAccuracy: 0, timestamp: DateTime.now());
@@ -62,49 +58,14 @@ class Gps {
     }
   }
 
-  static int num = 0;
 
   StreamSubscription<Position> getStream() {
 
     StreamSubscription<Position> positionStream;
 
-    if(useSim) {
-      // always fly to destination
-      final Stream<Position> stream = Stream<Position>.periodic(const Duration(seconds: 1), (count) {
-        List<LatLng> points = GeoCalculations().findPoints(const LatLng(41, -71), const LatLng(45, -69), 1);
+    const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high,);
 
-        double latitude = points[num].latitude;
-        double longitude = points[num].longitude;
-
-        double heading = GeoCalculations().calculateBearing(points[num], points[num + 1]);
-
-        num++;
-        if(num == points.length - 2) {
-          num = 0;
-        }
-
-        Position p = Position(
-            longitude: longitude,
-            latitude: latitude,
-            timestamp: DateTime.timestamp(),
-            accuracy: 0,
-            altitude: count.toDouble(),
-            altitudeAccuracy: 0,
-            heading: heading,
-            headingAccuracy: 0,
-            speed: Constants.nmToM(1),
-            speedAccuracy: 0);
-        return p;
-      });
-
-      positionStream = stream.listen((Position? position) {});
-    }
-    else {
-      const LocationSettings locationSettings = LocationSettings(accuracy: LocationAccuracy.high,);
-
-      positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position? position) {
-      });
-    }
+    positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position? position) {});
 
     return positionStream;
   }
@@ -112,5 +73,6 @@ class Gps {
   static LatLng toLatLng(Position position) {
     return LatLng(position.latitude, position.longitude);
   }
+
 }
 

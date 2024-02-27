@@ -12,6 +12,7 @@ import 'package:avaremp/gdl90/ownship_message.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/stack_with_one.dart';
 import 'package:avaremp/weather/airep_cache.dart';
 import 'package:avaremp/weather/airsigmet_cache.dart';
 import 'package:avaremp/weather/notam_cache.dart';
@@ -63,6 +64,7 @@ class Storage {
   late AirepCache airep;
   late AirSigmetCache airSigmet;
   late NotamCache notam;
+  final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
@@ -99,7 +101,6 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  bool _gotGpsPosition = false;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -121,11 +122,8 @@ class Storage {
     _gpsStream?.onError((obj){
     });
     _gpsStream?.onData((data) {
-      position = data;
-      gpsChange.value = position; // tell everyone
       _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-      _gotGpsPosition = true;
-      route.update(); // change to route
+      _gpsStack.push(data);
     });
   }
 
@@ -155,8 +153,7 @@ class Storage {
           if(m != null && m.type == MessageType.ownShip) {
             OwnShipMessage m0 = m as OwnShipMessage;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
-            position = p;
-            gpsChange.value = p;
+            _gpsStack.push(p);
           }
           if(m != null && m.type == MessageType.trafficReport) {
             TrafficReportMessage m0 = m as TrafficReportMessage;
@@ -184,6 +181,7 @@ class Storage {
     // ask for GPS permission
     await _gps.checkPermissions();
     position = await Gps().getLastPosition();
+    _gpsStack.push(position);
     Directory dir = await getApplicationDocumentsDirectory();
     dataDir = dir.path;
     await settings.initSettings();
@@ -221,12 +219,12 @@ class Storage {
       // this provides time to apps
       timeChange.value++;
 
+      position = _gpsStack.pop();
+      gpsChange.value = position; // tell everyone
+      route.update(); // change to route
+
       if(timeChange.value % 5 == 0) {
         if(settings.isInternalGps()) { // only for internal GPS
-          if (!_gotGpsPosition) {
-            gpsChange.value =
-                position; // if GPS not sending, then keep sending last location
-          }
           // check system for any issues
           gpsNotPermitted = await Gps().checkPermissions();
           gpsDisabled = !(await Gps().checkEnabled());
@@ -252,6 +250,8 @@ class Storage {
         metar.download();
         taf.download();
         tfr.download();
+        airep.download();
+        airSigmet.download();
       }
       // check GPS enabled
     });

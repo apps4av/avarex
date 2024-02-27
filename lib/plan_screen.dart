@@ -214,7 +214,6 @@ class PlanScreenState extends State<PlanScreen> {
                   onChanged: (value) {
                     setState(() {
                       Storage().settings.setTas(int.parse(value ?? Storage().settings.getTas().toString()));
-                      Storage().route.update();
                     });
                   },
                 )),
@@ -229,7 +228,6 @@ class PlanScreenState extends State<PlanScreen> {
                   onChanged: (value) {
                     setState(() {
                       Storage().settings.setFuelBurn(int.parse(value ?? Storage().settings.getFuelBurn().toString()));
-                      Storage().route.update();
                     });
                   },
                 )),
@@ -244,7 +242,6 @@ class PlanScreenState extends State<PlanScreen> {
                   onChanged: (value) {
                     setState(() {
                       Storage().route.altitude = value?? "3000";
-                      Storage().route.update();
                     });
                   },
                 )),
