@@ -107,7 +107,6 @@ class Download {
 
   Future<void> download(Chart chart, Function(Chart, double)? callback) async {
     _cancelDownloadAndDelete = false;
-    final Dio dio = Dio();
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
     callback!(chart, 0); // download start signal
@@ -140,25 +139,21 @@ class Download {
     }
 
     try {
-      Response response = await dio.get(
-        _getUrlOfRemoteFile(chart.filename),
-        onReceiveProgress: showDownloadProgress,
-        cancelToken: cancelToken,
-        //Received data with List<int>
-        options: Options(
-            responseType: ResponseType.bytes,
-            followRedirects: true,
-            validateStatus: (status) {
-              return status! < 500;
-            }
-        ),
-      );
-      var raf = localFile.openSync(mode: FileMode.write);
-      // response.data is List<int> type
-      raf.writeFromSync(response.data);
-      await raf.close();
+      http.Response r = await http.head(Uri.parse(_getUrlOfRemoteFile(chart.filename)));
+      int total = int.parse(r.headers["content-length"] ?? "0");
+      int downloaded = 0;
+      final request = http.Request('GET', Uri.parse(_getUrlOfRemoteFile(chart.filename)));
+      final streamedResponse = await request.send();
+      var out = localFile.openWrite();
+      await streamedResponse.stream.map((e) {
+        downloaded += e.length;
+        showDownloadProgress(downloaded, total);
+        return (e);}
+      ).pipe(out);
+      out.close();
       callback(chart, 0.5); // unzip start
-    } catch (e) {
+    }
+    catch(e) {
       callback(chart, -1);
     }
 

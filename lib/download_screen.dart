@@ -1,8 +1,6 @@
 
 import 'package:avaremp/faa_dates.dart';
 import 'package:flutter/material.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-
 import 'chart.dart';
 import 'constants.dart';
 import 'download.dart';
@@ -89,7 +87,7 @@ class DownloadScreenState extends State<DownloadScreen> {
         actions: [
           if(_total != 0)
             CircularProgressIndicator(value : (_totalStartWith.toDouble() - _total.toDouble()) / _totalStartWith.toDouble()),
-          IconButton(icon: Icon(MdiIcons.refresh), padding: const EdgeInsets.fromLTRB(20, 0, 20, 0), onPressed: () => {_start()},),
+          TextButton(onPressed: () => {_start()}, child: const Text("Start")),
         ],
       ),
 
