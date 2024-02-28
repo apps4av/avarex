@@ -35,14 +35,14 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 
 class WarningsWidget extends StatefulWidget {
   const WarningsWidget({super.key, required this.gpsNotPermitted,
-    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired, required this.signed, required this.gpsLocked});
+    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired, required this.signed, required this.gpsNoLock});
 
   final bool gpsNotPermitted;
   final bool gpsDisabled;
   final bool chartsMissing;
   final bool dataExpired;
   final bool signed;
-  final bool gpsLocked;
+  final bool gpsNoLock;
 
   @override
   State<StatefulWidget> createState() => WarningsWidgetState();
@@ -79,7 +79,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
           onTap: () {Geolocator.openLocationSettings(); Scaffold.of(context).closeEndDrawer();}));
     }
 
-    String gpsLockedMessage = widget.gpsLocked ? "" :
+    String gpsLockedMessage = !widget.gpsNoLock ? "" :
     "GPS lock cannot be obtained. Move to an open area where GPS signal can be received.";
     if(gpsLockedMessage.isNotEmpty) {
       list.add(ListTile(title: const Text("GPS Signal"),

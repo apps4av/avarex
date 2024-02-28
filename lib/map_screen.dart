@@ -553,7 +553,7 @@ class MapScreenState extends State<MapScreen> {
                     gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
                     dataExpired: Storage().dataExpired,
                     signed: Storage().settings.isSigned(),
-                    gpsLocked: Storage().gpsLocked,);
+                    gpsNoLock: Storage().gpsNoLock,);
                 }
             )
         ),

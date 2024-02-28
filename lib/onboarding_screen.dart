@@ -147,7 +147,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         PageViewModel(
           title: "Databases and Aviation Maps",
           bodyWidget: Column(children:[
-            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the go button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
+            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
             TextButton(onPressed: () {
                 Navigator.pushNamed(context, "/download");
               },

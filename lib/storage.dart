@@ -68,7 +68,7 @@ class Storage {
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
-  bool gpsLocked = true;
+  bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
 
   // gps
@@ -153,6 +153,7 @@ class Storage {
           if(m != null && m.type == MessageType.ownShip) {
             OwnShipMessage m0 = m as OwnShipMessage;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _gpsStack.push(p);
           }
           if(m != null && m.type == MessageType.trafficReport) {
@@ -224,27 +225,27 @@ class Storage {
       route.update(); // change to route
 
       if(timeChange.value % 5 == 0) {
-        if(settings.isInternalGps()) { // only for internal GPS
+        int diff = DateTime.now().millisecondsSinceEpoch - _lastMsGpsSignal;
+        if (diff > 60000) { // 60 seconds, no GPS signal, send warning
+          gpsNoLock = true;
+        }
+        else {
+          gpsNoLock = false;
+        }
+
+        if (settings.isInternalGps()) { // only for internal GPS
           // check system for any issues
           gpsNotPermitted = await Gps().checkPermissions();
           gpsDisabled = !(await Gps().checkEnabled());
           warningChange.value =
-              gpsNotPermitted || gpsDisabled || dataExpired || chartsMissing;
-          int diff = DateTime
-              .now()
-              .millisecondsSinceEpoch - _lastMsGpsSignal;
-          if (diff > 60000) { // 60 seconds, no GPS signal, send warning
-            gpsLocked = false;
-          }
-          else {
-            gpsLocked = true;
-          }
+              gpsNotPermitted || gpsDisabled || gpsNoLock || dataExpired || chartsMissing;
         }
         else {
           // remove GPS warnings as its external now
-          warningChange.value = dataExpired || chartsMissing;
+          warningChange.value = gpsNoLock || dataExpired || chartsMissing;
         }
       }
+
       if((timeChange.value % (Constants.weatherUpdateTimeMin * 60)) == 0) {
         winds.download();
         metar.download();
