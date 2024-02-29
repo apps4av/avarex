@@ -495,6 +495,25 @@ class MapScreenState extends State<MapScreen> {
       );
 
       layers.add(
+        // traffic layer
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().timeChange,
+          builder: (context, value, _) {
+            return MarkerLayer(
+              markers:
+              Storage().trafficCache.getTraffic().map((e) {
+                return Marker( // our position and heading to destination
+                  width: 64,
+                  point: e.message.coordinates,
+                  child: e.getIcon()
+                );
+              }).toList(),
+            );
+          },
+        ),
+      );
+
+      layers.add(
         // aircraft layer
         ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,

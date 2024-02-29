@@ -61,7 +61,7 @@ class TrafficReportMessage extends Message {
 
     // call sign from 18 to 25
     Uint8List call = message.sublist(18, 26);
-    callSign = String.fromCharCodes(call);
+    callSign = String.fromCharCodes(call).replaceAll(' ', '');
 
   }
 
