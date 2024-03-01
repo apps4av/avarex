@@ -11,7 +11,7 @@ while True:
     socket.sendto(data, ("127.0.0.1", 43211))
     if len(data) == 0:
         break;
-    time.sleep(0.1)
+    time.sleep(0.01)
 
 file.close()
 socket.close()

@@ -504,7 +504,8 @@ class MapScreenState extends State<MapScreen> {
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                   width: 64,
-                  point: e.message.coordinates,
+                  height: 64,
+                  point: e.getCoordinates(),
                   child: e.getIcon()
                 );
               }).toList(),
