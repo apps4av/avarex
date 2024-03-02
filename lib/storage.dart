@@ -67,6 +67,7 @@ class Storage {
   late NotamCache notam;
   TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
+  int myIcao = 0;
 
 
   final PlanRoute _route = PlanRoute("New Plan");
@@ -155,6 +156,7 @@ class Storage {
           Message? m = MessageFactory.buildMessage(message);
           if(m != null && m.type == MessageType.ownShip) {
             OwnShipMessage m0 = m as OwnShipMessage;
+            myIcao = m0.icao;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _gpsStack.push(p);

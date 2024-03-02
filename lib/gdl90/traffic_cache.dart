@@ -4,7 +4,6 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../gps.dart';
 
 class Traffic {
@@ -19,8 +18,12 @@ class Traffic {
   }
 
   Widget getIcon() {
-    return Transform.rotate(angle: (message.heading - 90) * pi / 180,
-        child: Icon(MdiIcons.send, color: Colors.black,));
+    return Transform.rotate(angle: message.heading * pi / 180,
+        child: Container(
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(5),
+              color: const Color.fromARGB(128, 255, 0, 0)),
+          child:const Icon(Icons.arrow_upward_rounded, color: Colors.black,)));
   }
 
   LatLng getCoordinates() {
@@ -29,9 +32,9 @@ class Traffic {
 
   @override
   String toString() {
-    return "${message.callSign}\n${message.altitude} ft\n"
-    "${(message.velocity * 1.94384).round()} knots\n"
-    "${(message.verticalSpeed * 3.28).round()} fpm";
+    return "${message.callSign}\n${message.altitude.toInt()} ft\n"
+    "${(message.velocity * 1.94384).toInt()} knots\n"
+    "${(message.verticalSpeed * 3.28).toInt()} fpm";
   }
 
 }
@@ -55,7 +58,11 @@ class TrafficCache {
 
   void putTraffic(TrafficReportMessage message) {
 
-    // XXX filter own report
+    // filter own report
+    if(message.icao == Storage().myIcao) {
+      // do not add ourselves
+      return;
+    }
 
     for(Traffic? traffic in _traffic) {
       int index = _traffic.indexOf(traffic);

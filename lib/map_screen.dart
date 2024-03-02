@@ -358,6 +358,31 @@ class MapScreenState extends State<MapScreen> {
       );
     }
 
+    lIndex = _layers.indexOf('Traffic');
+    if(_layersState[lIndex]) {
+      layers.add(
+        // traffic layer
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().timeChange,
+          builder: (context, value, _) {
+            return MarkerLayer(
+              markers:
+              Storage().trafficCache.getTraffic().map((e) {
+                return Marker( // our position and heading to destination
+                    point: e.getCoordinates(),
+                    child: Tooltip(message: e.toString(),
+                        triggerMode: TooltipTriggerMode.tap,
+                        decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(5),
+                            color: Colors.white),
+                        showDuration: const Duration(seconds: 30),
+                        child: e.getIcon()));
+              }).toList(),
+            );
+          },
+        ),
+      );
+    }
 
     lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
@@ -489,27 +514,6 @@ class MapScreenState extends State<MapScreen> {
                   color: Constants.trackColor,
                 ),
               ],
-            );
-          },
-        ),
-      );
-
-      layers.add(
-        // traffic layer
-        ValueListenableBuilder<int>(
-          valueListenable: Storage().timeChange,
-          builder: (context, value, _) {
-            return MarkerLayer(
-              markers:
-                Storage().trafficCache.getTraffic().map((e) {
-                  return Marker( // our position and heading to destination
-                    point: e.getCoordinates(),
-                    child:Tooltip(message: e.toString(),
-                      triggerMode: TooltipTriggerMode.tap,
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
-                      showDuration: const Duration(seconds: 30),
-                      child: e.getIcon()));
-              }).toList(),
             );
           },
         ),
