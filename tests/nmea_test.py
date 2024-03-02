@@ -13,7 +13,7 @@ while True:
             break;
         data = bytes(input, 'UTF-8')
         sock.sendto(data, ("127.0.0.1", 49002))
-        time.sleep(1)
+        time.sleep(0.01)
 
     file.close()
     sock.close()
