@@ -4,15 +4,14 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import '../gps.dart';
 
 class Traffic {
 
   final TrafficReportMessage message;
-  final Widget _paint;
 
-  Traffic(this.message) : _paint = CustomPaint(painter: _TrafficPainter(message));
+  Traffic(this.message);
 
   bool isOld() {
     // old if more than 1 min
@@ -20,50 +19,24 @@ class Traffic {
   }
 
   Widget getIcon() {
-    return _paint;
+    return Transform.rotate(angle: (message.heading - 90) * pi / 180,
+        child: Icon(MdiIcons.send, color: Colors.black,));
   }
 
   LatLng getCoordinates() {
     return message.coordinates;
   }
-}
-
-
-class _TrafficPainter extends CustomPainter {
-  final TrafficReportMessage _message;
-
-  _TrafficPainter(this._message);
-
-  final _paintLine = Paint()
-    ..strokeWidth = 3
-    ..color = Colors.black
-    ..style = PaintingStyle.stroke;
-
-  final _paintBack = Paint()
-    ..color = const Color.fromARGB(64, 255, 255, 255)
-    ..style = PaintingStyle.fill;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    // assume size 64x64
-    canvas.save();
-    canvas.rotate(_message.heading * pi / 180);
-    canvas.drawCircle(const Offset(32, 32), 32, _paintBack);
-    canvas.drawCircle(const Offset(32, 32), 8, _paintLine);
-    canvas.drawLine(const Offset(32, 24), const Offset(32, 8), _paintLine);
-    canvas.drawLine(const Offset(28, 32), const Offset(36, 32), _paintLine);
-    if(_message.verticalSpeed > 0) {
-      canvas.drawLine(const Offset(32, 28), const Offset(32, 36), _paintLine);
-    }
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
+  String toString() {
+    return "${message.callSign}\n${message.altitude} ft\n"
+    "${(message.velocity * 1.94384).round()} knots\n"
+    "${(message.verticalSpeed * 3.28).round()} fpm";
   }
 
 }
+
+
 
 
 class TrafficCache {

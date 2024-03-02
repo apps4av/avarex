@@ -51,10 +51,10 @@ class TrafficReportMessage extends Message {
      *   1       x        x        x    = airborne
      */
     airborne = (message[11].toInt() & 0x08) != 0;
-    if ((message[11].toInt() & 0x03) != 2) {
-      // true heading. Add declination
+    if ((message[11].toInt() & 0x03) == 2) {
+      // magnetic heading. Subtract variation, charts are true so show true
       double variation = GeoCalculations().getVariation(coordinates);
-      heading = GeoCalculations.getMagneticHeading(heading, variation);
+      heading = GeoCalculations.getMagneticHeading(heading, -variation);
     }
 
     upper = ((message[13].toInt() & 0xFF)) << 4;
@@ -83,7 +83,7 @@ class TrafficReportMessage extends Message {
 
     // call sign from 18 to 25
     Uint8List call = message.sublist(18, 26);
-    callSign = String.fromCharCodes(call).replaceAll(' ', '');
+    callSign = String.fromCharCodes(call).replaceAll(RegExp("[^a-zA-Z0-9]"), "");
 
   }
 

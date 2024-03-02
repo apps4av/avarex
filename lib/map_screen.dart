@@ -501,13 +501,14 @@ class MapScreenState extends State<MapScreen> {
           builder: (context, value, _) {
             return MarkerLayer(
               markers:
-              Storage().trafficCache.getTraffic().map((e) {
-                return Marker( // our position and heading to destination
-                  width: 64,
-                  height: 64,
-                  point: e.getCoordinates(),
-                  child: e.getIcon()
-                );
+                Storage().trafficCache.getTraffic().map((e) {
+                  return Marker( // our position and heading to destination
+                    point: e.getCoordinates(),
+                    child:Tooltip(message: e.toString(),
+                      triggerMode: TooltipTriggerMode.tap,
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: Colors.white),
+                      showDuration: const Duration(seconds: 30),
+                      child: e.getIcon()));
               }).toList(),
             );
           },
