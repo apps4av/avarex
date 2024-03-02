@@ -11,6 +11,7 @@ import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
+import 'package:avaremp/nmea/nmea_ownship_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/stack_with_one.dart';
@@ -40,6 +41,8 @@ import 'destination.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
 import 'data/main_database_helper.dart';
+import 'nmea/nmea_message.dart';
+import 'nmea/nmea_message_factory.dart';
 import 'weather/metar_cache.dart';
 
 class Storage {
@@ -77,7 +80,8 @@ class Storage {
 
   // gps
   final _gps = Gps();
-  final _udp = UdpReceiver();
+  final _udpGdl90 = UdpReceiver();
+  final _udpNmea = UdpReceiver();
   // where all data is place. This is set on init in main
   late String dataDir;
   Position position = Gps.centerUSAPosition();
@@ -116,7 +120,8 @@ class Storage {
   }
 
   StreamSubscription<Position>? _gpsStream;
-  StreamSubscription<Uint8List>? _udpStream;
+  StreamSubscription<Uint8List>? _udpStreamGdl90;
+  StreamSubscription<Uint8List>? _udpStreamNmea;
 
   void startGps() {
     // GPS data receive
@@ -143,26 +148,27 @@ class Storage {
 
   void startUdp() {
     // GPS data receive
-    _udpStream = _udp.getStream();
-    _udpStream?.onDone(() {
+    _udpStreamGdl90 = _udpGdl90.getStream([4000, 43211], [false, false]);
+    _udpStreamNmea = _udpNmea.getStream([49002], [false]);
+    _udpStreamGdl90?.onDone(() {
     });
-    _udpStream?.onError((obj){
+    _udpStreamGdl90?.onError((obj){
     });
-    _udpStream?.onData((data) {
+    _udpStreamGdl90?.onData((data) {
       _gdl90Buffer.put(data);
       while(true) {
         Uint8List? message = _gdl90Buffer.get();
         if (null != message) {
           Message? m = MessageFactory.buildMessage(message);
-          if(m != null && m.type == MessageType.ownShip) {
-            OwnShipMessage m0 = m as OwnShipMessage;
+          if(m != null && m is OwnShipMessage) {
+            OwnShipMessage m0 = m;
             myIcao = m0.icao;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _gpsStack.push(p);
           }
-          if(m != null && m.type == MessageType.trafficReport) {
-            TrafficReportMessage m0 = m as TrafficReportMessage;
+          if(m != null && m is TrafficReportMessage) {
+            TrafficReportMessage m0 = m;
             trafficCache.putTraffic(m0);
           }
         }
@@ -171,12 +177,31 @@ class Storage {
         }
       }
     });
+
+
+    _udpStreamNmea?.onDone(() {
+    });
+    _udpStreamNmea?.onError((obj){
+    });
+    _udpStreamNmea?.onData((data) {
+      NmeaMessage? m = NmeaMessageFactory.buildMessage(data);
+      if(m != null && m is NmeaOwnShipMessage) {
+        NmeaOwnShipMessage m0 = m;
+        myIcao = m0.icao;
+        Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+        _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+        _gpsStack.push(p);
+      }
+    });
+
   }
 
   stopUdp() {
     try {
-      _udpStream?.cancel();
-      _udp.finish();
+      _udpStreamGdl90?.cancel();
+      _udpGdl90.finish();
+      _udpStreamNmea?.cancel();
+      _udpNmea.finish();
     }
     catch(e) {}
   }
@@ -327,7 +352,7 @@ class Storage {
         topLeftPlate = LatLng(latTopLeft, lonTopLeft);
         bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
       }
-  }
+    }
 
     plateChange.value++; // change in storage
   }

@@ -22,8 +22,8 @@ class Traffic {
         child: Container(
           decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(5),
-              color: const Color.fromARGB(128, 255, 0, 0)),
-          child:const Icon(Icons.arrow_upward_rounded, color: Colors.black,)));
+              color: Colors.black),
+          child:const Icon(Icons.arrow_upward_rounded, color: Colors.white,)));
   }
 
   LatLng getCoordinates() {
