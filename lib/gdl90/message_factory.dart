@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
+import 'package:avaremp/gdl90/uplink_message.dart';
 import 'message.dart';
 import 'ownship_message.dart';
 
@@ -25,7 +26,7 @@ class MessageFactory
       case MessageType.heartBeat:
         break;
       case MessageType.uplink:
-        break;
+        m = UplinkMessage(type);
       case MessageType.ownShip:
         m = OwnShipMessage(type);
         break;

@@ -6,11 +6,16 @@ import 'dart:ui' as ui;
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/download_screen.dart';
+import 'package:avaremp/gdl90/fis_buffer.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
+import 'package:avaremp/gdl90/nexrad_cache.dart';
+import 'package:avaremp/gdl90/nexrad_product.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
+import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
+import 'package:avaremp/gdl90/uplink_message.dart';
 import 'package:avaremp/nmea/nmea_ownship_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan_route.dart';
@@ -68,6 +73,7 @@ class Storage {
   late AirepCache airep;
   late AirSigmetCache airSigmet;
   late NotamCache notam;
+  NexradCache nexradCache = NexradCache();
   TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
@@ -161,15 +167,23 @@ class Storage {
         if (null != message) {
           Message? m = MessageFactory.buildMessage(message);
           if(m != null && m is OwnShipMessage) {
-            OwnShipMessage m0 = m;
-            myIcao = m0.icao;
-            Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+            myIcao = m.icao;
+            Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _gpsStack.push(p);
           }
           if(m != null && m is TrafficReportMessage) {
-            TrafficReportMessage m0 = m;
-            trafficCache.putTraffic(m0);
+            trafficCache.putTraffic(m);
+          }
+          if(m != null && m is UplinkMessage) {
+            FisBuffer? fis = m.fis;
+            if(fis != null) {
+              for(Product p in fis.products) {
+                if(p is NexradProduct) {
+                  nexradCache.putImg(p);
+                }
+              }
+            }
           }
         }
         else {
