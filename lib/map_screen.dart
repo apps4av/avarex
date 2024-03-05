@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
+import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/plan_route.dart';
@@ -276,6 +277,28 @@ class MapScreenState extends State<MapScreen> {
 
               }
           )
+      );
+
+      layers.add(
+        // nexrad layer
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().timeChange,
+          builder: (context, value, _) {
+            bool conus = true;
+            if(_controller != null) {
+              // show conus above zoom level 7
+              conus = _controller!.camera.zoom < 7 ? true : false;
+            }
+            List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
+            return OverlayImageLayer(
+              overlayImages:
+              images.map((e) {
+                return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
+                    bounds: e.getBounds());
+              }).toList(),
+            );
+          },
+        ),
       );
 
     }

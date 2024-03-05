@@ -9,12 +9,12 @@ class NexradProduct extends Product {
   static final List<int> _intensity = [
     0x00000000,
     0x00000000,
-    0xFF007F00, // dark green
-    0xFF00AF00, // light green
-    0xFF00FF00, // lighter green
-    0xFFFFFF00, // yellow
-    0xFFFF7F00, // orange
-    0xFFFF0000  // red
+    0x7F007F00, // dark green
+    0x7F00AF00, // light green
+    0x7F00FF00, // lighter green
+    0x7FFFFF00, // yellow
+    0x7FFF7F00, // orange
+    0x7FFF0000  // red
   ];
 
   int block = -1;

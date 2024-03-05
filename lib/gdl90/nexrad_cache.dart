@@ -1,11 +1,13 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/gdl90/Id63NexradProduct.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:image/image.dart';
 import 'Id64NexradConusProduct.dart';
 import 'nexrad_product.dart';
-import 'dart:async';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:latlong2/latlong.dart';
+import 'package:image/image.dart' as img;
 
 class NexradCache {
 
@@ -42,12 +44,12 @@ class NexradCache {
    * = 1350 entries
    */
 
-  final Map<int, NexradImage?> cacheNexrad = {};
-  final Map<int, NexradImage?> cacheNexradConus = {};
+  final Map<int, NexradImage> _cacheNexrad = {};
+  final Map<int, NexradImage> _cacheNexradConus = {};
 
   void putImg(NexradProduct product) {
 
-    Map<int, NexradImage?> map = (product is Id63NexradProduct ? cacheNexrad : cacheNexradConus);
+    Map<int, NexradImage> map = (product is Id63NexradProduct ? _cacheNexrad : _cacheNexradConus);
 
     if (product.empty.isNotEmpty) {
       // Empty, make dummy bitmaps of all.
@@ -69,9 +71,6 @@ class NexradCache {
 
     // remove expired
     map.removeWhere((block, image) {
-      if(null == image) {
-        return true;
-      }
       DateTime time = image.time;
       DateTime now = DateTime.now();
       Duration diff = now.difference(time);
@@ -80,6 +79,32 @@ class NexradCache {
       }
       return false;
     });
+  }
+
+  List<NexradImage> getNexrad() {
+    // get only drawable images
+    List<NexradImage> ret = [];
+    for(NexradImage img in _cacheNexrad.values) {
+      Uint8List? imgLocal = img.getImage();
+      if(imgLocal != null) {
+        // filter out that dont have images
+        ret.add(img);
+      }
+    }
+    return ret;
+  }
+
+  List<NexradImage> getNexradConus() {
+    // get only drawable images
+    List<NexradImage> ret = [];
+    for(NexradImage img in _cacheNexradConus.values) {
+      Uint8List? imgLocal = img.getImage();
+      if(imgLocal != null) {
+        // filter out that dont have images
+        ret.add(img);
+      }
+    }
+    return ret;
   }
 
 }
@@ -93,8 +118,7 @@ class NexradImage {
   double _scaleX = 1;
   double _scaleY = 1;
   LatLng _coordinate = const LatLng(0, 0);
-  Completer<ui.Image>? completeImage; // future has image in it
-
+  Uint8List? _image;
 
   NexradImage(this._data, this._block, this._conus) : time = DateTime.now() {
 
@@ -115,34 +139,40 @@ class NexradImage {
     }
 
     // make bitmap
-    Uint8List pixels = Uint8List(rows * cols * 4);
+    int haveData = 0;
+    final image = img.Image(width: cols, height: rows, numChannels: 4);
+    // Iterate over its pixels
     for(int row = 0; row < rows; row++) {
-      for(int col = 0; col < cols; col++) {
-        int value = _data[col + row * cols]; // argb
-        pixels[col + row * cols + 0] = ((value & 0x00FF0000) >> 16) & 0xFF;
-        pixels[col + row * cols + 1] = ((value & 0x0000FF00) >> 8) & 0xFF;
-        pixels[col + row * cols + 2] = ((value & 0x00FF00FF) >> 0) & 0xFF;
-        pixels[col + row * cols + 3] = ((value & 0xFF000000) >> 24) & 0xFF;
+      for (int col = 0; col < cols; col++) {
+        Pixel pixel = image.getPixel(col, row);
+        int value = _data[col + row * cols];
+        pixel.setRgba((value >> 16) & 0xFF, (value >> 8) & 0xFF, (value >> 0) & 0xFF, (value >> 24 & 0xFF));
+        haveData += value != 0 ? 1 : 0;
       }
     }
-    Completer<ui.Image> completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(pixels, cols, rows, ui.PixelFormat.rgba8888, (ui.Image img) {
-      completer.complete(img);
-    });
 
-    completeImage = completer;
+    if(haveData == 0) {
+      //waste of bitmap space
+      return;
+    }
+
+    // Encode the resulting image to the PNG image format.
+    _image = img.encodePng(image);
   }
 
   void discard() {
-    completeImage = null;
+    _image = null;
   }
 
-  ui.Rect getBoundingRectangle() {
-    return ui.Rect.fromLTRB(
-        _coordinate.longitude,
-        _coordinate.latitude,
-        _coordinate.longitude + _scaleX * NexradProduct.numCols / 60.0,
-        _coordinate.latitude - _scaleY * NexradProduct.numRows / 60.0);
+  LatLngBounds getBounds() {
+    return LatLngBounds(
+        LatLng(_coordinate.latitude, _coordinate.longitude),
+        LatLng(_coordinate.latitude - _scaleY * NexradProduct.numRows / 60.0,
+          _coordinate.longitude + _scaleX * NexradProduct.numCols / 60.0,));
+  }
+
+  Uint8List? getImage() {
+    return _image;
   }
 
   (LatLng, double) _convertBlockNumberToLatLon(int blockNumber) {
