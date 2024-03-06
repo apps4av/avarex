@@ -17,5 +17,3 @@ jobs:
         channel: 'stable'
     - run: flutter pub get
     - run: flutter build apk --release
-    - run: flutter build linux
-    - run: flutter build windows
