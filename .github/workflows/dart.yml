@@ -148,4 +148,22 @@ jobs:
         run: flutter pub get
       - name: Build artifacts
         run: flutter build ios --release --no-codesign
+      - name: Archive Release
+        uses: thedoctor0/zip-release@master
+        with:
+          type: 'zip'
+          filename: ${{github.ref_name}}-ios.zip
+          directory: build/ios/iphoneos
+      - name: iOS Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/ios/iphoneos/${{github.ref_name}}-ios.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS
+          path: build/ios/iphoneos/${{github.ref_name}}-ios.zip
 
