@@ -33,7 +33,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/app/outputs/apk/release/MacRecoveryX-${{github.ref_name}}-apk.zip
+          files: build/app/outputs/apk/release/${{github.ref_name}}-apk.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android
+          path: build/app/outputs/apk/release/${{github.ref_name}}-apk.zip
 
 
   build-and-release-linux:
@@ -67,12 +72,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/linux/x64/release/bundle/MacRecoveryX-${{github.ref_name}}-linux.zip
+          files: build/linux/x64/release/bundle/${{github.ref_name}}-linux.zip
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Linux
-          path: build/linux/x64/release/bundle/MacRecoveryX-${{github.ref_name}}-linux.zip
+          path: build/linux/x64/release/bundle/${{github.ref_name}}-linux.zip
 
   build-and-release-windows:
     runs-on: windows-latest
@@ -103,7 +108,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/x64/runner/Release/MacRecoveryX-${{github.ref_name}}-windows.zip
+          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsX64
+          path: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
 
   build-and-release-macos:
     runs-on: macos-latest
@@ -134,5 +144,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/macos/Build/Products/Release/MacRecoveryX-${{github.ref_name}}-macos.zip
+          files: build/macos/Build/Products/Release/${{github.ref_name}}-macos.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MacOS
+          path: build/macos/Build/Products/Release/${{github.ref_name}}-macos.zip
 
