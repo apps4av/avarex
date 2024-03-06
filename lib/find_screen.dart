@@ -6,6 +6,7 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'gps.dart';
@@ -124,6 +125,7 @@ class FindScreenState extends State<FindScreen> {
                                   UserDatabaseHelper.db.addRecent(item);
                                   Storage().settings.setCenterLongitude(item.coordinate.longitude);
                                   Storage().settings.setCenterLatitude(item.coordinate.latitude);
+                                  Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
                                   MainScreenState.gotoMap();
                                 },
                                 child: const Text("Show")

@@ -282,7 +282,17 @@ class MapScreenState extends State<MapScreen> {
 
                           waitDuration: const Duration(seconds: 1),
                           triggerMode: TooltipTriggerMode.tap,
-                          child: GestureDetector(onLongPress: () {a.showShape = !a.showShape; Storage().airSigmet.change.value++;}, child:Icon(Icons.ac_unit_rounded, color: a.getColor()))))
+                          child: GestureDetector(
+                            onLongPress: () {
+                              a.showShape = !a.showShape;
+                              Storage().airSigmet.change.value++;
+                            },
+                            child:Icon(Icons.ac_unit_rounded,
+                            color: a.getColor()
+                          )
+                          )
+                        )
+                      )
                   ],
                 );
 
