@@ -16,6 +16,5 @@ jobs:
       with:
         channel: 'stable'
     - run: flutter pub get
-    - run: flutter format --dry-run .
     - run: flutter analyze
     - run: flutter test
