@@ -1,4 +1,4 @@
-# avaremp
+# avarex
 
 Multi Platform Avare, written in Flutter. Runs on Linux, Windows, MacOS, iOS, Android.
 
