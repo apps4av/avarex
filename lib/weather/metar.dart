@@ -68,5 +68,10 @@ class Metar extends Weather {
     return const Icon(Icons.circle, color: Color(0x80FFFFFF), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
   }
 
+  @override
+  String toString() {
+    return text;
+  }
+
 }
 

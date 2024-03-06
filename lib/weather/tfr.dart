@@ -54,9 +54,9 @@ class Tfr extends Weather {
   String toString() {
     return
       "Top $upperAltitude\n"
-      "Bottom $lowerAltitude\n"
-      "Begins ${DateTime.fromMillisecondsSinceEpoch(msEffective).toString().replaceAll(".000", "")}\n"
-      "Ends ${DateTime.fromMillisecondsSinceEpoch(msExpires).toString().replaceAll(".000", "")}";
+      "Low $lowerAltitude\n"
+      "${DateTime.fromMillisecondsSinceEpoch(msEffective).toString().replaceAll(".000", "")} to\n"
+      "${DateTime.fromMillisecondsSinceEpoch(msExpires).toString().replaceAll(".000", "")}";
   }
 
   bool isInEffect() {

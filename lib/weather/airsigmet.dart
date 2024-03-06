@@ -10,6 +10,7 @@ class AirSigmet extends Weather {
   String hazard;
   String severity;
   String type;
+  bool showShape = false; // reduce clutter on screen
 
   AirSigmet(super.station, super.expires, this.text, this.coordinates, this.hazard, this.severity, this.type);
 
@@ -69,7 +70,7 @@ class AirSigmet extends Weather {
   }
   @override
   String toString() {
-    return text;
+    return text.replaceAll(RegExp(r'[^\w\s]+'),' ');
   }
 
 }

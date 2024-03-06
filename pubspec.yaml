@@ -69,6 +69,7 @@ dependencies:
   xml: ^6.5.0
   html: ^0.15.4
   image: ^4.1.7
+  just_the_tooltip: ^0.0.12
 
 flutter_launcher_icons:
   android: "launcher_icon"
