@@ -25,7 +25,7 @@ jobs:
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
-          filename: MacRecoveryX-${{github.ref_name}}-apk.zip
+          filename: ${{github.ref_name}}-apk.zip
           directory: build/app/outputs/apk/release
       - name: Android Release
         uses: softprops/action-gh-release@v1
@@ -64,7 +64,7 @@ jobs:
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
-          filename: MacRecoveryX-${{github.ref_name}}-linux.zip
+          filename: ${{github.ref_name}}-linux.zip
           directory: build/linux/x64/release/bundle
       - name: Linux Release
         uses: softprops/action-gh-release@v1
@@ -100,7 +100,7 @@ jobs:
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
-          filename: MacRecoveryX-${{github.ref_name}}-windows.zip
+          filename: ${{github.ref_name}}-windows.zip
           directory: build/windows/x64/runner/Release
       - name: Windows Release
         uses: softprops/action-gh-release@v1
@@ -136,7 +136,7 @@ jobs:
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
-          filename: MacRecoveryX-${{github.ref_name}}-macos.zip
+          filename: ${{github.ref_name}}-macos.zip
           directory: build/macos/Build/Products/Release
       - name: macOS Release
         uses: softprops/action-gh-release@v1
