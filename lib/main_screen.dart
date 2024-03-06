@@ -71,7 +71,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
         child: Drawer(
           child: ListView(children: [
-            ListTile(title: const Text("avareMp"),
+            ListTile(title: const Text("AvareX"),
               subtitle: const Text("0.0.1"),
               trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
                 onPressed: () {

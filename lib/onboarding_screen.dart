@@ -88,7 +88,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       safeAreaList: const [false, false, true, false],
       pages: [
         PageViewModel(
-          title: "Welcome to AvareMP!",
+          title: "Welcome to AvareX!",
           body: "This introduction will show you the necessary steps to operate the app.",
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
