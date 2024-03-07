@@ -105,14 +105,18 @@ class MapScreenState extends State<MapScreen> {
     LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
     if(null != _controller) {
-      LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
-          cur.longitude - _previousPosition!.longitude);
-      LatLng now = _controller!.camera.center;
-      LatLng next = LatLng(
-          now.latitude + diff.latitude, now.longitude + diff.longitude);
-      if (!_interacting) { // do not move when user is moving map
-        _controller!.moveAndRotate(next, _controller!.camera.zoom, _northUp ? 0 : -Storage().position.heading);
+      try {
+        LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
+            cur.longitude - _previousPosition!.longitude);
+        LatLng now = _controller!.camera.center;
+        LatLng next = LatLng(
+            now.latitude + diff.latitude, now.longitude + diff.longitude);
+        if (!_interacting) { // do not move when user is moving map
+          _controller!.moveAndRotate(next, _controller!.camera.zoom,
+              _northUp ? 0 : -Storage().position.heading);
+        }
       }
+      catch (e) {} // addign to lat lon is dangerous
     }
 
     _previousPosition = Gps.toLatLng(Storage().position);

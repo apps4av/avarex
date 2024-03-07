@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:latlong2/latlong.dart';
+
 import 'fis_buffer.dart';
 import 'message.dart';
 
@@ -49,24 +51,16 @@ class UplinkMessage extends Message {
       degLon = -1 * (180 - degLon);
     }
 
-    bool positionValid = (message[skip + 5].toInt() & 0x01) != 0;
-
     bool applicationDataValid = (message[skip + 6].toInt() & 0x20) != 0;
     if (false == applicationDataValid) {
       return;
     }
 
-    // byte 6, bits 4-8: slot ID
-    int slotID = message[skip + 6].toInt() & 0x1f;
-
-    // byte 7, bit 1-4: TIS-B site ID. If zero, the broadcasting station is not broadcasting TIS-B data
-    int tisbSiteID = (message[skip + 7].toInt() & 0xF0) >> 4;
-
     // byte 9-432: application data (multiple iFrames).
     skip = 3 + 8;
 
     Uint8List data = message.sublist(skip);
-    FisBuffer fisBuffer = FisBuffer(data);
+    FisBuffer fisBuffer = FisBuffer(data, LatLng(degLat, degLon)); // this product does not happen at a location?
 
     //Now decode all.
     fisBuffer.makeProducts();

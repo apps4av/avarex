@@ -1,13 +1,18 @@
 import 'dart:typed_data';
 import 'package:avaremp/gdl90/product.dart';
+import 'package:avaremp/gdl90/sigmet_product.dart';
+import 'package:avaremp/gdl90/sua_product.dart';
 import 'package:flutter/foundation.dart';
-
-import 'Id63NexradProduct.dart';
-import 'Id64NexradConusProduct.dart';
+import 'package:latlong2/latlong.dart';
+import 'airmet_product.dart';
+import 'textual_weather_product.dart';
+import 'nexrad_high_product.dart';
+import 'nexrad_medium_product.dart';
+import 'notam_product.dart';
 
 class ProductFactory {
 
-  static Product? buildProduct(Uint8List fis) {
+  static Product? buildProduct(Uint8List fis, LatLng? coordinate) {
     BitInputStream s = BitInputStream(fis);
 
     bool flagAppMethod = s.getBits(1) != 0;
@@ -60,24 +65,29 @@ class ProductFactory {
 
     switch (productID) {
       case 8:
+        p = NotamProduct(time, data, coordinate);  // NOTAM graphics
         break;
       case 9:
         break;
       case 10:
         break;
       case 11:
+        p = AirmetProduct(time, data, coordinate);  // AIRMET graphics
         break;
       case 12:
+        p = SigmetProduct(time, data, coordinate);  // SIGMET graphics
         break;
       case 13:
+        p = SuaProduct(time, data, coordinate); // SUA graphics
         break;
       case 63:
-        p = Id63NexradProduct(time, data);
+        p = NexradHighProduct(time, data, coordinate);
         break;
       case 64:
-        p = Id64NexradConusProduct(time, data);
+        p = NexradMediumProduct(time, data, coordinate);
         break;
       case 413:
+        p = TextualWeatherProduct(time, data, coordinate); // MEATR, TAF, SPECI, WINDS, PIREP
         break;
       default:
         break;

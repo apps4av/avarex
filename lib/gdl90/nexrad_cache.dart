@@ -1,9 +1,8 @@
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/gdl90/Id63NexradProduct.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image/image.dart';
-import 'Id64NexradConusProduct.dart';
+import 'nexrad_medium_product.dart';
 import 'nexrad_product.dart';
 import 'dart:typed_data';
 import 'package:latlong2/latlong.dart';
@@ -49,7 +48,7 @@ class NexradCache {
 
   void putImg(NexradProduct product) {
 
-    Map<int, NexradImage> map = (product is Id63NexradProduct ? _cacheNexrad : _cacheNexradConus);
+    Map<int, NexradImage> map = (product is NexradMediumProduct ? _cacheNexrad : _cacheNexradConus);
 
     if (product.empty.isNotEmpty) {
       // Empty, make dummy bitmaps of all.
@@ -66,7 +65,7 @@ class NexradCache {
         img?.discard();
       }
       // put
-      map[product.block] = NexradImage(product.full, product.block, product is Id64NexradConusProduct);
+      map[product.block] = NexradImage(product.full, product.block, product is NexradMediumProduct);
     }
 
     // remove expired

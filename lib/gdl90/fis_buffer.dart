@@ -3,12 +3,14 @@ import 'dart:typed_data';
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/gdl90/product_factory.dart';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 
 class FisBuffer {
 
   Uint8List buffer;
   List<Product> products = [];
-  FisBuffer(this.buffer);
+  FisBuffer(this.buffer, this.coordinate);
+  LatLng? coordinate;
 
   //Parse products out of the Fis
   void makeProducts() {
@@ -33,7 +35,7 @@ class FisBuffer {
       Uint8List fis = buffer.sublist(count + 2, count + 2 + iFrameLength);
 
       try {
-        Product? p = ProductFactory.buildProduct(fis);
+        Product? p = ProductFactory.buildProduct(fis, coordinate);
         if(p != null) {
           products.add(p);
         }
