@@ -1,5 +1,6 @@
 name: Flutter CI
 
+on: push
 
 jobs:
 
