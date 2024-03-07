@@ -103,6 +103,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
           bodyWidget: Column(children: [
             const Text(
                 """
+** YOU MUST SIGN THIS AGREEMENT TO CONTINUE. **
+
 This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including Android devices, related to its use.
 
 ** What Information We Collect **
@@ -161,6 +163,12 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
           title: "Keep Warnings in Check",
           image: _buildImage('warning.png'),
           bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Turn off the Layers",
+          image: _buildImage('layers.png'),
+          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
           decoration: pageDecoration,
         ),
         PageViewModel(
