@@ -1,4 +1,4 @@
-# avarex
+# AvareX
 
 Avare, written in Flutter. Runs on Linux, Windows, MacOS, iOS, Android.
 
@@ -8,7 +8,7 @@ By Apps4Av.
 
 ** Windows 
 
-Runs as is.
+To run on Windows, download and place in the app folder the file name sqlite3.dll from https://www.sqlite.org/download.html. Use the precompiled binary for Windows 64.
 
 ** MacOS
 
