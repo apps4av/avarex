@@ -73,5 +73,75 @@ class Metar extends Weather {
     return text;
   }
 
+  static String getCategory(String report) {
+    List<String> tokens = report.split(" ");
+    String? integer;
+    String? fraction;
+    String? height;
+    String? cover;
+    double visSM = 6;
+    double cloudFt = 12000;
+    String category = "VFR";
+
+    for(String token in tokens) {
+      final RegExp visibility = RegExp(
+          r'^((?<vis>\d{4}|//\//)'
+          r'(?<dir>[NSEW]([EW])?)?|'
+          r'(M|P)?(?<integer>\d{1,2})?_?'
+          r'(?<fraction>\d/\d)?'
+          r'(?<units>SM|KM|M|U)|'
+          r'(?<cavok>CAVOK))$');
+
+      final RegExp cloud =
+      RegExp(
+          r'^(?<cover>VV|CLR|SKC|NSC|NCD|BKN|SCT|FEW|OVC|///)'
+          r'(?<height>\d{3}|///)?'
+          r'(?<type>TCU|CB|///)?$');
+
+      var vis = visibility.firstMatch(token);
+      if(vis != null) {
+        integer = vis.namedGroup("integer");
+        fraction = vis.namedGroup("fraction");
+        if(null != integer) {
+          try {
+            visSM = double.parse(integer);
+          }
+          catch(e) {}
+        }
+        else if(null != fraction) {
+          visSM = 0.5; // less than 1
+        }
+      }
+      var cld = cloud.firstMatch(token);
+      if(cld != null) {
+        cover = cld.namedGroup("cover");
+        height = cld.namedGroup("height");
+        if(height != null && cover != null) {
+          if(cover == "OVC" || cover == "BKN") {
+            try {
+              cloudFt = double.parse(height) * 100;
+            }
+            catch (e){}
+          }
+        }
+      }
+    }
+
+    // find flight category
+    // VFR: > 3000 ft AND > 5SM
+    // MVFR: >= 1000 ft AND / OR > 3 SM
+    // IFR: >= 500 ft AND / OR >= 1 SM
+    // LIFR < 500 ft AND / OR < 1 SM
+    if(cloudFt < 500 || visSM < 1) {
+      category = "LIFR";
+    }
+    else if(cloudFt < 1000 || visSM < 1) {
+      category = "IFR";
+    }
+    else if(cloudFt <= 3000 || visSM <= 3) {
+      category = "MVFR";
+    }
+    return category;
+  }
 }
 

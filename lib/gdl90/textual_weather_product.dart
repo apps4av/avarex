@@ -8,7 +8,7 @@ import '../weather/taf.dart';
 import 'dlac.dart';
 
 class TextualWeatherProduct extends Product {
-  TextualWeatherProduct(super.time, super.line, super.coordinate);
+  TextualWeatherProduct(super.time, super.data, super.coordinate);
 
   String text = "";
   Weather? weather;
@@ -16,11 +16,11 @@ class TextualWeatherProduct extends Product {
   @override
   void parse() {
 
-    int len = line.length;
+    int len = data.length;
 
     // Decode text: begins with @METAR, @TAF, @SPECI, @PIREP, @WINDS
     for (int i = 0; i < (len - 3); i += 3) {
-      text += Dlac.decode(line[i + 0], line[i + 1], line[i + 2]);
+      text += Dlac.decode(data[i + 0], data[i + 1], data[i + 2]);
     }
 
     text = Dlac.format(text);
@@ -57,7 +57,7 @@ class TextualWeatherProduct extends Product {
 
   void _parseMetarSpeci(String place, String report) {
     if(null != coordinate) {
-      Metar metar = Metar(place, DateTime.now(), text, "", coordinate!);
+      Metar metar = Metar(place, DateTime.now(), text, Metar.getCategory(report), coordinate!);
       weather = metar;
     }
   }
