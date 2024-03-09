@@ -330,6 +330,15 @@ class WeatherDatabaseHelper {
     }
   }
 
+  Future<void> addAirep(Airep airep) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("airep", airep.toMap());
+    }
+  }
+
+
   Future<List<AirSigmet>> getAllAirSigmet() async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;

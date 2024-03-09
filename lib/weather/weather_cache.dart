@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:avaremp/weather/metar_cache.dart';
@@ -21,6 +22,7 @@ class WeatherCache {
   bool _isDownloading = false;
   final String url;
   final Future<List<Weather>>Function() _dbCall;
+  int lastInsertTime = DateTime.now().millisecondsSinceEpoch;
 
   WeatherCache(this.url, this._dbCall) {
     initialize();
@@ -62,6 +64,18 @@ class WeatherCache {
 
   List<Weather> getAll() {
     return _map.values.toList();
+  }
+
+  Weather? getQuick(String station) {
+    return _map[station];
+  }
+
+  void put(Weather w) {
+    _map[w.station] = w;
+    if((DateTime.now().millisecondsSinceEpoch - lastInsertTime) > 5000) {
+      change.value++;
+      lastInsertTime = DateTime.now().millisecondsSinceEpoch;
+    }
   }
 
   Future<void> parse(Uint8List data, [String? argument]) async {

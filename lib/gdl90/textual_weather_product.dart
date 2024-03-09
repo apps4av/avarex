@@ -1,17 +1,18 @@
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
-import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 
+import '../constants.dart';
+import '../storage.dart';
 import '../weather/airep.dart';
 import '../weather/taf.dart';
+import '../weather/weather.dart';
 import 'dlac.dart';
 
 class TextualWeatherProduct extends Product {
   TextualWeatherProduct(super.time, super.data, super.coordinate);
 
-  String text = "";
-  Weather? weather;
+  String _text = "";
 
   @override
   void parse() {
@@ -20,11 +21,11 @@ class TextualWeatherProduct extends Product {
 
     // Decode text: begins with @METAR, @TAF, @SPECI, @PIREP, @WINDS
     for (int i = 0; i < (len - 3); i += 3) {
-      text += Dlac.decode(data[i + 0], data[i + 1], data[i + 2]);
+      _text += Dlac.decode(data[i + 0], data[i + 1], data[i + 2]);
     }
 
-    text = Dlac.format(text);
-    List<String> parts = text.split(" ");
+    _text = Dlac.format(_text);
+    List<String> parts = _text.split(" ");
     if(parts.length < 3) {
       return;
     }
@@ -51,22 +52,43 @@ class TextualWeatherProduct extends Product {
   }
 
   void _parseTaf(String place, String report) {
-    Taf taf = Taf(place, DateTime.now(), report);
-    weather = taf;
+    Taf taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report);
+    Storage().taf.put(taf);
   }
 
+  // This is a lot of ugly code because market cluster has issues with changing coordinates
   void _parseMetarSpeci(String place, String report) {
-    if(null != coordinate) {
-      Metar metar = Metar(place, DateTime.now(), text, Metar.getCategory(report), coordinate!);
-      weather = metar;
+    Metar? metar;
+    Weather? inCacheWeather = Storage().metar.getQuick(place);
+    if(null != inCacheWeather) {
+      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          _text, Metar.getCategory(report), (inCacheWeather as Metar).coordinate);
+    }
+    else if(null != coordinate) {
+      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          _text, Metar.getCategory(report), coordinate!);
+    }
+    if(null != metar) {
+      Storage().metar.put(metar);
     }
   }
+
   void _parsePirep(String place, String report) {
-    if(null != coordinate) {
-      Airep airep = Airep(place, DateTime.now(), report, coordinate!);
-      weather = airep;
+    Airep? airep;
+    Weather? inCacheWeather = Storage().airep.getQuick(place);
+
+    if(null != inCacheWeather) {
+      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, (inCacheWeather as Airep).coordinates);
+    }
+    else if(null != coordinate) {
+      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, coordinate!);
+    }
+
+    if(null != airep) {
+      Storage().airep.put(airep);
     }
   }
+
   void _parseWinds(String place, String report) {
     List<String> tokens = report.split("\n");
     if (tokens.length < 2) {
@@ -143,8 +165,9 @@ class TextualWeatherProduct extends Product {
           w39k = winds[i - 2];
         }
       }
-      WindsAloft wa = WindsAloft(place, DateTime.now(), w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
-      weather = wa;
+      WindsAloft wa = WindsAloft(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
+      Storage().winds.put(wa);
     }
     catch (e) {}
   }

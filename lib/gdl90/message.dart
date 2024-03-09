@@ -3,7 +3,7 @@ import 'dart:typed_data';
 abstract class Message
 {
   int type;
-  DateTime time = DateTime.now();
+  DateTime time = DateTime.now().toUtc();
 
   Message(this.type);
 

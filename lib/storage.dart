@@ -46,6 +46,7 @@ import 'destination.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
 import 'data/main_database_helper.dart';
+import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
 import 'weather/metar_cache.dart';
@@ -86,13 +87,14 @@ class Storage {
 
   // gps
   final _gps = Gps();
-  final _udpGdl90 = UdpReceiver();
-  final _udpNmea = UdpReceiver();
+  final _udpReceiver = UdpReceiver();
   // where all data is place. This is set on init in main
   late String dataDir;
   Position position = Gps.centerUSAPosition();
   final AppSettings settings = AppSettings();
 
+  final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
+  final NmeaBuffer _nmeaBuffer = NmeaBuffer();
 
   int _key = 1111;
 
@@ -126,8 +128,7 @@ class Storage {
   }
 
   StreamSubscription<Position>? _gpsStream;
-  StreamSubscription<Uint8List>? _udpStreamGdl90;
-  StreamSubscription<Uint8List>? _udpStreamNmea;
+  StreamSubscription<Uint8List>? _udpStream;
 
   void startGps() {
     // GPS data receive
@@ -150,18 +151,17 @@ class Storage {
   }
 
 
-  final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
-
   void startUdp() {
     // GPS data receive
-    _udpStreamGdl90 = _udpGdl90.getStream([4000, 43211], [false, false]);
-    _udpStreamNmea = _udpNmea.getStream([49002], [false]);
-    _udpStreamGdl90?.onDone(() {
+    _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
+    _udpStream?.onDone(() {
     });
-    _udpStreamGdl90?.onError((obj){
+    _udpStream?.onError((obj){
     });
-    _udpStreamGdl90?.onData((data) {
+    _udpStream?.onData((data) {
       _gdl90Buffer.put(data);
+      _nmeaBuffer.put(data);
+      // gdl90
       while(true) {
         Uint8List? message = _gdl90Buffer.get();
         if (null != message) {
@@ -190,32 +190,30 @@ class Storage {
           break;
         }
       }
-    });
-
-
-    _udpStreamNmea?.onDone(() {
-    });
-    _udpStreamNmea?.onError((obj){
-    });
-    _udpStreamNmea?.onData((data) {
-      NmeaMessage? m = NmeaMessageFactory.buildMessage(data);
-      if(m != null && m is NmeaOwnShipMessage) {
-        NmeaOwnShipMessage m0 = m;
-        myIcao = m0.icao;
-        Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
-        _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-        _gpsStack.push(p);
+      // nmea
+      while(true) {
+        Uint8List? message = _nmeaBuffer.get();
+        if (null != message) {
+          NmeaMessage? m = NmeaMessageFactory.buildMessage(data);
+          if(m != null && m is NmeaOwnShipMessage) {
+            NmeaOwnShipMessage m0 = m;
+            myIcao = m0.icao;
+            Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+            _gpsStack.push(p);
+          }
+        }
+        else {
+          break;
+        }
       }
     });
-
   }
 
   stopUdp() {
     try {
-      _udpStreamGdl90?.cancel();
-      _udpGdl90.finish();
-      _udpStreamNmea?.cancel();
-      _udpNmea.finish();
+      _udpStream?.cancel();
+      _udpReceiver.finish();
     }
     catch(e) {}
   }

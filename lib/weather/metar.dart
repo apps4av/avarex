@@ -83,7 +83,7 @@ class Metar extends Weather {
     double cloudFt = 12000;
     String category = "VFR";
 
-    for(String token in tokens) {
+    for(String token in tokens.reversed) { // run reversed as the first cloud layer is the lowest layer
       final RegExp visibility = RegExp(
           r'^((?<vis>\d{4}|//\//)'
           r'(?<dir>[NSEW]([EW])?)?|'

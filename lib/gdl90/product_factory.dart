@@ -61,7 +61,8 @@ class ProductFactory {
     Uint8List data = fis.sublist(offset, offset + length);
 
     Product? p;
-    DateTime time = DateTime(DateTime.now().year, month, day, hours, mins, secs);
+    DateTime time = DateTime(DateTime.now().year, month, day, hours, mins, secs); // ignore this
+    time = DateTime.now().toUtc();
 
     switch (productID) {
       case 8:
