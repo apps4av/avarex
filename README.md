@@ -6,9 +6,17 @@ By Apps4Av.
 
 ## Getting Started
 
+### Downloading
+
+Click the Actions button on the top right of this page.
+Select the top most green check mark under Workflows.
+On the next page, click on Artifacts.
+Download the zip file for your platform.
+Unzip on the platform where it will be run.
+
 ** Windows 
 
-To run on Windows, download and place in the app folder the file name sqlite3.dll from https://www.sqlite.org/download.html. Use the precompiled binary for Windows 64.
+To run on Windows, download and place in the app folder (where the .exe file is) the file named sqlite3.dll from https://www.sqlite.org/download.html. Get the precompiled binary for sqlite3 for Windows 64.
 
 ** MacOS
 
@@ -20,8 +28,8 @@ To run on Linux, you must install sqlite3 library on your Linux system.
 
 ** iOS
 
-iOS apps can only be distributed through the app store. It is included in the release/CI for completeness.
+iOS app can only be distributed through the app store. It is included in the release/CI for completeness. Do not use it.
 
 ** Android
 
-Runs as is.
+Installs and runs as is.
