@@ -18,6 +18,7 @@ import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/gdl90/uplink_message.dart';
 import 'package:avaremp/nmea/nmea_ownship_message.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/stack_with_one.dart';
 import 'package:avaremp/weather/airep_cache.dart';
@@ -78,6 +79,7 @@ class Storage {
   TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
+  PfdData pfdData = PfdData(); // a place to drive PFD
 
 
   final PlanRoute _route = PlanRoute("New Plan");
@@ -262,6 +264,7 @@ class Storage {
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
       timeChange.value++;
+      pfdData.change.value++; // for simplicity drive PFD evert second as that's fast enough
 
       position = _gpsStack.pop();
       gpsChange.value = position; // tell everyone
