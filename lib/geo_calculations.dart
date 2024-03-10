@@ -119,14 +119,14 @@ class GeoCalculations {
     return _distance.offset(from, Constants.nmToM(distance), heading);
   }
 
-  static String convertSpeed(double gpsSpeed) {
-    return (gpsSpeed * 1.94384).round().toString();
+  static int convertSpeed(double gpsSpeed) {
+    return (gpsSpeed * 1.94384).round();
   }
-  static String convertAltitude(double gpsAltitude) {
-    return (gpsAltitude * 3.28084).round().toString();
+  static int convertAltitude(double gpsAltitude) {
+    return (gpsAltitude * 3.28084).round();
   }
-  static String convertMagneticHeading(double heading) {
-    return "${heading.round().toString()}\u00b0";
+  static int convertMagneticHeading(double heading) {
+    return heading.round();
   }
 
 }

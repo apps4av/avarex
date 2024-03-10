@@ -1,6 +1,10 @@
+import 'dart:math';
+
+import 'package:avaremp/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/waypoint.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
@@ -43,7 +47,7 @@ class InstrumentListState extends State<InstrumentList> {
     return value.length > maxLength ? value.substring(0, maxLength) : value;
   }
 
-  (String, String) _getDistanceBearing() {
+  (int, int) _getDistanceBearing() {
     LatLng position = Gps.toLatLng(Storage().position);
     GeoCalculations calculations = GeoCalculations();
 
@@ -53,21 +57,57 @@ class InstrumentListState extends State<InstrumentList> {
           position, d.coordinate);
       double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
           position, d.coordinate), calculations.getVariation(d.coordinate));
-      return (distance.round().toString(), "${bearing.round()}\u00b0");
+      return (distance.round(), bearing.round());
     }
-    return ("", "0\u00b0");
+    return (0, 0);
+  }
+
+  double _angularDifference(double hdg, double brg) {
+    double absDiff = (hdg - brg).abs();
+    if(absDiff > 180) {
+      return 360 - absDiff;
+    }
+    return absDiff;
   }
 
   void _gpsListener() {
     // connect to GPS
-    double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
+    double variation = GeoCalculations().getVariation(
+        Gps.toLatLng(Storage().position));
     setState(() {
-      _gndSpeed = _truncate(GeoCalculations.convertSpeed(Storage().position.speed));
-      _altitude = _truncate(GeoCalculations.convertAltitude(Storage().position.altitude));
-      _magneticHeading = _truncate(GeoCalculations.convertMagneticHeading(GeoCalculations.getMagneticHeading(Storage().position.heading, variation)));
+      int q = GeoCalculations.convertSpeed(Storage().position.speed);
+      _gndSpeed = _truncate(q.toString());
+      Storage().pfdData.speed = q.toDouble();
+      q = GeoCalculations.convertAltitude(Storage().position.altitude);
+      _altitude = _truncate(q.toString());
+      Storage().pfdData.altitude = q.toDouble();
+      q = GeoCalculations.convertMagneticHeading(
+          GeoCalculations.getMagneticHeading(
+              Storage().position.heading, variation));
+      _magneticHeading = _truncate("$q\u00b0");
+      Storage().pfdData.yaw = q.toDouble();
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance);
-      _bearing = _truncate(bearing);
+      _distance = _truncate(distance.toString());
+      _bearing = _truncate("${bearing.toString()}\u00b0");
+      Storage().pfdData.to = bearing.toDouble();
+
+
+      // CDI
+      Waypoint? next = Storage().route.getCurrentWaypoint();
+      if (next != null) {
+        DestinationCalculations? calc = next.destination.calculations;
+        if (calc != null) {
+          // The bearing from our CURRENT location to the target
+          double brgOrg = calc.course;
+          double brgCur = bearing.toDouble();
+          double brgDif = _angularDifference(brgOrg, brgCur);
+          // Distance from our CURRENT position to the destination
+          double dstCur = distance.toDouble();
+
+          // Distance we are from the direct course line
+          double deviation = dstCur * sin(brgDif * pi / 180);
+        }
+      }
     });
   }
 
@@ -77,8 +117,8 @@ class InstrumentListState extends State<InstrumentList> {
       Destination? d = route.getCurrentWaypoint()?.destination;
       _destination = _truncate(d != null ? d.locationID : "");
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance);
-      _bearing = _truncate(bearing);
+      _distance = _truncate(distance.toString());
+      _bearing = _truncate("${bearing.toString()}\u00b0");
     });
   }
 

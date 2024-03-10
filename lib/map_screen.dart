@@ -629,13 +629,13 @@ class MapScreenState extends State<MapScreen> {
     }
     Widget pfd = Positioned(
         child:Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.topLeft,
             child: SizedBox(
               width:width,
               height: height,
               child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(20)),
-                child:Opacity(opacity: 0.9,
+                borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
+                child:Opacity(opacity: 0.8,
                 child:CustomPaint(
                   painter: PfdPainter(
                   height: height,

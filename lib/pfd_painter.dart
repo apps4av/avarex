@@ -97,10 +97,10 @@ class PfdPainter extends CustomPainter {
     rotate(pfd.roll, _x(0), _y(0));
     canvas.translate(0, _y(0) - _y(pfd.pitch * pitchDegree));
 
-    paintFill.color = Colors.blueAccent;
+    paintFill.color = const Color(0xFF0000A0);
     drawRect(_x(-400), _y(pitchDegree * 90), _x(400), _y(0), paintFill);
 
-    paintFill.color = const Color(0xFF826644);
+    paintFill.color = const Color(0xFF624624);
     drawRect(_x(-400), _y(0), _x(400), _y(-pitchDegree * 90), paintFill);
 
     //center attitude degrees
@@ -637,18 +637,18 @@ class PfdPainter extends CustomPainter {
 }
 
 class PfdData {
-  final double roll = 0;
-  final double pitch = 0;
-  final double yaw = 0;
-  final double aoa = 0;
-  final double slip = 0;
-  final double speed = 0;
-  final double speedChange = 0;
-  final double altitude = 0;
-  final double altitudeChange = 0;
-  final double vsi = 0;
-  final double cdi = 0;
-  final double turnTrend = 0;
-  final double to = 0;
-  final double vdi = 0;
+  double roll = 0;
+  double pitch = 0;
+  double yaw = 0;
+  double aoa = 0;
+  double slip = 0;
+  double speed = 0;
+  double speedChange = 0;
+  double altitude = 0;
+  double altitudeChange = 0;
+  double vsi = 0;
+  double cdi = 0;
+  double turnTrend = 0;
+  double to = 0;
+  double vdi = 0;
 }
