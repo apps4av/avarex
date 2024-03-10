@@ -7,12 +7,25 @@ class PfdPainter extends CustomPainter {
 
   // Use like ClipRect(child:Align(widthFactor: 1, heightFactor: 1, child:SizedBox(width:width, height: height, child: CustomPaint(painter: PfdPainter(height, width)))))
   
-  PfdPainter(this.height, this.width);
+  PfdPainter({required ValueNotifier repaint, required height, required width}) : super(repaint: repaint) {
+    _height = height;
+    _width = width;
+  }
 
-  final double height;
-  final double width;
+  double _height = 0;
+  double _width = 0;
 
-  TextPainter mPaintText = TextPainter();
+  TextPainter paintText = TextPainter()
+     ..textAlign = TextAlign.left
+     ..textDirection = TextDirection.ltr;
+
+  Paint paintFill = Paint()
+    ..style = PaintingStyle.fill;
+
+  Paint paintStroke = Paint()
+    ..style = PaintingStyle.stroke
+    ..color = Colors.white
+    ..strokeWidth = 1.5;
 
   static const double speedTen = 1.5;
   static const double altitudeThousand = 1.5;
@@ -33,16 +46,16 @@ class PfdPainter extends CustomPainter {
   /// @param yval
   /// @return
   double _y(double yval) {
-    double yPercent = height / 200;
-    return height / 2 - yval * yPercent - height * yPan;
+    double yPercent = _height / 200;
+    return _height / 2 - yval * yPercent - _height * yPan;
   }
 
   /// Xform 0,0 in center, and (100, 100) on top right, and (-100, -100) on bottom left
   /// @param xval
   /// @return
   double _x(double xval) {
-    double xPercent = width / 200;
-    return width / 2 + xval * xPercent;
+    double xPercent = _width / 200;
+    return _width / 2 + xval * xPercent;
   }
 
 
@@ -68,23 +81,13 @@ class PfdPainter extends CustomPainter {
     }
 
     void drawText(String value, double x, double y) {
-      TextSpan span = TextSpan(text: value, style: TextStyle(fontSize: height / 40));
-      mPaintText.textAlign = TextAlign.left;
-      mPaintText.textDirection = TextDirection.ltr;
-      mPaintText.text = span;
-      mPaintText.layout();
-      mPaintText.paint(canvas, Offset(x, y - mPaintText.height / 2));
+      TextSpan span = TextSpan(text: value, style: TextStyle(fontSize: _height / 40));
+      paintText.text = span;
+      paintText.layout();
+      paintText.paint(canvas, Offset(x, y - paintText.height / 2));
     }
 
     PfdData pfd = Storage().pfdData;
-
-    Paint paintFill = Paint();
-    paintFill.style = PaintingStyle.fill;
-
-    Paint paintStroke = Paint();
-    paintStroke.style = PaintingStyle.stroke;
-    paintStroke.color = Colors.white;
-    paintStroke.strokeWidth = 1.5;
 
     /*
      * draw pitch / roll
@@ -501,7 +504,7 @@ class PfdPainter extends CustomPainter {
 
     rotate(-pfd.yaw, _x(0), _y(-95));
 
-    double offset = -mPaintText.width / 2;
+    double offset = -paintText.width / 2;
 
     drawLine(_x(0), _y(-65), _x(0), _y(-70), paintStroke);
     drawText("N", _x(0) + offset, _y(-75));
@@ -649,6 +652,4 @@ class PfdData {
   final double turnTrend = 0;
   final double to = 0;
   final double vdi = 0;
-  final change = ValueNotifier<int>(0);
-
 }

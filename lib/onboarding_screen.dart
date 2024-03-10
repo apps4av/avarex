@@ -51,28 +51,11 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       bodyWidget: Column(
           children:[
             const Text("Make sure you are in an area where GPS signals are strong.\n\n"
-              "Select your source of GPS signal (Internal, External).\n"
-              "Internal GPS is easy to setup. It requires GPS permissions for the app, and increases battery consumption.\n"
-              "External GPS may additionally provide ADS-B signals."),
-            DropdownButton(
-              value: Storage().settings.isInternalGps()? "Internal" : "External",
-              items: const [
-                DropdownMenuItem(value: "Internal", child: Text("Internal")),
-                DropdownMenuItem(value: "External", child: Text("External"))
-              ],
-              onChanged: (value) {
-                setState(() {
-                  Storage().settings.setInternalGps(value == "Internal" ? true : false);
-                });
-              },
-            ),
-            if(!Storage().settings.isInternalGps())
-              const Text("Connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.",),
-            if(Storage().settings.isInternalGps())
+              "The app uses the best possible GPS source available on this device.\n"
+              " 1) You must provide the app with permissions to access the GPS.\n"
+              " 2) You may connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.\n"),
               Text("$gpsDeniedMessage\n$gpsEnabledMessage\n"),
-            if(Storage().settings.isInternalGps())
               Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
-            if(Storage().settings.isInternalGps())
               Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),
           ]
       ),

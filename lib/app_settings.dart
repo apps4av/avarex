@@ -119,12 +119,4 @@ class AppSettings {
     Settings.setValue("key-intro", value);
   }
 
-  bool isInternalGps() {
-    return Settings.getValue("key-internal-gps", defaultValue: true) as bool;
-  }
-
-  void setInternalGps(bool value) {
-    Settings.setValue("key-internal-gps", value);
-  }
-
 }

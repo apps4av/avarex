@@ -81,11 +81,14 @@ class Storage {
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
 
+  static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
   bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
+  int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
+  bool gpsInternal = true;
 
   // gps
   final _gps = Gps();
@@ -132,28 +135,22 @@ class Storage {
   StreamSubscription<Position>? _gpsStream;
   StreamSubscription<Uint8List>? _udpStream;
 
-  void startGps() {
+  void startIO() {
+
     // GPS data receive
+    // start both external and internal
     _gpsStream = _gps.getStream();
     _gpsStream?.onDone(() {
     });
     _gpsStream?.onError((obj){
     });
     _gpsStream?.onData((data) {
-      _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-      _gpsStack.push(data);
+      if(gpsInternal) {
+        _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+        _gpsStack.push(data);
+      } // provide internal GPS when external is not available
     });
-  }
 
-  stopGps() {
-    try {
-      _gpsStream?.cancel();
-    }
-    catch(e) {}
-  }
-
-
-  void startUdp() {
     // GPS data receive
     _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
     _udpStream?.onDone(() {
@@ -172,6 +169,7 @@ class Storage {
             myIcao = m.icao;
             Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
           }
           if(m != null && m is TrafficReportMessage) {
@@ -212,10 +210,14 @@ class Storage {
     });
   }
 
-  stopUdp() {
+  stopIO() {
     try {
       _udpStream?.cancel();
       _udpReceiver.finish();
+    }
+    catch(e) {}
+    try {
+      _gpsStream?.cancel();
     }
     catch(e) {}
   }
@@ -264,22 +266,24 @@ class Storage {
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
       timeChange.value++;
-      pfdData.change.value++; // for simplicity drive PFD evert second as that's fast enough
 
       position = _gpsStack.pop();
       gpsChange.value = position; // tell everyone
       route.update(); // change to route
+      int now = DateTime.now().millisecondsSinceEpoch;
+      gpsInternal = ((_lastMsExternalSignal + gpsSwitchoverTimeMs) < now);
+
+      int diff = now - _lastMsGpsSignal;
+      if (diff > 2 * gpsSwitchoverTimeMs) { // no GPS signal from both sources, send warning
+        gpsNoLock = true;
+      }
+      else {
+        gpsNoLock = false;
+      }
 
       if(timeChange.value % 5 == 0) {
-        int diff = DateTime.now().millisecondsSinceEpoch - _lastMsGpsSignal;
-        if (diff > 60000) { // 60 seconds, no GPS signal, send warning
-          gpsNoLock = true;
-        }
-        else {
-          gpsNoLock = false;
-        }
 
-        if (settings.isInternalGps()) { // only for internal GPS
+        if(gpsInternal) {
           // check system for any issues
           gpsNotPermitted = await Gps().checkPermissions();
           gpsDisabled = !(await Gps().checkEnabled());
