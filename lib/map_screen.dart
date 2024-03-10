@@ -5,6 +5,7 @@ import 'package:avaremp/airport.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
@@ -615,6 +616,38 @@ class MapScreenState extends State<MapScreen> {
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_listen);
 
+    // for PFD, calculate heights
+    double width;
+    double height;
+    if(Constants.isPortrait(context)) {
+      height = Constants.screenHeight(context) / 3;
+      width = height * 0.7;
+    }
+    else {
+      height = Constants.screenHeight(context) * 3 / 5;
+      width = height * 0.7;
+    }
+    Widget pfd = Positioned(
+        child:Align(
+            alignment: Alignment.centerLeft,
+            child: SizedBox(
+              width:width,
+              height: height,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(20)),
+                child:Opacity(opacity: 0.9,
+                child:CustomPaint(
+                  painter: PfdPainter(
+                  height: height,
+                  width: width,
+                  repaint: Storage().timeChange) // repaint every second
+                ))
+              )
+            )
+        )
+    );
+
+
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
             child: ValueListenableBuilder<bool>(
@@ -632,6 +665,8 @@ class MapScreenState extends State<MapScreen> {
         body: Stack(
             children: [
               map, // map
+              if(_layersState[_layers.indexOf('PFD')])
+                pfd,
               // warn
               Positioned(
                 child: Align(
@@ -647,7 +682,6 @@ class MapScreenState extends State<MapScreen> {
                     )
                 ),
               ),
-
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomCenter,

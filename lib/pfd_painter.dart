@@ -5,8 +5,7 @@ import 'package:flutter/material.dart';
 
 class PfdPainter extends CustomPainter {
 
-  // Use like ClipRect(child:Align(widthFactor: 1, heightFactor: 1, child:SizedBox(width:width, height: height, child: CustomPaint(painter: PfdPainter(height, width)))))
-  
+
   PfdPainter({required ValueNotifier repaint, required height, required width}) : super(repaint: repaint) {
     _height = height;
     _width = width;
