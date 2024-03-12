@@ -33,6 +33,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _utc = "00:00";
   int _countUp = 0;
   bool _doCountUp = false;
+  String _source = "";
 
   @override
   void dispose() {
@@ -178,6 +179,7 @@ class InstrumentListState extends State<InstrumentList> {
       _timerUp = _truncate(d.toString().substring(2, 7));
       DateFormat formatter = DateFormat('HH:mm');
       _utc = _truncate(formatter.format(DateTime.now().toUtc()));
+      _source = Storage().gpsInternal ? "Int." : "Ext.";
     });
   }
 
@@ -228,7 +230,7 @@ class InstrumentListState extends State<InstrumentList> {
       case "BRG":
         value = _bearing;
         break;
-      case "DST":
+      case "DIS":
         value = _distance;
         break;
       case "UTC":
@@ -237,6 +239,9 @@ class InstrumentListState extends State<InstrumentList> {
       case "UPT":
         value = _timerUp;
         cb = _startUpTimer;
+        break;
+      case "SRC":
+        value = _source;
         break;
     }
 
