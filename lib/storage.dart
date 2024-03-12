@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/download_screen.dart';
+import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/fis_buffer.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
@@ -174,6 +175,9 @@ class Storage {
           }
           if(m != null && m is TrafficReportMessage) {
             trafficCache.putTraffic(m);
+          }
+          if(m != null && m is AhrsMessage) {
+            m.setPfd(pfdData);
           }
           if(m != null && m is UplinkMessage) {
             FisBuffer? fis = m.fis;

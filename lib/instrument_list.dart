@@ -82,19 +82,14 @@ class InstrumentListState extends State<InstrumentList> {
 
   void _gpsListener() {
     // connect to GPS
-    double variation = GeoCalculations().getVariation(
-        Gps.toLatLng(Storage().position));
+    double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
     setState(() {
       double q = GeoCalculations.convertSpeed(Storage().position.speed);
       _gndSpeed = _truncate(q.round().toString());
-      Storage().pfdData.speed = q;
       q = GeoCalculations.convertAltitude(Storage().position.altitude);
       _altitude = _truncate(q.round().toString());
-      Storage().pfdData.altitude = q;
-      q = GeoCalculations.getMagneticHeading(
-              Storage().position.heading, variation);
+      q = GeoCalculations.getMagneticHeading(Storage().position.heading, variation);
       _magneticHeading = _truncate("${q.round()}\u00b0");
-      Storage().pfdData.yaw = q;
       var (distance, bearing) = _getDistanceBearing();
       _distance = _truncate(distance.round().toString());
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
