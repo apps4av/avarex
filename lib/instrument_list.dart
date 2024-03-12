@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:avaremp/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -47,7 +46,7 @@ class InstrumentListState extends State<InstrumentList> {
     return value.length > maxLength ? value.substring(0, maxLength) : value;
   }
 
-  (int, int) _getDistanceBearing() {
+  (double, double) _getDistanceBearing() {
     LatLng position = Gps.toLatLng(Storage().position);
     GeoCalculations calculations = GeoCalculations();
 
@@ -57,7 +56,7 @@ class InstrumentListState extends State<InstrumentList> {
           position, d.coordinate);
       double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
           position, d.coordinate), calculations.getVariation(d.coordinate));
-      return (distance.round(), bearing.round());
+      return (distance, bearing);
     }
     return (0, 0);
   }
@@ -70,44 +69,73 @@ class InstrumentListState extends State<InstrumentList> {
     return absDiff;
   }
 
+  bool _leftOfCourseLine(double bT, double bC) {
+    if(bC <= 180) {
+      return (bT >= bC && bT <= bC + 180);
+    }
+
+    // brgCourse will be > 180 at this point
+    return (bT > bC || bT < bC - 180);
+  }
+
+
   void _gpsListener() {
     // connect to GPS
     double variation = GeoCalculations().getVariation(
         Gps.toLatLng(Storage().position));
     setState(() {
-      int q = GeoCalculations.convertSpeed(Storage().position.speed);
-      _gndSpeed = _truncate(q.toString());
-      Storage().pfdData.speed = q.toDouble();
+      double q = GeoCalculations.convertSpeed(Storage().position.speed);
+      _gndSpeed = _truncate(q.round().toString());
+      Storage().pfdData.speed = q;
       q = GeoCalculations.convertAltitude(Storage().position.altitude);
-      _altitude = _truncate(q.toString());
-      Storage().pfdData.altitude = q.toDouble();
-      q = GeoCalculations.convertMagneticHeading(
-          GeoCalculations.getMagneticHeading(
-              Storage().position.heading, variation));
-      _magneticHeading = _truncate("$q\u00b0");
-      Storage().pfdData.yaw = q.toDouble();
+      _altitude = _truncate(q.round().toString());
+      Storage().pfdData.altitude = q;
+      q = GeoCalculations.getMagneticHeading(
+              Storage().position.heading, variation);
+      _magneticHeading = _truncate("${q.round()}\u00b0");
+      Storage().pfdData.yaw = q;
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance.toString());
-      _bearing = _truncate("${bearing.toString()}\u00b0");
-      Storage().pfdData.to = bearing.toDouble();
-
+      _distance = _truncate(distance.round().toString());
+      _bearing = _truncate("${bearing.round().toString()}\u00b0");
+      Storage().pfdData.to = bearing;
 
       // CDI
       Waypoint? next = Storage().route.getCurrentWaypoint();
-      if (next != null) {
-        DestinationCalculations? calc = next.destination.calculations;
-        if (calc != null) {
-          // The bearing from our CURRENT location to the target
-          double brgOrg = calc.course;
-          double brgCur = bearing.toDouble();
-          double brgDif = _angularDifference(brgOrg, brgCur);
-          // Distance from our CURRENT position to the destination
-          double dstCur = distance.toDouble();
+      Waypoint? prev = Storage().route.getLastWaypoint();
 
-          // Distance we are from the direct course line
-          double deviation = dstCur * sin(brgDif * pi / 180);
+      if (next != null && prev != null) {
+        LatLng prevCoordinate = prev.destination.coordinate;
+        LatLng nextCoordinate = next.destination.coordinate;
+
+        // The bearing from our CURRENT location to the target
+        double brgOrg = GeoCalculations.getMagneticHeading(GeoCalculations().calculateBearing(prevCoordinate, nextCoordinate), variation);
+        double brgCur = bearing;
+        double brgDif = _angularDifference(brgOrg, brgCur);
+        // Distance from our CURRENT position to the destination
+        double dstCur = distance;
+
+        // calculate deviation based on bearing diff and distance
+        double deviation = dstCur * sin(brgDif * pi / 180); // nm
+        // now find course deviation in degrees based on distance and deviation
+        double cdi = atan2(deviation, dstCur) * 180 / pi;
+
+        // if distance is less than 15 miles then multiple by 4 for LOC sensitivity
+        cdi = dstCur < 15 ? min(cdi * 4, 5) : min(cdi, 5);
+
+        // Now determine whether we are LEFT.
+        // Account for REVERSE SENSING if we are already BEYOND the target (>90deg)
+        bool bLeftOfCourseLine = _leftOfCourseLine(brgCur,  brgOrg);
+        if ((bLeftOfCourseLine && brgDif <= 90) || (!bLeftOfCourseLine && brgDif >= 90)) {
+          cdi = -cdi;
         }
+        Storage().pfdData.cdi = -cdi;
       }
+      else {
+        Storage().pfdData.cdi = 0;
+      }
+
+      // VDI
+
     });
   }
 
@@ -117,8 +145,8 @@ class InstrumentListState extends State<InstrumentList> {
       Destination? d = route.getCurrentWaypoint()?.destination;
       _destination = _truncate(d != null ? d.locationID : "");
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance.toString());
-      _bearing = _truncate("${bearing.toString()}\u00b0");
+      _distance = _truncate(distance.round().toString());
+      _bearing = _truncate("${bearing.round().toString()}\u00b0");
     });
   }
 

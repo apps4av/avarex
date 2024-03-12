@@ -329,6 +329,17 @@ class PlanRoute {
     return _current;
   }
 
+  Waypoint? getLastWaypoint() {
+    // if no route then destination
+    if(_current != null) {
+      int index = _waypoints.indexOf(_current!) - 1;
+      if(index >= 0) {
+        return _waypoints[index];
+      }
+    }
+    return null;
+  }
+
   bool isCurrent(int index) {
     if(_current == null) {
       return false;
