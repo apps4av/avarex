@@ -624,7 +624,7 @@ class PfdPainter extends CustomPainter {
     }
 
     double val = 3 - pfd.vdi;
-    drawCircle(_x(47.5), _y(val * vdiDegree), _y(0) - _y(1), paintFill);
+    drawCircle(_x(47.5), _y(val * vdiDegree), _y(0) - _y(1.5), paintFill);
 
     drawText("G", _x(44), _y(28));
 
