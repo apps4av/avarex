@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/waypoint.dart';
@@ -103,6 +104,7 @@ class InstrumentListState extends State<InstrumentList> {
       Waypoint? next = Storage().route.getCurrentWaypoint();
       Waypoint? prev = Storage().route.getLastWaypoint();
 
+      double cdi = 0;
       if (next != null && prev != null) {
         LatLng prevCoordinate = prev.destination.coordinate;
         LatLng nextCoordinate = next.destination.coordinate;
@@ -117,7 +119,7 @@ class InstrumentListState extends State<InstrumentList> {
         // calculate deviation based on bearing diff and distance
         double deviation = dstCur * sin(brgDif * pi / 180); // nm
         // now find course deviation in degrees based on distance and deviation
-        double cdi = atan2(deviation, dstCur) * 180 / pi;
+        cdi = atan2(deviation, dstCur) * 180 / pi;
 
         // if distance is less than 15 miles then multiple by 4 for LOC sensitivity
         cdi = dstCur < 15 ? min(cdi * 4, 5) : min(cdi, 5);
@@ -128,14 +130,38 @@ class InstrumentListState extends State<InstrumentList> {
         if ((bLeftOfCourseLine && brgDif <= 90) || (!bLeftOfCourseLine && brgDif >= 90)) {
           cdi = -cdi;
         }
-        Storage().pfdData.cdi = -cdi;
       }
-      else {
-        Storage().pfdData.cdi = 0;
-      }
+      Storage().pfdData.cdi = -cdi;
 
       // VDI
 
+      double vdi = 0;
+      if(next != null) {
+        // Fetch the elevation of our destination. If we can't find it
+        // then we don't want to display any vertical information
+        double? destElev = next.destination is AirportDestination ? (next.destination as AirportDestination).elevation : null;
+
+        if(destElev != null) {
+          // Calculate our relative AGL compared to destination. If we are
+          // lower then no display info
+          double relativeAGL = Storage().position.altitude * 3.28084 - destElev;
+
+          // Convert the destination distance to feet.
+          double destDist = distance;
+          double destInFeet = destDist * 6076.12;
+
+          // Figure out our glide slope now based on our AGL height and distance
+          vdi = atan(relativeAGL / destInFeet) * 180 / pi;
+          if(vdi >= PfdPainter.vnavHigh) {
+            vdi = PfdPainter.vnavHigh;
+          }
+          else if(vdi <= PfdPainter.vnavLow) {
+            vdi = PfdPainter.vnavLow;
+          }
+
+        }
+      }
+      Storage().pfdData.vdi = vdi;
     });
   }
 
