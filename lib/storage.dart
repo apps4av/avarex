@@ -175,7 +175,6 @@ class Storage {
             _gpsStack.push(p);
             trafficCache.ownshipLocation = p;
             trafficCache.ownshipVspeed = m.verticalSpeed;
-            trafficCache.ownshipIcao = m.icao;
             trafficCache.ownshipIsAirborne = m.airborne;
           }
           if(m != null && m is TrafficReportMessage) {

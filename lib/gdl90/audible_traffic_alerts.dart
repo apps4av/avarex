@@ -141,7 +141,7 @@ class AudibleTrafficAlerts {
   }
 
   void processTrafficForAudibleAlerts(List<Traffic?> trafficList, Position? ownshipLocation, DateTime? ownshipUpdateTime, 
-    double ownVspeed, int ownIcao, bool ownIsAirborne) 
+    double ownVspeed, bool ownIsAirborne) 
   {
     if (!_isRunning || ownshipLocation == null || (ownshipLocation.speed*_kMpsToKnotsConv < prefAudibleTrafficAlertsMinSpeed) 
       || !(ownIsAirborne || prefIsAudibleGroundAlertsEnabled)) 
@@ -151,7 +151,7 @@ class AudibleTrafficAlerts {
 
     bool hasInserts = false;
     for (final traffic in trafficList) {
-      if (traffic == null || traffic.message.icao == ownIcao || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {            
+      if (traffic == null || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {            
         continue;
       }
       final double altDiff = _kMetersToFeetCont * ownshipLocation.altitude - traffic.message.altitude;

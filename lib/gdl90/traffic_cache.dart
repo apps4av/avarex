@@ -60,7 +60,6 @@ class TrafficCache {
   DateTime? _ownshipUpdateTime;
   DateTime? get ownshipUpdateTime { return _ownshipUpdateTime; }
   double ownshipVspeed = 0;
-  int ownshipIcao = -1;
   bool ownshipIsAirborne = true;
 
   double findDistance(LatLng coordinate, double altitude) {
@@ -147,7 +146,7 @@ class TrafficCache {
     if (Storage().settings.isAudibleAlertsEnabled()) {
       AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        value?.processTrafficForAudibleAlerts(_traffic, _ownshipLocation, _ownshipUpdateTime, ownshipVspeed, ownshipIcao, ownshipIsAirborne);
+        value?.processTrafficForAudibleAlerts(_traffic, _ownshipLocation, _ownshipUpdateTime, ownshipVspeed, ownshipIsAirborne);
       });
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
