@@ -777,6 +777,8 @@ class MapScreenState extends State<MapScreen> {
                                                 });
                                                 // now save to settings
                                                 Storage().settings.setLayersState(_layersState);
+                                                // Turn audible alerts off and on depending on traffic layer
+                                                Storage().settings.setAudibleAlertsEnabled(_layersState[Storage().settings.getLayers().indexOf("Traffic")]);                                                
                                                 setState(() {
                                                   _layersState[index] = value; // this is the state for the map
                                                 });
