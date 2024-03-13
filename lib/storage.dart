@@ -100,13 +100,12 @@ class Storage {
   // where all data is place. This is set on init in main
   late String dataDir;
   Position position = Gps.centerUSAPosition();
+  double vspeed = 0;
+  bool airborne = true;  
   final AppSettings settings = AppSettings();
 
   final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
   final NmeaBuffer _nmeaBuffer = NmeaBuffer();
-
-  double vspeed = 0;
-  bool airborne = true;  
 
   int _key = 1111;
 

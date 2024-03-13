@@ -176,9 +176,7 @@ class AudibleTrafficAlerts {
         );      
       } else if (hasUpdate) {
         // Prune out any alert for this traffic that no longer qualifies (e.g., distance exceeded before able to process/speak)
-        _alertQueue.removeWhere((element) { 
-          return element._traffic?.message.icao == traffic.message.icao;
-        });
+        _alertQueue.removeWhere((element) => element._traffic?.message.icao == traffic.message.icao);
       }
       _lastTrafficPositionUpdateTimeMap[trafficKey] = trafficPositionTimeCalcUpdateValue;
     } 
@@ -267,15 +265,16 @@ class AudibleTrafficAlerts {
         _alertQueue.removeAt(i);
         _player.playAudioSequence(_buildAlertSoundSequence(nextAlert))?.then((value) { 
           _isPlaying = false;
+          // Schedule next alert, if any, to fire after an appropriate delay (depending on criticality)
           if (_alertQueue.isNotEmpty) {
             Future.delayed(Duration(milliseconds: (_alertQueue[0]._closingEvent?._isCriticallyClose ?? false) ? 0 
               : prefTimeBetweenAnyAlertMs), runAudibleAlertsQueueProcessing);        
           }
         });
-        return;
+        return; // if alert has been processed, we leave, as async firing of next one will have been scheduled on event queue
       } 
     }
-    // No-one can alert now, but we have a defined time we need to wait before the next one can
+    // No-one can alert now, but if we have a defined time we need to wait then we schedule the next one
     if (timeToWaitForTraffic != _kMaxIntValue && timeToWaitForTraffic > 0) {
       Future.delayed(Duration(milliseconds: timeToWaitForTraffic), runAudibleAlertsQueueProcessing);
     }
