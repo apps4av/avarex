@@ -88,6 +88,7 @@ class Storage {
   PlanRoute get route => _route;
   bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
+  get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
   int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
   bool gpsInternal = true;
 
@@ -137,7 +138,7 @@ class Storage {
   StreamSubscription<Uint8List>? _udpStream;
 
   void startIO() {
-
+    
     // GPS data receive
     // start both external and internal
     _gpsStream = _gps.getStream();
@@ -149,7 +150,6 @@ class Storage {
       if(gpsInternal) {
         _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
         _gpsStack.push(data);
-        trafficCache.ownshipLocation = data;  // If using internal GPS, we need accurate ownship location for alerts
       } // provide internal GPS when external is not available
     });
 
@@ -173,7 +173,6 @@ class Storage {
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
-            trafficCache.ownshipLocation = p;
             trafficCache.ownshipVspeed = m.verticalSpeed;
             trafficCache.ownshipIsAirborne = m.airborne;
           }
@@ -216,6 +215,9 @@ class Storage {
         }
       }
     });
+
+    // Have audible alerts listen for GPS changes
+    Storage().gpsChange.addListener(TrafficCache().handleAudibleAlerts);
   }
 
   stopIO() {
@@ -228,6 +230,9 @@ class Storage {
       _gpsStream?.cancel();
     }
     catch(e) {}
+    
+    // Have audible alerts stop listening for GPS changes
+    Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
   }
 
   Future<void> init() async {

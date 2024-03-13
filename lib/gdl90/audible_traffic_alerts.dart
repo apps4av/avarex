@@ -140,7 +140,7 @@ class AudibleTrafficAlerts {
     return _player.preCacheAudioAssets(audioAssets);
   }
 
-  void processTrafficForAudibleAlerts(List<Traffic?> trafficList, Position? ownshipLocation, DateTime? ownshipUpdateTime, 
+  void processTrafficForAudibleAlerts(List<Traffic?> trafficList, Position? ownshipLocation, int ownshipUpdateTimeMs, 
     double ownVspeed, bool ownIsAirborne) 
   {
     if (!_isRunning || ownshipLocation == null || (ownshipLocation.speed*_kMpsToKnotsConv < prefAudibleTrafficAlertsMinSpeed) 
@@ -155,7 +155,7 @@ class AudibleTrafficAlerts {
         continue;
       }
       final double altDiff = _kMetersToFeetCont * ownshipLocation.altitude - traffic.message.altitude;
-			final String trafficPositionTimeCalcUpdateValue = "${traffic.message.time.millisecondsSinceEpoch}_${ownshipUpdateTime?.millisecondsSinceEpoch}";
+			final String trafficPositionTimeCalcUpdateValue = "${traffic.message.time.millisecondsSinceEpoch}_${ownshipUpdateTimeMs}";
 			final String trafficKey = _getTrafficKey(traffic);  
       final String? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
       final bool hasUpdate;
