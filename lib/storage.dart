@@ -9,6 +9,7 @@ import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/fis_buffer.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
+import 'package:avaremp/gps_recorder.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/gdl90/nexrad_product.dart';
@@ -81,6 +82,7 @@ class Storage {
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
+  GpsRecorder tracks = GpsRecorder();
 
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
 
@@ -149,6 +151,7 @@ class Storage {
       if(gpsInternal) {
         _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
         _gpsStack.push(data);
+        tracks.add(data);
       } // provide internal GPS when external is not available
     });
 
@@ -172,6 +175,8 @@ class Storage {
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
+            // record waypoints for tracks.
+            tracks.add(p);
           }
           if(m != null && m is TrafficReportMessage) {
             trafficCache.putTraffic(m);
@@ -204,7 +209,9 @@ class Storage {
             myIcao = m0.icao;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
+            tracks.add(p);
           }
         }
         else {

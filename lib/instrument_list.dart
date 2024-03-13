@@ -19,6 +19,24 @@ class InstrumentList extends StatefulWidget {
 
   @override
   State<InstrumentList> createState() => InstrumentListState();
+
+  static double angularDifference(double hdg, double brg) {
+    double absDiff = (hdg - brg).abs();
+    if(absDiff > 180) {
+      return 360 - absDiff;
+    }
+    return absDiff;
+  }
+
+  static bool leftOfCourseLine(double bT, double bC) {
+    if(bC <= 180) {
+      return (bT >= bC && bT <= bC + 180);
+    }
+
+    // brgCourse will be > 180 at this point
+    return (bT > bC || bT < bC - 180);
+  }
+
 }
 
 class InstrumentListState extends State<InstrumentList> {
@@ -63,23 +81,6 @@ class InstrumentListState extends State<InstrumentList> {
     return (0, 0);
   }
 
-  double _angularDifference(double hdg, double brg) {
-    double absDiff = (hdg - brg).abs();
-    if(absDiff > 180) {
-      return 360 - absDiff;
-    }
-    return absDiff;
-  }
-
-  bool _leftOfCourseLine(double bT, double bC) {
-    if(bC <= 180) {
-      return (bT >= bC && bT <= bC + 180);
-    }
-
-    // brgCourse will be > 180 at this point
-    return (bT > bC || bT < bC - 180);
-  }
-
 
   void _gpsListener() {
     // connect to GPS
@@ -108,7 +109,7 @@ class InstrumentListState extends State<InstrumentList> {
         // The bearing from our CURRENT location to the target
         double brgOrg = GeoCalculations.getMagneticHeading(GeoCalculations().calculateBearing(prevCoordinate, nextCoordinate), variation);
         double brgCur = bearing;
-        double brgDif = _angularDifference(brgOrg, brgCur);
+        double brgDif = InstrumentList.angularDifference(brgOrg, brgCur);
         // Distance from our CURRENT position to the destination
         double dstCur = distance;
 
@@ -122,7 +123,7 @@ class InstrumentListState extends State<InstrumentList> {
 
         // Now determine whether we are LEFT.
         // Account for REVERSE SENSING if we are already BEYOND the target (>90deg)
-        bool bLeftOfCourseLine = _leftOfCourseLine(brgCur,  brgOrg);
+        bool bLeftOfCourseLine = InstrumentList.leftOfCourseLine(brgCur,  brgOrg);
         if ((bLeftOfCourseLine && brgDif <= 90) || (!bLeftOfCourseLine && brgDif >= 90)) {
           cdi = -cdi;
         }
