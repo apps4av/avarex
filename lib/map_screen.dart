@@ -431,6 +431,29 @@ class MapScreenState extends State<MapScreen> {
       );
     }
 
+    lIndex = _layers.indexOf('Tracks');
+    if(_layersState[lIndex]) {
+      layers.add( // tracks layer
+        ValueListenableBuilder<Position>(
+          valueListenable: Storage().gpsChange,
+          builder: (context, value, _) {
+            List<LatLng> path = Storage().tracks.getPoints();
+            return PolylineLayer(
+              polylines: [
+                Polyline(
+                  strokeWidth: 4,
+                  points: path,
+                  borderColor: Colors.white,
+                  borderStrokeWidth: 1,
+                  color: Constants.tracksColor,
+                ),
+              ],
+            );
+          },
+        ),
+      );
+    }
+
     lIndex = _layers.indexOf('Nav');
     if(_layersState[lIndex]) {
       layers.add( // circle layer
