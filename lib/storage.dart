@@ -148,6 +148,7 @@ class Storage {
       if(gpsInternal) {
         _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
         _gpsStack.push(data);
+        trafficCache.ownshipLocation = data;  // If using internal GPS, we need accurate ownship location for alerts
       } // provide internal GPS when external is not available
     });
 
@@ -171,6 +172,10 @@ class Storage {
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
+            trafficCache.ownshipLocation = p;
+            trafficCache.ownshipVspeed = m.verticalSpeed;
+            trafficCache.ownshipIcao = m.icao;
+            trafficCache.ownshipIsAirborne = m.airborne;
           }
           if(m != null && m is TrafficReportMessage) {
             trafficCache.putTraffic(m);

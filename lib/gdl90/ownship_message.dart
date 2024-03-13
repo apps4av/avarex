@@ -11,6 +11,7 @@ class OwnShipMessage extends Message {
   double velocity = 0;
   double verticalSpeed = 0;
   double heading = 0;
+  bool airborne = false;
 
   OwnShipMessage(super.type);
 
@@ -34,6 +35,8 @@ class OwnShipMessage extends Message {
       // meter
       altitude = alt.toDouble() / 3.28084;
     }
+
+    airborne = (message[11] & 0x08) != 0;
 
     upper = ((message[13].toInt() & 0xFF)) << 4;
     lower = ((message[14].toInt() & 0xF0)) >> 4;

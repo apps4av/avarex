@@ -77,6 +77,8 @@ class AppSettings {
 
   void setLayersState(List<bool> state) {
     Settings.setValue("key-layers-state-v28", state.map((bool e) => e.toString()).toList().join(","));
+    // Turn audible alerts off and on depending on traffic layer
+    setAudibleAlertsEnabled(state[getLayers().indexOf("Traffic")]);
   }
 
   void setCurrentPlateAirport(String name) {
@@ -118,5 +120,13 @@ class AppSettings {
   void setIntro(bool value) {
     Settings.setValue("key-intro", value);
   }
+
+  bool isAudibleAlertsEnabled() {
+    return Settings.getValue("key-audible-alerts", defaultValue: true) as bool;
+  }
+
+  void setAudibleAlertsEnabled(bool value) {
+    Settings.setValue("key-audible-alerts", value);
+  } 
 
 }
