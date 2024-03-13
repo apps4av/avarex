@@ -105,6 +105,9 @@ class Storage {
   final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
   final NmeaBuffer _nmeaBuffer = NmeaBuffer();
 
+  double vspeed = 0;
+  bool airborne = true;  
+
   int _key = 1111;
 
   String getKey() {
@@ -177,8 +180,8 @@ class Storage {
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
             // Record additional ownship settings for audible alerts (among other intereste parties)--or perhaps these can just reside here in Storage?
-            trafficCache.ownshipVspeed = m.verticalSpeed;
-            trafficCache.ownshipIsAirborne = m.airborne;
+            vspeed = m.verticalSpeed;
+            airborne = m.airborne;
             // record waypoints for tracks.
             tracks.add(p);
           }
@@ -214,6 +217,8 @@ class Storage {
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+            vspeed = m0.verticalSpeed;
+            airborne = m0.altitude > 100;
             _gpsStack.push(p);
             tracks.add(p);
           }

@@ -48,9 +48,6 @@ class Traffic {
 class TrafficCache {
   static const int maxEntries = 20;
   final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
-  
-  double ownshipVspeed = 0;
-  bool ownshipIsAirborne = true;
 
   double findDistance(LatLng coordinate, double altitude) {
     // find 3d distance between current position and airplane
@@ -136,7 +133,8 @@ class TrafficCache {
     if (Storage().settings.isAudibleAlertsEnabled()) {
       AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, ownshipVspeed, ownshipIsAirborne);
+        final Storage storage = Storage();
+        value?.processTrafficForAudibleAlerts(_traffic, storage.position, storage.lastMsGpsSignal, storage.vspeed, storage.airborne);
       });
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
