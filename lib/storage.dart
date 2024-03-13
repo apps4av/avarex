@@ -223,9 +223,10 @@ class Storage {
         }
       }
     });
-
-    // Have audible alerts listen for GPS changes
-    Storage().gpsChange.addListener(TrafficCache().handleAudibleAlerts);
+    try {
+      // Have audible alerts listen for GPS changes
+      Storage().gpsChange.addListener(TrafficCache().handleAudibleAlerts);
+    } catch (e) {}
   }
 
   stopIO() {
@@ -238,9 +239,10 @@ class Storage {
       _gpsStream?.cancel();
     }
     catch(e) {}
-    
-    // Have audible alerts stop listening for GPS changes
-    Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
+    try {
+      // Have audible alerts stop listening for GPS changes
+      Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
+    } catch (e) {}
   }
 
   Future<void> init() async {
