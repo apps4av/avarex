@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [        
         {
-            "name": "avaremp",
+            "name": "avarex",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "avaremp (profile mode)",
+            "name": "avarex (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "avaremp (release mode)",
+            "name": "avarex (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
