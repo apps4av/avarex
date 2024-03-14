@@ -178,7 +178,9 @@ class AudibleTrafficAlerts {
         // Prune out any alert for this traffic that no longer qualifies (e.g., distance exceeded before able to process/speak)
         _alertQueue.removeWhere((element) => element._traffic?.message.icao == traffic.message.icao);
       }
+      if (hasUpdate) {  // Only update position map if there is an update
       _lastTrafficPositionUpdateTimeMap[trafficKey] = trafficPositionTimeCalcUpdateValue;
+      }
     } 
 
     if (hasInserts) {
@@ -195,7 +197,7 @@ class AudibleTrafficAlerts {
         _alertQueue.insert(lowestNonCEIndex, alert);
         return true;
       }
-      // ..otherwise, if this is just a normal alert, or it is andall others are also critical, put it at the back of the queue
+      // ..otherwise, if this is just a normal alert, or it is and all others are also critical, put it at the back of the queue
       _alertQueue.add(alert);
       return true;
     } else {     
