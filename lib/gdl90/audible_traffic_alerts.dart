@@ -129,7 +129,7 @@ class AudibleTrafficAlerts {
   bool prefTopGunDorkMode = false;
   int prefAudibleTrafficAlertsMinSpeed = 0;
   int prefAudibleTrafficAlertsDistanceMinimum = 5;
-  double prefTrafficAlertsHeight = 4000;
+  double prefTrafficAlertsHeight = 1000;
   int prefMaxAlertFrequencySeconds = 15;
   int prefTimeBetweenAnyAlertMs = 750;
   // Closing (TCPA) alert preferences
