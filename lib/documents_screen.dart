@@ -1,7 +1,9 @@
+import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
 import 'constants.dart';
@@ -19,7 +21,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
   String? filter; // for filtering docs
 
-  final List<Document> products = [
+  List<Document> products = [];
+  static const List<Document> productsStatic = [
     Document("WPC",              "WPC Surface Analysis",   "https://aviationweather.gov/data/products/progs/F000_wpc_sfc.gif"),
     Document("WPC",              "WPC 6HR Prognostic",     "https://aviationweather.gov/data/products/progs/F006_wpc_prog.gif"),
     Document("WPC",              "WPC 12HR Prognostic",    "https://aviationweather.gov/data/products/progs/F012_wpc_prog.gif"),
@@ -80,19 +83,41 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   ];
 
   //if you don't want widget full screen then use center widget
-  Widget smallImage(String name, String url) {
-     Widget widget = WidgetZoom(
-        heroAnimationTag: name,
-        zoomWidget: CachedNetworkImage(
-          imageUrl: url,
-          cacheManager: FileCacheManager().networkCacheManager,));
+  Widget smallImage(Document product) {
+     Widget widget;
 
+     if(product.type == "User") {
+       widget = Row(children: [
+         TextButton(onPressed: () {
+
+           final box = context.findRenderObject() as RenderBox?;
+           Share.shareXFiles(
+             [XFile(product.url, mimeType: "text/plain")],
+             sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+           );
+         }, child: const Text("Share")),
+         if((products.length - productsStatic.length) > 1)
+         TextButton(onPressed: () {
+           setState(() {
+             PathUtils.deleteFile(product.url);
+             products.remove(product);
+           });
+         }, child: const Text("Delete")),
+       ]);
+     }
+     else {
+       widget = WidgetZoom(
+           heroAnimationTag: product.name,
+           zoomWidget: CachedNetworkImage(
+             imageUrl: product.url,
+             cacheManager: FileCacheManager().networkCacheManager,));
+     }
     return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
       child: Center(
           child: Column(
               children: [
                 SizedBox(width: 256, height: 128, child: widget),
-                Text(name),
+                Text(product.name),
               ]
           )),
     );
@@ -101,6 +126,30 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: PathUtils.getTrackNames(Storage().dataDir),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent(null);
+          }
+        }
+    );
+  }
+
+  Widget _makeContent(List<String>? tracks) {
+
+    products = [];
+    products.addAll(productsStatic);
+
+    if(null != tracks) {
+      for(String track in tracks) {
+        products.add(Document("User", PathUtils.filename(track), track));
+      }
+    }
+
     List<String> ctypes = products.map((e) => e.type).toSet().toList(); // toSet for unique.
     ctypes.insert(0, "All Documents"); // everything shows
     return Scaffold(
@@ -138,7 +187,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
             children: <Widget>[
               for(Document p in products)
                 if(filter != null ? p.type == filter || filter == ctypes[0] : true)
-                  smallImage(p.name, p.url),
+                  smallImage(p),
             ],
           ),
       ),
@@ -148,9 +197,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
 
 class Document {
-  String name;
-  String url;
-  String type;
-  Document(this.type, this.name, this.url);
+  final String name;
+  final String url;
+  final String type;
+  const Document(this.type, this.name, this.url);
 }
 

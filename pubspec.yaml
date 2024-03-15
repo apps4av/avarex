@@ -71,6 +71,7 @@ dependencies:
   image: ^4.1.7
   just_the_tooltip: ^0.0.12
   gpx: ^2.2.2
+  share_plus: ^7.2.2
 
 flutter_launcher_icons:
   android: "launcher_icon"

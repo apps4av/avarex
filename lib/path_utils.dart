@@ -64,6 +64,37 @@ class PathUtils {
     return(ret);
   }
 
+  static String filename(String url) {
+    return path.split(url).last;
+  }
+
+  static Future<List<String>> getTrackNames(String base) async {
+    List<String> ret = [];
+    try {
+      String id = path.join(base, "tracks");
+      final d = Directory(id);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        ret.add(en.path);
+      }
+    }
+    catch(e) {
+      ret = [];
+    }
+    return(ret);
+  }
+
+  static Future<void> writeTrack(String base, String data) async {
+    DateTime now = DateTime.now();
+    try {
+      final String dir = path.join(base, "tracks");
+      final String file = path.join(dir, "track_${now.year}_${now.month}_${now.day}-${now.hour}_${now.minute}_${now.second}.kml");
+      final File f = File(file);
+      await f.writeAsString(data);
+    }
+    catch(e) {}
+  }
+
   static Future<List<String>> getPlatesAndCSupSorted(String base, String airport) async {
     List<String> plates = [];
     List<String> csup = [];
@@ -112,6 +143,11 @@ class PathUtils {
 
   static bool shouldNotDelete(String name) {
     return _expNoDelete.hasMatch(name);
+  }
+
+  static void deleteFile(String url) {
+    File f = File(url);
+    f.delete();
   }
 
 }
