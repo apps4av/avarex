@@ -7,6 +7,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../destination.dart';
+import '../saa.dart';
 
 class MainDatabaseHelper {
   MainDatabaseHelper._();
@@ -143,6 +144,26 @@ class MainDatabaseHelper {
     // always add touch point of GPS, GPS is not a database type so prefix with _
     String gps = Destination.formatSexagesimal(point.toSexagesimal());
     ret.add(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
+    return(ret);
+  }
+
+  Future<List<Saa>> getSaa(LatLng point) async {
+    final db = await database;
+    List<Saa> ret = [];
+    if (db != null) {
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
+      String asDistance = "((lon - ${point
+          .longitude}) * (lon - ${point.longitude}) * ${corrFactor
+          .toDouble()} + (lat - ${point
+          .latitude}) * (lat - ${point.latitude}))";
+
+      String qry = "select designator, name, FreqTx, FreqRx, day, lat, lon, $asDistance as distance from saa where distance < 1 order by distance asc limit $_limit";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+
+      ret = List.generate(maps.length, (i) {
+        return Saa.fromMap(maps[i]);
+      });
+    }
     return(ret);
   }
 

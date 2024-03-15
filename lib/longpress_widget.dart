@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -40,6 +42,7 @@ class LongPressFuture {
   Image? airportDiagram;
   Widget? ad;
   int? elevation;
+  List<Saa> saa = [];
 
   LongPressFuture(this.destination, this.dimensions, this.labelCallback) : showDestination =
       Destination( // GPS default then others
@@ -97,6 +100,8 @@ class LongPressFuture {
           labelCallback(value);
       },)));
     }
+    // SUA for every press
+    saa = await MainDatabaseHelper.db.getSaa(destination.coordinate);
   }
 
   Future<LongPressFuture> getAll() async {
@@ -163,6 +168,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
     int? metarPage;
     int? notamPage;
+    int? saaPage;
 
     if(future.showDestination is AirportDestination) {
       Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
@@ -200,6 +206,17 @@ class LongPressWidgetState extends State<LongPressWidget> {
               return const ListTile(leading: CircularProgressIndicator());
             }
           }
+      ));
+    }
+
+    if(future.saa.isNotEmpty) {
+      saaPage = future.pages.length;
+      future.pages.add(ListView(
+        children: [
+          for(Saa s in future.saa)
+            ListTile(title: Text(s.designator),
+                subtitle: Text(s.toString())),
+        ],
       ));
     }
 
@@ -277,27 +294,37 @@ class LongPressWidgetState extends State<LongPressWidget> {
         ],
         ),
         // add various buttons that expand to diagram
-        if(airportDiagram != null)
-          Positioned(child: Align(
-            alignment: Alignment.bottomRight,
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-              if (metarPage != null)
-                TextButton(
-                    child: const Text("METAR"),
-                    onPressed: () => _controller.animateToPage(metarPage!)
-                ),
-            if(notamPage != null)
-              TextButton(
-                child: const Text("NOTAM"),
-                onPressed: () => _controller.animateToPage(notamPage!)
-              ),
+        Positioned(child: Align(
+          alignment: Alignment.bottomRight,
+          child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+          if (future.pages.length > 1)
+            TextButton(
+                child: const Text("Main"),
+                onPressed: () => _controller.animateToPage(0)
+            ),
+          if (metarPage != null)
+            TextButton(
+                child: const Text("METAR"),
+                onPressed: () => _controller.animateToPage(metarPage!)
+            ),
+          if(notamPage != null)
+            TextButton(
+              child: const Text("NOTAM"),
+              onPressed: () => _controller.animateToPage(notamPage!)
+            ),
+          if(saaPage != null)
+            TextButton(
+                child: const Text("SUA"),
+                onPressed: () => _controller.animateToPage(saaPage!)
+            ),
+          if(airportDiagram != null)
             SizedBox(
                 width: 32, height: 32,
                 child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
-            ]
-            ),
-          )),
-        ],
+          ]
+          ),
+        )),
+      ],
       )
     );
   }
