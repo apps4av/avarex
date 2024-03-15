@@ -44,23 +44,16 @@ class AhrsMessage extends Message {
     return (sum.toDouble());
   }
 
-  void _assignIfNotNull(double destination, double? source) {
-    if(source == null) {
-      return;
-    }
-    destination = source;
-  }
-
   void setPfd(PfdData pfd) {
-    _assignIfNotNull(pfd.aoa, aoa);
-    _assignIfNotNull(pfd.yaw, yaw);
-    _assignIfNotNull(pfd.roll, roll);
-    _assignIfNotNull(pfd.pitch, pitch);
-    _assignIfNotNull(pfd.slip, slip);
-    _assignIfNotNull(pfd.turnTrend, turnTrend);
-    _assignIfNotNull(pfd.altitude, altitude);
-    _assignIfNotNull(pfd.vsi, vsi);
-    _assignIfNotNull(pfd.speed, speed);
+    pfd.aoa = aoa == null ? pfd.aoa : aoa!;
+    pfd.yaw = yaw == null ? pfd.yaw : yaw!;
+    pfd.roll = roll == null ? pfd.roll : roll!;
+    pfd.pitch = pitch == null ? pfd.pitch : pitch!;
+    pfd.slip = slip == null ? pfd.slip : slip!;
+    pfd.turnTrend = turnTrend == null ? pfd.turnTrend : turnTrend!;
+    pfd.altitude = altitude == null ? pfd.altitude : altitude!;
+    pfd.vsi = vsi == null ? pfd.vsi : vsi!;
+    pfd.speed = speed == null ? pfd.speed : speed!;
   }
 
   @override
