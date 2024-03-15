@@ -11,18 +11,27 @@ enum DistanceCalloutOption { none, rounded, decimal }
 
 enum NumberFormatOption { colloquial, individualDigit }
 
+const double _deg180inv = 1.0 / 180.0;
 @pragma("vm:prefer-inline")
-double _radians(double deg) => deg / 180.0 * pi;
+double _radians(double deg) => deg * _deg180inv * pi;
 
+const double _ln10inv = 1.0 / ln10;
 @pragma("vm:prefer-inline")
-double _log10(num x) => log(x) / ln10;
+double _log10(num x) => log(x) * _ln10inv;
 
 /// Class to calculate and speak audio alerts for nearby and closing-in (TCPA) traffic
 class AudibleTrafficAlerts {
   static const double _kMpsToKnotsConv = 1.0 / 0.514444;
   static const double _kMetersToFeetCont = 3.28084;
   static const int _kMaxIntValue = 9999999999;
-  static const double _kMetersPerNauticalMile = 1852.000;
+  static const double _kNauticalMilesPerMeter = 1.0 / 1852.0;
+  static const double _kSecondsPerHour = 3600.000;
+  static const double _kHoursPerSecond = 1.0 / 3600.000;
+  static const double _kSecPerAudioSegment = 0.7; // SWAG ==> TODO: Worth putting in code to compute duration of audio-to-date exactly?
+  static const double _k30DegInv = 1.0 / 30.0;
+  static const double _k60DegInv = 1.0 / 60.0;
+  static const double _kSecPerMillseconds = 0.001;
+  static const double _kHalf = 0.5;
 
   static AudibleTrafficAlerts? _instance;
 
@@ -120,7 +129,7 @@ class AudibleTrafficAlerts {
   bool prefTopGunDorkMode = false;
   int prefAudibleTrafficAlertsMinSpeed = 0;
   int prefAudibleTrafficAlertsDistanceMinimum = 5;
-  double prefTrafficAlertsHeight = 1000;
+  double prefTrafficAlertsHeight = 4000;
   int prefMaxAlertFrequencySeconds = 15;
   int prefTimeBetweenAnyAlertMs = 750;
   // Closing (TCPA) alert preferences
@@ -288,17 +297,17 @@ class AudibleTrafficAlerts {
                 traffic.message.heading,
                 ownshipLocation.heading,
                 traffic.message.velocity.round(),
-                ownSpeedInKts)).abs() * 60.00 * 60.00;
+                ownSpeedInKts)).abs() * _kSecondsPerHour;
     if (closingEventTimeSec < prefClosingTimeThresholdSeconds) {
       // Gate #1: Time threshold met
       final Position myCaLoc = _locationAfterTime(ownshipLocation.latitude, ownshipLocation.longitude, ownshipLocation.heading,
-          ownSpeedInKts * 1.0, closingEventTimeSec / 3600.000, ownAltInFeet, ownVspeed);
+          ownSpeedInKts * 1.0, closingEventTimeSec * _kHoursPerSecond, ownAltInFeet, ownVspeed);
       final Position theirCaLoc = _locationAfterTime(
           traffic.message.coordinates.latitude,
           traffic.message.coordinates.longitude,
           traffic.message.heading,
           traffic.message.velocity,
-          closingEventTimeSec / 3600.000,
+          closingEventTimeSec * _kHoursPerSecond,
           traffic.message.altitude,
           traffic.message.verticalSpeed);
       double? caDistance;
@@ -533,10 +542,11 @@ class AudibleTrafficAlerts {
     }
   }
 
+  
   bool _addClosingSecondsAudio(List<AssetSource> alertAudio, double closingSeconds) {
     // Subtract speaking time of audio clips, and computation thereof, prior to # of seconds in this alert
     final double adjustedClosingSeconds = closingSeconds -
-        (alertAudio.length * 700.0 / 1000.0); // SWAG ==> TODO: Put in infra and code to compute duration of audio-to-date exactly?
+        (alertAudio.length * _kSecPerAudioSegment); // SWAG ==> TODO: Worth putting in code to compute duration of audio-to-date exactly?
     if (adjustedClosingSeconds > 0) {
       alertAudio.add(_closingInAudio);
       _addNumericalAlertAudio(alertAudio, adjustedClosingSeconds, false);
@@ -553,7 +563,7 @@ class AudibleTrafficAlerts {
 
   static int _nearestClockHourFromHeadingAndLocations(
       final double lat1, final double long1, final double lat2, final double long2, final double myBearing) {
-    final int nearestClockHour = (_relativeBearingFromHeadingAndLocations(lat1, long1, lat2, long2, myBearing) / 30.0).round();
+    final int nearestClockHour = (_relativeBearingFromHeadingAndLocations(lat1, long1, lat2, long2, myBearing) * _k30DegInv).round();
     return nearestClockHour != 0 ? nearestClockHour : 12;
   }
 
@@ -564,7 +574,7 @@ class AudibleTrafficAlerts {
   /// @param lon2 Longitude 2
   /// @return Great circle distance between two points in nautical miles
   static double _greatCircleDistanceNmi(final double lat1, final double lon1, final double lat2, final double lon2) {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) / _kMetersPerNauticalMile;
+    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) * _kNauticalMilesPerMeter;
   }
 
   static String _getTrafficKey(Traffic? traffic) {
@@ -584,7 +594,7 @@ class AudibleTrafficAlerts {
   static double _closestApproachTime(final double lat1, final double lon1, final double lat2, final double lon2, final double heading1,
       final double heading2, final int velocity1, final int velocity2) {
     // Use cosine of average of two latitudes, to give some weighting for lesser intra-lon distance at higher latitudes
-    final double a = (lon2 - lon1) * (60.0000 * cos(_radians((lat1 + lat2) / 2.0000)));
+    final double a = (lon2 - lon1) * (60.0000 * cos(_radians((lat1 + lat2) * _kHalf)));
     final double b = velocity2 * sin(_radians(heading2)) - velocity1 * sin(_radians(heading1));
     final double c = (lat2 - lat1) * 60.0000;
     final double d = velocity2 * cos(_radians(heading2)) - velocity1 * cos(_radians(heading1));
@@ -594,12 +604,12 @@ class AudibleTrafficAlerts {
 
   static Position _locationAfterTime(final double lat, final double lon, final double heading, final double velocityInKt,
       final double timeInHrs, final double altInFeet, final double vspeedInFpm) {
-    final double newLat = lat + cos(_radians(heading)) * (velocityInKt / 60.00000) * timeInHrs;
+    final double newLat = lat + cos(_radians(heading)) * (velocityInKt * _k60DegInv) * timeInHrs;
     return Position(
         latitude: newLat,
         longitude: lon + sin(_radians(heading))
                 // Again, use cos of average lat to give some weighting based on shorter intra-lon distance changes at higher latitudes
-                * (velocityInKt / (60.00000 * cos(_radians((newLat + lat) / 2.0000)))) * timeInHrs,
+                * (velocityInKt / (60.00000 * cos(_radians((newLat + lat) * _kHalf)))) * timeInHrs,
         altitude: altInFeet + (vspeedInFpm * (60.0 * timeInHrs)),
         altitudeAccuracy: 0,
         heading: heading,
@@ -624,7 +634,7 @@ class _ClosingEvent {
         _eventTimeMillis = DateTime.now().millisecondsSinceEpoch;
 
   double closingSeconds() {
-    return _closingTimeSec - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) / 1000.0000;
+    return _closingTimeSec - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) * AudibleTrafficAlerts._kSecPerMillseconds;
   }
 
   @override
