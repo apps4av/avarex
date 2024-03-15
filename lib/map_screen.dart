@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
+import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
@@ -800,7 +801,10 @@ class MapScreenState extends State<MapScreen> {
                                                   if(_layers[index] == "Tracks") {
                                                     if(value == false) {
                                                       // save tracks on turning them off then show user where to get them
-                                                      Storage().tracks.saveKml().then((value) => { Navigator.pushNamed(context, '/documents') });
+                                                      Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                                                      Storage().tracks.saveKml().then((value) {
+                                                        Navigator.pushNamed(context, '/documents');
+                                                      });
                                                     }
                                                     else {
                                                       Storage().tracks.reset(); //on turning on, start fresh

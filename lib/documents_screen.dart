@@ -11,6 +11,10 @@ import 'constants.dart';
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
 
+  static const String allDocuments = "All Documents";
+  static const String userDocuments = "User Docs";
+
+
   @override
   State<StatefulWidget> createState() => DocumentsScreenState();
 }
@@ -18,8 +22,6 @@ class DocumentsScreen extends StatefulWidget {
 
 
 class DocumentsScreenState extends State<DocumentsScreen> {
-
-  String? filter; // for filtering docs
 
   List<Document> products = [];
   static const List<Document> productsStatic = [
@@ -86,13 +88,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   Widget smallImage(Document product) {
      Widget widget;
 
-     if(product.type == "User") {
+     if(product.type == DocumentsScreen.userDocuments) {
        widget = Row(children: [
          TextButton(onPressed: () {
 
            final box = context.findRenderObject() as RenderBox?;
            Share.shareXFiles(
-             [XFile(product.url, mimeType: "text/plain")],
+             [XFile(product.url, mimeType: "application/vnd.google-earth.kml+xml")],
              sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
            );
          }, child: const Text("Share")),
@@ -141,17 +143,21 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
   Widget _makeContent(List<String>? tracks) {
 
+    if(null == tracks) {
+      return Container();
+    }
+
+    String filter = Storage().settings.getDocumentPage();
+
     products = [];
     products.addAll(productsStatic);
 
-    if(null != tracks) {
-      for(String track in tracks) {
-        products.add(Document("User", PathUtils.filename(track), track));
-      }
+    for(String track in tracks) {
+      products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(track), track));
     }
 
     List<String> ctypes = products.map((e) => e.type).toSet().toList(); // toSet for unique.
-    ctypes.insert(0, "All Documents"); // everything shows
+    ctypes.insert(0, DocumentsScreen.allDocuments); // everything shows
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
@@ -167,11 +173,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
                   ),
                   isExpanded: false,
-                  value: filter ?? ctypes[0],
+                  value: filter,
                   items: ctypes.map((String e) => DropdownMenuItem<String>(value: e, child: Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
                   onChanged: (value) {
                     setState(() {
-                      filter = value ?? ctypes[0];
+                      Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
                     });
                   },
                 )
@@ -186,7 +192,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
             crossAxisCount: 2,
             children: <Widget>[
               for(Document p in products)
-                if(filter != null ? p.type == filter || filter == ctypes[0] : true)
+                if(p.type == filter || filter == DocumentsScreen.allDocuments)
                   smallImage(p),
             ],
           ),

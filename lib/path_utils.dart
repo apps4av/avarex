@@ -88,6 +88,10 @@ class PathUtils {
     DateTime now = DateTime.now();
     try {
       final String dir = path.join(base, "tracks");
+      Directory d = Directory(dir);
+      if(!(await d.exists())) { // create tracks folder if it does not exist
+        d.create();
+      }
       final String file = path.join(dir, "track_${now.year}_${now.month}_${now.day}-${now.hour}_${now.minute}_${now.second}.kml");
       final File f = File(file);
       await f.writeAsString(data);
