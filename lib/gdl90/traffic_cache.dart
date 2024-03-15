@@ -133,8 +133,7 @@ class TrafficCache {
     if (Storage().settings.isAudibleAlertsEnabled()) {
       AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        final Storage storage = Storage();
-        value?.processTrafficForAudibleAlerts(_traffic, storage.position, storage.lastMsGpsSignal, storage.vspeed, storage.airborne);
+        value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
       });
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
