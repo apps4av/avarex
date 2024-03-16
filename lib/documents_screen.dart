@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
@@ -14,17 +17,15 @@ class DocumentsScreen extends StatefulWidget {
   static const String allDocuments = "All Documents";
   static const String userDocuments = "User Docs";
 
-
   @override
   State<StatefulWidget> createState() => DocumentsScreenState();
 }
 
 
-
 class DocumentsScreenState extends State<DocumentsScreen> {
 
   List<Document> products = [];
-  static const List<Document> productsStatic = [
+  static final List<Document> productsStatic = [
     Document("WPC",              "WPC Surface Analysis",   "https://aviationweather.gov/data/products/progs/F000_wpc_sfc.gif"),
     Document("WPC",              "WPC 6HR Prognostic",     "https://aviationweather.gov/data/products/progs/F006_wpc_prog.gif"),
     Document("WPC",              "WPC 12HR Prognostic",    "https://aviationweather.gov/data/products/progs/F012_wpc_prog.gif"),
@@ -98,13 +99,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
            );
          }, child: const Text("Share")),
-         if((products.length - productsStatic.length) > 1)
-         TextButton(onPressed: () {
-           setState(() {
-             PathUtils.deleteFile(product.url);
-             products.remove(product);
-           });
-         }, child: const Text("Delete")),
+         if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+           TextButton(onPressed: () {
+             setState(() {
+               PathUtils.deleteFile(product.url);
+               products.remove(product);
+             });
+           }, child: const Text("Delete")),
        ]);
      }
      else {
@@ -141,7 +142,20 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 
-  Widget _makeContent(List<String>? tracks) {
+  void _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      String? path = result.files.single.path;
+      if(path != null) {
+        File file = File(path);
+        // copy now
+        file.copy(PathUtils.getFilePath(
+            Storage().dataDir, PathUtils.filename(file.path)));
+      }
+    }
+  }
+
+Widget _makeContent(List<String>? tracks) {
 
     if(null == tracks) {
       return Container();
@@ -151,6 +165,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
     products = [];
     products.addAll(productsStatic);
+
+    // always show user db
+    Document user = Document(DocumentsScreen.userDocuments, "Plans, Settings etc.", PathUtils.getFilePath(Storage().dataDir, "user.db"));
+    user.canBeDeleted = false;
+    products.add(user);
 
     for(String track in tracks) {
       products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(track), track));
@@ -163,7 +182,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Documents"),
           actions: [
-            Padding(padding: const EdgeInsets.fromLTRB(0, 0, 10, 0), child:
+            IconButton(onPressed: _pickFile, icon: const Icon(Icons.add)),
+            Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:
                 DropdownButton2<String>( // airport selection
                   buttonStyleData: ButtonStyleData(
@@ -206,6 +226,7 @@ class Document {
   final String name;
   final String url;
   final String type;
-  const Document(this.type, this.name, this.url);
+  bool canBeDeleted = true;
+  Document(this.type, this.name, this.url);
 }
 

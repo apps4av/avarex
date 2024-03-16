@@ -1,4 +1,6 @@
 
+import 'dart:ui';
+
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
@@ -94,7 +96,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               ),
               leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
             ListTile(
-              title: const Text("Donate"),
+              title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
               onTap: () { launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));},),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
             ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),

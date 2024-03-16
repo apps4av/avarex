@@ -41,6 +41,11 @@ class PathUtils {
     return(filename);
   }
 
+  static String getFilePath(String base, String file) {
+    String id = path.join(base, file);
+    return(id);
+  }
+
   static String getMinimumsFilePath(String base, String name) {
     String afd = path.join(base, "minimums");
     String filename = path.join(afd, "${name[0]}/$name.png");
