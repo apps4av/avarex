@@ -145,7 +145,7 @@ class MapScreenState extends State<MapScreen> {
     MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
-      minZoom: 0,
+      minZoom: 2, // this is less crazy
       maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: _northUp ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
