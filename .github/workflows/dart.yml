@@ -84,6 +84,10 @@ jobs:
         run: flutter pub get
       - name: Build artifacts
         run: flutter build windows --release
+      - name: Download Sqlite3.dll
+        run: |
+          wget https://www.sqlite.org/2024/sqlite-dll-win-x64-3450200.zip
+          unzip sqlite-dll-win-x64-3450200.zip -d build/windows/x64/runner/Release/
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:
