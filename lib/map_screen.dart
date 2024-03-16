@@ -622,7 +622,7 @@ class MapScreenState extends State<MapScreen> {
               if (location1 != null)
                 Marker(point: location1, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
               if (middle != null)
-                Marker(point: middle, width: 128, child: Text("${distance.toString()}nm/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.instrumentBackgroundColor),))
+                Marker(point: middle, width: 128, child: Text("${distance.toString()}NM/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.instrumentBackgroundColor),))
             ],
           );
         },
@@ -789,7 +789,7 @@ class MapScreenState extends State<MapScreen> {
                                       _ruler.init();
                                       _ruler.startMeasure();
                                     }
-                                  });}, icon: CircleAvatar(backgroundColor: _ruler.color(), child: const Icon(Icons.cancel_outlined))),
+                                  });}, icon: CircleAvatar(backgroundColor: _ruler.color(), child: Icon(MdiIcons.mathCompass))),
                                   // switch layers on off
                                   PopupMenuButton( // airport selection
                                     icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
