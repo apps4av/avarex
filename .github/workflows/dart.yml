@@ -91,9 +91,10 @@ jobs:
           url: "https://www.sqlite.org/2024/sqlite-dll-win-x64-3450200.zip"
           target: build/windows/x64/runner/Release
       - name: Unzip Sqlite3.dll
-        uses: montudor/action-zip@v1
+        uses: ihiroky/extract-action@v1
         with:
-          args: unzip -qq build/windows/x64/runner/Release/sqlite-dll-win-x64-3450200.zip -d build/windows/x64/runner/Release   
+          file_path: build/windows/x64/runner/Release/sqlite-dll-win-x64-3450200.zip
+          extract_dir: build/windows/x64/runner/Release
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:
