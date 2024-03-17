@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
 
@@ -73,14 +74,15 @@ class PathUtils {
     return path.split(url).last;
   }
 
-  static Future<List<String>> getTrackNames(String base) async {
+  static Future<List<String>> getDocumentsNames(String base) async {
     List<String> ret = [];
     try {
-      String id = path.join(base, "tracks");
-      final d = Directory(id);
+      final d = Directory(base);
       final List<FileSystemEntity> entities = await d.list().toList();
       for (FileSystemEntity en in entities) {
-        ret.add(en.path);
+        if(isTextFile(en.path) || isPdfFile(en.path) || isKmlFile(en.path)) {
+          ret.add(en.path);
+        }
       }
     }
     catch(e) {
@@ -89,15 +91,23 @@ class PathUtils {
     return(ret);
   }
 
+  static bool isTextFile(String url) {
+    return path.extension(url) == ".txt";
+  }
+
+  static bool isPdfFile(String url) {
+    return path.extension(url) == ".pdf";
+  }
+
+  static bool isKmlFile(String url) {
+    return path.extension(url) == ".kml";
+  }
+
   static Future<void> writeTrack(String base, String data) async {
     DateTime now = DateTime.now();
     try {
-      final String dir = path.join(base, "tracks");
-      Directory d = Directory(dir);
-      if(!(await d.exists())) { // create tracks folder if it does not exist
-        d.create();
-      }
-      final String file = path.join(dir, "track_${now.year}_${now.month}_${now.day}-${now.hour}_${now.minute}_${now.second}.kml");
+      final format = DateFormat('yyyy_MMMM_dd@kk_mm_ss').format(now);
+      final String file = path.join(base, "track_$format.kml");
       final File f = File(file);
       await f.writeAsString(data);
     }

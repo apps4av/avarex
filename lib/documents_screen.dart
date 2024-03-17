@@ -85,28 +85,54 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     Document("Winds/Temp",       "Winds/Temp 30000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_300_b1.gif"),
   ];
 
+  Widget _textReader(String path) {
+    return FutureBuilder(
+        future: File(path).readAsBytes(),
+        builder: (context, snapshot) {
+          return Scaffold(
+              body: SingleChildScrollView(
+                child:Text(
+                  snapshot.data == null ? "" : String.fromCharCodes(snapshot.data!),
+                ),
+              )
+          );
+        }
+    );
+  }
+
   //if you don't want widget full screen then use center widget
   Widget smallImage(Document product) {
      Widget widget;
 
      if(product.type == DocumentsScreen.userDocuments) {
-       widget = Row(children: [
-         TextButton(onPressed: () {
-
-           final box = context.findRenderObject() as RenderBox?;
-           Share.shareXFiles(
-             [XFile(product.url, mimeType: "application/vnd.google-earth.kml+xml")],
-             sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-           );
-         }, child: const Text("Share")),
-         if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
-           TextButton(onPressed: () {
-             setState(() {
-               PathUtils.deleteFile(product.url);
-               products.remove(product);
-             });
-           }, child: const Text("Delete")),
-       ]);
+       widget =
+           Column(children: [
+               Flexible(flex: 1, child: Row(children: [
+                 TextButton(onPressed: () {
+                   final box = context.findRenderObject() as RenderBox?;
+                   Share.shareXFiles(
+                     [XFile(product.url)],
+                     sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                   );
+                 }, child: const Text("Share")),
+                 if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+                   TextButton(onPressed: () {
+                     setState(() {
+                       PathUtils.deleteFile(product.url);
+                       products.remove(product);
+                     });
+                   }, child: const Text("Delete")),
+               ])
+             ),
+             if(PathUtils.isTextFile(product.url))
+               Flexible(flex: 4,
+                 child: WidgetZoom(
+                   heroAnimationTag: product.name,
+                   zoomWidget: _textReader(product.url))),
+             if(PathUtils.isKmlFile(product.url))
+               Flexible(flex: 4,
+                 child: Container(padding: const EdgeInsets.fromLTRB(0, 10, 0, 10), child: Icon(Icons.gps_fixed, size: 48,))),
+           ]);
      }
      else {
        widget = WidgetZoom(
@@ -125,12 +151,12 @@ class DocumentsScreenState extends State<DocumentsScreen> {
           )),
     );
   }
-
+  
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: PathUtils.getTrackNames(Storage().dataDir),
+        future: PathUtils.getDocumentsNames(Storage().dataDir),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -155,9 +181,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
-Widget _makeContent(List<String>? tracks) {
+Widget _makeContent(List<String>? docs) {
 
-    if(null == tracks) {
+    if(null == docs) {
       return Container();
     }
 
@@ -167,12 +193,12 @@ Widget _makeContent(List<String>? tracks) {
     products.addAll(productsStatic);
 
     // always show user db
-    Document user = Document(DocumentsScreen.userDocuments, "Plans, Settings etc.", PathUtils.getFilePath(Storage().dataDir, "user.db"));
+    Document user = Document(DocumentsScreen.userDocuments, "User's Data", PathUtils.getFilePath(Storage().dataDir, "user.db"));
     user.canBeDeleted = false;
     products.add(user);
 
-    for(String track in tracks) {
-      products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(track), track));
+    for(String doc in docs) {
+      products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(doc), doc));
     }
 
     List<String> ctypes = products.map((e) => e.type).toSet().toList(); // toSet for unique.
