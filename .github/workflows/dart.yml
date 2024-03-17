@@ -90,6 +90,17 @@ jobs:
         run: flutter pub get
       - name: Build artifacts
         run: flutter build windows --release
+      - name: Download Sqlite3.dll
+        uses: suisei-cn/actions-download-file@818d6b7dc8fe73f2f924b6241f2b1134ca1377d9 # 1.6.0
+        id: sqlite3  # Remember to give an ID if you need the output filename
+        with:
+          url: "https://www.sqlite.org/2024/sqlite-dll-win-x64-3450200.zip"
+          target: build/windows/x64/runner/Release
+      - name: Unzip Sqlite3.dll
+        uses: ihiroky/extract-action@v1
+        with:
+          file_path: build/windows/x64/runner/Release/sqlite-dll-win-x64-3450200.zip
+          extract_dir: build/windows/x64/runner/Release
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:

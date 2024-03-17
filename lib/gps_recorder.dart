@@ -1,5 +1,8 @@
+
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/instrument_list.dart';
+import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gpx/gpx.dart';
 import 'package:latlong2/latlong.dart';
@@ -92,6 +95,11 @@ class GpsRecorder {
 
   List<LatLng> getPoints() {
     return gpx.wpts.map((e) => LatLng(e.lat!, e.lon!)).toList();
+  }
+
+  Future<void> saveKml() async {
+    String data = getKml();
+    await PathUtils.writeTrack(Storage().dataDir, data);
   }
 
 }

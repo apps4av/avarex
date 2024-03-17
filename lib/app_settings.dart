@@ -1,5 +1,6 @@
 
 import 'package:avaremp/chart.dart';
+import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/settings_cache_provider.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
 
@@ -117,6 +118,14 @@ class AppSettings {
 
   void setIntro(bool value) {
     Settings.setValue("key-intro", value);
+  }
+
+  void setDocumentPage(String name) {
+    Settings.setValue("key-document-page-v1", name);
+  }
+
+  String getDocumentPage() {
+    return Settings.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
   bool isAudibleAlertsEnabled() {

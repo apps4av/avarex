@@ -1,7 +1,6 @@
 import 'dart:io';
-
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
+import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
@@ -23,7 +22,6 @@ import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path/path.dart';
-
 import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
@@ -39,7 +37,6 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
-
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
@@ -67,11 +64,6 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _handlePress(TapPosition tapPosition, LatLng point) async {
-
-    if(_ruler.isDoubleTouch()) {
-      return; // on double touch, do not set destination as it is ambiguous
-    }
-    _ruler.init(); // this will guard against double long press
     List<Destination> items = await MainDatabaseHelper.db.findNear(point);
     setState(() {
       showDestination(this.context, items[0]);
@@ -144,7 +136,7 @@ class MapScreenState extends State<MapScreen> {
     MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
-      minZoom: 0,
+      minZoom: 2, // this is less crazy
       maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: _northUp ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
@@ -152,9 +144,6 @@ class MapScreenState extends State<MapScreen> {
       onLongPress: _handlePress,
       onPointerDown: (PointerDownEvent event, position) { // calculate down pointers here
         _ruler.setPointer(event.pointer, position);
-      },
-      onPointerUp: (PointerUpEvent event, position) {
-        _ruler.unsetPointer(event.pointer);
       },
       onMapEvent: (MapEvent mapEvent) {
         if (mapEvent is MapEventMoveStart) {
@@ -613,22 +602,32 @@ class MapScreenState extends State<MapScreen> {
         ),
       );
 
-      // ruler
-      layers.add(Container(alignment: Alignment.topLeft, padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
-        child:
-        ValueListenableBuilder<int>(
-          valueListenable: _ruler.change,
-          builder: (context, value, _) {
-            int? distance = _ruler.getDistance();
-            LatLng? location = _ruler.getMiddle();
-            if(distance == null || location == null) {
-              return Container();
-            }
-            return AutoSizeText("${distance.toString()} NM", maxFontSize: 20, minFontSize: 10, style: TextStyle(color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor));
-          },
-        ),
-      ));
     } // all nav layers
+
+    // ruler, always present
+    layers.add(
+      ValueListenableBuilder<int>(
+        valueListenable: _ruler.change,
+        builder: (context, value, _) {
+          int? distance;
+          int? bearing;
+          (distance, bearing) = _ruler.getDistanceBearing();
+          LatLng? location0 = _ruler.getStart();
+          LatLng? location1 = _ruler.getEnd();
+          LatLng? middle = _ruler.getMiddle();
+          return MarkerLayer(
+            markers: [
+              if (location0 != null)
+                Marker(point: location0, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
+              if (location1 != null)
+                Marker(point: location1, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
+              if (middle != null)
+                Marker(point: middle, width: 128, child: Text("${distance.toString()}NM/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.instrumentBackgroundColor),))
+            ],
+          );
+        },
+      ),
+    );
 
     FlutterMap map = FlutterMap(
       mapController: _controller,
@@ -669,7 +668,6 @@ class MapScreenState extends State<MapScreen> {
             )
         )
     );
-
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
@@ -779,63 +777,91 @@ class MapScreenState extends State<MapScreen> {
                       alignment: Alignment.bottomRight,
                       child: Padding(
                           padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
-                          child: Column(mainAxisAlignment: MainAxisAlignment.end, children:[
-                            // switch layers on off
-                            PopupMenuButton( // airport selection
-                              icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
-                              initialValue: _layers[0],
-                              itemBuilder: (BuildContext context) =>
-                                  List.generate(_layers.length, (int index) => PopupMenuItem(
-                                    child: StatefulBuilder(
-                                      builder: (context1, setState1) =>
-                                          ListTile(
-                                            dense: true,
-                                            title: Text(_layers[index]),
-                                            subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
-                                            leading: Switch(
-                                              value: _layersState[index],
-                                              onChanged: (bool value) {
-                                                setState1(() {
-                                                  _layersState[index] = value; // this is state for the switch
-                                                });
-                                                // now save to settings
-                                                Storage().settings.setLayersState(_layersState);
-                                                // Turn audible alerts off and on depending on traffic layer
-                                                Storage().settings.setAudibleAlertsEnabled(_layersState[Storage().settings.getLayers().indexOf("Traffic")]);                                                
-                                                setState(() {
-                                                  _layersState[index] = value; // this is the state for the map
-                                                });
-                                              },
-                                            ),
-                                          ),
-                                    ),)
-                                  ),
-                            ),
-                            // chart select
-                            DropdownButtonHideUnderline(
-                                child:DropdownButton2<String>(
-                                  buttonStyleData: ButtonStyleData(
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
-                                  ),
-                                  dropdownStyleData: DropdownStyleData(
-                                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  isExpanded: false,
-                                  value: _type,
-                                  items: _charts.map((String item) {
-                                    return DropdownMenuItem<String>(
-                                        value: item,
-                                        child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
-                                    );
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      Storage().settings.setChartType(value ?? _charts[0]);
-                                      _type = Storage().settings.getChartType();
-                                    });
-                                  },
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end, children:[
+                              Row(mainAxisAlignment: MainAxisAlignment.end,
+                                children:[
+                                  IconButton(onPressed: () {setState(() {
+                                    if(_ruler.isMeasuring()) {
+                                      _ruler.init();
+                                    }
+                                    else {
+                                      _ruler.init();
+                                      _ruler.startMeasure();
+                                    }
+                                  });}, icon: CircleAvatar(backgroundColor: _ruler.color(), child: Icon(MdiIcons.mathCompass))),
+                                  // switch layers on off
+                                  PopupMenuButton( // airport selection
+                                    icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
+                                    initialValue: _layers[0],
+                                    itemBuilder: (BuildContext context) =>
+                                        List.generate(_layers.length, (int index) => PopupMenuItem(
+                                          child: StatefulBuilder(
+                                            builder: (context1, setState1) =>
+                                                ListTile(
+                                                  dense: true,
+                                                  title: Text(_layers[index]),
+                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
+                                                  leading: Switch(
+                                                    value: _layersState[index],
+                                                    onChanged: (bool value) {
+                                                      setState1(() {
+                                                        _layersState[index] = value;
+                                                        if(_layers[index] == "Tracks") {
+                                                          if(value == false) {
+                                                            // save tracks on turning them off then show user where to get them
+                                                            Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                                                            Storage().tracks.saveKml().then((value) {
+                                                              Navigator.pushNamed(context, '/documents');
+                                                            });
+                                                          }
+                                                          else {
+                                                            Storage().tracks.reset(); //on turning on, start fresh
+                                                          }
+                                                        }
+                                                      });
+                                                      // now save to settings
+                                                      Storage().settings.setLayersState(_layersState);
+                                                      setState(() {
+                                                        _layersState[index] = value; // this is the state for the map
+                                                      });
+                                                      // Turn audible alerts off and on depending on traffic layer
+                                                      Storage().settings.setAudibleAlertsEnabled(_layersState[Storage().settings.getLayers().indexOf("Traffic")]);                                                
+                                                    },
+                                                  ),
+                                                ),
+                                          ),)
+                                        ),
+                                    ),
+                                  ]
+                                ),
+                                // chart select
+                                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                                  DropdownButtonHideUnderline(
+                                    child:DropdownButton2<String>(
+                                      buttonStyleData: ButtonStyleData(
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                                      ),
+                                      dropdownStyleData: DropdownStyleData(
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      isExpanded: false,
+                                      value: _type,
+                                      items: _charts.map((String item) {
+                                        return DropdownMenuItem<String>(
+                                            value: item,
+                                            child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
+                                        );
+                                      }).toList(),
+                                      onChanged: (value) {
+                                        setState(() {
+                                          Storage().settings.setChartType(value ?? _charts[0]);
+                                          _type = Storage().settings.getChartType();
+                                        });
+                                      },
+                                    )
                                 )
-                            ),
+                              ]),
                           ])
                       )
                   )
@@ -889,6 +915,7 @@ class Ruler {
   int? _pointer1id;
   LatLng? _ll0;
   LatLng? _ll1;
+  bool _measuring = false;
   final change = ValueNotifier<int>(0);
   final GeoCalculations geo = GeoCalculations();
 
@@ -897,38 +924,33 @@ class Ruler {
     _ll0 = null;
     _pointer1id = null;
     _ll1 = null;
+    _measuring = false;
     change.value++;
   }
 
-  bool isDoubleTouch() {
-    return _pointer0id != null && _pointer1id != null;
-  }
-
   void setPointer(int id, LatLng position) {
+    if(!_measuring) {
+      return;
+    }
     if(null == _pointer0id)  {
       _pointer0id = id;
       _ll0 = position;
+      change.value++;
 
     }
     else if(null == _pointer1id)  {
       _pointer1id = id;
       _ll1 = position;
       change.value++;
-
     }
   }
 
-  void unsetPointer(int id) {
-    if(null != _pointer0id && id == _pointer0id)  {
-      _pointer0id = null;
-      _ll0 = null;
-      change.value++; // not in double touch anymore
-    }
-    if(null != _pointer1id && id == _pointer1id)  {
-      _pointer1id = null;
-      _ll1 = null;
-      change.value++; // not in double touch anymore
-    }
+  LatLng? getStart() {
+    return _ll0;
+  }
+
+  LatLng? getEnd() {
+    return _ll1;
   }
 
   LatLng? getMiddle() {
@@ -938,11 +960,28 @@ class Ruler {
     return null;
   }
 
-  int? getDistance() {
+  (int?, int?) getDistanceBearing() {
     if(_ll1 != null && _ll0 != null) {
-      return geo.calculateDistance(_ll0!, _ll1!).round();
+      double variation = geo.getVariation(getMiddle()!);
+      double bearing = GeoCalculations.getMagneticHeading(geo.calculateBearing(_ll0!, _ll1!), variation);
+      return (geo.calculateDistance(_ll0!, _ll1!).round(), bearing.round());
     }
-    return null;
+    return (null, null);
+  }
+
+  Color color() {
+    if(_measuring) {
+      return Colors.blueAccent;
+    }
+    return Constants.dropDownButtonBackgroundColor;
+  }
+
+  void startMeasure() {
+    _measuring = true;
+  }
+
+  bool isMeasuring() {
+    return _measuring;
   }
 
 }

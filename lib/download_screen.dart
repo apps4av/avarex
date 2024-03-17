@@ -34,7 +34,7 @@ class DownloadScreenState extends State<DownloadScreen> {
 
   bool _stopped = false;
   int _total = 0;
-  int _totalStartWith = 1;
+  int _totalStartWith = 0;
 
   DownloadScreenState() {
     for (ChartCategory cg in _allCharts) {
@@ -67,7 +67,7 @@ class DownloadScreenState extends State<DownloadScreen> {
 
   void _initTotal() {
     setState(() {
-      _totalStartWith = 1;
+      _totalStartWith = 0;
       _total = 0;
     });
   }
@@ -86,7 +86,7 @@ class DownloadScreenState extends State<DownloadScreen> {
         title: const Text("Download"),
         actions: [
           if(_total != 0)
-            CircularProgressIndicator(value : (_totalStartWith.toDouble() - _total.toDouble()) / _totalStartWith.toDouble()),
+            Text("${(_totalStartWith - _total)} / $_totalStartWith"),
           TextButton(onPressed: () => {_start()}, child: const Text("Start")),
         ],
       ),

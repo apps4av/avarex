@@ -1,14 +1,19 @@
 
+import 'dart:ui';
+
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'constants.dart';
 import 'instrument_list.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
+import 'package:yaml/yaml.dart';
+import 'package:flutter/services.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -71,8 +76,18 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
         child: Drawer(
           child: ListView(children: [
-            ListTile(title: const Text("AvareX"),
-              subtitle: const Text("0.0.1"),
+            ListTile(
+              title: const Text("AvareX"),
+              subtitle: FutureBuilder( // get version from pubspec.yaml
+                  future: rootBundle.loadString("pubspec.yaml"),
+                  builder: (context, snapshot) {
+                    String version = "Unknown";
+                    if (snapshot.hasData) {
+                      var yaml = loadYaml(snapshot.data!);
+                      version = yaml["version"];
+                    }
+                    return Text('Version: $version');
+                  }),
               trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
                 onPressed: () {
                   Storage().settings.setIntro(true);
@@ -80,6 +95,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                 },
               ),
               leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
+            ListTile(
+              title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
+              onTap: () { launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));},),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
             ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),
           ],

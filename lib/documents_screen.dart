@@ -1,7 +1,12 @@
+import 'dart:io';
+
+import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
 import 'constants.dart';
@@ -9,17 +14,18 @@ import 'constants.dart';
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
 
+  static const String allDocuments = "All Documents";
+  static const String userDocuments = "User Docs";
+
   @override
   State<StatefulWidget> createState() => DocumentsScreenState();
 }
 
 
-
 class DocumentsScreenState extends State<DocumentsScreen> {
 
-  String? filter; // for filtering docs
-
-  final List<Document> products = [
+  List<Document> products = [];
+  static final List<Document> productsStatic = [
     Document("WPC",              "WPC Surface Analysis",   "https://aviationweather.gov/data/products/progs/F000_wpc_sfc.gif"),
     Document("WPC",              "WPC 6HR Prognostic",     "https://aviationweather.gov/data/products/progs/F006_wpc_prog.gif"),
     Document("WPC",              "WPC 12HR Prognostic",    "https://aviationweather.gov/data/products/progs/F012_wpc_prog.gif"),
@@ -80,19 +86,41 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   ];
 
   //if you don't want widget full screen then use center widget
-  Widget smallImage(String name, String url) {
-     Widget widget = WidgetZoom(
-        heroAnimationTag: name,
-        zoomWidget: CachedNetworkImage(
-          imageUrl: url,
-          cacheManager: FileCacheManager().networkCacheManager,));
+  Widget smallImage(Document product) {
+     Widget widget;
 
+     if(product.type == DocumentsScreen.userDocuments) {
+       widget = Row(children: [
+         TextButton(onPressed: () {
+
+           final box = context.findRenderObject() as RenderBox?;
+           Share.shareXFiles(
+             [XFile(product.url, mimeType: "application/vnd.google-earth.kml+xml")],
+             sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+           );
+         }, child: const Text("Share")),
+         if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+           TextButton(onPressed: () {
+             setState(() {
+               PathUtils.deleteFile(product.url);
+               products.remove(product);
+             });
+           }, child: const Text("Delete")),
+       ]);
+     }
+     else {
+       widget = WidgetZoom(
+           heroAnimationTag: product.name,
+           zoomWidget: CachedNetworkImage(
+             imageUrl: product.url,
+             cacheManager: FileCacheManager().networkCacheManager,));
+     }
     return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
       child: Center(
           child: Column(
               children: [
                 SizedBox(width: 256, height: 128, child: widget),
-                Text(name),
+                Text(product.name),
               ]
           )),
     );
@@ -101,14 +129,61 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: PathUtils.getTrackNames(Storage().dataDir),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return _makeContent(snapshot.data);
+          }
+          else {
+            return _makeContent(null);
+          }
+        }
+    );
+  }
+
+  void _pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result != null) {
+      String? path = result.files.single.path;
+      if(path != null) {
+        File file = File(path);
+        // copy now
+        file.copy(PathUtils.getFilePath(
+            Storage().dataDir, PathUtils.filename(file.path)));
+      }
+    }
+  }
+
+Widget _makeContent(List<String>? tracks) {
+
+    if(null == tracks) {
+      return Container();
+    }
+
+    String filter = Storage().settings.getDocumentPage();
+
+    products = [];
+    products.addAll(productsStatic);
+
+    // always show user db
+    Document user = Document(DocumentsScreen.userDocuments, "Plans, Settings etc.", PathUtils.getFilePath(Storage().dataDir, "user.db"));
+    user.canBeDeleted = false;
+    products.add(user);
+
+    for(String track in tracks) {
+      products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(track), track));
+    }
+
     List<String> ctypes = products.map((e) => e.type).toSet().toList(); // toSet for unique.
-    ctypes.insert(0, "All Documents"); // everything shows
+    ctypes.insert(0, DocumentsScreen.allDocuments); // everything shows
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Documents"),
           actions: [
-            Padding(padding: const EdgeInsets.fromLTRB(0, 0, 10, 0), child:
+            IconButton(onPressed: _pickFile, icon: const Icon(Icons.add)),
+            Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:
                 DropdownButton2<String>( // airport selection
                   buttonStyleData: ButtonStyleData(
@@ -118,11 +193,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
                   ),
                   isExpanded: false,
-                  value: filter ?? ctypes[0],
+                  value: filter,
                   items: ctypes.map((String e) => DropdownMenuItem<String>(value: e, child: Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
                   onChanged: (value) {
                     setState(() {
-                      filter = value ?? ctypes[0];
+                      Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
                     });
                   },
                 )
@@ -137,8 +212,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
             crossAxisCount: 2,
             children: <Widget>[
               for(Document p in products)
-                if(filter != null ? p.type == filter || filter == ctypes[0] : true)
-                  smallImage(p.name, p.url),
+                if(p.type == filter || filter == DocumentsScreen.allDocuments)
+                  smallImage(p),
             ],
           ),
       ),
@@ -148,9 +223,10 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
 
 class Document {
-  String name;
-  String url;
-  String type;
+  final String name;
+  final String url;
+  final String type;
+  bool canBeDeleted = true;
   Document(this.type, this.name, this.url);
 }
 
