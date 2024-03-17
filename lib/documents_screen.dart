@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/pdf_viewer.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -8,7 +9,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import 'constants.dart';
 
@@ -109,7 +109,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
        widget =
            Column(children: [
                Flexible(flex: 1, child: Row(children: [
-                 if(PathUtils.isTextFile(product.url) || PathUtils.isPdfFile(product.url))
+                 if(PathUtils.isTextFile(product.url))
                    TextButton(
                        child: const Text("Open"), onPressed: () {
                          Navigator.of(context).push(
@@ -120,13 +120,22 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                                  backgroundColor: Constants.appBarBackgroundColor,
                                  title: Text(product.name),
                                ),
-                               body:
-                                PathUtils.isPdfFile(product.url) ?
-                                  SfPdfViewer.file(File(product.url)) : _textReader(product.url)
+                               body: _textReader(product.url)
                                )
                              )
                            );
                          }
+                   ),
+                 if(PathUtils.isPdfFile(product.url))
+                   TextButton(
+                       child: const Text("Open"), onPressed: () {
+                     Navigator.of(context).push(
+                         PageRouteBuilder(
+                             opaque: false,
+                             pageBuilder: (BuildContext context, _, __) => PdfViewer(product.url)
+                         )
+                     );
+                   }
                    ),
                  TextButton(onPressed: () {
                    final box = context.findRenderObject() as RenderBox?;
