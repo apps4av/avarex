@@ -6,6 +6,7 @@ By Apps4Av.
 
 ## Getting Started
 
+
 ### Downloading
 
 Click the Actions button on the top right of this page.
@@ -16,7 +17,7 @@ Unzip on the platform where it will be run.
 
 ** Windows 
 
-To run on Windows, download and place in the app folder (where the .exe file is) the file named sqlite3.dll from https://www.sqlite.org/download.html. Get the precompiled binary for sqlite3 for Windows 64.
+Make sure you allow Windows to use the .exe as it is flagged untrusted.
 
 ** MacOS
 

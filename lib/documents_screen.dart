@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 import 'constants.dart';
 
@@ -108,6 +109,25 @@ class DocumentsScreenState extends State<DocumentsScreen> {
        widget =
            Column(children: [
                Flexible(flex: 1, child: Row(children: [
+                 if(PathUtils.isTextFile(product.url) || PathUtils.isPdfFile(product.url))
+                   TextButton(
+                       child: const Text("Open"), onPressed: () {
+                         Navigator.of(context).push(
+                           PageRouteBuilder(
+                             opaque: false,
+                             pageBuilder: (BuildContext context, _, __) => Scaffold(
+                               appBar: AppBar(
+                                 backgroundColor: Constants.appBarBackgroundColor,
+                                 title: Text(product.name),
+                               ),
+                               body:
+                                PathUtils.isPdfFile(product.url) ?
+                                  SfPdfViewer.file(File(product.url)) : _textReader(product.url)
+                               )
+                             )
+                           );
+                         }
+                   ),
                  TextButton(onPressed: () {
                    final box = context.findRenderObject() as RenderBox?;
                    Share.shareXFiles(
@@ -116,25 +136,22 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                    );
                  }, child: const Text("Share")),
                  if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
-                   TextButton(onPressed: () {
-                     setState(() {
-                       PathUtils.deleteFile(product.url);
-                       products.remove(product);
-                     });
-                   }, child: const Text("Delete")),
+                   TextButton(
+                     onLongPress: () { // delete on long press
+                       setState(() {
+                         PathUtils.deleteFile(product.url);
+                         products.remove(product);
+                       });
+                     },
+                     onPressed: () {},
+                     child: const Text("Delete")
+                   ),
                ])
              ),
-             if(PathUtils.isTextFile(product.url))
-               Flexible(flex: 4,
-                 child: WidgetZoom(
-                   heroAnimationTag: product.name,
-                   zoomWidget: _textReader(product.url))),
-             if(PathUtils.isKmlFile(product.url))
-               Flexible(flex: 4,
-                 child: Container(padding: const EdgeInsets.fromLTRB(0, 10, 0, 10), child: Icon(Icons.gps_fixed, size: 48,))),
            ]);
      }
      else {
+       // pictures
        widget = WidgetZoom(
            heroAnimationTag: product.name,
            zoomWidget: CachedNetworkImage(
@@ -168,7 +185,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 
-  void _pickFile() async {
+  Future<void> _pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();
     if (result != null) {
       String? path = result.files.single.path;
@@ -208,7 +225,12 @@ Widget _makeContent(List<String>? docs) {
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("Documents"),
           actions: [
-            IconButton(onPressed: _pickFile, icon: const Icon(Icons.add)),
+            TextButton(onPressed: () {
+              _pickFile().then((value) => setState(() {
+                products.clear(); // rebuild so the doc appears in list immediately.
+              }));},
+              child: const Text("Import"),
+            ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:
                 DropdownButton2<String>( // airport selection
