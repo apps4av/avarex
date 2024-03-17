@@ -74,6 +74,7 @@ dependencies:
   share_plus: ^7.2.2
   url_launcher: ^6.2.5
   file_picker: ^6.2.0
+  audioplayers: ^5.2.1
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -120,6 +121,7 @@ flutter:
   assets:
   - assets/images/
   - pubspec.yaml
+  - assets/audio/traffic_alerts/  
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

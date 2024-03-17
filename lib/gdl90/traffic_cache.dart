@@ -3,7 +3,10 @@ import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
+
 import '../gps.dart';
 
 class Traffic {
@@ -83,6 +86,10 @@ class TrafficCache {
         }
         final Traffic trafficNew = Traffic(message);
         _traffic[index] = trafficNew;
+
+        // process any audible alerts from traffic (if enabled)
+        handleAudibleAlerts();
+
         return;
       }
     }
@@ -93,6 +100,9 @@ class TrafficCache {
 
     // sort
     _traffic.sort(_trafficSort);
+
+    // process any audible alerts from traffic (if enabled)
+    handleAudibleAlerts();
 
   }
 
@@ -117,6 +127,17 @@ class TrafficCache {
       }
     }
     return 0;
+  }
+
+  void handleAudibleAlerts() {
+    if (Storage().settings.isAudibleAlertsEnabled()) {
+      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
+        // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
+        value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+      });
+    } else {
+      AudibleTrafficAlerts.stopAudibleTrafficAlerts();
+    }
   }
 
   List<Traffic> getTraffic() {

@@ -90,6 +90,7 @@ class Storage {
   PlanRoute get route => _route;
   bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
+  get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
   int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
   bool gpsInternal = true;
 
@@ -99,6 +100,8 @@ class Storage {
   // where all data is place. This is set on init in main
   late String dataDir;
   Position position = Gps.centerUSAPosition();
+  double vspeed = 0;
+  bool airborne = true;  
   final AppSettings settings = AppSettings();
 
   final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
@@ -139,7 +142,7 @@ class Storage {
   StreamSubscription<Uint8List>? _udpStream;
 
   void startIO() {
-
+    
     // GPS data receive
     // start both external and internal
     _gpsStream = _gps.getStream();
@@ -175,6 +178,9 @@ class Storage {
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
+            // Record additional ownship settings for audible alerts (among other intereste parties)--or perhaps these can just reside here in Storage?
+            vspeed = m.verticalSpeed;
+            airborne = m.airborne;
             // record waypoints for tracks.
             tracks.add(p);
           }
@@ -210,6 +216,8 @@ class Storage {
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+            vspeed = m0.verticalSpeed;
+            airborne = m0.altitude > 100;
             _gpsStack.push(p);
             tracks.add(p);
           }
@@ -219,6 +227,10 @@ class Storage {
         }
       }
     });
+    try {
+      // Have audible alerts listen for GPS changes
+      Storage().gpsChange.addListener(TrafficCache().handleAudibleAlerts);
+    } catch (e) {}
   }
 
   stopIO() {
@@ -231,6 +243,10 @@ class Storage {
       _gpsStream?.cancel();
     }
     catch(e) {}
+    try {
+      // Have audible alerts stop listening for GPS changes
+      Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
+    } catch (e) {}
   }
 
   Future<void> init() async {

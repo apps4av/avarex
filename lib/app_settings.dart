@@ -128,4 +128,12 @@ class AppSettings {
     return Settings.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
+  bool isAudibleAlertsEnabled() {
+    return Settings.getValue("key-audible-alerts", defaultValue: true) as bool;
+  }
+
+  void setAudibleAlertsEnabled(bool value) {
+    Settings.setValue("key-audible-alerts", value);
+  } 
+
 }
