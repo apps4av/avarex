@@ -48,6 +48,7 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<bool> _layersState = Storage().settings.getLayersState();
+  final int disableClusteringAtZoom = 8;
   bool _northUp = Storage().settings.getNorthUp();
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
@@ -180,6 +181,7 @@ class MapScreenState extends State<MapScreen> {
                 List<Metar> metars = weather.map((e) => e as Metar).toList();
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                     options: MarkerClusterLayerOptions(
+                      disableClusteringAtZoom: disableClusteringAtZoom,
                       markers: [
                         for(Metar m in metars)
                           Marker(point: m.coordinate,
@@ -190,11 +192,7 @@ class MapScreenState extends State<MapScreen> {
                                 child: m.getIcon(),))
                       ],
                       builder: (context, markers) {
-                        return Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.transparent),
-                            child: const Center()
-                        );
+                        return Container(color: Colors.transparent,);
                       },
                     )
                 );
@@ -210,6 +208,7 @@ class MapScreenState extends State<MapScreen> {
                 List<Airep> airep = weather.map((e) => e as Airep).toList();
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                     options: MarkerClusterLayerOptions(
+                      disableClusteringAtZoom: disableClusteringAtZoom,
                       markers: [
                         for(Airep a in airep)
                           Marker(point: a.coordinates,
@@ -220,11 +219,7 @@ class MapScreenState extends State<MapScreen> {
                                 child: const Icon(Icons.person, color: Colors.black,)))
                       ],
                       builder: (context, markers) {
-                        return Container(
-                            decoration: const BoxDecoration(
-                                color: Colors.transparent),
-                            child: const Center()
-                        );
+                        return Container(color: Colors.transparent,);
                       },
                     )
                 );
@@ -262,34 +257,40 @@ class MapScreenState extends State<MapScreen> {
               builder: (context, value, _) {
                 List<Weather> weather = Storage().airSigmet.getAll();
                 List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-                return MarkerLayer(
-                  markers: [
-                    // route
-                    for(AirSigmet a in airSigmet)
-                      Marker(
-                        point: a.coordinates[0],
-                        child: JustTheTooltip(
-                          content: Container(
-                            padding: const EdgeInsets.all(5),
-                            child: Text(a.toString())
-                          ),
 
-                          waitDuration: const Duration(seconds: 1),
-                          triggerMode: TooltipTriggerMode.tap,
-                          child: GestureDetector(
-                            onLongPress: () {
-                              a.showShape = !a.showShape;
-                              Storage().airSigmet.change.value++;
-                            },
-                            child:Icon(Icons.ac_unit_rounded,
-                            color: a.getColor()
-                          )
+                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
+                  options: MarkerClusterLayerOptions(
+                    disableClusteringAtZoom: disableClusteringAtZoom,
+                    markers: [
+                      // route
+                      for(AirSigmet a in airSigmet)
+                        Marker(
+                          point: a.coordinates[0],
+                          child: JustTheTooltip(
+                            content: Container(
+                              padding: const EdgeInsets.all(5),
+                              child: Text(a.toString())
+                            ),
+
+                            waitDuration: const Duration(seconds: 1),
+                            triggerMode: TooltipTriggerMode.tap,
+                            child: GestureDetector(
+                              onLongPress: () {
+                                a.showShape = !a.showShape;
+                                Storage().airSigmet.change.value++;
+                              },
+                              child:Icon(Icons.ac_unit_rounded,
+                              color: a.getColor()
+                            )
+                            )
                           )
                         )
-                      )
-                  ],
+                    ],
+                    builder: (context, markers) {
+                      return Container(color: Colors.transparent,);
+                    },
+                  )
                 );
-
               }
           )
       );
@@ -349,21 +350,25 @@ class MapScreenState extends State<MapScreen> {
             List<Weather> weather = Storage().tfr.getAll();
             List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
 
-            return MarkerLayer(
-              markers: [
-                for (Tfr tfr in tfrs)
-                  if(tfr.isRelevant())
-                  // route
-                    Marker(
-                        point: tfr.coordinates[0],
-                        child: JustTheTooltip(
-                          content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
-                          triggerMode: TooltipTriggerMode.tap,
-                          waitDuration: const Duration(seconds: 1),
-                          child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
-                    ),
-              ],
-            );
+            return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
+                options: MarkerClusterLayerOptions(
+                  disableClusteringAtZoom: disableClusteringAtZoom,
+                  markers: [
+                    for (Tfr tfr in tfrs)
+                      if(tfr.isRelevant())
+                        Marker(
+                            point: tfr.coordinates[0],
+                            child: JustTheTooltip(
+                              content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
+                              triggerMode: TooltipTriggerMode.tap,
+                              waitDuration: const Duration(seconds: 1),
+                              child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
+                        ),
+                  ],
+              builder: (context, markers) {
+                return Container(color: Colors.transparent,);
+              },
+            ));
           },
         ),
       );
@@ -760,10 +765,10 @@ class MapScreenState extends State<MapScreen> {
                                     builder: (context, value, _) {
                                       return CircleAvatar( // in track up, rotate icon
                                           backgroundColor: Constants.dropDownButtonBackgroundColor,
-                                          child: _northUp ? Icon(MdiIcons.navigation) :
+                                          child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
                                           Transform.rotate(
                                               angle: value.heading * pi / 180,
-                                              child: Icon(MdiIcons.arrowUpThinCircleOutline)));
+                                              child: Tooltip(message: "Press to enable North up navigation", child: Icon(MdiIcons.arrowUpThinCircleOutline))));
                                     }
                                 )),
 
@@ -789,7 +794,7 @@ class MapScreenState extends State<MapScreen> {
                                       _ruler.init();
                                       _ruler.startMeasure();
                                     }
-                                  });}, icon: CircleAvatar(backgroundColor: _ruler.color(), child: Icon(MdiIcons.mathCompass))),
+                                  });}, icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
                                   // switch layers on off
                                   PopupMenuButton( // airport selection
                                     icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
@@ -973,7 +978,7 @@ class Ruler {
     if(_measuring) {
       return Colors.blueAccent;
     }
-    return Constants.dropDownButtonBackgroundColor;
+    return Constants.instrumentsNormalValueColor;
   }
 
   void startMeasure() {

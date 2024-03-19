@@ -107,57 +107,65 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
      if(product.type == DocumentsScreen.userDocuments) {
        widget =
-           Column(children: [
-               Flexible(flex: 1, child: Row(children: [
-                 if(PathUtils.isTextFile(product.url))
-                   TextButton(
-                       child: const Text("Open"), onPressed: () {
+           Container(
+             margin: const EdgeInsets.all(10.0),
+             decoration: BoxDecoration(
+               border: Border.all(color: Colors.white),
+               borderRadius: const BorderRadius.all(Radius.circular(10))
+             ),
+             child:
+               Column(children: [
+                 Flexible(flex: 1, child: Row(children: [
+                   if(PathUtils.isTextFile(product.url))
+                     TextButton(
+                         child: const Text("Open"), onPressed: () {
+                           Navigator.of(context).push(
+                             PageRouteBuilder(
+                               opaque: false,
+                               pageBuilder: (BuildContext context, _, __) => Scaffold(
+                                 appBar: AppBar(
+                                   backgroundColor: Constants.appBarBackgroundColor,
+                                   title: Text(product.name),
+                                 ),
+                                 body: _textReader(product.url)
+                                 )
+                               )
+                             );
+                           }
+                     ),
+                   if(PathUtils.isPdfFile(product.url))
+                     TextButton(
+                         child: const Text("Open"), onPressed: () {
                          Navigator.of(context).push(
                            PageRouteBuilder(
-                             opaque: false,
-                             pageBuilder: (BuildContext context, _, __) => Scaffold(
-                               appBar: AppBar(
-                                 backgroundColor: Constants.appBarBackgroundColor,
-                                 title: Text(product.name),
-                               ),
-                               body: _textReader(product.url)
-                               )
-                             )
-                           );
-                         }
-                   ),
-                 if(PathUtils.isPdfFile(product.url))
-                   TextButton(
-                       child: const Text("Open"), onPressed: () {
-                     Navigator.of(context).push(
-                         PageRouteBuilder(
-                             opaque: false,
-                             pageBuilder: (BuildContext context, _, __) => PdfViewer(product.url)
-                         )
+                               opaque: false,
+                               pageBuilder: (BuildContext context, _, __) => PdfViewer(product.url)
+                           )
+                       );
+                     }
+                     ),
+                   TextButton(onPressed: () {
+                     final box = context.findRenderObject() as RenderBox?;
+                     Share.shareXFiles(
+                       [XFile(product.url)],
+                       sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
                      );
-                   }
-                   ),
-                 TextButton(onPressed: () {
-                   final box = context.findRenderObject() as RenderBox?;
-                   Share.shareXFiles(
-                     [XFile(product.url)],
-                     sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                   );
-                 }, child: const Text("Share")),
-                 if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
-                   TextButton(
-                     onLongPress: () { // delete on long press
-                       setState(() {
-                         PathUtils.deleteFile(product.url);
-                         products.remove(product);
-                       });
-                     },
-                     onPressed: () {},
-                     child: const Text("Delete")
-                   ),
-               ])
-             ),
-           ]);
+                   }, child: const Text("Share")),
+                   if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+                     TextButton(
+                       onLongPress: () { // delete on long press
+                         setState(() {
+                           PathUtils.deleteFile(product.url);
+                           products.remove(product);
+                         });
+                       },
+                       onPressed: () {},
+                       child: const Tooltip(message: "Long press to delete",child: Text("Delete"),)
+                     ),
+                 ])
+               ),
+             ])
+           );
      }
      else {
        // pictures
@@ -238,7 +246,7 @@ Widget _makeContent(List<String>? docs) {
               _pickFile().then((value) => setState(() {
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
-              child: const Text("Import"),
+              child: const Tooltip(message: "Import text, PDF documents", child: Text("Import")),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:

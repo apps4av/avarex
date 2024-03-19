@@ -121,7 +121,7 @@ class AudibleTrafficAlerts {
   final List<String> _phoneticAlphaIcaoSequenceQueue = [];
 
   // General audible alert preferences
-  bool prefIsAudibleGroundAlertsEnabled = true;
+  bool prefIsAudibleGroundAlertsEnabled = false;
   bool prefVerticalAttitudeCallout = false;
   DistanceCalloutOption prefDistanceCalloutOption = DistanceCalloutOption.none;
   NumberFormatOption prefNumberFormatOption = NumberFormatOption.colloquial;
