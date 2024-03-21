@@ -14,6 +14,7 @@ class TrafficReportMessage extends Message {
   double heading = 0;
   String callSign = "";
   bool airborne = false;
+  int emitter = 0;
 
   TrafficReportMessage(super.type);
 
@@ -80,6 +81,8 @@ class TrafficReportMessage extends Message {
 
     // heading / track
     heading = ((message[16].toInt() & 0xFF).toDouble() * 1.40625); // heading resolution 1.40625
+
+    emitter = message[17].toInt() & 0xFF;
 
     // call sign from 18 to 25
     Uint8List call = message.sublist(18, 26);
