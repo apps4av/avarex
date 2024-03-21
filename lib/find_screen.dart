@@ -56,19 +56,19 @@ class FindScreenState extends State<FindScreen> {
   }
 
   String _filterToDescription() {
-    if(_searchText.startsWith(" ")) {
-      return "Airport by ID ( )";
-    }
-    else if(_searchText.startsWith(".")) {
-      return "Navigation AID (.)";
+    if(_searchText.startsWith(".")) {
+      return "Airport by ID (.)";
     }
     else if(_searchText.startsWith(",")) {
-      return "Fix (,)";
+      return "Navigation Aid (,)";
     }
     else if(_searchText.startsWith("!")) {
-      return "Airport by Name (!)";
+      return "Fix (!)";
     }
-    return("( .,!)");
+    else if(_searchText.startsWith(":")) {
+      return "Airport by Name (:)";
+    }
+    return("(.,!:)");
   }
 
   Widget _makeContent(List<Destination>? items, bool searching) {

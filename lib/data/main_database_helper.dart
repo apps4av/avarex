@@ -39,25 +39,25 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirways = [];
     final db = await database;
     if (db != null) {
-      if(match.startsWith(" ") && match.length > 1) {
+      if(match.startsWith(".") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
             "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
-      else if(match.startsWith(".") && match.length > 1) {
+      else if(match.startsWith(",") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
             "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
-      else if(match.startsWith(",") && match.length > 1) {
+      else if(match.startsWith("!") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
             "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%') limit $_limit"
         );
       }
-      else if(match.startsWith("!") && match.length > 1) {
+      else if(match.startsWith(":") && match.length > 1) {
         maps = await db.rawQuery(
           // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
             "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (FacilityName like '%${match.substring(1)}%') limit $_limit"

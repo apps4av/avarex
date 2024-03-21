@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:avaremp/airway.dart';
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/passage.dart';
 import 'package:avaremp/storage.dart';
@@ -221,7 +222,7 @@ class PlanRoute {
         }
       }
       if(totalCalculations != null) {
-        totalCalculations!.groundSpeed = speed / total;
+        totalCalculations!.groundSpeed = total == 0 ? speed : speed / total; // div by 0
         totalCalculations!.distance = distance;
         totalCalculations!.time = time;
         totalCalculations!.fuel = fuel;
@@ -293,6 +294,9 @@ class PlanRoute {
   }
 
   void setCurrentWaypoint(int index) {
+    if(index > (_waypoints.length - 1)) {
+      return;
+    }
     _current = _waypoints[index];
     update();
   }
@@ -390,8 +394,26 @@ class PlanRoute {
     return route;
   }
 
+  // convert json to Route
+  static Future<PlanRoute> fromLine(String name, String line) async {
+    PlanRoute route = PlanRoute(name);
+    List<String> split = line.split(" ");
+
+    for (String s in split) {
+      List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s);
+      if(destinations.isEmpty) {
+        continue;
+      }
+      Destination expanded = await DestinationFactory.make(destinations[0]);
+      Waypoint w = Waypoint(expanded);
+      route.addWaypoint(w);
+    }
+    return route;
+  }
+
+
   @override
   String toString() {
-    return _waypoints.map((e) => e.destination.locationID).toList().join("->");
+    return _waypoints.map((e) => e.destination.locationID).toList().join(" ");
   }
 }
