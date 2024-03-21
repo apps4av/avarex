@@ -104,68 +104,64 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   //if you don't want widget full screen then use center widget
   Widget smallImage(Document product) {
      Widget widget;
-
      if(product.type == DocumentsScreen.userDocuments) {
-       widget =
-           Container(
-             margin: const EdgeInsets.all(10.0),
-             decoration: BoxDecoration(
-               border: Border.all(color: Colors.white),
-               borderRadius: const BorderRadius.all(Radius.circular(10))
+       widget = GestureDetector(
+         onTap: () {
+           if(PathUtils.isTextFile(product.url)) {
+             Navigator.of(context).push(
+                 PageRouteBuilder(
+                     opaque: false,
+                     pageBuilder: (BuildContext context, _, __) => Scaffold(
+                         appBar: AppBar(
+                           backgroundColor: Constants.appBarBackgroundColor,
+                           title: Text(product.name),
+                         ),
+                         body: _textReader(product.url)
+                     )
+                 )
+              );
+           }
+           else if(PathUtils.isPdfFile(product.url)) {
+             Navigator.of(context).push(
+                 PageRouteBuilder(
+                     opaque: false,
+                     pageBuilder: (BuildContext context, _, __) => PdfViewer(product.url)
+                 )
+             );
+           }
+         },
+         child: Container(
+           margin: const EdgeInsets.all(10.0),
+           decoration: BoxDecoration(
+             border: Border.all(color: Colors.white),
+             borderRadius: const BorderRadius.all(Radius.circular(10))
+           ),
+           child:
+             Column(children: [
+               Flexible(flex: 1, child: Row(children: [
+                 TextButton(onPressed: () {
+                   final box = context.findRenderObject() as RenderBox?;
+                   Share.shareXFiles(
+                     [XFile(product.url)],
+                     sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                   );
+                 }, child: const Text("Share")),
+               ])
              ),
-             child:
-               Column(children: [
-                 Flexible(flex: 1, child: Row(children: [
-                   if(PathUtils.isTextFile(product.url))
-                     TextButton(
-                         child: const Text("Open"), onPressed: () {
-                           Navigator.of(context).push(
-                             PageRouteBuilder(
-                               opaque: false,
-                               pageBuilder: (BuildContext context, _, __) => Scaffold(
-                                 appBar: AppBar(
-                                   backgroundColor: Constants.appBarBackgroundColor,
-                                   title: Text(product.name),
-                                 ),
-                                 body: _textReader(product.url)
-                                 )
-                               )
-                             );
-                           }
-                     ),
-                   if(PathUtils.isPdfFile(product.url))
-                     TextButton(
-                         child: const Text("Open"), onPressed: () {
-                         Navigator.of(context).push(
-                           PageRouteBuilder(
-                               opaque: false,
-                               pageBuilder: (BuildContext context, _, __) => PdfViewer(product.url)
-                           )
-                       );
-                     }
-                     ),
-                   TextButton(onPressed: () {
-                     final box = context.findRenderObject() as RenderBox?;
-                     Share.shareXFiles(
-                       [XFile(product.url)],
-                       sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                     );
-                   }, child: const Text("Share")),
-                   if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
-                     TextButton(
-                       onLongPress: () { // delete on long press
-                         setState(() {
-                           PathUtils.deleteFile(product.url);
-                           products.remove(product);
-                         });
-                       },
-                       onPressed: () {},
-                       child: const Tooltip(message: "Long press to delete",child: Text("Delete"),)
-                     ),
-                 ])
-               ),
-             ])
-           );
+             Flexible(flex: 1, child: Row(children: [
+               if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+                 TextButton(
+                     onPressed: () { // delete on long press
+                       setState(() {
+                         PathUtils.deleteFile(product.url);
+                         products.remove(product);
+                       });
+                     },
+                     child: const Text("Delete"),
+                 ),
+             ]
+             ))])
+         ));
      }
      else {
        // pictures
@@ -244,6 +240,7 @@ Widget _makeContent(List<String>? docs) {
           actions: [
             TextButton(onPressed: () {
               _pickFile().then((value) => setState(() {
+                Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
               child: const Tooltip(message: "Import text, PDF documents", child: Text("Import")),
