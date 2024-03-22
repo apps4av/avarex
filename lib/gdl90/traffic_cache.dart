@@ -218,17 +218,17 @@ class _TrafficPainter extends CustomPainter {
     ..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))); 
   // vertical speed plus/minus overlays
   static final ui.Path _plusSign = ui.Path()
-    ..addPolygon([ const Offset(14, 14), const Offset(14, 23), const Offset(17, 23), const Offset(17, 14) ], true)
-    ..addPolygon([ const Offset(11, 17), const Offset(20, 17), const Offset(20, 20), const Offset(11, 20) ], true)
-    ..addPolygon([ const Offset(11, 17), const Offset(20, 17), const Offset(20, 20), const Offset(11, 20) ], true);  // duped, for forcing opacity
+    ..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true)
+    ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true)
+    ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);  // duped, for forcing opacity
   static final ui.Path _minusSign = ui.Path()
     ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);
   static final ui.Path _lowerPlusSign = ui.Path()
-    ..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true)
-    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true)
-    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);  // duped, for forcing opacity
+    ..addPolygon([ const Offset(14, 18), const Offset(14, 27), const Offset(17, 27), const Offset(17, 18) ], true)
+    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true)
+    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true);  // duped, for forcing opacity
   static final ui.Path _lowerMinusSign = ui.Path()
-    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
+    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true);
   static final ui.Path _outlineBox = ui.Path()
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));
  
