@@ -168,9 +168,9 @@ class _TrafficPainter extends CustomPainter {
   static const double _kDivBy60Mult = 1.0 / 60.0;
   static const double _kDivBy1000Mult = 1.0 / 1000.0;
   // Colors for different aircraft heights, and contrasting overlays
-  static const Color _levelColor = Color(0xFF505050);           // Level traffic = Dark grey
-  static const Color _highColor = Color(0xFF2940FF);            // High traffic = Mild dark blue
-  static const Color _lowColor = Color(0xFF309030);             // Low traffic = Forestish reen
+  static const Color _levelColor = Color(0xFF909090);           // Level traffic = Grey
+  static const Color _highColor = Color(0xff00bfff);            // High traffic = Azurish blue
+  static const Color _lowColor = Color(0xFF65FE08);             // Low traffic = Lime Green
   static const Color _groundColor = Color(0xFF836539);          // Ground traffic = Brown
   static const Color _lightForegroundColor = Color(0xFFFFFFFF); // Overlay for darker backgrounds = White
   static const Color _darkForegroundColor = Color(0xFF000000);  // Overlay for light backgrounds = Black
@@ -246,11 +246,11 @@ class _TrafficPainter extends CustomPainter {
       _velocityLevel = _getVelocityLevel(traffic.message.velocity);
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
-  /// cached picture if possible, and drawing and caching new one for next time if not
+  /// cached picture if possible (if not, draw and cache a new one)
   @override paint(Canvas canvas, Size size) {
     // Use pre-painted picture from cache based on relevant icon UI-driving parameters, if possible
-    final String pictureKey = "$_isAirborne^$_flightLevelDiff^$_vspeedDirection^$_velocityLevel";
-    final ui.Picture? cachedPicture = _pictureCache[pictureKey];
+    final String pictureCacheKey = "$_isAirborne^$_flightLevelDiff^$_vspeedDirection^$_velocityLevel";
+    final ui.Picture? cachedPicture = _pictureCache[pictureCacheKey];
     if (cachedPicture != null) {
       canvas.drawPicture(cachedPicture);
     } else {
@@ -263,24 +263,31 @@ class _TrafficPainter extends CustomPainter {
       // traffic from flooding the map. Opacity decrease is 20% for every 1000 foot diff above or below, with a 
       // floor of 20% total opacity (i.e., max 80% transparency)
       final double opacity = min(max(.2, (_isAirborne ? 1.0 : 0.5) - _flightLevelDiff.abs() * 0.2), (_isAirborne ? 1.0 : 0.5));
-      // Define aircraft colors using above opacity based on whether above, level, or below ownship (or on ground)
-      final Color aircraftColor;
+      // Define aircraft and bounding box colors and paint using above flight-level diff opacity
+      final Paint aircraftPaint;
       if (!_isAirborne) {
-        aircraftColor = Color.fromRGBO(_groundColor.red, _groundColor.green, _groundColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_groundColor.red, _groundColor.green, _groundColor.blue, opacity);
       } else if (_flightLevelDiff > 0) {
-        aircraftColor = Color.fromRGBO(_highColor.red, _highColor.green, _highColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_highColor.red, _highColor.green, _highColor.blue, opacity);
       } else if (_flightLevelDiff < 0) {
-        aircraftColor = Color.fromRGBO(_lowColor.red, _lowColor.green, _lowColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_lowColor.red, _lowColor.green, _lowColor.blue, opacity);
       } else {
-        aircraftColor = Color.fromRGBO(_levelColor.red, _levelColor.green, _levelColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_levelColor.red, _levelColor.green, _levelColor.blue, opacity);
       }
-      final Color vspeedOverlayColor;
+      final Paint vspeedOverlayPaint;
       if (_flightLevelDiff >= 0) {
-        vspeedOverlayColor = Color.fromRGBO(_lightForegroundColor.red, _lightForegroundColor.green, _lightForegroundColor.blue, opacity);
+        vspeedOverlayPaint = Paint()..color = Color.fromRGBO(_lightForegroundColor.red, _lightForegroundColor.green, _lightForegroundColor.blue, opacity);
       } else {
-        vspeedOverlayColor = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
+        vspeedOverlayPaint = Paint()..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
       }
-      final Color outlineColor = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
+      final Paint boxOutlinePaint = Paint()
+        ..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity)
+        ..style = PaintingStyle.stroke  // this is a solid outline
+        ..strokeWidth = 2;              // ...2px wide
+      final Paint boxFillPaint = Paint()
+          ..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, 
+              // Have box fill opacity be 30% less, but track main icon, with a floor of .1 (as it should be less visible than craft that has a floor of .2)
+              max(opacity - .3, .1)); 
 
       // Set aircraft shape
       final ui.Path baseIconShape;
@@ -297,48 +304,37 @@ class _TrafficPainter extends CustomPainter {
         default:
           baseIconShape = ui.Path.from(_defaultAircraft);
       }
-      
-      // Set speed barb
-      final ui.Path speedBarb = ui.Path()
-        ..addRect(Rect.fromLTWH(15, 31, 1, _velocityLevel*2.0))
-        ..addRect(Rect.fromLTWH(15, 31, 1, _velocityLevel*2.0)); // second time to prevent alias transparency interaction
+
+      // Set speed barb based on current velocity
+      final speedBarb = ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0));
+
+      // Draw transluscent-filled, 2px solid outline dark bounding box for greater visibility (e.g., on sectionals)
+      drawingCanvas.drawPath(_outlineBox, boxFillPaint);
+      drawingCanvas.drawPath(_outlineBox, boxOutlinePaint);                  
 
       // Draw aircraft and speed barb in one shot (saves rendering time/resources)
-      baseIconShape.addPath(speedBarb, const Offset(0,0));
-      drawingCanvas.drawPath(baseIconShape, Paint()..color = aircraftColor);
+      baseIconShape.addPath(speedBarb, const Offset(0, 0));
+      drawingCanvas.drawPath(baseIconShape, aircraftPaint);
 
-      // draw vspeed overlay (if not level)
+      // Draw vspeed overlay (if not level)
       if (_vspeedDirection != 0) {
         if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft) {
-          drawingCanvas.drawPath(
-            _vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign,
-            Paint()..color = vspeedOverlayColor
-          ); 
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, vspeedOverlayPaint);
         } else {
-          drawingCanvas.drawPath(
-            _vspeedDirection > 0 ? _plusSign : _minusSign,
-            Paint()..color = vspeedOverlayColor
-          );    
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, vspeedOverlayPaint);    
         }
       }  
 
-      // draw 2px bounding box, for greater visibility (e.g., on sectionals)
-      drawingCanvas.drawPath(_outlineBox, 
-        Paint()
-          ..color = outlineColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2);    
-
       // store this fresh image to the cache for next time
       final ui.Picture newPicture = recorder.endRecording();
-      _pictureCache[pictureKey] = newPicture;
+      _pictureCache[pictureCacheKey] = newPicture;
 
       // now draw the new picture to this widget's canvas
       canvas.drawPicture(newPicture);
     }
   }
 
-  // Only repaint this traffic marker if one of the flight properties affecting the icon changes
+  /// Only repaint this traffic marker if one of the flight properties affecting the icon changes
   @override
   bool shouldRepaint(covariant _TrafficPainter oldDelegate) {
     return _flightLevelDiff != oldDelegate._flightLevelDiff || _velocityLevel != oldDelegate._velocityLevel 
