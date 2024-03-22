@@ -294,9 +294,6 @@ class PlanRoute {
   }
 
   void setCurrentWaypoint(int index) {
-    if(index > (_waypoints.length - 1)) {
-      return;
-    }
     _current = _waypoints[index];
     update();
   }

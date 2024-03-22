@@ -1,9 +1,9 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/plan_item_widget.dart';
 import 'package:avaremp/plan_line_widget.dart';
+import 'package:avaremp/plan_load_save_widget.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/data/user_database_helper.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -17,133 +17,11 @@ class PlanScreen extends StatefulWidget {
 class PlanScreenState extends State<PlanScreen> {
 
 
-  List<String> _currentItems = [];
   final CarouselController _controller = CarouselController();
-  String _name = "";
-  String _route = "";
 
   Widget _makeContent() {
 
-    _name = Storage().route.name;
-    _route = Storage().route.toString();
-    bool edited = false;
-
-    Widget plans = StatefulBuilder(builder: (BuildContext context, StateSetter setState1) {
-      return Container(padding: const EdgeInsets.all(0),
-          child: Column(children: [
-            Expanded(
-              flex: 2,
-              child: Container(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child: const Text("Load & Save", style: TextStyle(fontWeight: FontWeight.w800),),)),
-            Expanded(
-              flex: 4,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 5,
-                        child: TextFormField(
-                          initialValue: _name ,
-                          onChanged: (value)  {
-                            _name = value;
-                          },
-                          decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Plan Name',)
-                        )
-                      ),
-                      const Padding(padding: EdgeInsets.all(10)),
-                      Expanded(
-                          flex: 5,
-                          child: TextFormField(
-                              initialValue: _route ,
-                              onChanged: (value)  {
-                                edited = true;
-                                _route = value;
-                              },
-                              decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',)
-                          )
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: TextButton(
-                          onPressed: () {
-                            if(edited) {
-                              // if user edited, then make a new plan and save, otherwise save the current plan
-                              PlanRoute.fromLine(_name, _route).then((value) {
-                                UserDatabaseHelper.db.addPlan(_name, value);
-                              });
-                              edited = false;
-                            }
-                            else {
-                              UserDatabaseHelper.db.addPlan(_name, Storage().route);
-                            }
-                            setState1(() {
-                              Storage().route.name = _name;
-                              _currentItems.insert(0, Storage().route.name);
-                            });
-                          },
-                          child: const Text("Save")
-                        )
-                      )
-                    ]
-                )
-              )
-            ),
-            Expanded(
-              flex: 10,
-              child: ListView.builder(
-                itemCount: _currentItems.length,
-                itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(_currentItems[index].toString()),
-                  trailing: PopupMenuButton(
-                    itemBuilder: (BuildContext context)  => <PopupMenuEntry<String>>[
-                    PopupMenuItem<String>(
-                      child: const Text('Load'),
-                      onTap: () {
-                        re() async {
-                          PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], false);
-                          Storage().route.copyFrom(route);
-                          setState(() {
-                            Storage().route.setCurrentWaypoint(0);
-                          });
-                        }
-                        re();
-                        Navigator.pop(context);
-                      },
-                    ),
-                      PopupMenuItem<String>(
-                        child: const Text('Load Reversed'),
-                        onTap: () {
-                          re() async {
-                            PlanRoute route = await UserDatabaseHelper.db.getPlan(_currentItems[index], true);
-                            Storage().route.copyFrom(route);
-                            setState(() {
-                              Storage().route.setCurrentWaypoint(0);
-                            });
-                          }
-                          re();
-                          Navigator.pop(context);
-                        },
-                      ),
-                    PopupMenuItem<String>(
-                      child: const Text('Delete'),
-                      onTap: () {
-                        UserDatabaseHelper.db.deletePlan(_currentItems[index]);
-                        setState1(() {
-                          _currentItems.removeAt(index);
-                        });
-                      },
-                    ),
-                  ],),
-                );
-              },
-            )),
-          ],
-        )
-      );
-    });
-
+    Widget plans = const PlanLoadSaveWidget();
 
     Widget filePage = Container();
 
@@ -172,10 +50,10 @@ class PlanScreenState extends State<PlanScreen> {
             topRight: Radius.circular(10),
           ),
         ),
-        child: Stack(children:[
+        child:
           Column(children: [
             // various info
-            Expanded(child: CarouselSlider(
+            Expanded(flex: 6, child: CarouselSlider(
               carouselController: _controller,
               items: cards,
               options: CarouselOptions(
@@ -186,12 +64,8 @@ class PlanScreenState extends State<PlanScreen> {
                 aspectRatio: Constants.carouselAspectRatio(context),
               ),
             )),
-          ],
-          ),
           // add various buttons that expand to diagram
-          Positioned(child: Align(
-            alignment: Alignment.bottomRight,
-            child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+          Expanded(flex:1, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
               TextButton(
                   child: const Text("Load & Save"),
                   onPressed: () => _controller.animateToPage(0)
@@ -201,34 +75,12 @@ class PlanScreenState extends State<PlanScreen> {
                   onPressed: () => _controller.animateToPage(1)
               ),
             ]),
-          )),
+          ),
         ],
-        )
+          )
     );
 
   }
-
-  Future<bool> _showPlans(BuildContext context) async {
-    bool? exitResult = await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return FutureBuilder(
-          future: UserDatabaseHelper.db.getPlans(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done) {
-              _currentItems = snapshot.data == null ? _currentItems : snapshot.data!;
-            }
-            return _makeContent();
-          },
-        );
-      },
-    );
-    return exitResult ?? false;
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -293,10 +145,21 @@ class PlanScreenState extends State<PlanScreen> {
                 });
               })
             ),
-            Expanded(flex: 1,child: Row(
+            Expanded(flex: 1, child: Row(
               children:[ // header
                 TextButton(
-                  onPressed: () { _showPlans(context); }, child: const Text("Actions"),),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      useSafeArea: true,
+                      showDragHandle: true,
+                      isScrollControlled: true,
+                      builder: (BuildContext context) {
+                        return _makeContent();
+                      },
+                    ).then((value) => setState(() {})); // this is important so if modal changes plan then we update it here
+                  },
+                  child: const Text("Actions"),),
                 DropdownButtonHideUnderline(child:DropdownButton2<String>(
                   isExpanded: false,
                   isDense: true,
