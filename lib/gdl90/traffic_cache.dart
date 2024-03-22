@@ -197,13 +197,13 @@ class _TrafficPainter extends CustomPainter {
     // right h-stabilizer
     ..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true);       
   static final ui.Path _defaultAircraft = ui.Path()  // default icon if no ICAO ID--just a triangle
-    ..addPolygon([ const Offset(4, 4), const Offset(15, 31), const Offset(16, 31), const Offset(27, 4), 
+    ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
       const Offset(16, 10), const Offset(15, 10) ], true);
   static final ui.Path _lightAircraft = ui.Path()
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(13, 18, 18, 31), const Radius.circular(2))) // body
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(5, 19, 26, 26), const Radius.circular(1))) // wings
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(11, 7, 20, 11), const Radius.circular(1)))  // h-stabilizer
-    ..addPolygon([ const Offset(13, 20), const Offset(15, 7), const Offset(16, 7), const Offset(18, 20)], true); // rear body
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))) // body
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(1, 18, 30, 25), const Radius.circular(1))) // wings
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1)))  // h-stabilizer
+    ..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true); // rear body
   static final ui.Path _rotorcraft = ui.Path()
     // body
     ..addOval(const Rect.fromLTRB(9, 11, 22, 31))
@@ -224,11 +224,11 @@ class _TrafficPainter extends CustomPainter {
   static final ui.Path _minusSign = ui.Path()
     ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);
   static final ui.Path _lowerPlusSign = ui.Path()
-    ..addPolygon([ const Offset(14, 18), const Offset(14, 27), const Offset(17, 27), const Offset(17, 18) ], true)
-    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true)
-    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true);  // duped, for forcing opacity
+    ..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true)
+    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true)
+    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);  // duped, for forcing opacity
   static final ui.Path _lowerMinusSign = ui.Path()
-    ..addPolygon([ const Offset(11, 21), const Offset(20, 21), const Offset(20, 24), const Offset(11, 24) ], true);
+    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
   static final ui.Path _outlineBox = ui.Path()
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));
  
