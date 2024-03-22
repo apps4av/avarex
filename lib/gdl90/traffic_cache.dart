@@ -170,7 +170,7 @@ class _TrafficPainter extends CustomPainter {
   // Colors for different aircraft heights, and contrasting overlays
   static const Color _levelColor = Color(0xFF505050);           // Level traffic = Dark grey
   static const Color _highColor = Color(0xFF2940FF);            // High traffic = Mild dark blue
-  static const Color _lowColor = Color(0xFF50D050);             // Low traffic = Limish green
+  static const Color _lowColor = Color(0xFF309030);             // Low traffic = Forestish reen
   static const Color _groundColor = Color(0xFF836539);          // Ground traffic = Brown
   static const Color _lightForegroundColor = Color(0xFFFFFFFF); // Overlay for darker backgrounds = White
   static const Color _darkForegroundColor = Color(0xFF000000);  // Overlay for light backgrounds = Black
@@ -205,13 +205,17 @@ class _TrafficPainter extends CustomPainter {
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(11, 7, 20, 11), const Radius.circular(1)))  // h-stabilizer
     ..addPolygon([ const Offset(13, 20), const Offset(15, 7), const Offset(16, 7), const Offset(18, 20)], true); // rear body
   static final ui.Path _rotorcraft = ui.Path()
+    // body
     ..addOval(const Rect.fromLTRB(9, 11, 22, 31))
-    ..addPolygon([const Offset(29, 11), const Offset(31, 13), const Offset(2, 31), const Offset(0, 29)], true)
-    ..addPolygon([const Offset(29, 11), const Offset(31, 13), const Offset(2, 31), const Offset(0, 29)], true) // duped, for forcing opacity
-    ..addPolygon([const Offset(2, 11), const Offset(0, 13), const Offset(29, 31), const Offset(31, 29) ], true)
-    ..addPolygon([const Offset(2, 11), const Offset(0, 13), const Offset(29, 31), const Offset(31, 29) ], true) // duped, for forcing opacity
+    // rotor blades
+    ..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true)
+    ..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true) // duped, for forcing opacity
+    ..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true)
+    ..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true) // duped, for forcing opacity
+    // tail
     ..addRect(const Rect.fromLTRB(15, 0, 16, 12))
-    ..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))); //(const Rect.fromLTRB(10, 3, 21, 7));       
+    // horizontal stabilizer
+    ..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))); 
   // vertical speed plus/minus overlays
   static final ui.Path _plusSign = ui.Path()
     ..addPolygon([ const Offset(14, 14), const Offset(14, 23), const Offset(17, 23), const Offset(17, 14) ], true)
@@ -225,6 +229,8 @@ class _TrafficPainter extends CustomPainter {
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);  // duped, for forcing opacity
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
+  static final ui.Path _outlineBox = ui.Path()
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));
  
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
@@ -274,6 +280,7 @@ class _TrafficPainter extends CustomPainter {
       } else {
         vspeedOverlayColor = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
       }
+      final Color outlineColor = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
 
       // Set aircraft shape
       final ui.Path baseIconShape;
@@ -313,7 +320,14 @@ class _TrafficPainter extends CustomPainter {
             Paint()..color = vspeedOverlayColor
           );    
         }
-      }      
+      }  
+
+      // draw 2px bounding box, for greater visibility (e.g., on sectionals)
+      drawingCanvas.drawPath(_outlineBox, 
+        Paint()
+          ..color = outlineColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2);    
 
       // store this fresh image to the cache for next time
       final ui.Picture newPicture = recorder.endRecording();
