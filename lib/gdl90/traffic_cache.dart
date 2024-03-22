@@ -260,10 +260,10 @@ class _TrafficPainter extends CustomPainter {
       // Decide opacity, based on vertical distance from ownship and whether traffic is on the ground. 
       // Traffic far above or below ownship will be quite transparent, to avoid clutter, and 
       // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
-      // traffic from flooding the map. Opacity decrease is 20% for every 1000 foot diff above or below, with a 
+      // traffic from flooding the map. Opacity decrease is 10% for every 1000 foot diff above or below, with a 
       // floor of 20% total opacity (i.e., max 80% transparency)
-      final double opacity = min(max(.2, (_isAirborne ? 1.0 : 0.5) - _flightLevelDiff.abs() * 0.2), (_isAirborne ? 1.0 : 0.5));
-      // Define aircraft and bounding box colors and paint using above flight-level diff opacity
+      final double opacity = min(max(.2, (_isAirborne ? 1.0 : 0.5) - _flightLevelDiff.abs() * 0.1), (_isAirborne ? 1.0 : 0.5));
+      // Define aircraft, barb, and bounding box colors and paint using above flight-level diff opacity
       final Paint aircraftPaint;
       if (!_isAirborne) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_groundColor.red, _groundColor.green, _groundColor.blue, opacity);
@@ -361,7 +361,7 @@ class _TrafficPainter extends CustomPainter {
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
   @pragma("vm:prefer-inline")
   static int _getGrossFlightLevelDiff(double trafficAltitude) {
-    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 5), -5);
+    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 8), -8);
   }
 
   @pragma("vm:prefer-inline")
