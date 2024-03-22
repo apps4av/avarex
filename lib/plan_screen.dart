@@ -1,4 +1,5 @@
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/plan_file_widget.dart';
 import 'package:avaremp/plan_item_widget.dart';
 import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/plan_load_save_widget.dart';
@@ -23,7 +24,7 @@ class PlanScreenState extends State<PlanScreen> {
 
     Widget plans = const PlanLoadSaveWidget();
 
-    Widget filePage = Container();
+    Widget filePage = const PlanFileWidget();
 
     List<Widget> pages = [];
     pages.add(plans);

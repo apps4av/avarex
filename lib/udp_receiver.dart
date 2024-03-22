@@ -10,7 +10,7 @@ class UdpReceiver {
   final List<RawDatagramSocket> _sockets = [];
 
   void initChannel(int port, bool broadcast) async {
-    RawDatagramSocket socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port).then((RawDatagramSocket socket) {
+    RawDatagramSocket socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port, reuseAddress: true).then((RawDatagramSocket socket) {
       socket.broadcastEnabled = broadcast;
       socket.listen((e) {
         Datagram? dg = socket.receive();
