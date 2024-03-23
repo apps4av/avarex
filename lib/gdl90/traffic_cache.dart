@@ -168,12 +168,11 @@ class _TrafficPainter extends CustomPainter {
   static const double _kDivBy60Mult = 1.0 / 60.0;
   static const double _kDivBy1000Mult = 1.0 / 1000.0;
   // Colors for different aircraft heights, and contrasting overlays
-  static const Color _levelColor = Color(0xFF909090);           // Level traffic = Grey
+  static const Color _levelColor = Color(0xFFd3d3d3);           // Level traffic = Grey
   static const Color _highColor = Color(0xff00bfff);            // High traffic = Azurish blue
   static const Color _lowColor = Color(0xFF65FE08);             // Low traffic = Lime Green
   static const Color _groundColor = Color(0xFF836539);          // Ground traffic = Brown
-  static const Color _lightForegroundColor = Color(0xFFFFFFFF); // Overlay for darker backgrounds = White
-  static const Color _darkForegroundColor = Color(0xFF000000);  // Overlay for light backgrounds = Black
+  static const Color _darkForegroundColor = Color(0xFF000000);  // Overlay color = Black
 
   // Aircraft type outlines
   static final ui.Path _largeAircraft = ui.Path()
@@ -198,7 +197,7 @@ class _TrafficPainter extends CustomPainter {
     ..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true);       
   static final ui.Path _defaultAircraft = ui.Path()  // default icon if no ICAO ID--just a triangle
     ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
-      const Offset(16, 10), const Offset(15, 10) ], true);
+      const Offset(16, 5), const Offset(15, 5) ], true);
   static final ui.Path _lightAircraft = ui.Path()
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))) // body
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(1, 18, 30, 25), const Radius.circular(1))) // wings
@@ -274,12 +273,7 @@ class _TrafficPainter extends CustomPainter {
       } else {
         aircraftPaint = Paint()..color = Color.fromRGBO(_levelColor.red, _levelColor.green, _levelColor.blue, opacity);
       }
-      final Paint vspeedOverlayPaint;
-      if (_flightLevelDiff >= 0) {
-        vspeedOverlayPaint = Paint()..color = Color.fromRGBO(_lightForegroundColor.red, _lightForegroundColor.green, _lightForegroundColor.blue, opacity);
-      } else {
-        vspeedOverlayPaint = Paint()..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
-      }
+      final Paint vspeedOverlayPaint = Paint()..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
       final Paint boxOutlinePaint = Paint()
         ..color = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity)
         ..style = PaintingStyle.stroke  // this is a solid outline
@@ -308,7 +302,7 @@ class _TrafficPainter extends CustomPainter {
       // Set speed barb based on current velocity
       final speedBarb = ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0));
 
-      // Draw transluscent-filled, 2px solid outline dark bounding box for greater visibility (e.g., on sectionals)
+      // Draw transluscent-filled, solid outlined dark bounding box for greater visibility (e.g., on sectionals)
       drawingCanvas.drawPath(_outlineBox, boxFillPaint);
       drawingCanvas.drawPath(_outlineBox, boxOutlinePaint);                  
 
