@@ -32,6 +32,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String email = Storage().settings.getEmail();
     const bodyStyle = TextStyle(fontSize: 19.0);
 
     const pageDecoration = PageDecoration(
@@ -115,14 +116,22 @@ The development team for this free aviation app is dedicated to empowering pilot
  * Ensure that you assume all liability for your use of our free tools more conveniently, without the need to click an agreement at every launch of the app.
  * File flight plans with the FAA.
 
-Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking "Register" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
+Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By providing your email address, and clicking "Sign" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
 """
+            ),
+            TextFormField(
+                onChanged: (value) {
+                  email = value;
+                },
+                controller: TextEditingController()..text = email,
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Your email address')
             ),
             TextButton(onPressed: () {
               setState(() {
                 Storage().settings.setSign(true);
+                Storage().settings.setEmail(email);
               });},
-              child: const Text("Register"),
+              child: const Padding(padding: EdgeInsets.all(20), child:Text("Sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
             ),
             Text(Storage().settings.isSigned() ? "You have signed the document." : "You have not signed this document.")
           ]),

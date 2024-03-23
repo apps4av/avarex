@@ -78,7 +78,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
     return Column(
       children: [
-        const Flexible(flex: 1, child: Text("Send Plan to FAA", style: TextStyle(fontWeight: FontWeight.w800),)),
+        Flexible(flex: 1, child: Text("Send Plan to FAA (${Storage().settings.getEmail()})", style: const TextStyle(fontWeight: FontWeight.w800),)),
         const Padding(padding: EdgeInsets.all(10)),
         Row(children: [
           TextButton(
@@ -561,7 +561,6 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               ),
 
               Container(),
-
             ],
           ),
         )

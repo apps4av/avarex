@@ -6,6 +6,7 @@ import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
@@ -137,31 +138,36 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              borderRadius: const BorderRadius.all(Radius.circular(10))
            ),
            child:
-             Column(children: [
-               Flexible(flex: 1, child: Row(children: [
-                 TextButton(onPressed: () {
-                   final box = context.findRenderObject() as RenderBox?;
-                   Share.shareXFiles(
-                     [XFile(product.url)],
-                     sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                   );
-                 }, child: const Text("Share")),
-               ])
-             ),
-             Flexible(flex: 1, child: Row(children: [
-               if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
-                 TextButton(
-                     onPressed: () { // delete on long press
-                       setState(() {
-                         PathUtils.deleteFile(product.url);
-                         products.remove(product);
-                       });
-                     },
-                     child: const Text("Delete"),
-                 ),
-             ]
-             ))])
-         ));
+             Row(children:[
+               Flexible(flex: 4,
+                 child:Column(children: [
+                   Flexible(flex: 1, child: Row(children: [
+                     TextButton(onPressed: () {
+                       final box = context.findRenderObject() as RenderBox?;
+                       Share.shareXFiles(
+                         [XFile(product.url)],
+                         sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                       );
+                     }, child: const Text("Share")),
+                   ])),
+                   Flexible(flex: 1, child: Row(children: [
+                   if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+                     TextButton(
+                         onPressed: () { // delete on long press
+                           setState(() {
+                             PathUtils.deleteFile(product.url);
+                             products.remove(product);
+                           });
+                         },
+                         child: const Text("Delete"),
+                     ),
+                  ]))
+                 ])
+               ),
+               const Flexible(flex: 1, child: Icon(Icons.folder_open)),
+             ])
+         )
+       );
      }
      else {
        // pictures

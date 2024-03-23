@@ -88,6 +88,14 @@ class AppSettings {
     return Settings.getValue("key-current-plate-airport", defaultValue: "") as String;
   }
 
+  void setEmail(String name) {
+    Settings.setValue("key-user-lmfs-email", name);
+  }
+
+  String getEmail() {
+    return Settings.getValue("key-user-lmfs-email", defaultValue: "") as String;
+  }
+
   int getTas() {
     return Settings.getValue("key-airplane-tas-v2", defaultValue: 100) as int;
   }
