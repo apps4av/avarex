@@ -5,6 +5,7 @@ import 'package:avaremp/storage.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../aircraft.dart';
 import '../destination.dart';
 
 
@@ -52,6 +53,23 @@ class UserDatabaseHelper {
                 "value        text, "
                 "unique(key)  on conflict replace);");
 
+            await db.execute("create table aircraft ("
+                "id            integer primary key autoincrement, "
+                "tail          text, "
+                "type          text, "
+                "wake          text, "
+                "icao          integer, "
+                "equipment     text, "
+                "cruiseTas     float, "
+                "surveillance  text, "
+                "fuelEndurance float, "
+                "color         text, "
+                "pic           text, "
+                "picInfo       text, "
+                "sinkRate      float, "
+                "fuelBurn      float, "
+                "base          text, "
+                "unique(tail) on conflict replace);");
           },
           onOpen: (db) {});
   }
@@ -139,6 +157,47 @@ class UserDatabaseHelper {
 
     PlanRoute route = await PlanRoute.fromMap(maps[0], reverse);
     return route;
+  }
+
+  Future<void> addAircraft(Aircraft aircraft) async {
+    final db = await database;
+
+    if (db != null) { // do not add empty plans
+      await db.insert("aircraft", aircraft.toMap());
+    }
+  }
+
+  Future<void> deleteAircraft(String tail) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.rawQuery("delete from aircraft where tail='$tail'");
+    }
+  }
+
+  Future<List<Aircraft>> getAllAircraft() async {
+    List<Map<String, dynamic>> maps = [];
+    List<Aircraft> ret = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from aircraft order by id desc"); // most recent first
+    }
+
+    for(Map<String, dynamic> map in maps) {
+      ret.add(Aircraft.fromMap(map));
+    }
+    return ret;
+  }
+
+  Future<Aircraft> getAircraft(String tail) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from aircraft where tail='$tail'");
+    }
+
+    Aircraft aircraft = Aircraft.fromMap(maps[0]);
+    return aircraft;
   }
 
   static Future<void> insertSetting(Database? db, String key, String? value) {

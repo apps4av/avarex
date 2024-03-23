@@ -54,7 +54,7 @@ class PlanScreenState extends State<PlanScreen> {
         child:
           Column(children: [
             // various info
-            Expanded(flex: 6, child: CarouselSlider(
+            Expanded(flex: 8, child: CarouselSlider(
               carouselController: _controller,
               items: cards,
               options: CarouselOptions(
@@ -66,13 +66,13 @@ class PlanScreenState extends State<PlanScreen> {
               ),
             )),
           // add various buttons that expand to diagram
-          Expanded(flex:1, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+          Expanded(flex: 1, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
               TextButton(
                   child: const Text("Load & Save"),
                   onPressed: () => _controller.animateToPage(0)
               ),
               TextButton(
-                  child: const Text("File"),
+                  child: const Text("Send"),
                   onPressed: () => _controller.animateToPage(1)
               ),
             ]),

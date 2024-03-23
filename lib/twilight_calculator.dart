@@ -12,10 +12,9 @@ class TwilightCalculator {
   static const double _obliquity = 0.40927971;
   static const int _utc2000ms = 946728000000;
 
-  static (DateTime? sunset, DateTime? sunrise, int state) calculateTwilight(double latitude, double longitude) {
+  static (DateTime? sunset, DateTime? sunrise) calculateTwilight(double latitude, double longitude) {
     int sunset;
     int sunrise;
-    int state;
 
     final DateTime dateLocal = DateTime.now().toLocal();
     final int offset = dateLocal.timeZoneOffset.inMilliseconds;
@@ -33,24 +32,17 @@ class TwilightCalculator {
     double cosHourAngle = (sin(_altitudeCorrectionCivilTwilight) - sin(latRad) * sin(solarDec)) / (cos(latRad) * cos(solarDec));
 
     if (cosHourAngle >= 1) {
-      return (null, null, night);
+      return (null, null);
     }
     else if (cosHourAngle <= -1) {
-      return (null, null, day);
+      return (null, null);
     }
     double hourAngle = acos(cosHourAngle) / (2 * pi);
     sunset = ((solarTransitJ2000 + hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms + offset;
     sunrise = ((solarTransitJ2000 - hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms + offset;
-    if (sunrise < time && sunset > time) {
-      state = day;
-    }
-    else {
-      state = night;
-    }
     // this returns local time, since offset was added
     return (DateTime.fromMillisecondsSinceEpoch(sunrise, isUtc: true),
-      DateTime.fromMillisecondsSinceEpoch(sunset, isUtc: true),
-      state);
+      DateTime.fromMillisecondsSinceEpoch(sunset, isUtc: true));
   }
 }
 
