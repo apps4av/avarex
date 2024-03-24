@@ -1,97 +1,54 @@
 import 'dart:convert';
-import 'package:avaremp/constants.dart';
-import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import 'dart:core';
 
-import 'destination.dart';
-
-
 class LmfsPlan {
   static const String proposed = "PROPOSED";
-  static const String type = "ICAO";
-  static const String direct = "DCT";
-  static const String ruleVfr = "VFR";
-  bool valid = false;
-  String? pid;
+  static const String _type = "ICAO";
+  bool _valid = false;
+  String? _pid;
+  String versionStamp = "";
+  String currentState = proposed;
+
   String aircraftId = "";
-  String flightRule = ruleVfr;
-  String flightType = "G";
-  String noOfAircraft = "1";
+  String flightRule = "";
+  String flightType = "";
+  String noOfAircraft = "";
   String aircraftType = "";
   String wakeTurbulence = "";
-  String aircraftEquipment = "N";
+  String aircraftEquipment = "";
   String departure = "";
   String departureDate = "";
   String cruisingSpeed = "";
   String level = "";
-  String surveillanceEquipment = "N";
-  String? route = direct;
+  String surveillanceEquipment = "";
+  String? route = "";
   String? otherInfo = "";
   String destination = "";
   String totalElapsedTime = "";
   String? alternate1 = "";
   String? alternate2 = "";
   String fuelEndurance = "";
-  String? peopleOnBoard = "1";
+  String? peopleOnBoard = "";
   String aircraftColor = "";
   String supplementalRemarks = "";
   String pilotInCommand = "";
   String pilotInfo = "";
-  String versionStamp = "";
-  String currentState = proposed;
 
-
-  static (String route, String destination, String departure) makeRoute(PlanRoute p) {
-
-    String route = "";
-    String destination = "";
-    String departure = "";
-    String k = Constants.useK ? "K" : "";
-
-    int num = p.length;
-    if (num >= 2) {
-      if (p.getWaypointAt(num - 1).destination is AirportDestination) {
-        destination = "$k${p.getWaypointAt(num - 1).destination.locationID}";
-      }
-      if (p.getWaypointAt(0).destination is AirportDestination) {
-        departure = "$k${p.getWaypointAt(0).destination.locationID}";
-      }
-    }
-
-    if (num > 2) {
-      route = "";
-
-      for (int dest = 1; dest < (num - 1); dest++) {
-        Destination d = p.getWaypointAt(dest).destination;
-        if (d is GpsDestination) {
-          route += "${LmfsPlan.convertLocationToGpsCoords(p.getWaypointAt(dest).destination.coordinate)} ";
-        } else if (d is AirportDestination) {
-          route += "$k${p.getWaypointAt(dest).destination.locationID} ";
-        } else {
-          route += "${p.getWaypointAt(dest).destination.locationID} ";
-        }
-      }
-    }
-    if (route.isEmpty) {
-      route = LmfsPlan.direct;
-    }
-
-    return (route, destination, departure);
-  }
 
   bool isValid() {
-    return valid;
+    return _valid;
   }
 
   String? getId() {
-    return pid;
+    return _pid;
   }
 
   void setId(String id) {
-    pid = id;
+    _pid = id;
   }
 
   LmfsPlan();
@@ -120,7 +77,7 @@ class LmfsPlan {
           plan.route = null;
         }
       } catch (e2) {
-        plan.route = direct;
+        plan.route = "DCT";
       }
       if (plan.route != null) {
         if (plan.route == "null") {
@@ -178,16 +135,16 @@ class LmfsPlan {
       }
       plan.pilotInCommand = icao['pilotInCommand'];
       plan.currentState = json['currentState'];
-      plan.valid = true;
+      plan._valid = true;
     } catch (e) {
-      plan.valid = false;
+      plan._valid = false;
     }
     return plan;
   }
 
-  void put(Map<String, String> params, String? name, String? val) {
+  void _put(Map<String, String> params, String? name, String? val) {
     if (name != null && val != null) {
-      if (val.isEmpty) {
+      if (val.isNotEmpty) {
         if (val != "null") {
           params[name] = val;
         }
@@ -195,89 +152,52 @@ class LmfsPlan {
     }
   }
 
-  Map<String, String> makeMap() {
+  Map<String, String> _makeMap() {
     Map<String, String> params = {};
-    put(params, "type", type);
-    put(params, "flightRules", flightRule);
-    put(params, "aircraftIdentifier", aircraftId);
-    put(params, "departure", departure);
-    put(params, "destination", destination);
-    put(params, "departureInstant", LmfsPlan.getTimeFromInput(LmfsPlan.getTimeFromInstance(departureDate)));
-    put(params, "flightDuration", totalElapsedTime);
-    put(params, "route", route);
-    put(params, "altDestination1", alternate1);
-    put(params, "altDestination2", alternate2);
-    put(params, "aircraftType", aircraftType);
-    put(params, "otherInfo", otherInfo);
-    put(params, "aircraftType", aircraftType);
-    put(params, "aircraftEquipment", aircraftEquipment);
-    put(params, "numberOfAircraft", noOfAircraft);
-    put(params, "wakeTurbulence", wakeTurbulence);
-    put(params, "speedKnots", cruisingSpeed);
-    put(params, "altitudeTypeA", level);
-    put(params, "fuelOnBoard", fuelEndurance);
-    put(params, "peopleOnBoard", peopleOnBoard);
-    put(params, "aircraftColor", aircraftColor);
-    put(params, "pilotData", pilotInfo);
-    put(params, "typeOfFlight", flightType);
-    put(params, "surveillanceEquipment", surveillanceEquipment);
-    put(params, "suppRemarks", supplementalRemarks);
-    put(params, "pilotInCommand", pilotInfo);
+    _put(params, "type", _type);
+    _put(params, "flightRules", flightRule);
+    _put(params, "aircraftIdentifier", aircraftId);
+    _put(params, "departure", departure);
+    _put(params, "destination", destination);
+    _put(params, "departureInstant", _getTimeFromInput(departureDate));
+    _put(params, "flightDuration", _getDurationFromInput(totalElapsedTime));
+    _put(params, "route", route);
+    _put(params, "altDestination1", alternate1);
+    _put(params, "altDestination2", alternate2);
+    _put(params, "aircraftType", aircraftType);
+    _put(params, "otherInfo", otherInfo);
+    _put(params, "aircraftType", aircraftType);
+    _put(params, "aircraftEquipment", aircraftEquipment);
+    _put(params, "numberOfAircraft", noOfAircraft);
+    _put(params, "wakeTurbulence", wakeTurbulence);
+    _put(params, "speedKnots", cruisingSpeed);
+    _put(params, "altitudeTypeA", level);
+    _put(params, "fuelOnBoard", _getDurationFromInput(fuelEndurance));
+    _put(params, "peopleOnBoard", peopleOnBoard);
+    _put(params, "aircraftColor", aircraftColor);
+    _put(params, "pilotData", pilotInfo);
+    _put(params, "typeOfFlight", flightType);
+    _put(params, "surveillanceEquipment", surveillanceEquipment);
+    _put(params, "suppRemarks", supplementalRemarks);
+    _put(params, "pilotInCommand", pilotInCommand);
     return params;
   }
 
-  static String getTime(String future) {
+  static String _getTime(String future) {
     DateTime now = DateTime.now().toUtc();
     now = now.add(Duration(minutes: int.parse(future)));
     DateFormat sdf = DateFormat("yyyy-MM-dd HH:mmZ");
     return sdf.format(now);
   }
-
-  static String getTimeFromInstance(String instance) {
-    DateTime now = DateTime.now().toUtc();
-    try {
-      int time = int.parse(instance);
-      now = DateTime.fromMillisecondsSinceEpoch(time, isUtc: true);
-    } catch (e) {
-      return "";
-    }
-    DateFormat sdf = DateFormat("yyyy-MM-dd HH:mmZ");
-    return sdf.format(now);
-  }
-
-  static String getInstanceFromTime(String time) {
-    DateFormat sdf = DateFormat("yyyy-MM-dd HH:mmZ");
-    DateTime dt;
-    try {
-      dt = sdf.parse(time);
-    } catch (e) {
-      return "";
-    }
-    return dt.millisecondsSinceEpoch.toString();
-  }
-
-  static String getTimeFromInput(String time) {
+  
+  static String _getTimeFromInput(String time) {
     String data = "${time.replaceFirst(" ", "T")}:00";
     return data;
   }
 
-  static String getDurationFromInput(String input) {
+  static String _getDurationFromInput(String input) {
     String ret = "PT$input";
     return ret;
-  }
-
-  static String durationToTime(String input) {
-    List<String> ret = input.split("PT");
-    if (ret.length < 2) {
-      return input;
-    }
-    return ret[1];
-  }
-
-  static String timeToDuration(double time) {
-    int hours = time.toInt();
-    int min = ((time - hours) * 60.0).toInt();
-    return "PT${hours}H${min}M";
   }
 
   static String convertLocationToGpsCoords(LatLng p) {
@@ -305,21 +225,21 @@ class LmfsPlan {
 }
 
 class LmfsPlanListPlan {
-  String? id;
-  String? currentState;
-  String? versionStamp;
-  String? aircraftId;
-  String? destination;
-  String? departure;
+  String? _id;
+  String? _currentState;
+  String? _versionStamp;
+  String? _aircraftId;
+  String? _destination;
+  String? _departure;
 
   void setId(String id) {
-    this.id = id;
+    _id = id;
   }
 }
 
 class LmfsPlanList {
-  List<LmfsPlanListPlan> mPlans = [];
-  int mSelectedIndex = 0;
+  List<LmfsPlanListPlan> _plans = [];
+  int _selectedIndex = 0;
 
   LmfsPlanList(String data) {
     try {
@@ -330,12 +250,12 @@ class LmfsPlanList {
         var obj = plan as Map<String, dynamic>;
 
         pl.setId(obj['flightId']);
-        pl.currentState = obj['currentState'];
-        pl.versionStamp = obj['versionStamp'];
-        pl.aircraftId = obj['aircraftIdentifier'];
-        pl.destination = obj['icaoSummaryFields']['destination']['locationIdentifier'];
-        pl.departure = obj['icaoSummaryFields']['departure']['locationIdentifier'];
-        mPlans.add(pl);
+        pl._currentState = obj['currentState'];
+        pl._versionStamp = obj['versionStamp'];
+        pl._aircraftId = obj['aircraftIdentifier'];
+        pl._destination = obj['icaoSummaryFields']['destination']['locationIdentifier'];
+        pl._departure = obj['icaoSummaryFields']['departure']['locationIdentifier'];
+        _plans.add(pl);
       }
     } catch (e) {
       // Handle exception
@@ -343,7 +263,7 @@ class LmfsPlanList {
   }
 
   List<LmfsPlanListPlan> getPlans() {
-    return mPlans;
+    return _plans;
   }
 }
 
@@ -351,22 +271,21 @@ class LmfsPlanList {
 
 
 class LmfsInterface {
-  static const String avareLmfsUrl = "https://apps4av.net/new/lmfs.php";
-  late Map<String, String> params;
-  late String mError;
+  static const String _avareLmfsUrl = "https://apps4av.net/new/lmfs.php";
+  late Map<String, String> _params;
+  late String error;
 
   LmfsInterface() {
-    params = <String, String>{};
+    _params = <String, String>{};
   }
 
-  String parseError(String ret) {
+  String _parseError(String ret) {
     try {
       Map<String, dynamic> json = jsonDecode(ret);
       bool status = json['returnStatus'];
       if (!status) {
-        String val = json['returnMessage'];
-        val = val.replaceAll("\\", "");
-        return val;
+        dynamic val = json['returnMessage'];
+        return val.toString();
       }
     } catch (e) {
       return "Failed";
@@ -374,9 +293,9 @@ class LmfsInterface {
     return "";
   }
 
-  Future<String> post(String url) async {
+  Future<String> _post(String url) async {
     try {
-      final response = await http.post(Uri.parse(url), body: params);
+      final response = await http.post(Uri.parse(url), body: _params);
       if (response.statusCode == 200) {
         return response.body;
       } else {
@@ -388,122 +307,119 @@ class LmfsInterface {
   }
 
   Future<LmfsPlanList> getFlightPlans() async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$webUserName/retrieveFlightPlanSummaries";
     String httpMethod = "GET";
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return LmfsPlanList(ret);
   }
 
   Future<LmfsPlan> getFlightPlan(String id) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$id/retrieve";
     String httpMethod = "GET";
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return LmfsPlan.fromJson(ret);
   }
 
   Future<String> closeFlightPlan(String id, String loc) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$id/close";
     String httpMethod = "POST";
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
     if (loc != "") {
-      params['closeDestinationInfo'] = loc;
+      _params['closeDestinationInfo'] = loc;
     }
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return ret;
   }
 
   Future<String> activateFlightPlan(
       String id, String version, String future) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$id/activate";
     String httpMethod = "POST";
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    params['actualDepartureInstant'] =
-        LmfsPlan.getTimeFromInput(LmfsPlan.getTime(future));
-    params['versionStamp'] = version;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    _params['actualDepartureInstant'] =
+        LmfsPlan._getTimeFromInput(LmfsPlan._getTime(future));
+    _params['versionStamp'] = version;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return ret;
   }
 
   Future<String> cancelFlightPlan(String id) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$id/cancel";
     String httpMethod = "POST";
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return ret;
   }
 
   Future<String> fileFlightPlan(LmfsPlan plan) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/file";
     String httpMethod = "POST";
-    params = plan.makeMap();
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params = plan._makeMap();
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return ret;
   }
 
   Future<String> amendFlightPlan(LmfsPlan plan) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/${plan.getId()}/amend";
     String httpMethod = "POST";
-    params = plan.makeMap();
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    params['versionStamp'] = plan.versionStamp;
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    _params = plan._makeMap();
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    _params['versionStamp'] = plan.versionStamp;
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
     return ret;
   }
 
   Future<void> getBriefing(
       LmfsPlan pl, bool translated, String routeWidth) async {
-    String webUserName = "governer@gmail.com";
+    String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/emailBriefing";
     String httpMethod = "POST";
-    params = pl.makeMap();
-    params['webUserName'] = webUserName;
-    params['avareMethod'] = avareMethod;
-    params['httpMethod'] = httpMethod;
-    params['briefingType'] = "EMAIL";
-    params['briefingEmailAddresses'] = "governer@gmail.com";
-    params['recipientEmailAddresses'] = "governer@gmail.com";
-    params['routeCorridorWidth'] = routeWidth;
+    _params = pl._makeMap();
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    _params['briefingType'] = "EMAIL";
+    _params['briefingEmailAddresses'] = Storage().settings.getEmail();
+    _params['recipientEmailAddresses'] = Storage().settings.getEmail();
+    _params['routeCorridorWidth'] = routeWidth;
     if (translated) {
-      params['briefingPreferences'] = "{\"plainText\":true}";
+      _params['briefingPreferences'] = "{\"plainText\":true}";
     }
-    String ret = await post(avareLmfsUrl);
-    mError = parseError(ret);
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
   }
 
-  String getError() {
-    return mError;
-  }
 }
 
 

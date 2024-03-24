@@ -1,4 +1,5 @@
 
+import 'package:avaremp/lmfs_plan.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/twilight_calculator.dart';
@@ -47,6 +48,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _remarks = "";
   List<Aircraft>? _aircraft;
 
+  bool _sending = false;
+  String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
+  Color _errorColor = Colors.green;
+  
   @override
   Widget build(BuildContext context) {
 
@@ -78,13 +83,60 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
     return Column(
       children: [
-        Flexible(flex: 1, child: Text("Send Plan to FAA (${Storage().settings.getEmail()})", style: const TextStyle(fontWeight: FontWeight.w800),)),
+        const Flexible(flex: 1, child: Text("Send Plan to FAA", style: TextStyle(fontWeight: FontWeight.w800),)),
         const Padding(padding: EdgeInsets.all(10)),
         Row(children: [
           TextButton(
             onPressed: () {
+              LmfsPlan lmfs = LmfsPlan();
+              lmfs.aircraftId = _aircraftId;
+              lmfs.flightRule = _flightRule;
+              lmfs.flightType = _flightType.isNotEmpty ? _flightType[0] : "";
+              lmfs.noOfAircraft = _numberAircraft;
+              lmfs.aircraftType = _aircraftType;
+              lmfs.wakeTurbulence = _wakeTurbulence;
+              lmfs.aircraftEquipment = _aircraftEquipment;
+              lmfs.departure = _departure;
+              lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
+              lmfs.cruisingSpeed = _cruisingSpeed;
+              lmfs.level = _altitude;
+              lmfs.surveillanceEquipment = _surveillanceEquipment;
+              lmfs.route = _route;
+              lmfs.otherInfo = _otherInformation;
+              lmfs.destination = _destination;
+              lmfs.totalElapsedTime = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M";
+              lmfs.alternate1 = _alternate1;
+              lmfs.alternate2 = _alternate2;
+              lmfs.fuelEndurance = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M";
+              lmfs.peopleOnBoard = _peopleOnBoard;
+              lmfs.aircraftColor = _aircraftColor;
+              lmfs.supplementalRemarks = _remarks;
+              lmfs.pilotInCommand = _pilotInCommand;
+              lmfs.pilotInfo = _pilotInformation;
+              LmfsInterface interface = LmfsInterface();
+              setState(() {
+                _sending = true;
+                _error = "";
+              });
+              interface.fileFlightPlan(lmfs).then((value) {
+                setState(() {
+                  _error = interface.error;
+                  if(_error.isNotEmpty) {
+                    _errorColor = Colors.red;
+                  }
+                  _sending = false;
+                });
+              });
             },
             child: const Text("Send to FAA"),),
+            const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+            Visibility(visible: _sending, child: const CircularProgressIndicator(),),
+            const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+            // Show an error and a question mark with error code when error, otherwise show a check mark
+            Tooltip(message: _error, child: _sending ?
+              Container() : _error.isEmpty ?
+                const Icon(Icons.check, color: Colors.green,) :
+                Icon(Icons.question_mark, color: _errorColor,)),
         ]),
 
         Flexible(flex: 5, child:  GridView.count(
@@ -267,7 +319,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
               TextFormField(
                   onChanged: (value) {
-                    _departureDateTime = DateTime.parse(value);
+                    try {
+                      _departureDateTime = DateTime.parse(value);
+                    }
+                    catch(e) {}
                   },
                   controller: TextEditingController()..text = _departureDateTime.toUtc().toString().substring(0, 16),
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time')
@@ -334,11 +389,14 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Altitude')
               ),
 
-              Row(children:[TextButton(child: Text((int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0")), onPressed: () {
-                setState(() {
-                  _altitude = (int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0");
-                });
-              },)]),
+              Row(children:[
+                TextButton(child: Text((int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0")),
+                  onPressed: () {
+                    setState(() {
+                      _altitude = (int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0");
+                    });
+                },)
+              ]),
 
               TextFormField(
                   onChanged: (value) {
@@ -410,7 +468,12 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     RegExp exp = RegExp(r"(\d*)H(\d*)M");
                     RegExpMatch? match = exp.firstMatch(value);
                     if(null != match && null != match.group(1) && null != match.group(2)) {
-                      _elapsedTime = Duration(hours: int.parse(match.group(1)!), minutes: int.parse(match.group(2)!));
+                      try {
+                        _elapsedTime = Duration(
+                            hours: int.parse(match.group(1)!),
+                            minutes: int.parse(match.group(2)!));
+                      }
+                      catch(e) {}
                     }
                   },
                   controller: TextEditingController()..text = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M",
@@ -425,7 +488,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       if(route.totalCalculations != null) {
                         int time = route.totalCalculations!.time.toInt();
                         _elapsedTime = Duration(seconds: time);
-                      };
+                      }
                     });
                   },
                   child: const Text("Planned")),
@@ -471,7 +534,12 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     RegExp exp = RegExp(r"(\d*)H(\d*)M");
                     RegExpMatch? match = exp.firstMatch(value);
                     if(null != match && null != match.group(1) && null != match.group(2)) {
-                      _fuelEndurance = Duration(hours: int.parse(match.group(1)!), minutes: int.parse(match.group(2)!));
+                      try {
+                        _fuelEndurance = Duration(
+                            hours: int.parse(match.group(1)!),
+                            minutes: int.parse(match.group(2)!));
+                      }
+                      catch(e) {}
                     }
                   },
                   controller: TextEditingController()..text = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M",

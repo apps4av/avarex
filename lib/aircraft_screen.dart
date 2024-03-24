@@ -82,7 +82,7 @@ class AircraftScreenState extends State<AircraftScreen> {
     List<_Entry> entries = [];
     entries.add(_Entry("Tail Number",                               "tail",           active.tail,           const Tooltip(message: "Tail number, for example, N172EF.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Type",                                      "type",           active.type,           const Tooltip(message: "Type, for example, C172.", child: Icon(Icons.question_mark))));
-    entries.add(_Entry("Color",                                     "color",          active.color,          const Tooltip(message: "Color and markings, for example, for white and red, enter W/R.", child: Icon(Icons.question_mark))));
+    entries.add(_Entry("Color & Markings",                          "color",          active.color,          SizedBox(width:32, child: WidgetZoom(heroAnimationTag: "color", zoomWidget: Image.asset("assets/images/ac_colors.png"),))));
     entries.add(_Entry("PIC",                                       "pic",            active.pic,            const Tooltip(message: "Name of the pilot, for example, John Smith.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("PIC Information",                           "picInfo",        active.picInfo,        const Tooltip(message: "Pilot information, for example, phone number.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Home Base",                                 "base",           active.base,           const Tooltip(message: "Where the aircraft is based at, for example, KBVY.", child: Icon(Icons.question_mark))));
