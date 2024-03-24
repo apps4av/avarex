@@ -96,6 +96,14 @@ class AppSettings {
     return Settings.getValue("key-user-lmfs-email", defaultValue: "") as String;
   }
 
+  void setAircraft(String name) {
+    Settings.setValue("key-user-aircraft", name);
+  }
+
+  String getAircraft() {
+    return Settings.getValue("key-user-aircraft", defaultValue: "") as String;
+  }
+
   int getTas() {
     return Settings.getValue("key-airplane-tas-v2", defaultValue: 100) as int;
   }

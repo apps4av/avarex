@@ -102,7 +102,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Aircraft ID')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
                 for(Aircraft a in aircraft)
                   TextButton(child: Text(a.tail), onPressed: () {
                     setState(() {
@@ -111,13 +111,20 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       _aircraftEquipment = a.equipment;
                       _surveillanceEquipment = a.surveillance;
                       _wakeTurbulence = a.wake;
-                      _fuelEndurance = Duration(minutes: (a.fuelEndurance * 60).toInt());
+                      try {
+                        _fuelEndurance = Duration(
+                            minutes: (double.parse(a.fuelEndurance) * 60)
+                                .toInt());
+                      }
+                      catch(e) {
+                        _fuelEndurance = const Duration(hours: 0);
+                      }
                       _pilotInCommand = a.pic;
                       _pilotInformation = a.picInfo;
                       _aircraftColor = a.color;
                     });
                   },),
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -137,7 +144,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Flight Rule')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
                 TextButton(child: const Text("VFR"), onPressed: () {
                   setState(() {
                     _flightRule = "VFR";
@@ -148,7 +155,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     _flightRule = "IFR";
                   });
                 },),
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -158,7 +165,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Flight Type')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
                 TextButton(child: const Text("General Aviation"), onPressed: () {
                   setState(() {
                     _flightType = "General Aviation";
@@ -184,7 +191,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     _flightType = "Other";
                   });
                 },),
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -207,7 +214,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Wake Turbulence')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
                 TextButton(child: const Text("LIGHT"), onPressed: () {
                   setState(() {
                     _wakeTurbulence = "LIGHT";
@@ -223,7 +230,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     _wakeTurbulence = "HEAVY";
                   });
                 },),
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -266,7 +273,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
                 TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
@@ -303,7 +310,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       });
                     },
                     child: const Text("-1 Day")),
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -355,7 +362,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal,
+              SingleChildScrollView(scrollDirection: Axis.horizontal,
                   child: Row(children:[TextButton(child: const Text("Planned"), onPressed: () {
                 setState(() {
                   if(length > 2) {
@@ -368,7 +375,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     _route = "DCT";
                   }
                 });
-              },)]))),
+              },)])),
 
               TextFormField(
                   onChanged: (value) {
@@ -410,7 +417,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Total Elapsed Time')
               ),
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
 
                 TextButton(
                   onPressed: () {
@@ -439,7 +446,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     },
                     child: const Text("+15M")),
 
-              ]))),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
@@ -472,7 +479,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               ),
 
 
-              Container(child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
 
                 TextButton(
                     onPressed: () {
@@ -489,7 +496,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       });
                     },
                     child: const Text("-15M")),
-              ]))),
+              ])),
 
 
               TextFormField(

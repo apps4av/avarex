@@ -2,16 +2,16 @@ class Aircraft {
   final String tail;
   final String type;
   final String wake;
-  final int icao;
+  final String icao;
   final String equipment;
-  final double cruiseTas;
+  final String cruiseTas;
   final String surveillance;
-  final double fuelEndurance;
+  final String fuelEndurance;
   final String color;
   final String pic;
   final String picInfo;
-  final double sinkRate;
-  final double fuelBurn;
+  final String sinkRate;
+  final String fuelBurn;
   final String base;
 
   Aircraft(
@@ -30,21 +30,39 @@ class Aircraft {
       this.fuelBurn,
       this.base);
 
+  factory Aircraft.empty() {
+    return Aircraft(
+      "",
+      "",
+      "LIGHT",
+      "",
+      "S",
+      "",
+      "N",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "");
+  }
+
   factory Aircraft.fromMap(Map<String, dynamic> map) {
     return Aircraft(
       map['tail'] as String,
       map['type'] as String,
       map['wake'] as String,
-      map['icao'] as int,
+      map['icao'] as String,
       map['equipment'] as String,
-      map['cruiseTas'] as double,
+      map['cruiseTas'] as String,
       map['surveillance'] as String,
-      map['fuelEndurance'] as double,
+      map['fuelEndurance'] as String,
       map['color'] as String,
       map['pic'] as String,
       map['picInfo'] as String,
-      map['sinkRate'] as double,
-      map['fuelBurn'] as double,
+      map['sinkRate'] as String,
+      map['fuelBurn'] as String,
       map['base'] as String,
     );
   }
