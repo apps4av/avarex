@@ -1,5 +1,5 @@
 
-import 'package:avaremp/lmfs_plan.dart';
+import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/twilight_calculator.dart';
@@ -88,7 +88,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
         Row(children: [
           TextButton(
             onPressed: () {
-              LmfsPlan lmfs = LmfsPlan();
+              PlanLmfs lmfs = PlanLmfs();
               lmfs.aircraftId = _aircraftId;
               lmfs.flightRule = _flightRule;
               lmfs.flightType = _flightType.isNotEmpty ? _flightType[0] : "";
