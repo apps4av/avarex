@@ -507,7 +507,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'People On Board')
               ),
 
-              Row(children: [
+              SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
                 TextButton(child: const Text("1"), onPressed: () {
                   setState(() {
                     _peopleOnBoard = "1";
@@ -528,7 +528,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     _peopleOnBoard = "4";
                   });
                 },),
-              ]),
+              ])),
 
               TextFormField(
                   onChanged: (value) {
