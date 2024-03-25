@@ -3,6 +3,7 @@ import 'package:avaremp/plan_file_widget.dart';
 import 'package:avaremp/plan_item_widget.dart';
 import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/plan_load_save_widget.dart';
+import 'package:avaremp/plan_manage_widget.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -26,9 +27,12 @@ class PlanScreenState extends State<PlanScreen> {
 
     Widget filePage = const PlanFileWidget();
 
+    Widget managePage = const PlanManageWidget();
+
     List<Widget> pages = [];
     pages.add(plans);
     pages.add(filePage);
+    pages.add(managePage);
 
     // carousel
     List<Card> cards = [];
@@ -72,8 +76,12 @@ class PlanScreenState extends State<PlanScreen> {
                   onPressed: () => _controller.animateToPage(0)
               ),
               TextButton(
-                  child: const Text("Send"),
+                  child: const Text("Send FAA"),
                   onPressed: () => _controller.animateToPage(1)
+              ),
+              TextButton(
+                  child: const Text("Manage FAA"),
+                  onPressed: () => _controller.animateToPage(2)
               ),
             ]),
           ),

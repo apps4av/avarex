@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:avaremp/storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
 import 'dart:core';
 
 class PlanLmfs {
@@ -78,29 +77,6 @@ class PlanLmfs {
 
   static String _getDurationFromInput(String input) {
     String ret = "PT$input";
-    return ret;
-  }
-
-  static String convertLocationToGpsCoords(LatLng p) {
-    double lat = p.latitude.abs();
-    double lon = p.longitude.abs();
-    int latd = lat.toInt();
-    int latm = ((lat - latd) * 60.0).toInt();
-    int lond = lon.toInt();
-    int lonm = ((lon - lond) * 60.0).toInt();
-    String latgeo;
-    String longeo;
-    if (p.latitude < 0) {
-      latgeo = "S";
-    } else {
-      latgeo = "N";
-    }
-    if (p.longitude < 0) {
-      longeo = "W";
-    } else {
-      longeo = "E";
-    }
-    String ret = "${latd.toString().padLeft(2, '0')}${latm.toString().padLeft(2, '0')}$latgeo${lond.toString().padLeft(3, '0')}${lonm.toString().padLeft(2, '0')}$longeo";
     return ret;
   }
 }

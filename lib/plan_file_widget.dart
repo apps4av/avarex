@@ -50,7 +50,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
   bool _sending = false;
   String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
-  Color _errorColor = Colors.green;
+  Color _errorColor = Colors.white;
   
   @override
   Widget build(BuildContext context) {
@@ -84,62 +84,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
     return Column(
       children: [
         const Flexible(flex: 1, child: Text("Send Plan to FAA", style: TextStyle(fontWeight: FontWeight.w800),)),
-        const Padding(padding: EdgeInsets.all(10)),
-        Row(children: [
-          TextButton(
-            onPressed: () {
-              PlanLmfs lmfs = PlanLmfs();
-              lmfs.aircraftId = _aircraftId;
-              lmfs.flightRule = _flightRule;
-              lmfs.flightType = _flightType.isNotEmpty ? _flightType[0] : "";
-              lmfs.noOfAircraft = _numberAircraft;
-              lmfs.aircraftType = _aircraftType;
-              lmfs.wakeTurbulence = _wakeTurbulence;
-              lmfs.aircraftEquipment = _aircraftEquipment;
-              lmfs.departure = _departure;
-              lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
-              lmfs.cruisingSpeed = _cruisingSpeed;
-              lmfs.level = _altitude;
-              lmfs.surveillanceEquipment = _surveillanceEquipment;
-              lmfs.route = _route;
-              lmfs.otherInfo = _otherInformation;
-              lmfs.destination = _destination;
-              lmfs.totalElapsedTime = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M";
-              lmfs.alternate1 = _alternate1;
-              lmfs.alternate2 = _alternate2;
-              lmfs.fuelEndurance = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M";
-              lmfs.peopleOnBoard = _peopleOnBoard;
-              lmfs.aircraftColor = _aircraftColor;
-              lmfs.supplementalRemarks = _remarks;
-              lmfs.pilotInCommand = _pilotInCommand;
-              lmfs.pilotInfo = _pilotInformation;
-              LmfsInterface interface = LmfsInterface();
-              setState(() {
-                _sending = true;
-                _error = "";
-              });
-              interface.fileFlightPlan(lmfs).then((value) {
-                setState(() {
-                  _error = interface.error;
-                  if(_error.isNotEmpty) {
-                    _errorColor = Colors.red;
-                  }
-                  _sending = false;
-                });
-              });
-            },
-            child: const Text("Send to FAA"),),
-            const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
-            Visibility(visible: _sending, child: const CircularProgressIndicator(),),
-            const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
-            // Show an error and a question mark with error code when error, otherwise show a check mark
-            Tooltip(message: _error, child: _sending ?
-              Container() : _error.isEmpty ?
-                const Icon(Icons.check, color: Colors.green,) :
-                Icon(Icons.question_mark, color: _errorColor,)),
-        ]),
 
-        Flexible(flex: 5, child:  GridView.count(
+        const Padding(padding: EdgeInsets.all(10)),
+
+        Flexible(flex: 8, child:  GridView.count(
             primary: false,
             crossAxisSpacing: 10,
             shrinkWrap: true,
@@ -638,7 +586,63 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               Container(),
             ],
           ),
-        )
+        ),
+
+        const Padding(padding: EdgeInsets.all(10)),
+
+        Flexible(flex: 1, child: Row(children: [
+          TextButton(
+            onPressed: () {
+              PlanLmfs lmfs = PlanLmfs();
+              lmfs.aircraftId = _aircraftId;
+              lmfs.flightRule = _flightRule;
+              lmfs.flightType = _flightType.isNotEmpty ? _flightType[0] : "";
+              lmfs.noOfAircraft = _numberAircraft;
+              lmfs.aircraftType = _aircraftType;
+              lmfs.wakeTurbulence = _wakeTurbulence;
+              lmfs.aircraftEquipment = _aircraftEquipment;
+              lmfs.departure = _departure;
+              lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
+              lmfs.cruisingSpeed = _cruisingSpeed;
+              lmfs.level = _altitude;
+              lmfs.surveillanceEquipment = _surveillanceEquipment;
+              lmfs.route = _route;
+              lmfs.otherInfo = _otherInformation;
+              lmfs.destination = _destination;
+              lmfs.totalElapsedTime = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M";
+              lmfs.alternate1 = _alternate1;
+              lmfs.alternate2 = _alternate2;
+              lmfs.fuelEndurance = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M";
+              lmfs.peopleOnBoard = _peopleOnBoard;
+              lmfs.aircraftColor = _aircraftColor;
+              lmfs.supplementalRemarks = _remarks;
+              lmfs.pilotInCommand = _pilotInCommand;
+              lmfs.pilotInfo = _pilotInformation;
+              LmfsInterface interface = LmfsInterface();
+              setState(() {
+                _sending = true;
+                _error = "";
+              });
+              interface.fileFlightPlan(lmfs).then((value) {
+                setState(() {
+                  _error = interface.error;
+                  if(_error.isNotEmpty) {
+                    _errorColor = Colors.red;
+                  }
+                  _sending = false;
+                });
+              });
+            },
+            child: const Text("Send to FAA"),),
+          const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+          Visibility(visible: _sending, child: const CircularProgressIndicator(),),
+          const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+          // Show an error and a question mark with error code when error, otherwise show a check mark
+          Tooltip(message: _error, child: _sending ?
+          Container() : _error.isEmpty ?
+          const Icon(Icons.check, color: Colors.green,) :
+          Icon(Icons.question_mark, color: _errorColor,)),
+        ])),
       ],
     );
   }
