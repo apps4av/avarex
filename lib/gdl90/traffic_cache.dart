@@ -250,21 +250,26 @@ class TrafficPainter extends CustomPainter {
   final int _flightLevelDiff;
   final int _vspeedDirection;
   final int _velocityLevel;
+  /// Unique key of icon state based on flight properties that define the icon appearance, per the current
+  /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
+  /// as well as the key to the picture cache  
+  String _iconStateKey = "";
 
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
       _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = prefSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999;
+      _velocityLevel = prefSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
+    {
+      _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
+    }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
   /// cached picture if possible (if not, draw and cache a new one)
   @override paint(Canvas canvas, Size size) {
     // Use pre-painted picture from cache based on relevant icon UI-driving parameters, if possible
-    final String pictureCacheKey = _getIconStateKey();
-    final ui.Picture? cachedPicture = _pictureCache[pictureCacheKey];
-    if (cachedPicture != null) {
+    final ui.Picture? cachedPicture = _pictureCache[_iconStateKey];
       canvas.drawPicture(cachedPicture);
     } else {
       final ui.PictureRecorder recorder = ui.PictureRecorder();
@@ -353,7 +358,7 @@ class TrafficPainter extends CustomPainter {
 
       // store this fresh image to the cache for quick and efficient rendering next time
       final ui.Picture newPicture = recorder.endRecording();
-      _pictureCache[pictureCacheKey] = newPicture;
+      _pictureCache[_iconStateKey] = newPicture;
 
       // now draw the new picture to this widget's canvas
       canvas.drawPicture(newPicture);
@@ -363,7 +368,7 @@ class TrafficPainter extends CustomPainter {
   /// Only repaint this traffic marker if one of the flight properties affecting the icon changes
   @override
   bool shouldRepaint(covariant TrafficPainter oldDelegate) {
-    return _getIconStateKey() == oldDelegate._getIconStateKey();
+    return _iconStateKey == oldDelegate._iconStateKey;
   }
 
   @pragma("vm:prefer-inline")
@@ -381,14 +386,6 @@ class TrafficPainter extends CustomPainter {
       default:
         return _TrafficAircraftIconType.unmapped;
     }
-  }
-
-  /// Unique key of icon state based on flight properties that define the icon appearance, per the current
-  /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
-  /// as well as the key to the picture cache
-  @pragma("vm:prefer-inline")
-  String _getIconStateKey() {
-    return "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
   }
 
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
