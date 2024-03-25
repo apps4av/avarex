@@ -372,6 +372,7 @@ class TrafficPainter extends CustomPainter {
   /// Unique key of icon state based on flight properties that define the icon appearance, per the current
   /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
   /// as well as the key to the picture cache
+  @pragma("vm:prefer-inline")
   String _getIconStateKey() {
     return "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
   }
