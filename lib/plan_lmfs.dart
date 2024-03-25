@@ -224,22 +224,18 @@ class LmfsInterface {
     return ret;
   }
 
-  Future<void> getBriefing(
-      PlanLmfs pl, bool translated, String routeWidth) async {
+  Future<void> getBriefing(PlanLmfs pl) async {
     String webUserName = Storage().settings.getEmail();
-    String avareMethod = "FP/emailBriefing";
+    String avareMethod = "FP/routeBriefing";
     String httpMethod = "POST";
     _params = pl._makeMap();
     _params['webUserName'] = webUserName;
     _params['avareMethod'] = avareMethod;
     _params['httpMethod'] = httpMethod;
     _params['briefingType'] = "EMAIL";
-    _params['briefingEmailAddresses'] = Storage().settings.getEmail();
-    _params['recipientEmailAddresses'] = Storage().settings.getEmail();
-    _params['routeCorridorWidth'] = routeWidth;
-    if (translated) {
-      _params['briefingPreferences'] = "{\"plainText\":true}";
-    }
+    _params['emailAddress'] = Storage().settings.getEmail();
+    _params['routeCorridorWidth'] = "50";
+    _params['briefingPreferences'] = "{\"plainText\":true}";
     String ret = await _post(_avareLmfsUrl);
     error = _parseError(ret);
   }

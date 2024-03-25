@@ -76,11 +76,11 @@ class PlanScreenState extends State<PlanScreen> {
                   onPressed: () => _controller.animateToPage(0)
               ),
               TextButton(
-                  child: const Text("Send FAA"),
+                  child: const Text("Brief & Send"),
                   onPressed: () => _controller.animateToPage(1)
               ),
               TextButton(
-                  child: const Text("Manage FAA"),
+                  child: const Text("Manage"),
                   onPressed: () => _controller.animateToPage(2)
               ),
             ]),

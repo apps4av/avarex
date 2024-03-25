@@ -20,6 +20,15 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
   List<String> _currentItems = [];
 
 
+  void _saveRoute(PlanRoute route) {
+    UserDatabaseHelper.db.addPlan(_name, route).then((value) {
+      setState(() {
+        Storage().route.name = _name;
+        _currentItems.insert(0, Storage().route.name);
+      });
+    });
+  }
+
   Widget _makeContent() {
     _name = Storage().route.name;
     _route = Storage().route.toString();
@@ -66,17 +75,13 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                                     if(edited) {
                                       // if user edited, then make a new plan and save, otherwise save the current plan
                                       PlanRoute.fromLine(_name, _route).then((value) {
-                                        UserDatabaseHelper.db.addPlan(_name, value);
+                                        _saveRoute(value);
+                                        edited = false;
                                       });
-                                      edited = false;
                                     }
                                     else {
-                                      UserDatabaseHelper.db.addPlan(_name, Storage().route);
+                                      _saveRoute(Storage().route);
                                     }
-                                    setState(() {
-                                      Storage().route.name = _name;
-                                      _currentItems.insert(0, Storage().route.name);
-                                    });
                                   },
                                   child: const Text("Save")
                               )

@@ -28,7 +28,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _flightType = "";
   String _numberAircraft = "";
   String _wakeTurbulence = "";
-  String _aircraftEquipment = "";
+  String _aircraftEquipment = "S";
   String _departure = "";
   DateTime _departureDateTime = DateTime.now();
   String _destination = "";
@@ -36,7 +36,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _route = "";
   String _cruisingSpeed = "";
   String _altitude = "";
-  String _surveillanceEquipment = "";
+  String _surveillanceEquipment = "N";
   String _otherInformation = "";
   String _alternate1 = "";
   String _alternate2 = "";
@@ -64,6 +64,35 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
           }
           return _makeContent(_aircraft);
         });
+  }
+
+  PlanLmfs _makeLmfs() {
+    PlanLmfs lmfs = PlanLmfs();
+    lmfs.aircraftId = _aircraftId;
+    lmfs.flightRule = _flightRule;
+    lmfs.flightType = _flightType;
+    lmfs.noOfAircraft = _numberAircraft;
+    lmfs.aircraftType = _aircraftType;
+    lmfs.wakeTurbulence = _wakeTurbulence;
+    lmfs.aircraftEquipment = _aircraftEquipment;
+    lmfs.departure = _departure;
+    lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
+    lmfs.cruisingSpeed = _cruisingSpeed;
+    lmfs.level = _altitude;
+    lmfs.surveillanceEquipment = _surveillanceEquipment;
+    lmfs.route = _route;
+    lmfs.otherInfo = _otherInformation;
+    lmfs.destination = _destination;
+    lmfs.totalElapsedTime = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M";
+    lmfs.alternate1 = _alternate1;
+    lmfs.alternate2 = _alternate2;
+    lmfs.fuelEndurance = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M";
+    lmfs.peopleOnBoard = _peopleOnBoard;
+    lmfs.aircraftColor = _aircraftColor;
+    lmfs.supplementalRemarks = _remarks;
+    lmfs.pilotInCommand = _pilotInCommand;
+    lmfs.pilotInfo = _pilotInformation;
+    return lmfs;
   }
 
   Widget _makeContent(List<Aircraft>? aircraft) {
@@ -240,7 +269,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Aircraft Equipment')
               ),
 
-              Row(children:[TextButton(child: const Text("S"), onPressed: () {
+              Row(children:[TextButton(child: Text(_aircraftEquipment), onPressed: () {
                 setState(() {
                   _aircraftEquipment = "S";
                 });
@@ -277,6 +306,14 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               ),
 
               SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
+                TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _departureDateTime = DateTime.now();
+                      });
+                    },
+                    child: const Text("Now")),
+
                 TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
@@ -354,7 +391,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Surveillance Equipment')
               ),
 
-              Row(children:[TextButton(child: const Text("N"), onPressed: () {
+              Row(children:[TextButton(child: Text(_surveillanceEquipment), onPressed: () {
                 setState(() {
                   _surveillanceEquipment = "N";
                 });
@@ -500,18 +537,19 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                 TextButton(
                     onPressed: () {
                       setState(() {
+                        _fuelEndurance = Duration(minutes: _fuelEndurance.inMinutes - 15);
+                      });
+                    },
+                    child: const Text("-15M")),
+
+                TextButton(
+                    onPressed: () {
+                      setState(() {
                         _fuelEndurance = Duration(minutes: _fuelEndurance.inMinutes + 15);
                       });
                     },
                     child: const Text("+15M")),
 
-                TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _fuelEndurance = Duration(minutes: _fuelEndurance.inMinutes - 15);
-                      });
-                    },
-                    child: const Text("-15M")),
               ])),
 
 
@@ -593,31 +631,26 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
         Flexible(flex: 1, child: Row(children: [
           TextButton(
             onPressed: () {
-              PlanLmfs lmfs = PlanLmfs();
-              lmfs.aircraftId = _aircraftId;
-              lmfs.flightRule = _flightRule;
-              lmfs.flightType = _flightType.isNotEmpty ? _flightType[0] : "";
-              lmfs.noOfAircraft = _numberAircraft;
-              lmfs.aircraftType = _aircraftType;
-              lmfs.wakeTurbulence = _wakeTurbulence;
-              lmfs.aircraftEquipment = _aircraftEquipment;
-              lmfs.departure = _departure;
-              lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
-              lmfs.cruisingSpeed = _cruisingSpeed;
-              lmfs.level = _altitude;
-              lmfs.surveillanceEquipment = _surveillanceEquipment;
-              lmfs.route = _route;
-              lmfs.otherInfo = _otherInformation;
-              lmfs.destination = _destination;
-              lmfs.totalElapsedTime = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M";
-              lmfs.alternate1 = _alternate1;
-              lmfs.alternate2 = _alternate2;
-              lmfs.fuelEndurance = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M";
-              lmfs.peopleOnBoard = _peopleOnBoard;
-              lmfs.aircraftColor = _aircraftColor;
-              lmfs.supplementalRemarks = _remarks;
-              lmfs.pilotInCommand = _pilotInCommand;
-              lmfs.pilotInfo = _pilotInformation;
+              PlanLmfs lmfs = _makeLmfs();
+              LmfsInterface interface = LmfsInterface();
+              setState(() {
+                _sending = true;
+                _error = "";
+              });
+              interface.getBriefing(lmfs).then((value) {
+                setState(() {
+                  _error = interface.error;
+                  if(_error.isNotEmpty) {
+                    _errorColor = Colors.red;
+                  }
+                  _sending = false;
+                });
+              });
+            },
+            child: const Text("Get Email Brief"),),
+          TextButton(
+            onPressed: () {
+              PlanLmfs lmfs = _makeLmfs();
               LmfsInterface interface = LmfsInterface();
               setState(() {
                 _sending = true;
