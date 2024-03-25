@@ -250,9 +250,9 @@ class TrafficPainter extends CustomPainter {
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = _getGrossFlightLevelDiff(traffic.message.altitude), 
+      _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = _getVelocityLevel(traffic.message.velocity);
+      _velocityLevel = prefSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999;
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
   /// cached picture if possible (if not, draw and cache a new one)
@@ -373,7 +373,7 @@ class TrafficPainter extends CustomPainter {
   /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
   /// as well as the key to the picture cache
   String _getIconStateKey() {
-    return "$_vspeedDirection^${ prefAltDiffOpacityGraduation ?  _flightLevelDiff : 0 }^${ prefSpeedBarb ? _velocityLevel : 0}^$_isAirborne";
+    return "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
   }
 
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
