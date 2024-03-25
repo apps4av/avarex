@@ -163,6 +163,8 @@ class TrafficPainter extends CustomPainter {
   static bool prefSpeedBarb = false;                        // Shows line/barb at tip of icon based on speed/velocity
   static bool prefAltDiffOpacityGraduation = true;          // Gradually vary opacity of icon based on altitude diff from ownship
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
+  static bool prefShowBoundingBox = true;                   // Display outlined bounding box around icon for higher visibility
+  static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
 
   // Static picture cache, for faster rendering of the same image for another marker, based on flight state
   static final Map<String,ui.Picture> _pictureCache = {};
@@ -212,7 +214,7 @@ class TrafficPainter extends CustomPainter {
       const Offset(16, 5), const Offset(15, 5) ], true);
   static final ui.Path _lightAircraft = ui.Path()
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))) // body
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(1, 18, 30, 25), const Radius.circular(1))) // wings
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))) // wings
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1)))  // h-stabilizer
     ..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true); // rear body
   static final ui.Path _rotorcraft = ui.Path()
@@ -240,6 +242,8 @@ class TrafficPainter extends CustomPainter {
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);  // duped, for forcing opacity
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
+  static final ui.Path _boundingBox = ui.Path()
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));    
  
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
@@ -318,9 +322,19 @@ class TrafficPainter extends CustomPainter {
         baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
       }
 
-      // Draw shadow for contrast on detailed backgrounds (especially secitionals)
-      for (int i = 0; i < _kShadowDrawPasses; i++) {
-        drawingCanvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
+      if (prefShowBoundingBox) {
+        // Draw transluscent bounding box for greater visibility (especially sectionals)
+        drawingCanvas.drawPath(_boundingBox, 
+          Paint()..color = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue,
+            // Have box fill opacity be 30% less, but track main icon, with a floor of 10% less than regular opacity
+            max(opacity - .3, _kTrafficOpacityMin - .1)));                 
+      }
+
+      if (prefShowShadow) {
+        // Draw shadow for contrast on detailed backgrounds (especially secitionals)
+        for (int i = 0; i < _kShadowDrawPasses; i++) {
+          drawingCanvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
+        }
       }
 
       // Draw aircraft (and speed barb, if feature enabled)
