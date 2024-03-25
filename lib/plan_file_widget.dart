@@ -76,7 +76,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
     lmfs.wakeTurbulence = _wakeTurbulence;
     lmfs.aircraftEquipment = _aircraftEquipment;
     lmfs.departure = _departure;
-    lmfs.departureDate = _departureDateTime.toUtc().toString().substring(0, 16);
+    lmfs.departureDate = stringTime(_departureDateTime);
     lmfs.cruisingSpeed = _cruisingSpeed;
     lmfs.level = _altitude;
     lmfs.surveillanceEquipment = _surveillanceEquipment;
@@ -93,6 +93,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
     lmfs.pilotInCommand = _pilotInCommand;
     lmfs.pilotInfo = _pilotInformation;
     return lmfs;
+  }
+
+  static String stringTime(DateTime time) {
+    return time.toUtc().toString().substring(0, 16);
   }
 
   Widget _makeContent(List<Aircraft>? aircraft) {
@@ -301,7 +305,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     }
                     catch(e) {}
                   },
-                  controller: TextEditingController()..text = _departureDateTime.toUtc().toString().substring(0, 16),
+                  controller: TextEditingController()..text = stringTime(_departureDateTime),
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time')
               ),
 

@@ -168,16 +168,13 @@ class LmfsInterface {
     return LmfsPlanList(ret);
   }
 
-  Future<String> closeFlightPlan(String id, String loc) async {
+  Future<String> closeFlightPlan(String id) async {
     String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/$id/close";
     String httpMethod = "POST";
     _params['webUserName'] = webUserName;
     _params['avareMethod'] = avareMethod;
     _params['httpMethod'] = httpMethod;
-    if (loc != "") {
-      _params['closeDestinationInfo'] = loc;
-    }
     String ret = await _post(_avareLmfsUrl);
     error = _parseError(ret);
     return ret;
