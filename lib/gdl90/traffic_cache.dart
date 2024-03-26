@@ -270,6 +270,7 @@ class TrafficPainter extends CustomPainter {
   @override paint(Canvas canvas, Size size) {
     // Use pre-painted picture from cache based on relevant icon UI-driving parameters, if possible
     final ui.Picture? cachedPicture = _pictureCache[_iconStateKey];
+    if (cachedPicture != null) {
       canvas.drawPicture(cachedPicture);
     } else {
       final ui.PictureRecorder recorder = ui.PictureRecorder();
