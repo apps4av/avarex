@@ -256,7 +256,7 @@ class TrafficPainter extends CustomPainter {
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
   static final ui.Path _boundingBox = ui.Path()
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 32, 31), const Radius.circular(3)));    
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));    
  
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
@@ -308,12 +308,10 @@ class TrafficPainter extends CustomPainter {
         // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
         // traffic from flooding the map. Opacity decrease is 10% for every 1000 foot diff above or below, with a 
         // floor of 20% total opacity (i.e., max 80% transparency)        
-        opacity = min(
-          max(_kTrafficOpacityMin, 
+        opacity = min(max(_kTrafficOpacityMin, 
             (_isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax) - _flightLevelDiff.abs() * _kFlightLevelOpacityReduction
           ), 
-          _isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax
-        );
+          _isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax);
       } else {
         opacity = 1.0;
       }
@@ -361,7 +359,7 @@ class TrafficPainter extends CustomPainter {
       }
 
       if (prefShowShadow) {
-        // Draw shadow for contrast on detailed backgrounds (especially secitionals)
+        // Draw shadow for contrast on detailed backgrounds (especially sectionals)
         for (int i = 0; i < _kShadowDrawPasses; i++) {
           drawingCanvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
         }
