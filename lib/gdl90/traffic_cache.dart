@@ -256,7 +256,7 @@ class TrafficPainter extends CustomPainter {
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
   static final ui.Path _boundingBox = ui.Path()
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));    
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 32, 31), const Radius.circular(3)));    
  
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
@@ -285,10 +285,10 @@ class TrafficPainter extends CustomPainter {
     final bool isRealtimeRasterizationRequired = prefShowShadow;
 
     if (!isRealtimeRasterizationRequired) {
-      // Used cached rasterized (pixels rendered) image if possible
+      // Used cached rasterized (pixel) image if possible
       final ui.Image? cachedImage = _imageCache[_iconStateKey];  
       if (cachedImage != null) {
-        canvas.drawImage(cachedImage, const Offset(0, 0), ui.Paint());
+        paintImage(canvas: canvas, rect: Rect.fromLTWH(0, 0, cachedImage.width*1.0, cachedImage.height*1.0), image: cachedImage);
         return;
       }
     }
@@ -403,7 +403,7 @@ class TrafficPainter extends CustomPainter {
     }
   }
 
-  /// Only repaint this traffic marker if one of the flight properties (coalesced in state key) affecting the icon changes
+  /// Only repaint this traffic marker if one of the flight properties (coalesced in icon state key) affecting the icon changes
   @override
   bool shouldRepaint(covariant TrafficPainter oldDelegate) {
     return _iconStateKey != oldDelegate._iconStateKey;
