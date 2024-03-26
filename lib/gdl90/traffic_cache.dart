@@ -368,7 +368,7 @@ class TrafficPainter extends CustomPainter {
   /// Only repaint this traffic marker if one of the flight properties affecting the icon changes
   @override
   bool shouldRepaint(covariant TrafficPainter oldDelegate) {
-    return _iconStateKey == oldDelegate._iconStateKey;
+    return _iconStateKey != oldDelegate._iconStateKey;
   }
 
   @pragma("vm:prefer-inline")
