@@ -160,13 +160,13 @@ enum _TrafficAircraftIconType { unmapped, light, large, rotorcraft }
 class TrafficPainter extends CustomPainter {
 
   // Preference control variables
-  static bool prefSpeedBarb = false;                        // Shows line/barb at tip of icon based on speed/velocity
+  static bool prefShowSpeedBarb = false;                        // Shows line/barb at tip of icon based on speed/velocity
   static bool prefAltDiffOpacityGraduation = true;          // Gradually vary opacity of icon based on altitude diff from ownship
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
   static bool prefShowBoundingBox = true;                   // Display outlined bounding box around icon for higher visibility
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
 
-  // Static picture cache, for faster rendering of the same image for another marker, based on flight state
+  // Static picture cache, for faster rendering of the same image for another marker, based on icon/flight state
   static final Map<String,ui.Picture> _pictureCache = {};
 
   // Const's for magic #'s and division speedup
@@ -260,10 +260,10 @@ class TrafficPainter extends CustomPainter {
       _isAirborne = traffic.message.airborne,
       _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = prefSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
-    {
-      _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
-    }
+      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
+  {
+    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
+  }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
   /// cached picture if possible (if not, draw and cache a new one)
@@ -293,7 +293,7 @@ class TrafficPainter extends CustomPainter {
         opacity = 1.0;
       }
 
-      // Define aircraft, barb, accent/overlay colors and paint using above flight-level diff opacity
+      // Define aircraft, barb, accent/overlay colors and paint using above opacity
       final Paint aircraftPaint;
       if (!_isAirborne) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
@@ -305,7 +305,6 @@ class TrafficPainter extends CustomPainter {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
       }
       final Color darkAccentColor = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue, opacity);
-      final Paint vspeedOverlayPaint = Paint()..color = darkAccentColor;
 
       // Set aircraft shape
       final ui.Path baseIconShape;
@@ -323,7 +322,7 @@ class TrafficPainter extends CustomPainter {
           baseIconShape = (prefUseDifferentDefaultIconThanLight ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
       }            
 
-      if (prefSpeedBarb) {
+      if (prefShowSpeedBarb) {
         // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
         baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
       }
@@ -351,9 +350,9 @@ class TrafficPainter extends CustomPainter {
         if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft 
           || (!prefUseDifferentDefaultIconThanLight && _aircraftType == _TrafficAircraftIconType.unmapped)
         ) {
-          drawingCanvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, vspeedOverlayPaint);
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, Paint()..color = darkAccentColor);
         } else {
-          drawingCanvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, vspeedOverlayPaint);    
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, Paint()..color = darkAccentColor);    
         }
       }  
 
