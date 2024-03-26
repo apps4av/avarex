@@ -78,11 +78,12 @@ class AircraftScreenState extends State<AircraftScreen> {
       }
     }
 
+
     // has a set of value and help
     List<_Entry> entries = [];
     entries.add(_Entry("Tail Number",                               "tail",           active.tail,           const Tooltip(message: "Tail number, for example, N172EF.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Type",                                      "type",           active.type,           const Tooltip(message: "Type, for example, C172.", child: Icon(Icons.question_mark))));
-    entries.add(_Entry("Color & Markings",                          "color",          active.color,          SizedBox(width:32, child: WidgetZoom(heroAnimationTag: "color", zoomWidget: Image.asset("assets/images/ac_colors.png"),))));
+    entries.add(_Entry("Color & Markings",                          "color",          active.color,          const Tooltip(message: "Use a combination of the following colors, for example, for white and blue, enter W/B.\nA  = Amber\nB  = Blue\nBE = Beige\nBK = Black\nBR = Brown\nG  = Green\nGD = Gold\nGY = Gray\nM  = Maroon\nO  = Orange\nOD = Olive Drab\nP  = Purple\nPK = Pink\nR  = Red\nS  = Silver\nTQ = Turquoise\nT  = Tan\nV  = Violet\nW  = White\nY  = Yellow\n", child: Icon(Icons.question_mark))));
     entries.add(_Entry("PIC",                                       "pic",            active.pic,            const Tooltip(message: "Name of the pilot, for example, John Smith.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("PIC Information",                           "picInfo",        active.picInfo,        const Tooltip(message: "Pilot information, for example, phone number.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Home Base",                                 "base",           active.base,           const Tooltip(message: "Where the aircraft is based at, for example, KBVY.", child: Icon(Icons.question_mark))));

@@ -201,27 +201,27 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
                 TextButton(child: const Text("General Aviation"), onPressed: () {
                   setState(() {
-                    _flightType = "General Aviation";
+                    _flightType = "G";
                   });
                 },),
                 TextButton(child: const Text("Scheduled"), onPressed: () {
                   setState(() {
-                    _flightType = "Scheduled";
+                    _flightType = "S";
                   });
                 },),
                 TextButton(child: const Text("Non Scheduled"), onPressed: () {
                   setState(() {
-                    _flightType = "Non Scheduled";
+                    _flightType = "N";
                   });
                 },),
                 TextButton(child: const Text("Military"), onPressed: () {
                   setState(() {
-                    _flightType = "Military";
+                    _flightType = "M";
                   });
                 },),
                 TextButton(child: const Text("Other"), onPressed: () {
                   setState(() {
-                    _flightType = "Other";
+                    _flightType = "O";
                   });
                 },),
               ])),

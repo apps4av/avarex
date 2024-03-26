@@ -17,6 +17,10 @@ class PlanManageWidget extends StatefulWidget {
 
 class PlanManageWidgetState extends State<PlanManageWidget> {
 
+  bool _sending = false;
+  String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
+  Color _errorColor = Colors.white;
+
   Future<LmfsPlanList> getPlans() async {
     LmfsPlanList ret;
     LmfsInterface interface = LmfsInterface();
@@ -55,16 +59,35 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                 leading: Column(
                     children:[
                       // can cancel in proposed state
-                      if(item.currentState == "PROPOSED")
+                      if(item.currentState != "ACTIVE")
                         TextButton(
                           onPressed: () {
                             LmfsInterface interface = LmfsInterface();
-                            interface.cancelFlightPlan(item.id);
-                            setState(() {});
+                            setState(() {
+                              _sending = true;
+                              _error = "";
+                            });
+                            interface.cancelFlightPlan(item.id).then((value) => setState(() {
+                              _error = interface.error;
+                              if(_error.isNotEmpty) {
+                                _errorColor = Colors.red;
+                              }
+                              _sending = false;
+                            }));
                           },
                           child: const Text("Cancel"),),
                     ]),
-                subtitle: Text(item.currentState),
+                subtitle: Row(children:[
+                  Text(item.currentState),
+                  const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+                  Visibility(visible: _sending, child: const CircularProgressIndicator(),),
+                  const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
+                  // Show an error and a question mark with error code when error, otherwise show a check mark
+                  Tooltip(message: _error, child: _sending ?
+                  Container() : _error.isEmpty ?
+                  const Icon(Icons.check, color: Colors.green,) :
+                  Icon(Icons.question_mark, color: _errorColor,)),
+                ]),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children : [
@@ -72,7 +95,18 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                       TextButton(
                         onPressed: () {
                             LmfsInterface interface = LmfsInterface();
-                            interface.closeFlightPlan(item.id).then((value) => setState(() {}));
+                            setState(() {
+                              _sending = true;
+                              _error = "";
+                            });
+                            interface.closeFlightPlan(item.id).then((value) => setState(() {
+                              _error = interface.error;
+                              if(_error.isNotEmpty) {
+                                _errorColor = Colors.red;
+                              }
+                              _sending = false;
+
+                            }));
                         },
                         child: const Text("Close"),),
                     if(item.currentState == "PROPOSED")
@@ -91,7 +125,19 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                               onChange: (value) {
                                 DateTime depart = DateTime.now().copyWith(hour: value.hour, minute: value.minute);
                                 LmfsInterface interface = LmfsInterface();
-                                interface.activateFlightPlan(item.id, item.versionStamp, PlanFileWidgetState.stringTime(depart)).then((value) => setState(() {}));
+                                setState(() {
+                                  _sending = true;
+                                  _error = "";
+                                });
+                                interface.activateFlightPlan(item.id, item.versionStamp,
+                                    PlanFileWidgetState.stringTime(depart)).then((value) => setState(() {
+                                  _error = interface.error;
+                                  if(_error.isNotEmpty) {
+                                    _errorColor = Colors.red;
+                                  }
+                                  _sending = false;
+
+                                }));
                               },
                             ),
                           );
