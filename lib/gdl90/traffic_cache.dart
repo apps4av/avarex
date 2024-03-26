@@ -167,7 +167,6 @@ class TrafficPainter extends CustomPainter {
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
   static bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
 
-
   /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
   /// there are a discrete number of possible renderings for all traffic
   static final Map<String,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
@@ -255,15 +254,17 @@ class TrafficPainter extends CustomPainter {
     ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true));
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
+  // Translucent bounding box shape
   static final ui.Path _boundingBox = ui.Path()
     ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));    
- 
+  
+  // Discrete icon state variables used to determine UI
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
   final int _flightLevelDiff;
   final int _vspeedDirection;
   final int _velocityLevel;
-  /// Unique key of icon state based on flight properties that define the icon appearance, per the current
+  /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
   /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
   /// as well as the key to the picture cache  
   String _iconStateKey = "";
@@ -293,7 +294,7 @@ class TrafficPainter extends CustomPainter {
       }
     }
 
-    // Use cached picture (pre-computed graphical operaions) if possible
+    // Use cached picture (pre-rasterization graphical operations) if possible
     final ui.Picture? cachedPicture = _pictureCache[_iconStateKey];
     if (cachedPicture != null) {
       canvas.drawPicture(cachedPicture);
