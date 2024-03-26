@@ -275,7 +275,7 @@ class TrafficPainter extends CustomPainter {
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
   {
-    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne";
+    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne^$_aircraftType";
   }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
