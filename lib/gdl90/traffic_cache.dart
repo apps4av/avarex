@@ -394,7 +394,7 @@ class TrafficPainter extends CustomPainter {
       _pictureCache[_iconStateKey] = newPicture;
       if (!isRealtimeRasterizationRequired) {
         // Cache pixels of image to image cache, to save rasterization next time, if possible
-        newPicture.toImage(32, 32).then((image) => _imageCache[_iconStateKey] = image);
+        newPicture.toImage(32, 32 + (prefShowSpeedBarb ? _velocityLevel*2 : 0)).then((image) => _imageCache[_iconStateKey] = image);
       }
 
       // now draw the new picture to this widget's canvas
