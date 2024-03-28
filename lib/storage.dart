@@ -228,9 +228,9 @@ class Storage {
       }
     });
     try {
-      // Have audible alerts listen for GPS changes
-      Storage().gpsChange.addListener(TrafficCache().handleAudibleAlerts);
-    } catch (e) {}
+      // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
+      Storage().gpsChange.addListener(TrafficCache().updateTrafficDistancesAndAlerts);
+    } catch (e) { }
   }
 
   stopIO() {
