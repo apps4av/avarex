@@ -7,6 +7,8 @@ import 'geomag-master/lib/geomag.dart';
 class GeoCalculations {
 
   final Distance _distance = const Distance();
+  static const Distance _haversineDistance = Distance(calculator: Haversine());
+
   final GeoMag _mag = GeoMag();
 
   static const double segmentLength = 100; // nm
@@ -102,6 +104,11 @@ class GeoCalculations {
   double calculateDistance(LatLng ll1, LatLng ll2) {
     return Constants.mToNm(_distance(ll1, ll2));
   }
+
+  /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)
+  static double calculateFastDistance(LatLng ll1, LatLng ll2) {
+    return Constants.mToNm(_haversineDistance(ll1, ll2));
+  }  
 
   double calculateBearing(LatLng ll1, LatLng ll2) {
     double bearing = _distance.bearing(ll1, ll2);
