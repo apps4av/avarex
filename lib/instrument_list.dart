@@ -40,6 +40,7 @@ class InstrumentList extends StatefulWidget {
 }
 
 class InstrumentListState extends State<InstrumentList> {
+  static final DateFormat _hourMinuteFormatter = DateFormat('HH:mm');
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
   String _gndSpeed = "0";
   String _altitude = "0";
@@ -178,8 +179,8 @@ class InstrumentListState extends State<InstrumentList> {
       _countUp = _doCountUp ? _countUp + 1 : _countUp;
       Duration d = Duration(seconds: _countUp);
       _timerUp = _truncate(d.toString().substring(2, 7));
-      DateFormat formatter = DateFormat('HH:mm');
-      _utc = _truncate(formatter.format(DateTime.now().toUtc()));
+      
+      _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Int." : "Ext.";
     });
   }
