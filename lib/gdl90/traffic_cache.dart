@@ -12,6 +12,8 @@ import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMetersToFeet = 3.28084;
+// Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
+const int _kAudibleAlertCallMinDelayMs = 100;
 
 class Traffic {
 
@@ -68,6 +70,8 @@ class Traffic {
 class TrafficCache {
   static const int maxEntries = 20;
   final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
+  bool _isAlertCallScheduled = false;
+
   // Moving the raw calculation into constructor of Traffic, and the vertical distance heuristic into the sort method
   // where it is used
   // double findDistance(LatLng coordinate, double altitude) {
@@ -153,11 +157,19 @@ class TrafficCache {
   }
 
   void handleAudibleAlerts() {
+    // If alerts have already beeen scheduled, we don't need to re-enter and call again
+    if (_isAlertCallScheduled) {
+      return;
+    }    
     if (Storage().settings.isAudibleAlertsEnabled()) {
       AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
-        // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        Future.delayed(const Duration(milliseconds: _kAudibleAlertCallMinDelayMs), () {
+          _isAlertCallScheduled = false;
+          // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
+          value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        });
       });
+      _isAlertCallScheduled = true;
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
     }
