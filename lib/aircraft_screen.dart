@@ -3,8 +3,6 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:widget_zoom/widget_zoom.dart';
-
 import 'constants.dart';
 
 class AircraftScreen extends StatefulWidget {
@@ -78,7 +76,6 @@ class AircraftScreenState extends State<AircraftScreen> {
       }
     }
 
-
     // has a set of value and help
     List<_Entry> entries = [];
     entries.add(_Entry("Tail Number",                               "tail",           active.tail,           const Tooltip(message: "Tail number, for example, N172EF.", child: Icon(Icons.question_mark))));
@@ -93,8 +90,9 @@ class AircraftScreenState extends State<AircraftScreen> {
     entries.add(_Entry("Fuel Burn Rate",                            "fuelBurn",       active.fuelBurn,       const Tooltip(message: "Fuel burn rate in unit per hour, for example, for 10 gallons per hour, enter 10.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Sink Rate",                                 "sinkRate",       active.sinkRate,       const Tooltip(message: "Sink rate in unit feet per minute, for example, 700.", child: Icon(Icons.question_mark))));
     entries.add(_Entry("Wake Turbulence",                           "wake",           active.wake,           const Tooltip(message: "Wake turbulence category, enter one of LIGHT, MEDIUM, or HEAVY.", child: Icon(Icons.question_mark))));
-    entries.add(_Entry("Navigation, Communications, Approach Aid",  "equipment",      active.equipment,      SizedBox(width:32, child: WidgetZoom(heroAnimationTag: "equipment", zoomWidget: Image.asset("assets/images/icao_plan_help.png"),))));
-    entries.add(_Entry("Surveillance",                              "surveillance",   active.surveillance,   SizedBox(width:32, child: WidgetZoom(heroAnimationTag: "surveillance", zoomWidget: Image.asset("assets/images/icao_plan_help.png"),))));
+    entries.add(_Entry("Navigation, Communications, Approach Aid",  "equipment",      active.equipment,      const Tooltip(message: "A: GBAS landing system\nB: LPV (APCH with SBAS)\nC: LORAN C\nD: DME (Distance Measuring Equipment)\nG: GNSS (Global Navigation Satellite System)\nI: INS (Inertial Navigation System)\nL: ILS (Instrument Landing System)\nO: VOR (VHF Omnidirectional Range)\nR: PBN approved (Performance-Based Navigation)\nS: Standard equipment (ILS, VOR, VHF Comm)\nT: TACAN\nV: VHF Comm\nU: UHF\nW: RVSM (Reduced Vertical Separation Minimum)", child: Icon(Icons.question_mark))));
+    entries.add(_Entry("Surveillance",                              "surveillance",   active.surveillance,   const Tooltip(message: "N: No capabilities\nA: Mode A (no Mode C)\nC: Modes A and C\nS: Mode S- ACID and Altitude\nP: Mode S- Altitude, no ACID\nI: Mode S- ACID, no Altitude\nX: Mode S- no ACID, no Altitude\nE: Mode S- ACID, Altitude, Extended Squitter\nH: Mode S- ACID, Altitude, Enhanced Surveillance\nL: Mode S- ACID, Altitude, Enhanced Surveillance\nB1: 1090 MHz “out”\nB2: 1090 MHz “out” and “in”\nU1: UAT “out”\nU2: UAT “out” and “in”\nV1: VDL Mode 4 “out”\nV2: VDL Mode 4 “out” and “in”\nD1: ADS-C FANS 1/A\nG1: ADS-C ATN", child: Icon(Icons.question_mark))));
+
 
     return SingleChildScrollView(
         child: Padding(
