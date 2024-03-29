@@ -7,11 +7,12 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
+import 'package:avaremp/constants.dart';
 
 import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
-const double _kMetersToFeet = 3.28084;
+
 // Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
 const int _kAudibleAlertCallMinDelayMs = 100;
 
@@ -35,7 +36,7 @@ class Traffic {
     // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
     // }    
-    verticalOwnshipDistanceFt = Storage().position.altitude * _kMetersToFeet - message.altitude;
+    verticalOwnshipDistanceFt = Constants.mToFt(Storage().position.altitude) - message.altitude;
   }
 
   bool isOld() {

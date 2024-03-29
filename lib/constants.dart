@@ -4,6 +4,10 @@ class Constants {
   static const bool useK = true;
   static const weatherUpdateTimeMin = 10;
 
+  static const double _kMetersToFeet = 3.28084;
+
+  @pragma("vm:prefer-inline")
+  static double mToFt(double meters) { return _kMetersToFeet * meters; }
   static double mToNm(double meters) {return 0.000539957 * meters;}
   static double nmToM(distance) {return distance / 0.000539957;}
   static String secondsToHHmm(int seconds) {
