@@ -116,9 +116,9 @@ class AudibleTrafficAlerts {
   final AssetSource _pointAudio = AssetSource("tr_point.mp3");
 
   final List<_AlertItem> _alertQueue = [];
-  final Map<String, String> _lastTrafficPositionUpdateTimeMap = {};
-  final Map<String, int> _lastTrafficAlertTimeMap = {};
-  final List<String> _phoneticAlphaIcaoSequenceQueue = [];
+  final Map<int, String> _lastTrafficPositionUpdateTimeMap = {};
+  final Map<int, int> _lastTrafficAlertTimeMap = {};
+  final List<int> _phoneticAlphaIcaoSequenceQueue = [];
 
   // General audible alert preferences
   bool prefIsAudibleGroundAlertsEnabled = false;
@@ -224,7 +224,7 @@ class AudibleTrafficAlerts {
         continue;
       }
       final String trafficPositionTimeCalcUpdateValue = "${traffic.message.time.millisecondsSinceEpoch}_${ownshipUpdateTimeMs}";
-      final String trafficKey = _getTrafficKey(traffic);
+      final int trafficKey = _getTrafficKey(traffic);
       final String? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
       final bool hasUpdate;
       // Ensure traffic has been recently updated, and if within the alerts threshold "cylinder", upsert it to the alert queue
@@ -331,7 +331,7 @@ class AudibleTrafficAlerts {
     // Loop to allow a traffic item to cede place in line to next available one to be considered if current one can't go now
     for (int i = 0; i < _alertQueue.length; i++) {
       final _AlertItem nextAlert = _alertQueue[i];
-      final String trafficKey = _getTrafficKey(nextAlert._traffic);
+      final int trafficKey = _getTrafficKey(nextAlert._traffic);
       final int? lastTrafficAlertTimeValue = _lastTrafficAlertTimeMap[trafficKey];
       if (lastTrafficAlertTimeValue == null ||
           (timeToWaitForTraffic = min(timeToWaitForTraffic,
@@ -409,7 +409,7 @@ class AudibleTrafficAlerts {
   }
 
   void _addPhoneticAlphaTrafficIdAudio(List<AssetSource> alertAudio, _AlertItem alert) {
-    final String trafficKey = _getTrafficKey(alert._traffic);
+    final int trafficKey = _getTrafficKey(alert._traffic);
     int icaoIndex = _phoneticAlphaIcaoSequenceQueue.indexOf(trafficKey);
     if (icaoIndex == -1) {
       _phoneticAlphaIcaoSequenceQueue.add(trafficKey);
@@ -567,8 +567,9 @@ class AudibleTrafficAlerts {
     return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) * _kNauticalMilesPerMeter;
   }
 
-  static String _getTrafficKey(Traffic? traffic) {
-    return "${traffic?.message.callSign}:${traffic?.message.icao}";
+  @pragma("vm:prefer-inline")
+  static int _getTrafficKey(Traffic? traffic) {
+    return traffic?.message.icao ?? -1;
   }
 
   /// Time to closest approach between two 2-d kinematic vectors; credit to: https://math.stackexchange.com/questions/1775476/shortest-distance-between-two-objects-moving-along-two-lines
