@@ -812,19 +812,21 @@ class MapScreenState extends State<MapScreen> {
                                                     onChanged: (bool value) {
                                                       setState1(() {
                                                         _layersState[index] = value;
-                                                        if(_layers[index] == "Tracks") {
-                                                          if(value == false) {
-                                                            // save tracks on turning them off then show user where to get them
-                                                            Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                                                            Storage().tracks.saveKml().then((value) {
+                                                      });
+                                                      if(_layers[index] == "Tracks") {
+                                                        if(value == false) {
+                                                          // save tracks on turning them off then show user where to get them
+                                                          Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                                                          Storage().tracks.saveKml().then((value) {
+                                                            setState(() {
                                                               Navigator.pushNamed(context, '/documents');
                                                             });
-                                                          }
-                                                          else {
-                                                            Storage().tracks.reset(); //on turning on, start fresh
-                                                          }
+                                                          });
                                                         }
-                                                      });
+                                                        else {
+                                                          Storage().tracks.reset(); //on turning on, start fresh
+                                                        }
+                                                      }
                                                       // now save to settings
                                                       Storage().settings.setLayersState(_layersState);
                                                       setState(() {
