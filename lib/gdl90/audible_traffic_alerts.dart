@@ -116,7 +116,7 @@ class AudibleTrafficAlerts {
   final AssetSource _pointAudio = AssetSource("tr_point.mp3");
 
   final List<_AlertItem> _alertQueue = [];
-  final Map<int, String> _lastTrafficPositionUpdateTimeMap = {};
+  final Map<int, int> _lastTrafficPositionUpdateTimeMap = {};
   final Map<int, int> _lastTrafficAlertTimeMap = {};
   final List<int> _phoneticAlphaIcaoSequenceQueue = [];
 
@@ -223,9 +223,9 @@ class AudibleTrafficAlerts {
       if (traffic == null || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {
         continue;
       }
-      final String trafficPositionTimeCalcUpdateValue = "${traffic.message.time.millisecondsSinceEpoch}_${ownshipUpdateTimeMs}";
+      final int trafficPositionTimeCalcUpdateValue = _hashTimestamps(traffic.message.time.millisecondsSinceEpoch, ownshipUpdateTimeMs);
       final int trafficKey = _getTrafficKey(traffic);
-      final String? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
+      final int? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
       final bool hasUpdate;
       // Ensure traffic has been recently updated, and if within the alerts threshold "cylinder", upsert it to the alert queue
       if ((hasUpdate = lastTrafficPositionUpdateValue == null || lastTrafficPositionUpdateValue != trafficPositionTimeCalcUpdateValue)
@@ -252,6 +252,12 @@ class AudibleTrafficAlerts {
     if (hasInserts) { 
       scheduleMicrotask(runAudibleAlertsQueueProcessing);
     }
+  }
+
+  /// Simple hash function for pair of integers, for timestamp combination to avoid string interpolation
+  @pragma("vm:prefer-inline")
+  static int _hashTimestamps(int n, int m) {
+    return 23 + n * 31 + m;
   }
 
   bool _upsertTrafficAlertQueue(_AlertItem alert) {
