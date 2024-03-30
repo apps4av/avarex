@@ -421,6 +421,17 @@ class PlanRoute {
       // source and dest must be present
       return route;
     }
+
+    String? cookie;
+
+    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=apps4av"));
+    if (responseHttp.statusCode == 200) {
+      try {
+        cookie = responseHttp.headers['set-cookie'];
+      }
+      catch(e) {}
+    }
+
     Map<String, String> params = {};
     params['id1'] = split[0];
     params['id2'] = split[1];
@@ -431,9 +442,13 @@ class PlanRoute {
     params['lvl'] = 'L'; // low is fine for now
     params['minalt'] = minAltitude;
     params['maxalt'] = maxAltitude;
-    final response = await http.post(Uri.parse("https://rfinder.asalink.net/free/autoroute_rtx.php"), body: params);
+
+    Map<String, String> headers = {};
+    headers['Cookie'] = cookie ?? "";
+    final response = await http.post(Uri.parse("https://rfinder.asalink.net/autorte_run.php"), body: params, headers: headers);
     if (response.statusCode == 200) {
       /* parse the html
+        https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=apps4av
         Name/Remarks
         KBOS             0      0   N42&deg;21'46.60" W071&deg;00'23.00" GENERAL EDWARD LAWRENCE LOGAN
         WHYBE          256     19   N42&deg;15'13.82" W071&deg;24'59.53" WHYBE
@@ -452,7 +467,6 @@ class PlanRoute {
         KHPN           270      9   N41&deg;04'01.03" W073&deg;42'27.23" WESTCHESTER COUNTY
      */
       String data = response.body;
-      print(data);
       try {
         LineSplitter ls = const LineSplitter();
         List<String> lines = ls.convert(data);

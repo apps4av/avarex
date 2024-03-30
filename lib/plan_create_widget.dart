@@ -14,6 +14,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
 
 
   String _route = "";
+  bool _getting = false;
   String _minAltitude = Storage().route.altitude;
   String _maxAltitude = Storage().route.altitude;
 
@@ -26,6 +27,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
           flex: 1,
           child: Container(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child: const Text("Create", style: TextStyle(fontWeight: FontWeight.w800),),)),
+        Visibility(visible: _getting, child: const CircularProgressIndicator(),),
         Expanded(
           flex: 3,
           child: Container(
@@ -42,15 +44,21 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               ),
               Expanded(
                   flex: 2,
-                  child: TextButton(
-                    onPressed: () {
-                      PlanRoute.fromLine("New Plan", _route).then((value) {
-                          Storage().route.copyFrom(value);
-                          Storage().route.setCurrentWaypoint(0);
-                          Navigator.pop(context);
-                      });
-                    },
-                    child: const Text("Create"),)
+                  child:
+                    TextButton(
+                      onPressed: () {
+                        if(_getting) {
+                          return;
+                        }
+                        setState(() {_getting = true;});
+                        PlanRoute.fromLine("New Plan", _route).then((value) {
+                            Storage().route.copyFrom(value);
+                            Storage().route.setCurrentWaypoint(0);
+                            setState(() {_getting = false;});
+                            Navigator.pop(context);
+                        });
+                      },
+                      child: const Text("Create"),),
               ),
             ]
             )
@@ -92,21 +100,26 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                   ),
                   Expanded(
                       flex: 2,
-                      child: TextButton(
-                        onPressed: () {
-                          PlanRoute.fromPreferred("New Plan", _route, _minAltitude, _maxAltitude).then((value) {
-                            Storage().route.copyFrom(value);
-                            Storage().route.setCurrentWaypoint(0);
-                            Navigator.pop(context);
-                          });
-                        },
-                        child: const Text("Create"),)
-                  )
-                ]
+                      child:
+                          TextButton(
+                            onPressed: () {
+                              if(_getting) {
+                                return;
+                              }
+                              setState(() {_getting = true;});
+                              PlanRoute.fromPreferred("New Plan", _route, _minAltitude, _maxAltitude).then((value) {
+                                Storage().route.copyFrom(value);
+                                Storage().route.setCurrentWaypoint(0);
+                                setState(() {_getting = false;});
+                                Navigator.pop(context);
+                              });
+                            },
+                            child: const Text("Create"),
+                          ),
                 )
+            ])
             )
         )
-
       ])
     );
   }
