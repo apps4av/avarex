@@ -71,7 +71,9 @@ class Traffic {
 class TrafficCache {
   static const int maxEntries = 20;
   final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
-  bool _isAlertCallScheduled = false;
+
+  bool _audibleAlertsRequested = false;
+  bool _audibleAlertsHandling = false;
 
   // Moving the raw calculation into constructor of Traffic, and the vertical distance heuristic into the sort method
   // where it is used
@@ -158,19 +160,24 @@ class TrafficCache {
   }
 
   void handleAudibleAlerts() {
-    // If alerts have already beeen scheduled, we don't need to re-enter and call again
-    if (_isAlertCallScheduled) {
+    // If alerts are running or in the required delay, don't kick off processing again--just note that we want another run later
+    if (_audibleAlertsHandling) {
+      _audibleAlertsRequested = true;
       return;
-    }    
+    } 
+    _audibleAlertsHandling = true;   
     if (Storage().settings.isAudibleAlertsEnabled()) {
-      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
+      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((aa) {
+        // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
+        aa?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        _audibleAlertsRequested = false;
         Future.delayed(const Duration(milliseconds: _kAudibleAlertCallMinDelayMs), () {
-          _isAlertCallScheduled = false;
-          // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-          value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+          _audibleAlertsHandling = false;
+          if (_audibleAlertsRequested) {
+            Future(handleAudibleAlerts);
+          }
         });
       });
-      _isAlertCallScheduled = true;
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
     }
