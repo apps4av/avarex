@@ -31,7 +31,7 @@ class Traffic {
     //            color: Colors.black),
     //        child:const Icon(Icons.arrow_upward_rounded, color: Colors.white,)));
     return Transform.rotate(angle: (message.heading + 180.0 /* Image painted down on coordinate plane */) * pi  * _kDivBy180,
-      child: CustomPaint(painter: _TrafficPainter(this)));
+      child: CustomPaint(painter: TrafficPainter(this)));
   }
 
   LatLng getCoordinates() {
@@ -156,124 +156,179 @@ class TrafficCache {
 
 enum _TrafficAircraftIconType { unmapped, light, large, rotorcraft }
 
-/// Icon painter for different traffic aircraft (ADSB emitter) types and flight status, with graduated opacity for vertically distant traffic
-class _TrafficPainter extends CustomPainter {
+/// Icon painter for different traffic aircraft types (ADSB emitter category) and flight status
+class TrafficPainter extends CustomPainter {
 
-  // Static picture cache, for faster rendering of the same image for another marker, based on flight state
-  static final Map<String,ui.Picture> _pictureCache = {};
+  // Preference control variables
+  static bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
+  static bool prefAltDiffOpacityGraduation = true;          // Gradually vary opacity of icon based on altitude diff from ownship
+  static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
+  static bool prefShowBoundingBox = true;                   // Display outlined bounding box around icon for higher visibility
+  static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
+  static bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
+
+  /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
+  /// there are a discrete number of possible renderings for all traffic
+  static final Map<String,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
+  static final Map<String,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
   static const double _kMetersToFeetCont = 3.28084;
   static const double _kMetersPerSecondToKnots = 1.94384;
   static const double _kDivBy60Mult = 1.0 / 60.0;
   static const double _kDivBy1000Mult = 1.0 / 1000.0;
+  // UI Default constants
+  static const double _kTrafficOpacityMin = 0.2;
+  static const double _kFlyingTrafficOpacityMax = 1.0;
+  static const double _kGroundTrafficOpacityMax = 0.5;
+  static const double _kFlightLevelOpacityReduction = 0.1;
+  static const double _kBoundingBoxOpacityReduction = 0.4;
+  static const double _kBoundingBoxOpacityMin = 0.1;  
+  static const int _kShadowDrawPasses = 2;
+  static const double _kShadowElevation = 5.0;
   // Colors for different aircraft heights, and contrasting overlays
-  static const Color _levelColor = Color(0xFF505050);           // Level traffic = Dark grey
-  static const Color _highColor = Color(0xFF2940FF);            // High traffic = Mild dark blue
-  static const Color _lowColor = Color(0xFF50D050);             // Low traffic = Limish green
-  static const Color _groundColor = Color(0xFF836539);          // Ground traffic = Brown
-  static const Color _lightForegroundColor = Color(0xFFFFFFFF); // Overlay for darker backgrounds = White
-  static const Color _darkForegroundColor = Color(0xFF000000);  // Overlay for light backgrounds = Black
+  static const Color _kLevelColor = Color(0xFFBDAED1);           // Level traffic = Purplish
+  static const Color _kHighColor = Color(0xFF00DFFF);            // High traffic = Cyanish
+  static const Color _kLowColor = Color(0xFF65FE08);             // Low traffic = Lime Green
+  static const Color _kGroundColor = Color(0xFF836539);          // Ground traffic = Brown
+  static const Color _kDarkForegroundColor = Color(0xFF000000);  // Overlay color = Black
 
   // Aircraft type outlines
-  static final ui.Path _largeAircraft = ui.Path()
+  static final ui.Path _largeAircraft = ui.Path.combine(PathOperation.union,
     // body
-    ..addOval(const Rect.fromLTRB(12, 5, 19, 31))
-    ..addRect(const Rect.fromLTRB(12, 11, 19, 20))..addRect(const Rect.fromLTRB(12, 11, 19, 20)) // duped, for forcing opacity
-    ..addOval(const Rect.fromLTRB(12, 0, 19, 25))..addOval(const Rect.fromLTRB(12, 0, 19, 25)) // duped, for forcing opacity
-    // left wing
-    ..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true) 
-    ..addRect(const Rect.fromLTRB(12, 14, 16, 17))  // splash of paint to cover an odd alias artifact
-    ..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true) // duped, for forcing opacity
-    // left engine
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1)))  
-    // left h-stabilizer
-    ..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true) 
-    // right wing
-    ..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true)
-    ..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true) // duped, for forcing opacity
-    // right engine
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1)))  
-    // right h-stabilizer
-    ..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true);       
-  static final ui.Path _defaultAircraft = ui.Path()  // default icon if no ICAO ID--just a triangle
-    ..addPolygon([ const Offset(4, 4), const Offset(15, 31), const Offset(16, 31), const Offset(27, 4), 
-      const Offset(16, 10), const Offset(15, 10) ], true);
-  static final ui.Path _lightAircraft = ui.Path()
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(13, 18, 18, 31), const Radius.circular(2))) // body
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(5, 19, 26, 26), const Radius.circular(1))) // wings
-    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(11, 7, 20, 11), const Radius.circular(1)))  // h-stabilizer
-    ..addPolygon([ const Offset(13, 20), const Offset(15, 7), const Offset(16, 7), const Offset(18, 20)], true); // rear body
-  static final ui.Path _rotorcraft = ui.Path()
-    ..addOval(const Rect.fromLTRB(9, 11, 22, 31))
-    ..addPolygon([const Offset(29, 11), const Offset(31, 13), const Offset(2, 31), const Offset(0, 29)], true)
-    ..addPolygon([const Offset(29, 11), const Offset(31, 13), const Offset(2, 31), const Offset(0, 29)], true) // duped, for forcing opacity
-    ..addPolygon([const Offset(2, 11), const Offset(0, 13), const Offset(29, 31), const Offset(31, 29) ], true)
-    ..addPolygon([const Offset(2, 11), const Offset(0, 13), const Offset(29, 31), const Offset(31, 29) ], true) // duped, for forcing opacity
-    ..addRect(const Rect.fromLTRB(15, 0, 16, 12))
-    ..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))); //(const Rect.fromLTRB(10, 3, 21, 7));       
+    ui.Path()..addOval(const Rect.fromLTRB(12, 5, 19, 31)),
+    ui.Path.combine(PathOperation.union,
+      ui.Path()..addRect(const Rect.fromLTRB(12, 11, 19, 20)),
+      ui.Path.combine(PathOperation.union,
+        ui.Path()..addOval(const Rect.fromLTRB(12, 0, 19, 25)),
+        // left wing
+        ui.Path.combine(PathOperation.union,
+          ui.Path()..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true), 
+           ui.Path.combine(PathOperation.union,
+            // left engine
+            ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1))),
+            ui.Path.combine(PathOperation.union,
+              // left h-stabilizer
+              ui.Path()..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true),
+              ui.Path.combine(PathOperation.union,
+                // right wing
+                ui.Path()..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true),
+                ui.Path.combine(PathOperation.union,
+                  // right engine
+                  ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1))),
+                  // right h-stabilizer
+                  ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)))))))));       
+  static final ui.Path _defaultAircraft = ui.Path()  // old default icon if no ICAO ID--just a triangle
+    ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
+      const Offset(16, 5), const Offset(15, 5) ], true);
+  static final ui.Path _lightAircraft = ui.Path.combine(PathOperation.union,
+    ui.Path.combine(PathOperation.union, 
+      ui.Path.combine(PathOperation.union, 
+        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
+        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))) // wings
+      ),
+      ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1)))  // h-stabilizer
+    ),
+    ui.Path()..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true)); // rear body
+  static final ui.Path _rotorcraft = ui.Path.combine(PathOperation.union,
+    // body
+    ui.Path()..addOval(const Rect.fromLTRB(9, 11, 22, 31)),
+    ui.Path.combine(PathOperation.union,
+      ui.Path.combine(PathOperation.union,
+        ui.Path.combine(PathOperation.union, 
+          // rotor blades
+          ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
+          ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true)),
+      // tail
+      ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12))),
+    // horizontal stabilizer
+    ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))))); 
   // vertical speed plus/minus overlays
-  static final ui.Path _plusSign = ui.Path()
-    ..addPolygon([ const Offset(14, 14), const Offset(14, 23), const Offset(17, 23), const Offset(17, 14) ], true)
-    ..addPolygon([ const Offset(11, 17), const Offset(20, 17), const Offset(20, 20), const Offset(11, 20) ], true)
-    ..addPolygon([ const Offset(11, 17), const Offset(20, 17), const Offset(20, 20), const Offset(11, 20) ], true);  // duped, for forcing opacity
+  static final ui.Path _plusSign = ui.Path.combine(PathOperation.union,
+    ui.Path()..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true),
+    ui.Path()..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true));
   static final ui.Path _minusSign = ui.Path()
     ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);
-  static final ui.Path _lowerPlusSign = ui.Path()
-    ..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true)
-    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true)
-    ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);  // duped, for forcing opacity
+  static final ui.Path _lowerPlusSign = ui.Path.combine(PathOperation.union,
+    ui.Path()..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true),
+    ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true));
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
- 
+  // Translucent bounding box shape
+  static final ui.Path _boundingBox = ui.Path()
+    ..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 0, 31, 31), const Radius.circular(3)));    
+  
+  // Discrete icon state variables used to determine UI
   final _TrafficAircraftIconType _aircraftType;
   final bool _isAirborne;
   final int _flightLevelDiff;
   final int _vspeedDirection;
   final int _velocityLevel;
+  /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
+  /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
+  /// as well as the key to the picture cache  
+  String _iconStateKey = "";
 
-  _TrafficPainter(Traffic traffic) 
+  TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = _getGrossFlightLevelDiff(traffic.message.altitude), 
+      _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = _getVelocityLevel(traffic.message.velocity);
+      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
+  {
+    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne^$_aircraftType";
+  }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
-  /// cached picture if possible, and drawing and caching new one for next time if not
+  /// cached picture/image, based on icon state, if possible (if not, draw and cache a new one)
   @override paint(Canvas canvas, Size size) {
-    // Use pre-painted picture from cache based on relevant icon UI-driving parameters, if possible
-    final String pictureKey = "$_isAirborne^$_flightLevelDiff^$_vspeedDirection^$_velocityLevel";
-    final ui.Picture? cachedPicture = _pictureCache[pictureKey];
+    
+    final bool isRealtimeRasterizationRequired = prefShowShadow;
+
+    if (!isRealtimeRasterizationRequired) {
+      // Used cached rasterized (pixel) image if possible
+      final ui.Image? cachedImage = _imageCache[_iconStateKey];  
+      if (cachedImage != null) {
+        paintImage(canvas: canvas, rect: Rect.fromLTWH(0, 0, cachedImage.width*1.0, cachedImage.height*1.0), image: cachedImage);
+        return;
+      }
+    }
+
+    // Use cached picture (pre-rasterization graphical operations) if possible
+    final ui.Picture? cachedPicture = _pictureCache[_iconStateKey];
     if (cachedPicture != null) {
       canvas.drawPicture(cachedPicture);
     } else {
       final ui.PictureRecorder recorder = ui.PictureRecorder();
       final ui.Canvas drawingCanvas = Canvas(recorder);
 
-      // Decide opacity, based on vertical distance from ownship and whether traffic is on the ground. 
-      // Traffic far above or below ownship will be quite transparent, to avoid clutter, and 
-      // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
-      // traffic from flooding the map. Opacity decrease is 20% for every 1000 foot diff above or below, with a 
-      // floor of 20% total opacity (i.e., max 80% transparency)
-      final double opacity = min(max(.2, (_isAirborne ? 1.0 : 0.5) - _flightLevelDiff.abs() * 0.2), (_isAirborne ? 1.0 : 0.5));
-      // Define aircraft colors using above opacity based on whether above, level, or below ownship (or on ground)
-      final Color aircraftColor;
+      final double opacity;
+      if (prefAltDiffOpacityGraduation) {
+        // Decide opacity, based on vertical distance from ownship and whether traffic is on the ground. 
+        // Traffic far above or below ownship will be quite transparent, to avoid clutter, and 
+        // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
+        // traffic from flooding the map. Opacity decrease is 10% for every 1000 foot diff above or below, with a 
+        // floor of 20% total opacity (i.e., max 80% transparency)        
+        opacity = min(max(_kTrafficOpacityMin, 
+            (_isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax) - _flightLevelDiff.abs() * _kFlightLevelOpacityReduction
+          ), 
+          _isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax);
+      } else {
+        opacity = 1.0;
+      }
+
+      // Define aircraft, barb, accent/overlay colors and paint using above opacity
+      final Paint aircraftPaint;
       if (!_isAirborne) {
-        aircraftColor = Color.fromRGBO(_groundColor.red, _groundColor.green, _groundColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
       } else if (_flightLevelDiff > 0) {
-        aircraftColor = Color.fromRGBO(_highColor.red, _highColor.green, _highColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
       } else if (_flightLevelDiff < 0) {
-        aircraftColor = Color.fromRGBO(_lowColor.red, _lowColor.green, _lowColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
       } else {
-        aircraftColor = Color.fromRGBO(_levelColor.red, _levelColor.green, _levelColor.blue, opacity);
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
       }
-      final Color vspeedOverlayColor;
-      if (_flightLevelDiff >= 0) {
-        vspeedOverlayColor = Color.fromRGBO(_lightForegroundColor.red, _lightForegroundColor.green, _lightForegroundColor.blue, opacity);
-      } else {
-        vspeedOverlayColor = Color.fromRGBO(_darkForegroundColor.red, _darkForegroundColor.green, _darkForegroundColor.blue, opacity);
-      }
+      final Color darkAccentColor = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue, opacity);
 
       // Set aircraft shape
       final ui.Path baseIconShape;
@@ -288,47 +343,69 @@ class _TrafficPainter extends CustomPainter {
           baseIconShape = ui.Path.from(_rotorcraft);
           break;
         default:
-          baseIconShape = ui.Path.from(_defaultAircraft);
+          baseIconShape = (prefUseDifferentDefaultIconThanLight ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
+      }            
+
+      if (prefShowSpeedBarb) {
+        // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
+        baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
       }
-      
-      // Set speed barb
-      final ui.Path speedBarb = ui.Path()
-        ..addRect(Rect.fromLTWH(15, 31, 1, _velocityLevel*2.0))
-        ..addRect(Rect.fromLTWH(15, 31, 1, _velocityLevel*2.0)); // second time to prevent alias transparency interaction
 
-      // Draw aircraft and speed barb in one shot (saves rendering time/resources)
-      baseIconShape.addPath(speedBarb, const Offset(0,0));
-      drawingCanvas.drawPath(baseIconShape, Paint()..color = aircraftColor);
+      if (prefShowBoundingBox) {
+        // Draw transluscent bounding box for greater visibility (especially sectionals)
+        drawingCanvas.drawPath(_boundingBox, 
+          Paint()..color = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue,
+            // Have box fill opacity be a certain % less, but track main icon, with a floor of the traffic opacity min
+            max(opacity - _kBoundingBoxOpacityReduction, _kBoundingBoxOpacityMin)));                 
+      }
 
-      // draw vspeed overlay (if not level)
-      if (_vspeedDirection != 0) {
-        if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft) {
-          drawingCanvas.drawPath(
-            _vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign,
-            Paint()..color = vspeedOverlayColor
-          ); 
-        } else {
-          drawingCanvas.drawPath(
-            _vspeedDirection > 0 ? _plusSign : _minusSign,
-            Paint()..color = vspeedOverlayColor
-          );    
+      if (prefShowShadow) {
+        // Draw shadow for contrast on detailed backgrounds (especially sectionals)
+        for (int i = 0; i < _kShadowDrawPasses; i++) {
+          drawingCanvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
         }
-      }      
+      }
 
-      // store this fresh image to the cache for next time
+      // Draw aircraft (and speed barb, if feature enabled)
+      drawingCanvas.drawPath(baseIconShape, aircraftPaint);
+
+      if (prefShowShapeOutline) {
+        // Draw solid outline on edge of aircraft for higher visibility
+        drawingCanvas.drawPath(baseIconShape, Paint()
+          ..color = darkAccentColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+        );
+      }
+
+      // Draw vspeed ("+/-") overlay if not level
+      if (_vspeedDirection != 0) {
+        if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft 
+          || (!prefUseDifferentDefaultIconThanLight && _aircraftType == _TrafficAircraftIconType.unmapped)
+        ) {
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, Paint()..color = darkAccentColor);
+        } else {
+          drawingCanvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, Paint()..color = darkAccentColor);    
+        }
+      }  
+
+      // store this fresh image to the cache(s) for quick and efficient rendering next time
       final ui.Picture newPicture = recorder.endRecording();
-      _pictureCache[pictureKey] = newPicture;
+      _pictureCache[_iconStateKey] = newPicture;
+      if (!isRealtimeRasterizationRequired) {
+        // Cache pixels of image to image cache, to save rasterization next time, if possible
+        newPicture.toImage(32, 32 + (prefShowSpeedBarb ? _velocityLevel*2 : 0)).then((image) => _imageCache[_iconStateKey] = image);
+      }
 
       // now draw the new picture to this widget's canvas
       canvas.drawPicture(newPicture);
     }
   }
 
-  // Only repaint this traffic marker if one of the flight properties affecting the icon changes
+  /// Only repaint this traffic marker if one of the flight properties (coalesced in icon state key) affecting the icon changes
   @override
-  bool shouldRepaint(covariant _TrafficPainter oldDelegate) {
-    return _flightLevelDiff != oldDelegate._flightLevelDiff || _velocityLevel != oldDelegate._velocityLevel 
-      ||_vspeedDirection != oldDelegate._vspeedDirection || _isAirborne != oldDelegate._isAirborne;
+  bool shouldRepaint(covariant TrafficPainter oldDelegate) {
+    return _iconStateKey != oldDelegate._iconStateKey;
   }
 
   @pragma("vm:prefer-inline")
@@ -351,7 +428,7 @@ class _TrafficPainter extends CustomPainter {
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
   @pragma("vm:prefer-inline")
   static int _getGrossFlightLevelDiff(double trafficAltitude) {
-    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 5), -5);
+    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 8), -8);
   }
 
   @pragma("vm:prefer-inline")
