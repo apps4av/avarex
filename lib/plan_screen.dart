@@ -1,4 +1,5 @@
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/plan_create_widget.dart';
 import 'package:avaremp/plan_file_widget.dart';
 import 'package:avaremp/plan_item_widget.dart';
 import 'package:avaremp/plan_line_widget.dart';
@@ -23,14 +24,17 @@ class PlanScreenState extends State<PlanScreen> {
 
   Widget _makeContent() {
 
-    Widget plans = const PlanLoadSaveWidget();
+    Widget loadSavePage = const PlanLoadSaveWidget();
+
+    Widget createPage = const PlanCreateWidget();
 
     Widget filePage = const PlanFileWidget();
 
     Widget managePage = const PlanManageWidget();
 
     List<Widget> pages = [];
-    pages.add(plans);
+    pages.add(loadSavePage);
+    pages.add(createPage);
     pages.add(filePage);
     pages.add(managePage);
 
@@ -76,12 +80,16 @@ class PlanScreenState extends State<PlanScreen> {
                   onPressed: () => _controller.animateToPage(0)
               ),
               TextButton(
-                  child: const Text("Brief & Send"),
+                  child: const Text("Create"),
                   onPressed: () => _controller.animateToPage(1)
               ),
               TextButton(
-                  child: const Text("Manage"),
+                  child: const Text("Brief & Send"),
                   onPressed: () => _controller.animateToPage(2)
+              ),
+              TextButton(
+                  child: const Text("Manage"),
+                  onPressed: () => _controller.animateToPage(3)
               ),
             ]),
           ),

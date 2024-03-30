@@ -120,6 +120,31 @@ class MainDatabaseHelper {
     });
   }
 
+  Future<Destination> findDestinationByCoordinates(LatLng point) async {
+
+    final db = await database;
+    if (db != null) {
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
+      String asDistance = "((ARPLongitude - ${point
+          .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
+          .toDouble()} + (ARPLatitude - ${point
+          .latitude}) * (ARPLatitude - ${point.latitude}))";
+
+      String qry =
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "order by distance asc limit 1";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      if(maps.isNotEmpty) {
+        return Destination.fromMap(maps[0]);
+      }
+    }
+    // always add touch point of GPS, GPS is not a database type so prefix with _
+    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    return(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
+  }
+
   Future<List<Destination>> findNear(LatLng point) async {
     final db = await database;
     List<Destination> ret = [];

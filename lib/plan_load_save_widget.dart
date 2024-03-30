@@ -16,7 +16,6 @@ class PlanLoadSaveWidget extends StatefulWidget {
 class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
 
   String _name = "";
-  String _route = "";
   List<String> _currentItems = [];
 
 
@@ -31,8 +30,6 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
 
   Widget _makeContent() {
     _name = Storage().route.name;
-    _route = Storage().route.toString();
-    bool edited = false;
 
     return Container(padding: const EdgeInsets.all(0),
           child: Column(children: [
@@ -58,30 +55,10 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                           ),
                           const Padding(padding: EdgeInsets.all(10)),
                           Expanded(
-                              flex: 5,
-                              child: TextFormField(
-                                  initialValue: _route ,
-                                  onChanged: (value)  {
-                                    edited = true;
-                                    _route = value;
-                                  },
-                                  decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',)
-                              )
-                          ),
-                          Expanded(
                               flex: 2,
                               child: TextButton(
                                   onPressed: () {
-                                    if(edited) {
-                                      // if user edited, then make a new plan and save, otherwise save the current plan
-                                      PlanRoute.fromLine(_name, _route).then((value) {
-                                        _saveRoute(value);
-                                        edited = false;
-                                      });
-                                    }
-                                    else {
-                                      _saveRoute(Storage().route);
-                                    }
+                                    _saveRoute(Storage().route);
                                   },
                                   child: const Text("Save")
                               )
