@@ -103,16 +103,21 @@ class Airway {
       selected = coordinates.sublist(endIndex + 1, startIndex).reversed.toList();
     }
 
-    LatLng lastCoordinate = selected[0];
-    for(LatLng c in selected) {
-      // Keep far away airways out
-      if(calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
-        continue;
+    if(selected.isNotEmpty) { // this can be empty if there is only 2 points on v-way
+      LatLng lastCoordinate = selected[0];
+      for (LatLng c in selected) {
+        // Keep far away airways out
+        if (calc.calculateDistance(c, lastCoordinate) > maxSegmentLength) {
+          continue;
+        }
+        lastCoordinate = c;
+        // add it
+        Destination d = Destination(locationID: airway.locationID,
+            type: airway.type,
+            facilityName: airway.facilityName,
+            coordinate: lastCoordinate);
+        ret.add(d);
       }
-      lastCoordinate = c;
-      // add it
-      Destination d = Destination(locationID: airway.locationID, type: airway.type, facilityName: airway.facilityName, coordinate: lastCoordinate);
-      ret.add(d);
     }
 
     return ret;

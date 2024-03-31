@@ -258,7 +258,11 @@ class Storage {
     position = await Gps().getLastPosition();
     _gpsStack.push(position);
     Directory dir = await getApplicationDocumentsDirectory();
-    dataDir = dir.path;
+    dataDir = PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
+    dir = Directory(dataDir);
+    if(!dir.existsSync()) {
+      dir.createSync();
+    }
     await settings.initSettings();
     await checkChartsExist();
     await checkDataExpiry();
