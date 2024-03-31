@@ -220,8 +220,8 @@ class TrafficPainter extends CustomPainter {
 
   /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
   /// there are a discrete number of possible renderings for all traffic
-  static final Map<String,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
-  static final Map<String,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
+  static final Map<int,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
+  static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
   static const double _kMetersToFeetCont = 3.28084;
@@ -318,7 +318,7 @@ class TrafficPainter extends CustomPainter {
   /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
   /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
   /// as well as the key to the picture cache  
-  String _iconStateKey = "";
+  int _iconStateKey = 0;
 
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
@@ -327,7 +327,7 @@ class TrafficPainter extends CustomPainter {
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
   {
-    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne^$_aircraftType";
+    _iconStateKey = Constants.hashInts([ _vspeedDirection, _flightLevelDiff, _velocityLevel, _aircraftType.index, _isAirborne ? 1 : 0 ]);
   }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 

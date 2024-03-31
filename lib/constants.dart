@@ -4,16 +4,35 @@ class Constants {
   static const bool useK = true;
   static const weatherUpdateTimeMin = 10;
 
+  static const int _hashIntCoprimeSeed = 23;
+  static const int _hashIntCoprimeMultiplier = 31;
+
   static const double _kMetersToFeet = 3.28084;
+  static const double _kMpsToKnotsConv = 1.0 / 0.514444;  
+
+  static const int kMaxIntValue = 0x7FFFFFFFFFFFFFFF;
 
   @pragma("vm:prefer-inline")
   static double mToFt(double meters) { return _kMetersToFeet * meters; }
+  @pragma("vm:prefer-inline")
+  static double mpsToKt(double metersPerSecond) { return _kMpsToKnotsConv * metersPerSecond; }  
   static double mToNm(double meters) {return 0.000539957 * meters;}
   static double nmToM(distance) {return distance / 0.000539957;}
   static String secondsToHHmm(int seconds) {
     final Duration duration = Duration(seconds: seconds);
     final List<String> tokens = duration.toString().split(":");
     return("${tokens[0].padLeft(2, "0")}:${tokens[1].padLeft(2, "0")}");
+  }
+
+  /// Hash function to get a unique hash value for a given set of integer parameters, based on the
+  /// algorithm in "Effective Java [2nd ed.]" by Josh Bloch; see https://stackoverflow.com/questions/892618/create-a-hashcode-of-two-numbers
+  @pragma("vm:prefer-inline")
+  static int hashInts(final List<int> ints) {
+    int hash = _hashIntCoprimeSeed;
+    for (int i = 0; i < ints.length; i++) {
+      hash = hash * _hashIntCoprimeMultiplier + ints[i];
+    }
+    return hash;
   }
 
   static const Color appBarButtonColor = Colors.white;
