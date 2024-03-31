@@ -68,7 +68,7 @@ class FindScreenState extends State<FindScreen> {
     else if(_searchText.startsWith(":")) {
       return "Airport by Name (:)";
     }
-    return("(.,!:)");
+    return("");
   }
 
   Widget _makeContent(List<Destination>? items, bool searching) {
@@ -83,9 +83,8 @@ class FindScreenState extends State<FindScreen> {
           Column (children: [
             Expanded(
                 flex: 2,
-                child: Container(
-                  alignment: Alignment.bottomLeft,
-                  child: TextFormField(
+                child: Stack(
+                  children: [TextFormField(
                     onChanged: (value) {
                       setState(() {
                         _searchText = value;
@@ -94,8 +93,9 @@ class FindScreenState extends State<FindScreen> {
                       });
                     },
                     decoration: InputDecoration(border: const UnderlineInputBorder(), labelText: 'Find ${_filterToDescription()}')
-                  )
-                )
+                  ),
+                  const Align(alignment: Alignment.centerRight, child: Tooltip(triggerMode: TooltipTriggerMode.tap, message: "To search for an airport by ID, start with a .\nTo search for a navigation aid by ID, start with a ,\nTo search for a fix by ID, start with a !\nTo search for an airport by name, start with a :\nOr start typing anything to search everywhere.", child: Icon(Icons.info)))
+                ])
             ),
             Expanded(
                 flex: 7,

@@ -255,7 +255,13 @@ class InstrumentListState extends State<InstrumentList> {
         onTap: cb,
         child: ReorderableDelayedDragStartListener(index: index, child:Column(
           children: [
-            Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,)),
+            Expanded(flex: 1, child:
+                Stack(children:[
+                Positioned(child: Align(alignment: Alignment.topCenter, child:Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,))),
+                  if(0 == index) //show help icon on first tab
+                    const Positioned(child: Align(alignment: Alignment.bottomRight, child:Tooltip(triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange it's position.", child: Icon(Icons.info, size: 16)))),
+                ])
+            ),
             Expanded(flex: 1, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
           ]
         ),
