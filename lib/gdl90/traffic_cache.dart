@@ -7,16 +7,37 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
+import 'package:avaremp/constants.dart';
 
 import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 
+// Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
+const int _kAudibleAlertCallMinDelayMs = 100;
+
 class Traffic {
 
   final TrafficReportMessage message;
+  double horizontalOwnshipDistanceNmi = 0;
+  double verticalOwnshipDistanceFt = 0;
 
-  Traffic(this.message);
+  Traffic(this.message) {
+    updateOwnshipDistances();
+  }
+
+  /// Update traffic distinces (horizontal and vertical) to ownship
+  void updateOwnshipDistances() {
+    // Use Haversine distance for speed/battery-efficiency instead of Vicenty, as the margin of error at these 
+    // distances (for these purposes) is neglible (0.3% max, within 100 miles)
+    // horizontalOwnshipDistance = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
+    horizontalOwnshipDistanceNmi = GeoCalculations.calculateFastDistance(Gps.toLatLng(Storage().position), message.coordinates);
+    // final double vicentyDist = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
+    // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
+    //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
+    // }    
+    verticalOwnshipDistanceFt = Constants.mToFt(Storage().position.altitude) - message.altitude;
+  }
 
   bool isOld() {
     // old if more than 1 min
@@ -51,15 +72,20 @@ class TrafficCache {
   static const int maxEntries = 20;
   final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
 
-  double findDistance(LatLng coordinate, double altitude) {
-    // find 3d distance between current position and airplane
-    // treat 1 mile of horizontal distance as 500 feet of vertical distance (C182 120kts, 1000 fpm)
-    LatLng current = Gps.toLatLng(Storage().position);
-    double horizontalDistance = GeoCalculations().calculateDistance(current, coordinate) * 500;
-    double verticalDistance   = (Storage().position.altitude * 3.28084 - altitude).abs();
-    double fac = horizontalDistance + verticalDistance;
-    return fac;
-  }
+  bool _audibleAlertsRequested = false;
+  bool _audibleAlertsHandling = false;
+
+  // Moving the raw calculation into constructor of Traffic, and the vertical distance heuristic into the sort method
+  // where it is used
+  // double findDistance(LatLng coordinate, double altitude) {
+  //   // find 3d distance between current position and airplane
+  //   // treat 1 mile of horizontal distance as 500 feet of vertical distance (C182 120kts, 1000 fpm)
+  //   LatLng current = Gps.toLatLng(Storage().position);
+  //   double horizontalDistance = GeoCalculations().calculateDistance(current, coordinate) * 500;
+  //   double verticalDistance   = (Storage().position.altitude * 3.28084 - altitude).abs();
+  //   double fac = horizontalDistance + verticalDistance;
+  //   return fac;
+  // }
 
   void putTraffic(TrafficReportMessage message) {
 
@@ -119,8 +145,10 @@ class TrafficCache {
       return 0;
     }
     if(null != left && null != right) {
-      double l = findDistance(left.message.coordinates, left.message.altitude);
-      double r = findDistance(right.message.coordinates, right.message.altitude);
+      // Use 3d distance between current position and airplane
+      // treat 1 mile of horizontal distance as 500 feet of vertical distance (C182 120kts, 1000 fpm)      
+      double l = left.horizontalOwnshipDistanceNmi * 500 + left.verticalOwnshipDistanceFt.abs();
+      double r = right.horizontalOwnshipDistanceNmi * 500 + right.verticalOwnshipDistanceFt.abs();
       if(l > r) {
         return 1;
       }
@@ -132,14 +160,37 @@ class TrafficCache {
   }
 
   void handleAudibleAlerts() {
+    // If alerts are running or in the required delay, don't kick off processing again--just note that we want another run later
+    if (_audibleAlertsHandling) {
+      _audibleAlertsRequested = true;
+      return;
+    } 
+    _audibleAlertsHandling = true;   
     if (Storage().settings.isAudibleAlertsEnabled()) {
-      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((value) {
+      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((aa) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        value?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        aa?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        _audibleAlertsRequested = false;
+        Future.delayed(const Duration(milliseconds: _kAudibleAlertCallMinDelayMs), () {
+          _audibleAlertsHandling = false;
+          if (_audibleAlertsRequested) {
+            Future(handleAudibleAlerts);
+          }
+        });
       });
     } else {
       AudibleTrafficAlerts.stopAudibleTrafficAlerts();
     }
+  }
+
+  /// Recalcs all traffic cache distances (e.g., from an ownship position update), then calls audible alerts
+  void updateTrafficDistancesAndAlerts() {
+    // Make async event to avoid blocking UI thread for recalcs and alerts
+    Future(() {
+      for(Traffic? t in _traffic) {
+        t?.updateOwnshipDistances;
+      }   
+    }).then((value) => handleAudibleAlerts());
   }
 
   List<Traffic> getTraffic() {

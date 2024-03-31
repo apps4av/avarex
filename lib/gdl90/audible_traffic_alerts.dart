@@ -116,9 +116,9 @@ class AudibleTrafficAlerts {
   final AssetSource _pointAudio = AssetSource("tr_point.mp3");
 
   final List<_AlertItem> _alertQueue = [];
-  final Map<String, String> _lastTrafficPositionUpdateTimeMap = {};
-  final Map<String, int> _lastTrafficAlertTimeMap = {};
-  final List<String> _phoneticAlphaIcaoSequenceQueue = [];
+  final Map<int, int> _lastTrafficPositionUpdateTimeMap = {};
+  final Map<int, int> _lastTrafficAlertTimeMap = {};
+  final List<int> _phoneticAlphaIcaoSequenceQueue = [];
 
   // General audible alert preferences
   bool prefIsAudibleGroundAlertsEnabled = false;
@@ -223,29 +223,24 @@ class AudibleTrafficAlerts {
       if (traffic == null || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {
         continue;
       }
-      final double altDiff = _kMetersToFeetCont * ownshipLocation.altitude - traffic.message.altitude;
-      final String trafficPositionTimeCalcUpdateValue = "${traffic.message.time.millisecondsSinceEpoch}_${ownshipUpdateTimeMs}";
-      final String trafficKey = _getTrafficKey(traffic);
-      final String? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
+      final int trafficPositionTimeCalcUpdateValue = _hashTimestamps(traffic.message.time.millisecondsSinceEpoch, ownshipUpdateTimeMs);
+      final int trafficKey = _getTrafficKey(traffic);
+      final int? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
       final bool hasUpdate;
-      double curDistance = _kMaxIntValue * 1.0;
-
       // Ensure traffic has been recently updated, and if within the alerts threshold "cylinder", upsert it to the alert queue
-      if ((hasUpdate = lastTrafficPositionUpdateValue == null || lastTrafficPositionUpdateValue != trafficPositionTimeCalcUpdateValue) &&
-          altDiff.abs() < prefTrafficAlertsHeight &&
-          (curDistance = _greatCircleDistanceNmi(ownshipLocation.latitude, ownshipLocation.longitude, traffic.message.coordinates.latitude,
-                  traffic.message.coordinates.longitude)) < prefAudibleTrafficAlertsDistanceMinimum) 
+      if ((hasUpdate = lastTrafficPositionUpdateValue == null || lastTrafficPositionUpdateValue != trafficPositionTimeCalcUpdateValue)
+          && traffic.verticalOwnshipDistanceFt.abs() < prefTrafficAlertsHeight
+          && traffic.horizontalOwnshipDistanceNmi < prefAudibleTrafficAlertsDistanceMinimum) 
       {
         hasInserts = hasInserts ||
             _upsertTrafficAlertQueue(_AlertItem(
                 traffic,
                 ownshipLocation,
-                prefIsAudibleClosingInAlerts ? _determineClosingEvent(ownshipLocation, traffic, curDistance, ownVspeed) : null,
-                curDistance,
-                altDiff));
+                prefIsAudibleClosingInAlerts ? _determineClosingEvent(ownshipLocation, traffic, ownVspeed) : null));
+          
       } else if (hasUpdate) {
         // Prune out any alert for this traffic that no longer qualifies (e.g., distance exceeded before able to process/speak)
-        _alertQueue.removeWhere((element) => element._traffic?.message.icao == traffic.message.icao);
+        _alertQueue.removeWhere((element) => element._traffic.message.icao == traffic.message.icao);
       }
       if (hasUpdate) {
         // Only update position map if there is an update
@@ -253,9 +248,16 @@ class AudibleTrafficAlerts {
       }
     }
 
-    if (hasInserts) {
+    // Only schedule a new microtask if there is a brand new alert (updates will already have one)
+    if (hasInserts) { 
       scheduleMicrotask(runAudibleAlertsQueueProcessing);
     }
+  }
+
+  /// Simple hash function for pair of integers, for timestamp combination to avoid string interpolation
+  @pragma("vm:prefer-inline")
+  static int _hashTimestamps(int n, int m) {
+    return 23 + n * 31 + m;
   }
 
   bool _upsertTrafficAlertQueue(_AlertItem alert) {
@@ -286,7 +288,7 @@ class AudibleTrafficAlerts {
     return false;
   }
 
-  _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double currentDistance, double ownVspeed) {
+  _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double ownVspeed) {
     final int ownSpeedInKts = (_kMpsToKnotsConv * ownshipLocation.speed).round();
     final double ownAltInFeet = _kMetersToFeetCont * ownshipLocation.altitude;
     final double closingEventTimeSec = (_closestApproachTime(
@@ -316,7 +318,7 @@ class AudibleTrafficAlerts {
       if (altDiff.abs() < prefClosingAlertAltitude &&
           (caDistance = _greatCircleDistanceNmi(myCaLoc.latitude, myCaLoc.longitude, theirCaLoc.latitude, theirCaLoc.longitude)) <
               prefClosestApproachThresholdNmi &&
-          currentDistance > caDistance) // catches cases when moving away
+          traffic.horizontalOwnshipDistanceNmi > caDistance) // catches cases when moving away
       {
         final bool criticallyClose = prefCriticalClosingAlertRatio > 0 &&
             (closingEventTimeSec / prefClosingTimeThresholdSeconds) <= prefCriticalClosingAlertRatio &&
@@ -335,7 +337,7 @@ class AudibleTrafficAlerts {
     // Loop to allow a traffic item to cede place in line to next available one to be considered if current one can't go now
     for (int i = 0; i < _alertQueue.length; i++) {
       final _AlertItem nextAlert = _alertQueue[i];
-      final String trafficKey = _getTrafficKey(nextAlert._traffic);
+      final int trafficKey = _getTrafficKey(nextAlert._traffic);
       final int? lastTrafficAlertTimeValue = _lastTrafficAlertTimeMap[trafficKey];
       if (lastTrafficAlertTimeValue == null ||
           (timeToWaitForTraffic = min(timeToWaitForTraffic,
@@ -376,27 +378,21 @@ class AudibleTrafficAlerts {
         _addPhoneticAlphaTrafficIdAudio(alertAudio, alert);
         break;
       case TrafficIdOption.fullCallsign:
-        _addFullCallsignTrafficIdAudio(alertAudio, alert._traffic?.message.callSign);
+        _addFullCallsignTrafficIdAudio(alertAudio, alert._traffic.message.callSign);
       default:
     }
     if (alert._closingEvent != null) {
       _addTimeToClosestPointOfApproachAudio(alertAudio, alert._closingEvent);
     }
 
-    final int clockHour = _nearestClockHourFromHeadingAndLocations(
-        alert._ownLocation?.latitude ?? 0,
-        alert._ownLocation?.longitude ?? 0,
-        alert._traffic?.message.coordinates.latitude ?? 0,
-        alert._traffic?.message.coordinates.longitude ?? 0,
-        alert._ownLocation?.heading ?? 0);
-    _addPositionAudio(alertAudio, clockHour, alert._altDiff);
+    _addPositionAudio(alertAudio, alert._clockHour, alert._traffic.verticalOwnshipDistanceFt);
 
     if (prefDistanceCalloutOption != DistanceCalloutOption.none) {
-      _addDistanceAudio(alertAudio, alert._distanceNmi);
+      _addDistanceAudio(alertAudio, alert._traffic.horizontalOwnshipDistanceNmi);
     }
 
     if (prefVerticalAttitudeCallout /* && (alert._traffic?.message.verticalSpeed??0.0 != 0.0  Indeterminate value */) {
-      _addVerticalAttitudeAudio(alertAudio, alert._traffic?.message.verticalSpeed ?? 0.0);
+      _addVerticalAttitudeAudio(alertAudio, alert._traffic.message.verticalSpeed);
     }
     return alertAudio;
   }
@@ -419,7 +415,7 @@ class AudibleTrafficAlerts {
   }
 
   void _addPhoneticAlphaTrafficIdAudio(List<AssetSource> alertAudio, _AlertItem alert) {
-    final String trafficKey = _getTrafficKey(alert._traffic);
+    final int trafficKey = _getTrafficKey(alert._traffic);
     int icaoIndex = _phoneticAlphaIcaoSequenceQueue.indexOf(trafficKey);
     if (icaoIndex == -1) {
       _phoneticAlphaIcaoSequenceQueue.add(trafficKey);
@@ -577,8 +573,9 @@ class AudibleTrafficAlerts {
     return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) * _kNauticalMilesPerMeter;
   }
 
-  static String _getTrafficKey(Traffic? traffic) {
-    return "${traffic?.message.callSign}:${traffic?.message.icao}";
+  @pragma("vm:prefer-inline")
+  static int _getTrafficKey(Traffic? traffic) {
+    return traffic?.message.icao ?? -1;
   }
 
   /// Time to closest approach between two 2-d kinematic vectors; credit to: https://math.stackexchange.com/questions/1775476/shortest-distance-between-two-objects-moving-along-two-lines
@@ -644,30 +641,31 @@ class _ClosingEvent {
 }
 
 class _AlertItem {
-  final Traffic? _traffic;
-  final Position? _ownLocation;
-  final double _distanceNmi;
-  final double _altDiff;
+  final Traffic _traffic;
   final _ClosingEvent? _closingEvent;
+  final int _clockHour;
 
-  _AlertItem(Traffic? traffic, Position? ownLocation, _ClosingEvent? closingEvent, double distnaceNmi, double altDiff)
+  _AlertItem(Traffic traffic, Position ownLocation, _ClosingEvent? closingEvent)
       : _traffic = traffic,
-        _ownLocation = ownLocation,
         _closingEvent = closingEvent,
-        _distanceNmi = distnaceNmi,
-        _altDiff = altDiff;
+        _clockHour = AudibleTrafficAlerts._nearestClockHourFromHeadingAndLocations(
+          ownLocation.latitude,
+          ownLocation.longitude,
+          traffic.message.coordinates.latitude,
+          traffic.message.coordinates.longitude,
+          ownLocation.heading);
 
   @override
-  int get hashCode => _traffic?.message.icao ?? 0;
+  int get hashCode => _traffic.message.icao;
 
   @override
   bool operator ==(Object other) {
-    return other is _AlertItem && other.runtimeType == runtimeType && _traffic?.message.icao == other._traffic?.message.icao;
+    return other is _AlertItem && other.runtimeType == runtimeType && _traffic.message.icao == other._traffic.message.icao;
   }
 
   @override
   String toString() {
-    return "[${AudibleTrafficAlerts._getTrafficKey(_traffic)}]: dist=${_distanceNmi}nmi, altdiff=$_altDiff, ce=[$_closingEvent]";
+    return "[${AudibleTrafficAlerts._getTrafficKey(_traffic)}]: dist=${_traffic.horizontalOwnshipDistanceNmi}nmi, altdiff=${_traffic.verticalOwnshipDistanceFt}, ce=[$_closingEvent]";
   }
 }
 
