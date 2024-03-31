@@ -86,7 +86,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                   Tooltip(message: _error, child: _sending ?
                   Container() : _error.isEmpty ?
                   const Icon(Icons.check, color: Colors.green,) :
-                  Icon(Icons.question_mark, color: _errorColor,)),
+                  Icon(Icons.info, color: _errorColor,)),
                 ]),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.end,

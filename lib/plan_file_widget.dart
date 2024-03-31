@@ -678,7 +678,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
           Tooltip(message: _error, child: _sending ?
           Container() : _error.isEmpty ?
           const Icon(Icons.check, color: Colors.green,) :
-          Icon(Icons.question_mark, color: _errorColor,)),
+          Icon(Icons.info, color: _errorColor,)),
         ])),
       ],
     );

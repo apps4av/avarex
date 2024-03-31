@@ -82,13 +82,44 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
           bodyWidget: const Text("Connect this device to the Internet.\nInternet connection is required to download charts and weather.\nThe connection may be turned off during the flight."),
           decoration: pageDecoration,
         ),
+        gpsPage,
+        PageViewModel(
+          title: "Databases and Aviation Maps",
+          bodyWidget: Column(children:[
+            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
+            TextButton(onPressed: () {
+                Navigator.pushNamed(context, "/download");
+              },
+              child: const Text("Download"),
+            )
+          ]),
+          image: _buildImage('download.png'),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Keep Warnings in Check",
+          image: _buildImage('warning.png'),
+          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Turn off the Layers",
+          image: _buildImage('layers.png'),
+          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Join the Forum",
+          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
+          image: _buildImage('forum.png'),
+          decoration: pageDecoration,
+        ),
         PageViewModel(
           title: "Sign the Terms of Use",
           bodyWidget: Column(children: [
             const Text(
                 """
-** YOU MUST SIGN THIS AGREEMENT TO CONTINUE. **
-
+** YOU MUST FULLY READ, AGREE TO, AND SIGN THIS AGREEMENT TO CONTINUE. **\n\n
 This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including Android devices, related to its use.
 
 ** What Information We Collect **
@@ -124,66 +155,32 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By providin
                   email = value;
                 },
                 controller: TextEditingController()..text = email,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Your email address')
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.black), labelText: 'Enter your email address')
             ),
-            TextButton(onPressed: () {
-              setState(() {
-                Storage().settings.setSign(true);
-                Storage().settings.setEmail(email);
-              });},
-              child: const Padding(padding: EdgeInsets.all(20), child:Text("Sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
-            ),
+            Padding(padding: const EdgeInsets.all(20), child:TextButton(
+              onPressed: () {
+                setState(() {
+                  Storage().settings.setSign(true);
+                  Storage().settings.setEmail(email);
+                  Storage().settings.setIntro(false);
+                  _onIntroEnd(context);
+                });
+              },
+              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.black),)),
+            )),
             Text(Storage().settings.isSigned() ? "You have signed the document." : "You have not signed this document.")
           ]),
           decoration: pageDecoration,
         ),
-        gpsPage,
-        PageViewModel(
-          title: "Databases and Aviation Maps",
-          bodyWidget: Column(children:[
-            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
-            TextButton(onPressed: () {
-                Navigator.pushNamed(context, "/download");
-              },
-              child: const Text("Download"),
-            )
-          ]),
-          image: _buildImage('download.png'),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Keep Warnings in Check",
-          image: _buildImage('warning.png'),
-          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Turn off the Layers",
-          image: _buildImage('layers.png'),
-          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Join the Forum",
-          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
-          image: _buildImage('forum.png'),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Let us Fly!",
-          bodyWidget: const Text("\n\nYou may exit this introduction with the Done button, after you have signed the Terms of Use."),
-          image: _buildFullscreenImage('takeoff.png'),
-          decoration: pageDecoration,
-        ),
+
       ],
-      onDone: () {if(Storage().settings.isSigned()) {Storage().settings.setIntro(false); _onIntroEnd(context); } }, // do not exit till terms is signed
       skipOrBackFlex: 0,
       nextFlex: 0,
       showBackButton: true,
+      showDoneButton: false,
       //rtl: true, // Display as right-to-left
       back: const Icon(Icons.arrow_back),
       next: const Icon(Icons.arrow_forward),
-      done: const Text('Done', style: TextStyle(fontWeight: FontWeight.w600)),
       curve: Curves.fastLinearToSlowEaseIn,
       controlsMargin: const EdgeInsets.all(16),
       controlsPadding: const EdgeInsets.fromLTRB(8.0, 4.0, 8.0, 4.0),
