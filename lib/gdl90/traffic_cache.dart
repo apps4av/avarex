@@ -12,6 +12,7 @@ import 'package:avaremp/constants.dart';
 import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
+const double _kMinutesPerMillisecond =  1.0 / 60000.0;
 
 // Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
 const int _kAudibleAlertCallMinDelayMs = 100;
@@ -41,7 +42,8 @@ class Traffic {
 
   bool isOld() {
     // old if more than 1 min
-    return DateTime.now().difference(message.time).inMinutes > 0;
+    //return DateTime.now().difference(message.time).inMinutes > 0;
+    return (DateTime.now().millisecondsSinceEpoch - message.time.millisecondsSinceEpoch) * _kMinutesPerMillisecond > 1; // CPU flameshart => optimization
   }
 
   Widget getIcon() {
