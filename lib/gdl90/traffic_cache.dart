@@ -325,7 +325,7 @@ class TrafficPainter extends CustomPainter {
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
+      _flightLevelDiff = _getGrossFlightLevelDiff(traffic.message.altitude), 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
   {
