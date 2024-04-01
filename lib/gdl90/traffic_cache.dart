@@ -32,7 +32,7 @@ class Traffic {
     // Use Haversine distance for speed/battery-efficiency instead of Vicenty, as the margin of error at these 
     // distances (for these purposes) is neglible (0.3% max, within 100 miles)
     // horizontalOwnshipDistance = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
-    horizontalOwnshipDistanceNmi = GeoCalculations.calculateFastDistance(Gps.toLatLng(Storage().position), message.coordinates);
+    horizontalOwnshipDistanceNmi = GeoCalculations().calculateFastDistance(Gps.toLatLng(Storage().position), message.coordinates);
     // final double vicentyDist = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
     // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
