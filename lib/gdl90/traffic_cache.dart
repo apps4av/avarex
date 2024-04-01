@@ -325,7 +325,7 @@ class TrafficPainter extends CustomPainter {
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = _getGrossFlightLevelDiff(traffic.message.altitude), 
+      _flightLevelDiff = _getGrossFlightLevelDiff(traffic), 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0 
   {
@@ -480,8 +480,8 @@ class TrafficPainter extends CustomPainter {
 
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
   @pragma("vm:prefer-inline")
-  static int _getGrossFlightLevelDiff(double trafficAltitude) {
-    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 8), -8);
+  static int _getGrossFlightLevelDiff(final Traffic traffic) {
+    return max(min((traffic.verticalOwnshipDistanceFt * _kDivBy1000Mult).round(), 8), -8);
   }
 
   @pragma("vm:prefer-inline")
