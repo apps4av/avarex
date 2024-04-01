@@ -189,9 +189,9 @@ class TrafficCache {
   void updateTrafficDistancesAndAlerts() {
     // Make async event to avoid blocking UI thread for recalcs and alerts
     Future(() {
-      for(Traffic? t in _traffic) {
-        t?.updateOwnshipDistances;
-      }   
+      for(Traffic? t in _traffic) {    
+        t?.updateOwnshipDistances();
+      }
     }).then((value) => handleAudibleAlerts());
   }
 
