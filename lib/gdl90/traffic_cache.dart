@@ -247,64 +247,55 @@ class TrafficPainter extends CustomPainter {
   static const Color _kDarkForegroundColor = Color(0xFF000000);  // Overlay color = Black
 
   // Aircraft type outlines
-  static final ui.Path _largeAircraft = ui.Path.combine(PathOperation.union,
+  static final ui.Path _largeAircraft = _unionPaths([
     // body
     ui.Path()..addOval(const Rect.fromLTRB(12, 5, 19, 31)),
-    ui.Path.combine(PathOperation.union,
-      ui.Path()..addRect(const Rect.fromLTRB(12, 11, 19, 20)),
-      ui.Path.combine(PathOperation.union,
-        ui.Path()..addOval(const Rect.fromLTRB(12, 0, 19, 25)),
-        // left wing
-        ui.Path.combine(PathOperation.union,
-          ui.Path()..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true), 
-           ui.Path.combine(PathOperation.union,
-            // left engine
-            ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1))),
-            ui.Path.combine(PathOperation.union,
-              // left h-stabilizer
-              ui.Path()..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true),
-              ui.Path.combine(PathOperation.union,
-                // right wing
-                ui.Path()..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true),
-                ui.Path.combine(PathOperation.union,
-                  // right engine
-                  ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1))),
-                  // right h-stabilizer
-                  ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)))))))));       
+    ui.Path()..addRect(const Rect.fromLTRB(12, 11, 19, 20)),
+    ui.Path()..addOval(const Rect.fromLTRB(12, 0, 19, 25)),
+    // left wing
+    ui.Path()..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true), 
+    // left engine
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1))),
+    // left h-stabilizer
+    ui.Path()..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true),
+    // right wing
+    ui.Path()..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true),
+    // right engine
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1))),
+    // right h-stabilizer
+    ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)
+  ]);
   static final ui.Path _defaultAircraft = ui.Path()  // old default icon if no ICAO ID--just a triangle
     ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
       const Offset(16, 5), const Offset(15, 5) ], true);
-  static final ui.Path _lightAircraft = ui.Path.combine(PathOperation.union,
-    ui.Path.combine(PathOperation.union, 
-      ui.Path.combine(PathOperation.union, 
-        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
-        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))) // wings
-      ),
-      ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1)))  // h-stabilizer
-    ),
-    ui.Path()..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true)); // rear body
-  static final ui.Path _rotorcraft = ui.Path.combine(PathOperation.union,
+  static final ui.Path _lightAircraft = _unionPaths([
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))), // wings
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1))),  // h-stabilizer
+    ui.Path()..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true) // rear body
+  ]);
+  static final ui.Path _rotorcraft = _unionPaths([
     // body
-    ui.Path()..addOval(const Rect.fromLTRB(9, 11, 22, 31)),
-    ui.Path.combine(PathOperation.union,
-      ui.Path.combine(PathOperation.union,
-        ui.Path.combine(PathOperation.union, 
-          // rotor blades
-          ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
-          ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true)),
-      // tail
-      ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12))),
+    ui.Path()..addOval(const Rect.fromLTRB(9, 11, 22, 31)), 
+    // rotor blades
+    ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
+    ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true),
+    // tail
+      ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12)),
     // horizontal stabilizer
-    ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))))); 
+    ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1)))
+  ]);
   // vertical speed plus/minus overlays
-  static final ui.Path _plusSign = ui.Path.combine(PathOperation.union,
-    ui.Path()..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true),
-    ui.Path()..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true));
+  static final ui.Path _plusSign = _unionPaths([
+    ui.Path()..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true),  // downstroke
+    ui.Path()..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true)   // cross-stroke
+  ]);
   static final ui.Path _minusSign = ui.Path()
     ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);
-  static final ui.Path _lowerPlusSign = ui.Path.combine(PathOperation.union,
-    ui.Path()..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true),
-    ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true));
+  static final ui.Path _lowerPlusSign = _unionPaths([
+    ui.Path()..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true),  // downstroke
+    ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true)   // cross-stroke
+  ]);
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
   // Translucent bounding box shape
@@ -498,5 +489,17 @@ class TrafficPainter extends CustomPainter {
   @pragma("vm:prefer-inline")
   static int _getVelocityLevel(double veloMps) {
     return (veloMps * _kMetersPerSecondToKnots * _kDivBy60Mult).round();
+  }  
+
+  /// Recursive helper to join multiple paths together via a chained union operation
+  static ui.Path _unionPaths(final List<ui.Path> paths) {
+    if (paths.isEmpty) {
+      throw "Illegal argument: List of paths must have at least one";
+    }
+    if (paths.length == 1) {
+      return paths[0];
+    }
+    final ui.Path path1 = paths.removeAt(0);
+    return ui.Path.combine(PathOperation.union, path1, _unionPaths(paths));
   }  
 }
