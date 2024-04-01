@@ -564,7 +564,7 @@ class AudibleTrafficAlerts {
   /// @param lon2 Longitude 2
   /// @return Great circle distance between two points in nautical miles
   static double _greatCircleDistanceNmi(final double lat1, final double lon1, final double lat2, final double lon2) {
-    return GeoCalculations().calculateFastDistance(LatLng(lat1, lon2), LatLng(lat2, lon2));
+    return GeoCalculations().calculateFastDistance(LatLng(lat1, lon1), LatLng(lat2, lon2));
     //return Constants.mToNm(Geolocator.distanceBetween(lat1, lon1, lat2, lon2));
   }
 
