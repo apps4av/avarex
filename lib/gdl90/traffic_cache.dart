@@ -281,7 +281,7 @@ class TrafficPainter extends CustomPainter {
     ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
     ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true),
     // tail
-      ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12)),
+    ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12)),
     // horizontal stabilizer
     ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1)))
   ]);
@@ -365,9 +365,9 @@ class TrafficPainter extends CustomPainter {
       final Paint aircraftPaint;
       if (!_isAirborne) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
-      } else if (_flightLevelDiff > 0) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
       } else if (_flightLevelDiff < 0) {
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
+      } else if (_flightLevelDiff > 0) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
       } else {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
