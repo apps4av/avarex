@@ -327,7 +327,7 @@ class TrafficPainter extends CustomPainter {
       _isAirborne = traffic.message.airborne,
       _flightLevelDiff = _getGrossFlightLevelDiff(traffic.message.altitude), 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
+      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0 
   {
     _iconStateKey = Constants.hashInts([ _vspeedDirection, _flightLevelDiff, _velocityLevel, _aircraftType.index, _isAirborne ? 1 : 0 ]);
   }
@@ -399,7 +399,7 @@ class TrafficPainter extends CustomPainter {
           baseIconShape = (prefUseDifferentDefaultIconThanLight ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
       }            
 
-      if (prefShowSpeedBarb) {
+      if (prefShowSpeedBarb && _velocityLevel > 0) {
         // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
         baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
       }
