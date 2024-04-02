@@ -69,6 +69,7 @@ class UserDatabaseHelper {
                 "sinkRate      text, "
                 "fuelBurn      text, "
                 "base          text, "
+                "other         text, "
                 "unique(tail) on conflict replace);");
           },
           onOpen: (db) {});
