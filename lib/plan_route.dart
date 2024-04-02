@@ -128,7 +128,6 @@ class PlanRoute {
         Destination destination = _waypoints[index].destination;
         if (Destination.isAirway(destination.type)) {
           _airwayAdjust(_waypoints[index]); // add all airways
-          AirwayLookupFuture( _waypoints[index]).getAll();
         }
       }
     }
