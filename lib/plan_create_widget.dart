@@ -1,5 +1,4 @@
 import 'package:avaremp/plan_route.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/storage.dart';
 
@@ -46,7 +45,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               });
             },
             child: const Text("Create As Entered"),),
-          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter all waypoints in Route, separated by spaces.", child: Icon(Icons.info))
+          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter all the waypoints separated by spaces in the Route box.", child: Icon(Icons.info))
         ]),
         const Padding(padding: EdgeInsets.all(10)),
         Row(mainAxisAlignment: MainAxisAlignment.center, children:[
@@ -64,7 +63,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               });
             },
             child: const Text("Create IFR Preferred Route"),),
-          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter departure and destination in Route, separated by a space.", child: Icon(Icons.info))
+          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter the departure and the destination separated by a space in the Route box.", child: Icon(Icons.info))
         ]),
         const Padding(padding: EdgeInsets.all(10)),
       ])

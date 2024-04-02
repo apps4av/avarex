@@ -13,6 +13,7 @@ class Aircraft {
   final String sinkRate;
   final String fuelBurn;
   final String base;
+  final String other;
 
   Aircraft(
       this.tail,
@@ -28,7 +29,8 @@ class Aircraft {
       this.picInfo,
       this.sinkRate,
       this.fuelBurn,
-      this.base);
+      this.base,
+      this.other);
 
   factory Aircraft.empty() {
     return Aircraft(
@@ -39,6 +41,7 @@ class Aircraft {
       "S",
       "",
       "N",
+      "",
       "",
       "",
       "",
@@ -64,6 +67,7 @@ class Aircraft {
       map['sinkRate'] as String,
       map['fuelBurn'] as String,
       map['base'] as String,
+      map['other'] as String,
     );
   }
 
@@ -83,6 +87,7 @@ class Aircraft {
       'sinkRate': sinkRate,
       'fuelBurn': fuelBurn,
       'base': base,
+      'other': other,
     };
   }
 }

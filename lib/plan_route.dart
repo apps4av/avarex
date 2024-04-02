@@ -31,6 +31,7 @@ class PlanRoute {
   final change = ValueNotifier<int>(0);
   String altitude = "3000";
   Passage? _passage;
+  List<Destination> _allDestinations = [];
 
   DestinationCalculations? totalCalculations;
 
@@ -126,6 +127,7 @@ class PlanRoute {
         Destination destination = _waypoints[index].destination;
         if (Destination.isAirway(destination.type)) {
           _airwayAdjust(_waypoints[index]); // add all airways
+          AirwayLookupFuture( _waypoints[index]).getAll();
         }
       }
     }
@@ -152,32 +154,32 @@ class PlanRoute {
     }
 
     // everything in plan needs to be calculated in plan
-    List<Destination> allDestinations = [];
-    allDestinations.addAll(destinationsPassed);
-    allDestinations.addAll(destinationsCurrent);
-    allDestinations.addAll(destinationsNext);
+    _allDestinations = [];
+    _allDestinations.addAll(destinationsPassed);
+    _allDestinations.addAll(destinationsCurrent);
+    _allDestinations.addAll(destinationsNext);
 
     // calculate plan
-    for(int index = 0; index < allDestinations.length - 1; index++) {
-      allDestinations[0].calculations = null;
+    for(int index = 0; index < _allDestinations.length - 1; index++) {
+      _allDestinations[0].calculations = null;
       double? ws;
       double? wd;
-      String? station = WindsCache.locateNearestStation(allDestinations[index].coordinate);
+      String? station = WindsCache.locateNearestStation(_allDestinations[index].coordinate);
       WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
       (wd, ws) = WindsCache.getWindAtAltitude(double.parse(altitude), wa);
 
       DestinationCalculations calc;
       // calculate total from current position to active route
-      if(current.destination == allDestinations[index + 1]) {
+      if(current.destination == _allDestinations[index + 1]) {
         calc = DestinationCalculations(
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
-          allDestinations[index + 1],
+          _allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);
         // calculate passage
         Passage? p = _passage;
         if(null == p) {
-          p = Passage(allDestinations[index + 1].coordinate);
+          p = Passage(_allDestinations[index + 1].coordinate);
           _passage = p;
         }
         if(p.update(Gps.toLatLng(Storage().position))) {
@@ -188,12 +190,12 @@ class PlanRoute {
       }
       else {
         calc = DestinationCalculations(
-            allDestinations[index], allDestinations[index + 1],
+            _allDestinations[index], _allDestinations[index + 1],
             Storage().settings.getTas().toDouble(),
             Storage().settings.getFuelBurn().toDouble(), wd, ws);
       }
       calc.calculateTo();
-      allDestinations[index + 1].calculations = calc;
+      _allDestinations[index + 1].calculations = calc;
     }
 
     //make connections to paths
@@ -209,7 +211,7 @@ class PlanRoute {
 
     if(destinationsNext.isEmpty) {
       // last leg
-      totalCalculations = allDestinations[allDestinations.length - 1].calculations;
+      totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
     }
     // sum
     else {
@@ -316,6 +318,10 @@ class PlanRoute {
 
   List<LatLng> getPathNext() {
     return _pointsNext;
+  }
+
+  List<Destination> getAllDestinations() {
+    return _allDestinations;
   }
 
   List<LatLng> getPathFromLocation(Position position) {

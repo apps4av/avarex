@@ -100,7 +100,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
     }
 
     String dataCurrentMessage = !widget.dataExpired ? "" :
-    "Some or all the data has expired, please update the data using the Download menu.";
+    "Some or all of your data has expired. Tap this text or use the Download menu to Update.";
     if(dataCurrentMessage.isNotEmpty) {
       list.add(ListTile(title: const Text("Update"),
           leading: const Icon(Icons.update),

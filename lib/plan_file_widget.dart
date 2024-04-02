@@ -155,6 +155,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       _pilotInCommand = a.pic;
                       _pilotInformation = a.picInfo;
                       _aircraftColor = a.color;
+                      _otherInformation = a.other;
                     });
                   },),
               ])),

@@ -1,6 +1,9 @@
 import 'package:avaremp/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/waypoint.dart';
 import 'package:latlong2/latlong.dart';
+
+import 'data/main_database_helper.dart';
 
 
 // airway calculations
@@ -123,3 +126,27 @@ class Airway {
     return ret;
   }
 }
+
+class AirwayLookupFuture {
+
+  Waypoint waypoint;
+  List<Destination> lookupAirwaySegments = [];
+  AirwayLookupFuture(this.waypoint);
+
+  // get everything from database about this airway
+  Future<void> _getAll() async {
+    for(Destination destination in waypoint.airwayDestinationsOnRoute) {
+      // fill up actual names of places in the airway segments
+      Destination destinationFound = await MainDatabaseHelper.db.findNearNavOrFixElseGps(destination.coordinate);
+      lookupAirwaySegments.add(destinationFound);
+      // keep the calculations as they are same
+      destinationFound.calculations = destination.calculations;
+    }
+  }
+
+  Future<AirwayLookupFuture> getAll() async {
+    await _getAll();
+    return this;
+  }
+}
+

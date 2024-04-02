@@ -1,7 +1,7 @@
-import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/plan_line_widget.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:flutter/material.dart';
+import 'airway.dart';
 import 'constants.dart';
 import 'destination.dart';
 
@@ -96,25 +96,3 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
   }
 }
 
-class AirwayLookupFuture {
-
-  Waypoint waypoint;
-  List<Destination> lookupAirwaySegments = [];
-  AirwayLookupFuture(this.waypoint);
-
-  // get everything from database about this airway
-  Future<void> _getAll() async {
-    for(Destination destination in waypoint.airwayDestinationsOnRoute) {
-      // fill up actual names of places in the airway segments
-      Destination destinationFound = await MainDatabaseHelper.db.findNearNavOrFixElseGps(destination.coordinate);
-      lookupAirwaySegments.add(destinationFound);
-      // keep the calculations as they are same
-      destinationFound.calculations = destination.calculations;
-    }
-  }
-
-  Future<AirwayLookupFuture> getAll() async {
-    await _getAll();
-    return this;
-  }
-}

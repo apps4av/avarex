@@ -556,7 +556,10 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),))
+                      child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
+                for(Destination d in Storage().route.getAllDestinations()) // plan route
+                  Marker(alignment: Alignment.center, point: d.coordinate,
+                      child: Text(d.locationID, style: const TextStyle(fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
               ],
             );
           },
