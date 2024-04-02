@@ -116,6 +116,7 @@ class PlanRoute {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNext = [];
+      _allDestinations = [];
       totalCalculations = null;
       change.value++;
       return;
