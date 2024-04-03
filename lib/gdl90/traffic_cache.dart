@@ -98,30 +98,29 @@ class TrafficCache {
       return;
     }
 
-    for(Traffic? traffic in _traffic) {
-      int index = _traffic.indexOf(traffic);
-      if(traffic == null) {
+    for(int i = 0; i < _traffic.length; i++) {
+      if(_traffic[i] == null) {
         continue;
       }
-      if(traffic.isOld()) {
-        _traffic[index] = null;
+      if(_traffic[i]?.isOld() ?? false) {
+        _traffic[i] = null;
         // purge old
         continue;
       }
 
       // update
-      if(traffic.message.icao == message.icao) {
+      if(_traffic[i]?.message.icao == message.icao) {
         // call sign not available. use last one
         if(message.callSign.isEmpty) {
-          message.callSign = traffic.message.callSign;
+          message.callSign = _traffic[i]?.message.callSign ?? "";
         }
         final Traffic trafficNew = Traffic(message);
         // only display/alert traffic that isn't too far from ownship
         if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
-           _traffic[index] = null;
+           _traffic[i] = null;
           return;
         }
-        _traffic[index] = trafficNew;
+        _traffic[i] = trafficNew;
 
         // process any audible alerts from traffic (if enabled)
         handleAudibleAlerts();
@@ -199,14 +198,12 @@ class TrafficCache {
   void updateTrafficDistancesAndAlerts() {
     // Make async event to avoid blocking UI thread for recalcs and alerts
     Future(() {
-      for(Traffic? t in _traffic) {    
-        t?.updateOwnshipDistances();
-      }
-      // only display/alert traffic that isn't too far from ownship
       for (int i = 0; i < _traffic.length; i++) {
+        _traffic[i]?.updateOwnshipDistances();
+        // only display/alert traffic that isn't too far from ownship
         if ((_traffic[i]?.verticalOwnshipDistanceFt.abs() ?? 0) > _kTrafficAltDiffThresholdFt) {
           _traffic[i] = null;
-        }
+        }        
       }
     }).then((value) => handleAudibleAlerts());
   }
