@@ -33,7 +33,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
     if(null == plans) {
       return const Column(
           children: [
-            Flexible(flex: 1, child: Text("Manage FAA Plans", style: TextStyle(fontWeight: FontWeight.w800),)),
+            Flexible(flex: 1, child: Text("Manage (FAA)", style: TextStyle(fontWeight: FontWeight.w800),)),
             Padding(padding: EdgeInsets.all(10)),
             CircularProgressIndicator()
           ]
@@ -47,7 +47,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
 
     return Column(
         children: [
-          const Flexible(flex: 1, child: Text("Manage FAA Plans", style: TextStyle(fontWeight: FontWeight.w800),)),
+          const Flexible(flex: 1, child: Text("Manage (FAA)", style: TextStyle(fontWeight: FontWeight.w800),)),
           const Padding(padding: EdgeInsets.all(10)),
           Flexible(flex: 5, child: ListView.separated(
             itemCount: items.length,

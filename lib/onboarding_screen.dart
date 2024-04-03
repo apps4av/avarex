@@ -166,7 +166,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By providin
                   _onIntroEnd(context);
                 });
               },
-              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.black),)),
+              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign and exit this screen", style: TextStyle(fontSize: 20, color: Colors.black),)),
             )),
             Text(Storage().settings.isSigned() ? "You have signed the document." : "You have not signed this document.")
           ]),

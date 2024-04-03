@@ -557,9 +557,6 @@ class MapScreenState extends State<MapScreen> {
                   Marker(point: r.end,
                       width: 34,
                       child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
-                for(Destination d in Storage().route.getAllDestinations()) // plan route
-                  Marker(alignment: Alignment.center, point: d.coordinate,
-                      child: Text(d.locationID, style: const TextStyle(fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
               ],
             );
           },
@@ -580,6 +577,21 @@ class MapScreenState extends State<MapScreen> {
                   points: path,
                   color: Constants.trackColor,
                 ),
+              ],
+            );
+          },
+        ),
+      );
+
+      layers.add( // route layer for waypoints
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().route.change,
+          builder: (context, value, _) {
+            return MarkerLayer(
+              markers: [
+                for(Destination d in Storage().route.getAllDestinations()) // plan route
+                  Marker(alignment: Alignment.center, point: d.coordinate,
+                    child: Text(d.locationID, style: const TextStyle(fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
               ],
             );
           },
@@ -821,9 +833,7 @@ class MapScreenState extends State<MapScreen> {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                                                           Storage().tracks.saveKml().then((value) {
-                                                            setState(() {
-                                                              Navigator.pushNamed(context, '/documents');
-                                                            });
+                                                            Navigator.pushNamed(context, '/documents');
                                                           });
                                                         }
                                                         else {

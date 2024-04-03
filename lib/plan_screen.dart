@@ -84,7 +84,7 @@ class PlanScreenState extends State<PlanScreen> {
                   onPressed: () => _controller.animateToPage(1)
               ),
               TextButton(
-                  child: const Text("Brief & Send"),
+                  child: const Text("Brief & File"),
                   onPressed: () => _controller.animateToPage(2)
               ),
               TextButton(

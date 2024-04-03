@@ -180,6 +180,24 @@ class LmfsInterface {
     return ret;
   }
 
+  Future<String> getRoute(String departure, String destination) async {
+    String webUserName = Storage().settings.getEmail();
+    String avareMethod = "util/routeSearch";
+    String httpMethod = "GET";
+    _params['webUserName'] = webUserName;
+    _params['avareMethod'] = avareMethod;
+    _params['httpMethod'] = httpMethod;
+    _params['departure'] = departure;
+    _params['destination'] = destination;
+    _params['searchOption'] = "ATC_RECENT_IFR_ROUTES";//"""FAA_PREFERRED_ROUTES";
+    _params['searchPathOption'] = "LOW_ALTITUDE_ONLY";
+
+    String ret = await _post(_avareLmfsUrl);
+    error = _parseError(ret);
+    return ret;
+  }
+
+
   Future<String> activateFlightPlan(
       String id, String version, String future) async {
     String webUserName = Storage().settings.getEmail();

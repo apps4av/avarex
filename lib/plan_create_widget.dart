@@ -66,6 +66,23 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
           const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter the departure and the destination separated by a space in the Route box.", child: Icon(Icons.info))
         ]),
         const Padding(padding: EdgeInsets.all(10)),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children:[
+          TextButton(
+            onPressed: () {
+              if(_getting) {
+                return;
+              }
+              setState(() {_getting = true;});
+              PlanRoute.fromAtc("New Plan", _route).then((value) {
+                Storage().route.copyFrom(value);
+                Storage().route.setCurrentWaypoint(0);
+                setState(() {_getting = false;});
+                Navigator.pop(context);
+              });
+            },
+            child: const Text("Create IFR ATC Route"),),
+          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter the departure and the destination separated by a space in the Route box.", child: Icon(Icons.info))
+        ]),
       ])
     );
   }
