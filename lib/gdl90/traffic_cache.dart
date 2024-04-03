@@ -203,7 +203,11 @@ class TrafficCache {
         t?.updateOwnshipDistances();
       }
       // only display/alert traffic that isn't too far from ownship
-      _traffic.removeWhere((traffic) => traffic != null && traffic.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt);
+      for (int i = 0; i < _traffic.length; i++) {
+        if ((_traffic[i]?.verticalOwnshipDistanceFt.abs() ?? 0) > _kTrafficAltDiffThresholdFt) {
+          _traffic[i] = null;
+        }
+      }
     }).then((value) => handleAudibleAlerts());
   }
 
