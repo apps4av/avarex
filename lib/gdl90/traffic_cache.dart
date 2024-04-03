@@ -13,6 +13,7 @@ import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;
+const int _kTrafficAltDiffThresholdFt = 3000;
 
 // Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
 const int _kAudibleAlertCallMinDelayMs = 100;
@@ -115,6 +116,11 @@ class TrafficCache {
           message.callSign = traffic.message.callSign;
         }
         final Traffic trafficNew = Traffic(message);
+        // only display/alert traffic that isn't too far from ownship
+        if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+           _traffic[index] = null;
+          return;
+        }
         _traffic[index] = trafficNew;
 
         // process any audible alerts from traffic (if enabled)
@@ -126,6 +132,10 @@ class TrafficCache {
 
     // put it in the end
     final Traffic trafficNew = Traffic(message);
+    // only display/alert traffic that isn't too far from ownship
+    if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+      return;
+    }    
     _traffic[maxEntries] = trafficNew;
 
     // sort
@@ -192,6 +202,8 @@ class TrafficCache {
       for(Traffic? t in _traffic) {    
         t?.updateOwnshipDistances();
       }
+      // only display/alert traffic that isn't too far from ownship
+      _traffic.removeWhere((traffic) => traffic != null && traffic.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt);
     }).then((value) => handleAudibleAlerts());
   }
 
@@ -234,7 +246,7 @@ class TrafficPainter extends CustomPainter {
   static const double _kTrafficOpacityMin = 0.2;
   static const double _kFlyingTrafficOpacityMax = 1.0;
   static const double _kGroundTrafficOpacityMax = 0.5;
-  static const double _kFlightLevelOpacityReduction = 0.1;
+  static const double _kFlightLevelOpacityReduction = 0.2;  // very few levels now, so up reduction to 20%
   static const double _kBoundingBoxOpacityReduction = 0.4;
   static const double _kBoundingBoxOpacityMin = 0.1;  
   static const int _kShadowDrawPasses = 2;
