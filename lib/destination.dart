@@ -296,7 +296,7 @@ class DestinationFactory {
       return Transform.rotate(angle: 90 * pi / 180, child: Icon(MdiIcons.hexagonOutline, color: color,)); // hexagon rotated looks like a vor
     }
     else if(Destination.isAirport(type)) {
-      return Icon(MdiIcons.airport, color: color);
+      return Icon(MdiIcons.circleOutline, color: color);
     }
     else if(Destination.isFix(type)) {
       return Icon(MdiIcons.triangleOutline, color: color);

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
@@ -362,7 +363,7 @@ class MapScreenState extends State<MapScreen> {
                               content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
                               triggerMode: TooltipTriggerMode.tap,
                               waitDuration: const Duration(seconds: 1),
-                              child: const Icon(Icons.warning_amber_sharp, color: Colors.black,),)
+                              child: Icon(MdiIcons.clockAlert, color: Colors.black,),)
                         ),
                   ],
               builder: (context, markers) {
@@ -556,13 +557,7 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: Text(r.name, style: TextStyle(
-                        background: Paint()
-                        ..strokeWidth = 20.0
-                        ..color = Constants.instrumentBackgroundColor
-                        ..style = PaintingStyle.stroke
-                        ..strokeJoin = StrokeJoin.round,
-                        fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)),
+                      child: CircleAvatar(child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),))),
               ],
             );
           },
@@ -597,8 +592,10 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.center, point: d.coordinate,
-                    child: Text(d.locationID, style: const TextStyle(
-                        fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
+                    child: CircleAvatar(backgroundColor: Constants.instrumentBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor))),
+                for(Destination d in Storage().route.getAllDestinations()) // plan route
+                  Marker(alignment: Alignment.bottomRight, point: d.coordinate, width: 64,
+                      child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))
               ],
             );
           },
