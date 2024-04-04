@@ -11,7 +11,7 @@ class PlanCreateWidget extends StatefulWidget {
 
 class PlanCreateWidgetState extends State<PlanCreateWidget> {
 
-  String _route = "";
+  String _route = Storage().settings.getLastRouteEntry();
   bool _getting = false;
 
   @override
@@ -24,11 +24,13 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
         const Padding(padding: EdgeInsets.all(10)),
         Visibility(visible: _getting, child: const CircularProgressIndicator(),),
         const Padding(padding: EdgeInsets.all(10)),
-        TextFormField(
+        Container(padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+          child:TextFormField(
             onChanged: (value)  {
               _route = value;
             },
-            decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',)),
+            initialValue: _route,
+            decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',))),
         const Padding(padding: EdgeInsets.all(10)),
         Row(mainAxisAlignment: MainAxisAlignment.center, children:[
           TextButton(
@@ -36,6 +38,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               if(_getting) {
                 return;
               }
+              Storage().settings.setLastRouteEntry(_route);
               setState(() {_getting = true;});
               PlanRoute.fromLine("New Plan", _route).then((value) {
                   Storage().route.copyFrom(value);
@@ -54,6 +57,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               if(_getting) {
                 return;
               }
+              Storage().settings.setLastRouteEntry(_route);
               setState(() {_getting = true;});
               PlanRoute.fromPreferred("New Plan", _route, Storage().route.altitude, Storage().route.altitude).then((value) {
                 Storage().route.copyFrom(value);
@@ -63,24 +67,6 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               });
             },
             child: const Text("Create IFR Preferred Route"),),
-          const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter the departure and the destination separated by a space in the Route box.", child: Icon(Icons.info))
-        ]),
-        const Padding(padding: EdgeInsets.all(10)),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children:[
-          TextButton(
-            onPressed: () {
-              if(_getting) {
-                return;
-              }
-              setState(() {_getting = true;});
-              PlanRoute.fromAtc("New Plan", _route).then((value) {
-                Storage().route.copyFrom(value);
-                Storage().route.setCurrentWaypoint(0);
-                setState(() {_getting = false;});
-                Navigator.pop(context);
-              });
-            },
-            child: const Text("Create IFR ATC Route"),),
           const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Enter the departure and the destination separated by a space in the Route box.", child: Icon(Icons.info))
         ]),
       ])

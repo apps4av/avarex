@@ -556,7 +556,13 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: Text(r.name, style: TextStyle(fontSize: 18, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.instrumentBackgroundColor),)),
+                      child: Text(r.name, style: TextStyle(
+                        background: Paint()
+                        ..strokeWidth = 20.0
+                        ..color = Constants.instrumentBackgroundColor
+                        ..style = PaintingStyle.stroke
+                        ..strokeJoin = StrokeJoin.round,
+                        fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)),
               ],
             );
           },
@@ -591,7 +597,8 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.center, point: d.coordinate,
-                    child: Text(d.locationID, style: const TextStyle(fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
+                    child: Text(d.locationID, style: const TextStyle(
+                        fontSize: 10, color: Constants.instrumentsNormalValueColor, backgroundColor: Constants.planCurrentColor),))
               ],
             );
           },

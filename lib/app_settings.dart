@@ -92,6 +92,14 @@ class AppSettings {
     Settings.setValue("key-user-lmfs-email", name);
   }
 
+  void setLastRouteEntry(String value) {
+    Settings.setValue("key-last-route-entry", value);
+  }
+
+  String getLastRouteEntry() {
+    return Settings.getValue("key-last-route-entry", defaultValue: "") as String;
+  }
+
   String getEmail() {
     return Settings.getValue("key-user-lmfs-email", defaultValue: "") as String;
   }
