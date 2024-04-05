@@ -227,7 +227,7 @@ class TrafficPainter extends CustomPainter {
 
   // Preference control variables
   static bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
-  static bool prefAltDiffOpacityGraduation = true;          // Gradually vary opacity of icon based on altitude diff from ownship
+  static bool prefAltDiffOpacityGraduation = false;         // Gradually vary opacity of icon based on altitude diff from ownship
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
   static bool prefShowBoundingBox = true;                   // Display outlined bounding box around icon for higher visibility
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
