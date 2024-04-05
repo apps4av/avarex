@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
-import 'package:sqflite/sqflite.dart';
 
 class SettingsCacheProvider extends SharePreferenceCache {
 
   final HashMap<String, String> _cache = HashMap();
-  Database? _db;
 
   @override
   bool containsKey(String key) {
@@ -61,10 +59,9 @@ class SettingsCacheProvider extends SharePreferenceCache {
 
   @override
   Future<void> init() async {
-    _db = await UserDatabaseHelper.db.database;
     _cache.clear();
     // read into hashmap
-    List<Map<String, dynamic>> maps = await UserDatabaseHelper.getAllSettings(_db);
+    List<Map<String, dynamic>> maps = Storage().userRealmHelper.getAllSettings();
     for(Map<String, dynamic> map in maps) {
       _cache[map['key']] = map['value'];
     }
@@ -73,43 +70,50 @@ class SettingsCacheProvider extends SharePreferenceCache {
   @override
   Future<void> remove(String key) {
     _cache.remove(key);
-    return UserDatabaseHelper.deleteSetting(_db, key);
+    Storage().userRealmHelper.deleteSetting(key);
+    return Future.value();
   }
 
   @override
   Future<void> removeAll() {
     _cache.clear();
-    return UserDatabaseHelper.deleteAllSettings(_db);
+    Storage().userRealmHelper.deleteAllSettings();
+    return Future.value();
   }
 
   @override
   Future<void> setBool(String key, bool? value) {
     _cache[key] = value.toString();
-    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
+    Storage().userRealmHelper.insertSetting(key, value.toString());
+    return Future.value();
   }
 
   @override
   Future<void> setDouble(String key, double? value) {
     _cache[key] = value.toString();
-    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
+    Storage().userRealmHelper.insertSetting(key, value.toString());
+    return Future.value();
   }
 
   @override
   Future<void> setInt(String key, int? value) {
     _cache[key] = value.toString();
-    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
+    Storage().userRealmHelper.insertSetting(key, value.toString());
+    return Future.value();
   }
 
   @override
   Future<void> setObject<T>(String key, T? value) {
     _cache[key] = value.toString();
-    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
+    Storage().userRealmHelper.insertSetting(key, value.toString());
+    return Future.value();
   }
 
   @override
   Future<void> setString(String key, String? value) {
     _cache[key] = value.toString();
-    return UserDatabaseHelper.insertSetting(_db, key, value.toString());
+    Storage().userRealmHelper.insertSetting(key, value.toString());
+    return Future.value();
   }
 
 

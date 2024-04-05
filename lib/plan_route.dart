@@ -360,15 +360,13 @@ class PlanRoute {
   }
 
   // convert route to json
-  Map<String, Object?> toMap(String name) {
+  String toJson(String name) {
 
     // put all destinations in json
     List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
     String json = jsonEncode(maps);
 
-    Map<String, Object?> jsonMap = {'name' : name, 'route' : json};
-
-    return jsonMap;
+    return json;
   }
 
   // default constructor creates empty route
@@ -385,9 +383,8 @@ class PlanRoute {
   }
 
   // convert json to Route
-  static Future<PlanRoute> fromMap(Map<String, Object?> maps, bool reverse) async {
-    PlanRoute route = PlanRoute(maps['name'] as String);
-    String json = maps['route'] as String;
+  static Future<PlanRoute> fromJson(String json, String name, bool reverse) async {
+    PlanRoute route = PlanRoute(name);
     List<dynamic> decoded = jsonDecode(json);
     List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
 

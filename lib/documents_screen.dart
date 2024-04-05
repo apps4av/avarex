@@ -229,7 +229,7 @@ Widget _makeContent(List<String>? docs) {
     products.addAll(productsStatic);
 
     // always show user db
-    Document user = Document(DocumentsScreen.userDocuments, "User's Data", PathUtils.getFilePath(Storage().dataDir, "user.db"));
+    Document user = Document(DocumentsScreen.userDocuments, "Weather Database", PathUtils.getFilePath(Storage().dataDir, "weather.db"));
     user.canBeDeleted = false;
     products.add(user);
 

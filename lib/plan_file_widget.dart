@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 
 import 'aircraft.dart';
 import 'constants.dart';
-import 'data/user_database_helper.dart';
 import 'destination.dart';
 
 class PlanFileWidget extends StatefulWidget {
@@ -55,15 +54,8 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   @override
   Widget build(BuildContext context) {
 
-    // get all aircraft since it is important to be able to change them quickly
-    return FutureBuilder(
-        future: UserDatabaseHelper.db.getAllAircraft(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            _aircraft = snapshot.data;
-          }
-          return _makeContent(_aircraft);
-        });
+    _aircraft = Storage().userRealmHelper.getAllAircraft();
+    return _makeContent(_aircraft);
   }
 
   PlanLmfs _makeLmfs() {

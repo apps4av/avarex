@@ -1,5 +1,4 @@
 import 'package:avaremp/aircraft.dart';
-import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -118,7 +117,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                       onPressed: () {
                         String? entry = _selected;
                         if(null != entry) {
-                          UserDatabaseHelper.db.deleteAircraft(entry);
+                          Storage().userRealmHelper.deleteAircraft(entry);
                         }
                         Storage().settings.setAircraft("");
                         setState(() {
@@ -132,9 +131,10 @@ class AircraftScreenState extends State<AircraftScreen> {
                       // take all of whats here and save
                       Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
                       Aircraft a = Aircraft.fromMap(mm);
-                      UserDatabaseHelper.db.addAircraft(a).then((value) => setState(() {
+                      Storage().userRealmHelper.addAircraft(a);
+                      setState(() {
                         Storage().settings.setAircraft(a.tail);
-                      }));
+                      });
                     },
                     child: const Text("Save")
                   ),
@@ -147,15 +147,8 @@ class AircraftScreenState extends State<AircraftScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: UserDatabaseHelper.db.getAllAircraft(),
-        builder: (context, snapshot) {
-          List<Aircraft>? data = snapshot.data;
-          if (snapshot.connectionState == ConnectionState.done && data != null) {
-          }
-          return _makeContent(data);
-        }
-    );
+    List<Aircraft>? data = Storage().userRealmHelper.getAllAircraft();
+    return _makeContent(data);
   }
 }
 

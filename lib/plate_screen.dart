@@ -5,7 +5,6 @@ import 'package:avaremp/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/data/user_database_helper.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
@@ -30,7 +29,7 @@ class PlatesFuture {
   Future<void> _getAll() async {
 
     // get location ID only
-    _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
+    _airports = (Storage().userRealmHelper.getRecent()).map((e) => e.locationID).toList();
 
     if(_currentPlateAirport.isEmpty) {
         if(_airports.isNotEmpty) {

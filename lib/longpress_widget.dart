@@ -7,7 +7,6 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
-import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -95,7 +94,7 @@ class LongPressFuture {
               type: showDestination.type,
               facilityName: value,
               coordinate: showDestination.coordinate);
-          UserDatabaseHelper.db.addRecent(d);
+          Storage().userRealmHelper.addRecent(d);
 
           labelCallback(value);
       },)));
@@ -249,7 +248,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("->D"),
               onPressed: () {
-                UserDatabaseHelper.db.addRecent(future.showDestination);
+                Storage().userRealmHelper.addRecent(future.showDestination);
                 Storage().setDestination(future.showDestination);
                 if(future.showDestination is AirportDestination) {
                   Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
@@ -261,7 +260,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("+Plan"),
               onPressed: () {
-                UserDatabaseHelper.db.addRecent(future.showDestination);
+                Storage().userRealmHelper.addRecent(future.showDestination);
                 Storage().route.addWaypoint(Waypoint(future.showDestination));
                 MainScreenState.gotoPlan();
                 Navigator.of(context).pop(); // hide bottom sheet

@@ -2,7 +2,6 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/data/user_database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -44,7 +43,8 @@ class FindScreenState extends State<FindScreen> {
   Widget build(BuildContext context) {
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
+      // this is a mix of sqlite and realm, so we need to wait for the result and for realm, do a future as dummy
+      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? Future.value(Storage().userRealmHelper.getRecent()) : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -109,9 +109,9 @@ class FindScreenState extends State<FindScreen> {
                       background: Container(alignment: Alignment.centerRight,child: const Icon(Icons.delete_forever),),
                       key: Key(Storage().getKey()),
                       direction: DismissDirection.endToStart,
-                      onDismissed:(direction) async {
+                      onDismissed:(direction) {
                         // Remove the item from the data source.
-                        await UserDatabaseHelper.db.deleteRecent(item);
+                        Storage().userRealmHelper.deleteRecent(item);
                         setState(() {
                           items.removeAt(index);
                         });
@@ -122,7 +122,7 @@ class FindScreenState extends State<FindScreen> {
                               Text(item.locationID),
                               TextButton(
                                 onPressed: () {
-                                  UserDatabaseHelper.db.addRecent(item);
+                                  Storage().userRealmHelper.addRecent(item);
                                   Storage().settings.setCenterLongitude(item.coordinate.longitude);
                                   Storage().settings.setCenterLatitude(item.coordinate.latitude);
                                   Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());

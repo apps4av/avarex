@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 // put all singletons here.
 
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/user_realm_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/fis_buffer.dart';
@@ -83,6 +84,7 @@ class Storage {
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
+  UserRealmHelper userRealmHelper = UserRealmHelper();
 
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
 
@@ -271,7 +273,7 @@ class Storage {
     ByteData data = await rootBundle.load("assets/images/256.png");
     List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     await File(path).writeAsBytes(bytes);
-    await FlutterMapTileCaching.initialise();
+    await FlutterMapTileCaching.initialise(rootDirectory: dataDir);
     await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
