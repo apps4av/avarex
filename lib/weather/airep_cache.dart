@@ -6,7 +6,7 @@ import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
-import '../data/weather_database_helper.dart';
+import '../storage.dart';
 import 'airep.dart';
 
 class AirepCache extends WeatherCache {
@@ -34,7 +34,7 @@ class AirepCache extends WeatherCache {
         continue;
       }
     }
-    WeatherDatabaseHelper.db.addAireps(aireps);
+    Storage().weatherRealmHelper.addAireps(aireps);
   }
 }
 

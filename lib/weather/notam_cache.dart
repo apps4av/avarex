@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as parser;
 
 import '../constants.dart';
+import '../storage.dart';
 import 'notam.dart';
 
 class NotamCache extends WeatherCache {
@@ -30,7 +30,7 @@ class NotamCache extends WeatherCache {
     time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
     Notam notam = Notam(argument, time, notamText);
 
-    WeatherDatabaseHelper.db.addNotam(notam);
+    Storage().weatherRealmHelper.addNotam(notam);
   }
 
   // Download and parse, override because this is a POST

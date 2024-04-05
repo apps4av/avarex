@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:csv/csv.dart';
 
 import '../constants.dart';
@@ -33,7 +33,8 @@ class TafCache extends WeatherCache {
         continue;
       }
     }
-    WeatherDatabaseHelper.db.addTafs(tafs);
+
+    Storage().weatherRealmHelper.addTafs(tafs);
   }
 }
 

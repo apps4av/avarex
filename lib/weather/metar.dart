@@ -56,16 +56,16 @@ class Metar extends Weather {
   Icon getIcon() {
     switch (category) {
       case "VFR":
-        return const Icon(Icons.circle, color: Color(0x8000FF00), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
+        return const Icon(Icons.circle, color: Color(0x80008F00), );
       case "MVFR":
-        return const Icon(Icons.circle, color: Color(0x800000FF), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
+        return const Icon(Icons.circle, color: Color(0x800000FF), );
       case "IFR":
-        return const Icon(Icons.circle, color: Color(0x80FF0000), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
+        return const Icon(Icons.circle, color: Color(0x80FF0000), );
       case "LIFR":
-        return const Icon(Icons.circle, color: Color(0x80673AB7), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
+        return const Icon(Icons.circle, color: Color(0x80673AB7), );
     }
 
-    return const Icon(Icons.circle, color: Color(0x80FFFFFF), shadows: [Shadow(offset: Offset(1, 1), color: Color(0x80000000))],);
+    return const Icon(Icons.circle, color: Color(0x80FFFFFF), );
   }
 
   @override

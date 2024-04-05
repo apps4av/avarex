@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 import '../constants.dart';
+import '../storage.dart';
 import 'metar.dart';
 
 
@@ -35,7 +35,7 @@ class MetarCache extends WeatherCache {
         continue;
       }
     }
-    WeatherDatabaseHelper.db.addMetars(metars);
+    Storage().weatherRealmHelper.addMetars(metars);
   }
 
 }

@@ -6,7 +6,7 @@ import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
-import '../data/weather_database_helper.dart';
+import '../storage.dart';
 import 'airsigmet.dart';
 
 class AirSigmetCache extends WeatherCache {
@@ -41,7 +41,7 @@ class AirSigmetCache extends WeatherCache {
         continue;
       }
     }
-    WeatherDatabaseHelper.db.addAirSigmets(airSigmet);
+    Storage().weatherRealmHelper.addAirSigmets(airSigmet);
 
   }
 }

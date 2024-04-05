@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 
 import '../constants.dart';
+import '../storage.dart';
 
 class TfrCache extends WeatherCache {
 
@@ -97,6 +97,11 @@ class TfrCache extends WeatherCache {
             ll.add(LatLng(double.parse(latitude), double.parse(longitude)));
           }
 
+          // cannot draw this TFR
+          if(ll.isEmpty) {
+            continue;
+          }
+
           DateTime startsDt = DateTime.parse(effective);
           DateTime endsDt = DateTime.parse(expire);
 
@@ -111,7 +116,7 @@ class TfrCache extends WeatherCache {
         }
       }
     }
-    WeatherDatabaseHelper.db.addTfrs(tfrs);
+    Storage().weatherRealmHelper.addTfrs(tfrs);
   }
 }
 
