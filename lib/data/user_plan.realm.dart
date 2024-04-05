@@ -14,7 +14,7 @@ class UserPlan extends _UserPlan
     String name,
     String route,
   ) {
-    RealmObjectBase.set(this, 'id', id);
+    RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'name', name);
     RealmObjectBase.set(this, 'route', route);
   }
@@ -22,9 +22,9 @@ class UserPlan extends _UserPlan
   UserPlan._();
 
   @override
-  ObjectId get id => RealmObjectBase.get<ObjectId>(this, 'id') as ObjectId;
+  ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
-  set id(ObjectId value) => RealmObjectBase.set(this, 'id', value);
+  set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
 
   @override
   String get name => RealmObjectBase.get<String>(this, 'name') as String;
@@ -45,7 +45,7 @@ class UserPlan extends _UserPlan
 
   EJsonValue toEJson() {
     return <String, dynamic>{
-      'id': id.toEJson(),
+      '_id': id.toEJson(),
       'name': name.toEJson(),
       'route': route.toEJson(),
     };
@@ -55,7 +55,7 @@ class UserPlan extends _UserPlan
   static UserPlan _fromEJson(EJsonValue ejson) {
     return switch (ejson) {
       {
-        'id': EJsonValue id,
+        '_id': EJsonValue id,
         'name': EJsonValue name,
         'route': EJsonValue route,
       } =>
@@ -72,7 +72,8 @@ class UserPlan extends _UserPlan
     RealmObjectBase.registerFactory(UserPlan._);
     register(_toEJson, _fromEJson);
     return SchemaObject(ObjectType.realmObject, UserPlan, 'UserPlan', [
-      SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
+      SchemaProperty('id', RealmPropertyType.objectid,
+          mapTo: '_id', primaryKey: true),
       SchemaProperty('name', RealmPropertyType.string),
       SchemaProperty('route', RealmPropertyType.string),
     ]);

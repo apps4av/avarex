@@ -6,6 +6,7 @@ part 'user_recent.realm.dart';
 @RealmModel()
 class _UserRecent {
   @PrimaryKey()
+  @MapTo('_id')
   late ObjectId id;
 
   late String locationID;

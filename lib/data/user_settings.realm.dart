@@ -14,7 +14,7 @@ class UserSettings extends _UserSettings
     String key,
     String value,
   ) {
-    RealmObjectBase.set(this, 'id', id);
+    RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'key', key);
     RealmObjectBase.set(this, 'value', value);
   }
@@ -22,9 +22,9 @@ class UserSettings extends _UserSettings
   UserSettings._();
 
   @override
-  ObjectId get id => RealmObjectBase.get<ObjectId>(this, 'id') as ObjectId;
+  ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
-  set id(ObjectId value) => RealmObjectBase.set(this, 'id', value);
+  set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
 
   @override
   String get key => RealmObjectBase.get<String>(this, 'key') as String;
@@ -45,7 +45,7 @@ class UserSettings extends _UserSettings
 
   EJsonValue toEJson() {
     return <String, dynamic>{
-      'id': id.toEJson(),
+      '_id': id.toEJson(),
       'key': key.toEJson(),
       'value': value.toEJson(),
     };
@@ -55,7 +55,7 @@ class UserSettings extends _UserSettings
   static UserSettings _fromEJson(EJsonValue ejson) {
     return switch (ejson) {
       {
-        'id': EJsonValue id,
+        '_id': EJsonValue id,
         'key': EJsonValue key,
         'value': EJsonValue value,
       } =>
@@ -72,7 +72,8 @@ class UserSettings extends _UserSettings
     RealmObjectBase.registerFactory(UserSettings._);
     register(_toEJson, _fromEJson);
     return SchemaObject(ObjectType.realmObject, UserSettings, 'UserSettings', [
-      SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
+      SchemaProperty('id', RealmPropertyType.objectid,
+          mapTo: '_id', primaryKey: true),
       SchemaProperty('key', RealmPropertyType.string),
       SchemaProperty('value', RealmPropertyType.string),
     ]);

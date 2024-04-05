@@ -6,6 +6,7 @@ part 'user_aircraft.realm.dart';
 @RealmModel()
 class _UserAircraft {
   @PrimaryKey()
+  @MapTo('_id')
   late ObjectId id;
 
   late String tail;

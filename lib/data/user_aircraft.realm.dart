@@ -27,7 +27,7 @@ class UserAircraft extends _UserAircraft
     String base,
     String other,
   ) {
-    RealmObjectBase.set(this, 'id', id);
+    RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'tail', tail);
     RealmObjectBase.set(this, 'type', type);
     RealmObjectBase.set(this, 'wake', wake);
@@ -48,9 +48,9 @@ class UserAircraft extends _UserAircraft
   UserAircraft._();
 
   @override
-  ObjectId get id => RealmObjectBase.get<ObjectId>(this, 'id') as ObjectId;
+  ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
-  set id(ObjectId value) => RealmObjectBase.set(this, 'id', value);
+  set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
 
   @override
   String get tail => RealmObjectBase.get<String>(this, 'tail') as String;
@@ -144,7 +144,7 @@ class UserAircraft extends _UserAircraft
 
   EJsonValue toEJson() {
     return <String, dynamic>{
-      'id': id.toEJson(),
+      '_id': id.toEJson(),
       'tail': tail.toEJson(),
       'type': type.toEJson(),
       'wake': wake.toEJson(),
@@ -167,7 +167,7 @@ class UserAircraft extends _UserAircraft
   static UserAircraft _fromEJson(EJsonValue ejson) {
     return switch (ejson) {
       {
-        'id': EJsonValue id,
+        '_id': EJsonValue id,
         'tail': EJsonValue tail,
         'type': EJsonValue type,
         'wake': EJsonValue wake,
@@ -210,7 +210,8 @@ class UserAircraft extends _UserAircraft
     RealmObjectBase.registerFactory(UserAircraft._);
     register(_toEJson, _fromEJson);
     return SchemaObject(ObjectType.realmObject, UserAircraft, 'UserAircraft', [
-      SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
+      SchemaProperty('id', RealmPropertyType.objectid,
+          mapTo: '_id', primaryKey: true),
       SchemaProperty('tail', RealmPropertyType.string),
       SchemaProperty('type', RealmPropertyType.string),
       SchemaProperty('wake', RealmPropertyType.string),

@@ -17,7 +17,7 @@ class UserRecent extends _UserRecent
     double latitude,
     double longitude,
   ) {
-    RealmObjectBase.set(this, 'id', id);
+    RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'locationID', locationID);
     RealmObjectBase.set(this, 'facilityName', facilityName);
     RealmObjectBase.set(this, 'type', type);
@@ -28,9 +28,9 @@ class UserRecent extends _UserRecent
   UserRecent._();
 
   @override
-  ObjectId get id => RealmObjectBase.get<ObjectId>(this, 'id') as ObjectId;
+  ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
-  set id(ObjectId value) => RealmObjectBase.set(this, 'id', value);
+  set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
 
   @override
   String get locationID =>
@@ -72,7 +72,7 @@ class UserRecent extends _UserRecent
 
   EJsonValue toEJson() {
     return <String, dynamic>{
-      'id': id.toEJson(),
+      '_id': id.toEJson(),
       'locationID': locationID.toEJson(),
       'facilityName': facilityName.toEJson(),
       'type': type.toEJson(),
@@ -85,7 +85,7 @@ class UserRecent extends _UserRecent
   static UserRecent _fromEJson(EJsonValue ejson) {
     return switch (ejson) {
       {
-        'id': EJsonValue id,
+        '_id': EJsonValue id,
         'locationID': EJsonValue locationID,
         'facilityName': EJsonValue facilityName,
         'type': EJsonValue type,
@@ -108,7 +108,8 @@ class UserRecent extends _UserRecent
     RealmObjectBase.registerFactory(UserRecent._);
     register(_toEJson, _fromEJson);
     return SchemaObject(ObjectType.realmObject, UserRecent, 'UserRecent', [
-      SchemaProperty('id', RealmPropertyType.objectid, primaryKey: true),
+      SchemaProperty('id', RealmPropertyType.objectid,
+          mapTo: '_id', primaryKey: true),
       SchemaProperty('locationID', RealmPropertyType.string),
       SchemaProperty('facilityName', RealmPropertyType.string),
       SchemaProperty('type', RealmPropertyType.string),
