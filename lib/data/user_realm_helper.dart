@@ -327,6 +327,20 @@ class UserRealmHelper {
 
   }
 
+  String? getSetting(String key) {
+    if(null == _realm) {
+      return null;
+    }
+
+    RealmResults<UserSettings> settings = _realm!.all<UserSettings>().query("key = '$key'");
+
+    if(settings.isEmpty) {
+      return null;
+    }
+    UserSettings? s = settings.first;
+    return s.value;
+  }
+
   void deleteSetting(String key) {
     if(null == _realm) {
       return null;

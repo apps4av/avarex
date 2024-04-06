@@ -16,17 +16,20 @@ class SettingsCacheProvider extends SharePreferenceCache {
 
   @override
   bool? getBool(String key, {bool? defaultValue}) {
-    return _cache[key] == null ? defaultValue : _cache[key] == "false" ? false : true;
+    String? value = Storage().userRealmHelper.getSetting(key);
+    return value == null ? defaultValue : value == "false" ? false : true;
   }
 
   @override
   double? getDouble(String key, {double? defaultValue}) {
-    return _cache[key] == null ? defaultValue : double.parse(_cache[key]!);
+    String? value = Storage().userRealmHelper.getSetting(key);
+    return value == null ? defaultValue : double.parse(value);
   }
 
   @override
   int? getInt(String key, {int? defaultValue}) {
-    return _cache[key] == null ? defaultValue : int.parse(_cache[key]!);
+    String? value = Storage().userRealmHelper.getSetting(key);
+    return value == null ? defaultValue : int.parse(value);
   }
 
   @override
@@ -36,7 +39,8 @@ class SettingsCacheProvider extends SharePreferenceCache {
 
   @override
   String? getString(String key, {String? defaultValue}) {
-    return _cache[key] == null ? defaultValue : _cache[key]!;
+    String? value = Storage().userRealmHelper.getSetting(key);
+    return value ?? defaultValue;
   }
 
   @override
