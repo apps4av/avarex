@@ -1,10 +1,13 @@
 import 'dart:math';
 
+import 'package:avaremp/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
@@ -50,6 +53,8 @@ class InstrumentListState extends State<InstrumentList> {
   String _bearing = "0\u00b0";
   String _distance = "";
   String _utc = "00:00";
+  String _eta = "";
+  String _ete = "";
   int _countUp = 0;
   bool _doCountUp = false;
   String _source = "";
@@ -142,7 +147,7 @@ class InstrumentListState extends State<InstrumentList> {
         if(destElev != null) {
           // Calculate our relative AGL compared to destination. If we are
           // lower then no display info
-          double relativeAGL = Storage().position.altitude * 3.28084 - destElev;
+          double relativeAGL = Constants.mToFt(Storage().position.altitude) - destElev;
 
           // Convert the destination distance to feet.
           double destDist = distance;
@@ -156,7 +161,28 @@ class InstrumentListState extends State<InstrumentList> {
           else if(vdi <= PfdPainter.vnavLow) {
             vdi = PfdPainter.vnavLow;
           }
+        }
 
+        // find time to next, not interested in fuel
+        double? ws;
+        double? wd;
+        String? station = WindsCache.locateNearestStation(next.destination.coordinate);
+        WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
+        (wd, ws) = WindsCache.getWindAtAltitude(Constants.mToFt(Storage().position.altitude), wa);
+
+        Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
+        DestinationCalculations calc = DestinationCalculations(d, next.destination,
+            GeoCalculations.convertSpeed(Storage().position.speed), 0, wd, ws);
+        calc.calculateTo();
+        if(calc.time.isFinite) {
+          Duration time = Duration(seconds: calc.time.round());
+          _eta =
+              _truncate(_hourMinuteFormatter.format(DateTime.now().add(time)));
+          _ete = _truncate(time.toString().substring(2, 7));
+        }
+        else {
+          _eta = "-";
+          _ete = "-";
         }
       }
       Storage().pfdData.vdi = vdi;
@@ -167,7 +193,14 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       PlanRoute? route = Storage().route;
       Destination? d = route.getCurrentWaypoint()?.destination;
-      _destination = _truncate(d != null ? d.locationID : "");
+      if(d == null) {
+        _eta = "";
+        _ete = "";
+        _destination = "";
+      }
+      else {
+        _destination = _truncate(d.locationID);
+      }
       var (distance, bearing) = _getDistanceBearing();
       _distance = _truncate(distance.round().toString());
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
@@ -235,6 +268,12 @@ class InstrumentListState extends State<InstrumentList> {
       case "DIS":
         value = _distance;
         break;
+      case "ETA":
+        value = _eta;
+        break;
+      case "ETE":
+        value = _ete;
+        break;
       case "UTC":
         value = _utc;
         break;
@@ -259,7 +298,7 @@ class InstrumentListState extends State<InstrumentList> {
                 Stack(children:[
                 Positioned(child: Align(alignment: Alignment.topCenter, child:Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,))),
                   if(0 == index) //show help icon on first tab
-                    const Positioned(child: Align(alignment: Alignment.bottomRight, child:Tooltip(triggerMode: TooltipTriggerMode.tap, message: "You may hold (long press) and drag any box to rearrange it's position.", child: Icon(Icons.info, size: 16)))),
+                    const Positioned(child: Align(alignment: Alignment.bottomRight, child:Tooltip(triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange it's position.", child: Icon(Icons.info, size: 16)))),
                 ])
             ),
             Expanded(flex: 1, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),

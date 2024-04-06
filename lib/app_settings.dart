@@ -61,11 +61,11 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    Settings.setValue("key-instruments-v8", instruments);
+    Settings.setValue("key-instruments-v9", instruments);
   }
 
   String getInstruments() {
-    return Settings.getValue("key-instruments-v8", defaultValue: "GS,ALT,MH,NXT,DIS,BRG,UPT,UTC,SRC") as String;
+    return Settings.getValue("key-instruments-v9", defaultValue: "GS,ALT,MT,NXT,DIS,BRG,ETA,ETE,UPT,UTC,SRC") as String;
   }
 
   List<String> getLayers() {

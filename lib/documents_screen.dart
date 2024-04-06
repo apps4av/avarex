@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pdf_viewer.dart';
@@ -8,6 +9,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
@@ -151,7 +153,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                      }, child: const Text("Share")),
                    ])),
                    Flexible(flex: 1, child: Row(children: [
-                   if(((products.length - productsStatic.length) > 1) && product.canBeDeleted)
+                   if((products.length - productsStatic.length) > 1)
                      TextButton(
                          onPressed: () { // delete on long press
                            setState(() {
@@ -228,9 +230,30 @@ Widget _makeContent(List<String>? docs) {
     products = [];
     products.addAll(productsStatic);
 
-    // always show user db
-    Document user = Document(DocumentsScreen.userDocuments, "Weather Database", PathUtils.getFilePath(Storage().dataDir, "weather.db"));
-    user.canBeDeleted = false;
+    // copy docs from assets, only if they do not exist
+    copyDocs() async {
+      String doc = PathUtils.getFilePath("documents", "FAAFPLQuickReferenceBrochure.pdf");
+      String path = PathUtils.getFilePath(Storage().dataDir, doc);
+      if(!File(path).existsSync()) {
+        try {
+          // if fresh mkdir
+          Directory(PathUtils.getFilePath(Storage().dataDir, "documents"))
+              .createSync();
+        }
+        catch(e) {}
+        ByteData data = await rootBundle.load(
+            PathUtils.getFilePath("assets", doc));
+        List<int> bytes = data.buffer.asUint8List(
+            data.offsetInBytes, data.lengthInBytes);
+        await File(path).writeAsBytes(bytes);
+      }
+    }
+    copyDocs();
+
+    // always show at least one doc
+    Document user = Document(DocumentsScreen.userDocuments, "ICAO Filing Guide",
+        PathUtils.getFilePath(Storage().dataDir,
+          PathUtils.getFilePath("documents", "FAAFPLQuickReferenceBrochure.pdf")));
     products.add(user);
 
     for(String doc in docs) {
@@ -294,7 +317,6 @@ class Document {
   final String name;
   final String url;
   final String type;
-  bool canBeDeleted = true;
   Document(this.type, this.name, this.url);
 }
 
