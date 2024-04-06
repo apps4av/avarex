@@ -1,6 +1,4 @@
-import 'dart:io';
-
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/data/user_realm_helper.dart';
 import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -37,15 +35,15 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(future: File(PathUtils.getFilePath(Storage().dataDir, ".password")).readAsString(), builder: (context, snapshot) {
+    return FutureBuilder(future: Storage().userRealmHelper.loadCredentials(), builder: (context, snapshot) {
       return _makeContent(context, snapshot.data);
     });
   }
 
-  Widget _makeContent(BuildContext context, String? data) {
-    String email = Storage().settings.getEmail();
-    String password = data ?? "";
-    String confirmPassword = data ?? "";
+  Widget _makeContent(BuildContext context, List<String>? data) {
+    String email = data == null || data.length < 2 ? "" : data[0];
+    String password = data == null || data.length < 2 ? "" : data[1];
+    String confirmPassword = data == null || data.length < 2 ? "" : data[1];
     const bodyStyle = TextStyle(fontSize: 19.0);
 
     const pageDecoration = PageDecoration(
@@ -163,11 +161,14 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
                   _visibleRegister = true;
                   });
                 interface.register(email).then((value) {
-                  setState(() {
-                    _visibleRegister = false;
-                    Storage().settings.setEmail(email);
-                    File(PathUtils.getFilePath(Storage().dataDir, ".password")).writeAsString(password);
-                  });
+                  Storage().userRealmHelper.registerUser(email, password).then((value) {
+                    setState(() {
+                      _visibleRegister = false;
+                      Storage().settings.setEmail(email);
+                      UserRealmHelper.saveCredentials(email, password);
+                      Storage().userRealmHelper.init();
+                    });
+                  }); // now register with mongodb
                 });
               }, child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
                 TextButton(onPressed: () {
@@ -179,7 +180,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
                     setState(() {
                       _visibleRegister = false;
                       Storage().settings.setEmail("");
-                      File(PathUtils.getFilePath(Storage().dataDir, ".password")).writeAsString("");
+                      UserRealmHelper.deleteCredentials();
                     });
                   });
                 }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
@@ -234,9 +235,9 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
               child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
             )),
             if(Storage().settings.isSigned())
-              const Text("You have signed this document.", style: TextStyle(color: Colors.yellow),)
+              const Text("You have signed this document.", style: TextStyle(color: Colors.yellow, backgroundColor: Colors.black),)
             else
-              const Text("You have not signed this document.", style: TextStyle(color: Colors.red),)
+              const Text("You have not signed this document.", style: TextStyle(color: Colors.red, backgroundColor: Colors.black),)
           ]),
           decoration: pageDecoration,
         ),
@@ -244,8 +245,8 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
       skipOrBackFlex: 0,
       nextFlex: 0,
       showBackButton: true,
-      showDoneButton: true,
-      done: Visibility(visible: Storage().settings.isSigned(), child: const Text("Done")),
+      showDoneButton: Storage().settings.isSigned(),
+      done: const Text("Done"),
       onDone: () {
         Storage().settings.setIntro(false);
         _onIntroEnd(context);
