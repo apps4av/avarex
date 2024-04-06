@@ -11,6 +11,7 @@ class UserAircraft extends _UserAircraft
     with RealmEntity, RealmObjectBase, RealmObject {
   UserAircraft(
     ObjectId id,
+    String ownerId,
     String tail,
     String type,
     String wake,
@@ -28,6 +29,7 @@ class UserAircraft extends _UserAircraft
     String other,
   ) {
     RealmObjectBase.set(this, '_id', id);
+    RealmObjectBase.set(this, 'owner_id', ownerId);
     RealmObjectBase.set(this, 'tail', tail);
     RealmObjectBase.set(this, 'type', type);
     RealmObjectBase.set(this, 'wake', wake);
@@ -51,6 +53,11 @@ class UserAircraft extends _UserAircraft
   ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
   set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
+
+  @override
+  String get ownerId => RealmObjectBase.get<String>(this, 'owner_id') as String;
+  @override
+  set ownerId(String value) => RealmObjectBase.set(this, 'owner_id', value);
 
   @override
   String get tail => RealmObjectBase.get<String>(this, 'tail') as String;
@@ -145,6 +152,7 @@ class UserAircraft extends _UserAircraft
   EJsonValue toEJson() {
     return <String, dynamic>{
       '_id': id.toEJson(),
+      'owner_id': ownerId.toEJson(),
       'tail': tail.toEJson(),
       'type': type.toEJson(),
       'wake': wake.toEJson(),
@@ -168,6 +176,7 @@ class UserAircraft extends _UserAircraft
     return switch (ejson) {
       {
         '_id': EJsonValue id,
+        'owner_id': EJsonValue ownerId,
         'tail': EJsonValue tail,
         'type': EJsonValue type,
         'wake': EJsonValue wake,
@@ -186,6 +195,7 @@ class UserAircraft extends _UserAircraft
       } =>
         UserAircraft(
           fromEJson(id),
+          fromEJson(ownerId),
           fromEJson(tail),
           fromEJson(type),
           fromEJson(wake),
@@ -212,6 +222,7 @@ class UserAircraft extends _UserAircraft
     return SchemaObject(ObjectType.realmObject, UserAircraft, 'UserAircraft', [
       SchemaProperty('id', RealmPropertyType.objectid,
           mapTo: '_id', primaryKey: true),
+      SchemaProperty('ownerId', RealmPropertyType.string, mapTo: 'owner_id'),
       SchemaProperty('tail', RealmPropertyType.string),
       SchemaProperty('type', RealmPropertyType.string),
       SchemaProperty('wake', RealmPropertyType.string),

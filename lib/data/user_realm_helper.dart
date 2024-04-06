@@ -34,6 +34,7 @@ class UserRealmHelper {
     deleteRecent(destination);
 
     UserRecent recent = UserRecent(ObjectId(),
+      "",
       destination.locationID,
       destination.facilityName,
       destination.type,
@@ -74,7 +75,7 @@ class UserRealmHelper {
     // remove for duplicates
     deletePlan(name);
 
-    UserPlan plan = UserPlan(ObjectId(), name, route.toJson(name));
+    UserPlan plan = UserPlan(ObjectId(), "", name, route.toJson(name));
 
     realm.write(() {
       realm.add(plan);
@@ -118,6 +119,7 @@ class UserRealmHelper {
     deleteAircraft(aircraft.tail);
 
     UserAircraft aircraftR = UserAircraft(ObjectId(),
+      "",
       aircraft.tail,
       aircraft.type,
       aircraft.wake,
@@ -178,7 +180,7 @@ class UserRealmHelper {
     if(null == value) {
       return;
     }
-    UserSettings setting = UserSettings(ObjectId(), key, value);
+    UserSettings setting = UserSettings(ObjectId(), "", key, value);
 
     realm.write(() {
       realm.add(setting);

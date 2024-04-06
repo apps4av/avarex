@@ -11,10 +11,12 @@ class UserPlan extends _UserPlan
     with RealmEntity, RealmObjectBase, RealmObject {
   UserPlan(
     ObjectId id,
+    String ownerId,
     String name,
     String route,
   ) {
     RealmObjectBase.set(this, '_id', id);
+    RealmObjectBase.set(this, 'owner_id', ownerId);
     RealmObjectBase.set(this, 'name', name);
     RealmObjectBase.set(this, 'route', route);
   }
@@ -25,6 +27,11 @@ class UserPlan extends _UserPlan
   ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
   set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
+
+  @override
+  String get ownerId => RealmObjectBase.get<String>(this, 'owner_id') as String;
+  @override
+  set ownerId(String value) => RealmObjectBase.set(this, 'owner_id', value);
 
   @override
   String get name => RealmObjectBase.get<String>(this, 'name') as String;
@@ -46,6 +53,7 @@ class UserPlan extends _UserPlan
   EJsonValue toEJson() {
     return <String, dynamic>{
       '_id': id.toEJson(),
+      'owner_id': ownerId.toEJson(),
       'name': name.toEJson(),
       'route': route.toEJson(),
     };
@@ -56,11 +64,13 @@ class UserPlan extends _UserPlan
     return switch (ejson) {
       {
         '_id': EJsonValue id,
+        'owner_id': EJsonValue ownerId,
         'name': EJsonValue name,
         'route': EJsonValue route,
       } =>
         UserPlan(
           fromEJson(id),
+          fromEJson(ownerId),
           fromEJson(name),
           fromEJson(route),
         ),
@@ -74,6 +84,7 @@ class UserPlan extends _UserPlan
     return SchemaObject(ObjectType.realmObject, UserPlan, 'UserPlan', [
       SchemaProperty('id', RealmPropertyType.objectid,
           mapTo: '_id', primaryKey: true),
+      SchemaProperty('ownerId', RealmPropertyType.string, mapTo: 'owner_id'),
       SchemaProperty('name', RealmPropertyType.string),
       SchemaProperty('route', RealmPropertyType.string),
     ]);

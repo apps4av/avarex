@@ -8,7 +8,8 @@ class _UserAircraft {
   @PrimaryKey()
   @MapTo('_id')
   late ObjectId id;
-
+  @MapTo('owner_id')
+  late String ownerId;
   late String tail;
   late String type;
   late String wake;

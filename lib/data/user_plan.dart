@@ -8,7 +8,8 @@ class _UserPlan {
   @PrimaryKey()
   @MapTo('_id')
   late ObjectId id;
-
+  @MapTo('owner_id')
+  late String ownerId;
   late String name;
   late String route;
 }

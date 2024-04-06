@@ -11,6 +11,7 @@ class UserRecent extends _UserRecent
     with RealmEntity, RealmObjectBase, RealmObject {
   UserRecent(
     ObjectId id,
+    String ownerId,
     String locationID,
     String facilityName,
     String type,
@@ -18,6 +19,7 @@ class UserRecent extends _UserRecent
     double longitude,
   ) {
     RealmObjectBase.set(this, '_id', id);
+    RealmObjectBase.set(this, 'owner_id', ownerId);
     RealmObjectBase.set(this, 'locationID', locationID);
     RealmObjectBase.set(this, 'facilityName', facilityName);
     RealmObjectBase.set(this, 'type', type);
@@ -31,6 +33,11 @@ class UserRecent extends _UserRecent
   ObjectId get id => RealmObjectBase.get<ObjectId>(this, '_id') as ObjectId;
   @override
   set id(ObjectId value) => RealmObjectBase.set(this, '_id', value);
+
+  @override
+  String get ownerId => RealmObjectBase.get<String>(this, 'owner_id') as String;
+  @override
+  set ownerId(String value) => RealmObjectBase.set(this, 'owner_id', value);
 
   @override
   String get locationID =>
@@ -73,6 +80,7 @@ class UserRecent extends _UserRecent
   EJsonValue toEJson() {
     return <String, dynamic>{
       '_id': id.toEJson(),
+      'owner_id': ownerId.toEJson(),
       'locationID': locationID.toEJson(),
       'facilityName': facilityName.toEJson(),
       'type': type.toEJson(),
@@ -86,6 +94,7 @@ class UserRecent extends _UserRecent
     return switch (ejson) {
       {
         '_id': EJsonValue id,
+        'owner_id': EJsonValue ownerId,
         'locationID': EJsonValue locationID,
         'facilityName': EJsonValue facilityName,
         'type': EJsonValue type,
@@ -94,6 +103,7 @@ class UserRecent extends _UserRecent
       } =>
         UserRecent(
           fromEJson(id),
+          fromEJson(ownerId),
           fromEJson(locationID),
           fromEJson(facilityName),
           fromEJson(type),
@@ -110,6 +120,7 @@ class UserRecent extends _UserRecent
     return SchemaObject(ObjectType.realmObject, UserRecent, 'UserRecent', [
       SchemaProperty('id', RealmPropertyType.objectid,
           mapTo: '_id', primaryKey: true),
+      SchemaProperty('ownerId', RealmPropertyType.string, mapTo: 'owner_id'),
       SchemaProperty('locationID', RealmPropertyType.string),
       SchemaProperty('facilityName', RealmPropertyType.string),
       SchemaProperty('type', RealmPropertyType.string),
