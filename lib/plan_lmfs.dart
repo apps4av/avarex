@@ -122,6 +122,8 @@ class LmfsPlanList {
 
 class LmfsInterface {
   static const String _avareLmfsUrl = "https://apps4av.net/new/lmfs.php";
+  static const String _avareRegisterUrl = "https://apps4av.net/new/register.php";
+  static const String _avareUnregisterUrl = "https://apps4av.net/new/unregister.php";
   late Map<String, String> _params;
   late String error;
 
@@ -253,6 +255,25 @@ class LmfsInterface {
     _params['briefingPreferences'] = "{\"plainText\":true}";
     String ret = await _post(_avareLmfsUrl);
     error = _parseError(ret);
+  }
+
+
+  Future<String> register(String email) async {
+    _params['email'] = email;
+    _params['name'] = "anonynmous";
+    _params['regId'] = "";
+    String ret = await _post(_avareRegisterUrl);
+    error = _parseError(ret);
+    return ret;
+  }
+
+  Future<String> unregister(String email) async {
+    _params['email'] = email;
+    _params['name'] = "anonynmous";
+    _params['regId'] = "";
+    String ret = await _post(_avareUnregisterUrl);
+    error = _parseError(ret);
+    return ret;
   }
 
 }

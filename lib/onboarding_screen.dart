@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -14,7 +18,8 @@ class OnBoardingScreen extends StatefulWidget {
 }
 
 class OnBoardingScreenState extends State<OnBoardingScreen> {
-  final introKey = GlobalKey<IntroductionScreenState>();
+  final _introKey = GlobalKey<IntroductionScreenState>();
+  bool _visibleRegister = false;
 
   void _onIntroEnd(context) {
     Navigator.of(context).pushReplacement(
@@ -32,7 +37,15 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return FutureBuilder(future: File(PathUtils.getFilePath(Storage().dataDir, ".password")).readAsString(), builder: (context, snapshot) {
+      return _makeContent(context, snapshot.data);
+    });
+  }
+
+  Widget _makeContent(BuildContext context, String? data) {
     String email = Storage().settings.getEmail();
+    String password = data ?? "";
+    String confirmPassword = data ?? "";
     const bodyStyle = TextStyle(fontSize: 19.0);
 
     const pageDecoration = PageDecoration(
@@ -66,7 +79,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
 
     return IntroductionScreen(
-      key: introKey,
+      key: _introKey,
       globalBackgroundColor: Colors.white,
       allowImplicitScrolling: false,
       safeAreaList: const [false, false, true, false],
@@ -115,6 +128,67 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
           decoration: pageDecoration,
         ),
         PageViewModel(
+          title: "Set your Online ID",
+          bodyWidget: Column(children:[
+            const Text("You may register and get your online ID to file flight plans with the FAA (1800wxbrief.com), and to back up your app data online."),
+            const Padding(padding: EdgeInsets.all(10)),
+            TextFormField(
+                onChanged: (value) {
+                  email = value;
+                },
+                controller: TextEditingController()..text = email,
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Choose an Online ID (Email)')
+            ),
+            TextFormField(
+                obscureText: true,
+                onChanged: (value) {
+                  password = value;
+                },
+                controller: TextEditingController()..text = password,
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Choose a password')
+            ),
+            TextFormField(
+                obscureText: true,
+                onChanged: (value) {
+                  confirmPassword = value;
+                },
+                controller: TextEditingController()..text = confirmPassword,
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Confirm the password')
+            ),
+            const Padding(padding: EdgeInsets.all(20)),
+              Row(children: [
+              TextButton(onPressed: () {
+                LmfsInterface interface = LmfsInterface();
+                setState(() {
+                  _visibleRegister = true;
+                  });
+                interface.register(email).then((value) {
+                  setState(() {
+                    _visibleRegister = false;
+                    Storage().settings.setEmail(email);
+                    File(PathUtils.getFilePath(Storage().dataDir, ".password")).writeAsString(password);
+                  });
+                });
+              }, child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
+                TextButton(onPressed: () {
+                  LmfsInterface interface = LmfsInterface();
+                  setState(() {
+                    _visibleRegister = true;
+                  });
+                  interface.unregister(email).then((value) {
+                    setState(() {
+                      _visibleRegister = false;
+                      Storage().settings.setEmail("");
+                      File(PathUtils.getFilePath(Storage().dataDir, ".password")).writeAsString("");
+                    });
+                  });
+                }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
+                Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
+              ]),
+            ]),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
           title: "Sign the Terms of Use",
           bodyWidget: Column(children: [
             const Text(
@@ -147,37 +221,35 @@ The development team for this free aviation app is dedicated to empowering pilot
  * Ensure that you assume all liability for your use of our free tools more conveniently, without the need to click an agreement at every launch of the app.
  * File flight plans with the FAA.
 
-Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By providing your email address, and clicking "Sign" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
+Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking "Tap here to sign" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
 """
-            ),
-            TextFormField(
-                onChanged: (value) {
-                  email = value;
-                },
-                controller: TextEditingController()..text = email,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.black), labelText: 'Enter your email address')
             ),
             Padding(padding: const EdgeInsets.all(20), child:TextButton(
               onPressed: () {
                 setState(() {
                   Storage().settings.setSign(true);
                   Storage().settings.setEmail(email);
-                  Storage().settings.setIntro(false);
-                  _onIntroEnd(context);
                 });
               },
-              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign and exit this screen", style: TextStyle(fontSize: 20, color: Colors.black),)),
+              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
             )),
-            Text(Storage().settings.isSigned() ? "You have signed the document." : "You have not signed this document.")
+            if(Storage().settings.isSigned())
+              const Text("You have signed this document.", style: TextStyle(color: Colors.yellow),)
+            else
+              const Text("You have not signed this document.", style: TextStyle(color: Colors.red),)
           ]),
           decoration: pageDecoration,
         ),
-
       ],
       skipOrBackFlex: 0,
       nextFlex: 0,
       showBackButton: true,
-      showDoneButton: false,
+      showDoneButton: true,
+      done: Visibility(visible: Storage().settings.isSigned(), child: const Text("Done")),
+      onDone: () {
+        Storage().settings.setIntro(false);
+        _onIntroEnd(context);
+      },
       //rtl: true, // Display as right-to-left
       back: const Icon(Icons.arrow_back),
       next: const Icon(Icons.arrow_forward),
@@ -201,3 +273,4 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By providin
     );
   }
 }
+

@@ -79,14 +79,14 @@ class Storage {
   late AirepCache airep;
   late AirSigmetCache airSigmet;
   late NotamCache notam;
-  NexradCache nexradCache = NexradCache();
-  TrafficCache trafficCache = TrafficCache();
+  final NexradCache nexradCache = NexradCache();
+  final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
-  UserRealmHelper userRealmHelper = UserRealmHelper();
-  WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
+  final UserRealmHelper userRealmHelper = UserRealmHelper();
+  final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
 
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
 
