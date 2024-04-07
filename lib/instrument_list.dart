@@ -256,7 +256,7 @@ class InstrumentListState extends State<InstrumentList> {
       case "ALT":
         value = _altitude;
         break;
-      case "MH":
+      case "MT":
         value = _magneticHeading;
         break;
       case "NXT":
