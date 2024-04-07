@@ -6,8 +6,14 @@ import 'geomag-master/lib/geomag.dart';
 
 class GeoCalculations {
 
+  static final GeoCalculations _instance = GeoCalculations._internal();
+  factory GeoCalculations() {
+    return _instance;
+  }  
+  GeoCalculations._internal();
+
   final Distance _distance = const Distance();
-  static const Distance _haversineDistance = Distance(calculator: Haversine());
+  final Distance _haversineDistance = const Distance(calculator: Haversine());
 
   final GeoMag _mag = GeoMag();
 
@@ -106,7 +112,7 @@ class GeoCalculations {
   }
 
   /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)
-  static double calculateFastDistance(LatLng ll1, LatLng ll2) {
+  double calculateFastDistance(LatLng ll1, LatLng ll2) {
     return Constants.mToNm(_haversineDistance(ll1, ll2));
   }  
 

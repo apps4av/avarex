@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:avaremp/geo_calculations.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'package:avaremp/gdl90/traffic_cache.dart';
+import 'package:avaremp/constants.dart';
 
 enum TrafficIdOption { phoneticAlphaId, fullCallsign, none }
 
@@ -21,10 +24,6 @@ double _log10(num x) => log(x) * _ln10inv;
 
 /// Class to calculate and speak audio alerts for nearby and closing-in (TCPA) traffic
 class AudibleTrafficAlerts {
-  static const double _kMpsToKnotsConv = 1.0 / 0.514444;
-  static const double _kMetersToFeetCont = 3.28084;
-  static const int _kMaxIntValue = 9999999999;
-  static const double _kNauticalMilesPerMeter = 1.0 / 1852.0;
   static const double _kSecondsPerHour = 3600.000;
   static const double _kHoursPerSecond = 1.0 / 3600.000;
   static const double _kSecPerAudioSegment = 0.7; // SWAG ==> TODO: Worth putting in code to compute duration of audio-to-date exactly?
@@ -213,7 +212,7 @@ class AudibleTrafficAlerts {
       List<Traffic?> trafficList, Position? ownshipLocation, int ownshipUpdateTimeMs, double ownVspeed, bool ownIsAirborne) {
     if (!_isRunning ||
         ownshipLocation == null ||
-        (ownshipLocation.speed * _kMpsToKnotsConv < prefAudibleTrafficAlertsMinSpeed) ||
+        (Constants.mpsToKt(ownshipLocation.speed) < prefAudibleTrafficAlertsMinSpeed) ||
         !(ownIsAirborne || prefIsAudibleGroundAlertsEnabled)) {
       return;
     }
@@ -223,7 +222,7 @@ class AudibleTrafficAlerts {
       if (traffic == null || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {
         continue;
       }
-      final int trafficPositionTimeCalcUpdateValue = _hashTimestamps(traffic.message.time.millisecondsSinceEpoch, ownshipUpdateTimeMs);
+      final int trafficPositionTimeCalcUpdateValue = Constants.hashInts([ traffic.message.time.millisecondsSinceEpoch, ownshipUpdateTimeMs ]);
       final int trafficKey = _getTrafficKey(traffic);
       final int? lastTrafficPositionUpdateValue = _lastTrafficPositionUpdateTimeMap[trafficKey];
       final bool hasUpdate;
@@ -252,12 +251,6 @@ class AudibleTrafficAlerts {
     if (hasInserts) { 
       scheduleMicrotask(runAudibleAlertsQueueProcessing);
     }
-  }
-
-  /// Simple hash function for pair of integers, for timestamp combination to avoid string interpolation
-  @pragma("vm:prefer-inline")
-  static int _hashTimestamps(int n, int m) {
-    return 23 + n * 31 + m;
   }
 
   bool _upsertTrafficAlertQueue(_AlertItem alert) {
@@ -289,8 +282,8 @@ class AudibleTrafficAlerts {
   }
 
   _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double ownVspeed) {
-    final int ownSpeedInKts = (_kMpsToKnotsConv * ownshipLocation.speed).round();
-    final double ownAltInFeet = _kMetersToFeetCont * ownshipLocation.altitude;
+    final int ownSpeedInKts = Constants.mpsToKt(ownshipLocation.speed).round();
+    final double ownAltInFeet = Constants.mToFt(ownshipLocation.altitude);
     final double closingEventTimeSec = (_closestApproachTime(
                 traffic.message.coordinates.latitude,
                 traffic.message.coordinates.longitude,
@@ -333,7 +326,7 @@ class AudibleTrafficAlerts {
     if (!_isRunning || _isPlaying || _alertQueue.isEmpty) {
       return;
     }
-    int timeToWaitForTraffic = _kMaxIntValue;
+    int timeToWaitForTraffic = Constants.kMaxIntValue;
     // Loop to allow a traffic item to cede place in line to next available one to be considered if current one can't go now
     for (int i = 0; i < _alertQueue.length; i++) {
       final _AlertItem nextAlert = _alertQueue[i];
@@ -359,7 +352,7 @@ class AudibleTrafficAlerts {
       }
     }
     // No-one can alert now, but if we have a defined time we need to wait then we schedule the next one
-    if (timeToWaitForTraffic != _kMaxIntValue && timeToWaitForTraffic > 0) {
+    if (timeToWaitForTraffic != Constants.kMaxIntValue && timeToWaitForTraffic > 0) {
       Future.delayed(Duration(milliseconds: timeToWaitForTraffic), runAudibleAlertsQueueProcessing);
     }
   }
@@ -554,7 +547,8 @@ class AudibleTrafficAlerts {
 
   static double _relativeBearingFromHeadingAndLocations(
       final double lat1, final double long1, final double lat2, final double long2, final double myBearing) {
-    return (Geolocator.bearingBetween(lat1, long1, lat2, long2) - myBearing + 360) % 360;
+    return (GeoCalculations().calculateBearing(LatLng(lat1, long1), LatLng(lat2, long2)) - myBearing + 360) % 360;
+    //return (Geolocator.bearingBetween(lat1, long1, lat2, long2) - myBearing + 360) % 360;
   }
 
   static int _nearestClockHourFromHeadingAndLocations(
@@ -570,7 +564,8 @@ class AudibleTrafficAlerts {
   /// @param lon2 Longitude 2
   /// @return Great circle distance between two points in nautical miles
   static double _greatCircleDistanceNmi(final double lat1, final double lon1, final double lat2, final double lon2) {
-    return Geolocator.distanceBetween(lat1, lon1, lat2, lon2) * _kNauticalMilesPerMeter;
+    return GeoCalculations().calculateFastDistance(LatLng(lat1, lon1), LatLng(lat2, lon2));
+    //return Constants.mToNm(Geolocator.distanceBetween(lat1, lon1, lat2, lon2));
   }
 
   @pragma("vm:prefer-inline")

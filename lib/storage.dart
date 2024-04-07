@@ -232,7 +232,7 @@ class Storage {
     });
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
-      Storage().gpsChange.addListener(TrafficCache().updateTrafficDistancesAndAlerts);
+      Storage().gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
     } catch (e) { }
   }
 

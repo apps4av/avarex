@@ -12,6 +12,8 @@ import 'package:avaremp/constants.dart';
 import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
+const double _kMinutesPerMillisecond =  1.0 / 60000.0;
+const int _kTrafficAltDiffThresholdFt = 3000;
 
 // Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
 const int _kAudibleAlertCallMinDelayMs = 100;
@@ -31,7 +33,7 @@ class Traffic {
     // Use Haversine distance for speed/battery-efficiency instead of Vicenty, as the margin of error at these 
     // distances (for these purposes) is neglible (0.3% max, within 100 miles)
     // horizontalOwnshipDistance = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
-    horizontalOwnshipDistanceNmi = GeoCalculations.calculateFastDistance(Gps.toLatLng(Storage().position), message.coordinates);
+    horizontalOwnshipDistanceNmi = GeoCalculations().calculateFastDistance(Gps.toLatLng(Storage().position), message.coordinates);
     // final double vicentyDist = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
     // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
@@ -41,7 +43,8 @@ class Traffic {
 
   bool isOld() {
     // old if more than 1 min
-    return DateTime.now().difference(message.time).inMinutes > 0;
+    //return DateTime.now().difference(message.time).inMinutes > 0;
+    return (DateTime.now().millisecondsSinceEpoch - message.time.millisecondsSinceEpoch) * _kMinutesPerMillisecond > 1; // CPU flameshart => optimization
   }
 
   Widget getIcon() {
@@ -95,25 +98,29 @@ class TrafficCache {
       return;
     }
 
-    for(Traffic? traffic in _traffic) {
-      int index = _traffic.indexOf(traffic);
-      if(traffic == null) {
+    for(int i = 0; i < _traffic.length; i++) {
+      if(_traffic[i] == null) {
         continue;
       }
-      if(traffic.isOld()) {
-        _traffic[index] = null;
+      if(_traffic[i]?.isOld() ?? false) {
+        _traffic[i] = null;
         // purge old
         continue;
       }
 
       // update
-      if(traffic.message.icao == message.icao) {
+      if(_traffic[i]?.message.icao == message.icao) {
         // call sign not available. use last one
         if(message.callSign.isEmpty) {
-          message.callSign = traffic.message.callSign;
+          message.callSign = _traffic[i]?.message.callSign ?? "";
         }
         final Traffic trafficNew = Traffic(message);
-        _traffic[index] = trafficNew;
+        // only display/alert traffic that isn't too far from ownship
+        if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+           _traffic[i] = null;
+          return;
+        }
+        _traffic[i] = trafficNew;
 
         // process any audible alerts from traffic (if enabled)
         handleAudibleAlerts();
@@ -124,6 +131,10 @@ class TrafficCache {
 
     // put it in the end
     final Traffic trafficNew = Traffic(message);
+    // only display/alert traffic that isn't too far from ownship
+    if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+      return;
+    }    
     _traffic[maxEntries] = trafficNew;
 
     // sort
@@ -187,9 +198,13 @@ class TrafficCache {
   void updateTrafficDistancesAndAlerts() {
     // Make async event to avoid blocking UI thread for recalcs and alerts
     Future(() {
-      for(Traffic? t in _traffic) {
-        t?.updateOwnshipDistances;
-      }   
+      for (int i = 0; i < _traffic.length; i++) {
+        _traffic[i]?.updateOwnshipDistances();
+        // only display/alert traffic that isn't too far from ownship
+        if ((_traffic[i]?.verticalOwnshipDistanceFt.abs() ?? 0) > _kTrafficAltDiffThresholdFt) {
+          _traffic[i] = null;
+        }        
+      }
     }).then((value) => handleAudibleAlerts());
   }
 
@@ -212,7 +227,7 @@ class TrafficPainter extends CustomPainter {
 
   // Preference control variables
   static bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
-  static bool prefAltDiffOpacityGraduation = true;          // Gradually vary opacity of icon based on altitude diff from ownship
+  static bool prefAltDiffOpacityGraduation = false;         // Gradually vary opacity of icon based on altitude diff from ownship
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
   static bool prefShowBoundingBox = true;                   // Display outlined bounding box around icon for higher visibility
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
@@ -220,8 +235,8 @@ class TrafficPainter extends CustomPainter {
 
   /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
   /// there are a discrete number of possible renderings for all traffic
-  static final Map<String,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
-  static final Map<String,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
+  static final Map<int,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
+  static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
   static const double _kMetersToFeetCont = 3.28084;
@@ -232,7 +247,7 @@ class TrafficPainter extends CustomPainter {
   static const double _kTrafficOpacityMin = 0.2;
   static const double _kFlyingTrafficOpacityMax = 1.0;
   static const double _kGroundTrafficOpacityMax = 0.5;
-  static const double _kFlightLevelOpacityReduction = 0.1;
+  static const double _kFlightLevelOpacityReduction = 0.2;  // very few levels now, so up reduction to 20%
   static const double _kBoundingBoxOpacityReduction = 0.4;
   static const double _kBoundingBoxOpacityMin = 0.1;  
   static const int _kShadowDrawPasses = 2;
@@ -245,64 +260,55 @@ class TrafficPainter extends CustomPainter {
   static const Color _kDarkForegroundColor = Color(0xFF000000);  // Overlay color = Black
 
   // Aircraft type outlines
-  static final ui.Path _largeAircraft = ui.Path.combine(PathOperation.union,
+  static final ui.Path _largeAircraft = _unionPaths([
     // body
     ui.Path()..addOval(const Rect.fromLTRB(12, 5, 19, 31)),
-    ui.Path.combine(PathOperation.union,
-      ui.Path()..addRect(const Rect.fromLTRB(12, 11, 19, 20)),
-      ui.Path.combine(PathOperation.union,
-        ui.Path()..addOval(const Rect.fromLTRB(12, 0, 19, 25)),
-        // left wing
-        ui.Path.combine(PathOperation.union,
-          ui.Path()..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true), 
-           ui.Path.combine(PathOperation.union,
-            // left engine
-            ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1))),
-            ui.Path.combine(PathOperation.union,
-              // left h-stabilizer
-              ui.Path()..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true),
-              ui.Path.combine(PathOperation.union,
-                // right wing
-                ui.Path()..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true),
-                ui.Path.combine(PathOperation.union,
-                  // right engine
-                  ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1))),
-                  // right h-stabilizer
-                  ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)))))))));       
+    ui.Path()..addRect(const Rect.fromLTRB(12, 11, 19, 20)),
+    ui.Path()..addOval(const Rect.fromLTRB(12, 0, 19, 25)),
+    // left wing
+    ui.Path()..addPolygon([ const Offset(0, 13), const Offset(0, 16), const Offset(15, 22), const Offset(15, 14) ], true), 
+    // left engine
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(6, 17, 10, 24), const Radius.circular(1))),
+    // left h-stabilizer
+    ui.Path()..addPolygon([ const Offset(9, 0), const Offset(9, 3), const Offset(15, 7), const Offset(15, 1) ], true),
+    // right wing
+    ui.Path()..addPolygon([ const Offset(31, 13), const Offset(31, 16), const Offset(17, 22), const Offset(17, 14) ], true),
+    // right engine
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(21, 17, 25, 24), const Radius.circular(1))),
+    // right h-stabilizer
+    ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)
+  ]);
   static final ui.Path _defaultAircraft = ui.Path()  // old default icon if no ICAO ID--just a triangle
     ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
       const Offset(16, 5), const Offset(15, 5) ], true);
-  static final ui.Path _lightAircraft = ui.Path.combine(PathOperation.union,
-    ui.Path.combine(PathOperation.union, 
-      ui.Path.combine(PathOperation.union, 
-        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
-        ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))) // wings
-      ),
-      ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1)))  // h-stabilizer
-    ),
-    ui.Path()..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true)); // rear body
-  static final ui.Path _rotorcraft = ui.Path.combine(PathOperation.union,
+  static final ui.Path _lightAircraft = _unionPaths([
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))), // wings
+    ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(10, 0, 21, 5), const Radius.circular(1))),  // h-stabilizer
+    ui.Path()..addPolygon([ const Offset(12, 20), const Offset(14, 4), const Offset(17, 4), const Offset(19, 20)], true) // rear body
+  ]);
+  static final ui.Path _rotorcraft = _unionPaths([
     // body
-    ui.Path()..addOval(const Rect.fromLTRB(9, 11, 22, 31)),
-    ui.Path.combine(PathOperation.union,
-      ui.Path.combine(PathOperation.union,
-        ui.Path.combine(PathOperation.union, 
-          // rotor blades
-          ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
-          ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true)),
-      // tail
-      ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12))),
+    ui.Path()..addOval(const Rect.fromLTRB(9, 11, 22, 31)), 
+    // rotor blades
+    ui.Path()..addPolygon([const Offset(27, 11), const Offset(29, 13), const Offset(4, 31), const Offset(2, 29)], true),
+    ui.Path()..addPolygon([const Offset(4, 11), const Offset(2, 13), const Offset(27, 31), const Offset(29, 29) ], true),
+    // tail
+    ui.Path()..addRect(const Rect.fromLTRB(14, 0, 17, 12)),
     // horizontal stabilizer
-    ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1))))); 
+    ui.Path()..addRRect(RRect.fromLTRBR(10, 3, 21, 7, const Radius.circular(1)))
+  ]);
   // vertical speed plus/minus overlays
-  static final ui.Path _plusSign = ui.Path.combine(PathOperation.union,
-    ui.Path()..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true),
-    ui.Path()..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true));
+  static final ui.Path _plusSign = _unionPaths([
+    ui.Path()..addPolygon([ const Offset(14, 13), const Offset(14, 22), const Offset(17, 22), const Offset(17, 13) ], true),  // downstroke
+    ui.Path()..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true)   // cross-stroke
+  ]);
   static final ui.Path _minusSign = ui.Path()
     ..addPolygon([ const Offset(11, 16), const Offset(20, 16), const Offset(20, 19), const Offset(11, 19) ], true);
-  static final ui.Path _lowerPlusSign = ui.Path.combine(PathOperation.union,
-    ui.Path()..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true),
-    ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true));
+  static final ui.Path _lowerPlusSign = _unionPaths([
+    ui.Path()..addPolygon([ const Offset(14, 17), const Offset(14, 26), const Offset(17, 26), const Offset(17, 17) ], true),  // downstroke
+    ui.Path()..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true)   // cross-stroke
+  ]);
   static final ui.Path _lowerMinusSign = ui.Path()
     ..addPolygon([ const Offset(11, 20), const Offset(20, 20), const Offset(20, 23), const Offset(11, 23) ], true);
   // Translucent bounding box shape
@@ -318,16 +324,16 @@ class TrafficPainter extends CustomPainter {
   /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
   /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
   /// as well as the key to the picture cache  
-  String _iconStateKey = "";
+  int _iconStateKey = 0;
 
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic.message.altitude) : -999999, 
+      _flightLevelDiff = _getGrossFlightLevelDiff(traffic), 
       _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : -999999 
+      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0 
   {
-    _iconStateKey = "$_vspeedDirection^$_flightLevelDiff^$_velocityLevel^$_isAirborne^$_aircraftType";
+    _iconStateKey = Constants.hashInts([ _vspeedDirection, _flightLevelDiff, _velocityLevel, _aircraftType.index, _isAirborne ? 1 : 0 ]);
   }
 
   /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
@@ -372,9 +378,9 @@ class TrafficPainter extends CustomPainter {
       final Paint aircraftPaint;
       if (!_isAirborne) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
-      } else if (_flightLevelDiff > 0) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
       } else if (_flightLevelDiff < 0) {
+        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
+      } else if (_flightLevelDiff > 0) {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
       } else {
         aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
@@ -397,7 +403,7 @@ class TrafficPainter extends CustomPainter {
           baseIconShape = (prefUseDifferentDefaultIconThanLight ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
       }            
 
-      if (prefShowSpeedBarb) {
+      if (prefShowSpeedBarb && _velocityLevel > 0) {
         // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
         baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
       }
@@ -478,8 +484,8 @@ class TrafficPainter extends CustomPainter {
 
   /// Break flight levels into 1K chunks (bounding upper/lower to relevent opcacity limits to make image caching more efficient)
   @pragma("vm:prefer-inline")
-  static int _getGrossFlightLevelDiff(double trafficAltitude) {
-    return max(min(((trafficAltitude - Storage().position.altitude * _kMetersToFeetCont) * _kDivBy1000Mult).round(), 8), -8);
+  static int _getGrossFlightLevelDiff(final Traffic traffic) {
+    return max(min((traffic.verticalOwnshipDistanceFt * _kDivBy1000Mult).round(), 8), -8);
   }
 
   @pragma("vm:prefer-inline")
@@ -496,5 +502,17 @@ class TrafficPainter extends CustomPainter {
   @pragma("vm:prefer-inline")
   static int _getVelocityLevel(double veloMps) {
     return (veloMps * _kMetersPerSecondToKnots * _kDivBy60Mult).round();
+  }  
+
+  /// Recursive helper to join multiple paths together via a chained union operation
+  static ui.Path _unionPaths(final List<ui.Path> paths) {
+    if (paths.isEmpty) {
+      throw "Illegal argument: List of paths must have at least one";
+    }
+    if (paths.length == 1) {
+      return paths[0];
+    }
+    final ui.Path path1 = paths.removeAt(0);
+    return ui.Path.combine(PathOperation.union, path1, _unionPaths(paths));
   }  
 }
