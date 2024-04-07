@@ -43,6 +43,34 @@ class MapScreenState extends State<MapScreen> {
   bool _interacting = false;
   final Ruler _ruler = Ruler();
 
+  TileLayer networkLayer = TileLayer(
+      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      tileProvider: FMTC.instance('mapStore').getTileProvider());
+
+  // 4 images for animation
+  List<TileLayer> nexradLayer = [
+    TileLayer(
+        maxNativeZoom: 5,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+        tileProvider: NetworkTileProvider()),
+    TileLayer(
+        maxNativeZoom: 5,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+        tileProvider: NetworkTileProvider()),
+    TileLayer(
+        maxNativeZoom: 5,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+        tileProvider: NetworkTileProvider()),
+    TileLayer(
+        maxNativeZoom: 5,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+        tileProvider: NetworkTileProvider()),
+    TileLayer(
+        maxNativeZoom: 5,
+        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
+        tileProvider: NetworkTileProvider()),
+  ];
+
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   MapController? _controller;
@@ -125,9 +153,7 @@ class MapScreenState extends State<MapScreen> {
 
     //add layers
     List<Widget> layers = [];
-    TileLayer networkLayer = TileLayer(
-        urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        tileProvider: FMTC.instance('mapStore').getTileProvider());
+
     TileLayer chartLayer = TileLayer(
         tms: true,
         maxNativeZoom: _maxZoom,
@@ -172,6 +198,20 @@ class MapScreenState extends State<MapScreen> {
     if(_layersState[lIndex]) {
       layers.add(chartLayer);
     }
+
+    lIndex = _layers.indexOf('NOAA-Loop');
+    if(_layersState[lIndex]) {
+      // nexrad
+      layers.add(
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                return nexradLayer[(value) % 5]; // animate every 3 seconds
+              }
+          )
+      );
+    }
+
     lIndex = _layers.indexOf('Weather');
     if(_layersState[lIndex]) {
       layers.add(
