@@ -206,7 +206,7 @@ class MapScreenState extends State<MapScreen> {
           ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                return nexradLayer[(value) % 5]; // animate every 3 seconds
+                return nexradLayer[(value ~/ 3) % 5]; // animate every 3 seconds
               }
           )
       );
