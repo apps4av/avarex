@@ -668,7 +668,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
           Visibility(visible: _sending, child: const CircularProgressIndicator(),),
           const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
           // Show an error and a question mark with error code when error, otherwise show a check mark
-          Tooltip(triggerMode: TooltipTriggerMode.tap, message: _error, child: _sending ?
+          Tooltip(showDuration: const Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: _error, child: _sending ?
           Container() : _error.isEmpty ?
           const Icon(Icons.check, color: Colors.green,) :
           Icon(Icons.info, color: _errorColor,)),

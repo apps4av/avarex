@@ -89,7 +89,19 @@ class AppSettings {
   }
 
   void setEmail(String name) {
-    Settings.setValue("key-user-lmfs-email", name);
+    Settings.setValue("key-user-email", name);
+  }
+
+  String getEmail() {
+    return Settings.getValue("key-user-email", defaultValue: "") as String;
+  }
+
+  void setPassword(String password) {
+    Settings.setValue("key-user-password", password);
+  }
+
+  String getPassword() {
+    return Settings.getValue("key-user-password", defaultValue: "") as String;
   }
 
   void setLastRouteEntry(String value) {
@@ -98,10 +110,6 @@ class AppSettings {
 
   String getLastRouteEntry() {
     return Settings.getValue("key-last-route-entry", defaultValue: "") as String;
-  }
-
-  String getEmail() {
-    return Settings.getValue("key-user-lmfs-email", defaultValue: "") as String;
   }
 
   void setAircraft(String name) {

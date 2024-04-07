@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:avaremp/data/user_aircraft.dart';
 import 'package:avaremp/data/user_plan.dart';
 import 'package:avaremp/data/user_recent.dart';
@@ -8,7 +6,6 @@ import 'package:realm/realm.dart';
 
 import '../aircraft.dart';
 import '../destination.dart';
-import '../path_utils.dart';
 import '../plan_route.dart';
 import '../storage.dart';
 
@@ -35,26 +32,18 @@ class UserRealmHelper {
     }
   }
 
-  Future<List<String>?> loadCredentials() async {
-    try {
-      String data = await File(
-          PathUtils.getFilePath(Storage().dataDir, ".password")).readAsString();
-      List<String> credentials = data.split("\n");
-      return credentials;
-    }
-    catch(e) {}
-    return null;
+  (String, String) loadCredentials() {
+    return (Storage().settings.getEmail(), Storage().settings.getPassword());
   }
 
-  static Future<void> saveCredentials(String email, String password) async {
-    try {
-      File(PathUtils.getFilePath(Storage().dataDir, ".password")).writeAsString("$email\n$password");
-    }
-    catch(e) {}
+  void saveCredentials(String email, String password) {
+    Storage().settings.setEmail(email);
+    Storage().settings.setPassword(password);
   }
 
-  static Future<void> deleteCredentials() async {
-    await File(PathUtils.getFilePath(Storage().dataDir, ".password")).delete();
+  Future<void> deleteCredentials() async {
+    Storage().settings.setEmail("");
+    Storage().settings.setPassword("");
   }
 
   Future<void> init() async {
@@ -69,14 +58,16 @@ class UserRealmHelper {
     _realm?.close();
 
     // go through login states
-    List<String>? credentials = await loadCredentials();
-    if(null == credentials || credentials.length < 2) {
+    String username;
+    String password;
+    (username, password) = loadCredentials();
+    if(username.isEmpty || password.isEmpty) {
       // local only
       config = Configuration.local(objects);
     }
     else {
       try {
-        User usr = await _app.logIn(Credentials.emailPassword(credentials[0], credentials[1]));
+        User usr = await _app.logIn(Credentials.emailPassword(username, password));
         config = Configuration.flexibleSync(usr, objects);
         _user = usr;
       }

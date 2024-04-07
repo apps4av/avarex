@@ -92,7 +92,7 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: InputDecoration(icon: const Tooltip(triggerMode: TooltipTriggerMode.tap, message: "To search for an airport by ID, start with a .\nTo search for a navigation aid by ID, start with a ,\nTo search for a fix by ID, start with a !\nTo search for an airport by name, start with a :\nOr start typing anything to search everywhere.", child: Icon(Icons.info)), border: const UnderlineInputBorder(), labelText: 'Find ${_filterToDescription()}')
+                    decoration: InputDecoration(icon: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To search for an airport by ID, start with a .\nTo search for a navigation aid by ID, start with a ,\nTo search for a fix by ID, start with a !\nTo search for an airport by name, start with a :\nOr start typing anything to search everywhere.", child: Icon(Icons.info)), border: const UnderlineInputBorder(), labelText: 'Find ${_filterToDescription()}')
                   ),
                 ])
             ),

@@ -1,4 +1,3 @@
-import 'package:avaremp/data/user_realm_helper.dart';
 import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -35,15 +34,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(future: Storage().userRealmHelper.loadCredentials(), builder: (context, snapshot) {
-      return _makeContent(context, snapshot.data);
-    });
-  }
-
-  Widget _makeContent(BuildContext context, List<String>? data) {
-    String email = data == null || data.length < 2 ? "" : data[0];
-    String password = data == null || data.length < 2 ? "" : data[1];
-    String confirmPassword = data == null || data.length < 2 ? "" : data[1];
+    String email;
+    String password;
+    (email, password) = Storage().userRealmHelper.loadCredentials();
+    String confirmPassword = password;
     const bodyStyle = TextStyle(fontSize: 19.0);
 
     const pageDecoration = PageDecoration(
@@ -164,8 +158,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
                   Storage().userRealmHelper.registerUser(email, password).then((value) {
                     setState(() {
                       _visibleRegister = false;
-                      Storage().settings.setEmail(email);
-                      UserRealmHelper.saveCredentials(email, password);
+                      Storage().userRealmHelper.saveCredentials(email, password);
                       Storage().userRealmHelper.init();
                     });
                   }); // now register with mongodb
@@ -179,8 +172,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
                   interface.unregister(email).then((value) {
                     setState(() {
                       _visibleRegister = false;
-                      Storage().settings.setEmail("");
-                      UserRealmHelper.deleteCredentials();
+                      Storage().userRealmHelper.deleteCredentials();
                     });
                   });
                 }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
