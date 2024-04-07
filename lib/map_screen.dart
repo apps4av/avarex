@@ -186,11 +186,11 @@ class MapScreenState extends State<MapScreen> {
                       markers: [
                         for(Metar m in metars)
                           Marker(point: m.coordinate,
-                              child: JustTheTooltip(
+                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                                 content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
                                 triggerMode: TooltipTriggerMode.tap,
                                 waitDuration: const Duration(seconds: 1),
-                                child: m.getIcon(),))
+                                child: m.getIcon(),)))
                       ],
                       builder: (context, markers) {
                         return Container(color: Colors.transparent,);
@@ -213,11 +213,11 @@ class MapScreenState extends State<MapScreen> {
                       markers: [
                         for(Airep a in airep)
                           Marker(point: a.coordinates,
-                              child:JustTheTooltip(
+                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                                 content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
                                 triggerMode: TooltipTriggerMode.tap,
                                 waitDuration: const Duration(seconds: 1),
-                                child: const Icon(Icons.person, color: Colors.black,)))
+                                child: const Icon(Icons.person, color: Colors.black,))))
                       ],
                       builder: (context, markers) {
                         return Container(color: Colors.transparent,);
@@ -267,7 +267,7 @@ class MapScreenState extends State<MapScreen> {
                       for(AirSigmet a in airSigmet)
                         Marker(
                           point: a.coordinates[0],
-                          child: JustTheTooltip(
+                          child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                             content: Container(
                               padding: const EdgeInsets.all(5),
                               child: Text(a.toString())
@@ -285,7 +285,7 @@ class MapScreenState extends State<MapScreen> {
                             )
                             )
                           )
-                        )
+                        ))
                     ],
                     builder: (context, markers) {
                       return Container(color: Colors.transparent,);
@@ -359,11 +359,11 @@ class MapScreenState extends State<MapScreen> {
                       if(tfr.isRelevant())
                         Marker(
                             point: tfr.coordinates[0],
-                            child: JustTheTooltip(
+                            child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                               content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
                               triggerMode: TooltipTriggerMode.tap,
                               waitDuration: const Duration(seconds: 1),
-                              child: Icon(MdiIcons.clockAlert, color: Colors.black,),)
+                              child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
                         ),
                   ],
               builder: (context, markers) {
@@ -414,11 +414,11 @@ class MapScreenState extends State<MapScreen> {
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                     point: e.getCoordinates(),
-                    child: JustTheTooltip(
+                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                         content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
                         triggerMode: TooltipTriggerMode.tap,
                         waitDuration: const Duration(seconds: 1),
-                        child: e.getIcon()));
+                        child: e.getIcon())));
               }).toList(),
             );
           },
@@ -557,7 +557,7 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: CircleAvatar(child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),))),
+                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)))),
               ],
             );
           },
@@ -592,10 +592,10 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.center, point: d.coordinate,
-                    child: CircleAvatar(backgroundColor: Constants.instrumentBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor))),
+                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: Constants.instrumentBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.bottomRight, point: d.coordinate, width: 64,
-                      child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))
+                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,)))
               ],
             );
           },
