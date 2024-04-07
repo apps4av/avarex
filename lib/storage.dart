@@ -46,6 +46,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'app_settings.dart';
 import 'data/db_general.dart';
+import 'data/user_settings_realm_helper.dart';
 import 'data/weather_realm_helper.dart';
 import 'destination.dart';
 import 'gdl90/message.dart';
@@ -86,6 +87,7 @@ class Storage {
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
   final UserRealmHelper userRealmHelper = UserRealmHelper();
+  final UserSettingsRealmHelper userSettingsRealmHelper = UserSettingsRealmHelper();
   final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
 
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
@@ -267,8 +269,10 @@ class Storage {
     if(!dir.existsSync()) {
       dir.createSync();
     }
-    await userRealmHelper.init();
+
+    userRealmHelper.init(); // this is a long login process, do not await here
     await weatherRealmHelper.init();
+    await userSettingsRealmHelper.init();
     await settings.initSettings();
     await checkChartsExist();
     await checkDataExpiry();

@@ -1,45 +1,42 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:avaremp/storage.dart';
 import 'package:flutter_settings_screen_ex/flutter_settings_screen_ex.dart';
 
 class SettingsCacheProvider extends SharePreferenceCache {
 
-  final HashMap<String, String> _cache = HashMap();
-
   @override
   bool containsKey(String key) {
-    bool contains = _cache.containsKey(key);
+    bool contains = getKeys().contains(key);
     return contains;
   }
 
   @override
   bool? getBool(String key, {bool? defaultValue}) {
-    String? value = Storage().userRealmHelper.getSetting(key);
+    String? value = Storage().userSettingsRealmHelper.getSetting(key);
     return value == null ? defaultValue : value == "false" ? false : true;
   }
 
   @override
   double? getDouble(String key, {double? defaultValue}) {
-    String? value = Storage().userRealmHelper.getSetting(key);
+    String? value = Storage().userSettingsRealmHelper.getSetting(key);
     return value == null ? defaultValue : double.parse(value);
   }
 
   @override
   int? getInt(String key, {int? defaultValue}) {
-    String? value = Storage().userRealmHelper.getSetting(key);
+    String? value = Storage().userSettingsRealmHelper.getSetting(key);
     return value == null ? defaultValue : int.parse(value);
   }
 
   @override
   Set getKeys() {
-    return _cache.keys.toSet();
+    return Storage().userSettingsRealmHelper.getAllSettings().map((e) => e['key']).toSet();
   }
 
   @override
   String? getString(String key, {String? defaultValue}) {
-    String? value = Storage().userRealmHelper.getSetting(key);
+    String? value = Storage().userSettingsRealmHelper.getSetting(key);
     return value ?? defaultValue;
   }
 
@@ -63,60 +60,47 @@ class SettingsCacheProvider extends SharePreferenceCache {
 
   @override
   Future<void> init() async {
-    _cache.clear();
-    // read into hashmap
-    List<Map<String, dynamic>> maps = Storage().userRealmHelper.getAllSettings();
-    for(Map<String, dynamic> map in maps) {
-      _cache[map['key']] = map['value'];
-    }
   }
 
   @override
   Future<void> remove(String key) {
-    _cache.remove(key);
-    Storage().userRealmHelper.deleteSetting(key);
+    Storage().userSettingsRealmHelper.deleteSetting(key);
     return Future.value();
   }
 
   @override
   Future<void> removeAll() {
-    _cache.clear();
-    Storage().userRealmHelper.deleteAllSettings();
+    Storage().userSettingsRealmHelper.deleteAllSettings();
     return Future.value();
   }
 
   @override
   Future<void> setBool(String key, bool? value) {
-    _cache[key] = value.toString();
-    Storage().userRealmHelper.insertSetting(key, value.toString());
+    Storage().userSettingsRealmHelper.insertSetting(key, value.toString());
     return Future.value();
   }
 
   @override
   Future<void> setDouble(String key, double? value) {
-    _cache[key] = value.toString();
-    Storage().userRealmHelper.insertSetting(key, value.toString());
+    Storage().userSettingsRealmHelper.insertSetting(key, value.toString());
     return Future.value();
   }
 
   @override
   Future<void> setInt(String key, int? value) {
-    _cache[key] = value.toString();
-    Storage().userRealmHelper.insertSetting(key, value.toString());
+    Storage().userSettingsRealmHelper.insertSetting(key, value.toString());
     return Future.value();
   }
 
   @override
   Future<void> setObject<T>(String key, T? value) {
-    _cache[key] = value.toString();
-    Storage().userRealmHelper.insertSetting(key, value.toString());
+    Storage().userSettingsRealmHelper.insertSetting(key, value.toString());
     return Future.value();
   }
 
   @override
   Future<void> setString(String key, String? value) {
-    _cache[key] = value.toString();
-    Storage().userRealmHelper.insertSetting(key, value.toString());
+    Storage().userSettingsRealmHelper.insertSetting(key, value.toString());
     return Future.value();
   }
 

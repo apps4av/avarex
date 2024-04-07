@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:avaremp/data/user_aircraft.dart';
 import 'package:avaremp/data/user_plan.dart';
 import 'package:avaremp/data/user_recent.dart';
-import 'package:avaremp/data/user_settings.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:realm/realm.dart';
 
@@ -64,7 +63,6 @@ class UserRealmHelper {
     List<SchemaObject> objects = [
       UserRecent.schema,
       UserPlan.schema,
-      UserSettings.schema,
       UserAircraft.schema
     ];
 
@@ -98,7 +96,6 @@ class UserRealmHelper {
 
       try {
         _realm!.subscriptions.update((mutableSubscriptions) {
-          mutableSubscriptions.add(_realm!.all<UserSettings>());
           mutableSubscriptions.add(_realm!.all<UserRecent>());
           mutableSubscriptions.add(_realm!.all<UserAircraft>());
           mutableSubscriptions.add(_realm!.all<UserPlan>());
@@ -305,84 +302,6 @@ class UserRealmHelper {
 
     UserAircraft a = aircraft.first;
     return Aircraft(a.tail, a.type, a.wake, a.icao, a.equipment, a.cruiseTas, a.surveillance, a.fuelEndurance, a.color, a.pic, a.picInfo, a.sinkRate, a.fuelBurn, a.base, a.other);
-  }
-
-  void insertSetting(String key, String? value) {
-
-    // remove for duplicates
-    deleteSetting(key);
-
-    if(null == value) {
-      return;
-    }
-    UserSettings setting = UserSettings(ObjectId(), _getUserId(), key, value);
-
-    if(null == _realm) {
-      return null;
-    }
-
-    _realm!.write(() {
-      _realm!.add(setting);
-    });
-
-  }
-
-  String? getSetting(String key) {
-    if(null == _realm) {
-      return null;
-    }
-
-    RealmResults<UserSettings> settings = _realm!.all<UserSettings>().query("key = '$key'");
-
-    if(settings.isEmpty) {
-      return null;
-    }
-    UserSettings? s = settings.first;
-    return s.value;
-  }
-
-  void deleteSetting(String key) {
-    if(null == _realm) {
-      return null;
-    }
-
-    RealmResults<UserSettings> settings = _realm!.all<UserSettings>().query("key = '$key'");
-
-    try {
-      _realm!.write(() {
-        _realm!.delete(settings.first);
-      });
-    } catch(e) {}
-
-  }
-
-  void deleteAllSettings() {
-
-    if(null == _realm) {
-      return null;
-    }
-
-    try {
-      _realm!.write(() {
-        _realm!.deleteAll<UserSettings>();
-      });
-    } catch(e) {}
-  }
-
-  List<Map<String, dynamic>> getAllSettings() {
-    List<Map<String, dynamic>> ret = [];
-
-    if(null == _realm) {
-      return ret;
-    }
-
-    RealmResults<UserSettings> settings = _realm!.all<UserSettings>();
-
-
-    for(UserSettings setting in settings) {
-      ret.add({"key": setting.key, "value": setting.value});
-    }
-    return ret;
   }
 
 }
