@@ -101,24 +101,25 @@ jobs:
         with:
           file_path: build/windows/x64/runner/Release/sqlite-dll-win-x64-3450200.zip
           extract_dir: build/windows/x64/runner/Release
-      - name: Archive Release
-        uses: thedoctor0/zip-release@master
+      - name: Make msixbundle
+        id: bundler
+        uses: LanceMcCarthy/Action-MsixBundler@v1.0.0
         with:
-          type: 'zip'
-          filename: ${{github.ref_name}}-windows.zip
-          directory: build/windows/x64/runner/Release
+          msix-folder: build/windows/x64/runner/Release
+          msixbundle-filepath: build/windows/x64/runner/Release/${{github.ref_name}}-windows.msixbundle"
+          msixbundle-version: "1.0.0.0"
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.msixbundle
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: WindowsX64
-          path: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+          path: build/windows/x64/runner/Release/${{github.ref_name}}-windows.msixbundle
 
   build-and-release-macos:
     runs-on: macos-latest
