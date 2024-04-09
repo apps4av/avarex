@@ -34,10 +34,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String email;
-    String password;
-    (email, password) = Storage().userRealmHelper.loadCredentials();
-    String confirmPassword = password;
+    bool signed = Storage().settings.isSigned();
+    String email = Storage().settings.getEmail();
     const bodyStyle = TextStyle(fontSize: 19.0);
 
     const pageDecoration = PageDecoration(
@@ -69,118 +67,12 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       decoration: pageDecoration,
     );
 
-
     return IntroductionScreen(
       key: _introKey,
       globalBackgroundColor: Colors.white,
       allowImplicitScrolling: false,
       safeAreaList: const [false, false, true, false],
       pages: [
-        PageViewModel(
-          title: "Welcome to AvareX!",
-          body: "This introduction will show you the necessary steps to operate the app.",
-          image: _buildFullscreenImage('intro.png'),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Internet",
-          bodyWidget: const Text("Connect this device to the Internet.\nInternet connection is required to download charts and weather.\nThe connection may be turned off during the flight."),
-          decoration: pageDecoration,
-        ),
-        gpsPage,
-        PageViewModel(
-          title: "Databases and Aviation Maps",
-          bodyWidget: Column(children:[
-            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
-            TextButton(onPressed: () {
-                Navigator.pushNamed(context, "/download");
-              },
-              child: const Text("Download"),
-            )
-          ]),
-          image: _buildImage('download.png'),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Keep Warnings in Check",
-          image: _buildImage('warning.png'),
-          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Turn off the Layers",
-          image: _buildImage('layers.png'),
-          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Join the Forum",
-          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
-          image: _buildImage('forum.png'),
-          decoration: pageDecoration,
-        ),
-        PageViewModel(
-          title: "Set your Online ID",
-          bodyWidget: Column(children:[
-            const Text("You may register and get your online ID to file flight plans with the FAA (1800wxbrief.com), and to back up your app data online."),
-            const Padding(padding: EdgeInsets.all(10)),
-            TextFormField(
-                onChanged: (value) {
-                  email = value;
-                },
-                controller: TextEditingController()..text = email,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Choose an Online ID (Email)')
-            ),
-            TextFormField(
-                obscureText: true,
-                onChanged: (value) {
-                  password = value;
-                },
-                controller: TextEditingController()..text = password,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Choose a password')
-            ),
-            TextFormField(
-                obscureText: true,
-                onChanged: (value) {
-                  confirmPassword = value;
-                },
-                controller: TextEditingController()..text = confirmPassword,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: 'Confirm the password')
-            ),
-            const Padding(padding: EdgeInsets.all(20)),
-              Row(children: [
-              TextButton(onPressed: () {
-                LmfsInterface interface = LmfsInterface();
-                setState(() {
-                  _visibleRegister = true;
-                  });
-                interface.register(email).then((value) {
-                  Storage().userRealmHelper.registerUser(email, password).then((value) {
-                    setState(() {
-                      _visibleRegister = false;
-                      Storage().userRealmHelper.saveCredentials(email, password);
-                      Storage().userRealmHelper.init();
-                    });
-                  }); // now register with mongodb
-                });
-              }, child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
-                TextButton(onPressed: () {
-                  LmfsInterface interface = LmfsInterface();
-                  setState(() {
-                    _visibleRegister = true;
-                  });
-                  interface.unregister(email).then((value) {
-                    setState(() {
-                      _visibleRegister = false;
-                      Storage().userRealmHelper.deleteCredentials();
-                    });
-                  });
-                }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
-                Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
-              ]),
-            ]),
-          decoration: pageDecoration,
-        ),
         PageViewModel(
           title: "Sign the Terms of Use",
           bodyWidget: Column(children: [
@@ -226,18 +118,109 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
               },
               child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
             )),
-            if(Storage().settings.isSigned())
+            if(signed)
               const Text("You have signed this document.", style: TextStyle(color: Colors.yellow, backgroundColor: Colors.black),)
             else
               const Text("You have not signed this document.", style: TextStyle(color: Colors.red, backgroundColor: Colors.black),)
           ]),
           decoration: pageDecoration,
         ),
+
+        PageViewModel(
+          title: "Welcome to AvareX!",
+          body: "This introduction will show you the necessary steps to operate the app.",
+          image: _buildFullscreenImage('intro.png'),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Internet",
+          bodyWidget: const Text("Connect this device to the Internet.\nInternet connection is required to download charts and weather.\nThe connection may be turned off during the flight."),
+          decoration: pageDecoration,
+        ),
+        gpsPage,
+        PageViewModel(
+          title: "Databases and Aviation Maps",
+          bodyWidget: Column(children:[
+            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
+            TextButton(onPressed: () {
+                Navigator.pushNamed(context, "/download");
+              },
+              child: const Text("Download"),
+            )
+          ]),
+          image: _buildImage('download.png'),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Keep Warnings in Check",
+          image: _buildImage('warning.png'),
+          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Turn off the Layers",
+          image: _buildImage('layers.png'),
+          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "File Flight Plans",
+          bodyWidget: Column(children:[
+            const Text("You may register with Apps4Av Inc. here to file flight plans with the FAA (1800wxbrief.com). You must create an account with 1800wxbrief.com to use this service."),
+            const Padding(padding: EdgeInsets.all(10)),
+            TextFormField(
+                onChanged: (value) {
+                  email = value;
+                },
+                controller: TextEditingController()..text = email,
+                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: '1800wxbrief.com Username / Email')
+            ),
+            const Padding(padding: EdgeInsets.all(20)),
+              Row(children: [
+              TextButton(onPressed: () {
+                LmfsInterface interface = LmfsInterface();
+                setState(() {
+                  _visibleRegister = true;
+                });
+                interface.register(email).then((value) {
+                  Storage().settings.setEmail(email);
+                  setState(() {
+                    _visibleRegister = false;
+                  });
+                }); // now register with mongodb
+                },
+                child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
+              TextButton(onPressed: () {
+                LmfsInterface interface = LmfsInterface();
+                setState(() {
+                  _visibleRegister = true;
+                });
+                interface.unregister(email).then((value) {
+                  Storage().settings.setEmail("");
+                  setState(() {
+                    _visibleRegister = false;
+                  });
+                });
+              }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
+              Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
+              ]),
+            ]),
+          decoration: pageDecoration,
+        ),
+        PageViewModel(
+          title: "Join the Forum",
+          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
+          image: _buildImage('forum.png'),
+          decoration: pageDecoration,
+        ),
       ],
       skipOrBackFlex: 0,
       nextFlex: 0,
-      showBackButton: true,
-      showDoneButton: Storage().settings.isSigned(),
+      freeze: !signed,
+      showNextButton: signed,
+      showBackButton: signed,
+      showBottomPart: signed,
+      showDoneButton: signed,
       done: const Text("Done"),
       onDone: () {
         Storage().settings.setIntro(false);

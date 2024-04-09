@@ -96,12 +96,20 @@ class AppSettings {
     return Settings.getValue("key-user-email", defaultValue: "") as String;
   }
 
-  void setPassword(String password) {
-    Settings.setValue("key-user-password", password);
+  void setPasswordBackup(String password) {
+    Settings.setValue("key-user-password-backup", password);
   }
 
-  String getPassword() {
-    return Settings.getValue("key-user-password", defaultValue: "") as String;
+  String getPasswordBackup() {
+    return Settings.getValue("key-user-password-backup", defaultValue: "") as String;
+  }
+
+  void setEmailBackup(String name) {
+    Settings.setValue("key-user-email-backup", name);
+  }
+
+  String getEmailBackup() {
+    return Settings.getValue("key-user-email-backup", defaultValue: "") as String;
   }
 
   void setLastRouteEntry(String value) {

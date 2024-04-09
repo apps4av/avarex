@@ -33,17 +33,17 @@ class UserRealmHelper {
   }
 
   (String, String) loadCredentials() {
-    return (Storage().settings.getEmail(), Storage().settings.getPassword());
+    return (Storage().settings.getEmailBackup(), Storage().settings.getPasswordBackup());
   }
 
   void saveCredentials(String email, String password) {
-    Storage().settings.setEmail(email);
-    Storage().settings.setPassword(password);
+    Storage().settings.setEmailBackup(email);
+    Storage().settings.setPasswordBackup(password);
   }
 
   Future<void> deleteCredentials() async {
-    Storage().settings.setEmail("");
-    Storage().settings.setPassword("");
+    Storage().settings.setEmailBackup("");
+    Storage().settings.setPasswordBackup("");
   }
 
   Future<void> init() async {
