@@ -85,6 +85,9 @@ if(PLUGIN_BUNDLED_LIBRARIES)
   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
+  install(FILES "sqlite3.dll"
+          DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+          COMPONENT Runtime)
 endif()
 
 # Copy the native assets provided by the build.dart from all packages.
