@@ -121,6 +121,7 @@ class UserRealmHelper {
           loggedIn = true;
         }
         catch (e) {
+
           loggedIn = false;
           // unable to login, use current user
           User? usr = _app.currentUser;
@@ -128,17 +129,14 @@ class UserRealmHelper {
             config = Configuration.flexibleSync(usr, objects);
             _user = usr;
             _realm?.close(); // close local
-            _realm = Realm(config);
-            failedLoginMessage = "Unable to log in";
+            _realm = Realm(config); // local
+          }
+          if (e.toString().contains("failed: 401") ||
+              e.toString().contains("status code: 401")) {
+            failedLoginMessage = "Cannot log in with the provided username / password";
           }
           else {
-            if (e.toString().contains("failed: 401") ||
-                e.toString().contains("status code: 401")) {
-              failedLoginMessage = "Cannot log in with the provided username / password";
-            }
-            else {
-              failedLoginMessage = "Unable to log in";
-            }
+            failedLoginMessage = "Unable to log in";
           }
         }
       }
