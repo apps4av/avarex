@@ -13,6 +13,15 @@ class UserRealmHelper {
 
   Realm? _realm;
   User? _user;
+  bool loggedIn = false;
+  List<SchemaObject> objects = [
+    UserRecent.schema,
+    UserPlan.schema,
+    UserAircraft.schema
+  ];
+
+  String failedLoginMessage = "";
+  String failedRegisterMessage = "";
 
   String _getUserId() {
     User? usr = _user;
@@ -21,14 +30,21 @@ class UserRealmHelper {
 
   final _app = App(AppConfiguration('avarexsync-vhshs', maxConnectionTimeout: const Duration(seconds: 10)));
 
-  Future<bool> registerUser(String email, String password) async {
+  Future<void> registerUser(String email, String password) async {
+    failedRegisterMessage = "";
+    failedLoginMessage = "";
     EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
     try {
       await authProvider.registerUser(email, password);
-      return true;
+      failedRegisterMessage = "";
     }
     catch(e) {
-      return false;
+      if(e.toString().contains("status code: 409")) {
+        failedRegisterMessage = "User $email is already registered.";
+      }
+      else {
+        failedRegisterMessage = "Unable to register with the server. Please check your internet connection.";
+      }
     }
   }
 
@@ -46,55 +62,86 @@ class UserRealmHelper {
     Storage().settings.setPasswordBackup("");
   }
 
-  Future<void> init() async {
-
-    Configuration config;
-    List<SchemaObject> objects = [
-      UserRecent.schema,
-      UserPlan.schema,
-      UserAircraft.schema
-    ];
-
+  Future<void> logout() async {
+    await _app.currentUser?.logOut();
     _realm?.close();
+    _realm = null;
+    _user = null;
+    loggedIn = false;
+    failedLoginMessage = "";
+    failedRegisterMessage = "";
 
-    // go through login states
-    String username;
-    String password;
-    (username, password) = loadCredentials();
-    if(username.isEmpty || password.isEmpty) {
-      // local only
-      config = Configuration.local(objects);
+    // go back to local
+    Configuration config;
+    config = Configuration.local(objects);
+    _realm = Realm(config); // start with local
+  }
+
+  Future<void> login(String username, String password) async {
+
+    failedRegisterMessage = "";
+    failedLoginMessage = "";
+    if(loggedIn) { // if logged in do not try again
+      failedLoginMessage = "User $username already logged in";
     }
     else {
-      try {
-        User usr = await _app.logIn(Credentials.emailPassword(username, password));
-        config = Configuration.flexibleSync(usr, objects);
-        _user = usr;
+      Configuration config;
+      _realm?.close();
+      config = Configuration.local(objects);
+      _realm = Realm(config); // start with local
+
+      // go through login states
+      if (username.isEmpty || password.isEmpty) {
+        loggedIn = false; // user does not want to use backup, keep local realm
+        failedLoginMessage = "Enter username and password.";
       }
-      catch(e) {
-        // unable to login, use current user
-        User? usr = _app.currentUser;
-        if(null != usr) {
-          config = Configuration.flexibleSync(usr, objects);
+      else {
+        try {
+          User usr = await _app.logIn(
+              Credentials.emailPassword(username, password));
+          config = Configuration.flexibleSync(
+              usr, objects, syncErrorHandler: (error) {});
+          _user = usr;
+          _realm?.close(); // close local
+          _realm = Realm(config);
+
+          try {
+            _realm!.subscriptions.update((mutableSubscriptions) {
+              mutableSubscriptions.add(_realm!.all<UserRecent>());
+              mutableSubscriptions.add(_realm!.all<UserAircraft>());
+              mutableSubscriptions.add(_realm!.all<UserPlan>());
+            });
+            _realm?.subscriptions
+                .waitForSynchronization(); // this can block indefinitely
+          }
+          catch (e) {
+            loggedIn = false;
+            failedLoginMessage = "Unable to sync with the server.";
+          } // no sync as we are offline
+          loggedIn = true;
         }
-        else {
-          // never get here
-          config = Configuration.local(objects);
+        catch (e) {
+          loggedIn = false;
+          // unable to login, use current user
+          User? usr = _app.currentUser;
+          if (null != usr) {
+            config = Configuration.flexibleSync(usr, objects);
+            _user = usr;
+            _realm?.close(); // close local
+            _realm = Realm(config);
+            failedLoginMessage = "Unable to log in";
+          }
+          else {
+            if (e.toString().contains("failed: 401") ||
+                e.toString().contains("status code: 401")) {
+              failedLoginMessage = "Cannot log in with the provided username / password";
+            }
+            else {
+              failedLoginMessage = "Unable to log in";
+            }
+          }
         }
       }
-
-      _realm = Realm(config);
-
-      try {
-        _realm!.subscriptions.update((mutableSubscriptions) {
-          mutableSubscriptions.add(_realm!.all<UserRecent>());
-          mutableSubscriptions.add(_realm!.all<UserAircraft>());
-          mutableSubscriptions.add(_realm!.all<UserPlan>());
-        });
-        await _realm!.subscriptions.waitForSynchronization();
-      }
-      catch(e) {} // no sync as we are offline
-
     }
   }
 

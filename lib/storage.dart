@@ -268,7 +268,11 @@ class Storage {
     }
 
     await settings.initSettings();
-    userRealmHelper.init(); // this is a long login process, do not await here
+    // this is a long login process, do not await here
+    String username;
+    String password;
+    (username, password) = userRealmHelper.loadCredentials();
+    userRealmHelper.login(username, password);
     await weatherRealmHelper.init();
     await checkChartsExist();
     await checkDataExpiry();
