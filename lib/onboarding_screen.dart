@@ -219,7 +219,6 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
       freeze: !signed,
       showNextButton: signed,
       showBackButton: signed,
-      showBottomPart: signed,
       showDoneButton: signed,
       done: const Text("Done"),
       onDone: () {
