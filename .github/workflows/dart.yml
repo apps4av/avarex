@@ -90,6 +90,8 @@ jobs:
         run: flutter pub get
       - name: Build artifacts
         run: flutter build windows --release
+      - name: Build artifacts MSIX
+        run: dart run msix:create
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:
