@@ -62,6 +62,22 @@ class UserRealmHelper {
     Storage().settings.setPasswordBackup("");
   }
 
+  Future<void> resetPasswordRequest(String email) async {
+    EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
+    await authProvider.resetPassword(email);
+  }
+
+  Future<bool> resetPassword(String newPassword, String code) async {
+    List<String> tokens = code.split("_"); // split on _
+    if(tokens.length != 2) {
+      return false;
+    }
+    EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
+    await authProvider.completeResetPassword(newPassword, tokens[0], tokens[1]);
+
+    return true;
+  }
+
   Future<void> logout() async {
     await _app.currentUser?.logOut();
     _realm?.close();
@@ -339,5 +355,6 @@ class UserRealmHelper {
     UserAircraft a = aircraft.first;
     return Aircraft(a.tail, a.type, a.wake, a.icao, a.equipment, a.cruiseTas, a.surveillance, a.fuelEndurance, a.color, a.pic, a.picInfo, a.sinkRate, a.fuelBurn, a.base, a.other);
   }
+
 
 }
