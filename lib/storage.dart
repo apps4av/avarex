@@ -282,7 +282,8 @@ class Storage {
     List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     await File(path).writeAsBytes(bytes);
     await FlutterMapTileCaching.initialise(rootDirectory: dataDir);
-    await FMTC.instance('mapStore').manage.createAsync(); // cache tiles
+    await FMTC.instance('mapStoreOSM').manage.createAsync(); // cache tiles
+    await FMTC.instance('mapStoreAIP').manage.createAsync(); // cache tiles
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;
