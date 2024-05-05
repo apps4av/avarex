@@ -98,7 +98,8 @@ class OnlineScreenState extends State<OnlineScreen> {
                     showDialog<String>(
                       context: context,
                       builder: (BuildContext context) => Dialog.fullscreen(
-                          child: Padding(padding: const EdgeInsets.fromLTRB(40, 20, 40, 0),
+                          child: Stack(children:[
+                            Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
                               child:Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -128,16 +129,11 @@ class OnlineScreenState extends State<OnlineScreen> {
                                     },
                                     child: const Text('Submit'),
                                   ),
-
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: const Text('Cancel'),
-                                  ),
                                 ],
                               )
-                          )
+                          ),
+                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                        ])
                       )
                     );
                 });

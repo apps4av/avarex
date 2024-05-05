@@ -182,7 +182,11 @@ class LmfsInterface {
     return ret;
   }
 
-  Future<String> getRoute(String departure, String destination) async {
+  /* Of format
+   * {"returnStatus":true,"route":null,"atcRecentIFRRoutes":[{"route":"PATSS7 PATSS NELIE VALRE VALRE5","count":63,"minimumFiledAltitude":80,"maximumFiledAltitude":430,"lastDepartureTime":1714923600000},{"route":"LOGAN4 BOSOX V1 MAD BDR ALIXX RYMES","count":7,"minimumFiledAltitude":80,"maximumFiledAltitude":160,"lastDepartureTime":1714773600000},{"route":"LOGAN4 REVSS NELIE VALRE VALRE5","count":3,"minimumFiledAltitude":180,"maximumFiledAltitude":300,"lastDepartureTime":1714767120000},{"route":"LOGAN4 REVSS BAF PWL V405 CASSH V123 HAARP","count":1,"minimumFiledAltitude":140,"maximumFiledAltitude":140,"lastDepartureTime":1712768400000},{"route":"LOGAN4 DUNKK KMVY","count":1,"minimumFiledAltitude":90,"maximumFiledAltitude":90,"lastDepartureTime":1712340540000}],"codedDepartureRoutes":[],"faaPreferredRoutes":[],"returnCodedMessage":[]}
+   */
+  Future<List<LmfsRoute>> getRoute(String departure, String destination) async {
+    List<LmfsRoute> routes = [];
     String webUserName = Storage().settings.getEmail();
     String avareMethod = "util/routeSearch";
     String httpMethod = "GET";
@@ -196,7 +200,25 @@ class LmfsInterface {
 
     String ret = await _post(_avareLmfsUrl);
     error = _parseError(ret);
-    return ret;
+
+    // parse
+    try {
+      dynamic object = jsonDecode(ret);
+      if(object["returnStatus"] == true) {
+        final array = object["atcRecentIFRRoutes"];
+        for(dynamic r in array) {
+          String route = r["route"];
+          int count =  r["count"];
+          int lastDepartureTime = r["lastDepartureTime"];
+          DateTime time = DateTime.fromMillisecondsSinceEpoch(lastDepartureTime);
+          LmfsRoute lmr = LmfsRoute(route, count, time);
+          routes.add(lmr);
+        }
+      }
+    }
+    catch(e) {
+    }
+    return routes;
   }
 
 
@@ -278,8 +300,11 @@ class LmfsInterface {
 
 }
 
-
-
-
+class LmfsRoute {
+  String route;
+  int count;
+  DateTime lastDepartureTime;
+  LmfsRoute(this.route, this.count, this.lastDepartureTime);
+}
 
 

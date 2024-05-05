@@ -6,7 +6,6 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/passage.dart';
-import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
@@ -501,24 +500,6 @@ class PlanRoute {
 
       catch (e) {}
     }
-
-    return route;
-  }
-
-
-  // convert json to Route
-  static Future<PlanRoute> fromAtc(String name, String line) async {
-    PlanRoute route = PlanRoute(name);
-    List<String> split = line.split(" ");
-
-    if(split.length < 2) {
-      // source and dest must be present
-      return route;
-    }
-
-    LmfsInterface interface = LmfsInterface();
-    String result = await interface.getRoute(split[0], split[1]);
-    //parse
 
     return route;
   }
