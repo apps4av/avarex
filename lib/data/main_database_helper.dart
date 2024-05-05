@@ -156,7 +156,7 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
           "order by Type asc, distance asc limit $_limit";

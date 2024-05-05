@@ -156,7 +156,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
     Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD
     if(future.airportDiagram != null) {
-      airportDiagram = future.airportDiagram;
+      airportDiagram = ColorFiltered(
+        colorFilter: const ColorFilter.mode( //invert AD color
+          Colors.white,
+          BlendMode.difference,
+        ),
+        child: Container(
+          color: Colors.white,
+          child: future.airportDiagram,
+        ),
+      );
     }
     else if (future.ad != null) {
       airportDiagram = future.ad;
