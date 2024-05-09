@@ -163,23 +163,30 @@ jobs:
       - name: Install project dependencies
         run: flutter pub get
       - name: Build artifacts
-        run: flutter build ios --release --no-codesign
+        uses: cedvdb/action-flutter-build-ios@v1
+          with:
+            # always use --export-options-plist=ios/GithubActionsExportOptions.plist
+            build-cmd: flutter build ipa --release --flavor dev --export-options-plist=ios/GithubActionsExportOptions.plist
+            certificate-base64: ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }}
+            certificate-password: ${{ secrets.IOS_BUILD_CERTIFICATE_PASSWORD }}
+            provisioning-profile-base64: ${{ secrets.IOS_MOBILE_PROVISIONING_PROFILE_BASE64 }}
+            keychain-password: ${{ secrets.IOS_GITHUB_KEYCHAIN_PASSWORD }}
       - name: Archive Release
         uses: thedoctor0/zip-release@master
         with:
           type: 'zip'
           filename: ${{github.ref_name}}-ios.zip
-          directory: build/ios/iphoneos
+          directory: build/ios/ipa
       - name: iOS Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: build/ios/iphoneos/${{github.ref_name}}-ios.zip
+          files: build/ios/ipa/${{github.ref_name}}-ios.zip
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: iOS
-          path: build/ios/iphoneos/${{github.ref_name}}-ios.zip
+          path: build/ios/ipa/${{github.ref_name}}-ios.zip
 
