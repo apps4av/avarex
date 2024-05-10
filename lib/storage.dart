@@ -181,7 +181,7 @@ class Storage {
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
-            // Record additional ownship settings for audible alerts (among other intereste parties)--or perhaps these can just reside here in Storage?
+            // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
             vspeed = m.verticalSpeed;
             airborne = m.airborne;
             // record waypoints for tracks.
@@ -283,7 +283,6 @@ class Storage {
     await File(path).writeAsBytes(bytes);
     await FlutterMapTileCaching.initialise(rootDirectory: dataDir);
     await FMTC.instance('mapStoreOSM').manage.createAsync(); // cache tiles
-    await FMTC.instance('mapStoreAIP').manage.createAsync(); // cache tiles
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;
@@ -374,11 +373,6 @@ class Storage {
     }
     imageBytesPlate = bytes;
 
-    // this should come from exif but it is legacy and needs to be fixed
-    if(currentPlate == "AIRPORT-DIAGRAM") {
-      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
-    }
-
     topLeftPlate = null;
     bottomRightPlate = null;
 
@@ -413,6 +407,10 @@ class Storage {
         topLeftPlate = LatLng(latTopLeft, lonTopLeft);
         bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
       }
+    }
+    // this should come from exif but it is legacy and needs to be fixed
+    else if(currentPlate == "AIRPORT-DIAGRAM") {
+      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
     }
 
     plateChange.value++; // change in storage

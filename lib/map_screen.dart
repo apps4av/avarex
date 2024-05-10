@@ -47,9 +47,11 @@ class MapScreenState extends State<MapScreen> {
       urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       tileProvider: FMTC.instance('mapStoreOSM').getTileProvider());
 
+  /* To be added later as it has issues
   TileLayer aipLayer = TileLayer(
       urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png",
       tileProvider: FMTC.instance('mapStoreAIP').getTileProvider(headers: {"x-openaip-client-id" : "@@___openaip_client_id__@@"}));
+  */
 
   // 4 images for animation
   List<TileLayer> nexradLayer = [
@@ -195,15 +197,6 @@ class MapScreenState extends State<MapScreen> {
       layers.add( // OSM attribution
           Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
             child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
-            ),
-          ));
-    }
-    lIndex = _layers.indexOf('AIP');
-    if(_layersState[lIndex]) {
-      layers.add(aipLayer);
-      layers.add( // OSM attribution
-          Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenAIP contributors',),],
             ),
           ));
     }

@@ -127,7 +127,7 @@ class FindScreenState extends State<FindScreen> {
                                   Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
                                   MainScreenState.gotoMap();
                                 },
-                                child: const Text("Show")
+                                child: const Text("Show on Map"),
                               )
                             ]
                         ),
@@ -135,7 +135,7 @@ class FindScreenState extends State<FindScreen> {
                         dense: true,
                         isThreeLine: true,
                         trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}NM\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0"),
-                        onLongPress: () {
+                        onTap: () {
                           setState(() {
                             showDestination(context, item);
                           });
