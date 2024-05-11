@@ -721,7 +721,7 @@ class MapScreenState extends State<MapScreen> {
       width = height * 0.7;
     }
     Widget pfd = Positioned(
-        top: Constants.screenHeight(context) / 10,
+        top: Constants.screenHeightForInstruments(context),
         child:Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
@@ -763,7 +763,7 @@ class MapScreenState extends State<MapScreen> {
               Positioned(
                 child: Align(
                   alignment: Alignment.topLeft,
-                  child: SizedBox(height: Constants.screenHeight(context) / 10, child: const InstrumentList())
+                  child: SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
                 )
               ),
               // warn

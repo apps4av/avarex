@@ -68,6 +68,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(toolbarHeight: 0,), // no appbar needed but use it for safe area
       extendBodyBehindAppBar: false,
       extendBody: true,
       endDrawerEnableOpenDragGesture: false,

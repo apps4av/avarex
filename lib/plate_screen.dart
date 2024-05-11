@@ -154,7 +154,7 @@ class PlateScreenState extends State<PlateScreen> {
       Positioned(
           child: Align(
               alignment: Alignment.topLeft,
-              child: SizedBox(height: Constants.screenHeight(context) / 10, child: const InstrumentList())
+              child: SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
           )
       ),
 

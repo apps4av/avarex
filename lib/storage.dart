@@ -257,7 +257,7 @@ class Storage {
     WidgetsFlutterBinding.ensureInitialized();
     await WakelockPlus.enable(); // keep screen on
     // ask for GPS permission
-    await _gps.checkPermissions();
+    await _gps.isPermissionDenied();
     position = await Gps().getLastPosition();
     _gpsStack.push(position);
     Directory dir = await getApplicationDocumentsDirectory();
@@ -298,11 +298,11 @@ class Storage {
     airep.download();
     airSigmet.download();
 
-    gpsNotPermitted = await Gps().checkPermissions();
-    if(!gpsNotPermitted) {
+    gpsNotPermitted = await Gps().isPermissionDenied();
+    if(gpsNotPermitted) {
       Gps().requestPermissions();
     }
-    gpsDisabled = !(await Gps().checkEnabled());
+    gpsDisabled = await Gps().isDisabled();
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
@@ -326,8 +326,14 @@ class Storage {
 
         if(gpsInternal) {
           // check system for any issues
-          gpsNotPermitted = await Gps().checkPermissions();
-          gpsDisabled = !(await Gps().checkEnabled());
+          bool permissionDenied = await Gps().isPermissionDenied();
+          if(permissionDenied == false && gpsNotPermitted == true) {
+            // restart GPS since permission was denied, and now its allowed
+            stopIO();
+            startIO();
+          }
+          gpsNotPermitted = permissionDenied;
+          gpsDisabled = await Gps().isDisabled();
           warningChange.value =
               gpsNotPermitted || gpsDisabled || gpsNoLock || dataExpired || chartsMissing;
         }

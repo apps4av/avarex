@@ -76,6 +76,10 @@ class Constants {
     return MediaQuery.of(context).size.width;
   }
 
+  static double screenHeightForInstruments(BuildContext context) {
+    return isPortrait(context) ? MediaQuery.of(context).size.height / 12 : MediaQuery.of(context).size.height / 8;
+  }
+
   static bool isPortrait(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }

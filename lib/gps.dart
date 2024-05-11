@@ -25,7 +25,7 @@ class Gps {
   }
 
 
-  Future<bool> checkPermissions() async {
+  Future<bool> isPermissionDenied() async {
     final GeolocatorPlatform platform = GeolocatorPlatform.instance;
     LocationPermission permission = await platform.checkPermission();
     return (LocationPermission.denied == permission ||
@@ -33,9 +33,9 @@ class Gps {
         LocationPermission.unableToDetermine == permission);
   }
 
-  Future<bool> checkEnabled() async {
+  Future<bool> isDisabled() async {
     final GeolocatorPlatform platform = GeolocatorPlatform.instance;
-    return await platform.isLocationServiceEnabled();
+    return !(await platform.isLocationServiceEnabled());
   }
 
   Future<Position> getCurrentPosition() async {
