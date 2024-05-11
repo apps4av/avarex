@@ -771,7 +771,7 @@ class MapScreenState extends State<MapScreen> {
                 child: Align(
                     alignment: Alignment.topRight,
                     child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 5, 5, 5),
+                        padding: EdgeInsets.fromLTRB(5, Constants.screenHeightForInstruments(context), 5, 5),
                         child: ValueListenableBuilder<bool>(
                             valueListenable: Storage().warningChange,
                             builder: (context, value, _) {

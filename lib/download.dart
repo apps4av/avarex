@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:io';
 
+import 'package:async_zip/async_zip.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -158,28 +159,68 @@ class Download {
     }
 
     try {
-      final inputStream = InputFileStream(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
-      final archive = ZipDecoder().decodeBuffer(inputStream);
 
-      double num = 1; // file number being decoded
-      for(var file in archive) {
-        if (file.isFile) {
-          final outputStream = OutputFileStream(PathUtils.getUnzipFilePath(Storage().dataDir, file.name));
-          file.writeContent(outputStream);
-          outputStream.close();
-          if(_cancelDownloadAndDelete) {
-            callback(chart, -1);
+      if(Platform.isAndroid || Platform.isIOS) { // unzip for low memory devices
+        final reader = ZipFileReaderSync();
+        try {
+          reader.open(File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename)));
+
+          // Get all Zip entries
+          final entries = reader.entries();
+          double num = 1;
+          for (final entry in entries) {
+            if(!entry.isDir) {
+              await File(
+                  PathUtils.getUnzipFilePath(Storage().dataDir, entry.name))
+                  .create(recursive: true); // this creates sub folders
+              reader.readToFile(entry.name, File(
+                  PathUtils.getUnzipFilePath(Storage().dataDir, entry.name)));
+              if (_cancelDownloadAndDelete) {
+                callback(chart, -1);
+              }
+            }
+            double fraction = num++ / entries.length.toDouble();
+            double progress = 0.5 + (fraction / 2); // 0.50 to 1
+            if (progress - lastProgress >=
+                0.1) { // unzip is faster than download
+              callback(chart, progress);
+              lastProgress = progress;
+            }
           }
-        }
-        double fraction = num++ / archive.length.toDouble();
-        double progress = 0.5 + (fraction / 2); // 0.50 to 1
-        if (progress - lastProgress >= 0.1) { // unzip is faster than download
-          callback(chart, progress);
-          lastProgress = progress;
+          // Read a specific file
+        } on ZipException catch (ex) {
+          print(ex);
+          callback(chart, -1);
+        } finally {
+          reader.close();
         }
       }
+      else {
+        final inputStream = InputFileStream(
+            PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
+        final archive = ZipDecoder().decodeBuffer(inputStream);
 
-      inputStream.close();
+        double num = 1; // file number being decoded
+        for (var file in archive) {
+          if (file.isFile) {
+            final outputStream = OutputFileStream(
+                PathUtils.getUnzipFilePath(Storage().dataDir, file.name));
+            file.writeContent(outputStream);
+            outputStream.close();
+            if (_cancelDownloadAndDelete) {
+              callback(chart, -1);
+            }
+          }
+          double fraction = num++ / archive.length.toDouble();
+          double progress = 0.5 + (fraction / 2); // 0.50 to 1
+          if (progress - lastProgress >= 0.1) { // unzip is faster than download
+            callback(chart, progress);
+            lastProgress = progress;
+          }
+        }
+
+        inputStream.close();
+      }
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
       callback(chart, 1); // done
