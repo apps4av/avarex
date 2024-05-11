@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'constants.dart';
-import 'instrument_list.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
 import 'package:yaml/yaml.dart';
@@ -104,16 +103,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             ListTile(title: const Text("Online Backup"), leading: Icon(MdiIcons.cloudUpload), onTap: () => Navigator.pushNamed(context, '/online'), dense: true,),
           ],
         ))
-      ),
-      appBar: AppBar(
-        actions: [Container()], // do not show warnings button
-        leading: Container(),
-        backgroundColor: Constants.appBarBackgroundColor,
-        iconTheme: const IconThemeData(color: Constants.appBarButtonColor),
-        flexibleSpace: const SafeArea(
-          minimum: EdgeInsets.fromLTRB(0, 0, 0, 0),
-          child: InstrumentList()
-        ),
       ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),

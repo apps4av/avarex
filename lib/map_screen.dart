@@ -5,6 +5,7 @@ import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/instrument_list.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -638,7 +639,7 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.center, point: d.coordinate,
-                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: Constants.instrumentBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
+                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.bottomRight, point: d.coordinate, width: 64,
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,)))
@@ -692,7 +693,7 @@ class MapScreenState extends State<MapScreen> {
               if (location1 != null)
                 Marker(point: location1, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
               if (middle != null)
-                Marker(point: middle, width: 128, child: Text("${distance.toString()}NM/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.instrumentBackgroundColor),))
+                Marker(point: middle, width: 128, child: Text("${distance.toString()}NM/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.measureBackgroundColor),))
             ],
           );
         },
@@ -720,6 +721,7 @@ class MapScreenState extends State<MapScreen> {
       width = height * 0.7;
     }
     Widget pfd = Positioned(
+        top: Constants.screenHeight(context) / 10,
         child:Align(
             alignment: Alignment.topLeft,
             child: SizedBox(
@@ -758,6 +760,12 @@ class MapScreenState extends State<MapScreen> {
               map, // map
               if(_layersState[_layers.indexOf('PFD')])
                 pfd,
+              Positioned(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(height: Constants.screenHeight(context) / 10, child: const InstrumentList())
+                )
+              ),
               // warn
               Positioned(
                 child: Align(

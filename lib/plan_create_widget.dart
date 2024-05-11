@@ -109,7 +109,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                                         return ListTile(
                                           leading: const Icon(Icons.route),
                                           subtitle: Text("Last Departure at ${value[index].lastDepartureTime.toString().substring(0, 16)}"),
-                                          title: Text(value[index].route),);
+                                          title: SelectableText(value[index].route),);
                                       })
                                   ),
                                   Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))

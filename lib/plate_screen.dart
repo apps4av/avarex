@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
+import 'instrument_list.dart';
 
 // implements a drawing screen with a center reset button.
 
@@ -147,6 +148,13 @@ class PlateScreenState extends State<PlateScreen> {
             height: Constants.screenHeight(context),
             width: Constants.screenWidth(context),
             child: CustomPaint(painter: _PlatePainter(lon: lon, lat: lat, repaint: notifier)),
+          )
+      ),
+
+      Positioned(
+          child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(height: Constants.screenHeight(context) / 10, child: const InstrumentList())
           )
       ),
 

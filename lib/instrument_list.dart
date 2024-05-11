@@ -240,9 +240,9 @@ class InstrumentListState extends State<InstrumentList> {
   // make an instrument for top line
   Widget _makeInstrument(int index) {
     bool portrait = Constants.isPortrait(context);
-    double width = Constants.screenWidth(context) / 9.5; // get more instruments in
+    double width = Constants.screenWidth(context) / 9.7; // get more instruments in
     if(portrait) {
-      width = Constants.screenWidth(context) / 5.5;
+      width = Constants.screenWidth(context) / 5.7;
     }
 
     String value = "";
@@ -293,17 +293,11 @@ class InstrumentListState extends State<InstrumentList> {
           onTap: cb,
           child: Container(
           width: width,
-          decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 0.5), borderRadius: BorderRadius.circular(0), color: Constants.instrumentBackgroundColor),
+          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: Constants.instrumentBackgroundColor),
             child: Column(
               children: [
-                Expanded(flex: 1, child:
-                  Stack(children:[
-                    Positioned(child: Align(alignment: Alignment.topCenter, child:Text(_items[index], style: const TextStyle(color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w500, fontSize: 16), maxLines: 1,))),
-                      if(0 == index) //show help icon on first tab
-                        const Positioned(child: Align(alignment: Alignment.bottomRight, child:Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.", child: Icon(Icons.info, size: 16)))),
-                    ])
-                ),
-                Expanded(flex: 1, child: Text(value, style: const TextStyle(color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
+                Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 14), maxLines: 1,)),
+                Expanded(flex: 1, child: Text(value, style: const TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
               ]
             ),
           )
@@ -317,6 +311,8 @@ class InstrumentListState extends State<InstrumentList> {
     // user can rearrange widgets
     return ReorderableListView(
       scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
+      header: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, color: Constants.instrumentsNormalValueColor, size: 24, shadows: [Shadow(offset: Offset(1, 1))],)),
       buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)
