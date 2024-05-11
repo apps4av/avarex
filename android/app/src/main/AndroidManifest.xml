@@ -10,6 +10,7 @@
     <application
         android:label="AvareX"
         android:name="${applicationName}"
+        android:largeHeap="true"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/launcher_icon">
         <activity

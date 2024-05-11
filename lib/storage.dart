@@ -37,7 +37,6 @@ import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -269,6 +268,7 @@ class Storage {
 
     await settings.initSettings();
     // this is a long login process, do not await here
+
     String username;
     String password;
     (username, password) = userRealmHelper.loadCredentials();
@@ -281,8 +281,6 @@ class Storage {
     ByteData data = await rootBundle.load("assets/images/256.png");
     List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     await File(path).writeAsBytes(bytes);
-    await FlutterMapTileCaching.initialise(rootDirectory: dataDir);
-    await FMTC.instance('mapStoreOSM').manage.createAsync(); // cache tiles
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;

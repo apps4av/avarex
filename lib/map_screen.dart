@@ -14,11 +14,12 @@ import 'package:avaremp/weather/airsigmet.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
+import 'package:dio_cache_interceptor_hive_store/dio_cache_interceptor_hive_store.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cache/flutter_map_cache.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
@@ -46,8 +47,16 @@ class MapScreenState extends State<MapScreen> {
 
   TileLayer osmLayer = TileLayer(
       urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      tileProvider: FMTC.instance('mapStoreOSM').getTileProvider());
-
+      tileProvider: CachedTileProvider(
+        // maxStale keeps the tile cached for the given Duration and
+        // tries to revalidate the next time it gets requested
+        maxStale: const Duration(days: 30),
+        store: HiveCacheStore(
+          Storage().dataDir,
+          hiveBoxName: 'HiveCacheStoreOSM',
+        ),
+      ),
+  );
   /* To be added later as it has issues
   TileLayer aipLayer = TileLayer(
       urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png",
