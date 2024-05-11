@@ -54,7 +54,9 @@ class Constants {
 
   static Color appBarBackgroundColor = Colors.transparent;
   static Color instrumentBackgroundColor = Colors.black26.withAlpha(156);
+
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
+  static Color bottomNavBarIconColor = Colors.white;
 
   static double dropDownButtonFontSize = 14;
 

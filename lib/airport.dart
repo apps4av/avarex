@@ -191,14 +191,6 @@ class RunwayPainter extends CustomPainter {
     Rect bounds = Rect.fromLTRB(minLon, maxLat, maxLon, minLat);
     double avg = max(bounds.width.abs(), bounds.height.abs());
 
-    final paintBox = Paint()
-      ..strokeWidth = 1
-      ..style = PaintingStyle.stroke
-      ..color = Constants.runwayColor; // runway color
-
-    // make a square around this dia
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paintBox);
-
     String info = "";
 
     for(Map<String, dynamic> r in runways) {

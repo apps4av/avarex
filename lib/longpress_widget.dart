@@ -12,7 +12,6 @@ import 'package:avaremp/weather/weather.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:widget_zoom/widget_zoom.dart';
 
 import 'airport.dart';
 import 'constants.dart';
@@ -326,9 +325,19 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 onPressed: () => _controller.animateToPage(saaPage!)
             ),
           if(airportDiagram != null)
-            SizedBox(
-                width: 32, height: 32,
-                child: WidgetZoom(zoomWidget: airportDiagram, heroAnimationTag: "airportDiagram",)),
+            TextButton(
+                child: const Text("AD"),
+                onPressed: () => {
+                  showDialog(context: context,
+                    builder: (BuildContext context) => Dialog.fullscreen(
+                      child: Stack(children:[
+                        InteractiveViewer(child: airportDiagram!),
+                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                      ]
+                    )
+                  )),
+                }
+            ),
           ]
           ),
         )),

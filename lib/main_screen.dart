@@ -121,26 +121,26 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(5),
         child:BottomNavigationBar(
-          unselectedFontSize: 10,
-          selectedFontSize: 14,
           key: Storage().globalKeyBottomNavigationBar,
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Constants.bottomNavBarBackgroundColor,
-          items: const <BottomNavigationBarItem>[
+          backgroundColor: Colors.transparent,
+          showUnselectedLabels: false,
+          selectedItemColor: Colors.white,
+          items: <BottomNavigationBarItem>[
             BottomNavigationBarItem(
-              icon: Icon(Icons.map),
+              icon: Icon(Icons.map, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
               label: 'MAP',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.book),
+              icon: Icon(Icons.book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
               label: 'PLATE',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.route),
+              icon: Icon(Icons.route, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
               label: 'PLAN',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.search),
+              icon: Icon(Icons.search, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))],),
               label: 'FIND',
             ),
           ],

@@ -72,6 +72,7 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                     return ListTile(
                       title: Text(_currentItems[index].toString()),
                       trailing: PopupMenuButton(
+                        tooltip: "",
                         itemBuilder: (BuildContext context)  => <PopupMenuEntry<String>>[
                           PopupMenuItem<String>(
                             child: const Text('Load'),

@@ -146,12 +146,47 @@ class PlateScreenState extends State<PlateScreen> {
           SizedBox(
             height: Constants.screenHeight(context),
             width: Constants.screenWidth(context),
-            child: CustomPaint(painter: _PlatePainter(height: height, lon: lon, lat: lat, repaint: notifier)),
+            child: CustomPaint(painter: _PlatePainter(lon: lon, lat: lat, repaint: notifier)),
           )
       ),
+
+      plates.isEmpty ? Container() : // nothing to show here if plates is empty
+      Positioned(
+          child: Align(
+              alignment: Alignment.bottomLeft,
+              child: plates[0].isEmpty ? Container() : Container(
+                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                  child:DropdownButtonHideUnderline(
+                      child:DropdownButton2<String>(
+                        isDense: true,// plate selection
+                        customButton: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor,child: const Icon(Icons.more_horiz),),
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                          width: Constants.screenWidth(context) / 2,
+                        ),
+                        isExpanded: false,
+                        value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+                        items: plates.map((String item) {
+                          return DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize,)),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            Storage().currentPlate = value ?? plates[0];
+                          });
+                        },
+                      )
+                  )
+              )
+          )
+      ),
+
       airports.isEmpty ? Container() : // nothing to show here is airports is empty
-
-
       Positioned(
           child: Align(
               alignment: Alignment.bottomRight,
@@ -170,9 +205,7 @@ class PlateScreenState extends State<PlateScreen> {
                         items: airports.map((String item) {
                           return DropdownMenuItem<String>(
                               value: item,
-                              child: SizedBox(width: Constants.screenWidth(context) / 5,
-                                child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
-                              )
+                              child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -186,39 +219,6 @@ class PlateScreenState extends State<PlateScreen> {
           )
       ),
 
-      plates.isEmpty ? Container() : // nothing to show here if plates is empty
-        Positioned(
-          child: Align(
-              alignment: Alignment.bottomLeft,
-              child: plates[0].isEmpty ? Container() : Container(
-                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
-                  child:DropdownButtonHideUnderline(
-                      child:DropdownButton2<String>( // airport selection
-                        buttonStyleData: ButtonStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
-                        ),
-                        dropdownStyleData: DropdownStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        isExpanded: false,
-                        value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
-                        items: plates.map((String item) {
-                          return DropdownMenuItem<String>(
-                              value: item,
-                              child: SizedBox(width: Constants.screenWidth(context) / 3,
-                                child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            Storage().currentPlate = value ?? plates[0];
-                          });
-                        },
-                      )
-                  )
-              )
-          )
-      )
     ]
     ));
   }
@@ -226,7 +226,6 @@ class PlateScreenState extends State<PlateScreen> {
 
 class _PlatePainter extends CustomPainter {
 
-  double _height = 0;
   List<double>? _matrix;
   double _airportLon = 0;
   double _airportLat = 0;
@@ -245,10 +244,8 @@ class _PlatePainter extends CustomPainter {
 
   _PlatePainter({
     required ValueNotifier repaint,
-    required double height,
     required double lon,
     required double lat}) : super(repaint: repaint) {
-    _height = height;
     _airportLat = lat;
     _airportLon = lon;
   }
@@ -262,7 +259,7 @@ class _PlatePainter extends CustomPainter {
     if(_image != null) {
 
       // make in center
-      double h = size.height - _height;
+      double h = size.height;
       double ih = _image!.height.toDouble();
       double w = size.width;
       double iw = _image!.width.toDouble();
@@ -273,7 +270,7 @@ class _PlatePainter extends CustomPainter {
       }
 
       canvas.save();
-      canvas.translate(0, _height);
+      canvas.translate(0, 0);
       canvas.scale(fac);
       canvas.drawImage(_image!, const Offset(0, 0), _paint);
 
