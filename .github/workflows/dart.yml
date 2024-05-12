@@ -145,24 +145,26 @@ jobs:
         run: dart run realm_dart install -t macos
       - name: Build artifacts
         run: flutter build macos --release
-      - name: Archive Release
-        uses: thedoctor0/zip-release@master
-        with:
-          type: 'zip'
-          filename: ${{github.ref_name}}-macos.zip
-          directory: build/macos/Build/Products/Release
-      - name: macOS Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: build/macos/Build/Products/Release/${{github.ref_name}}-macos.zip
+      - name: Create a dmg
+        run: |
+          cd build/macos/Build/Products/Release
+          create-dmg \
+            --volname "AvareX" \
+            --window-pos 200 200 \
+            --window-size 800 600 \
+            --icon-size 130 \
+            --text-size 14 \
+            --icon "AvareX.app" 260 250 \
+            --hide-extension "AvareX.app" \
+            --app-drop-link 540 250 \
+            --hdiutil-quiet \
+            "AvareX.dmg" \
+            "AvareX.app"
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MacOS
-          path: build/macos/Build/Products/Release/${{github.ref_name}}-macos.zip
+          path: build/macos/Build/Products/Release/AvareX.dmg
 
   build-and-release-ios:
     runs-on: macos-latest
