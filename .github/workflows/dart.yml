@@ -185,9 +185,11 @@ jobs:
         run: |
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          echo $CERTIFICATE_PATH
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           # import certificate and provisioning profile from secrets
+          echo -n "$certificate-base64"
           echo -n "$certificate-base64" | base64 --decode --output $CERTIFICATE_PATH
           echo -n "$provisioning-profile-base64" | base64 --decode --output $PP_PATH
           # create temporary keychain
