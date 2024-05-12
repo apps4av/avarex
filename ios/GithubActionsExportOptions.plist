@@ -11,12 +11,7 @@
 	<key>method</key>
 	<string>app-store</string>
 	<key>signingStyle</key>
-	<string>manual</string>
-	<key>provisioningProfiles</key>
-	<dict>
-	  <key>com.apps4av.avaremp</key>
-	  <string>AvareX</string>
-	</dict>
+	<string>automatic</string>
 	<key>stripSwiftSymbols</key>
 	<true/>
 	<key>teamID</key>
