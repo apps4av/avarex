@@ -9,13 +9,13 @@
 	<key>manageAppVersionAndBuildNumber</key>
 	<true/>
 	<key>method</key>
-	<string>development</string>
+	<string>app-store</string>
 	<key>signingStyle</key>
 	<string>manual</string>
 	<key>provisioningProfiles</key>
 	<dict>
 	  <key>com.apps4av.avaremp</key>
-	  <string>iOS Team Provisioning Profile: com.apps4av.avaremp</string>
+	  <string>AvareX</string>
 	</dict>
 	<key>stripSwiftSymbols</key>
 	<true/>
