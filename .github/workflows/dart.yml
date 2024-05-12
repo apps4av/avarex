@@ -137,7 +137,10 @@ jobs:
           channel: 'stable'
           flutter-version: '3.19.0'
       - name: Install project dependencies
-        run: flutter pub get
+        run: | 
+          flutter pub get
+          brew install create-dmg
+          
       - name: Install project dependencies (realm)
         run: dart run realm_dart install -t macos
       - name: Build artifacts
