@@ -143,6 +143,7 @@ jobs:
 
       - name: Install project dependencies (realm)
         run: dart run realm_dart install -t macos
+        
       - name: Build artifacts and sign
         run: |
           flutter build macos --release
@@ -159,7 +160,7 @@ jobs:
           # delete keychain
           security delete-keychain sign.keychain
           rm certificate.p12
-
+          
       - name: Create a dmg
         run: |
           cd build/macos/Build/Products/Release
@@ -220,8 +221,9 @@ jobs:
         run: dart run realm_dart install -t ios   
 
       - name: Build artifacts
-          # always use --export-options-plist=ios/GithubActionsExportOptions.plist
-          # run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
+        # always use --export-options-plist=ios/GithubActionsExportOptions.plist
+        run: echo "Not yet" 
+        #flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}
