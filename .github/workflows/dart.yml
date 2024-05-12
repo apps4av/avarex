@@ -140,11 +140,26 @@ jobs:
         run: | 
           flutter pub get
           brew install create-dmg
-          
+
       - name: Install project dependencies (realm)
         run: dart run realm_dart install -t macos
-      - name: Build artifacts
-        run: flutter build macos --release
+      - name: Build artifacts and sign
+        run: |
+          flutter build macos --release
+          echo -n ${{ secrets.MACOS_DIST_CERTIFICATE }} | base64 --decode --output certificate.p12
+          # create temporary keychain
+          security create-keychain -p test_password sign.keychain
+          security default-keychain -s sign.keychain
+          security unlock-keychain -p test_password sign.keychain
+          security import certificate.p12 -k sign.keychain -P ${{ secrets.MACOS_DIST_CERTIFICATE_PASSWORD }}  -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k test_password sign.keychain
+          security find-identity
+          # sign
+          /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.app
+          # delete keychain
+          security delete-keychain sign.keychain
+          rm certificate.p12
+
       - name: Create a dmg
         run: |
           cd build/macos/Build/Products/Release
@@ -165,6 +180,7 @@ jobs:
         with:
           name: MacOS
           path: build/macos/Build/Products/Release/AvareX.dmg
+
 
   build-and-release-ios:
     runs-on: macos-latest
@@ -196,7 +212,6 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-
           
       - name: Install project dependencies
         run: flutter pub get
@@ -206,7 +221,7 @@ jobs:
 
       - name: Build artifacts
           # always use --export-options-plist=ios/GithubActionsExportOptions.plist
-        run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
+          # run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}
@@ -214,22 +229,4 @@ jobs:
           security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
           rm ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
         
-      - name: Archive Release
-        uses: thedoctor0/zip-release@master
-        with:
-          type: 'zip'
-          filename: ${{github.ref_name}}-ios.zip
-          directory: build/ios/ipa
-      - name: iOS Release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          files: build/ios/ipa/${{github.ref_name}}-ios.zip
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: iOS
-          path: build/ios/ipa/${{github.ref_name}}-ios.zip
 
