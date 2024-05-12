@@ -165,16 +165,12 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           flutter-version: '3.19.0'
-      - name: Install project dependencies
-        run: flutter pub get
-
-      - name: Install project dependencies (realm)
-        run: dart run realm_dart install -t ios   
 
       - name: Install the Apple certificate and provisioning profile
         env:
@@ -185,13 +181,12 @@ jobs:
         run: |
           # create variables
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          echo $CERTIFICATE_PATH
           PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           # import certificate and provisioning profile from secrets
-          echo -n "$certificate-base64"
-          echo -n "$certificate-base64" | base64 --decode --output $CERTIFICATE_PATH
-          echo -n "$provisioning-profile-base64" | base64 --decode --output $PP_PATH
+          echo -n ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }}
+          echo -n ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }} | base64 --decode --output $CERTIFICATE_PATH
+          echo -n ${{ secrets.IOS_MOBILE_PROVISIONING_PROFILE_BASE64 }} | base64 --decode --output $PP_PATH
           # create temporary keychain
           security create-keychain -p "$keychain-password" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
@@ -202,6 +197,14 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+          
+      - name: Install project dependencies
+        run: flutter pub get
+
+      - name: Install project dependencies (realm)
+        run: dart run realm_dart install -t ios   
+
       - name: Build artifacts
           # always use --export-options-plist=ios/GithubActionsExportOptions.plist
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
