@@ -15,7 +15,7 @@
 	<key>provisioningProfiles</key>
 	<dict>
 	  <key>com.apps4av.avaremp</key>
-	  <string>ios</string>
+	  <string>>iOS Team Provisioning Profile: com.apps4av.avaremp</string>
 	</dict>
 	<key>stripSwiftSymbols</key>
 	<true/>
