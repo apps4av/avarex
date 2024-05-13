@@ -46,7 +46,7 @@ jobs:
       - name: Upload release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Android.apk
+          name: Android
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
 
   build-and-release-linux:
@@ -69,7 +69,7 @@ jobs:
       - name: Install project dependencies
         run: flutter pub get
       - name: Install project dependencies (realm)
-        run: dart run realm_dart install -t linux   
+        run: dart run realm_dart install -t linux
       - name: Build artifacts
         run: flutter build linux --release
       - name: Archive Release
@@ -157,13 +157,8 @@ jobs:
           security find-identity
           # sign
           /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.app
-          # delete keychain
-          security delete-keychain sign.keychain
-          rm certificate.p12
-          
-      - name: Create a dmg
-        run: |
-          cd build/macos/Build/Products/Release
+          # make dmg
+          pushd build/macos/Build/Products/Release
           create-dmg \
             --volname "AvareX" \
             --window-pos 200 200 \
@@ -176,6 +171,13 @@ jobs:
             --hdiutil-quiet \
             "AvareX.dmg" \
             "AvareX.app"
+          popd
+          # sign dmg
+          /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.dmg
+          # delete keychain
+          security delete-keychain sign.keychain
+          rm certificate.p12
+          
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
