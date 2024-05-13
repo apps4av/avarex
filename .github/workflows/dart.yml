@@ -164,7 +164,7 @@ jobs:
           echo "Make PKG"
           security add-certificates -k sign.keychain certificate_installer.cer
           security find-identity
-          productbuild --sign "3rd Party Mac Developer Installer: Zubair Khan (LPHGYCR8ZX)" --component build/macos/Build/Products/Release/AvareX.app AvareX.pkg
+          productbuild --sign "3rd Party Mac Developer Installer: Zubair Khan (LPHGYCR8ZX)" --keychain sign.keychain --component build/macos/Build/Products/Release/AvareX.app AvareX.pkg
           # delete keychain
           echo "Cleanup"
           security delete-keychain sign.keychain
