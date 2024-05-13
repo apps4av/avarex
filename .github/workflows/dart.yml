@@ -152,15 +152,21 @@ jobs:
           security default-keychain -s sign.keychain
           security unlock-keychain -p test_password sign.keychain
           security import certificate.p12 -k sign.keychain -P ${{ secrets.MACOS_DIST_CERTIFICATE_PASSWORD }}  -T /usr/bin/codesign
-          security add-certificates -k sign.keychain certificate_installer.cer
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k test_password sign.keychain
           security find-identity
+
+          # build
           flutter build macos --release
           # sign
+          echo "Sign App"
           /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.app
           # make package
+          ehco "Make PKG"
+          security add-certificates -k sign.keychain certificate_installer.cer
+          security find-identity
           productbuild --sign "3rd Party Mac Developer Installer: Zubair Khan (LPHGYCR8ZX)" --component build/macos/Build/Products/Release/AvareX.app AvareX.pkg
           # delete keychain
+          echo "Cleanup"
           security delete-keychain sign.keychain
           rm certificate.p12
           rm certificate_installer.cer
