@@ -139,14 +139,15 @@ jobs:
       - name: Install project dependencies
         run: | 
           flutter pub get
+          brew install create-dmg
 
       - name: Install project dependencies (realm)
         run: dart run realm_dart install -t macos
         
       - name: Build artifacts and sign
         run: |
+          flutter build macos --release
           echo -n ${{ secrets.MACOS_DIST_CERTIFICATE }} | base64 --decode --output certificate.p12
-          echo -n ${{ secrets.MACOS_INSTALLER_CERTIFICATE }} | base64 --decode --output certificate_installer.cer
           # create temporary keychain
           security create-keychain -p test_password sign.keychain
           security default-keychain -s sign.keychain
@@ -154,32 +155,34 @@ jobs:
           security import certificate.p12 -k sign.keychain -P ${{ secrets.MACOS_DIST_CERTIFICATE_PASSWORD }}  -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k test_password sign.keychain
           security find-identity
-
-          # build
-          flutter build macos --release
-          
           # sign
-          echo "Sign App"
           /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.app
-
-          # make package
-          echo "Make PKG"
-          security add-certificates -k sign.keychain certificate_installer.cer
-          security find-identity
-          productbuild --sign "3rd Party Mac Developer Installer: Zubair Khan (LPHGYCR8ZX)" --keychain sign.keychain --component build/macos/Build/Products/Release/AvareX.app AvareX.pkg
-          
+          # make dmg
+          pushd build/macos/Build/Products/Release
+          create-dmg \
+            --volname "AvareX" \
+            --window-pos 200 200 \
+            --window-size 800 600 \
+            --icon-size 130 \
+            --text-size 14 \
+            --icon "AvareX.app" 260 250 \
+            --hide-extension "AvareX.app" \
+            --app-drop-link 540 250 \
+            --hdiutil-quiet \
+            "AvareX.dmg" \
+            "AvareX.app"
+          popd
+          # sign dmg
+          /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.dmg
           # delete keychain
-          echo "Cleanup"
           security delete-keychain sign.keychain
           rm certificate.p12
-          rm certificate_installer.cer
           
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: MacOS
-          path: AvareX.pkg
-
+          path: build/macos/Build/Products/Release/AvareX.dmg
 
   build-and-release-ios:
     runs-on: macos-latest
