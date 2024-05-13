@@ -152,8 +152,8 @@ jobs:
           security default-keychain -s sign.keychain
           security unlock-keychain -p test_password sign.keychain
           security import certificate.p12 -k sign.keychain -P ${{ secrets.MACOS_DIST_CERTIFICATE_PASSWORD }}  -T /usr/bin/codesign
+          security add-certificates -k sign.keychain certificate_installer.cer
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k test_password sign.keychain
-          security add-certificates certificate_installer.cer -k sign.keychain
           security find-identity
           flutter build macos --release
           # sign
