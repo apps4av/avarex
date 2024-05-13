@@ -161,7 +161,7 @@ jobs:
           echo "Sign App"
           /usr/bin/codesign --force --deep -s LPHGYCR8ZX build/macos/Build/Products/Release/AvareX.app
           # make package
-          ehco "Make PKG"
+          echo "Make PKG"
           security add-certificates -k sign.keychain certificate_installer.cer
           security find-identity
           productbuild --sign "3rd Party Mac Developer Installer: Zubair Khan (LPHGYCR8ZX)" --component build/macos/Build/Products/Release/AvareX.app AvareX.pkg
