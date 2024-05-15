@@ -10,14 +10,12 @@ class AltitudeProfile {
 
   static Future<List<double>> getAltitudeProfile(List<LatLng> points) async {
     List<double> altitudes = [];
-    String query = "https://api.open-elevation.com/api/v1/lookup?locations=";
+    String query = "https://api.open-elevation.com/api/v1/lookup";
+    List<Map<String, double>> locations = [];
     for (int i = 0; i < points.length; i++) {
-      query += "${points[i].latitude},${points[i].longitude}";
-      if (i < points.length - 1) {
-        query += "|";
-      }
+      locations.add({"latitude": points[i].latitude, "longitude": points[i].longitude});
     }
-    var response = await http.get(Uri.parse(query));
+    var response = await http.post(Uri.parse(query), body: jsonEncode({"locations": locations}));
     if (response.statusCode == 200) {
       var data = jsonDecode(response.body);
       for (int i = 0; i < data['results'].length; i++) {
