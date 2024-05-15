@@ -163,7 +163,7 @@ class PlateScreenState extends State<PlateScreen> {
           child: Align(
               alignment: Alignment.bottomLeft,
               child: plates[0].isEmpty ? Container() : Container(
-                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                  padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
                   child:DropdownButtonHideUnderline(
                       child:DropdownButton2<String>(
                         isDense: true,// plate selection
@@ -199,7 +199,7 @@ class PlateScreenState extends State<PlateScreen> {
           child: Align(
               alignment: Alignment.bottomRight,
               child: airports[0].isEmpty ? Container() : Container(
-                  padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                  padding: EdgeInsets.fromLTRB(5, 5, 15, Constants.bottomPaddingSize(context) + 5),
                   child:DropdownButtonHideUnderline(
                       child:DropdownButton2<String>( // airport selection
                         buttonStyleData: ButtonStyleData(

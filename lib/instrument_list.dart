@@ -313,6 +313,7 @@ class InstrumentListState extends State<InstrumentList> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
       header: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, color: Constants.instrumentsNormalValueColor, size: 24, shadows: [Shadow(offset: Offset(1, 1))],)),
+      footer: const Icon(Icons.first_page, color: Constants.instrumentsNormalValueColor, size: 24, shadows: [Shadow(offset: Offset(1, 1))],),
       buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)

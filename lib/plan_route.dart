@@ -26,6 +26,7 @@ class PlanRoute {
   List<LatLng> _pointsPassed = [];
   List<LatLng> _pointsCurrent = [];
   List<LatLng> _pointsNext = [];
+  List<LatLng> _pointsNextHighResolution = [];
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
@@ -90,7 +91,7 @@ class PlanRoute {
     d1.insert(0, d0[d0.length - 1]);
   }
 
-  List<LatLng> _makePathPoints(List<Destination> path) {
+  List<LatLng> _makePathPoints(List<Destination> path, {bool fine = false}) {
     GeoCalculations calc = GeoCalculations();
     List<LatLng> points = [];
     if(path.length < 2) {
@@ -100,12 +101,14 @@ class PlanRoute {
     for(int index = 0; index < path.length - 1; index++) {
       LatLng destination1 = path[index].coordinate;
       LatLng destination2 = path[index + 1].coordinate;
-      List<LatLng> routeIntermediate = calc.findPoints(destination1, destination2);
+      List<LatLng> routeIntermediate;
+      // 1 mile segments if fine points
+      routeIntermediate = fine ? calc.findPoints(destination1, destination2, 1) : calc.findPoints(destination1, destination2);
       points.addAll(routeIntermediate);
     }
     return points;
   }
-  
+
   void _update(bool changeInPath) {
 
     if(_waypoints.isNotEmpty) {
@@ -238,6 +241,7 @@ class PlanRoute {
     _pointsPassed = _makePathPoints(destinationsPassed);
     _pointsNext = _makePathPoints(destinationsNext);
     _pointsCurrent = _makePathPoints(destinationsCurrent);
+    _pointsNextHighResolution = _makePathPoints(destinationsNext, fine: true);
 
     change.value++;
   }
@@ -318,6 +322,10 @@ class PlanRoute {
 
   List<LatLng> getPathNext() {
     return _pointsNext;
+  }
+
+  List<LatLng> getPathNextHighResolution() {
+    return _pointsNextHighResolution;
   }
 
   List<Destination> getAllDestinations() {

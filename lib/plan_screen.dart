@@ -10,6 +10,7 @@ import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'data/altitude_profile.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
@@ -219,6 +220,16 @@ class PlanScreenState extends State<PlanScreen> {
                     });
                   },
                 )),
+                IconButton(icon: const Icon(Icons.height), onPressed:() {
+                  showDialog(context: context,
+                    builder: (BuildContext context) => Dialog.fullscreen(
+                      child: FutureBuilder(
+                        future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
+                        builder: (context, snapshot) {
+                          return _makeAltitudeDiagram(snapshot.data);
+                        }
+                    )));
+                }),
               ]
             ))
           ]
@@ -227,4 +238,19 @@ class PlanScreenState extends State<PlanScreen> {
       ),
     );
   }
+
+
+  Widget _makeAltitudeDiagram(List<double>? data) {
+    if(null == data) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(children:[
+      SizedBox(width : Constants.screenWidth(context), height : Constants.screenHeight(context), child: AltitudeProfile.makeChart(data)),
+      Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white))),
+    ]
+    );
+  }
+
 }
+

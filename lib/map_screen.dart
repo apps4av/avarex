@@ -689,20 +689,14 @@ class MapScreenState extends State<MapScreen> {
       ValueListenableBuilder<int>(
         valueListenable: _ruler.change,
         builder: (context, value, _) {
-          int? distance;
-          int? bearing;
-          (distance, bearing) = _ruler.getDistanceBearing();
-          LatLng? location0 = _ruler.getStart();
-          LatLng? location1 = _ruler.getEnd();
-          LatLng? middle = _ruler.getMiddle();
+          List<(int, int)> calculations = _ruler.getDistanceBearing();
+          List<LatLng> points = _ruler.getPoints();
           return MarkerLayer(
             markers: [
-              if (location0 != null)
-                Marker(point: location0, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
-              if (location1 != null)
-                Marker(point: location1, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
-              if (middle != null)
-                Marker(point: middle, width: 128, child: Text("${distance.toString()}NM/${bearing.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.measureBackgroundColor),))
+              for(LatLng point in points)
+                Marker(point: point, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
+              for(int calculationN = 0; calculationN < calculations.length; calculationN++)
+                Marker(alignment: Alignment.bottomRight, point: points[calculationN + 1], width: 128, child: Text("${calculations[calculationN].$1.toString()}NM/${calculations[calculationN].$2.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.measureBackgroundColor),))
             ],
           );
         },
@@ -879,6 +873,7 @@ class MapScreenState extends State<MapScreen> {
                                   });}, icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
                                   // switch layers on off
                                   PopupMenuButton( // airport selection
+                                    tooltip: "Select the layers to show on the Map screen",
                                     icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
                                     initialValue: _layers[0],
                                     itemBuilder: (BuildContext context) =>
@@ -998,19 +993,13 @@ class ChartTileProvider extends TileProvider {
 // for scale measurement
 class Ruler {
 
-  int? _pointer0id;
-  int? _pointer1id;
-  LatLng? _ll0;
-  LatLng? _ll1;
+  List<LatLng> _points = [];
   bool _measuring = false;
   final change = ValueNotifier<int>(0);
   final GeoCalculations geo = GeoCalculations();
 
   void init() {
-    _pointer0id = null;
-    _ll0 = null;
-    _pointer1id = null;
-    _ll1 = null;
+    _points = [];
     _measuring = false;
     change.value++;
   }
@@ -1019,41 +1008,28 @@ class Ruler {
     if(!_measuring) {
       return;
     }
-    if(null == _pointer0id)  {
-      _pointer0id = id;
-      _ll0 = position;
-      change.value++;
 
-    }
-    else if(null == _pointer1id)  {
-      _pointer1id = id;
-      _ll1 = position;
-      change.value++;
-    }
+    _points.add(position);
+    change.value++;
   }
 
-  LatLng? getStart() {
-    return _ll0;
+  List<LatLng> getPoints() {
+    return _points;
   }
 
-  LatLng? getEnd() {
-    return _ll1;
-  }
-
-  LatLng? getMiddle() {
-    if(_ll1 != null && _ll0 != null) {
-      return LatLng((_ll0!.latitude + _ll1!.latitude) / 2, (_ll0!.longitude + _ll1!.longitude) / 2);
+  List<(int, int)> getDistanceBearing() {
+    List<(int, int)> ret = [];
+    if(_points.length < 2) {
+      return ret;
     }
-    return null;
-  }
-
-  (int?, int?) getDistanceBearing() {
-    if(_ll1 != null && _ll0 != null) {
-      double variation = geo.getVariation(getMiddle()!);
-      double bearing = GeoCalculations.getMagneticHeading(geo.calculateBearing(_ll0!, _ll1!), variation);
-      return (geo.calculateDistance(_ll0!, _ll1!).round(), bearing.round());
+    for(int i = 0; i < _points.length - 1; i++) {
+      double variation = geo.getVariation(_points[i]);
+      double bearing = GeoCalculations.getMagneticHeading(geo.calculateBearing(_points[i], _points[i + 1]), variation);
+      double distance = geo.calculateDistance(_points[i], _points[i + 1]);
+      ret.add((distance.round(), bearing.round()));
     }
-    return (null, null);
+
+    return ret;
   }
 
   Color color() {
