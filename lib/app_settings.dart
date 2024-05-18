@@ -174,6 +174,14 @@ class AppSettings {
 
   void setAudibleAlertsEnabled(bool value) {
     Settings.setValue("key-audible-alerts", value);
-  } 
+  }
+
+  bool isInstrumentsVisiblePlate() {
+    return Settings.getValue("key-enable-instruments-plate", defaultValue: true) as bool;
+  }
+
+  void setInstrumentsVisiblePlate(bool value) {
+    Settings.setValue("key-enable-instruments-plate", value);
+  }
 
 }

@@ -154,7 +154,17 @@ class PlateScreenState extends State<PlateScreen> {
       Positioned(
           child: Align(
               alignment: Alignment.topLeft,
-              child: SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
+              child: Stack(children:[
+                if (Storage().settings.isInstrumentsVisiblePlate())
+                  SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList()),
+                // allow to hide instruments on plate
+                CircleAvatar(backgroundColor: Constants.bottomNavBarBackgroundColor,
+                  child: IconButton(onPressed: () {
+                    setState(() {
+                      Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
+                    });
+                  }, icon: Icon(Storage().settings.isInstrumentsVisiblePlate() ? Icons.open_in_new_off_rounded : Icons.open_in_new_rounded),),)
+              ]),
           )
       ),
 
