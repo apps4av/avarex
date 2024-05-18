@@ -18,6 +18,7 @@ class WeatherTfr extends _WeatherTfr
     String lowerAltitude,
     int msEffective,
     int msExpires,
+    int labelCoordinate,
   ) {
     RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'station', station);
@@ -27,6 +28,7 @@ class WeatherTfr extends _WeatherTfr
     RealmObjectBase.set(this, 'lowerAltitude', lowerAltitude);
     RealmObjectBase.set(this, 'msEffective', msEffective);
     RealmObjectBase.set(this, 'msExpires', msExpires);
+    RealmObjectBase.set(this, 'labelCoordinate', labelCoordinate);
   }
 
   WeatherTfr._();
@@ -78,8 +80,19 @@ class WeatherTfr extends _WeatherTfr
   set msExpires(int value) => RealmObjectBase.set(this, 'msExpires', value);
 
   @override
+  int get labelCoordinate =>
+      RealmObjectBase.get<int>(this, 'labelCoordinate') as int;
+  @override
+  set labelCoordinate(int value) =>
+      RealmObjectBase.set(this, 'labelCoordinate', value);
+
+  @override
   Stream<RealmObjectChanges<WeatherTfr>> get changes =>
       RealmObjectBase.getChanges<WeatherTfr>(this);
+
+  @override
+  Stream<RealmObjectChanges<WeatherTfr>> changesFor([List<String>? keyPaths]) =>
+      RealmObjectBase.getChangesFor<WeatherTfr>(this, keyPaths);
 
   @override
   WeatherTfr freeze() => RealmObjectBase.freezeObject<WeatherTfr>(this);
@@ -94,6 +107,7 @@ class WeatherTfr extends _WeatherTfr
       'lowerAltitude': lowerAltitude.toEJson(),
       'msEffective': msEffective.toEJson(),
       'msExpires': msExpires.toEJson(),
+      'labelCoordinate': labelCoordinate.toEJson(),
     };
   }
 
@@ -109,6 +123,7 @@ class WeatherTfr extends _WeatherTfr
         'lowerAltitude': EJsonValue lowerAltitude,
         'msEffective': EJsonValue msEffective,
         'msExpires': EJsonValue msExpires,
+        'labelCoordinate': EJsonValue labelCoordinate,
       } =>
         WeatherTfr(
           fromEJson(id),
@@ -119,6 +134,7 @@ class WeatherTfr extends _WeatherTfr
           fromEJson(lowerAltitude),
           fromEJson(msEffective),
           fromEJson(msExpires),
+          fromEJson(labelCoordinate),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -137,6 +153,7 @@ class WeatherTfr extends _WeatherTfr
       SchemaProperty('lowerAltitude', RealmPropertyType.string),
       SchemaProperty('msEffective', RealmPropertyType.int),
       SchemaProperty('msExpires', RealmPropertyType.int),
+      SchemaProperty('labelCoordinate', RealmPropertyType.int),
     ]);
   }();
 

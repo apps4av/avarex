@@ -52,7 +52,7 @@ class MapScreenState extends State<MapScreen> {
         // tries to revalidate the next time it gets requested
         maxStale: const Duration(days: 30),
         store: HiveCacheStore(
-          Storage().dataDir,
+          Storage().cacheDir,
           hiveBoxName: 'HiveCacheStoreOSM',
         ),
       ),
@@ -414,7 +414,7 @@ class MapScreenState extends State<MapScreen> {
                     for (Tfr tfr in tfrs)
                       if(tfr.isRelevant())
                         Marker(
-                            point: tfr.coordinates[0],
+                            point: tfr.coordinates[tfr.getLabelCoordinate()],
                             child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                               content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
                               triggerMode: TooltipTriggerMode.tap,

@@ -307,6 +307,7 @@ class WeatherRealmHelper {
       tfr.lowerAltitude,
       tfr.msEffective,
       tfr.msExpires,
+      tfr.labelCoordinate,
     );
 
     realm.write(() {
@@ -333,6 +334,7 @@ class WeatherRealmHelper {
           t.lowerAltitude,
           t.msEffective,
           t.msExpires,
+          t.labelCoordinate,
         );
         return object;
       }));
@@ -359,6 +361,7 @@ class WeatherRealmHelper {
         object.lowerAltitude,
         object.msEffective,
         object.msExpires,
+        object.labelCoordinate,
       );
     } catch(e) {
       return null;
@@ -383,6 +386,7 @@ class WeatherRealmHelper {
         e.lowerAltitude,
         e.msEffective,
         e.msExpires,
+        e.labelCoordinate,
       );
     }).toList();
   }

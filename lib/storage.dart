@@ -101,6 +101,7 @@ class Storage {
   final _udpReceiver = UdpReceiver();
   // where all data is place. This is set on init in main
   late String dataDir;
+  late String cacheDir;
   Position position = Gps.centerUSAPosition();
   double vspeed = 0;
   bool airborne = true;  
@@ -261,6 +262,8 @@ class Storage {
     _gpsStack.push(position);
     Directory dir = await getApplicationDocumentsDirectory();
     dataDir = PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
+    dir = await getApplicationSupportDirectory();
+    cacheDir = dir.path; // for tiles cache
     dir = Directory(dataDir);
     if(!dir.existsSync()) {
       dir.createSync();

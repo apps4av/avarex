@@ -47,6 +47,10 @@ class TfrCache extends WeatherCache {
       catch(e) {
         continue; // no shape exists for this TFR
       }
+
+      int numInGroup = tfrGroups.length;
+      int groupCount = 0;
+
       for(var tfrGroup in tfrGroups) {
 
         String upper = "Check NOTAMs";
@@ -106,8 +110,10 @@ class TfrCache extends WeatherCache {
           DateTime endsDt = DateTime.parse(expire);
 
           Tfr tfr = Tfr(code.first.toString(), time, ll, upper.toString(), lower.toString(),
-              startsDt.millisecondsSinceEpoch, endsDt.millisecondsSinceEpoch);
+              startsDt.millisecondsSinceEpoch, endsDt.millisecondsSinceEpoch, groupCount * ((ll.length - 1) ~/ numInGroup));
           tfrs.add(tfr);
+          // this separates duplicate with different times TFRs labels so all can be shown
+          groupCount++;
 
         }
         catch(e) {

@@ -15,5 +15,6 @@ class _WeatherTfr {
   late String lowerAltitude;
   late int msEffective;
   late int msExpires;
+  late int labelCoordinate;
 }
 
