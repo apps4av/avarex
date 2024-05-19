@@ -1,10 +1,14 @@
+import 'dart:convert';
+
 import 'package:avaremp/data/user_aircraft.dart';
+import 'package:avaremp/data/user_checklist.dart';
 import 'package:avaremp/data/user_plan.dart';
 import 'package:avaremp/data/user_recent.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:realm/realm.dart';
 
 import '../aircraft.dart';
+import '../checklist.dart';
 import '../destination.dart';
 import '../plan_route.dart';
 import '../storage.dart';
@@ -17,7 +21,8 @@ class UserRealmHelper {
   List<SchemaObject> objects = [
     UserRecent.schema,
     UserPlan.schema,
-    UserAircraft.schema
+    UserAircraft.schema,
+    UserChecklist.schema,
   ];
 
   String failedLoginMessage = "";
@@ -126,6 +131,7 @@ class UserRealmHelper {
               mutableSubscriptions.add(_realm!.all<UserRecent>());
               mutableSubscriptions.add(_realm!.all<UserAircraft>());
               mutableSubscriptions.add(_realm!.all<UserPlan>());
+              mutableSubscriptions.add(_realm!.all<UserChecklist>());
             });
             _realm?.subscriptions
                 .waitForSynchronization(); // this can block indefinitely
@@ -357,4 +363,67 @@ class UserRealmHelper {
   }
 
 
+  Future<void> addChecklist(Checklist checklist) async {
+    deleteChecklist(checklist.name);
+
+    UserChecklist checklistR = UserChecklist(ObjectId(), _getUserId(),
+        checklist.name,
+        checklist.aircraft,
+        jsonEncode(checklist.steps));
+
+    if(null == _realm) {
+      return;
+    }
+
+    _realm!.write(() {
+      _realm!.add(checklistR);
+    });
+
+  }
+
+  void deleteChecklist(String name) {
+    if(null == _realm) {
+      return;
+    }
+
+    RealmResults<UserChecklist> checklist = _realm!.all<UserChecklist>().query("name = '$name'");
+
+    try {
+      _realm!.write(() {
+        _realm!.delete(checklist.first);
+      });
+    } catch(e) {}
+
+  }
+
+  List<Checklist> getAllChecklist() {
+    List<Checklist> ret = [];
+
+    if(null == _realm) {
+      return ret;
+    }
+
+    RealmResults<UserChecklist> checklist = _realm!.all<UserChecklist>();
+
+    for(UserChecklist c in checklist) {
+      List<String> steps = List<String>.from(jsonDecode(c.steps));
+      ret.add(Checklist(c.name, c.aircraft, steps));
+    }
+
+    return ret.reversed.toList();
+  }
+
+  Checklist getChecklist(String name) {
+    if(null == _realm) {
+      return Checklist.empty();
+    }
+
+    RealmResults<UserChecklist> checklist = _realm!.all<UserChecklist>().query("name = '$name'");
+
+    UserChecklist c = checklist.first;
+    List<String> steps = List<String>.from(jsonDecode(c.steps));
+    return Checklist(c.name, c.aircraft, steps);
+  }
+
 }
+
