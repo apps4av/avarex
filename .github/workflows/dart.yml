@@ -28,15 +28,15 @@ jobs:
       - name: Install project dependencies (realm)
         run: dart run realm_dart install -t android   
         
-      - name: Build artifacts
+      - name: Build APK
         run: flutter build apk --release
 
-      - name: Build aab
+      - name: Build AAB
         run: flutter build appbundle --release
 
       - name: Sign APK with keystore
         uses: r0adkll/sign-android-release@v1
-        id: sign_app
+        id: sign_apk
         with:
           releaseDirectory: build/app/outputs/apk/release
           signingKeyBase64: ${{ secrets.KEY_STORE }}
@@ -46,13 +46,28 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
-      - name: Upload release APK
+      - name: Build AAB
+        run: flutter build appbundle --release
+
+      - name: Sign AAB with keystore
+        uses: r0adkll/sign-android-release@v1
+        id: sign_aab
+        with:
+          releaseDirectory: build/app/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.KEY_STORE }}
+          alias: ${{ secrets.KEY_STORE_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASS }}
+          keyPassword: ${{ secrets.KEY_STORE_PASS }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Upload release
         uses: actions/upload-artifact@v4
         with:
           name: Android
           path: |
-            ${{steps.sign_app.outputs.signedReleaseFile}} 
-            build/app/outputs/bundle/release/app-release.aab
+            ${{steps.sign_apk.outputs.signedReleaseFile}} 
+            ${{steps.sign_aab.outputs.signedReleaseFile}} 
             
   build-and-release-linux:
     runs-on: ubuntu-latest
