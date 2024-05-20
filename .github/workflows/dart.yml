@@ -49,6 +49,30 @@ jobs:
           name: Android
           path: ${{steps.sign_app.outputs.signedReleaseFile}}
 
+
+  android-release-build:
+    name: android-release-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: NiklasLehnfeld/flutter-android-build-action@v1
+        id: android-build
+        with:
+          release: true
+          keystore: ${{ secrets.KEY_STORE }}
+          keystore-pwd: "${{ secrets.KEY_STORE_PASS }}"
+          key-pwd: "${{ secrets.KEY_STORE_PASS }}"
+      - name: Archive APK
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-apk
+          path: ${{ steps.android-build.outputs.apk-path }}
+      - name: Archive AAB
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-aab
+          path: ${{ steps.android-build.outputs.aab-path }}
+
   build-and-release-linux:
     runs-on: ubuntu-latest
 
