@@ -31,9 +31,6 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Build AAB
-        run: flutter build appbundle --release
-
       - name: Sign APK with keystore
         uses: r0adkll/sign-android-release@v1
         id: sign_apk
