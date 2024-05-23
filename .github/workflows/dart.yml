@@ -239,7 +239,7 @@ jobs:
         run: dart run realm_dart install -t ios   
 
       - name: Build artifacts
-        run: flutter build ipa
+        run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}
