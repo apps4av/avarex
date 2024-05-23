@@ -241,6 +241,12 @@ jobs:
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS
+          path: build/ios/ipa/*.ipa
+
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}
         run: |
