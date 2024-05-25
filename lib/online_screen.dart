@@ -25,7 +25,7 @@ class OnlineScreenState extends State<OnlineScreen> {
 
     bool loggedIn = Storage().userRealmHelper.loggedIn;
 
-    Widget widget = Column(
+    Widget widget = SingleChildScrollView(child:Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(loggedIn ? "Logged In" : "Sign In", style: const TextStyle(fontSize: 20),),
@@ -160,7 +160,7 @@ class OnlineScreenState extends State<OnlineScreen> {
           Visibility(visible: _visibleProgressRegister, child: const CircularProgressIndicator()),
         ]),
       ],
-    );
+    ));
 
     return Scaffold(
         appBar: AppBar(

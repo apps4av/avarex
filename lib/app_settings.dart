@@ -128,6 +128,14 @@ class AppSettings {
     return Settings.getValue("key-user-aircraft", defaultValue: "") as String;
   }
 
+  void setChecklist(String name) {
+    Settings.setValue("key-user-checklist", name);
+  }
+
+  String getChecklist() {
+    return Settings.getValue("key-user-checklist", defaultValue: "") as String;
+  }
+
   int getTas() {
     return Settings.getValue("key-airplane-tas-v2", defaultValue: 100) as int;
   }

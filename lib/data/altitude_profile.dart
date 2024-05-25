@@ -26,6 +26,9 @@ class AltitudeProfile {
   }
 
   static Widget makeChart(List<double> data) {
+    if(data.isEmpty) {
+      return Container();
+    }
     LabelLayoutStrategy? xContainerLabelLayoutStrategy;
     ChartData chartData;
     // chart with no grid lines

@@ -10,17 +10,22 @@ class UdpReceiver {
   final List<RawDatagramSocket> _sockets = [];
 
   void initChannel(int port, bool broadcast) async {
-    RawDatagramSocket socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, port, reuseAddress: true).then((RawDatagramSocket socket) {
-      socket.broadcastEnabled = broadcast;
-      socket.listen((e) {
-        Datagram? dg = socket.receive();
-        if (dg != null) {
-          _controller.add(dg.data);
-        }
+    try {
+      RawDatagramSocket socket = await RawDatagramSocket.bind(
+          InternetAddress.anyIPv4, port, reuseAddress: true).then((
+          RawDatagramSocket socket) {
+        socket.broadcastEnabled = broadcast;
+        socket.listen((e) {
+          Datagram? dg = socket.receive();
+          if (dg != null) {
+            _controller.add(dg.data);
+          }
+        });
+        return socket;
       });
-      return socket;
-    });
-    _sockets.add(socket);
+      _sockets.add(socket);
+    }
+    catch(e) {}
   }
 
   StreamSubscription<Uint8List> getStream(List<int> ports, List<bool> isBroadcast) {

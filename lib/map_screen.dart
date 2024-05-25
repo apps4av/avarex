@@ -326,7 +326,7 @@ class MapScreenState extends State<MapScreen> {
                           child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                             content: Container(
                               padding: const EdgeInsets.all(5),
-                              child: Text(a.toString())
+                              child: Text("${a.toString()}\n** Long press to see the covered area **")
                             ),
 
                             waitDuration: const Duration(seconds: 1),

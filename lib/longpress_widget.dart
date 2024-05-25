@@ -251,7 +251,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       child: Stack(children:[
         Column(children: [
           Expanded(flex: 1, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
-          Expanded(flex: 1, child: Row(children: [
+          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
               child: const Text("->D"),
@@ -285,7 +285,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
-          ])),
+          ]))),
           // various info
           Expanded(flex: 7, child: CarouselSlider(
             carouselController: _controller,
@@ -303,7 +303,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
         // add various buttons that expand to diagram
         Positioned(child: Align(
           alignment: Alignment.bottomRight,
-          child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+          child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end, children:[
           if (future.pages.length > 1)
             TextButton(
                 child: const Text("Main"),
@@ -339,7 +339,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 }
             ),
           ]
-          ),
+          )),
         )),
       ],
       )

@@ -86,6 +86,8 @@ class Storage {
   final UserRealmHelper userRealmHelper = UserRealmHelper();
   final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
 
+  List<bool> activeChecklistSteps = [];
+  String activeChecklistName = "";
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
 
   final PlanRoute _route = PlanRoute("New Plan");

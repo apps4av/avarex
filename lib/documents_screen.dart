@@ -219,7 +219,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
-Widget _makeContent(List<String>? docs) {
+  Widget _makeContent(List<String>? docs) {
 
     if(null == docs) {
       return Container();

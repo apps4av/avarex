@@ -41,7 +41,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
             ),
             Flexible(
                 flex: 1,
-                child: Tooltip(triggerMode: TooltipTriggerMode.tap, message: "Create As Entered: Enter all the waypoints separated by spaces in the Route box.\n\nCreate IFR Preferred Route/Show IFR ATC Routes: Enter the departure and the destination separated by a space in the Route box. Using 1800wxbrief.com account '${Storage().settings.getEmail()}'", child: Icon(Icons.info))
+                child: Tooltip(showDuration: const Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Create As Entered: Enter all the waypoints separated by spaces in the Route box.\nCreate IFR Preferred Route/Show IFR ATC Routes: Enter the departure and the destination separated by a space in the Route box.\n\nUsing 1800wxbrief.com account \"${Storage().settings.getEmail()}\".", child: Icon(Icons.info))
             ),
             Flexible(
               flex: 1,

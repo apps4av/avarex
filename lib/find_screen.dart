@@ -151,7 +151,7 @@ class FindScreenState extends State<FindScreen> {
             ),
             Expanded(
               flex: 2,
-              child: Row(children:[
+              child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children:[
                 TextButton(onPressed: () {
                   setState(() {
                     _recent = true;
@@ -176,7 +176,7 @@ class FindScreenState extends State<FindScreen> {
                   });
                 }, child: const Text("Nearest 4K"),),
               ]
-            ))
+            )))
           ]),
         ]
       )

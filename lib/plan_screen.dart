@@ -10,6 +10,7 @@ import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'data/altitude_profile.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -75,7 +76,7 @@ class PlanScreenState extends State<PlanScreen> {
               ),
             )),
           // add various buttons that expand to diagram
-          Expanded(flex: 1, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
               TextButton(
                   child: const Text("Load & Save"),
                   onPressed: () => _controller.animateToPage(0)
@@ -92,7 +93,7 @@ class PlanScreenState extends State<PlanScreen> {
                   child: const Text("Manage"),
                   onPressed: () => _controller.animateToPage(3)
               ),
-            ]),
+            ])),
           ),
         ],
           )
@@ -163,7 +164,7 @@ class PlanScreenState extends State<PlanScreen> {
                 });
               })
             ),
-            Expanded(flex: 1, child: Row(
+            Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(
               children:[ // header
                 TextButton(
                   onPressed: () {
@@ -231,7 +232,7 @@ class PlanScreenState extends State<PlanScreen> {
                     )));
                 }),
               ]
-            ))
+            )))
           ]
         )
       ]
