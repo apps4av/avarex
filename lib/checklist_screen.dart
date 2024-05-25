@@ -42,7 +42,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
 
   List<Widget> _makeAction(List<Checklist>? items) {
     List<Widget> ret = [];
-    ret.add(const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Import a text checklist, with first line as title and subsequent lines as individual steps.", child: Icon(Icons.info)));
+    ret.add(const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Import a text (.txt) checklist, with the first line as the title and the subsequent lines as the steps.", child: Icon(Icons.info)));
     ret.add(
       TextButton(onPressed: () {
         _pickFile().then((lines) => setState(() {
