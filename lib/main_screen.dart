@@ -143,13 +143,21 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   }
 
   @override
+  void dispose() {
+    Storage().stopIO();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
+    Storage().startIO();
     WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
     switch (state) {
       case AppLifecycleState.resumed:
         // start GPS

@@ -42,6 +42,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
 
   List<Widget> _makeAction(List<Checklist>? items) {
     List<Widget> ret = [];
+    ret.add(const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Import a text checklist, with first line as title and subsequent lines as individual steps.", child: Icon(Icons.info)));
     ret.add(
       TextButton(onPressed: () {
         _pickFile().then((lines) => setState(() {
@@ -52,7 +53,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           Checklist list = Checklist(name, "", lines);
           Storage().userRealmHelper.addChecklist(list);
         }));},
-      child: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Import a text checklist, with first line as title and subsequent lines as individual steps.", child: Text("Import")),
+      child: const Text("Import")
     ));
     if(null == items || items.isEmpty) {
       return ret;
