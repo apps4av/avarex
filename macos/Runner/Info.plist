@@ -30,6 +30,7 @@
 	<string>NSApplication</string>
     <key>NSLocationUsageDescription</key>
     <string>This app needs access to location.</string>
-
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.navigation</string>
 </dict>
 </plist>
