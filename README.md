@@ -9,15 +9,10 @@ By Apps4Av.
 
 ### Downloading
 
-Click the Actions button on the top right of this page.
-Select the top most green check mark under Workflows.
-On the next page, click on Artifacts.
-Download the zip file for your platform.
-Unzip on the platform where it will be run.
 
 ** Windows 
 
-Make sure you allow Windows to use the .exe as it is flagged untrusted.
+Download on Windows using Microsoft Store.
 
 ** MacOS
 
@@ -29,8 +24,8 @@ To run on Linux, you must install sqlite3 library on your Linux system.
 
 ** iOS
 
-iOS app can only be distributed through the app store. It is included in the release/CI for completeness. Do not use it.
+Download on Apple App Store from your iPhone or iPad.
 
 ** Android
 
-Installs and runs as is.
+Download on Google Play Store from your Android device.
