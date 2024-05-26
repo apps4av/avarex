@@ -14,14 +14,6 @@ jobs:
           channel: 'stable'
           flutter-version: '3.19.0'
 
-      - name: Find and Replace OpenAIP
-        uses: jacobtomlinson/gha-find-replace@v3
-        with:
-          find: "@@___openaip_client_id__@@"
-          replace: ${{ secrets.OPENAIP_CLIENT_ID }}
-          include: "*.dart"
-          regex: false
-
       - name: Install project dependencies
         run: flutter pub get
       - name: Install project dependencies (realm)

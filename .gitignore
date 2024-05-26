@@ -3,7 +3,11 @@
 *.log
 *.pyc
 *.swp
+generated_plugin*
+pubspec.lock
 .DS_Store
+Podfile
+Podfile.lock
 .atom/
 .buildlog/
 .history
