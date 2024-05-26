@@ -1,0 +1,50 @@
+name: Windows
+
+on: push
+
+jobs:
+
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.19.0'
+
+      - name: Find and Replace OpenAIP
+        uses: jacobtomlinson/gha-find-replace@v3
+        with:
+          find: "@@___openaip_client_id__@@"
+          replace: ${{ secrets.OPENAIP_CLIENT_ID }}
+          include: "*.dart"
+          regex: false
+
+      - name: Install project dependencies
+        run: flutter pub get
+      - name: Install project dependencies (realm)
+        run: dart run realm_dart install -t windows
+      - name: Build artifacts
+        run: flutter build windows --release
+      - name: Build artifacts MSIX
+        run: dart run msix:create
+      - name: Archive Release
+        uses: thedoctor0/zip-release@master
+        with:
+          type: 'zip'
+          filename: ${{github.ref_name}}-windows.zip
+          directory: build/windows/x64/runner/Release
+      - name: Windows Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WindowsX64
+          path: build/windows/x64/runner/Release/${{github.ref_name}}-windows.zip

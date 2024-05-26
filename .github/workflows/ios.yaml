@@ -1,0 +1,67 @@
+name: IOS
+
+on: push
+
+jobs:
+
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.19.0'
+
+      - name: Find and Replace OpenAIP
+        uses: jacobtomlinson/gha-find-replace@v3
+        with:
+          find: "@@___openaip_client_id__@@"
+          replace: ${{ secrets.OPENAIP_CLIENT_ID }}
+          include: "*.dart"
+          regex: false
+
+      - name: Install the Apple certificate and provisioning profile
+        run: |
+          # create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          # import certificate and provisioning profile from secrets
+          echo -n ${{ secrets.IOS_BUILD_CERTIFICATE_BASE64 }} | base64 --decode --output $CERTIFICATE_PATH
+          echo -n ${{ secrets.IOS_MOBILE_PROVISIONING_PROFILE_BASE64 }} | base64 --decode --output $PP_PATH
+          # create temporary keychain
+          security create-keychain -p ${{ secrets.IOS_GITHUB_KEYCHAIN_PASSWORD }} $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p ${{ secrets.IOS_GITHUB_KEYCHAIN_PASSWORD }} $KEYCHAIN_PATH
+          # import certificate to keychain
+          security import $CERTIFICATE_PATH -P ${{ secrets.IOS_BUILD_CERTIFICATE_PASSWORD }} -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          # apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+
+      - name: Install project dependencies
+        run: flutter pub get
+
+      - name: Install project dependencies (realm)
+        run: dart run realm_dart install -t ios
+
+      - name: Build artifacts
+        run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: iOS
+          path: build/ios/ipa/*.ipa
+
+      - name: Clean up keychain and provisioning profile
+        if: ${{ always() }}
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+          rm ~/Library/MobileDevice/Provisioning\ Profiles/build_pp.mobileprovision
+          
+  

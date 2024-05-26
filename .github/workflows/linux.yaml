@@ -1,0 +1,56 @@
+name: Linux
+
+on: push
+
+jobs:
+
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.19.0'
+
+      - name: Find and Replace OpenAIP
+        uses: jacobtomlinson/gha-find-replace@v3
+        with:
+          find: "@@___openaip_client_id__@@"
+          replace: ${{ secrets.OPENAIP_CLIENT_ID }}
+          include: "*.dart"
+          regex: false
+
+      - name: Update source repo
+        run: sudo apt-get update
+      - name: Pre-empt libunwind issue for gstreamer
+        run: sudo apt-get install -y libunwind-dev
+      - name: Install audioplayers dependencies
+        run: sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
+      - name: Install dependencies
+        run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - name: Install project dependencies
+        run: flutter pub get
+      - name: Install project dependencies (realm)
+        run: dart run realm_dart install -t linux
+      - name: Build artifacts
+        run: flutter build linux --release
+      - name: Archive Release
+        uses: thedoctor0/zip-release@master
+        with:
+          type: 'zip'
+          filename: ${{github.ref_name}}-linux.zip
+          directory: build/linux/x64/release/bundle
+      - name: Linux Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: build/linux/x64/release/bundle/${{github.ref_name}}-linux.zip
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Linux
+          path: build/linux/x64/release/bundle/${{github.ref_name}}-linux.zip
