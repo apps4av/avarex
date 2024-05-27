@@ -28,7 +28,11 @@ jobs:
         run: dart run realm_dart install -t linux
       - name: Build artifacts
         run: flutter build linux --release
-
+      
+      - name: add user to lxd group
+        run: |
+          sudo usermod -a -G lxd $USER
+          
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
 
