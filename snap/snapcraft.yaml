@@ -1,0 +1,28 @@
+name: avarex 
+version: 0.0.7
+summary: AvareX Flight Support 
+description: AvareX provide FAA charts, plates, airport data, weather, air traffic over ADS-B, and lets you create and file flight plans. 
+
+confinement: strict
+base: core22
+grade: stable
+
+slots:
+  dbus-super-cool-app: # adjust accordingly to your app name
+    interface: dbus
+    bus: session
+    name: com.apps4av.avarex # adjust accordingly to your app name and
+    
+apps:
+  avarex:
+    command: AvareX 
+    extensions: [gnome] # gnome includes the libraries required by flutter
+    plugs:
+    - network
+    slots:
+      - dbus-avarex
+parts:
+  avarex:
+    source: .
+    plugin: flutter
+    flutter-target: lib/main.dart # The main entry-point file of the application

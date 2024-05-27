@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=AvareX
+Comment=Super Cool App that does everything
+Exec=AvareX
+Icon=${SNAP}/../assets/images/logo.png
+Terminal=false
+Type=Application
+Categories=Utilities;
