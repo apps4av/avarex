@@ -32,7 +32,7 @@ jobs:
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
 
-      -name: Build Snap Image
+      - name: Build Snap Image
         run: snapcraft
           
       - name: Archive Release
