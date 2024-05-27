@@ -127,112 +127,118 @@ class PlanScreenState extends State<PlanScreen> {
             ), // heading for dist, time etc.
             Expanded(flex: 5, child: ReorderableListView(
               scrollDirection: Axis.vertical,
+              buildDefaultDragHandles: false,
               children: <Widget>[
                 for(int index = 0; index < route.length; index++)
-                  Dismissible( // able to delete with swipe
-                    background: Container(alignment:
-                    Alignment.centerRight,child: const Icon(Icons.delete_forever),),
-                    key: Key(Storage().getKey()),
-                    direction: DismissDirection.endToStart,
-                    onDismissed:(direction) {
+                ReorderableDelayedDragStartListener(
+                  index: index,
+                  key: Key(index.toString()),
+                  child: GestureDetector(child:
+                    Dismissible( // able to delete with swipe
+                      background: Container(alignment:
+                      Alignment.centerRight,child: const Icon(Icons.delete_forever),),
+                      key: Key(Storage().getKey()),
+                      direction: DismissDirection.endToStart,
+                      onDismissed:(direction) {
+                        setState(() {
+                          route.removeWaypointAt(index);
+                        });
+                      },
+                      child: ValueListenableBuilder<int>( // update in plan change
+                        valueListenable: route.change,
+                        builder: (context, value, _) {
+                          return PlanItemWidget(
+                            waypoint: route.getWaypointAt(index),
+                            current: route.isCurrent(index),
+                            onTap: () {
+                              setState(() {
+                                Storage().route.setCurrentWaypoint(index);
+                              });
+                            },
+                          );
+                       },
+                    )
+                  ))),
+                ],
+                onReorder: (int oldIndex, int newIndex) {
+                  setState(() {
+                    if (oldIndex < newIndex) {
+                      newIndex -= 1;
+                    }
+                    route.moveWaypoint(oldIndex, newIndex);
+                  });
+                })
+              ),
+              Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(
+                children:[ // header
+                  TextButton(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        useSafeArea: true,
+                        showDragHandle: true,
+                        isScrollControlled: true,
+                        builder: (BuildContext context) {
+                          return _makeContent();
+                        },
+                      ).then((value) => setState(() {})); // this is important so if modal changes plan then we update it here
+                    },
+                    child: const Text("Actions"),),
+                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                    isExpanded: false,
+                    isDense: true,
+                    value: Storage().settings.getTas().toString(),
+                    items: [
+                      for(int speed = 10; speed <= 500; speed+=10)
+                        DropdownMenuItem<String>(value : speed.toString(), child: Text("${speed}KT", style: const TextStyle(fontSize: 12)))
+                    ],
+                    onChanged: (value) {
                       setState(() {
-                        route.removeWaypointAt(index);
+                        Storage().settings.setTas(int.parse(value ?? Storage().settings.getTas().toString()));
                       });
                     },
-                    child: ValueListenableBuilder<int>( // update in plan change
-                      valueListenable: route.change,
-                      builder: (context, value, _) {
-                        return PlanItemWidget(
-                          waypoint: route.getWaypointAt(index),
-                          current: route.isCurrent(index),
-                          onTap: () {
-                            setState(() {
-                              Storage().route.setCurrentWaypoint(index);
-                            });
-                          },
-                        );
-                     },
-                  )
-                ),
-              ],
-              onReorder: (int oldIndex, int newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  route.moveWaypoint(oldIndex, newIndex);
-                });
-              })
-            ),
-            Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(
-              children:[ // header
-                TextButton(
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      useSafeArea: true,
-                      showDragHandle: true,
-                      isScrollControlled: true,
-                      builder: (BuildContext context) {
-                        return _makeContent();
-                      },
-                    ).then((value) => setState(() {})); // this is important so if modal changes plan then we update it here
-                  },
-                  child: const Text("Actions"),),
-                DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                  isExpanded: false,
-                  isDense: true,
-                  value: Storage().settings.getTas().toString(),
-                  items: [
-                    for(int speed = 10; speed <= 500; speed+=10)
-                      DropdownMenuItem<String>(value : speed.toString(), child: Text("${speed}KT", style: const TextStyle(fontSize: 12)))
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      Storage().settings.setTas(int.parse(value ?? Storage().settings.getTas().toString()));
-                    });
-                  },
-                )),
-                DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                  isExpanded: false,
-                  isDense: true,
-                  value: Storage().settings.getFuelBurn().toString(),
-                  items: [
-                    for(int fuel = 1; fuel < 100; fuel++)
-                      DropdownMenuItem<String>(value : fuel.toString(), child: Text("${fuel}GPH", style: const TextStyle(fontSize: 12)))
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      Storage().settings.setFuelBurn(int.parse(value ?? Storage().settings.getFuelBurn().toString()));
-                    });
-                  },
-                )),
-                DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                  isExpanded: false,
-                  isDense: true,
-                  value: Storage().route.altitude,
-                  items: [
-                    for(int altitude = 3000; altitude <= 30000; altitude += 500)
-                      DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft", style: const TextStyle(fontSize: 12)))
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      Storage().route.altitude = value?? "3000";
-                    });
-                  },
-                )),
-                IconButton(icon: const Icon(Icons.height), onPressed:() {
-                  showDialog(context: context,
-                    builder: (BuildContext context) => Dialog.fullscreen(
-                      child: FutureBuilder(
-                        future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
-                        builder: (context, snapshot) {
-                          return _makeAltitudeDiagram(snapshot.data);
-                        }
-                    )));
-                }),
-              ]
-            )))
+                  )),
+                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                    isExpanded: false,
+                    isDense: true,
+                    value: Storage().settings.getFuelBurn().toString(),
+                    items: [
+                      for(int fuel = 1; fuel < 100; fuel++)
+                        DropdownMenuItem<String>(value : fuel.toString(), child: Text("${fuel}GPH", style: const TextStyle(fontSize: 12)))
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        Storage().settings.setFuelBurn(int.parse(value ?? Storage().settings.getFuelBurn().toString()));
+                      });
+                    },
+                  )),
+                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                    isExpanded: false,
+                    isDense: true,
+                    value: Storage().route.altitude,
+                    items: [
+                      for(int altitude = 3000; altitude <= 30000; altitude += 500)
+                        DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft", style: const TextStyle(fontSize: 12)))
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        Storage().route.altitude = value?? "3000";
+                      });
+                    },
+                  )),
+                  IconButton(icon: const Icon(Icons.height), onPressed:() {
+                    showDialog(context: context,
+                      builder: (BuildContext context) => Dialog.fullscreen(
+                        child: FutureBuilder(
+                          future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
+                          builder: (context, snapshot) {
+                            return _makeAltitudeDiagram(snapshot.data);
+                          }
+                      )));
+                  }),
+                ]
+              )
+            ))
           ]
         )
       ]
