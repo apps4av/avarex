@@ -23,6 +23,12 @@ apps:
       - dbus-avarex
 parts:
   avarex:
+    
+    override-pull: |
+      set -eux
+      rm -rf $SNAPCRAFT_PROJECT_DIR/build
+      snapcraftctl pull
+      
     source: .
     plugin: flutter
     flutter-target: lib/main.dart # The main entry-point file of the application
