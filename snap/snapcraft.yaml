@@ -7,20 +7,14 @@ confinement: strict
 base: core22
 grade: stable
 
-slots:
-  dbus-super-cool-app: # adjust accordingly to your app name
-    interface: dbus
-    bus: session
-    name: com.apps4av.avarex # adjust accordingly to your app name and
-    
 apps:
   avarex:
     command: AvareX 
     extensions: [gnome] # gnome includes the libraries required by flutter
     plugs:
-    - network
-    slots:
-      - dbus-avarex
+      - network
+      - location-observe
+ 
 parts:
   avarex:
     
