@@ -166,7 +166,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         PageViewModel(
           title: "File Flight Plans",
           bodyWidget: Column(children:[
-            const Text("You may register with Apps4Av Inc. here to file flight plans with the FAA (1800wxbrief.com). You must create an account with 1800wxbrief.com to use this service."),
+            const Text("You may optionally choose to register with Apps4Av Inc. here to file flight plans with the FAA (1800wxbrief.com). Use the same email ID that you use at 1800wxbrief.com."),
             const Padding(padding: EdgeInsets.all(10)),
             TextFormField(
                 onChanged: (value) {

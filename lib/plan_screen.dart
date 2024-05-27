@@ -119,7 +119,7 @@ class PlanScreenState extends State<PlanScreen> {
                 builder: (context, value, _) {
                   return ListTile( // header
                     key: Key(Storage().getKey()),
-                    leading: const Icon(Icons.summarize_outlined),
+                    leading: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To delete a waypoint, swipe it left.\nTo move a waypoint up/down, long press to grab and move it.", child: Icon(Icons.info)),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
                 }
@@ -252,8 +252,10 @@ class PlanScreenState extends State<PlanScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    double square = Constants.isPortrait(context) ? Constants.screenWidth(context) : Constants.screenHeight(context);
+
     return Stack(children:[
-      SizedBox(width : Constants.screenWidth(context), height : Constants.screenHeight(context), child: AltitudeProfile.makeChart(data)),
+      Padding(padding: const EdgeInsets.all(10), child: SizedBox(width : square, height : square, child: AltitudeProfile.makeChart(data))),
       Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white))),
     ]
     );
