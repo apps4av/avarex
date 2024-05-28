@@ -119,7 +119,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
               child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
             )),
             if(signed)
-              const Text("You have signed this document.", style: TextStyle(color: Colors.yellow, backgroundColor: Colors.black),)
+              const Text("You have signed this document. Please continue on to the next screen.", style: TextStyle(color: Colors.yellow, backgroundColor: Colors.black),)
             else
               const Text("You have not signed this document.", style: TextStyle(color: Colors.red, backgroundColor: Colors.black),)
           ]),
@@ -176,7 +176,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: '1800wxbrief.com Username / Email')
             ),
             const Padding(padding: EdgeInsets.all(20)),
-              Row(children: [
+            if(Storage().settings.getEmail().isEmpty)
               TextButton(onPressed: () {
                 LmfsInterface interface = LmfsInterface();
                 setState(() {
@@ -190,6 +190,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
                 }); // now register with mongodb
                 },
                 child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
+            if(Storage().settings.getEmail().isNotEmpty)
               TextButton(onPressed: () {
                 LmfsInterface interface = LmfsInterface();
                 setState(() {
@@ -202,9 +203,8 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
                   });
                 });
               }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
-              Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
-              ]),
-            ]),
+             Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
+          ]),
           decoration: pageDecoration,
         ),
         PageViewModel(
