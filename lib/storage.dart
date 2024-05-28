@@ -257,7 +257,11 @@ class Storage {
   Future<void> init() async {
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
-    await WakelockPlus.enable(); // keep screen on
+    try {
+      WakelockPlus.enable(); // keep screen on
+    }
+    catch(e) {
+    }
     // ask for GPS permission
     await _gps.isPermissionDenied();
     position = await Gps().getLastPosition();
