@@ -20,7 +20,7 @@ To run on MacOS, you must Ctrl-Click on the app, then run from the options. Othe
 
 ** Linux
 
-To run on Linux, you must install sqlite3 library on your Linux system.
+Download on Linux using Snap Store.
 
 ** iOS
 
