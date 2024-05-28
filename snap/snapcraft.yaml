@@ -17,8 +17,16 @@ apps:
       - location-observe
       - network-bind
       - home
+      - audio-playback
  
 parts:
+
+  # for file import
+  zenity-integration:
+    plugin: nil
+    stage-snaps:
+      - zenity-integration
+
   avarex:
     
     override-pull: |
