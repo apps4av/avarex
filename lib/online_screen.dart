@@ -1,3 +1,5 @@
+import 'package:avaremp/progress_button_message_input_widget.dart';
+import 'package:avaremp/progress_button_message_widget.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'constants.dart';
@@ -9,11 +11,6 @@ class OnlineScreen extends StatefulWidget {
 }
 
 class OnlineScreenState extends State<OnlineScreen> {
-
-  bool _visibleProgressLogin = false;
-  bool _visibleProgressLogout = false;
-  bool _visibleProgressRegister = false;
-  bool _visibleProgressResetPassword = false;
 
   @override
   Widget build(BuildContext context) {
@@ -28,137 +25,47 @@ class OnlineScreenState extends State<OnlineScreen> {
     Widget widget = SingleChildScrollView(child:Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(loggedIn ? "Logged In" : "Sign In", style: const TextStyle(fontSize: 20),),
         const Padding(padding: EdgeInsets.all(20)),
         if(!loggedIn)
-          TextFormField(
-              onChanged: (value) {
-                email = value;
-              },
-              controller: TextEditingController()..text = email,
-              decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Email')
-          ),
+          ProgressButtonMessageInputWidget("Sign In", "Email", email, "Password", password, "Login", Storage().userRealmHelper.login, (value) {
+            if(value) setState(() {});
+          }, ""),
+        if(loggedIn)
+          ProgressButtonMessageWidget("You are logged in as $email, and your data is backed up automatically when Internet connection is available.", "Logout", Storage().userRealmHelper.logout, const [], (value) {
+            if(value) setState(() {});
+          }, ""),
         if(!loggedIn)
-          TextFormField(
-              obscureText: true,
-              onChanged: (value) {
-                password = value;
-              },
-              controller: TextEditingController()..text = password,
-              decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Password')
-          ),
-        if(Storage().userRealmHelper.failedLoginMessage.isNotEmpty)
-          Text(Storage().userRealmHelper.failedLoginMessage, style: const TextStyle(color: Colors.red)),
-        if(Storage().userRealmHelper.failedRegisterMessage.isNotEmpty)
-          Text(Storage().userRealmHelper.failedRegisterMessage, style: const TextStyle(color: Colors.red)),
-          if(!loggedIn)
-            Row(children: [TextButton(
-                onPressed: () {
-                  setState(() {
-                    _visibleProgressLogin = true;
-                  });
-                  Storage().userRealmHelper.saveCredentials(email, password);
-                  Storage().userRealmHelper.login(email, password).then((value) => setState(() {
-                    _visibleProgressLogin = false;
-                  }));
-                },
-                child: const Text("Login")),
-              Visibility(visible: _visibleProgressLogin, child: const CircularProgressIndicator())
-            ]),
-          if(loggedIn)
-            Text("You are currently logged in as $email, and your data is backed up automatically when Internet connection is available.\nTo delete this account, along with the app's backed up data, send an email to apps4av@gmail.com, with Subject 'Delete Account'."),
-          if(loggedIn)
-            Row(children: [TextButton(
-                onPressed: () {
-                  setState(() {
-                    _visibleProgressLogout = true;
-                  });
-                  Storage().userRealmHelper.logout().then((value) => setState(() {
-                    _visibleProgressLogout = false;
-                  }));
-                },
-                child: const Text("Logout")),
-              Visibility(visible: _visibleProgressLogout, child: const CircularProgressIndicator())
-            ]),
-        const Padding(padding: EdgeInsets.all(10)),
-        if(!loggedIn)
-          const Text("Forgot password?"),
-        if(!loggedIn)
-          Row(children: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _visibleProgressResetPassword = true;
-                });
-                Storage().userRealmHelper.resetPasswordRequest(email).then((value) {
-                  setState(() {
-                    String newPassword = "";
-                    String passwordResetCode = "";
-                    _visibleProgressResetPassword = false;
-                    showDialog<String>(
-                      context: context,
-                      builder: (BuildContext context) => Dialog.fullscreen(
-                          child: Stack(children:[
-                            Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
-                              child:Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("The request to reset your password has been sent. Check your email for the password reset code. Enter a new password, and the password reset code here then press Submit to reset your password."),
-                                  TextFormField(
-                                    obscureText: true,
-                                    onChanged: (value) {
-                                      newPassword = value;
-                                    },
-                                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'New password')
-                                  ),
+          ProgressButtonMessageWidget("Do not have a backup account yet?", "Register", Storage().userRealmHelper.registerUser, [email, password], null, "Successfully Registered $email."),
 
-                                  TextFormField(
-                                    onChanged: (value) {
-                                      passwordResetCode = value;
-                                    },
-                                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Password reset code')
-                                  ),
-
-                                  TextButton(
-                                    onPressed: () {
-                                      Storage().userRealmHelper.resetPassword(newPassword, passwordResetCode).then((value) {
-                                        if(value) {
-                                          Navigator.pop(context);
-                                        }
-                                      }); // now register with mongodb
-                                    },
-                                    child: const Text('Submit'),
-                                  ),
-                                ],
-                              )
-                          ),
-                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
-                        ])
-                      )
-                    );
-                });
-              }); // now show dialog
-
-              }, child: const Text("Reset Password")),
-            Visibility(visible: _visibleProgressResetPassword, child: const CircularProgressIndicator()),
-          ]),
-        const Padding(padding: EdgeInsets.all(10)),
         if(!loggedIn)
-          const Text("Do not have a backup account yet?"),
-        if(!loggedIn)
-          Row(children: [TextButton(
-            onPressed: () {
-              setState(() {
-                _visibleProgressRegister = true;
-              });
-              Storage().userRealmHelper.registerUser(email, password).then((value) {
-                setState(() {
-                  _visibleProgressRegister = false;
-                });
-              }); // now register with mongodb
-            }, child: const Text("Register")),
-          Visibility(visible: _visibleProgressRegister, child: const CircularProgressIndicator()),
-        ]),
+          ProgressButtonMessageWidget("Forgot Password?", "Reset Password", Storage().userRealmHelper.resetPasswordRequest, [email], (value) {
+            if(value) {
+              showDialog<String>(
+                context: context,
+                builder: (BuildContext context) =>
+                  Dialog.fullscreen(
+                    child: Stack(children:[
+                        Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
+                        child:ProgressButtonMessageInputWidget(
+                          "The request to reset your password has been sent. Check your email for the password reset code. Enter the password reset code a new password here then press Submit to reset your password.", "Password Reset Code", "", "New Password", "", "Submit", Storage().userRealmHelper.resetPassword,
+                            (value) {
+                              if(value) {
+                                setState(() {});
+                                Navigator.pop(context);
+                              }
+                            }, "Your password has been reset.")
+                        ),
+                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                      ])
+                  )
+              );
+            }
+          }, ""),
+
+        // can only delete account if logged in
+        if(loggedIn)
+          ProgressButtonMessageInputWidget("To delete this account, enter your password and press Submit.", "Email", email, "Password", "", "Submit", Storage().userRealmHelper.deleteAccount,
+          (value) {}, "Your account has been deleted."),
       ],
     ));
 

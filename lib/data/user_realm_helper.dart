@@ -25,8 +25,6 @@ class UserRealmHelper {
     UserChecklist.schema,
   ];
 
-  String failedLoginMessage = "";
-  String failedRegisterMessage = "";
 
   String _getUserId() {
     User? usr = _user;
@@ -34,24 +32,6 @@ class UserRealmHelper {
   }
 
   final _app = App(AppConfiguration('avarexsync-vhshs', maxConnectionTimeout: const Duration(seconds: 10)));
-
-  Future<void> registerUser(String email, String password) async {
-    failedRegisterMessage = "";
-    failedLoginMessage = "";
-    EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
-    try {
-      await authProvider.registerUser(email, password);
-      failedRegisterMessage = "";
-    }
-    catch(e) {
-      if(e.toString().contains("status code: 409")) {
-        failedRegisterMessage = "User $email is already registered.";
-      }
-      else {
-        failedRegisterMessage = "Unable to register with the server. Please check your internet connection.";
-      }
-    }
-  }
 
   (String, String) loadCredentials() {
     return (Storage().settings.getEmailBackup(), Storage().settings.getPasswordBackup());
@@ -67,41 +47,90 @@ class UserRealmHelper {
     Storage().settings.setPasswordBackup("");
   }
 
-  Future<void> resetPasswordRequest(String email) async {
+  //////////////////////////////////////////////////////////////////////////
+
+  Future<String> registerUser(List<String> args) async {
+    String email = args[0];
+    String password = args[1];
+    String failedRegisterMessage = "";
     EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
-    await authProvider.resetPassword(email);
+    try {
+      await authProvider.registerUser(email, password);
+      failedRegisterMessage = "";
+    }
+    catch(e) {
+      if(e.toString().contains("status code: 409")) {
+        failedRegisterMessage = "User $email is already registered.";
+      }
+      else {
+        failedRegisterMessage = "Unable to register with the server. Please check your internet connection.";
+      }
+    }
+    return failedRegisterMessage;
   }
 
-  Future<bool> resetPassword(String newPassword, String code) async {
+  Future<String> resetPasswordRequest(List<String> args) async {
+    String email = args[0];
+    String failedPasswordResetMessage = "";
+    EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
+    try {
+      await authProvider.resetPassword(email);
+    }
+    catch(e) {
+      failedPasswordResetMessage = "Unable to reset password. Check your email address and password.";
+    }
+    return failedPasswordResetMessage;
+  }
+
+  Future<String> resetPassword(List<String> args) async {
+    String code = args[0];
+    String newPassword = args[1];
+    String failedPasswordResetMessage = "";
     List<String> tokens = code.split("_"); // split on _
     if(tokens.length != 2) {
-      return false;
+      failedPasswordResetMessage = "Invalid reset code. Please check your email for the correct code.";
+      return failedPasswordResetMessage;
     }
     EmailPasswordAuthProvider authProvider = EmailPasswordAuthProvider(_app);
     await authProvider.completeResetPassword(newPassword, tokens[0], tokens[1]);
 
-    return true;
+    return failedPasswordResetMessage;
   }
 
-  Future<void> logout() async {
+  Future<String> deleteAccount(List<String>args) async {
+    String password = args[0];
+    String failedDeleteMessage = "";
+    if(password != Storage().settings.getPasswordBackup()) {
+      failedDeleteMessage = "Password does not match the password of the account you are deleting.";
+      return failedDeleteMessage;
+    }
+    if(_user == null) {
+      failedDeleteMessage = "No user exists.";
+      return failedDeleteMessage;
+    }
+    await _app.deleteUser(_user!);
+    return failedDeleteMessage;
+  }
+
+  Future<String> logout(List<String> args) async {
     await _app.currentUser?.logOut();
     _realm?.close();
     _realm = null;
     _user = null;
     loggedIn = false;
-    failedLoginMessage = "";
-    failedRegisterMessage = "";
 
     // go back to local
     Configuration config;
     config = Configuration.local(objects);
     _realm = Realm(config); // start with local
+    return "";
   }
 
-  Future<void> login(String username, String password) async {
+  Future<String> login(List<String> args) async {
+    String username = args[0];
+    String password = args[1];
 
-    failedRegisterMessage = "";
-    failedLoginMessage = "";
+    String failedLoginMessage = "";
     if(loggedIn) { // if logged in do not try again
       failedLoginMessage = "User $username already logged in";
     }
@@ -163,8 +192,10 @@ class UserRealmHelper {
         }
       }
     }
+    return failedLoginMessage;
   }
 
+  //////////////////////////////////////////////////////////////////////////
   void deleteRecent(Destination destination) {
     if(null == _realm) {
       return;
@@ -424,6 +455,7 @@ class UserRealmHelper {
     List<String> steps = List<String>.from(jsonDecode(c.steps));
     return Checklist(c.name, c.aircraft, steps);
   }
+
 
 }
 

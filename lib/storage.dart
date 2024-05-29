@@ -281,7 +281,7 @@ class Storage {
     String username;
     String password;
     (username, password) = userRealmHelper.loadCredentials();
-    userRealmHelper.login(username, password);
+    userRealmHelper.login([username, password]);
     await weatherRealmHelper.init();
     await checkChartsExist();
     await checkDataExpiry();
