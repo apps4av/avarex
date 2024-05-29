@@ -66,7 +66,7 @@ class OnlineScreenState extends State<OnlineScreen> {
               Visibility(visible: _visibleProgressLogin, child: const CircularProgressIndicator())
             ]),
           if(loggedIn)
-            Text("You are currently logged in as $email, and your data is backed up automatically when Internet connection is available."),
+            Text("You are currently logged in as $email, and your data is backed up automatically when Internet connection is available.\nTo delete this account, along with the app's backed up data, send an email to apps4av@gmail.com, with Subject 'Delete Account'."),
           if(loggedIn)
             Row(children: [TextButton(
                 onPressed: () {

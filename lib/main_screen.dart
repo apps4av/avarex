@@ -69,7 +69,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   @override
   Widget build(BuildContext context) {
 
-    bool apple = (Platform.isMacOS || Platform.isMacOS);
+    bool apple = (Platform.isIOS || Platform.isMacOS);
 
     return Scaffold(
       appBar: AppBar(toolbarHeight: 0,), // no appbar needed but use it for safe area
@@ -99,11 +99,15 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                 },
               ),
               leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
-            ListTile(
-              // this is apple issue. They do not allow donation links in the app
-              title: Text(apple? "Apps4Av" : "Donate", style: const TextStyle(decoration: TextDecoration.underline),),
-              // this is apple issue. They do not allow donation links in the app
-              onTap: () { launchUrl(Uri.parse(apple ? "https://www.apps4av.com/" : "https://www.apps4av.com/donate.html"));},),
+            if(!apple)
+              ListTile(
+                // this is apple issue. They do not allow donation links in the app
+                title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
+                // this is apple issue. They do not allow donation links in the app
+                onTap: () {
+                  launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));
+                },
+              ),
             ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () => Navigator.pushNamed(context, '/download'), dense: true,),
             ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),
             ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () => Navigator.pushNamed(context, '/aircraft'), dense: true,),

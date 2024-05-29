@@ -209,7 +209,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         ),
         PageViewModel(
           title: "Join the Forum",
-          bodyWidget: const Text("For 24/7 help, join our forum\n\napps4av-forum@googlegroups.com."),
+          bodyWidget: const SelectableText("For 24/7 help, join our forum\n\nhttps://groups.google.com/g/apps4av-forum"),
           image: _buildImage('forum.png'),
           decoration: pageDecoration,
         ),
