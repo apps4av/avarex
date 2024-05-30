@@ -16,7 +16,7 @@ Download on Windows using Microsoft Store.
 
 ** MacOS
 
-To run on MacOS, you must Ctrl-Click on the app, then run from the options. Otherwise It will be declined with a security warning.
+Download on Apple App Store from your Mac with Apple Silicon.
 
 ** Linux
 
@@ -29,3 +29,19 @@ Download on Apple App Store from your iPhone or iPad.
 ** Android
 
 Download on Google Play Store from your Android device.
+
+## Store Locations
+
+Google / Android : https://play.google.com/store/apps/details?id=com.apps4av.avaremp
+iOS, MacOS: https://apps.apple.com/us/app/avarex/id6502421523
+Linux: https://snapcraft.io/avarex
+Windows: https://apps.microsoft.com/detail/9mx4hkl30mww?hl=en-us&gl=US
+
+## Building:
+
+Github Actions builds all store builds.
+Microsoft version scheme: pubspec.yaml (versions go like 1.0.9.0, last digit must be 0)
+Apple version scheme: pubspec.yaml 0.0.9+9
+Google version scheme: pubspec.yaml 0.0.9+9  (+9) is what shows up in the package)
+Snap version shceme: snap/snapcraft.yaml 0.0.9
+
