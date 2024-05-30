@@ -27,15 +27,45 @@ class OnlineScreenState extends State<OnlineScreen> {
       children: [
         const Padding(padding: EdgeInsets.all(20)),
         if(!loggedIn)
-          ProgressButtonMessageInputWidget("Sign In", "Email", email, "Password", password, "Login", Storage().userRealmHelper.login, (value) {
-            if(value) setState(() {});
+          ProgressButtonMessageInputWidget("Sign In", "Email", email, "Password", password, "Login", Storage().userRealmHelper.login, (result, input1, input2) {
+            Storage().settings.setEmailBackup(input1);
+            Storage().settings.setPasswordBackup(input2);
+            if(result) {
+              setState(() {
+              });
+            };
           }, ""),
         if(loggedIn)
           ProgressButtonMessageWidget("You are logged in as $email, and your data is backed up automatically when Internet connection is available.", "Logout", Storage().userRealmHelper.logout, const [], (value) {
             if(value) setState(() {});
           }, ""),
+
         if(!loggedIn)
-          ProgressButtonMessageWidget("Do not have a backup account yet?", "Register", Storage().userRealmHelper.registerUser, [email, password], null, "Successfully Registered $email."),
+          ProgressButtonMessageWidget("Do not have a backup account yet?", "Register", (args) {
+              showDialog<String>(
+                  context: context,
+                  builder: (BuildContext context) =>
+                      Dialog.fullscreen(
+                          child: Stack(children:[
+                            Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
+                                child:ProgressButtonMessageInputWidget(
+                                    "To register a new account, enter an email and password then press Submit.", "Email", email, "Password", password, "Submit", Storage().userRealmHelper.registerUser,
+                                        (result, input1, input2) {
+                                          if(result) {
+                                            setState(() {
+                                              Storage().settings.setEmailBackup(input1);
+                                              Storage().settings.setPasswordBackup(input2);
+                                            });
+                                          };
+                                        },
+                                    "You are now registered.")
+                            ),
+                            Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                          ])
+                      )
+              );
+              return Future(() => "");
+            }, const [], (value) {}, ""),
 
         if(!loggedIn)
           ProgressButtonMessageWidget("Forgot Password?", "Reset Password", Storage().userRealmHelper.resetPasswordRequest, [email], (value) {
@@ -47,11 +77,10 @@ class OnlineScreenState extends State<OnlineScreen> {
                     child: Stack(children:[
                         Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
                         child:ProgressButtonMessageInputWidget(
-                          "The request to reset your password has been sent. Check your email for the password reset code. Enter the password reset code a new password here then press Submit to reset your password.", "Password Reset Code", "", "New Password", "", "Submit", Storage().userRealmHelper.resetPassword,
-                            (value) {
-                              if(value) {
+                          "The request to reset your password has been sent to $email. Check your email for the password reset code. Enter the password reset code and a new password then press Submit to reset your password.", "Password Reset Code", "", "New Password", "", "Submit", Storage().userRealmHelper.resetPassword,
+                            (result, input1, input2) {
+                              if(result) {
                                 setState(() {});
-                                Navigator.pop(context);
                               }
                             }, "Your password has been reset.")
                         ),
@@ -64,8 +93,25 @@ class OnlineScreenState extends State<OnlineScreen> {
 
         // can only delete account if logged in
         if(loggedIn)
-          ProgressButtonMessageInputWidget("To delete this account, enter your password and press Submit.", "Email", email, "Password", "", "Submit", Storage().userRealmHelper.deleteAccount,
-          (value) {}, "Your account has been deleted."),
+
+          ProgressButtonMessageWidget("Do you want to delete the account?", "Proceed", (args) {
+            showDialog<String>(
+                context: context,
+                builder: (BuildContext context) =>
+                    Dialog.fullscreen(
+                        child: Stack(children:[
+                          Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
+                              child: ProgressButtonMessageInputWidget("To delete $email account, enter 'delete' in Confirm, enter password, then press Submit.", "Confirm", "", "Password", "", "Submit", Storage().userRealmHelper.deleteAccount,
+                                (result, input1, input2) {
+                                  Storage().userRealmHelper.logout([]).then((value) => setState(() {}));
+                                }, "Your account has been deleted."),
+                          ),
+                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                        ])
+                    )
+            );
+            return Future(() => "");
+          }, const [], (value) {}, ""),
       ],
     ));
 

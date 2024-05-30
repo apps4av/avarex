@@ -10,39 +10,35 @@ class ProgressButtonMessageInputWidget extends StatefulWidget {
   final String title;
   final String success;
   final Future<String> Function(List<String> args) onPressed;
-  final void Function(bool)? onComplete;
+  final void Function(bool, String, String)? onComplete;
 
-  bool progress = false;
-  String error = "";
-  Color color = Colors.red;
-  String input1 = "";
-  String input2 = "";
-
-  ProgressButtonMessageInputWidget(this.label, this.label1, this.init1, this.label2, this.init2, this.title, this.onPressed,  this.onComplete, this.success, {super.key}) {
-    input1 = init1;
-    input2 = init2;
-  }
+  const ProgressButtonMessageInputWidget(this.label, this.label1, this.init1, this.label2, this.init2, this.title, this.onPressed,  this.onComplete, this.success, {super.key});
 
   @override
   State<StatefulWidget> createState() => ProgressButtonMessageInputWidgetState();
 
 }
 
-
 class ProgressButtonMessageInputWidgetState extends State<ProgressButtonMessageInputWidget> {
+
+  bool progress = false;
+  String error = "";
+  Color color = Colors.red;
 
   @override
   Widget build(BuildContext context) {
+    String input1 = widget.init1;
+    String input2 = widget.init2;
 
     return Padding(padding: const EdgeInsets.all(10), child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
 
-        Text(widget.label, style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 18),),
+        Text(widget.label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),),
 
         TextFormField(
           onChanged: (value) {
-            widget.input1 = value;
+            input1 = value;
           },
           controller: TextEditingController()..text = widget.init1,
           decoration: InputDecoration(border: const UnderlineInputBorder(), labelText: widget.label1)
@@ -51,7 +47,7 @@ class ProgressButtonMessageInputWidgetState extends State<ProgressButtonMessageI
         TextFormField(
           obscureText: true,
           onChanged: (value) {
-            widget.input2 = value;
+           input2 = value;
           },
           controller: TextEditingController()..text = widget.init2,
           decoration: InputDecoration(border: const UnderlineInputBorder(), labelText: widget.label2)
@@ -61,27 +57,28 @@ class ProgressButtonMessageInputWidgetState extends State<ProgressButtonMessageI
           children: <Widget>[
             TextButton(onPressed: () {
               setState(() {
-                widget.error = "";
-                widget.progress = true;
-                widget.onPressed([widget.input1, widget.input2]).then((value) {
+                error = "";
+                progress = true;
+                widget.onPressed([input1, input2]).then((value) {
                   setState(() {
-                    widget.progress = false;
-                    widget.error = value;
-                    if(widget.error.isEmpty) {
-                      widget.color = Colors.green;
-                      widget.error = widget.success;
+                    progress = false;
+                    error = value;
+                    if(error.isEmpty) {
+                      color = Colors.green;
+                      error = widget.success;
                     }
                     if(widget.onComplete != null) {
-                      widget.onComplete!(value.isEmpty);
+                      // return success and new values
+                      widget.onComplete!(value.isEmpty, input1, input2);
                     }
                   });
                 });
               });
             }, child: Text(widget.title)),
-            Visibility(visible: widget.progress, child: const CircularProgressIndicator(),),
+            Visibility(visible: progress, child: const CircularProgressIndicator(),),
           ],
         ),
-        Text(widget.error, style: TextStyle(color: widget.color),),
+        Text(error, style: TextStyle(color: color),),
       ],
     ));
   }

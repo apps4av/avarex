@@ -9,11 +9,7 @@ class ProgressButtonMessageWidget extends StatefulWidget {
   final Future<String> Function(List<String> args) onPressed;
   final void Function(bool)? onComplete;
 
-  bool progress = false;
-  String error = "";
-  Color color = Colors.red;
-
-  ProgressButtonMessageWidget(this.label, this.title, this.onPressed,  this.args, this.onComplete, this.success, {super.key});
+  const ProgressButtonMessageWidget(this.label, this.title, this.onPressed,  this.args, this.onComplete, this.success, {super.key});
 
   @override
   State<StatefulWidget> createState() => ProgressButtonMessageWidgetState();
@@ -22,6 +18,9 @@ class ProgressButtonMessageWidget extends StatefulWidget {
 
 
 class ProgressButtonMessageWidgetState extends State<ProgressButtonMessageWidget> {
+  bool progress = false;
+  String error = "";
+  Color color = Colors.red;
 
   @override
   Widget build(BuildContext context) {
@@ -30,20 +29,20 @@ class ProgressButtonMessageWidgetState extends State<ProgressButtonMessageWidget
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
 
-        Text(widget.label, style: const TextStyle(fontStyle: FontStyle.italic, fontSize: 18),),
+        Text(widget.label, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         Row(
           children: <Widget>[
             TextButton(onPressed: () {
               setState(() {
-                widget.error = "";
-                widget.progress = true;
+                error = "";
+                progress = true;
                 widget.onPressed(widget.args).then((value) {
                   setState(() {
-                    widget.progress = false;
-                    widget.error = value;
-                    if(widget.error.isEmpty) {
-                      widget.color = Colors.green;
-                      widget.error = widget.success;
+                    progress = false;
+                    error = value;
+                    if(error.isEmpty) {
+                      color = Colors.green;
+                      error = widget.success;
                     }
                     if(widget.onComplete != null) {
                       widget.onComplete!(value.isEmpty);
@@ -52,10 +51,10 @@ class ProgressButtonMessageWidgetState extends State<ProgressButtonMessageWidget
                 });
               });
             }, child: Text(widget.title)),
-            Visibility(visible: widget.progress, child: const CircularProgressIndicator(),),
+            Visibility(visible: progress, child: const CircularProgressIndicator(),),
           ],
         ),
-        Text(widget.error, style: TextStyle(color: widget.color),),
+        Text(error, style: TextStyle(color: color),),
       ],
     ));
   }

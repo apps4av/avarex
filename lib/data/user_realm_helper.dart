@@ -98,8 +98,13 @@ class UserRealmHelper {
   }
 
   Future<String> deleteAccount(List<String>args) async {
-    String password = args[0];
+    String confirmation = args[0];
+    String password = args[1];
     String failedDeleteMessage = "";
+    if(confirmation != "delete") {
+      failedDeleteMessage = "Confirmation not received.";
+      return failedDeleteMessage;
+    }
     if(password != Storage().settings.getPasswordBackup()) {
       failedDeleteMessage = "Password does not match the password of the account you are deleting.";
       return failedDeleteMessage;
