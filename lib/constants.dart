@@ -54,6 +54,7 @@ class Constants {
 
   static Color appBarBackgroundColor = Colors.transparent;
   static Color instrumentBackgroundColor = Colors.black26.withAlpha(60);
+  static Color instrumentNoticeBackgroundColor = Colors.red;
   static Color waypointBackgroundColor = Colors.black26.withAlpha(156);
   static Color measureBackgroundColor = Colors.black26.withAlpha(156);
 

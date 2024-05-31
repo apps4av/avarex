@@ -46,6 +46,7 @@ import 'app_settings.dart';
 import 'data/db_general.dart';
 import 'data/weather_realm_helper.dart';
 import 'destination.dart';
+import 'flight_timer.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
 import 'data/main_database_helper.dart';
@@ -85,6 +86,8 @@ class Storage {
   GpsRecorder tracks = GpsRecorder();
   final UserRealmHelper userRealmHelper = UserRealmHelper();
   final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
+  late final FlightTimer flightTimer;
+  late final FlightTimer flightDownTimer;
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -255,6 +258,8 @@ class Storage {
   }
 
   Future<void> init() async {
+    flightTimer = FlightTimer(true, 0, timeChange);
+    flightDownTimer = FlightTimer(false, 3, timeChange); // 30 minute down timer
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
     try {

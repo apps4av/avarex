@@ -45,18 +45,18 @@ class InstrumentList extends StatefulWidget {
 class InstrumentListState extends State<InstrumentList> {
   static final DateFormat _hourMinuteFormatter = DateFormat('HH:mm');
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
+  final List<Color> _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Constants.instrumentBackgroundColor);
   String _gndSpeed = "0";
   String _altitude = "0";
   String _magneticHeading = "0\u00b0";
   String _timerUp = "00:00";
+  String _timerDown = "30:00";
   String _destination = "";
   String _bearing = "0\u00b0";
   String _distance = "";
   String _utc = "00:00";
   String _eta = "";
   String _ete = "";
-  int _countUp = 0;
-  bool _doCountUp = false;
   String _source = "";
 
   @override
@@ -209,10 +209,9 @@ class InstrumentListState extends State<InstrumentList> {
 
   void _timeListener() {
     setState(() {
-      _countUp = _doCountUp ? _countUp + 1 : _countUp;
-      Duration d = Duration(seconds: _countUp);
-      _timerUp = _truncate(d.toString().substring(2, 7));
-      
+      _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
+      _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
+      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Constants.instrumentNoticeBackgroundColor : Constants.instrumentBackgroundColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Int." : "Ext.";
     });
@@ -229,11 +228,31 @@ class InstrumentListState extends State<InstrumentList> {
 
   // up timer
   void _startUpTimer() {
-    _doCountUp = _doCountUp ? false : true;
-    _countUp = 0;
-    Duration d = Duration(seconds: _countUp);
+    if(Storage().flightTimer.isStarted()) {
+      Storage().flightTimer.stop();
+    }
+    else {
+      Storage().flightTimer.reset();
+      Storage().flightTimer.start();
+    }
     setState(() {
-      _timerUp = _truncate(d.toString().substring(2, 7));
+      _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
+    });
+  }
+
+  // down timer
+  void _startDownTimer() {
+
+    if(Storage().flightDownTimer.isStarted()) {
+      Storage().flightDownTimer.stop();
+    }
+    else {
+      Storage().flightDownTimer.reset();
+      Storage().flightDownTimer.start();
+    }
+    setState(() {
+      _itemsColors[_items.indexOf("DNT")] = Constants.instrumentBackgroundColor;
+      _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
     });
   }
 
@@ -281,6 +300,10 @@ class InstrumentListState extends State<InstrumentList> {
         value = _timerUp;
         cb = _startUpTimer;
         break;
+      case "DNT":
+        value = _timerDown;
+        cb = _startDownTimer;
+        break;
       case "SRC":
         value = _source;
         break;
@@ -293,7 +316,7 @@ class InstrumentListState extends State<InstrumentList> {
           onTap: cb,
           child: Container(
           width: width,
-          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: Constants.instrumentBackgroundColor),
+          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
             child: Column(
               children: [
                 Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 14), maxLines: 1,)),
@@ -307,6 +330,10 @@ class InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
+    // init everything
+    _gpsListener();
+    _routeListener();
+    _timeListener();
 
     // user can rearrange widgets
     return ReorderableListView(
