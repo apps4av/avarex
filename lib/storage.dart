@@ -259,7 +259,7 @@ class Storage {
 
   Future<void> init() async {
     flightTimer = FlightTimer(true, 0, timeChange);
-    flightDownTimer = FlightTimer(false, 3, timeChange); // 30 minute down timer
+    flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
     DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
     try {
