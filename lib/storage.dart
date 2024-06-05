@@ -153,18 +153,20 @@ class Storage {
     
     // GPS data receive
     // start both external and internal
-    _gpsStream = _gps.getStream();
-    _gpsStream?.onDone(() {
-    });
-    _gpsStream?.onError((obj){
-    });
-    _gpsStream?.onData((data) {
-      if(gpsInternal) {
-        _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-        _gpsStack.push(data);
-        tracks.add(data);
-      } // provide internal GPS when external is not available
-    });
+    if(!gpsDisabled) {
+      _gpsStream = _gps.getStream();
+      _gpsStream?.onDone(() {});
+      _gpsStream?.onError((obj) {});
+      _gpsStream?.onData((data) {
+        if (gpsInternal) {
+          _lastMsGpsSignal = DateTime
+              .now()
+              .millisecondsSinceEpoch; // update time when GPS signal was last received
+          _gpsStack.push(data);
+          tracks.add(data);
+        } // provide internal GPS when external is not available
+      });
+    }
 
     // GPS data receive
     _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);

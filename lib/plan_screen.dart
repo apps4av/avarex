@@ -119,7 +119,7 @@ class PlanScreenState extends State<PlanScreen> {
                 builder: (context, value, _) {
                   return ListTile( // header
                     key: Key(Storage().getKey()),
-                    leading: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To delete a waypoint, swipe it left.\nTo move a waypoint up/down, long press to grab and move it.", child: Icon(Icons.info)),
+                    leading: const Icon(Icons.summarize_outlined),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
                 }
@@ -226,7 +226,7 @@ class PlanScreenState extends State<PlanScreen> {
                       });
                     },
                   )),
-                  IconButton(icon: const Icon(Icons.height), onPressed:() {
+                  IconButton(icon: const Icon(Icons.show_chart), onPressed:() {
                     showDialog(context: context,
                       builder: (BuildContext context) => Dialog.fullscreen(
                         child: FutureBuilder(
@@ -236,6 +236,7 @@ class PlanScreenState extends State<PlanScreen> {
                           }
                       )));
                   }),
+                  const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To delete a waypoint, swipe it left.\nTo move a waypoint up/down, long press to grab and move it.", child: Icon(Icons.info)),
                 ]
               )
             ))
@@ -255,7 +256,8 @@ class PlanScreenState extends State<PlanScreen> {
     double square = Constants.isPortrait(context) ? Constants.screenWidth(context) : Constants.screenHeight(context);
 
     return Stack(children:[
-      Padding(padding: const EdgeInsets.all(10), child: SizedBox(width : square, height : square, child: AltitudeProfile.makeChart(data))),
+      const Align(alignment: Alignment.topLeft, child: Padding(padding: EdgeInsets.all(10), child:Text("Plan Altitude Profile"))),
+      Padding(padding: const EdgeInsets.all(20), child: SizedBox(width : square, height : square, child: AltitudeProfile.makeChart(data))),
       Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white))),
     ]
     );
