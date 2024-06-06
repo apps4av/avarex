@@ -10,7 +10,6 @@ import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'data/altitude_profile.dart';
 
 class PlanScreen extends StatefulWidget {

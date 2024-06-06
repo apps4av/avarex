@@ -1,6 +1,5 @@
 import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/plan_route.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/widgets.dart';
@@ -35,7 +34,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                 onChanged: (value)  {
                   _route = value;
                 },
-                initialValue: _route,
+                initialValue: _route.trim(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',)
               )
             ),
@@ -54,9 +53,11 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                       if(_getting) {
                         return;
                       }
-                      Storage().settings.setLastRouteEntry(_route);
+                      String input = _route.trim();
+
+                      Storage().settings.setLastRouteEntry(input);
                       setState(() {_getting = true;});
-                      PlanRoute.fromLine("New Plan", _route).then((value) {
+                      PlanRoute.fromLine("New Plan", input).then((value) {
                         Storage().route.copyFrom(value);
                         Storage().route.setCurrentWaypoint(0);
                         setState(() {_getting = false;});
@@ -67,12 +68,13 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                   PopupMenuItem<String>(
                     child: const Text('Create IFR Preferred Route'),
                     onTap: () {
+                      String input = _route.trim();
                       if(_getting) {
                         return;
                       }
-                      Storage().settings.setLastRouteEntry(_route);
+                      Storage().settings.setLastRouteEntry(input);
                       setState(() {_getting = true;});
-                      PlanRoute.fromPreferred("New Plan", _route, Storage().route.altitude, Storage().route.altitude).then((value) {
+                      PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude, Storage().route.altitude).then((value) {
                         Storage().route.copyFrom(value);
                         Storage().route.setCurrentWaypoint(0);
                         setState(() {_getting = false;});
@@ -86,10 +88,12 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                       if(_getting) {
                         return;
                       }
-                      Storage().settings.setLastRouteEntry(_route);
+                      String input = _route.trim();
+
+                      Storage().settings.setLastRouteEntry(input);
                       setState(() {_getting = true;});
                       LmfsInterface interface = LmfsInterface();
-                      List<String> wps = _route.split(" ");
+                      List<String> wps = input.split(" ");
                       if(wps.length < 2) {
                         setState(() {_getting = false;});
                         return;
