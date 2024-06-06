@@ -569,7 +569,7 @@ class MapScreenState extends State<MapScreen> {
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:
                       CircleAvatar(
-                          backgroundColor: Constants.instrumentBackgroundColor,
+                          backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("10", style: TextStyle(fontSize: 14,
                             color: Constants.instrumentsNormalValueColor,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
@@ -578,7 +578,7 @@ class MapScreenState extends State<MapScreen> {
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:
                       CircleAvatar(
-                          backgroundColor: Constants.instrumentBackgroundColor,
+                          backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("5", style: TextStyle(fontSize: 14,
                             color: Constants.instrumentsNormalValueColor,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
@@ -587,7 +587,7 @@ class MapScreenState extends State<MapScreen> {
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:
                       CircleAvatar(
-                          backgroundColor: Constants.instrumentBackgroundColor,
+                          backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("2", style: TextStyle(fontSize: 14,
                             color: Constants.instrumentsNormalValueColor,),)))),
                 ],

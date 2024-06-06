@@ -56,16 +56,16 @@ class WindsCache extends WeatherCache {
         continue;
       }
       try {
-        String station = line.substring(0, 3);
-        String k3 = line.substring(4, 8);
-        String k6 = line.substring(9, 16);
-        String k9 = line.substring(17, 24);
-        String k12 = line.substring(25, 32);
-        String k18 = line.substring(33, 40);
-        String k24 = line.substring(41, 48);
-        String k30 = line.substring(49, 55);
-        String k34 = line.substring(56, 62);
-        String k39 = line.substring(63, 69);
+        String station = line.substring(0, 3).trim();
+        String k3 = line.substring(4, 8).trim();
+        String k6 = line.substring(9, 16).trim();
+        String k9 = line.substring(17, 24).trim();
+        String k12 = line.substring(25, 32).trim();
+        String k18 = line.substring(33, 40).trim();
+        String k24 = line.substring(41, 48).trim();
+        String k30 = line.substring(49, 55).trim();
+        String k34 = line.substring(56, 62).trim();
+        String k39 = line.substring(63, 69).trim();
         LatLng? coordinate = _stationMap[station];
         if(coordinate == null) {
           continue; // not recognized need this

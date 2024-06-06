@@ -180,7 +180,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
     int? saaPage;
     int? windsPage;
     Weather? winds;
-    String? station = WindsCache.locateNearestStation(ll);
+    String? station = WindsCache.locateNearestStation(widget.destination.coordinate);
     if(station != null) {
       winds = Storage().winds.get(station);
     }

@@ -213,16 +213,15 @@ class WindsAloft extends Weather {
 
   @override
   toString() {
-    String wind = "Winds - $station\n\n";
+    DateTime zulu = expires.toUtc(); // winds in Zulu time
+    // boilerplate
+    String wind = "Winds - $station (Temps negative above 24000)\nValid till ${zulu.hour.toString().padLeft(2, "0")}00Z\n\n";
     for(double altitude = 3000; altitude < 42000; altitude += 3000) {
       double? speed;
       double? dir;
       (dir, speed) = getWindAtAltitude(altitude);
-      if(speed == null || dir == null) {
-        wind += "N/A\n";
-        break;
-      }
-      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir.round().toString().padLeft(3, "0")}\u00b0 ${speed.round()}KT (${getWindAtAltitudeRaw(altitude.round())})\n";
+      // show dir, speed, and actual string for every 3000ft
+      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir == null ? "" : "${dir.round().toString().padLeft(3, "0")}\u00b0"} ${speed == null ? "" : "${speed.round()}KT"} (${getWindAtAltitudeRaw(altitude.round())})\n";
     }
     return wind;
   }
