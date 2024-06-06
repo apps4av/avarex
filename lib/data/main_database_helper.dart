@@ -34,6 +34,21 @@ class MainDatabaseHelper {
       await openDatabase(path, onOpen: (db) {});
   }
 
+  Future<List<LatLng>> findObstacles(LatLng point, double altitude) async {
+    final db = await database;
+    if (db != null) {
+      String qry = "select ARPLatitude, ARPLongitude, Height from obs where (Height > ${altitude - 200}) and (ARPLatitude > ${point.latitude - 0.4}) and (ARPLatitude < ${point.latitude + 0.4}) and (ARPLongitude > ${point.longitude - 0.4}) and (ARPLongitude < ${point.longitude + 0.4})";
+      return db.rawQuery(qry).then((maps) {
+        return List.generate(maps.length, (i) {
+          return LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double);
+        });
+      });
+    }
+
+    return [];
+
+  }
+
   Future<List<Destination>> findDestinations(String match) async {
     List<Map<String, dynamic>> maps = [];
     List<Map<String, dynamic>> mapsAirways = [];

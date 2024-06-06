@@ -505,47 +505,102 @@ class MapScreenState extends State<MapScreen> {
       );
     }
 
-    lIndex = _layers.indexOf('Nav');
-    if(_layersState[lIndex]) {
-      layers.add( // circle layer
-        ValueListenableBuilder<Position>(
-          valueListenable: Storage().gpsChange,
-          builder: (context, value, _) {
-            return CircleLayer(
-              circles: [
-                // 10 nm circle
-                CircleMarker(
-                  borderStrokeWidth: 3,
-                  borderColor: Constants.distanceCircleColor,
-                  color: Colors.transparent,
-                  radius: Constants.nmToM(10), // 10 nm circle
-                  useRadiusInMeter: true,
-                  point: Gps.toLatLng(value),
-                ),
-                CircleMarker(
-                  borderStrokeWidth: 3,
-                  borderColor: Constants.distanceCircleColor,
-                  color: Colors.transparent,
-                  radius: Constants.nmToM(15), // 15 nm circle
-                  useRadiusInMeter: true,
-                  point: Gps.toLatLng(value),
-                ),
-                // speed marker
-                CircleMarker(
-                  borderStrokeWidth: 3,
-                  borderColor: Constants.speedCircleColor,
-                  color: Colors.transparent,
-                  radius: value.speed * 60, // 1 minute speed
-                  useRadiusInMeter: true,
-                  point: Gps.toLatLng(value),
-                ),
-              ],
-            );
-          },
-        ),
-      );
+    lIndex = _layers.indexOf('Circles');
+      if(_layersState[lIndex]) {
+        layers.add( // circle layer
+          ValueListenableBuilder<Position>(
+            valueListenable: Storage().gpsChange,
+            builder: (context, value, _) {
+              return CircleLayer(
+                circles: [
+                  // 10 nm circle
+                  CircleMarker(
+                    borderStrokeWidth: 3,
+                    borderColor: Constants.distanceCircleColor,
+                    color: Colors.transparent,
+                    radius: Constants.nmToM(10),
+                    // 10 nm circle
+                    useRadiusInMeter: true,
+                    point: Gps.toLatLng(value),
+                  ),
+                  CircleMarker(
+                    borderStrokeWidth: 3,
+                    borderColor: Constants.distanceCircleColor,
+                    color: Colors.transparent,
+                    radius: Constants.nmToM(5),
+                    // 15 nm circle
+                    useRadiusInMeter: true,
+                    point: Gps.toLatLng(value),
+                  ),
+                  CircleMarker(
+                    borderStrokeWidth: 3,
+                    borderColor: Constants.distanceCircleColor,
+                    color: Colors.transparent,
+                    radius: Constants.nmToM(2),
+                    // 10 nm circle
+                    useRadiusInMeter: true,
+                    point: Gps.toLatLng(value),
+                  ),
+                  // speed marker
+                  CircleMarker(
+                    borderStrokeWidth: 3,
+                    borderColor: Constants.speedCircleColor,
+                    color: Colors.transparent,
+                    radius: value.speed * 60,
+                    // 1 minute speed
+                    useRadiusInMeter: true,
+                    point: Gps.toLatLng(value),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
 
-      layers.add( // route layer
+        layers.add( // circle layer labels
+          ValueListenableBuilder<Position>(
+            valueListenable: Storage().gpsChange,
+            builder: (context, value, _) {
+              return MarkerLayer(
+                markers: [
+                  Marker(point: GeoCalculations().calculateOffset(
+                      Gps.toLatLng(value), 10, 330),
+                      child: Transform.rotate(
+                          angle: _northUp ? 0 : Storage().position.heading * pi /
+                              180, child:
+                      CircleAvatar(
+                          backgroundColor: Constants.instrumentBackgroundColor,
+                          child: const Text("10", style: TextStyle(fontSize: 14,
+                            color: Constants.instrumentsNormalValueColor,),)))),
+                  Marker(point: GeoCalculations().calculateOffset(
+                      Gps.toLatLng(value), 5, 330),
+                      child: Transform.rotate(
+                          angle: _northUp ? 0 : Storage().position.heading * pi /
+                              180, child:
+                      CircleAvatar(
+                          backgroundColor: Constants.instrumentBackgroundColor,
+                          child: const Text("5", style: TextStyle(fontSize: 14,
+                            color: Constants.instrumentsNormalValueColor,),)))),
+                  Marker(point: GeoCalculations().calculateOffset(
+                      Gps.toLatLng(value), 2, 330),
+                      child: Transform.rotate(
+                          angle: _northUp ? 0 : Storage().position.heading * pi /
+                              180, child:
+                      CircleAvatar(
+                          backgroundColor: Constants.instrumentBackgroundColor,
+                          child: const Text("2", style: TextStyle(fontSize: 14,
+                            color: Constants.instrumentsNormalValueColor,),)))),
+                ],
+              );
+            },
+          ),
+        );
+      }
+
+      lIndex = _layers.indexOf('Nav');
+      if(_layersState[lIndex]) {
+
+        layers.add( // route layer
         ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
