@@ -40,7 +40,7 @@ class WindsAloft extends Weather {
     return(dir, speed);
   }
 
-  (double?, double?) getWindAtAltitude(double altitude) {
+  (double?, double?) getWindAtAltitude(double altitude) { // dir, speed
     String wHigher;
     String wLower;
     double higherAltitude;
@@ -123,8 +123,8 @@ class WindsAloft extends Weather {
       int? higherWindDir, lowerWindDir;
       int? higherWindSpeed, lowerWindSpeed;
 
-      (higherWindSpeed, higherWindDir) = decodeWind(wHigher);
-      (lowerWindSpeed, lowerWindDir) = decodeWind(wLower);
+      (higherWindDir, higherWindSpeed) = decodeWind(wHigher);
+      (lowerWindDir, lowerWindSpeed) = decodeWind(wLower);
       if(higherWindSpeed == null ||  higherWindDir == null || lowerWindSpeed == null ||  lowerWindDir == null) {
         return (null, null);
       }
@@ -137,12 +137,45 @@ class WindsAloft extends Weather {
       intercept = lowerWindDir - slope * lowerAltitude;
       double dir = slope * altitude + intercept;
 
-      return (speed, dir);
+      return (dir, speed);
     }
     catch (e) {}
 
     return (null, null);
   }
+
+  String getWindAtAltitudeRaw(int altitude) { // dir, speed
+
+    if (altitude == 3000) {
+      return w3k;
+    }
+    else if (altitude == 6000) {
+      return w6k;
+    }
+    else if (altitude == 9000) {
+      return w9k;
+    }
+    else if (altitude == 12000) {
+      return w12k;
+    }
+    else if (altitude == 18000) {
+      return w18k;
+    }
+    else if (altitude == 24000) {
+      return w24k;
+    }
+    else if (altitude == 30000) {
+      return w30k;
+    }
+    else if (altitude == 34000) {
+      return w34k;
+    }
+    else if (altitude == 39000) {
+      return w39k;
+    }
+    return "N/A";
+  }
+
 
   Map<String, Object?> toMap() {
     Map<String, Object?> map  = {
@@ -178,5 +211,20 @@ class WindsAloft extends Weather {
     );
   }
 
+  @override
+  toString() {
+    String wind = "Winds - $station\n\n";
+    for(double altitude = 3000; altitude < 42000; altitude += 3000) {
+      double? speed;
+      double? dir;
+      (dir, speed) = getWindAtAltitude(altitude);
+      if(speed == null || dir == null) {
+        wind += "N/A\n";
+        break;
+      }
+      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir.round().toString().padLeft(3, "0")}\u00b0 ${speed.round()}KT (${getWindAtAltitudeRaw(altitude.round())})\n";
+    }
+    return wind;
+  }
 }
 

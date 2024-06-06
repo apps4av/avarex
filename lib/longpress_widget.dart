@@ -9,6 +9,8 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/weather.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -176,6 +178,12 @@ class LongPressWidgetState extends State<LongPressWidget> {
     int? metarPage;
     int? notamPage;
     int? saaPage;
+    int? windsPage;
+    Weather? winds;
+    String? station = WindsCache.locateNearestStation(ll);
+    if(station != null) {
+      winds = Storage().winds.get(station);
+    }
 
     if(future.showDestination is AirportDestination) {
       Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
@@ -225,6 +233,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 subtitle: Text(s.toString())),
         ],
       ));
+    }
+
+    if(winds != null) {
+      windsPage = future.pages.length;
+      WindsAloft wa = winds as WindsAloft;
+      future.pages.add(
+
+        Text(wa.toString())
+
+      );
     }
 
     // carousel
@@ -324,7 +342,13 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 child: const Text("SUA"),
                 onPressed: () => _controller.animateToPage(saaPage!)
             ),
-          if(airportDiagram != null)
+          if(windsPage != null)
+            TextButton(
+                child: const Text("Wind"),
+                onPressed: () => _controller.animateToPage(windsPage!)
+          ),
+
+    if(airportDiagram != null)
             TextButton(
                 child: const Text("AD"),
                 onPressed: () => {
