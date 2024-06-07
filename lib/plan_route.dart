@@ -118,6 +118,7 @@ class PlanRoute {
     if(_waypoints.length < 2) {
       _pointsPassed = [];
       _pointsCurrent = [];
+      _pointsNextHighResolution = [];
       _pointsNext = [];
       _allDestinations = [];
       totalCalculations = null;
