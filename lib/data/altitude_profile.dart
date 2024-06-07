@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter_charts/flutter_charts.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 
 
 class AltitudeProfile {
@@ -25,26 +25,62 @@ class AltitudeProfile {
     return altitudes;
   }
 
+  static LineChartBarData _line(List<FlSpot> points) {
+    return LineChartBarData(
+      spots: points,
+      dotData: const FlDotData(
+        show: false,
+      ),
+      isCurved: true,
+      color: Colors.yellow,
+      barWidth: 4,
+    );
+  }
+
   static Widget makeChart(List<double> data) {
+
     if(data.isEmpty) {
       return Container();
     }
-    LabelLayoutStrategy? xContainerLabelLayoutStrategy;
-    ChartData chartData;
-    // chart with no grid lines
-    ChartOptions chartOptions = const ChartOptions();
-    chartData = ChartData(dataRows: [data], xUserLabels: List.generate(data.length, (index) => index % 10 == 0 ? index.toString() : ""), dataRowsLegends: const ["Elevation ft/NM"], chartOptions: chartOptions);
-    LineChartTopContainer lineChartContainer = LineChartTopContainer(
-      chartData: chartData,
-      xContainerLabelLayoutStrategy: xContainerLabelLayoutStrategy,
-    );
 
-    LineChart lineChart = LineChart(
-      painter: LineChartPainter(
-        lineChartContainer: lineChartContainer,
+    int len = data.length;
+    List<FlSpot> points = [];
+    double maxY = 1000;
+    for(int p = 0; p < len; p++) {
+      if(data[p] > maxY) {
+        maxY = data[p];
+      }
+      points.add(FlSpot(p.toDouble(), data[p]));
+    }
+
+    return AspectRatio(
+      aspectRatio: 1.5,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: LineChart(
+          LineChartData(
+            minY: -300,
+            maxY: maxY,
+            minX: 0,
+            maxX: len.toDouble(),
+            lineTouchData: const LineTouchData(enabled: false),
+            clipData: const FlClipData.all(),
+            gridData: const FlGridData(
+              show: true,
+              drawVerticalLine: true,
+            ),
+            borderData: FlBorderData(show: false),
+            lineBarsData: [
+              _line(points),
+            ],
+            titlesData: const FlTitlesData(
+              show: true,
+            ),
+          ),
+        ),
       ),
     );
-    return lineChart;
+
   }
 
 
