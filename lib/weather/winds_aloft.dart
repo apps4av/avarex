@@ -215,7 +215,7 @@ class WindsAloft extends Weather {
   toString() {
     DateTime zulu = expires.toUtc(); // winds in Zulu time
     // boilerplate
-    String wind = "Winds - $station (Temps negative above 24000)\nValid till ${zulu.hour.toString().padLeft(2, "0")}00Z\n\n";
+    String wind = "Winds - $station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z\n\n";
     for(double altitude = 3000; altitude < 42000; altitude += 3000) {
       double? speed;
       double? dir;
