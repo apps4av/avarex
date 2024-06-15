@@ -474,7 +474,7 @@ class MapScreenState extends State<MapScreen> {
                         content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
                         triggerMode: TooltipTriggerMode.tap,
                         waitDuration: const Duration(seconds: 1),
-                        child: e.getIcon())));
+                        child: Transform.rotate(angle: _northUp ? 0 : -Storage().position.heading * pi / 180, child: e.getIcon()))));
               }).toList(),
             );
           },
