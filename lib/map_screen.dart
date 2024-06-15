@@ -703,10 +703,19 @@ class MapScreenState extends State<MapScreen> {
               markers: [
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.center, point: d.coordinate,
-                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor, child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
+                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
+                      child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
+                        child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.bottomRight, point: d.coordinate, width: 64,
-                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,)))
+                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              Storage().route.setCurrentWaypointFromDestination(d);
+                            });
+                          },
+                          child: AutoSizeText(d.locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
               ],
             );
           },

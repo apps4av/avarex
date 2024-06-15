@@ -349,6 +349,26 @@ class PlanRoute {
     return _current;
   }
 
+  // set waypoint based on destination object
+  void setCurrentWaypointFromDestination(Destination d) {
+    for(Waypoint w in _waypoints) {
+      if(Destination.isAirway(w.destination.type)) {
+        int index = w.airwayDestinationsOnRoute.indexOf(d);
+        if(index >= 0) {
+          _current = w;
+          w.currentAirwayDestinationIndex = index;
+          return;
+        }
+      }
+      else {
+        if (w.destination == d) {
+          _current = w;
+          return;
+        }
+      }
+    }
+  }
+
   Waypoint? getLastWaypoint() {
     // if no route then destination
     if(_current != null) {
@@ -517,4 +537,5 @@ class PlanRoute {
   String toString() {
     return _waypoints.map((e) => e.destination.locationID).toList().join(" ");
   }
+
 }
