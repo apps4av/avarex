@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 // put all singletons here.
 
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_realm_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
@@ -87,6 +88,7 @@ class Storage {
   final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
+  Destination? plateAirportDestination;
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -378,6 +380,7 @@ class Storage {
 
   Future<void> loadPlate() async {
     String plateAirport = settings.getCurrentPlateAirport();
+    plateAirportDestination = await MainDatabaseHelper.db.findAirport(plateAirport);
     String path = PathUtils.getPlatePath(dataDir, plateAirport, currentPlate);
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();

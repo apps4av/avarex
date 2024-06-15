@@ -30,7 +30,7 @@ class PlatesFuture {
   Future<void> _getAll() async {
 
     // get location ID only
-    _airports = (Storage().userRealmHelper.getRecent()).map((e) => e.locationID).toList();
+    _airports = (Storage().userRealmHelper.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(_currentPlateAirport.isEmpty) {
         if(_airports.isNotEmpty) {
@@ -104,23 +104,19 @@ class PlateScreenState extends State<PlateScreen> {
     double height = 0;
 
     if(future == null) {
-      return makePlateView([], [], height, 0, 0, _notifier);
+      return makePlateView([], [], height, _notifier);
     }
 
     List<String> plates = future.plates;
     List<String> airports = future.airports;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
-    AirportDestination? destination = future.airportDestination;
-
-    double lon = destination == null ? 0 : destination.coordinate.longitude;
-    double lat =  destination == null ? 0: destination.coordinate.latitude;
 
     if(airports.isEmpty) {
-      return makePlateView([], plates, height, lon, lat, _notifier);
+      return makePlateView([], plates, height, _notifier);
     }
 
     if(plates.isEmpty) {
-      return makePlateView(airports, [], height, lon, lat, _notifier);
+      return makePlateView(airports, [], height, _notifier);
     }
 
     if((Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
@@ -133,10 +129,10 @@ class PlateScreenState extends State<PlateScreen> {
     Storage().plateChange.addListener(_notifyPaint);
     Storage().gpsChange.addListener(_notifyPaint);
 
-    return makePlateView(airports, plates, height, lon, lat, _notifier);
+    return makePlateView(airports, plates, height, _notifier);
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, double height, double lon, double lat, ValueNotifier notifier) {
+  Widget makePlateView(List<String> airports, List<String> plates, double height, ValueNotifier notifier) {
 
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
@@ -147,7 +143,7 @@ class PlateScreenState extends State<PlateScreen> {
           SizedBox(
             height: Constants.screenHeight(context),
             width: Constants.screenWidth(context),
-            child: CustomPaint(painter: _PlatePainter(lon: lon, lat: lat, repaint: notifier)),
+            child: CustomPaint(painter: _PlatePainter(notifier)),
           )
       ),
 
@@ -245,8 +241,6 @@ class PlateScreenState extends State<PlateScreen> {
 class _PlatePainter extends CustomPainter {
 
   List<double>? _matrix;
-  double _airportLon = 0;
-  double _airportLat = 0;
   ui.Image? _image;
 
   // Define a paint object
@@ -260,21 +254,16 @@ class _PlatePainter extends CustomPainter {
     ..strokeWidth = 10
     ..color = Constants.planeColor;
 
-  _PlatePainter({
-    required ValueNotifier repaint,
-    required double lon,
-    required double lat}) : super(repaint: repaint) {
-    _airportLat = lat;
-    _airportLon = lon;
-  }
+  _PlatePainter(ValueNotifier repaint): super(repaint: repaint);
 
   @override
   void paint(Canvas canvas, Size size) {
 
     _image = Storage().imagePlate;
     _matrix = Storage().matrixPlate;
+    Destination? center = Storage().plateAirportDestination;
 
-    if(_image != null) {
+    if(_image != null && center != null) {
 
       // make in center
       double h = size.height;
@@ -293,6 +282,7 @@ class _PlatePainter extends CustomPainter {
       canvas.drawImage(_image!, const Offset(0, 0), _paint);
 
       if(null != _matrix) {
+
         double heading = Storage().position.heading;
         double lon = Storage().position.longitude;
         double lat = Storage().position.latitude;
@@ -308,8 +298,8 @@ class _PlatePainter extends CustomPainter {
           double latTopLeft = _matrix![3];
           pixX = (lon - lonTopLeft) * dx;
           pixY = (lat - latTopLeft) * dy;
-          double pixAirportX = (_airportLon - lonTopLeft) * dx;
-          double pixAirportY = (_airportLat - latTopLeft) * dy;
+          double pixAirportX = (center.coordinate.longitude - lonTopLeft) * dx;
+          double pixAirportY = (center.coordinate.latitude - latTopLeft) * dy;
           offsetCircle = Offset(pixAirportX, pixAirportY);
           angle = 0;
         }
@@ -323,8 +313,8 @@ class _PlatePainter extends CustomPainter {
 
           pixX = (wftA * lon + wftC * lat + wftE) / 2;
           pixY = (wftB * lon + wftD * lat + wftF) / 2;
-          double pixAirportX = (wftA * _airportLon + wftC * _airportLat + wftE) / 2;
-          double pixAirportY = (wftB * _airportLon + wftD * _airportLat + wftF) / 2;
+          double pixAirportX = (wftA * center.coordinate.longitude + wftC * center.coordinate.latitude + wftE) / 2;
+          double pixAirportY = (wftB * center.coordinate.longitude + wftD * center.coordinate.latitude + wftF) / 2;
           offsetCircle = Offset(pixAirportX, pixAirportY);
 
           double pixXn = (wftA * lon + wftC * (lat + 0.1) + wftE) / 2;
