@@ -111,30 +111,6 @@ class MainDatabaseHelper {
     return ret;
   }
 
-  Future<List<String>> findCsup(String airport) async {
-    List<Map<String, dynamic>> maps = [];
-    final db = await database;
-    if (db != null) {
-      maps = await db.rawQuery("select File from afd where LocationID = '$airport'");
-    }
-    return List.generate(maps.length, (i) {
-      return maps[i]['File'] as String;
-    });
-  }
-
-  Future<List<String>> findAlternates(String airport) async {
-    List<Map<String, dynamic>> maps = [];
-    final db = await database;
-    if (db != null) {
-      maps = await db.rawQuery(
-          "      select File from takeoff   where LocationID = '$airport' "
-          "union select File from alternate where LocationID = '$airport'");
-    }
-    return List.generate(maps.length, (i) {
-      return maps[i]['File'] as String;
-    });
-  }
-
   Future<Destination> findDestinationByCoordinates(LatLng point) async {
 
     final db = await database;
@@ -318,34 +294,7 @@ class MainDatabaseHelper {
 
     return AirwayDestination.fromMap(maps);
   }
-
-
-  Future<List<double>?> findAirportDiagramMatrix(String id) async {
-    List<Map<String, dynamic>> maps = [];
-    final db = await database;
-    if (db != null) {
-      maps = await db.rawQuery("select * from airportdiags where LocationID = '$id'");
-    }
-    if(maps.isEmpty) {
-      return null;
-    }
-
-    List<double> ret = [];
-    ret.add(maps[0]['tfwA'] as double);
-    ret.add(maps[0]['tfwB'] as double);
-    ret.add(maps[0]['tfwC'] as double);
-    ret.add(maps[0]['tfwD'] as double);
-    ret.add(maps[0]['tfwE'] as double);
-    ret.add(maps[0]['tfwF'] as double);
-    ret.add(maps[0]['wftA'] as double);
-    ret.add(maps[0]['wftB'] as double);
-    ret.add(maps[0]['wftC'] as double);
-    ret.add(maps[0]['wftD'] as double);
-    ret.add(maps[0]['wftE'] as double);
-    ret.add(maps[0]['wftF'] as double);
-
-    return ret;
-  }
+  
 
 }
 

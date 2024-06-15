@@ -313,13 +313,13 @@ class _PlatePainter extends CustomPainter {
           offsetCircle = Offset(pixAirportX, pixAirportY);
           angle = 0;
         }
-        else if(_matrix!.length == 12) {
-          double wftA = _matrix![6];
-          double wftB = _matrix![7];
-          double wftC = _matrix![8];
-          double wftD = _matrix![9];
-          double wftE = _matrix![10];
-          double wftF = _matrix![11];
+        else if(_matrix!.length == 6) {
+          double wftA = _matrix![0];
+          double wftB = _matrix![1];
+          double wftC = _matrix![2];
+          double wftD = _matrix![3];
+          double wftE = _matrix![4];
+          double wftF = _matrix![5];
 
           pixX = (wftA * lon + wftC * lat + wftE) / 2;
           pixY = (wftB * lon + wftD * lat + wftF) / 2;

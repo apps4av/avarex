@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:avaremp/data/main_database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
@@ -11,15 +10,7 @@ class PathUtils {
   // do not delete tiles below level 8
   static final RegExp _expNoDelete = RegExp(r"^tiles/[0-9]*/[0-7]/.*");
 
-  static final RegExp _expCsup = RegExp(r"^(ne_)|^(nc_)|^(_nw)|^(se_)|^(sc_)|^(sw_)|^(ec_)|^(ak_)|^(pac_)");
-
-  static final RegExp _expAlt = RegExp(
-      r"^(PAC\d*TO.*)|^(PAC\d*ALT.*)|"
-      r"^(EC\d*TO.*)|^(EC\d*ALT.*)|"
-      r"^(AK\d*TO.*)|^(AK\d*ALT.*)|"
-      r"^(NE\d*TO.*)|^(NE\d*ALT.*)|^(NC\d*TO.*)|^(NC\d*ALT.*)|^(NW\d*TO.*)|^(NW\d*ALT.*)|"
-      r"^(SE\d*TO.*)|^(SE\d*ALT.*)|^(SC\d*TO.*)|^(SC\d*ALT.*)|^(SW\d*TO.*)|^(SW\d*ALT.*)"
-  );
+  static final RegExp _expCsup = RegExp(r"^CSUP");
 
   static String getLocalFilePath(String base, String filename) {
     return path.join(base, "$filename.zip");
@@ -36,9 +27,10 @@ class PathUtils {
     return(filename);
   }
 
-  static String getCSupFilePath(String base, String csup) {
-    String afd = path.join(base, "afd");
-    String filename = path.join(afd, "$csup.png");
+  static String getCsupFilePath(String base, String airport, String plate) {
+    String plates = path.join(base, "afd");
+    String id = path.join(plates, airport);
+    String filename = path.join(id, "$plate.png");
     return(filename);
   }
 
@@ -57,6 +49,23 @@ class PathUtils {
     List<String> ret = [];
     try {
       String plates = path.join(base, "plates");
+      String id = path.join(plates, airport);
+      final d = Directory(id);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        ret.add(basenameWithoutExtension(en.path));
+      }
+    }
+    catch(e) {
+      ret = [];
+    }
+    return(ret);
+  }
+
+  static Future<List<String>> getCsupNames(String base, String airport) async {
+    List<String> ret = [];
+    try {
+      String plates = path.join(base, "afd");
       String id = path.join(plates, airport);
       final d = Directory(id);
       final List<FileSystemEntity> entities = await d.list().toList();
@@ -117,30 +126,14 @@ class PathUtils {
   static Future<List<String>> getPlatesAndCSupSorted(String base, String airport) async {
     List<String> plates = [];
     List<String> csup = [];
-    List<String> alternates = [];
 
     plates = await PathUtils.getPlateNames(base, airport);
-    csup = await MainDatabaseHelper.db.findCsup(airport);
-    alternates = await MainDatabaseHelper.db.findAlternates(airport);
+    csup = await PathUtils.getCsupNames(base, airport);
+    plates.addAll(csup);
 
     // combine plates and csup
-    plates.addAll(csup);
-    plates.addAll(alternates);
     plates = plates.toSet().toList();
-    plates.sort((a,b) {
-      if(a == "AIRPORT-DIAGRAM") return -1;
-      if(b == "AIRPORT-DIAGRAM") return 1;
-      if(_expCsup.hasMatch(a)) return -1;
-      if(_expCsup.hasMatch(b)) return 1;
-      if(_expAlt.hasMatch(a)) return -1;
-      if(_expAlt.hasMatch(b)) return 1;
-      if(a.startsWith("HOT-SPOT")) return -1;
-      if(b.startsWith("HOT-SPOT")) return 1;
-      if(a.startsWith("LAHSO")) return -1;
-      if(b.startsWith("LAHSO")) return 1;
-      return a.compareTo(b);
-
-    });
+    plates.sort();
     return(plates);
   }
 
@@ -150,11 +143,7 @@ class PathUtils {
     String path = getPlateFilePath(base, airport, name);
 
     if(_expCsup.hasMatch(name)) {
-      return getCSupFilePath(base, name);
-    }
-
-    if(_expAlt.hasMatch(name)) {
-      return getMinimumsFilePath(base, name);
+      return getCsupFilePath(base, airport, name);
     }
 
     return(path);

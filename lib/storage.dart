@@ -49,7 +49,6 @@ import 'destination.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
-import 'data/main_database_helper.dart';
 import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
@@ -427,10 +426,16 @@ class Storage {
         topLeftPlate = LatLng(latTopLeft, lonTopLeft);
         bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
       }
-    }
-    // this should come from exif but it is legacy and needs to be fixed
-    else if(currentPlate == "AIRPORT-DIAGRAM") {
-      matrixPlate = await MainDatabaseHelper.db.findAirportDiagramMatrix(plateAirport);
+      else if(tokens.length == 6) { //could be made same as for other plates
+        matrixPlate = [];
+        matrixPlate!.add(double.parse(tokens[0]));
+        matrixPlate!.add(double.parse(tokens[1]));
+        matrixPlate!.add(double.parse(tokens[2]));
+        matrixPlate!.add(double.parse(tokens[3]));
+        matrixPlate!.add(double.parse(tokens[4]));
+        matrixPlate!.add(double.parse(tokens[5]));
+
+      }
     }
 
     plateChange.value++; // change in storage

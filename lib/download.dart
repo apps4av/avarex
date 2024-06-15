@@ -15,7 +15,7 @@ import 'package:archive/archive_io.dart';
 class Download {
 
   String _currentCycle = "";
-  static const String _server = "http://www.apps4av.org/new/";
+  static const String _server = "http://www.apps4av.org/regions/";
   bool _cancelDownloadAndDelete = false;
 
   Future<void> _deleteZipFile(File file) async {
