@@ -6,6 +6,7 @@ import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
+import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -155,6 +156,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   @override
   void dispose() {
     Storage().stopIO();
+    BackButtonInterceptor.remove(_interceptor);
     super.dispose();
   }
 
@@ -163,6 +165,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     super.initState();
     Storage().startIO();
     WidgetsBinding.instance.addObserver(this);
+    BackButtonInterceptor.add(_interceptor, context: context);
   }
 
   @override
@@ -177,6 +180,40 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         Storage().stopIO();
         break;
     }
+  }
+
+  // back button intercept on android
+  bool _interceptor(bool stopDefaultButtonEvent, RouteInfo info) {
+    if(_selectedIndex != tabLocationMap) {
+      gotoMap(); // go to map on back
+      return true;
+    }
+    else {
+      if (info.ifRouteChanged(context)) {
+        return false; // so we do not show exit on other routes
+      }
+      showDialog(context: context, builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Exit App?'),
+          content: const Text("Do you want to exit this app?"),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Yes'),
+              onPressed: () {
+                SystemNavigator.pop();
+              },
+            ),
+            TextButton(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      });
+    }
+    return false;
   }
 }
 

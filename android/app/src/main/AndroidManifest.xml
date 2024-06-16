@@ -11,7 +11,7 @@
         android:label="AvareX"
         android:name="${applicationName}"
         android:largeHeap="true"
-        android:enableOnBackInvokedCallback="true"
+        android:enableOnBackInvokedCallback="false"
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
