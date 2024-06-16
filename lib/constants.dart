@@ -90,7 +90,7 @@ class Constants {
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.grey;
   static const Color planPassedColor = Colors.cyanAccent;
-  static const Color trackColor = Colors.blue;
+  static const Color trackColor = Colors.brown;
   static const Color tracksColor = Colors.green;
   static const Color planBorderColor = Colors.black;
   static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
