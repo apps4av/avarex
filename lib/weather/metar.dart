@@ -39,6 +39,10 @@ class Metar extends Weather {
   }
 
   Color getColor() {
+    return getColorStatic(category);
+  }
+
+  static Color getColorStatic(String category) {
     switch(category) {
       case "VFR":
         return const Color(0xAA00FF00);

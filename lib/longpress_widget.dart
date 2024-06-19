@@ -199,7 +199,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 : Container(),
             w1 != null ? ListTile(title: const Text("TAF"),
                 subtitle: Text((w1 as Taf).text),
-                leading: const Icon(Icons.circle)) : Container(),
+                leading: w1.getIcon()) : Container(),
           ],
         ));
       }
