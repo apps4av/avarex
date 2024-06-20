@@ -239,8 +239,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
               .createSync();
         }
         catch(e) {}
-        ByteData data = await rootBundle.load(
-            PathUtils.getFilePath("assets", doc));
+        String path2 = PathUtils.getFilePath("assets", doc);
+        if(Platform.isWindows) { // windows root bundle bug, cannot use \
+          path2 = path2.replaceAll("\\", "/");
+        }
+        ByteData data = await rootBundle.load(path2);
         List<int> bytes = data.buffer.asUint8List(
             data.offsetInBytes, data.lengthInBytes);
         await File(path).writeAsBytes(bytes);

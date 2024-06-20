@@ -34,6 +34,7 @@ import 'package:avaremp/udp_receiver.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_cache.dart';
+import 'package:dio_cache_interceptor_db_store/dio_cache_interceptor_db_store.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -137,6 +138,7 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
+  late DbCacheStore osmCache;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -282,6 +284,9 @@ class Storage {
     if(!dir.existsSync()) {
       dir.createSync();
     }
+
+    // tiles cache
+    osmCache = DbCacheStore(databasePath: Storage().cacheDir, logStatements: false);
 
     await settings.initSettings();
     // this is a long login process, do not await here
