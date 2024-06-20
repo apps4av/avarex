@@ -8,7 +8,6 @@ import 'package:avaremp/plan_manage_widget.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'data/altitude_profile.dart';
 
@@ -183,48 +182,35 @@ class PlanScreenState extends State<PlanScreen> {
                       ).then((value) => setState(() {})); // this is important so if modal changes plan then we update it here
                     },
                     child: const Text("Actions"),),
-                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                    isExpanded: false,
-                    isDense: true,
-                    value: Storage().settings.getTas().toString(),
-                    items: [
-                      for(int speed = 10; speed <= 500; speed+=10)
-                        DropdownMenuItem<String>(value : speed.toString(), child: Text("${speed}KT", style: const TextStyle(fontSize: 12)))
-                    ],
+                  Padding(padding: const EdgeInsets.all(5), child:SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        double? pValue = double.tryParse(value);
+                        Storage().settings.setTas(pValue ?? Storage().settings.getTas());
+                      },
+                      controller: TextEditingController()..text = Storage().settings.getTas().round().toString(),
+                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "KT")
+                  ))),
+                  Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
+                    keyboardType: TextInputType.number,
                     onChanged: (value) {
-                      setState(() {
-                        Storage().settings.setTas(int.parse(value ?? Storage().settings.getTas().toString()));
-                      });
+                      double? pValue = double.tryParse(value);
+                      Storage().settings.setFuelBurn(pValue ?? Storage().settings.getFuelBurn());
                     },
-                  )),
-                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                    isExpanded: false,
-                    isDense: true,
-                    value: Storage().settings.getFuelBurn().toString(),
-                    items: [
-                      for(int fuel = 1; fuel < 100; fuel++)
-                        DropdownMenuItem<String>(value : fuel.toString(), child: Text("${fuel}GPH", style: const TextStyle(fontSize: 12)))
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        Storage().settings.setFuelBurn(int.parse(value ?? Storage().settings.getFuelBurn().toString()));
-                      });
-                    },
-                  )),
-                  DropdownButtonHideUnderline(child:DropdownButton2<String>(
-                    isExpanded: false,
-                    isDense: true,
-                    value: Storage().route.altitude,
-                    items: [
-                      for(int altitude = 3000; altitude <= 30000; altitude += 500)
-                        DropdownMenuItem<String>(value : "$altitude", child: Text("${altitude}ft", style: const TextStyle(fontSize: 12)))
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        Storage().route.altitude = value?? "3000";
-                      });
-                    },
-                  )),
+                    controller: TextEditingController()..text = Storage().settings.getFuelBurn().toString(),
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "GPH")
+                  ))),
+                  Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        int? pValue = int.tryParse(value);
+                        pValue ??= 3000;
+                        Storage().route.altitude = pValue.toString();
+                      },
+                      controller: TextEditingController()..text = Storage().route.altitude,
+                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Ft")
+                  ))),
+
                   IconButton(icon: const Icon(Icons.show_chart), onPressed:() {
                     showDialog(context: context,
                       builder: (BuildContext context) => Dialog.fullscreen(

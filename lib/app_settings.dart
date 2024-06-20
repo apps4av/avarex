@@ -136,20 +136,20 @@ class AppSettings {
     return provider.getValue("key-user-checklist", defaultValue: "") as String;
   }
 
-  int getTas() {
-    return provider.getValue("key-airplane-tas-v2", defaultValue: 100) as int;
+  double getTas() {
+    return provider.getValue("key-airplane-tas-v3", defaultValue: 100.0) as double;
   }
 
-  void setTas(int value) {
-    provider.setInt("key-airplane-tas-v2", value);
+  void setTas(double value) {
+    provider.setDouble("key-airplane-tas-v3", value);
   }
 
-  int getFuelBurn() {
-    return provider.getValue("key-airplane-fuel-burn-v2", defaultValue: 10) as int;
+  double getFuelBurn() {
+    return provider.getValue("key-airplane-fuel-burn-v3", defaultValue: 10.0) as double;
   }
 
-  void setFuelBurn(int value) {
-    provider.setInt("key-airplane-fuel-burn-v2", value);
+  void setFuelBurn(double value) {
+    provider.setDouble("key-airplane-fuel-burn-v3", value);
   }
 
   bool isSigned() {
