@@ -127,7 +127,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                             _selected = null;
                           });
                         },
-                        child: const Icon(Icons.swipe_left)
+                        child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])
                     )),
 
                     TextButton(

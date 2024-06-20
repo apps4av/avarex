@@ -5,6 +5,7 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
 
@@ -27,6 +28,11 @@ class TafCache extends WeatherCache {
       Taf t;
       try {
         t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"));
+        double? latitude = double.tryParse(row[7].toString());
+        double? longitude = double.tryParse(row[8].toString());
+        if(latitude != null && longitude != null) {
+          t.coordinate = LatLng(latitude, longitude);
+        }
         tafs.add(t);
       }
       catch(e) {

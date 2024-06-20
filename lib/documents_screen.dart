@@ -151,7 +151,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                    ])),
                    Flexible(flex: 1, child: Row(children: [
                    if((products.length - productsStatic.length) > 1)
-                     Padding(padding: const EdgeInsets.all(5), child: Dismissible(key: GlobalKey(),
+                     Padding(padding: const EdgeInsets.fromLTRB(15, 5, 0, 0), child: Dismissible(key: GlobalKey(),
                        background: const Icon(Icons.delete_forever),
                        direction: DismissDirection.endToStart,
                        onDismissed: (direction) {
@@ -160,7 +160,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                            products.remove(product);
                          });
                        },
-                       child: const Icon(Icons.swipe_left))),
+                       child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])))
                   ]))
                  ])
                ),

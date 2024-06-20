@@ -1,11 +1,13 @@
 import 'package:avaremp/weather/time_segment_pie_chart.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
 
 class Taf extends Weather {
   String text;
+  LatLng? coordinate;
   List<DateTime> times = [];
   List<Color> colors = [];
 

@@ -40,6 +40,13 @@ class _PieChartPainter extends CustomPainter {
 
       canvas.drawLine(Offset(i * fac, size.height / 2), Offset((i + 1) * fac, size.height / 2), paint);
     }
+
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawRect(Rect.fromLTRB(0, size.height / 2 - 5, size.width, size.height / 2 + 5), paint);
+
   }
 
   @override
