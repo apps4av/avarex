@@ -1,6 +1,5 @@
 
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan_screen.dart';

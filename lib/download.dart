@@ -188,8 +188,7 @@ class Download {
             }
           }
           // Read a specific file
-        } on ZipException catch (ex) {
-          print(ex);
+        } on ZipException {
           callback(chart, -1);
         } finally {
           reader.close();

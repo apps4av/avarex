@@ -1,9 +1,6 @@
 
 import 'package:avaremp/faa_dates.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:widget_zoom/widget_zoom.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'download.dart';
@@ -86,15 +83,7 @@ class DownloadScreenState extends State<DownloadScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: Row(children:[const Text("Download"),
-          Padding(padding: const EdgeInsets.all(16),
-            child: Align(alignment: Alignment.bottomRight,
-              child: SizedBox(width: 24,
-                child: WidgetZoom(heroAnimationTag: "regions", zoomWidget: Image.asset("assets/images/regions.jpeg"))
-              )
-            )
-          ),
-        ]),
+        title: const Row(children:[const Text("Download"),]),
         actions: [
           if(_total != 0)
             Text("${(_totalStartWith - _total)} / $_totalStartWith"),
@@ -102,7 +91,16 @@ class DownloadScreenState extends State<DownloadScreen> {
         ],
       ),
 
-      body: ListView.builder(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage("assets/images/regions.jpeg"),
+            opacity: 0.2,
+            repeat: ImageRepeat.repeat,
+            fit: BoxFit.contain,
+          ),
+        ),
+        child:ListView.builder(
           itemCount: _allCharts.length,
           itemBuilder: (context, index) {
             return ExpansionTile(
@@ -115,7 +113,7 @@ class DownloadScreenState extends State<DownloadScreen> {
             );
           },
         ),
-    );
+    ));
   }
 
   List<Widget> _buildExpandableContent(int index) {

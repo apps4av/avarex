@@ -1,13 +1,10 @@
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pdf_viewer.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -154,15 +151,16 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                    ])),
                    Flexible(flex: 1, child: Row(children: [
                    if((products.length - productsStatic.length) > 1)
-                     TextButton(
-                         onPressed: () { // delete on long press
-                           setState(() {
-                             PathUtils.deleteFile(product.url);
-                             products.remove(product);
-                           });
-                         },
-                         child: const Text("Delete"),
-                     ),
+                     Padding(padding: const EdgeInsets.all(5), child: Dismissible(key: GlobalKey(),
+                       background: const Icon(Icons.delete_forever),
+                       direction: DismissDirection.endToStart,
+                       onDismissed: (direction) {
+                         setState(() {
+                           PathUtils.deleteFile(product.url);
+                           products.remove(product);
+                         });
+                       },
+                       child: const Icon(Icons.swipe_left))),
                   ]))
                  ])
                ),

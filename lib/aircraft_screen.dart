@@ -42,18 +42,6 @@ class AircraftScreenState extends State<AircraftScreen> {
       return [];
     }
     return [
-      TextButton(onPressed: () {
-          String? entry = _selected;
-          if(null != entry) {
-            Storage().userRealmHelper.deleteAircraft(entry);
-          }
-          Storage().settings.setAircraft("");
-          setState(() {
-            _selected = null;
-          });
-        },
-        child: const Text("Delete")
-      ),
       Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
         child: DropdownButtonHideUnderline(
             child: DropdownButton2<String>( // airport selection
@@ -122,21 +110,40 @@ class AircraftScreenState extends State<AircraftScreen> {
                   )),
                   Flexible(flex: 1, child: e.widget),
                 ]),
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(children: [
-                  TextButton(
-                    onPressed: () {
-                      // take all of whats here and save
-                      Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
-                      Aircraft a = Aircraft.fromMap(mm);
-                      Storage().userRealmHelper.addAircraft(a);
-                      setState(() {
-                        Storage().settings.setAircraft(a.tail);
-                      });
-                    },
-                    child: const Text("Save")
-                  ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(children: [
+
+                    Padding(padding: const EdgeInsets.all(20), child: Dismissible(key: GlobalKey(),
+                        background: const Icon(Icons.delete_forever),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          String? entry = _selected;
+                          if(null != entry) {
+                            Storage().userRealmHelper.deleteAircraft(entry);
+                          }
+                          Storage().settings.setChecklist("");
+                          setState(() {
+                            _selected = null;
+                          });
+                        },
+                        child: const Icon(Icons.swipe_left)
+                    )),
+
+                    TextButton(
+                      onPressed: () {
+                        // take all of whats here and save
+                        Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
+                        Aircraft a = Aircraft.fromMap(mm);
+                        Storage().userRealmHelper.addAircraft(a);
+                        setState(() {
+                          Storage().settings.setAircraft(a.tail);
+                        });
+                      },
+                      child: const Text("Save")
+                    ),
+
+
                 ]))
             ],
           )

@@ -122,19 +122,20 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                   const Divider()
                 ]),
               if(_selected != null)
-                TextButton(
-                  onPressed: () {
-                    String? entry = _selected;
-                    if(null != entry) {
-                      Storage().userRealmHelper.deleteChecklist(entry);
-                    }
-                    Storage().settings.setChecklist("");
-                    setState(() {
-                      _selected = null;
-                    });
-                  },
-                  child: const Text("Delete List")
-                ),
+                Padding(padding: const EdgeInsets.all(20), child: Dismissible(key: GlobalKey(),
+                    background: const Icon(Icons.delete_forever),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) {
+                      String? entry = _selected;
+                      if(null != entry) {
+                        Storage().userRealmHelper.deleteChecklist(entry);
+                      }
+                      Storage().settings.setChecklist("");
+                      setState(() {
+                        _selected = null;
+                      });
+                    },
+                    child: const Icon(Icons.swipe_left))),
             ],
           )
         )
