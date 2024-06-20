@@ -78,12 +78,32 @@ class DownloadScreenState extends State<DownloadScreen> {
     });
   }
 
+  // show regions file in a modal dialog using widgetzoom
+  void _showMap() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog.fullscreen(
+          child: Container(
+            color: Colors.black,
+              child: Stack(
+                children:[
+                  Center(child:InteractiveViewer(child: Image.asset('assets/images/regions.jpeg'))),
+                  Align(alignment: Alignment.topRight, child: IconButton(icon: const Icon(Icons.close, size: 36), onPressed: () {Navigator.of(context).pop();}))
+                ]
+              ),
+            ),
+          );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: const Row(children:[const Text("Download"),]),
+        title: Row(children:[const Text("Download"), IconButton(icon: const Icon(Icons.info), onPressed: _showMap )]),
         actions: [
           if(_total != 0)
             Text("${(_totalStartWith - _total)} / $_totalStartWith"),
@@ -91,16 +111,7 @@ class DownloadScreenState extends State<DownloadScreen> {
         ],
       ),
 
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/regions.jpeg"),
-            opacity: 0.2,
-            repeat: ImageRepeat.repeat,
-            fit: BoxFit.contain,
-          ),
-        ),
-        child:ListView.builder(
+      body: ListView.builder(
           itemCount: _allCharts.length,
           itemBuilder: (context, index) {
             return ExpansionTile(
@@ -113,7 +124,7 @@ class DownloadScreenState extends State<DownloadScreen> {
             );
           },
         ),
-    ));
+    );
   }
 
   List<Widget> _buildExpandableContent(int index) {
