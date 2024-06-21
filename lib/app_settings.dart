@@ -73,7 +73,7 @@ class AppSettings {
   }
 
   List<bool> getLayersState() {
-    return (provider.getValue("key-layers-state-v34", defaultValue: "true,true,true,false,false,false,true,false,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (provider.getValue("key-layers-state-v34", defaultValue: "true,true,true,true,false,false,true,false,false,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
