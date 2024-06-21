@@ -73,11 +73,11 @@ class AppSettings {
   }
 
   List<bool> getLayersState() {
-    return (provider.getValue("key-layers-state-v34", defaultValue: "true,true,false,false,false,false,true,false,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (provider.getValue("key-layers-state-v34", defaultValue: "true,true,true,false,false,false,true,false,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
-    provider.setString("key-layers-state-v33", state.map((bool e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-state-v34", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
