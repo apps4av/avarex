@@ -54,14 +54,8 @@ class Traffic {
     //            borderRadius: BorderRadius.circular(5),
     //            color: Colors.black),
     //        child:const Icon(Icons.arrow_upward_rounded, color: Colors.white,)));
-    return
-      Transform.rotate(angle: (message.heading + 180.0 /* Image painted down on coordinate plane */) * pi  * _kDivBy180,
-        child: Stack(children:[
-          CustomPaint(painter: TrafficPainter(this)),
-          if(!Storage().settings.isAudibleAlertsEnabled()) // show muted symbol
-            const Icon(Icons.close, color: Colors.black,)
-        ])
-      );
+    return Transform.rotate(angle: (message.heading + 180.0 /* Image painted down on coordinate plane */) * pi  * _kDivBy180,
+        child: CustomPaint(painter: TrafficPainter(this)));
   }
 
   LatLng getCoordinates() {
@@ -237,7 +231,7 @@ class TrafficPainter extends CustomPainter {
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
   static bool prefShowBoundingBox = false;                   // Display outlined bounding box around icon for higher visibility
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
-  static bool prefShowShapeOutline = false;                  // Display solid outline around aircraft for higher visibility
+  static bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
 
   /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
   /// there are a discrete number of possible renderings for all traffic
