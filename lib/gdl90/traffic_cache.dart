@@ -1,5 +1,4 @@
 import 'dart:core';
-import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:avaremp/gdl90/traffic_report_message.dart';
@@ -178,9 +177,6 @@ class TrafficCache {
   }
 
   void handleAudibleAlerts() {
-    if(Platform.isWindows) {
-      return; // XXX: debug since it crashes on windows
-    }
     // If alerts are running or in the required delay, don't kick off processing again--just note that we want another run later
     if (_audibleAlertsHandling) {
       _audibleAlertsRequested = true;
