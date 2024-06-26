@@ -464,13 +464,18 @@ class MapScreenState extends State<MapScreen> {
               markers:
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
-                    point: e.getCoordinates(),
-                    child: GestureDetector(onLongPress: () {Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());},
-                        child:Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                        content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
-                        triggerMode: TooltipTriggerMode.tap,
-                        waitDuration: const Duration(seconds: 1),
-                        child: Transform.rotate(angle: _northUp ? 0 : -Storage().position.heading * pi / 180, child: e.getIcon())))));
+                  point: e.getCoordinates(),
+                  child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
+                    child: JustTheTooltip(
+                      content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
+                      triggerMode: TooltipTriggerMode.tap,
+                      waitDuration: const Duration(seconds: 1),
+                      child: Transform.rotate(angle: _northUp ? 0 : -Storage().position.heading * pi / 180,
+                        child: e.getIcon()
+                      )
+                    )
+                  )
+                ); // undo the above rotation
               }).toList(),
             );
           },

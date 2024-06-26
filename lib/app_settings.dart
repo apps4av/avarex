@@ -1,4 +1,6 @@
 
+import 'dart:io';
+
 import 'package:avaremp/chart.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/settings_cache_provider.dart';
@@ -69,15 +71,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v33", defaultValue: "Nav,Circles,Chart,OSM,Weather,NOAA-Loop,TFR,Plate,Traffic,PFD,Tracks") as String).split(",");
+    return (provider.getValue("key-layers-v35", defaultValue: "Nav,Circles,Chart,OSM,Weather,NOAA-Loop,TFR,Plate,Traffic,PFD,Tracks") as String).split(",");
   }
 
   List<bool> getLayersState() {
-    return (provider.getValue("key-layers-state-v33", defaultValue: "true,true,true,true,false,false,true,false,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (provider.getValue("key-layers-state-v35", defaultValue: "true,true,true,true,false,false,true,false,true,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
-    provider.setString("key-layers-state-v33", state.map((bool e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-state-v35", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
@@ -177,7 +179,8 @@ class AppSettings {
   }
 
   bool isAudibleAlertsEnabled() {
-    return provider.getValue("key-audible-alerts", defaultValue: true) as bool;
+    bool val = provider.getValue("key-audible-alerts", defaultValue: true) as bool;
+    return Platform.isWindows ? false : val; // disable alerts for windows due to crash. XXX.
   }
 
   void setAudibleAlertsEnabled(bool value) {
