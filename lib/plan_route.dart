@@ -281,12 +281,14 @@ class PlanRoute {
   }
 
   void addDirectTo(Waypoint waypoint) {
+    Storage().userRealmHelper.addRecent(waypoint.destination);
     addWaypoint(waypoint);
     _current = _waypoints[_waypoints.indexOf(waypoint)]; // go here
     _update(true);
   }
 
   void addWaypoint(Waypoint waypoint) {
+    Storage().userRealmHelper.addRecent(waypoint.destination);
     _waypoints.add(waypoint);
     _update(true);
   }

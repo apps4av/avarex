@@ -274,7 +274,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("->D"),
               onPressed: () {
-                Storage().userRealmHelper.addRecent(future.showDestination);
                 Storage().setDestination(future.showDestination);
                 if(future.showDestination is AirportDestination) {
                   Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
@@ -286,7 +285,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
             TextButton(
               child: const Text("+Plan"),
               onPressed: () {
-                Storage().userRealmHelper.addRecent(future.showDestination);
                 Storage().route.addWaypoint(Waypoint(future.showDestination));
                 MainScreenState.gotoPlan();
                 Navigator.of(context).pop(); // hide bottom sheet
