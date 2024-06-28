@@ -81,6 +81,7 @@ class Metar extends Weather {
     List<String> tokens = report.split(" ");
     String? integer;
     String? fraction;
+    String? visibilityMeters;
     String? height;
     String? cover;
     double visSM = 6;
@@ -104,6 +105,7 @@ class Metar extends Weather {
 
       var vis = visibility.firstMatch(token);
       if(vis != null) {
+        visibilityMeters = vis.namedGroup("vis");
         integer = vis.namedGroup("integer");
         fraction = vis.namedGroup("fraction");
         if(null != integer) {
@@ -114,6 +116,12 @@ class Metar extends Weather {
         }
         else if(null != fraction) {
           visSM = 0.5; // less than 1
+        }
+        else if (null != visibilityMeters) {
+          try {
+            visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
+          }
+          catch (e) {}
         }
       }
       var cld = cloud.firstMatch(token);

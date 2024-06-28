@@ -35,7 +35,7 @@ class Taf extends Weather {
   void parseCategory() {
 
     final RegExp header = RegExp(
-      r'^'
+      r'^(TAF)?\s*(AMD|COR)?\s*'
       r'(?<icaoCode>[A-Z]{4})'
       r'\s*'
       r'(?<originDate>\d{0,2})'
@@ -50,20 +50,14 @@ class Taf extends Weather {
       r'(?<validTillHours>\d{0,2})');
 
     RegExp group = RegExp(
-        r'^TEMPO|BECMG'
+        r'^(TEMPO|BECMG|FM)'
         r'\s*(?<validFromDate>0[1-9]|[12][0-9]|3[01])'
         r'(?<validFromHours>[0-1]\d|2[0-3])'
+        r'('
         r'/'
-        r'(?<validToDate>[1-9]|[12][0-9]|3[01])'
+        r'(?<validToDate>0[1-9]|[12][0-9]|3[01])'
         r'(?<validToHours>[0-1]\d|2[0-3])'
-        r'.*$'
-    );
-
-    RegExp groupFrom = RegExp(
-      r'^FM'
-      r'(?<validFromDate>0[1-9]|[12][0-9]|3[01])'
-      r'(?<validFromHours>[0-1]\d|2[0-3])'
-      r'.*$');
+        r')?');
 
     final RegExp visibility = RegExp(
         r'^((?<vis>\d{4}|//\//)'
@@ -87,6 +81,7 @@ class Taf extends Weather {
       List<String> tokens = line.split(" ");
       String? integer;
       String? fraction;
+      String? visibilityMeters;
       String? height;
       String? cover;
       String? validFromHours;
@@ -111,22 +106,15 @@ class Taf extends Weather {
         }
       }
       else {
-        // FM
-        var grp = groupFrom.firstMatch(line);
-        if(grp != null) {
-          validFromHours = grp.namedGroup("validFromHours");
-          validFromDate = grp.namedGroup("validFromDate");
-        }
-
-        // BECMG
-        grp = group.firstMatch(line);
+        // BECMG/TEMPO/FM
+        var grp = group.firstMatch(line);
         if(grp != null) {
           validFromHours = grp.namedGroup("validFromHours");
           validFromDate = grp.namedGroup("validFromDate");
         }
       }
 
-      if(null == validFromHours || null == validTillHours || null == validFromDate || null == validTillDate) {
+      if(null == validFromHours  || null == validFromDate) {
         continue;
       }
       int? hours = int.tryParse(validFromHours);
@@ -142,6 +130,7 @@ class Taf extends Weather {
 
         var vis = visibility.firstMatch(token);
         if (vis != null) {
+          visibilityMeters = vis.namedGroup("vis");
           integer = vis.namedGroup("integer");
           fraction = vis.namedGroup("fraction");
           if (null != integer) {
@@ -152,6 +141,12 @@ class Taf extends Weather {
           }
           else if (null != fraction) {
             visSM = 0.5; // less than 1
+          }
+          else if (null != visibilityMeters) {
+            try {
+              visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
+            }
+            catch (e) {}
           }
         }
         var cld = cloud.firstMatch(token);
@@ -207,7 +202,12 @@ class Taf extends Weather {
       }
 
       times.add(from);
-      colors.add(colors.last);
+      if(colors.isNotEmpty) {
+        colors.add(colors.last);
+      }
+      else {
+        colors.add(Colors.black);
+      }
     }
 
 
