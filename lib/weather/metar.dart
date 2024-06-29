@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class Metar extends Weather {
-  String text;
-  String category;
-  LatLng coordinate;
+  final String text;
+  final String category;
+  final LatLng coordinate;
 
   Metar(super.station, super.expires, this.text, this.category, this.coordinate);
 

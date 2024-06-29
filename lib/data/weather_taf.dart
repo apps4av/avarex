@@ -12,4 +12,6 @@ class _WeatherTaf {
   late String station;
   late String raw;
   late int utcMs;
+  late double ARPLatitude;
+  late double ARPLongitude;
 }

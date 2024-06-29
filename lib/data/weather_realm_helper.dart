@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:avaremp/data/weather_airep.dart';
 import 'package:avaremp/data/weather_airsigmet.dart';
 import 'package:avaremp/data/weather_metar.dart';
@@ -22,7 +21,13 @@ class WeatherRealmHelper {
   late Realm realm;
 
   Future<void> init()  {
-    Configuration config = Configuration.local([WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema]);
+
+    Configuration config = Configuration.local(
+        [WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema],
+        schemaVersion: 2,
+        migrationCallback: (realm, version){},
+    );
+
     realm = Realm(config);
     return Future.value();
   }
@@ -229,6 +234,8 @@ class WeatherRealmHelper {
       taf.station,
       taf.text,
       taf.expires.millisecondsSinceEpoch,
+      taf.coordinate.latitude,
+      taf.coordinate.longitude,
     );
 
     realm.write(() {
@@ -251,6 +258,8 @@ class WeatherRealmHelper {
           t.station,
           t.text,
           t.expires.millisecondsSinceEpoch,
+          t.coordinate.latitude,
+          t.coordinate.longitude,
         );
         return object;
       }));
@@ -268,6 +277,7 @@ class WeatherRealmHelper {
         object.station,
         DateTime.fromMillisecondsSinceEpoch(object.utcMs),
         object.raw,
+        LatLng(object.ARPLatitude, object.ARPLongitude),
       );
     } catch(e) {
       return null;
@@ -282,6 +292,7 @@ class WeatherRealmHelper {
         e.station,
         DateTime.fromMillisecondsSinceEpoch(e.utcMs),
         e.raw,
+        LatLng(e.ARPLatitude, e.ARPLongitude),
       );
     }).toList();
   }

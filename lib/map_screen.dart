@@ -11,6 +11,7 @@ import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
@@ -254,6 +255,36 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(
           ValueListenableBuilder<int>(
+              valueListenable: Storage().taf.change,
+              builder: (context, value, _) {
+                List<Weather> weather = Storage().taf.getAll();
+                List<Taf> tafs = weather.map((e) => e as Taf).toList();
+                return MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
+                    options: MarkerClusterLayerOptions(
+                      disableClusteringAtZoom: disableClusteringAtZoom,
+                      markers: [
+                        for(Taf t in tafs)
+                          Marker(point: t.coordinate,
+                              width: 32,
+                              height: 32,
+                              alignment: Alignment.bottomRight,
+                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
+                                content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
+                                triggerMode: TooltipTriggerMode.tap,
+                                waitDuration: const Duration(seconds: 1),
+                                child: t.getIcon(),)))
+                      ],
+                      builder: (context, markers) {
+                        return Container(color: Colors.transparent,);
+                      },
+                    )
+                );
+              }
+          )
+      );
+
+      layers.add(
+          ValueListenableBuilder<int>(
               valueListenable: Storage().airep.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().airep.getAll();
@@ -264,6 +295,7 @@ class MapScreenState extends State<MapScreen> {
                       markers: [
                         for(Airep a in airep)
                           Marker(point: a.coordinates,
+                              alignment: Alignment.bottomLeft,
                               child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                                 content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
                                 triggerMode: TooltipTriggerMode.tap,

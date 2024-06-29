@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class Taf extends Weather {
-  String text;
-  LatLng? coordinate;
-  List<DateTime> times = [];
-  List<Color> colors = [];
+  final String text;
+  final LatLng coordinate;
+  final List<DateTime> times = [];
+  final List<Color> colors = [];
 
-  Taf(super.station, super.expires, this.text) {
+  Taf(super.station, super.expires, this.text, this.coordinate) {
     parseCategory();
   }
 
@@ -18,15 +18,25 @@ class Taf extends Weather {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
       "raw": text,
+      "ARPLatitude": coordinate.latitude,
+      "ARPLongitude": coordinate.longitude,
     };
     return map;
   }
 
   factory Taf.fromMap(Map<String, dynamic> maps) {
+    LatLng ll = const LatLng(0, 0);
+
+    try {
+      ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
+    }
+    catch(e) {}
+
     return Taf(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
       maps['raw'] as String,
+      ll
     );
   }
 
@@ -229,5 +239,9 @@ class Taf extends Weather {
     return SizedBox(width: 32, height: 32, child:chart);
   }
 
+  @override
+  String toString() {
+    return text;
+  }
 }
 

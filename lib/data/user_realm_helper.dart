@@ -126,7 +126,11 @@ class UserRealmHelper {
 
     // go back to local
     Configuration config;
-    config = Configuration.local(objects);
+    config = Configuration.local(
+      objects,
+      schemaVersion: 2,
+      migrationCallback: (realm, version){},
+    );
     _realm = Realm(config); // start with local
     return "";
   }
@@ -142,7 +146,11 @@ class UserRealmHelper {
     else {
       Configuration config;
       _realm?.close();
-      config = Configuration.local(objects);
+      config = Configuration.local(
+        objects,
+        schemaVersion: 2,
+        migrationCallback: (realm, version){},
+      );
       _realm = Realm(config); // start with local
 
       // go through login states
@@ -182,7 +190,10 @@ class UserRealmHelper {
           // unable to login, use current user
           User? usr = _app.currentUser;
           if (null != usr) {
-            config = Configuration.flexibleSync(usr, objects);
+            config = Configuration.flexibleSync(
+              usr,
+              objects,
+              schemaVersion: 2, );
             _user = usr;
             _realm?.close(); // close local
             _realm = Realm(config); // local

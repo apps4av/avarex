@@ -14,11 +14,15 @@ class WeatherTaf extends _WeatherTaf
     String station,
     String raw,
     int utcMs,
+    double ARPLatitude,
+    double ARPLongitude,
   ) {
     RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'station', station);
     RealmObjectBase.set(this, 'raw', raw);
     RealmObjectBase.set(this, 'utcMs', utcMs);
+    RealmObjectBase.set(this, 'ARPLatitude', ARPLatitude);
+    RealmObjectBase.set(this, 'ARPLongitude', ARPLongitude);
   }
 
   WeatherTaf._();
@@ -44,6 +48,20 @@ class WeatherTaf extends _WeatherTaf
   set utcMs(int value) => RealmObjectBase.set(this, 'utcMs', value);
 
   @override
+  double get ARPLatitude =>
+      RealmObjectBase.get<double>(this, 'ARPLatitude') as double;
+  @override
+  set ARPLatitude(double value) =>
+      RealmObjectBase.set(this, 'ARPLatitude', value);
+
+  @override
+  double get ARPLongitude =>
+      RealmObjectBase.get<double>(this, 'ARPLongitude') as double;
+  @override
+  set ARPLongitude(double value) =>
+      RealmObjectBase.set(this, 'ARPLongitude', value);
+
+  @override
   Stream<RealmObjectChanges<WeatherTaf>> get changes =>
       RealmObjectBase.getChanges<WeatherTaf>(this);
 
@@ -56,6 +74,8 @@ class WeatherTaf extends _WeatherTaf
       'station': station.toEJson(),
       'raw': raw.toEJson(),
       'utcMs': utcMs.toEJson(),
+      'ARPLatitude': ARPLatitude.toEJson(),
+      'ARPLongitude': ARPLongitude.toEJson(),
     };
   }
 
@@ -67,12 +87,16 @@ class WeatherTaf extends _WeatherTaf
         'station': EJsonValue station,
         'raw': EJsonValue raw,
         'utcMs': EJsonValue utcMs,
+        'ARPLatitude': EJsonValue ARPLatitude,
+        'ARPLongitude': EJsonValue ARPLongitude,
       } =>
         WeatherTaf(
           fromEJson(id),
           fromEJson(station),
           fromEJson(raw),
           fromEJson(utcMs),
+          fromEJson(ARPLatitude),
+          fromEJson(ARPLongitude),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -87,6 +111,8 @@ class WeatherTaf extends _WeatherTaf
       SchemaProperty('station', RealmPropertyType.string),
       SchemaProperty('raw', RealmPropertyType.string),
       SchemaProperty('utcMs', RealmPropertyType.int),
+      SchemaProperty('ARPLatitude', RealmPropertyType.double),
+      SchemaProperty('ARPLongitude', RealmPropertyType.double),
     ]);
   }();
 

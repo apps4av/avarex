@@ -5,7 +5,11 @@ class UserSettingsRealmHelper {
   Realm? _realm;
 
   Future<void> init()  {
-    Configuration config = Configuration.local([UserSettings.schema]);
+    Configuration config = Configuration.local(
+      [UserSettings.schema],
+      schemaVersion: 2,
+      migrationCallback: (realm, version){},
+    );
     _realm = Realm(config);
     return Future.value();
   }

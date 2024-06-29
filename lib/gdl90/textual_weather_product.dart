@@ -52,8 +52,19 @@ class TextualWeatherProduct extends Product {
   }
 
   void _parseTaf(String place, String report) {
-    Taf taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report);
-    Storage().taf.put(taf);
+    Taf? taf;
+    Weather? inCacheWeather = Storage().taf.getQuick(place);
+    if(null != inCacheWeather) {
+      taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, (inCacheWeather as Taf).coordinate);
+    }
+    else if (null != coordinate) {
+      taf = Taf(place,
+          time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          report, coordinate!);
+    }
+    if(null != taf) {
+      Storage().taf.put(taf);
+    }
   }
 
   // This is a lot of ugly code because market cluster has issues with changing coordinates
