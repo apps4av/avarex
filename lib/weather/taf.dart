@@ -3,8 +3,6 @@ import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'metar.dart';
-
 class Taf extends Weather {
   String text;
   LatLng? coordinate;
@@ -30,6 +28,21 @@ class Taf extends Weather {
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
       maps['raw'] as String,
     );
+  }
+
+  Color getColor(String category) {
+    switch(category) {
+      case "VFR":
+        return const Color(0xFF00FF00);
+      case "MVFR":
+        return const Color(0xFF0000FF);
+      case "IFR":
+        return const Color(0xFFFF0000);
+      case "LIFR":
+        return const Color(0xFF673AB7);
+    }
+
+    return const Color(0xAAFFFFFF);
   }
 
   void parseCategory() {
@@ -181,12 +194,12 @@ class Taf extends Weather {
 
       DateTime now = DateTime.now();
       DateTime from = DateTime(now.year, now.month, date, hours);
-      if(now.day > date) {
+      if(now.day > 26 && date < 3) { // if today is 27th, and date is 1, then it is 1st of next month
         from = DateTime(now.year, now.month + 1, date, hours);
       }
 
       times.add(from);
-      colors.add(Metar.getColorStatic(category));
+      colors.add(getColor(category));
     }
 
     if(null != validTillDate && null != validTillHours) {
@@ -209,8 +222,6 @@ class Taf extends Weather {
         colors.add(Colors.black);
       }
     }
-
-
   }
 
   Widget getIcon() {
