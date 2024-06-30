@@ -29,7 +29,7 @@ import '../weather/winds_aloft.dart';
 class RealmHelper {
 
 
-  static const int _schemaVersion = 4;
+  static const int _schemaVersion = 10;
 
   // remote syncs
   final List<SchemaObject> _remoteObjects = [
@@ -53,7 +53,7 @@ class RealmHelper {
   User? _user;
 
   Realm _getRealm() {
-    return loggedIn ? _remoteRealm! : _realm;
+    return (_remoteRealm != null) ? _remoteRealm! : _realm;
   }
 
   String _getUserId() {
@@ -165,10 +165,10 @@ class RealmHelper {
       failedLoginMessage = "User $username already logged in";
     }
     else {
+      _closeRemote();
       // go through login states
       if (username.isEmpty || password.isEmpty) {
         // user does not want to use backup, keep local realm
-        _closeRemote();
         failedLoginMessage = "Enter username and password.";
       }
       else {
