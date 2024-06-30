@@ -29,7 +29,7 @@ import '../weather/winds_aloft.dart';
 class RealmHelper {
 
 
-  static const int _schemaVersion = 3;
+  static const int _schemaVersion = 4;
 
   // remote syncs
   final List<SchemaObject> _remoteObjects = [
@@ -42,7 +42,7 @@ class RealmHelper {
       WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema, UserSettings.schema, UserRecent.schema, UserPlan.schema, UserAircraft.schema, UserChecklist.schema,
     ],
     schemaVersion: _schemaVersion,
-    migrationCallback: (realm, version){
+    migrationCallback: (realm, version) {
     },
   );
 
@@ -175,7 +175,7 @@ class RealmHelper {
         try {
           User usr = await _app.logIn(
               Credentials.emailPassword(username, password));
-          Configuration config = Configuration.flexibleSync(schemaVersion: _schemaVersion,
+          Configuration config = Configuration.flexibleSync(schemaVersion: 0,
               usr, _remoteObjects, syncErrorHandler: (error) {});
           _user = usr;
           _remoteRealm = Realm(config);
@@ -201,7 +201,7 @@ class RealmHelper {
           // unable to login, use current user
           User? usr = _app.currentUser;
           if (null != usr) {
-            Configuration config = Configuration.flexibleSync(usr, _remoteObjects, schemaVersion: _schemaVersion, );
+            Configuration config = Configuration.flexibleSync(usr, _remoteObjects, schemaVersion: 0, );
             _user = usr;
             _remoteRealm = Realm(config);
           }
