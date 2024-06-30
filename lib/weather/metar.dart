@@ -45,13 +45,13 @@ class Metar extends Weather {
   static Color getColorStatic(String category) {
     switch(category) {
       case "VFR":
-        return const Color(0xAA00FF00);
+        return const Color(0xFF00FF00);
       case "MVFR":
-        return const Color(0xAA0000FF);
+        return const Color(0xFF0000FF);
       case "IFR":
-        return const Color(0xAAFF0000);
+        return const Color(0xFFFF0000);
       case "LIFR":
-        return const Color(0xAA673AB7);
+        return const Color(0xFF673AB7);
     }
 
     return const Color(0xAAFFFFFF);
@@ -60,13 +60,13 @@ class Metar extends Weather {
   Icon getIcon() {
     switch (category) {
       case "VFR":
-        return const Icon(Icons.circle, color: Color(0x80008F00), );
+        return const Icon(Icons.circle, color: Color(0xFF008F00), );
       case "MVFR":
-        return const Icon(Icons.circle, color: Color(0x800000FF), );
+        return const Icon(Icons.circle, color: Color(0xFF0000FF), );
       case "IFR":
-        return const Icon(Icons.circle, color: Color(0x80FF0000), );
+        return const Icon(Icons.circle, color: Color(0xFFFF0000), );
       case "LIFR":
-        return const Icon(Icons.circle, color: Color(0x80673AB7), );
+        return const Icon(Icons.circle, color: Color(0xFF673AB7), );
     }
 
     return const Icon(Icons.circle, color: Color(0x80FFFFFF), );

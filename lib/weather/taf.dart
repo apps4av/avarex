@@ -49,7 +49,7 @@ class Taf extends Weather {
       case "IFR":
         return const Color(0xFFFF0000);
       case "LIFR":
-        return const Color(0xFF673AB7);
+        return const Color(0xFFFFA0CB);
     }
 
     return const Color(0xAAFFFFFF);

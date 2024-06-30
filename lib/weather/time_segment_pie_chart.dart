@@ -44,6 +44,7 @@ class _PieChartPainter extends CustomPainter {
     canvas.drawCircle(Offset(size.width / 2, size.height / 2), size.height / 2, paint);
     double sizeDraw = size.height - 3;
 
+    double lastAngle = -90;
     for(int i = 0; i < hourlyPairs.length - 1; i++) {
 
       final paint = Paint()
@@ -57,13 +58,14 @@ class _PieChartPainter extends CustomPainter {
       // drawArc draws clockwise with 0 degree as in math, but clock's 0 degree is at -90 degree in math
       double angleStart = (hours % 12) / 12 * 360 - 90;
       double angleEnd = angleStart + 30; // each hour in 12 hour clock is 30 degree
-      if(angleStart.round() == -90 && i != 0) {
+      if(angleStart == -90 && lastAngle == 240) {
         // draw inner circle
         offset++;
       }
       if(offset > 2) { // this should draw 3 circles and cover 3 * 12 hours
         return;
       }
+      lastAngle = angleStart;
 
       canvas.drawArc(Rect.fromLTRB(offset * 4 + 3, offset * 4 + 3, sizeDraw - offset * 4, sizeDraw - offset * 4), angleStart * pi / 180, (angleEnd - angleStart) * pi / 180, false, paint);
     }

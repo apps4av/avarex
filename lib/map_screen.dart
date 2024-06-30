@@ -238,6 +238,7 @@ class MapScreenState extends State<MapScreen> {
                       markers: [
                         for(Metar m in metars)
                           Marker(point: m.coordinate,
+                              alignment: Alignment.topRight,
                               child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                                 content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
                                 triggerMode: TooltipTriggerMode.tap,
