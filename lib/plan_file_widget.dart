@@ -54,7 +54,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   @override
   Widget build(BuildContext context) {
 
-    _aircraft = Storage().userRealmHelper.getAllAircraft();
+    _aircraft = Storage().realmHelper.getAllAircraft();
     return _makeContent(_aircraft);
   }
 

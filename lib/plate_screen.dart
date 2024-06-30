@@ -30,7 +30,7 @@ class PlatesFuture {
   Future<void> _getAll() async {
 
     // get location ID only
-    _airports = (Storage().userRealmHelper.getRecentAirports()).map((e) => e.locationID).toList();
+    _airports = (Storage().realmHelper.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(_currentPlateAirport.isEmpty) {
         if(_airports.isNotEmpty) {

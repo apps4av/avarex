@@ -6,7 +6,6 @@ import 'dart:ui' as ui;
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
-import 'package:avaremp/data/user_realm_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/fis_buffer.dart';
@@ -85,7 +84,6 @@ class Storage {
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
-  final UserRealmHelper userRealmHelper = UserRealmHelper();
   final RealmHelper realmHelper = RealmHelper();
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
@@ -293,8 +291,8 @@ class Storage {
 
     String username;
     String password;
-    (username, password) = userRealmHelper.loadCredentials();
-    userRealmHelper.login([username, password]);
+    (username, password) = realmHelper.loadCredentials();
+    realmHelper.login([username, password]);
     await checkChartsExist();
     await checkDataExpiry();
 

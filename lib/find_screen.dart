@@ -44,7 +44,7 @@ class FindScreenState extends State<FindScreen> {
     bool searching = true;
     return FutureBuilder(
       // this is a mix of sqlite and realm, so we need to wait for the result and for realm, do a future as dummy
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? Future.value(Storage().userRealmHelper.getRecent()) : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
+      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? Future.value(Storage().realmHelper.getRecent()) : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -110,7 +110,7 @@ class FindScreenState extends State<FindScreen> {
                       direction: DismissDirection.endToStart,
                       onDismissed:(direction) {
                         // Remove the item from the data source.
-                        Storage().userRealmHelper.deleteRecent(item);
+                        Storage().realmHelper.deleteRecent(item);
                         setState(() {
                           items.removeAt(index);
                         });
@@ -121,7 +121,7 @@ class FindScreenState extends State<FindScreen> {
                               Text(item.locationID),
                               TextButton(
                                 onPressed: () {
-                                  Storage().userRealmHelper.addRecent(item);
+                                  Storage().realmHelper.addRecent(item);
                                   Storage().settings.setCenterLongitude(item.coordinate.longitude);
                                   Storage().settings.setCenterLatitude(item.coordinate.latitude);
                                   Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());

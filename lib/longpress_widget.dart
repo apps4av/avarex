@@ -95,7 +95,7 @@ class LongPressFuture {
               type: showDestination.type,
               facilityName: value,
               coordinate: showDestination.coordinate);
-          Storage().userRealmHelper.addRecent(d);
+          Storage().realmHelper.addRecent(d);
 
           labelCallback(value);
       },)));

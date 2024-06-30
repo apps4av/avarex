@@ -120,7 +120,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                         onDismissed: (direction) {
                           String? entry = _selected;
                           if(null != entry) {
-                            Storage().userRealmHelper.deleteAircraft(entry);
+                            Storage().realmHelper.deleteAircraft(entry);
                           }
                           Storage().settings.setChecklist("");
                           setState(() {
@@ -135,7 +135,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                         // take all of whats here and save
                         Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
                         Aircraft a = Aircraft.fromMap(mm);
-                        Storage().userRealmHelper.addAircraft(a);
+                        Storage().realmHelper.addAircraft(a);
                         setState(() {
                           Storage().settings.setAircraft(a.tail);
                         });
@@ -153,7 +153,7 @@ class AircraftScreenState extends State<AircraftScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Aircraft>? data = Storage().userRealmHelper.getAllAircraft();
+    List<Aircraft>? data = Storage().realmHelper.getAllAircraft();
     return _makeContent(data);
   }
 }

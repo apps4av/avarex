@@ -51,7 +51,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           }
           String name = lines.removeAt(0);
           Checklist list = Checklist(name, "", lines);
-          Storage().userRealmHelper.addChecklist(list);
+          Storage().realmHelper.addChecklist(list);
         }));},
       child: const Text("Import")
     ));
@@ -128,7 +128,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                     onDismissed: (direction) {
                       String? entry = _selected;
                       if(null != entry) {
-                        Storage().userRealmHelper.deleteChecklist(entry);
+                        Storage().realmHelper.deleteChecklist(entry);
                       }
                       Storage().settings.setChecklist("");
                       setState(() {
@@ -144,7 +144,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Checklist>? data = Storage().userRealmHelper.getAllChecklist();
+    List<Checklist>? data = Storage().realmHelper.getAllChecklist();
     return _makeContent(data);
   }
 
