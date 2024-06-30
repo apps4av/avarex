@@ -122,7 +122,7 @@ class TfrCache extends WeatherCache {
         }
       }
     }
-    Storage().weatherRealmHelper.addTfrs(tfrs);
+    Storage().realmHelper.addTfrs(tfrs);
   }
 }
 

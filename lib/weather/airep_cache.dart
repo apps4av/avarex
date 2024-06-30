@@ -34,7 +34,7 @@ class AirepCache extends WeatherCache {
         continue;
       }
     }
-    Storage().weatherRealmHelper.addAireps(aireps);
+    Storage().realmHelper.addAireps(aireps);
   }
 }
 

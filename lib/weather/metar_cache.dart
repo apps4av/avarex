@@ -35,7 +35,7 @@ class MetarCache extends WeatherCache {
         continue;
       }
     }
-    Storage().weatherRealmHelper.addMetars(metars);
+    Storage().realmHelper.addMetars(metars);
   }
 
 }

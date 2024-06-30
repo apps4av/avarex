@@ -30,7 +30,7 @@ class NotamCache extends WeatherCache {
     time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
     Notam notam = Notam(argument, time, notamText);
 
-    Storage().weatherRealmHelper.addNotam(notam);
+    Storage().realmHelper.addNotam(notam);
   }
 
   // Download and parse, override because this is a POST

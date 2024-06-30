@@ -46,7 +46,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
 import 'data/db_general.dart';
-import 'data/weather_realm_helper.dart';
+import 'data/realm_helper.dart';
 import 'destination.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';
@@ -86,7 +86,7 @@ class Storage {
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
   final UserRealmHelper userRealmHelper = UserRealmHelper();
-  final WeatherRealmHelper weatherRealmHelper = WeatherRealmHelper();
+  final RealmHelper realmHelper = RealmHelper();
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
@@ -295,7 +295,6 @@ class Storage {
     String password;
     (username, password) = userRealmHelper.loadCredentials();
     userRealmHelper.login([username, password]);
-    await weatherRealmHelper.init();
     await checkChartsExist();
     await checkDataExpiry();
 

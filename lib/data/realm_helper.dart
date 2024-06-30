@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:avaremp/data/user_settings.dart';
 import 'package:avaremp/data/weather_airep.dart';
 import 'package:avaremp/data/weather_airsigmet.dart';
 import 'package:avaremp/data/weather_metar.dart';
@@ -16,21 +17,75 @@ import '../weather/taf.dart';
 import '../weather/tfr.dart';
 import '../weather/winds_aloft.dart';
 
-class WeatherRealmHelper {
+class RealmHelper {
 
-  late Realm realm;
+  Configuration config = Configuration.local(
+    [WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema, UserSettings.schema],
+    schemaVersion: 2,
+    migrationCallback: (realm, version){},
+  );
 
-  Future<void> init()  {
+  late final Realm _realm = Realm(config);
 
-    Configuration config = Configuration.local(
-        [WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema],
-        schemaVersion: 2,
-        migrationCallback: (realm, version){},
-    );
+  void insertSetting(String key, String? value) {
 
-    realm = Realm(config);
-    return Future.value();
+    // remove for duplicates
+    deleteSetting(key);
+
+    if(null == value) {
+      return;
+    }
+    UserSettings setting = UserSettings(ObjectId(), "", key, value);
+
+    _realm.write(() {
+      _realm.add(setting);
+    });
+
   }
+
+  String? getSetting(String key) {
+
+    RealmResults<UserSettings> settings = _realm.all<UserSettings>().query("key = '$key'");
+
+    if(settings.isEmpty) {
+      return null;
+    }
+    UserSettings? s = settings.first;
+    return s.value;
+  }
+
+  void deleteSetting(String key) {
+
+    RealmResults<UserSettings> settings = _realm.all<UserSettings>().query("key = '$key'");
+
+    try {
+      _realm.write(() {
+        _realm.delete(settings.first);
+      });
+    } catch(e) {}
+
+  }
+
+  void deleteAllSettings() {
+
+    try {
+      _realm.write(() {
+        _realm.deleteAll<UserSettings>();
+      });
+    } catch(e) {}
+  }
+
+  List<Map<String, dynamic>> getAllSettings() {
+    List<Map<String, dynamic>> ret = [];
+
+    RealmResults<UserSettings> settings = _realm.all<UserSettings>();
+
+    for(UserSettings setting in settings) {
+      ret.add({"key": setting.key, "value": setting.value});
+    }
+    return ret;
+  }
+
 
   void addWindsAloft(WindsAloft wa)  {
 
@@ -49,8 +104,8 @@ class WeatherRealmHelper {
       wa.w34k,
       wa.w39k);
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
 
   }
@@ -61,12 +116,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherWinds>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherWinds>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherWinds>(wa.map((w) {
+    _realm.write(() {
+      _realm.addAll<WeatherWinds>(wa.map((w) {
         WeatherWinds object = WeatherWinds(ObjectId(),
             w.station,
             w.expires.millisecondsSinceEpoch,
@@ -86,7 +141,7 @@ class WeatherRealmHelper {
 
   WindsAloft? getWindsAloft(String station)  {
     try {
-      WeatherWinds object = realm
+      WeatherWinds object = _realm
           .all<WeatherWinds>()
           .query("station = '$station'")
           .first;
@@ -110,7 +165,7 @@ class WeatherRealmHelper {
 
   Future<List<WindsAloft>> getAllWindsAloft() async {
 
-    RealmResults<WeatherWinds> entries = realm.all<WeatherWinds>();
+    RealmResults<WeatherWinds> entries = _realm.all<WeatherWinds>();
 
     return entries.map((e) {
       return WindsAloft(
@@ -131,11 +186,11 @@ class WeatherRealmHelper {
 
   void deleteWindsAloft(String station)  {
 
-    RealmResults<WeatherWinds> entries = realm.all<WeatherWinds>().query("station = '$station'");
+    RealmResults<WeatherWinds> entries = _realm.all<WeatherWinds>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
 
@@ -154,8 +209,8 @@ class WeatherRealmHelper {
         metar.coordinate.longitude,
     );
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
   }
 
@@ -164,12 +219,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherMetar>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherMetar>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherMetar>(metar.map((m) {
+    _realm.write(() {
+      _realm.addAll<WeatherMetar>(metar.map((m) {
         WeatherMetar object = WeatherMetar(ObjectId(),
             m.station,
             m.text,
@@ -186,7 +241,7 @@ class WeatherRealmHelper {
 
   Metar? getMetar(String station)  {
     try {
-      WeatherMetar object = realm
+      WeatherMetar object = _realm
           .all<WeatherMetar>()
           .query("station = '$station'")
           .first;
@@ -203,7 +258,7 @@ class WeatherRealmHelper {
   }
 
   Future<List<Metar>> getAllMetar() async {
-    RealmResults<WeatherMetar> entries = realm.all<WeatherMetar>();
+    RealmResults<WeatherMetar> entries = _realm.all<WeatherMetar>();
 
     return entries.map((e) {
       return Metar(
@@ -217,11 +272,11 @@ class WeatherRealmHelper {
   }
 
   void deleteMetar(String station)  {
-    RealmResults<WeatherMetar> entries = realm.all<WeatherMetar>().query("station = '$station'");
+    RealmResults<WeatherMetar> entries = _realm.all<WeatherMetar>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
   }
@@ -238,8 +293,8 @@ class WeatherRealmHelper {
       taf.coordinate.longitude,
     );
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
   }
 
@@ -248,12 +303,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherTaf>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherTaf>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherTaf>(taf.map((t) {
+    _realm.write(() {
+      _realm.addAll<WeatherTaf>(taf.map((t) {
         WeatherTaf object = WeatherTaf(ObjectId(),
           t.station,
           t.text,
@@ -269,7 +324,7 @@ class WeatherRealmHelper {
 
   Taf? getTaf(String station)  {
     try {
-      WeatherTaf object = realm
+      WeatherTaf object = _realm
           .all<WeatherTaf>()
           .query("station = '$station'")
           .first;
@@ -285,7 +340,7 @@ class WeatherRealmHelper {
   }
 
   Future<List<Taf>> getAllTaf() async  {
-    RealmResults<WeatherTaf> entries = realm.all<WeatherTaf>();
+    RealmResults<WeatherTaf> entries = _realm.all<WeatherTaf>();
 
     return entries.map((e) {
       return Taf(
@@ -298,11 +353,11 @@ class WeatherRealmHelper {
   }
 
   void deleteTaf(String station)  {
-    RealmResults<WeatherTaf> entries = realm.all<WeatherTaf>().query("station = '$station'");
+    RealmResults<WeatherTaf> entries = _realm.all<WeatherTaf>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
   }
@@ -321,8 +376,8 @@ class WeatherRealmHelper {
       tfr.labelCoordinate,
     );
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
   }
 
@@ -331,12 +386,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherTfr>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherTfr>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherTfr>(tfr.map((t) {
+    _realm.write(() {
+      _realm.addAll<WeatherTfr>(tfr.map((t) {
         WeatherTfr object = WeatherTfr(ObjectId(),
           t.station,
           jsonEncode(t.coordinates),
@@ -354,7 +409,7 @@ class WeatherRealmHelper {
 
   Tfr? getTfr(String station)  {
     try {
-      WeatherTfr object = realm
+      WeatherTfr object = _realm
           .all<WeatherTfr>()
           .query("station = '$station'")
           .first;
@@ -380,7 +435,7 @@ class WeatherRealmHelper {
   }
 
   Future<List<Tfr>> getAllTfr() async  {
-    RealmResults<WeatherTfr> entries = realm.all<WeatherTfr>();
+    RealmResults<WeatherTfr> entries = _realm.all<WeatherTfr>();
 
     return entries.map((e) {
       List<dynamic> coordinates = jsonDecode(e.coordinates);
@@ -403,17 +458,17 @@ class WeatherRealmHelper {
   }
 
   void deleteTfr(String station)  {
-    RealmResults<WeatherTfr> entries = realm.all<WeatherTfr>().query("station = '$station'");
+    RealmResults<WeatherTfr> entries = _realm.all<WeatherTfr>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
   }
 
   Future<List<Airep>> getAllAirep() async {
-    RealmResults<WeatherAirep> entries = realm.all<WeatherAirep>();
+    RealmResults<WeatherAirep> entries = _realm.all<WeatherAirep>();
 
     return entries.map((e) {
       List<dynamic> coordinates = jsonDecode(e.coordinates);
@@ -432,12 +487,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherAirep>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherAirep>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherAirep>(aireps.map((a) {
+    _realm.write(() {
+      _realm.addAll<WeatherAirep>(aireps.map((a) {
         WeatherAirep object = WeatherAirep(ObjectId(),
           a.station,
           a.text,
@@ -459,24 +514,24 @@ class WeatherRealmHelper {
       jsonEncode([airep.coordinates.latitude, airep.coordinates.longitude]),
     );
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
   }
 
   void deleteAirep(String station)  {
-    RealmResults<WeatherAirep> entries = realm.all<WeatherAirep>().query("station = '$station'");
+    RealmResults<WeatherAirep> entries = _realm.all<WeatherAirep>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
   }
 
 
   Future<List<AirSigmet>> getAllAirSigmet() async {
-    RealmResults<WeatherAirSigmet> entries = realm.all<WeatherAirSigmet>();
+    RealmResults<WeatherAirSigmet> entries = _realm.all<WeatherAirSigmet>();
 
     return entries.map((e) {
       List<dynamic> coordinates = jsonDecode(e.coordinates);
@@ -502,12 +557,12 @@ class WeatherRealmHelper {
       return;
     }
 
-    realm.write(() {
-      realm.deleteAll<WeatherAirSigmet>();
+    _realm.write(() {
+      _realm.deleteAll<WeatherAirSigmet>();
     });
 
-    realm.write(() {
-      realm.addAll<WeatherAirSigmet>(airSigmet.map((a) {
+    _realm.write(() {
+      _realm.addAll<WeatherAirSigmet>(airSigmet.map((a) {
         WeatherAirSigmet object = WeatherAirSigmet(ObjectId(),
           a.station,
           a.text,
@@ -524,7 +579,7 @@ class WeatherRealmHelper {
   }
 
   Future<List<Notam>> getAllNotams() async {
-    RealmResults<WeatherNotam> entries = realm.all<WeatherNotam>();
+    RealmResults<WeatherNotam> entries = _realm.all<WeatherNotam>();
 
     return entries.map((e) {
       return Notam(
@@ -537,7 +592,7 @@ class WeatherRealmHelper {
 
   Notam? getNotam(String station)  {
     try {
-      WeatherNotam object = realm
+      WeatherNotam object = _realm
           .all<WeatherNotam>()
           .query("station = '$station'")
           .first;
@@ -560,17 +615,17 @@ class WeatherRealmHelper {
       notam.expires.millisecondsSinceEpoch,
     );
 
-    realm.write(() {
-      realm.add(object);
+    _realm.write(() {
+      _realm.add(object);
     });
   }
 
   void deleteNotam(String station)  {
-    RealmResults<WeatherNotam> entries = realm.all<WeatherNotam>().query("station = '$station'");
+    RealmResults<WeatherNotam> entries = _realm.all<WeatherNotam>().query("station = '$station'");
 
     try {
-      realm.write(() {
-        realm.delete(entries.first);
+      _realm.write(() {
+        _realm.delete(entries.first);
       });
     } catch(e) {}
   }

@@ -39,7 +39,7 @@ class TafCache extends WeatherCache {
       }
     }
 
-    Storage().weatherRealmHelper.addTafs(tafs);
+    Storage().realmHelper.addTafs(tafs);
   }
 }
 

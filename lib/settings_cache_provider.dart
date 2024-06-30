@@ -1,9 +1,11 @@
 import 'dart:async';
-import 'data/user_settings_realm_helper.dart';
+import 'package:avaremp/storage.dart';
+
+import 'data/realm_helper.dart';
 
 class SettingsCacheProvider {
 
-  final UserSettingsRealmHelper _userSettingsRealmHelper = UserSettingsRealmHelper();
+  final RealmHelper _userSettingsRealmHelper = Storage().realmHelper;
 
   bool containsKey(String key) {
     bool contains = getKeys().contains(key);
@@ -52,7 +54,7 @@ class SettingsCacheProvider {
   }
 
   Future<void> init() async {
-    _userSettingsRealmHelper.init();
+    return Future.value();
   }
 
   Future<void> remove(String key) {

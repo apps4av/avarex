@@ -41,7 +41,7 @@ class AirSigmetCache extends WeatherCache {
         continue;
       }
     }
-    Storage().weatherRealmHelper.addAirSigmets(airSigmet);
+    Storage().realmHelper.addAirSigmets(airSigmet);
 
   }
 }

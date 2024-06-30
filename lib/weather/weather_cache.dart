@@ -96,47 +96,47 @@ class WeatherCache {
 
     if(type == MetarCache) {
       MetarCache cache = MetarCache("https://aviationweather.gov/data/cache/metars.cache.csv.gz",
-          Storage().weatherRealmHelper.getAllMetar);
+          Storage().realmHelper.getAllMetar);
       return cache;
     }
     else if(type == TafCache) {
       TafCache cache = TafCache("https://aviationweather.gov/data/cache/tafs.cache.csv.gz",
-          Storage().weatherRealmHelper.getAllTaf);
+          Storage().realmHelper.getAllTaf);
       return cache;
     }
     else if(type == WindsCache) {
       // default
       WeatherCache cache = WindsCache(
           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
-          Storage().weatherRealmHelper.getAllWindsAloft);
+          Storage().realmHelper.getAllWindsAloft);
       return cache;
     }
     else if(type == TfrCache) {
       // default
       WeatherCache cache = TfrCache(
           "https://tfr.faa.gov/tfr2/list.html",
-          Storage().weatherRealmHelper.getAllTfr);
+          Storage().realmHelper.getAllTfr);
       return cache;
     }
     else if(type == AirepCache) {
       // default
       WeatherCache cache = AirepCache(
           "https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz",
-          Storage().weatherRealmHelper.getAllAirep);
+          Storage().realmHelper.getAllAirep);
       return cache;
     }
     else if(type == AirSigmetCache) {
       // default
       WeatherCache cache = AirSigmetCache(
           "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
-          Storage().weatherRealmHelper.getAllAirSigmet);
+          Storage().realmHelper.getAllAirSigmet);
       return cache;
     }
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
           "https://www.notams.faa.gov/dinsQueryWeb/queryRetrievalMapAction.do",
-          Storage().weatherRealmHelper.getAllNotams);
+          Storage().realmHelper.getAllNotams);
       return cache;
     }
     else {

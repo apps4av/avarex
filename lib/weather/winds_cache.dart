@@ -77,7 +77,7 @@ class WindsCache extends WeatherCache {
         winds.add(w);
       }
       catch (e) {}
-      Storage().weatherRealmHelper.addWindsAlofts(winds); // add to database
+      Storage().realmHelper.addWindsAlofts(winds); // add to database
     }
   }
 
