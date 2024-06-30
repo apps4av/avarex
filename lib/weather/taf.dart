@@ -8,10 +8,9 @@ class Taf extends Weather {
   final LatLng coordinate;
   final List<DateTime> times = [];
   final List<Color> colors = [];
+  bool parsed = false;
 
-  Taf(super.station, super.expires, this.text, this.coordinate) {
-    parseCategory();
-  }
+  Taf(super.station, super.expires, this.text, this.coordinate);
 
   Map<String, Object?> toMap() {
     Map<String, Object?> map  = {
@@ -55,7 +54,7 @@ class Taf extends Weather {
     return const Color(0xAAFFFFFF);
   }
 
-  void parseCategory() {
+  void _parseCategories() {
 
     final RegExp header = RegExp(
       r'^(TAF)?\s*(AMD|COR)?\s*'
@@ -245,6 +244,10 @@ class Taf extends Weather {
   }
 
   Widget getIcon() {
+    if(!parsed) {
+      _parseCategories();
+      parsed = true;
+    }
     TimeSegmentPieChart chart = TimeSegmentPieChart(timeSegments: times, colors: colors);
     return SizedBox(width: 32, height: 32, child:chart);
   }
