@@ -176,12 +176,17 @@ class Taf extends Weather {
         if (cld != null) {
           cover = cld.namedGroup("cover");
           height = cld.namedGroup("height");
-          if (height != null && cover != null) {
+          if (cover != null) {
             if (cover == "OVC" || cover == "BKN") {
-              try {
-                cloudFt = double.parse(height) * 100;
+              if(height != null) {
+                try {
+                  cloudFt = double.parse(height) * 100;
+                }
+                catch (e) {}
               }
-              catch (e) {}
+            }
+            else {
+              cloudFt = 12000; // VFR
             }
           }
         }
