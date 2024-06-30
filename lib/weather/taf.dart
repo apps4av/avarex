@@ -109,9 +109,9 @@ class Taf extends Weather {
       String? cover;
       String? validFromHours;
       String? validFromDate;
-      double visSM = 6;
-      double cloudFt = 12000;
-      String category = "VFR";
+      double? visSM;
+      double? cloudFt;
+      String? category;
 
       if(firstLine) {
         firstLine = false;
@@ -187,11 +187,16 @@ class Taf extends Weather {
         }
       }
 
+      if(null == cloudFt || null == visSM) {
+        continue;
+      }
+
       // find flight category
       // VFR: > 3000 ft AND > 5SM
       // MVFR: >= 1000 ft AND / OR > 3 SM
       // IFR: >= 500 ft AND / OR >= 1 SM
       // LIFR < 500 ft AND / OR < 1 SM
+      category = "VFR";
       if (cloudFt < 500 || visSM < 1) {
         category = "LIFR";
       }
