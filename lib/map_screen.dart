@@ -498,7 +498,7 @@ class MapScreenState extends State<MapScreen> {
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                   point: e.getCoordinates(),
-                  child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
+                  child: GestureDetector(child:Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                     child: JustTheTooltip(
                       content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
                       triggerMode: TooltipTriggerMode.tap,
@@ -507,8 +507,13 @@ class MapScreenState extends State<MapScreen> {
                         child: e.getIcon()
                       )
                     )
-                  )
-                ); // undo the above rotation
+                  ),
+                  onLongPress: () {
+                    setState(() { // disable/enable audible alerts
+                      Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
+                    });
+                  },
+                )); // undo the above rotation
               }).toList(),
             );
           },
