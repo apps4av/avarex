@@ -176,9 +176,17 @@ class InstrumentListState extends State<InstrumentList> {
         calc.calculateTo();
         if(calc.time.isFinite) {
           Duration time = Duration(seconds: calc.time.round());
-          _eta =
-              _truncate(_hourMinuteFormatter.format(DateTime.now().add(time)));
-          _ete = _truncate(time.toString().substring(2, 7));
+          if(time > const Duration(hours: 23)) { // no flight more than this long and saves overflow in instrument
+            _eta = "XX:XX";
+            _ete = "XX:XX";
+          }
+          else {
+            _eta =
+                _truncate(
+                    _hourMinuteFormatter.format(DateTime.now().add(time)));
+            _ete = _truncate(
+                "${time.inHours.toString().padLeft(2, '0')}:${time.inMinutes.remainder(60).toString().padLeft(2, '0')}");
+          }
         }
         else {
           _eta = "-";
