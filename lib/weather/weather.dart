@@ -11,6 +11,11 @@ class Weather {
     return (diff.inSeconds < 0);
   }
 
+  bool isVeryOld() {
+    Duration diff = expires.difference(DateTime.now().toUtc());
+    return (diff.inHours < -12);
+  }
+
 }
 
 

@@ -87,7 +87,9 @@ class WeatherCache {
     List<Weather> elements = await _dbCall();
     // load everything in cache map from database
     for(Weather element in elements) {
-      _map[element.station] = element;
+      if(!element.isVeryOld()) {
+        _map[element.station] = element;
+      }
     }
     change.value++;
   }

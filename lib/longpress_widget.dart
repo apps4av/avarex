@@ -6,6 +6,7 @@ import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/weather.dart';
@@ -184,6 +185,8 @@ class LongPressWidgetState extends State<LongPressWidget> {
     if(station != null) {
       winds = Storage().winds.get(station);
     }
+    Widget? sounding = Sounding.getSoundingImage(widget.destination.coordinate, context);
+
 
     if(future.showDestination is AirportDestination) {
       Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
@@ -239,7 +242,12 @@ class LongPressWidgetState extends State<LongPressWidget> {
       windsPage = future.pages.length;
       WindsAloft wa = winds as WindsAloft;
       future.pages.add(
-        SingleChildScrollView(child:Text(wa.toString()))
+        Stack(children:[
+          if(sounding != null)
+            Positioned(child: Align(alignment: Alignment.topRight, child: sounding),
+            ),
+          SingleChildScrollView(child:Text(wa.toString()))
+        ])
       );
     }
 
