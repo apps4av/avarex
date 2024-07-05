@@ -14,11 +14,12 @@ class WnbScreen extends StatefulWidget {
 class WnbScreenState extends State<WnbScreen> {
 
   String? _selected;
-  Wnb _wnb = Wnb.empty();
+  Wnb _wnb = Wnb.empty(); // to keep current editing
   double _currentX = 0;
   double _currentY = 0;
   bool _editing = false;
   final List<Offset> _plotData = [];
+  Offset _cgData = Offset(0, 0);
 
   Widget _makeContent(List<Wnb>? items) {
 
@@ -26,7 +27,7 @@ class WnbScreenState extends State<WnbScreen> {
 
     if(null != items && (!_editing)) {
       if(items.isEmpty) {
-        _wnb = Wnb.empty();
+        _wnb = Wnb.empty(); // this will reset the screen
         _plotData.clear();
       }
       else {
@@ -251,6 +252,10 @@ class WnbScreenState extends State<WnbScreen> {
         ),
       ),
 
+      const Divider(),
+
+      _makeLines(),
+
       Padding(
           padding: const EdgeInsets.all(20),
           child: Row(children: [
@@ -295,10 +300,92 @@ class WnbScreenState extends State<WnbScreen> {
           ])
         ),
 
-
       ])));
   }
 
+
+  Widget _makeLines() {
+
+    List<Widget> lines = [];
+    double totalWeight = 0;
+    double totalMoment = 0;
+
+    // add items
+    for(int index = 0; index < _wnb.items.length; index++) {
+
+      String item = _wnb.items[index];
+      WnbItem wnbItem = WnbItem.fromJson(item);
+      totalWeight += wnbItem.weight;
+      totalMoment += wnbItem.weight * wnbItem.arm;
+
+      lines.add(Row(children: [
+        Flexible(flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(10), child: TextFormField(
+              enabled: _editing,
+              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Item") : null,
+              controller: TextEditingController()..text = wnbItem.description,
+              onFieldSubmitted: (value) {
+                setState(() {
+                  wnbItem.description = value;
+                  _wnb.items[index] = wnbItem.toJson();
+                });
+              },
+            ))),
+        Flexible(flex: 1,
+            child: Padding(
+              padding: const EdgeInsets.all(10), child: TextFormField(
+              controller: TextEditingController()..text = wnbItem.arm.toString(),
+              enabled: _editing,
+              keyboardType: TextInputType.number,
+              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm") : null,
+              onFieldSubmitted: (value) {
+                setState(() {
+                  try {
+                    wnbItem.arm = double.parse(value);
+                    _wnb.items[index] = wnbItem.toJson();
+                  }
+                  catch (e) {}
+                });
+              },
+            ))),
+        Flexible(flex: 1,
+            child: Padding(
+                padding: const EdgeInsets.all(10), child: TextFormField(
+              controller: TextEditingController()..text = wnbItem.weight.toString(),
+              keyboardType: TextInputType.number,
+              enabled: _editing,
+              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight") : null,
+              onFieldSubmitted: (value) {
+                setState(() {
+                  try {
+                    wnbItem.weight = double.parse(value);
+                    _wnb.items[index] = wnbItem.toJson();
+                  }
+                  catch (e) {}
+                });
+              },
+            ))),
+        Flexible(flex: 1,
+            child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(
+              enabled: false,
+              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Moment") : null,
+              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).toString(),
+            ))),
+      ]),);
+    }
+
+    _cgData = Offset((totalMoment / totalWeight), totalWeight);
+    lines.add(Row(
+      children: [
+        Flexible(flex: 2, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, initialValue: "Total"))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dx.round()}"))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dy.round()}"))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${totalMoment.round()}")))
+      ])
+    );
+    return Column(children: lines);
+  }
 
   @override
   Widget build(BuildContext context) {

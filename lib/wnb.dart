@@ -31,18 +31,18 @@ class Wnb {
   }
 
   factory Wnb.empty() {
-    return Wnb('New', '', [], 30, 1500, 50, 3000, []);
+    return Wnb('New', '', List.generate(10, (index) => ""), 30, 1500, 50, 3000, []);
   }
 
 }
 
 
-class WeightAndBalanceItem {
-  final String description;
-  final double weight;
-  final double arm;
+class WnbItem {
+  String description;
+  double weight;
+  double arm;
 
-  WeightAndBalanceItem(this.description, this.weight, this.arm);
+  WnbItem(this.description, this.weight, this.arm);
 
   String toJson() {
     Map<String, dynamic> map = {
@@ -53,9 +53,15 @@ class WeightAndBalanceItem {
     return jsonEncode(map);
   }
 
-  factory WeightAndBalanceItem.fromJson(String json) {
-    final Map<String, dynamic> map = jsonDecode(json);
-    return WeightAndBalanceItem(map['description'] as String, map['weight'] as double, map['arm'] as double);
+  factory WnbItem.fromJson(String json) {
+    try {
+      final Map<String, dynamic> map = jsonDecode(json);
+      return WnbItem(map['description'] as String, map['weight'] as double,
+          map['arm'] as double);
+    }
+    catch(e) {
+      return WnbItem('', 0, 0);
+    }
   }
 
 }
