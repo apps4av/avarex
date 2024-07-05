@@ -17,5 +17,6 @@ class _UserWnb {
   late double minY;
   late double maxX;
   late double maxY;
+  late String points;
 }
 

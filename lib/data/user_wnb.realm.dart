@@ -18,6 +18,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
     double minY,
     double maxX,
     double maxY,
+    String points,
   ) {
     RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'owner_id', ownerId);
@@ -28,6 +29,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
     RealmObjectBase.set(this, 'minY', minY);
     RealmObjectBase.set(this, 'maxX', maxX);
     RealmObjectBase.set(this, 'maxY', maxY);
+    RealmObjectBase.set(this, 'points', points);
   }
 
   UserWnb._();
@@ -79,6 +81,11 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
   set maxY(double value) => RealmObjectBase.set(this, 'maxY', value);
 
   @override
+  String get points => RealmObjectBase.get<String>(this, 'points') as String;
+  @override
+  set points(String value) => RealmObjectBase.set(this, 'points', value);
+
+  @override
   Stream<RealmObjectChanges<UserWnb>> get changes =>
       RealmObjectBase.getChanges<UserWnb>(this);
 
@@ -100,6 +107,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
       'minY': minY.toEJson(),
       'maxX': maxX.toEJson(),
       'maxY': maxY.toEJson(),
+      'points': points.toEJson(),
     };
   }
 
@@ -116,6 +124,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
         'minY': EJsonValue minY,
         'maxX': EJsonValue maxX,
         'maxY': EJsonValue maxY,
+        'points': EJsonValue points,
       } =>
         UserWnb(
           fromEJson(id),
@@ -127,6 +136,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
           fromEJson(minY),
           fromEJson(maxX),
           fromEJson(maxY),
+          fromEJson(points),
         ),
       _ => raiseInvalidEJson(ejson),
     };
@@ -146,6 +156,7 @@ class UserWnb extends _UserWnb with RealmEntity, RealmObjectBase, RealmObject {
       SchemaProperty('minY', RealmPropertyType.double),
       SchemaProperty('maxX', RealmPropertyType.double),
       SchemaProperty('maxY', RealmPropertyType.double),
+      SchemaProperty('points', RealmPropertyType.string),
     ]);
   }();
 

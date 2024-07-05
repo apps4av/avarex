@@ -1,4 +1,5 @@
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/wnb_screen.dart';
 import 'package:flutter/material.dart';
 import 'aircraft_screen.dart';
 import 'checklist_screen.dart';
@@ -30,6 +31,7 @@ class MainApp extends StatelessWidget {
         '/documents': (context) => const DocumentsScreen(),
         '/aircraft': (context) => const AircraftScreen(),
         '/checklists': (context) => const ChecklistScreen(),
+        '/wnb': (context) => const WnbScreen(),
         '/online': (context) => const OnlineScreen(),
       },
       theme : ThemeData(

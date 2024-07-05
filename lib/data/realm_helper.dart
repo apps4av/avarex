@@ -4,6 +4,7 @@ import 'package:avaremp/data/user_checklist.dart';
 import 'package:avaremp/data/user_plan.dart';
 import 'package:avaremp/data/user_recent.dart';
 import 'package:avaremp/data/user_settings.dart';
+import 'package:avaremp/data/user_wnb.dart';
 import 'package:avaremp/data/weather_airep.dart';
 import 'package:avaremp/data/weather_airsigmet.dart';
 import 'package:avaremp/data/weather_metar.dart';
@@ -11,6 +12,7 @@ import 'package:avaremp/data/weather_notam.dart';
 import 'package:avaremp/data/weather_taf.dart';
 import 'package:avaremp/data/weather_tfr.dart';
 import 'package:avaremp/data/weather_winds.dart';
+import 'package:avaremp/wnb.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:realm/realm.dart';
 import '../aircraft.dart';
@@ -29,17 +31,17 @@ import '../weather/winds_aloft.dart';
 class RealmHelper {
 
 
-  static const int _schemaVersion = 10;
+  static const int _schemaVersion = 11;
 
   // remote syncs
   final List<SchemaObject> _remoteObjects = [
-    UserRecent.schema, UserPlan.schema, UserAircraft.schema, UserChecklist.schema,
+    UserRecent.schema, UserPlan.schema, UserAircraft.schema, UserChecklist.schema, UserWnb.schema
   ];
 
   // local syncs
   final Configuration _config = Configuration.local(
     [
-      WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema, UserSettings.schema, UserRecent.schema, UserPlan.schema, UserAircraft.schema, UserChecklist.schema,
+      WeatherAirep.schema, WeatherWinds.schema, WeatherMetar.schema, WeatherTaf.schema, WeatherTfr.schema, WeatherAirSigmet.schema, WeatherNotam.schema, UserSettings.schema, UserRecent.schema, UserPlan.schema, UserAircraft.schema, UserChecklist.schema, UserWnb.schema
     ],
     schemaVersion: _schemaVersion,
     migrationCallback: (realm, version) {
@@ -186,6 +188,7 @@ class RealmHelper {
               mutableSubscriptions.add(_remoteRealm!.all<UserAircraft>());
               mutableSubscriptions.add(_remoteRealm!.all<UserPlan>());
               mutableSubscriptions.add(_remoteRealm!.all<UserChecklist>());
+              mutableSubscriptions.add(_remoteRealm!.all<UserWnb>());
             });
             _remoteRealm?.subscriptions.waitForSynchronization(); // this can block indefinitely
           }
@@ -447,6 +450,65 @@ class RealmHelper {
   }
 
 
+  Future<void> addWnb(Wnb wnb) async {
+    deleteWnb(wnb.name);
+
+    UserWnb wnbR = UserWnb(ObjectId(), _getUserId(),
+        wnb.name,
+        wnb.aircraft,
+        jsonEncode(wnb.items),
+        wnb.minX,
+        wnb.minY,
+        wnb.maxX,
+        wnb.maxY,
+        jsonEncode(wnb.points));
+
+    Realm r = _getRealm();
+
+    r.write(() {
+      r.add(wnbR);
+    });
+  }
+
+  void deleteWnb(String name) {
+    Realm r = _getRealm();
+
+    RealmResults<UserWnb> wnb = r.all<UserWnb>().query("name = '$name'");
+
+    try {
+      r.write(() {
+        r.delete(wnb.first);
+      });
+    } catch(e) {}
+
+  }
+
+  List<Wnb> getAllWnb() {
+    List<Wnb> ret = [];
+
+    Realm r = _getRealm();
+
+    RealmResults<UserWnb> wnb = r.all<UserWnb>();
+
+    for(UserWnb w in wnb) {
+      List<String> items = List<String>.from(jsonDecode(w.items));
+      List<String> points = List<String>.from(jsonDecode(w.points));
+      ret.add(Wnb(w.name, w.aircraft, items, w.minX, w.minY, w.maxX, w.maxY, points));
+    }
+
+    return ret.reversed.toList();
+  }
+
+  Wnb getWnb(String name) {
+    Realm r = _getRealm();
+
+    RealmResults<UserWnb> wnb = r.all<UserWnb>().query("name = '$name'");
+
+    UserWnb w = wnb.first;
+    List<String> items = List<String>.from(jsonDecode(w.items));
+    List<String> points = List<String>.from(jsonDecode(w.points));
+    return Wnb(w.name, w.aircraft, items, w.minX, w.minY, w.maxX, w.maxY, points);
+  }
 
   void insertSetting(String key, String? value) {
 

@@ -112,6 +112,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () => Navigator.pushNamed(context, '/documents'), dense: true,),
             ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () => Navigator.pushNamed(context, '/aircraft'), dense: true,),
             ListTile(title: const Text("Check Lists"), leading: Icon(MdiIcons.check), onTap: () => Navigator.pushNamed(context, '/checklists'), dense: true,),
+            ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () => Navigator.pushNamed(context, '/wnb'), dense: true,),
             ListTile(title: const Text("Online Backup"), leading: Icon(MdiIcons.cloudUpload), onTap: () => Navigator.pushNamed(context, '/online'), dense: true,),
           ],
         ))
