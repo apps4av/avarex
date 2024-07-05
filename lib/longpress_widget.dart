@@ -242,12 +242,11 @@ class LongPressWidgetState extends State<LongPressWidget> {
       windsPage = future.pages.length;
       WindsAloft wa = winds as WindsAloft;
       future.pages.add(
-        Stack(children:[
+        SingleChildScrollView(child: Column(children:[
           if(sounding != null)
-            Positioned(child: Align(alignment: Alignment.topRight, child: sounding),
-            ),
-          SingleChildScrollView(child:Text(wa.toString()))
-        ])
+            sounding,
+          Text(wa.toString())
+        ]))
       );
     }
 

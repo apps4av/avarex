@@ -78,7 +78,7 @@ dependencies:
   flutter_map_cache: ^1.5.0
   fl_chart: ^0.68.0
   back_button_interceptor: ^7.0.3
-  dio_cache_interceptor_db_store: ^5.1.1
+  dio_cache_interceptor_file_store: ^1.2.3
 
 flutter_launcher_icons:
   android: "launcher_icon"

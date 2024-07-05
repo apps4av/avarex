@@ -130,6 +130,14 @@ class AppSettings {
     return provider.getValue("key-user-aircraft", defaultValue: "") as String;
   }
 
+  void setWnb(String name) {
+    provider.setString("key-user-wnb", name);
+  }
+
+  String getWnb() {
+    return provider.getValue("key-user-wnb", defaultValue: "") as String;
+  }
+
   void setChecklist(String name) {
     provider.setString("key-user-checklist", name);
   }
