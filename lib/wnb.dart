@@ -31,7 +31,7 @@ class Wnb {
   }
 
   factory Wnb.empty() {
-    return Wnb('New', '', List.generate(10, (index) => ""), 30, 1500, 50, 3000, []);
+    return Wnb('New', '', List.generate(20, (index) => ""), 30, 1500, 50, 3000, []);
   }
 
 }

@@ -15,11 +15,10 @@ class WnbScreenState extends State<WnbScreen> {
 
   String? _selected;
   Wnb _wnb = Wnb.empty(); // to keep current editing
-  double _currentX = 0;
-  double _currentY = 0;
   bool _editing = false;
   final List<Offset> _plotData = [];
-  Offset _cgData = Offset(0, 0);
+  Offset _cgData = const Offset(0, 0);
+
 
   Widget _makeContent(List<Wnb>? items) {
 
@@ -40,6 +39,7 @@ class WnbScreenState extends State<WnbScreen> {
             _wnb.maxY = w.maxY;
             _wnb.minY = w.minY;
             _wnb.items = w.items;
+            _wnb.name = w.name;
             _plotData.clear();
             _plotData.addAll(Wnb.getPoints(w.points));
           }
@@ -92,6 +92,14 @@ class WnbScreenState extends State<WnbScreen> {
         color: color,
         radius: size,
       );
+    }
+
+    List<ScatterSpot> makeSpotData() {
+      List<ScatterSpot> spots = _plotData.asMap().entries.map((e) {
+        return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getPaint(4, Colors.yellow),);
+      }).toList();
+      spots.insert(0, ScatterSpot(_cgData.dx, _cgData.dy, dotPainter: getPaint(6, Colors.red),));
+      return spots;
     }
 
     return Padding(padding: const EdgeInsets.all(10), child:SingleChildScrollView(child:
@@ -179,26 +187,27 @@ class WnbScreenState extends State<WnbScreen> {
                   catch (e) {}
                 },
             ))),
-            Align(alignment: Alignment.centerLeft, child:SizedBox(width: 60, child:Text("Arm:\n ${_currentX.round()}\nWeight:\n ${_currentY.round()}", style: const TextStyle(fontSize: 10, color: Colors.yellow)))),
 
             Container(padding: const EdgeInsets.all(60),
               child:LayoutBuilder(builder: (context, constraints) {
 
                 Offset pixelToCoordinate(Offset offset, BoxConstraints constraints) {
-                  double reservedSize = 0; // size reserved for label tiles
+                  double reservedSize = 44; // size reserved for label tiles
                   return Offset(
-                    _wnb.minX + (_wnb.maxX - _wnb.minX) * offset.dx / (constraints.maxWidth - reservedSize * 2),
-                    (_wnb.maxY + _wnb.minY) - (_wnb.minY + (_wnb.maxY - _wnb.minY) * offset.dy / (constraints.maxHeight - reservedSize * 2)));
+                    _wnb.minX + (_wnb.maxX - _wnb.minX) * (offset.dx) / (constraints.maxWidth - reservedSize),
+                    (_wnb.maxY + _wnb.minY) - (_wnb.minY + (_wnb.maxY - _wnb.minY) * (offset.dy) / (constraints.maxHeight - reservedSize)));
                 }
 
                 return ScatterChart(
                   ScatterChartData(
                     titlesData: const FlTitlesData(
-                      show: false, // do not show. too crammed
+                      leftTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+                      bottomTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+                      rightTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
+                      topTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
+                      show: true, // do not show. too crammed
                     ),
-                    scatterSpots: _plotData.asMap().entries.map((e) {
-                      return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getPaint(4, Colors.yellow),);
-                    }).toList(),
+                    scatterSpots: makeSpotData(),
                     minX: _wnb.minX.toDouble(),
                     minY: _wnb.minY.toDouble(),
                     maxX: _wnb.maxX.toDouble(),
@@ -218,13 +227,6 @@ class WnbScreenState extends State<WnbScreen> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchCallback: (FlTouchEvent event, ScatterTouchResponse? touchResponse) {
-                        if(event.localPosition != null) {
-                          Offset offs = pixelToCoordinate(event.localPosition!, constraints);
-                          setState(() {
-                            _currentX = offs.dx;
-                            _currentY = offs.dy;
-                          });
-                        }
 
                         if(event is FlTapUpEvent && _editing) {
                           if (touchResponse != null) {
@@ -232,7 +234,9 @@ class WnbScreenState extends State<WnbScreen> {
                             ScatterTouchedSpot? spot = touchResponse.touchedSpot;
                             if(spot != null) {
                               setState(() {
-                                _plotData.removeAt(spot.spotIndex);
+                                if(spot.spotIndex > 0) {
+                                  _plotData.removeAt(spot.spotIndex - 1); // first spot is CG
+                                }
                               });
                             }
                             else {
@@ -334,23 +338,6 @@ class WnbScreenState extends State<WnbScreen> {
             ))),
         Flexible(flex: 1,
             child: Padding(
-              padding: const EdgeInsets.all(10), child: TextFormField(
-              controller: TextEditingController()..text = wnbItem.arm.toString(),
-              enabled: _editing,
-              keyboardType: TextInputType.number,
-              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm") : null,
-              onFieldSubmitted: (value) {
-                setState(() {
-                  try {
-                    wnbItem.arm = double.parse(value);
-                    _wnb.items[index] = wnbItem.toJson();
-                  }
-                  catch (e) {}
-                });
-              },
-            ))),
-        Flexible(flex: 1,
-            child: Padding(
                 padding: const EdgeInsets.all(10), child: TextFormField(
               controller: TextEditingController()..text = wnbItem.weight.toString(),
               keyboardType: TextInputType.number,
@@ -367,20 +354,37 @@ class WnbScreenState extends State<WnbScreen> {
               },
             ))),
         Flexible(flex: 1,
+            child: Padding(
+                padding: const EdgeInsets.all(10), child: TextFormField(
+              controller: TextEditingController()..text = wnbItem.arm.toString(),
+              enabled: _editing,
+              keyboardType: TextInputType.number,
+              decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm") : null,
+              onFieldSubmitted: (value) {
+                setState(() {
+                  try {
+                    wnbItem.arm = double.parse(value);
+                    _wnb.items[index] = wnbItem.toJson();
+                  }
+                  catch (e) {}
+                });
+              },
+            ))),
+        Flexible(flex: 1,
             child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(
               enabled: false,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Moment") : null,
-              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).toString(),
+              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).round().toString(),
             ))),
       ]),);
     }
 
-    _cgData = Offset((totalMoment / totalWeight), totalWeight);
+    _cgData = totalWeight == 0 ? const Offset(0, 0) : Offset((totalMoment / totalWeight), totalWeight); // save div by 0
     lines.add(Row(
       children: [
         Flexible(flex: 2, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, initialValue: "Total"))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dx.round()}"))),
         Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dy.round()}"))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dx.round()}"))),
         Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${totalMoment.round()}")))
       ])
     );
