@@ -79,6 +79,7 @@ dependencies:
   fl_chart: ^0.68.0
   back_button_interceptor: ^7.0.3
   dio_cache_interceptor_file_store: ^1.2.3
+  point_in_polygon: ^1.0.0
 
 flutter_launcher_icons:
   android: "launcher_icon"

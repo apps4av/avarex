@@ -3,6 +3,7 @@ import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:point_in_polygon/point_in_polygon.dart';
 import 'constants.dart';
 
 class WnbScreen extends StatefulWidget {
@@ -98,7 +99,7 @@ class WnbScreenState extends State<WnbScreen> {
       List<ScatterSpot> spots = _plotData.asMap().entries.map((e) {
         return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getPaint(4, Colors.yellow),);
       }).toList();
-      spots.insert(0, ScatterSpot(_cgData.dx, _cgData.dy, dotPainter: getPaint(6, Colors.red),));
+      spots.insert(0, ScatterSpot(_cgData.dx, _cgData.dy, dotPainter: getPaint(6, _isInside() ? Colors.green : Colors.red),));
       return spots;
     }
 
@@ -192,7 +193,7 @@ class WnbScreenState extends State<WnbScreen> {
               child:LayoutBuilder(builder: (context, constraints) {
 
                 Offset pixelToCoordinate(Offset offset, BoxConstraints constraints) {
-                  double reservedSize = 44; // size reserved for label tiles
+                  double reservedSize = 44 + 16; // size reserved for label tiles
                   return Offset(
                     _wnb.minX + (_wnb.maxX - _wnb.minX) * (offset.dx) / (constraints.maxWidth - reservedSize),
                     (_wnb.maxY + _wnb.minY) - (_wnb.minY + (_wnb.maxY - _wnb.minY) * (offset.dy) / (constraints.maxHeight - reservedSize)));
@@ -201,8 +202,8 @@ class WnbScreenState extends State<WnbScreen> {
                 return ScatterChart(
                   ScatterChartData(
                     titlesData: const FlTitlesData(
-                      leftTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
-                      bottomTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+                      leftTitles: AxisTitles(axisNameSize: 16, axisNameWidget: Text("Weight"), sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
+                      bottomTitles: AxisTitles(axisNameSize: 16, axisNameWidget: Text("Arm"),  sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
                       rightTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
                       topTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
                       show: true, // do not show. too crammed
@@ -227,7 +228,6 @@ class WnbScreenState extends State<WnbScreen> {
                       enabled: true,
                       handleBuiltInTouches: false,
                       touchCallback: (FlTouchEvent event, ScatterTouchResponse? touchResponse) {
-
                         if(event is FlTapUpEvent && _editing) {
                           if (touchResponse != null) {
                             // existing spot, delete
@@ -308,6 +308,12 @@ class WnbScreenState extends State<WnbScreen> {
   }
 
 
+  bool _isInside() {
+    List<Point> points = _plotData.map((e) => Point(x: e.dx, y: e.dy)).toList();
+    Point point = Point(x: _cgData.dx, y: _cgData.dy);
+    return Poly.isPointInPolygon(point, points);
+  }
+
   Widget _makeLines() {
 
     List<Widget> lines = [];
@@ -374,7 +380,7 @@ class WnbScreenState extends State<WnbScreen> {
             child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(
               enabled: false,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Moment") : null,
-              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).round().toString(),
+              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).toStringAsFixed(2),
             ))),
       ]),);
     }
@@ -383,9 +389,9 @@ class WnbScreenState extends State<WnbScreen> {
     lines.add(Row(
       children: [
         Flexible(flex: 2, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, initialValue: "Total"))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dy.round()}"))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${_cgData.dx.round()}"))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = "${totalMoment.round()}")))
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dy.toStringAsFixed(2)))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dx.toStringAsFixed(2)))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = totalMoment.toStringAsFixed(2)))),
       ])
     );
     return Column(children: lines);
