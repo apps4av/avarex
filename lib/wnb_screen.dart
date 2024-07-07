@@ -25,24 +25,27 @@ class WnbScreenState extends State<WnbScreen> {
 
     String inStorage = Storage().settings.getWnb();
 
-    if(null != items && (!_editing)) {
-      if(items.isEmpty) {
-        _wnb = Wnb.empty(); // this will reset the screen
-        _plotData.clear();
-      }
-      else {
-        _selected = items[0].name; // use first item if nothing in storage
-        for (Wnb w in items) {
-          if (w.name == inStorage) { // found the wnb
-            _selected = w.name;
-            _wnb.maxX = w.maxX;
-            _wnb.minX = w.minX;
-            _wnb.maxY = w.maxY;
-            _wnb.minY = w.minY;
-            _wnb.items = w.items;
-            _wnb.name = w.name;
-            _plotData.clear();
-            _plotData.addAll(Wnb.getPoints(w.points));
+    if(null != items) {
+      if(!_editing) {
+        if (items.isEmpty) {
+          _wnb = Wnb.empty(); // this will reset the screen
+          _plotData.clear();
+          _cgData = const Offset(0, 0);
+        }
+        else {
+          _selected = items[0].name; // use first item if nothing in storage
+          for (Wnb w in items) {
+            if (w.name == inStorage || inStorage.isEmpty) { // found the wnb
+              _selected = w.name;
+              _wnb.maxX = w.maxX;
+              _wnb.minX = w.minX;
+              _wnb.maxY = w.maxY;
+              _wnb.minY = w.minY;
+              _wnb.items = w.items;
+              _wnb.name = w.name;
+              _plotData.clear();
+              _plotData.addAll(Wnb.getPoints(w.points));
+            }
           }
         }
       }
@@ -65,7 +68,7 @@ class WnbScreenState extends State<WnbScreen> {
     return [
       Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
         child: DropdownButtonHideUnderline(
-            child: DropdownButton2<String>( // airport selection
+            child: DropdownButton2<String>( // wnb selection
               buttonStyleData: ButtonStyleData(
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
               ),
@@ -110,11 +113,8 @@ class WnbScreenState extends State<WnbScreen> {
           controller: TextEditingController()..text = _wnb.name,
           decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Name"),
           keyboardType: TextInputType.number,
-          onFieldSubmitted: (value) {
-            setState(() {
-              _wnb.name = value;
-            });
-            Storage().settings.setWnb(value);
+          onChanged: (value) {
+           _wnb.name = value;
           },
         ),
 
@@ -125,14 +125,12 @@ class WnbScreenState extends State<WnbScreen> {
               controller: TextEditingController()..text = _wnb.maxX.toString(),
               decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm Max."),
               keyboardType: TextInputType.number,
-              onFieldSubmitted: (value) {
+              onChanged: (value) {
                 try {
-                  setState(() {
-                    double val = double.parse(value);
-                    if(val > _wnb.minX) {
-                      _wnb.maxX = val;
-                    }
-                  });
+                  double val = double.parse(value);
+                  if(val > _wnb.minX) {
+                    _wnb.maxX = val;
+                  }
                 }
                 catch (e) {}
               },
@@ -142,14 +140,12 @@ class WnbScreenState extends State<WnbScreen> {
                 controller: TextEditingController()..text = _wnb.minX.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm Min."),
                 keyboardType: TextInputType.number,
-                onFieldSubmitted: (value) {
+                onChanged: (value) {
                   try {
-                    setState(() {
-                      double val = double.parse(value);
-                      if (val < _wnb.maxX) {
-                        _wnb.minX = val;
-                      }
-                    });
+                    double val = double.parse(value);
+                    if (val < _wnb.maxX) {
+                      _wnb.minX = val;
+                    }
                   }
                   catch (e) {}
                 }
@@ -159,14 +155,12 @@ class WnbScreenState extends State<WnbScreen> {
               controller: TextEditingController()..text = _wnb.maxY.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight Max."),
                 keyboardType: TextInputType.number,
-                onFieldSubmitted: (value) {
+                onChanged: (value) {
                   try {
-                    setState(() {
-                      double val = double.parse(value);
-                      if(val > _wnb.minY) {
-                        _wnb.maxY = val;
-                      }
-                    });
+                    double val = double.parse(value);
+                    if(val > _wnb.minY) {
+                      _wnb.maxY = val;
+                    }
                   }
                   catch (e) {}
                 },
@@ -176,14 +170,12 @@ class WnbScreenState extends State<WnbScreen> {
               controller: TextEditingController()..text = _wnb.minY.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight Min."),
                 keyboardType: TextInputType.number,
-                onFieldSubmitted: (value) {
+                onChanged: (value) {
                   try {
-                    setState(() {
                       double val = double.parse(value);
                       if(val < _wnb.maxY) {
                         _wnb.minY = val;
                       }
-                    });
                   }
                   catch (e) {}
                 },
@@ -275,6 +267,7 @@ class WnbScreenState extends State<WnbScreen> {
                   Storage().settings.setWnb("");
                   setState(() {
                     _selected = null;
+                    _editing = false;
                   });
                 },
                 child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])
@@ -335,11 +328,9 @@ class WnbScreenState extends State<WnbScreen> {
               enabled: _editing,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Item") : null,
               controller: TextEditingController()..text = wnbItem.description,
-              onFieldSubmitted: (value) {
-                setState(() {
-                  wnbItem.description = value;
-                  _wnb.items[index] = wnbItem.toJson();
-                });
+              onChanged: (value) {
+                wnbItem.description = value;
+                _wnb.items[index] = wnbItem.toJson();
               },
             ))),
         Flexible(flex: 1,
@@ -349,14 +340,12 @@ class WnbScreenState extends State<WnbScreen> {
               keyboardType: TextInputType.number,
               enabled: _editing,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight") : null,
-              onFieldSubmitted: (value) {
-                setState(() {
-                  try {
-                    wnbItem.weight = double.parse(value);
-                    _wnb.items[index] = wnbItem.toJson();
-                  }
-                  catch (e) {}
-                });
+              onChanged: (value) {
+                try {
+                  wnbItem.weight = double.parse(value);
+                  _wnb.items[index] = wnbItem.toJson();
+                }
+                catch (e) {}
               },
             ))),
         Flexible(flex: 1,
@@ -366,14 +355,12 @@ class WnbScreenState extends State<WnbScreen> {
               enabled: _editing,
               keyboardType: TextInputType.number,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm") : null,
-              onFieldSubmitted: (value) {
-                setState(() {
-                  try {
-                    wnbItem.arm = double.parse(value);
-                    _wnb.items[index] = wnbItem.toJson();
-                  }
-                  catch (e) {}
-                });
+              onChanged: (value) {
+                try {
+                  wnbItem.arm = double.parse(value);
+                  _wnb.items[index] = wnbItem.toJson();
+                }
+                catch (e) {}
               },
             ))),
         Flexible(flex: 1,
