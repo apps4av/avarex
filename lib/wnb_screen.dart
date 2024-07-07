@@ -189,7 +189,7 @@ class WnbScreenState extends State<WnbScreen> {
                 },
             ))),
 
-            Container(padding: const EdgeInsets.all(60),
+            Container(padding: const EdgeInsets.fromLTRB(10, 60, 10, 60),
               child:LayoutBuilder(builder: (context, constraints) {
 
                 Offset pixelToCoordinate(Offset offset, BoxConstraints constraints) {
@@ -380,7 +380,7 @@ class WnbScreenState extends State<WnbScreen> {
             child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(
               enabled: false,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Moment") : null,
-              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).toStringAsFixed(2),
+              controller: TextEditingController()..text = (wnbItem.weight * wnbItem.arm).toStringAsFixed(1),
             ))),
       ]),);
     }
@@ -389,9 +389,9 @@ class WnbScreenState extends State<WnbScreen> {
     lines.add(Row(
       children: [
         Flexible(flex: 2, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, initialValue: "Total"))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dy.toStringAsFixed(2)))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dx.toStringAsFixed(2)))),
-        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = totalMoment.toStringAsFixed(2)))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dy.toStringAsFixed(1)))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = _cgData.dx.toStringAsFixed(1)))),
+        Flexible(flex: 1, child: Padding(padding: const EdgeInsets.all(10), child: TextFormField(enabled: false, controller: TextEditingController()..text = totalMoment.toStringAsFixed(0)))),
       ])
     );
     return Column(children: lines);

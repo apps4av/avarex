@@ -64,23 +64,41 @@ class MapScreenState extends State<MapScreen> {
     TileLayer(
         maxNativeZoom: 5,
         urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-        tileProvider: NetworkTileProvider()),
+        tileProvider: CachedTileProvider(
+          // maxStale keeps the tile cached for the given Duration and
+          // tries to revalidate the next time it gets requested
+          maxStale: const Duration(minutes: 5),
+          store: Storage().mesonetCache[0]),
+    ),
     TileLayer(
         maxNativeZoom: 5,
         urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-        tileProvider: NetworkTileProvider()),
+        tileProvider: CachedTileProvider(
+          maxStale: const Duration(minutes: 5),
+          store: Storage().mesonetCache[1]),
+    ),
     TileLayer(
         maxNativeZoom: 5,
         urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-        tileProvider: NetworkTileProvider()),
+        tileProvider: CachedTileProvider(
+          maxStale: const Duration(minutes: 5),
+          store: Storage().mesonetCache[2]),
+
+  ),
     TileLayer(
         maxNativeZoom: 5,
         urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-        tileProvider: NetworkTileProvider()),
+        tileProvider: CachedTileProvider(
+          maxStale: const Duration(minutes: 5),
+          store: Storage().mesonetCache[3]),
+    ),
     TileLayer(
         maxNativeZoom: 5,
         urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
-        tileProvider: NetworkTileProvider()),
+        tileProvider: CachedTileProvider(
+          maxStale: const Duration(minutes: 5),
+          store: Storage().mesonetCache[4]),
+    ),
   ];
 
   String _type = Storage().settings.getChartType();
@@ -211,16 +229,27 @@ class MapScreenState extends State<MapScreen> {
       layers.add(chartLayer);
     }
 
+    int nexradLength = nexradLayer.length;
     lIndex = _layers.indexOf('NOAA-Loop');
     if(_layersState[lIndex]) {
-      // nexrad
       layers.add(
           ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                return nexradLayer[(value ~/ 3) % 5]; // animate every 3 seconds
-              }
-          )
+                print(nexradLayer[value % nexradLength].urlTemplate);
+                return nexradLayer[value % nexradLength]; // animate every 3 seconds
+          })
+      );
+
+      // nexrad
+      layers.add(// nexrad slider
+          ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                return Container(padding: EdgeInsets.fromLTRB(0, 0, Constants.screenWidth(context) * 2 / 3, 0),
+                  child: Slider(value: (value % nexradLength) / (nexradLength - 1), onChanged: (double value) {  },),
+              );
+          })
       );
     }
 
