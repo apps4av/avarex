@@ -245,7 +245,7 @@ class MapScreenState extends State<MapScreen> {
           ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                return Container(padding: EdgeInsets.fromLTRB(0, 0, Constants.screenWidth(context) * 2 / 3, 0),
+                return Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
                   child: Slider(value: (value % nexradLength) / (nexradLength - 1), onChanged: (double value) {  },),
               );
           })
