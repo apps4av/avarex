@@ -13,6 +13,7 @@ import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 
 import 'destination.dart';
@@ -533,6 +534,27 @@ class PlanRoute {
     }
 
     return route;
+  }
+
+  bool isOnPath(LatLng point) {
+    List<LatLng> path = getPathNext() + getPathCurrent() + getPathPassed();
+    // given line with equation ax + by + c = 0, distance from point (x0, y0) is abs(ax0 + by0 + c) / sqrt(a^2 + b^2)
+    for(int index = 0; index < path.length - 1; index++) {
+      LatLng p1 = path[index];
+      LatLng p2 = path[index + 1];
+      double a = p2.latitude - p1.latitude;
+      double b = p1.longitude - p2.longitude;
+      double c = p1.latitude * (p2.longitude - p1.longitude) - p1.longitude * (p2.latitude - p1.latitude);
+      if(a == 0 && b == 0) {
+        continue;
+      }
+      double dist = ((a * point.longitude + b * point.latitude + c) / sqrt(a * a + b * b)).abs();
+      if(dist < 0.01) {
+        // on path or close enough
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
