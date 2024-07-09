@@ -112,7 +112,6 @@ class WnbScreenState extends State<WnbScreen> {
           enabled: _editing,
           controller: TextEditingController()..text = _wnb.name,
           decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Name"),
-          keyboardType: TextInputType.number,
           onChanged: (value) {
            _wnb.name = value;
           },
@@ -134,6 +133,17 @@ class WnbScreenState extends State<WnbScreen> {
                 }
                 catch (e) {}
               },
+              onFieldSubmitted: (value) { // pressing Enter will change the chart to new coordinates, duplicate code except setState()
+                try {
+                  double val = double.parse(value);
+                  if(val > _wnb.minX) {
+                    setState(() {
+                      _wnb.maxX = val;
+                    });
+                  }
+                }
+                catch (e) {}
+              },
             ))),
             Align(alignment: Alignment.bottomLeft, child:SizedBox(width: 100, child:TextFormField(
                 enabled: _editing,
@@ -144,6 +154,18 @@ class WnbScreenState extends State<WnbScreen> {
                   try {
                     double val = double.parse(value);
                     if (val < _wnb.maxX) {
+                      _wnb.minX = val;
+                    }
+                  }
+                  catch (e) {}
+                },
+                onFieldSubmitted: (value) {
+                  try {
+                    double val = double.parse(value);
+                    if (val < _wnb.maxX) {
+                      setState(() {
+                        _wnb.minX = val;
+                      });
                       _wnb.minX = val;
                     }
                   }
@@ -164,6 +186,17 @@ class WnbScreenState extends State<WnbScreen> {
                   }
                   catch (e) {}
                 },
+                onFieldSubmitted: (value) {
+                  try {
+                    double val = double.parse(value);
+                    if(val > _wnb.minY) {
+                      setState(() {
+                        _wnb.maxY = val;
+                      });
+                    }
+                  }
+                  catch (e) {}
+                }
             ))),
             Align(alignment: Alignment.bottomCenter, child:SizedBox(width: 100, child:TextFormField(
               enabled: _editing,
@@ -179,6 +212,17 @@ class WnbScreenState extends State<WnbScreen> {
                   }
                   catch (e) {}
                 },
+                onFieldSubmitted: (value) {
+                try {
+                  double val = double.parse(value);
+                  if(val < _wnb.maxY) {
+                    setState(() {
+                      _wnb.minY = val;
+                    });
+                  }
+                }
+                catch (e) {}
+              },
             ))),
 
             Container(padding: const EdgeInsets.fromLTRB(10, 60, 10, 60),
