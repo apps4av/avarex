@@ -194,9 +194,8 @@ class AppSettings {
     return provider.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
-  bool isAudibleAlertsEnabled() {
-    bool val = provider.getValue("key-audible-alerts", defaultValue: true) as bool;
-    return Platform.isWindows ? false : val; // disable alerts for windows due to crash. XXX.
+  bool isAudibleAlertsEnabled() { 
+    return provider.getValue("key-audible-alerts", defaultValue: true) as bool; // Windows crash issue fixed by MSIX fix
   }
 
   void setAudibleAlertsEnabled(bool value) {

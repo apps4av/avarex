@@ -1,12 +1,13 @@
 import 'dart:core';
 import 'dart:math';
 import 'dart:ui' as ui;
+import 'package:intl/intl.dart' as intl;
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
+import 'package:avaremp/gdl90/traffic_alerts.dart';
 import 'package:avaremp/constants.dart';
 
 import '../gps.dart';
@@ -14,6 +15,8 @@ import '../gps.dart';
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;
 const int _kTrafficAltDiffThresholdFt = 3000;
+
+enum TrafficAlertLevel { none, advisory, resolution }
 
 // Delay to allow audible alerts to not be constantly called with no updates, wasting CPU (uses async future to wait)
 const int _kAudibleAlertCallMinDelayMs = 100;
@@ -23,13 +26,16 @@ class Traffic {
   final TrafficReportMessage message;
   double horizontalOwnshipDistanceNmi = 0;
   double verticalOwnshipDistanceFt = 0;
+  double closingInSeconds = -1;
+  double closestApproachDistanceNmi = -1;
+  TrafficAlertLevel alertLevel = TrafficAlertLevel.none;
 
   Traffic(this.message) {
-    updateOwnshipDistances();
+    updateOwnshipDistancesAndAlertFields();
   }
 
   /// Update traffic distinces (horizontal and vertical) to ownship
-  void updateOwnshipDistances() {
+  void updateOwnshipDistancesAndAlertFields() {
     // Use Haversine distance for speed/battery-efficiency instead of Vicenty, as the margin of error at these 
     // distances (for these purposes) is neglible (0.3% max, within 100 miles)
     // horizontalOwnshipDistance = GeoCalculations().calculateDistance(Gps.toLatLng(Storage().position), message.coordinates);
@@ -39,6 +45,7 @@ class Traffic {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
     // }    
     verticalOwnshipDistanceFt = Storage().units.mToF * Storage().position.altitude - message.altitude;
+    TrafficAlerts.setTrafficAlertFields(this, Storage().position, Storage().airborne, Storage().vspeed);
   }
 
   bool isOld() {
@@ -47,21 +54,21 @@ class Traffic {
     return (DateTime.now().millisecondsSinceEpoch - message.time.millisecondsSinceEpoch) * _kMinutesPerMillisecond > 1; // CPU flameshart => optimization
   }
 
-  Widget getIcon() {
-    // return Transform.rotate(angle: message.heading * pi / 180,
-    //      child: Container(
-    //        decoration: BoxDecoration(
-    //            borderRadius: BorderRadius.circular(5),
-    //            color: Colors.black),
-    //        child:const Icon(Icons.arrow_upward_rounded, color: Colors.white,)));
-    return
-      Transform.rotate(angle: (message.heading + 180.0 /* Image painted down on coordinate plane */) * pi  * _kDivBy180,
-        child: Stack(children:[
-          CustomPaint(painter: TrafficPainter(this)),
-          if(!Storage().settings.isAudibleAlertsEnabled()) // show muted symbol
-            const Icon(Icons.close, color: Colors.black,)
-        ])
-      );
+  Widget getIcon(bool northUp, bool isAudibleAlertsEnabled) {
+    return Row(children:[
+          Stack(children: [
+            CustomPaint(painter: AlertBoxPainter(this)),
+            Transform.rotate(
+              angle: (message.heading + 180.0 /* Image painted down on coordinate plane */ 
+                - (northUp ? 0 : Storage().position.heading)) * pi  * _kDivBy180,
+              origin: const Offset(15, 15),
+              child: CustomPaint(painter: TrafficPainter(this))
+            ),
+            if(!isAudibleAlertsEnabled) // show muted symbol
+              const Icon(Icons.volume_off, color: Colors.white54, size: 24)              
+          ]),
+          CustomPaint(painter: TrafficVerticalStatusPainter(this))        
+    ]);
   }
 
   LatLng getCoordinates() {
@@ -80,6 +87,7 @@ class Traffic {
 class TrafficCache {
   static const int maxEntries = 20;
   final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
+  static const bool ac20_172Mode = true;
 
   bool _audibleAlertsRequested = false;
   bool _audibleAlertsHandling = false;
@@ -182,11 +190,12 @@ class TrafficCache {
       _audibleAlertsRequested = true;
       return;
     } 
-    _audibleAlertsHandling = true;   
     if (Storage().settings.isAudibleAlertsEnabled()) {
-      AudibleTrafficAlerts.getAndStartAudibleTrafficAlerts().then((aa) {
+      _audibleAlertsHandling = true;   
+      TrafficAlerts.getAndStartTrafficAlerts().then((alerts) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        aa?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, Storage().airborne);
+        alerts?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, 
+          Storage().airborne);
         _audibleAlertsRequested = false;
         Future.delayed(const Duration(milliseconds: _kAudibleAlertCallMinDelayMs), () {
           _audibleAlertsHandling = false;
@@ -196,7 +205,7 @@ class TrafficCache {
         });
       });
     } else {
-      AudibleTrafficAlerts.stopAudibleTrafficAlerts();
+      TrafficAlerts.stopAudibleTrafficAlerts();
     }
   }
 
@@ -205,7 +214,7 @@ class TrafficCache {
     // Make async event to avoid blocking UI thread for recalcs and alerts
     Future(() {
       for (int i = 0; i < _traffic.length; i++) {
-        _traffic[i]?.updateOwnshipDistances();
+        _traffic[i]?.updateOwnshipDistancesAndAlertFields();
         // only display/alert traffic that isn't too far from ownship
         if ((_traffic[i]?.verticalOwnshipDistanceFt.abs() ?? 0) > _kTrafficAltDiffThresholdFt) {
           _traffic[i] = null;
@@ -229,20 +238,15 @@ class TrafficCache {
 enum _TrafficAircraftIconType { unmapped, light, large, rotorcraft }
 
 /// Icon painter for different traffic aircraft types (ADSB emitter category) and flight status
-class TrafficPainter extends CustomPainter {
+class TrafficPainter extends AbstractCachedCustomPainter {
 
   // Preference control variables
   static bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
   static bool prefAltDiffOpacityGraduation = false;         // Gradually vary opacity of icon based on altitude diff from ownship
   static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
-  static bool prefShowBoundingBox = false;                   // Display outlined bounding box around icon for higher visibility
+  static bool prefShowBoundingBox = false;                  // Display outlined bounding box around icon for higher visibility
   static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
   static bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
-
-  /// Static caches, for faster rendering of the same icons for each marker, based on icon/flight state, given
-  /// there are a discrete number of possible renderings for all traffic
-  static final Map<int,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
-  static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
   static final double _kMetersToFeetCont = Storage().units.mToF;
@@ -264,6 +268,9 @@ class TrafficPainter extends CustomPainter {
   static const Color _kLowColor = Color(0xFF65FE08);             // Low traffic = Lime Green
   static const Color _kGroundColor = Color(0xFF836539);          // Ground traffic = Brown
   static const Color _kDarkForegroundColor = Color(0xFF000000);  // Overlay color = Black
+  static const Color kAdvisoryColor = Colors.orange;
+  static const Color kResolutionColor = Color(0xFFFF3535);
+  static const Color kProximateColor = Colors.cyan;
 
   // Aircraft type outlines
   static final ui.Path _largeAircraft = _unionPaths([
@@ -286,7 +293,7 @@ class TrafficPainter extends CustomPainter {
   ]);
   static final ui.Path _defaultAircraft = ui.Path()  // old default icon if no ICAO ID--just a triangle
     ..addPolygon([ const Offset(0, 0), const Offset(15, 31), const Offset(16, 31), const Offset(31, 0), 
-      const Offset(16, 5), const Offset(15, 5) ], true);
+      const Offset(16, 7), const Offset(15, 7) ], true);
   static final ui.Path _lightAircraft = _unionPaths([
     ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
     ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))), // wings
@@ -323,156 +330,128 @@ class TrafficPainter extends CustomPainter {
   
   // Discrete icon state variables used to determine UI
   final _TrafficAircraftIconType _aircraftType;
+  final TrafficAlertLevel _alertLevel;
   final bool _isAirborne;
   final int _flightLevelDiff;
   final int _vspeedDirection;
   final int _velocityLevel;
-  /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
-  /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
-  /// as well as the key to the picture cache  
-  int _iconStateKey = 0;
 
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
       _flightLevelDiff = _getGrossFlightLevelDiff(traffic), 
-      _vspeedDirection = _getVerticalSpeedDirection(traffic.message.verticalSpeed),
-      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0 
-  {
-    _iconStateKey = Constants.hashInts([ _vspeedDirection, _flightLevelDiff, _velocityLevel, _aircraftType.index, _isAirborne ? 1 : 0 ]);
-  }
+      _vspeedDirection = getVerticalSpeedDirection(traffic.message.verticalSpeed),
+      _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0,
+      _alertLevel = traffic.alertLevel,
+      super([ _getAircraftIconType(traffic.message.emitter).index, traffic.message.airborne ? 1 : 0, _getGrossFlightLevelDiff(traffic),
+        getVerticalSpeedDirection(traffic.message.verticalSpeed), prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0,
+        traffic.alertLevel.index ], prefShowShadow, const Size(32, 32));
 
-  /// Paint arcraft, vertical speed direction overlay, and (horizontal) speed barb--using 
-  /// cached picture/image, based on icon state, if possible (if not, draw and cache a new one)
-  @override paint(Canvas canvas, Size size) {
-    
-    final bool isRealtimeRasterizationRequired = prefShowShadow;
+  /// Paint arcraft, vertical speed direction overlay, and optionially (horizontal) speed barb
+  @override 
+  void freshPaint(Canvas canvas) {
 
-    if (!isRealtimeRasterizationRequired) {
-      // Used cached rasterized (pixel) image if possible
-      final ui.Image? cachedImage = _imageCache[_iconStateKey];  
-      if (cachedImage != null) {
-        paintImage(canvas: canvas, rect: Rect.fromLTWH(0, 0, cachedImage.width*1.0, cachedImage.height*1.0), image: cachedImage);
-        return;
-      }
-    }
-
-    // Use cached picture (pre-rasterization graphical operations) if possible
-    final ui.Picture? cachedPicture = _pictureCache[_iconStateKey];
-    if (cachedPicture != null) {
-      canvas.drawPicture(cachedPicture);
-    } else {
-      final ui.PictureRecorder recorder = ui.PictureRecorder();
-      final ui.Canvas drawingCanvas = Canvas(recorder);
-
-      final double opacity;
-      if (prefAltDiffOpacityGraduation) {
-        // Decide opacity, based on vertical distance from ownship and whether traffic is on the ground. 
-        // Traffic far above or below ownship will be quite transparent, to avoid clutter, and 
-        // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
-        // traffic from flooding the map. Opacity decrease is 10% for every 1000 foot diff above or below, with a 
-        // floor of 20% total opacity (i.e., max 80% transparency)        
-        opacity = min(max(_kTrafficOpacityMin, 
-            (_isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax) - _flightLevelDiff.abs() * _kFlightLevelOpacityReduction
-          ), 
+    final double opacity;
+    if (prefAltDiffOpacityGraduation) {
+      // Decide opacity, based on vertical distance from ownship and whether traffic is on the ground. 
+      // Traffic far above or below ownship will be quite transparent, to avoid clutter, and 
+      // ground traffic has a 50% max opacity / min transparency to avoid taxiing or stationary (ADSB-initilized)
+      // traffic from flooding the map. Opacity decrease is 10% for every 1000 foot diff above or below, with a 
+      // floor of 20% total opacity (i.e., max 80% transparency)        
+      opacity = min(max(_kTrafficOpacityMin, 
+          (_isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax) - _flightLevelDiff * _kFlightLevelOpacityReduction), 
           _isAirborne ? _kFlyingTrafficOpacityMax : _kGroundTrafficOpacityMax);
+    } else {
+      opacity = _isAirborne ? 1.0 : _kGroundTrafficOpacityMax;
+    }    
+
+    // Define aircraft, barb, accent/overlay colors and paint using above opacity
+    final Paint aircraftPaint;
+    if (!_isAirborne) {
+      aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
+    } else if (TrafficCache.ac20_172Mode) {
+      if (_alertLevel == TrafficAlertLevel.advisory) {
+        aircraftPaint = Paint()..color = Color.fromRGBO(kAdvisoryColor.red, kAdvisoryColor.green, kAdvisoryColor.blue, opacity);
+      } else if (_alertLevel == TrafficAlertLevel.resolution) {
+        aircraftPaint = Paint()..color = Color.fromRGBO(kResolutionColor.red, kResolutionColor.green, kResolutionColor.blue, opacity);          
       } else {
-        opacity = 1.0;
+        aircraftPaint = Paint()..color = Color.fromRGBO(kProximateColor.red, kProximateColor.green, kProximateColor.blue, opacity);
       }
-
-      // Define aircraft, barb, accent/overlay colors and paint using above opacity
-      final Paint aircraftPaint;
-      if (!_isAirborne) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
-      } else if (_flightLevelDiff < 0) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
-      } else if (_flightLevelDiff > 0) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
-      } else {
-        aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
-      }
-      final Color darkAccentColor = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue, opacity);
-
-      // Set aircraft shape
-      final ui.Path baseIconShape;
-      switch(_aircraftType) {
-        case _TrafficAircraftIconType.light:
-          baseIconShape = ui.Path.from(_lightAircraft);
-          break;           
-        case _TrafficAircraftIconType.large:
-          baseIconShape = ui.Path.from(_largeAircraft);
-          break;
-        case _TrafficAircraftIconType.rotorcraft:
-          baseIconShape = ui.Path.from(_rotorcraft);
-          break;
-        default:
-          baseIconShape = (prefUseDifferentDefaultIconThanLight ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
-      }            
-
-      if (prefShowSpeedBarb && _velocityLevel > 0) {
-        // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
-        baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
-      }
-
-      if (prefShowBoundingBox) {
-        // Draw transluscent bounding box for greater visibility (especially sectionals)
-        drawingCanvas.drawPath(_boundingBox, 
-          Paint()..color = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue,
-            // Have box fill opacity be a certain % less, but track main icon, with a floor of the traffic opacity min
-            max(opacity - _kBoundingBoxOpacityReduction, _kBoundingBoxOpacityMin)));                 
-      }
-
-      if (prefShowShadow) {
-        // Draw shadow for contrast on detailed backgrounds (especially sectionals)
-        for (int i = 0; i < _kShadowDrawPasses; i++) {
-          drawingCanvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
-        }
-      }
-
-      // Draw aircraft (and speed barb, if feature enabled)
-      drawingCanvas.drawPath(baseIconShape, aircraftPaint);
-
-      if (prefShowShapeOutline) {
-        // Draw solid outline on edge of aircraft for higher visibility
-        drawingCanvas.drawPath(baseIconShape, Paint()
-          ..color = darkAccentColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1
-        );
-      }
-
-      // Draw vspeed ("+/-") overlay if not level
-      if (_vspeedDirection != 0) {
-        if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft 
-          || (!prefUseDifferentDefaultIconThanLight && _aircraftType == _TrafficAircraftIconType.unmapped)
-        ) {
-          drawingCanvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, Paint()..color = darkAccentColor);
-        } else {
-          drawingCanvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, Paint()..color = darkAccentColor);    
-        }
-      }  
-
-      // store this fresh image to the cache(s) for quick and efficient rendering next time
-      final ui.Picture newPicture = recorder.endRecording();
-      _pictureCache[_iconStateKey] = newPicture;
-      if (!isRealtimeRasterizationRequired) {
-        // Cache pixels of image to image cache, to save rasterization next time, if possible
-        newPicture.toImage(32, 32 + (prefShowSpeedBarb ? _velocityLevel*2 : 0)).then((image) => _imageCache[_iconStateKey] = image);
-      }
-
-      // now draw the new picture to this widget's canvas
-      canvas.drawPicture(newPicture);
+    } else if (_flightLevelDiff < 0) {
+      aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
+    } else if (_flightLevelDiff > 0) {
+      aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
+    } else {
+      aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
     }
-  }
+    final Color darkAccentColor = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue, opacity);
 
-  /// Only repaint this traffic marker if one of the flight properties (coalesced in icon state key) affecting the icon changes
-  @override
-  bool shouldRepaint(covariant TrafficPainter oldDelegate) {
-    return _iconStateKey != oldDelegate._iconStateKey;
+    // Set aircraft shape
+    final ui.Path baseIconShape;
+    switch(_aircraftType) {
+      case _TrafficAircraftIconType.light:
+        baseIconShape = ui.Path.from(_lightAircraft);
+        break;           
+      case _TrafficAircraftIconType.large:
+        baseIconShape = ui.Path.from(_largeAircraft);
+        break;
+      case _TrafficAircraftIconType.rotorcraft:
+        baseIconShape = ui.Path.from(_rotorcraft);
+        break;
+      default:
+        baseIconShape = (prefUseDifferentDefaultIconThanLight || TrafficCache.ac20_172Mode 
+          ? ui.Path.from(_defaultAircraft) : ui.Path.from(_lightAircraft));
+    }            
+
+    if (prefShowSpeedBarb && _velocityLevel > 0) {
+      // Create speed barb based on current velocity and add to plane shape, for one-shot rendering (saves time/resources)
+      baseIconShape.addPath(ui.Path()..addRect(Rect.fromLTWH(14, 31, 3, _velocityLevel*2.0)), const Offset(0, 0));
+    }
+
+    if (prefShowBoundingBox) {
+      // Draw transluscent bounding box for greater visibility (especially sectionals)
+      canvas.drawPath(_boundingBox, 
+        Paint()..color = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue,
+          // Have box fill opacity be a certain % less, but track main icon, with a floor of the traffic opacity min
+          max(opacity - _kBoundingBoxOpacityReduction, _kBoundingBoxOpacityMin)));                 
+    }
+
+    if (prefShowShadow) {
+      // Draw shadow for contrast on detailed backgrounds (especially sectionals)
+      for (int i = 0; i < _kShadowDrawPasses; i++) {
+        canvas.drawShadow(baseIconShape, darkAccentColor, _kShadowElevation, true);  
+      }
+    }
+
+    // Draw aircraft (and speed barb, if feature enabled)
+    canvas.drawPath(baseIconShape, aircraftPaint);
+
+    if (prefShowShapeOutline) {
+      // Draw solid outline on edge of aircraft for higher visibility
+      canvas.drawPath(baseIconShape, Paint()
+        ..color = darkAccentColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+      );
+    }
+
+    // Draw vspeed ("+/-") overlay if not level
+    if (!TrafficCache.ac20_172Mode && _vspeedDirection != 0) {
+      if (_aircraftType == _TrafficAircraftIconType.light || _aircraftType == _TrafficAircraftIconType.rotorcraft 
+        || (!prefUseDifferentDefaultIconThanLight && _aircraftType == _TrafficAircraftIconType.unmapped)
+      ) {
+        canvas.drawPath(_vspeedDirection > 0 ? _lowerPlusSign : _lowerMinusSign, Paint()..color = darkAccentColor);
+      } else {
+        canvas.drawPath(_vspeedDirection > 0 ? _plusSign : _minusSign, Paint()..color = darkAccentColor);    
+      }
+    }  
   }
 
   @pragma("vm:prefer-inline")
   static _TrafficAircraftIconType _getAircraftIconType(int adsbEmitterCategoryId) {
+    if (TrafficCache.ac20_172Mode) {
+      return _TrafficAircraftIconType.unmapped;
+    }
     switch(adsbEmitterCategoryId) {
       case 1: // Light (ICAO) < 15,500 lbs 
       case 2: // Small - 15,500 to 75,000 lbs 
@@ -495,7 +474,7 @@ class TrafficPainter extends CustomPainter {
   }
 
   @pragma("vm:prefer-inline")
-  static int _getVerticalSpeedDirection(double verticalSpeedMps) {
+  static int getVerticalSpeedDirection(double verticalSpeedMps) {
     if (verticalSpeedMps*_kMetersToFeetCont < -100) {
       return -1;
     } else if (verticalSpeedMps*_kMetersToFeetCont > 100) {
@@ -520,5 +499,158 @@ class TrafficPainter extends CustomPainter {
     }
     final ui.Path path1 = paths.removeAt(0);
     return ui.Path.combine(PathOperation.union, path1, _unionPaths(paths));
+  }
+}
+
+/// Painter for traffic vertical status text box (+/- flight level, and vertical speed direction arrows)
+class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
+  static const _statusTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 16);
+  static final _boundingBoxPaint = Paint()..color = const Color.fromRGBO(0, 0, 0, .2);
+  static final _leadingZeroFmt = intl.NumberFormat("00");
+  static const double _offsetX = 24, _offsetY = 0;
+
+  final int _flightLevelDiff;
+  final int _vspeedDirection;
+  final bool _isAirborne;
+
+  TrafficVerticalStatusPainter(Traffic t):  
+    _flightLevelDiff = getFlightLevelDiff(t),
+    _vspeedDirection = TrafficPainter.getVerticalSpeedDirection(t.message.verticalSpeed),
+    _isAirborne = t.message.airborne,
+    super([getFlightLevelDiff(t), TrafficPainter.getVerticalSpeedDirection(t.message.verticalSpeed), t.message.airborne ? 1 : 0], false, 
+      const Size(96, 32));
+
+  @override 
+  void freshPaint(ui.Canvas canvas) {
+    if (!_isAirborne) {
+      return;
+    }
+    
+    final String statusMsg = (_flightLevelDiff > 0 ? "+" : "") + _leadingZeroFmt.format(_flightLevelDiff)
+        + (_vspeedDirection > 0 ? "🠉" : (_vspeedDirection < 0 ? "🠋": ""));
+    // Draw transluscent bounding box for greater visibility (especially sectionals)
+    final ui.Path statusBoundingBox = ui.Path()
+      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+statusMsg.length*11, _offsetY+24)); 
+    canvas.drawPath(statusBoundingBox, _boundingBoxPaint);   
+    // Paint vertical position  
+    final textPainter = TextPainter(text: TextSpan(text: statusMsg, style: _statusTextStyle), textDirection: TextDirection.ltr);
+    textPainter.layout(
+      minWidth: 0,
+      maxWidth: 200,
+    );    
+    textPainter.paint(canvas, const Offset(_offsetX, _offsetY));
+  }
+
+  /// get flight level
+  @pragma("vm:prefer-inline")
+  static int getFlightLevelDiff(final Traffic traffic) {
+    return -(traffic.verticalOwnshipDistanceFt / 100).round();
   }  
+}
+
+/// Paints an AC 20-172 alert overlay (orange circle for nearby alert, red box for critical resolution alert)
+class AlertBoxPainter extends AbstractCachedCustomPainter {
+  static const _alertRect = Rect.fromLTRB(-10, -10, 50, 50);
+  static final _alertCircle = ui.Path()..addOval(_alertRect);
+  static final _resolutionBox = ui.Path()..addRect(_alertRect);
+  static final Paint _outlinePaint = Paint()
+        ..color = Colors.black
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2; 
+  static final _nearbyWarningAlertPaint = Paint()..color = TrafficPainter.kAdvisoryColor;
+  static final _criticalResolutionAlertPaint = Paint()..color = TrafficPainter.kResolutionColor;
+
+  final TrafficAlertLevel _alertLevel;
+  final bool _isAirborne;      
+
+  AlertBoxPainter(Traffic t): 
+    _alertLevel = t.alertLevel, 
+    _isAirborne = t.message.airborne,
+    super([ t.alertLevel.index, t.message.airborne ? 1 : 0 ], true, 
+      const Size(64, 64));
+    
+  @override
+  void freshPaint(ui.Canvas canvas) {
+    if (!_isAirborne || !TrafficCache.ac20_172Mode || _alertLevel == TrafficAlertLevel.none) {
+      return;
+    }
+    if (_alertLevel == TrafficAlertLevel.advisory) {
+      canvas.drawPath(_alertCircle, _nearbyWarningAlertPaint);
+      canvas.drawPath(_alertCircle, _outlinePaint);
+    } else if (_alertLevel == TrafficAlertLevel.resolution) {
+      canvas.drawPath(_resolutionBox, _criticalResolutionAlertPaint);
+      canvas.drawPath(_resolutionBox, _outlinePaint);    
+    }
+  }
+}
+
+
+/// Abstract custom painter helper that maintains a picture (graphical ops) or raster (image pixels) cache, as configured
+abstract class AbstractCachedCustomPainter extends CustomPainter {
+
+  /// Static caches, for faster rendering of the same icons, based on UI state
+  static final Map<int,ui.Picture> _pictureCache = {};  // Graphical operations cache (for realtime rasterization config, e.g., shadow on)
+  static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
+
+  /// Unique key of icon state based on flight properties above that define the icon appearance, per the current
+  /// configuration of enabled features.  This is used to determine UI-relevant state changes for repainting,
+  /// as well as the key to the picture cache  
+  int _uiStateKey = 0;
+  /// Can we use a raster/image cache, or does each image need to re-rasterize (i.e., we can only cache the picture, which is the graphical ops)
+  final bool _isRealtimeRasterizationRequired;
+  final ui.Size _maxSize;
+
+  AbstractCachedCustomPainter(final List<int> stateKeyComponents, bool isRealtimeRasterizationRequired,
+    ui.Size maxSize):
+    _isRealtimeRasterizationRequired = isRealtimeRasterizationRequired,
+    _maxSize = maxSize
+  {
+    _uiStateKey = Constants.hashInts([ runtimeType.hashCode ] + stateKeyComponents);
+  }
+
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    // Used cached rasterized (pixel) image if possible
+    if (!_isRealtimeRasterizationRequired) {
+      final ui.Image? cachedImage = _imageCache[_uiStateKey];  
+      if (cachedImage != null) {
+        paintImage(canvas: canvas, rect: Rect.fromLTWH(0, 0, cachedImage.width*1.0, cachedImage.height*1.0), image: cachedImage);
+        return;
+      }
+    }
+
+    // ...otherwise, use cached picture (pre-rasterization graphical operations) if possible
+    final ui.Picture? cachedPicture = _pictureCache[_uiStateKey];
+    final ui.Picture picture;
+    if (cachedPicture != null) {
+      picture = cachedPicture;        
+    } else {
+      // ...otherwise, create a new picture, and save it to the raster/image caches as appropriate
+      final ui.PictureRecorder recorder = ui.PictureRecorder();
+      final ui.Canvas drawingCanvas = Canvas(recorder);   
+
+      freshPaint(drawingCanvas); 
+
+      // store this fresh image to the cache(s) for quick and efficient rendering next time
+      final ui.Picture newPicture = recorder.endRecording();
+      _pictureCache[_uiStateKey] = newPicture;
+      picture = newPicture;
+    } 
+    
+    // Cache pixels of image to image cache, to save rasterization next time, if possible, and paint image
+    if (!_isRealtimeRasterizationRequired) {
+      picture.toImage(_maxSize.width.ceil(), _maxSize.height.ceil()).then((newImage) {
+        _imageCache[_uiStateKey] = newImage;
+      });
+    }
+    canvas.drawPicture(picture);
+  }
+
+  /// Hook for implementing painter to paint their icon UI
+  void freshPaint(ui.Canvas canvas);
+
+  @override
+  bool shouldRepaint(covariant AbstractCachedCustomPainter oldDelegate) {
+    return oldDelegate._uiStateKey != _uiStateKey;
+  }
 }

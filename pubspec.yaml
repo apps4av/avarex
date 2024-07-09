@@ -80,6 +80,11 @@ dependencies:
   dio_cache_interceptor_file_store: ^1.2.3
   point_in_polygon: ^1.0.0
   toastification: ^2.0.0
+  # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
+  msvcredist:
+    git:
+      url: https://github.com/insertjokehere/flutter_msvcredist.git
+      ref: main   
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -111,7 +116,12 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^3.0.1
   build_runner: ^2.4.8
-  msix: ^3.16.7
+  # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
+  #msix: ^3.16.7
+  msix:
+    git:
+      url: https://github.com/insertjokehere/msix.git
+      ref: msvc_redist 
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
