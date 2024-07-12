@@ -562,15 +562,67 @@ class PlanRoute {
     return _waypoints.map((e) => e.destination.locationID).toList().join(" ");
   }
 
+  double _quickDistance(LatLng ll0, LatLng ll1) {
+    // there are equal comparisons on float so round to 5 digits
+    return double.parse(((ll0.latitude - ll1.latitude) * (ll0.latitude - ll1.latitude) +
+        (ll0.longitude - ll1.longitude) * (ll0.longitude - ll1.longitude)).toStringAsFixed(5));
+  }
+
+  // for rubber banding
+  void insertWaypoint(Waypoint waypoint) {
+    if(Destination.isAirway(waypoint.destination.type) || _waypoints.isEmpty) {
+      addWaypoint(waypoint); // airways cannot be added in the middle. that's confusing
+      return;
+    }
+    else {
+      // take all waypoints then two at a time, create path in between them, then find to which point in the
+      // path the new waypoint is closest, then insert it there
+      int selected = 0;
+      double min = double.infinity;
+      LatLng ll = waypoint.destination.coordinate;
+      for(int index = 0; index < _waypoints.length - 1; index++) {
+        Destination d0 = _waypoints[index].destination;
+        Destination d1 = _waypoints[index + 1].destination;
+        List<LatLng> path = _makePathPoints([d0, d1], fine: true);
+        for(int index0 = 0; index0 < path.length; index0++) {
+          double dist = _quickDistance(path[index0], ll);
+          if(dist < min) {
+            min = dist;
+            selected = index;
+          }
+        }
+      }
+
+      Destination d0 = _waypoints[0].destination;
+      Destination d1 = _waypoints[_waypoints.length - 1].destination;
+      // if closets to first, insert at beginning, if closest to end, at at end, else in the middle
+      double dist0 = _quickDistance(d0.coordinate, ll);
+      double dist1 = _quickDistance(d1.coordinate, ll);
+      if(dist0 <= min) {
+        _waypoints.insert(0, waypoint);
+      }
+      else if(dist1 <= min) {
+        _waypoints.add(waypoint);
+      }
+      else {
+        _waypoints.insert(selected + 1, waypoint);
+      }
+      _current = _waypoints[0];
+      _update(true);
+    }
+  }
+
+
   // for rubber banding
   void replaceDestination(Destination d, LatLng ll) {
     int index = _waypoints.indexWhere((element) => element.destination == d);
     if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
       _waypoints[index] = Waypoint(Destination.fromLatLng(ll));
-      _current = _waypoints[index];
+      _current = _waypoints[0];
       _update(true);
     }
   }
+
 
   // also for rubber banding
   void replaceDestinationFromDb(Destination d, LatLng ll) {
@@ -581,7 +633,7 @@ class PlanRoute {
           return;
         }
         _waypoints[index] = Waypoint(onValue[0]);
-        _current = _waypoints[index];
+        _current = _waypoints[0];
         _update(true);
       });
     }

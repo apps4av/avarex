@@ -44,6 +44,7 @@ class MapScreenState extends State<MapScreen> {
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
+  bool _rubberBanding = false;
   final Ruler _ruler = Ruler();
 
   TileLayer osmLayer = TileLayer(
@@ -775,12 +776,19 @@ class MapScreenState extends State<MapScreen> {
                       child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
                         child: GestureDetector(
                             onLongPressMoveUpdate: (details) {
-                              if(null != _controller) { // start rubber banding
+                              if(null != _controller && _rubberBanding) { // start rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestination(d, l);
                               }
                             },
+                            onLongPressCancel: () {
+                              _rubberBanding = false;
+                            },
+                            onLongPressStart: (details) {
+                              _rubberBanding = true;
+                            },
                             onLongPressEnd: (details) {
+                              _rubberBanding = false;
                               if(null != _controller) { // end rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestinationFromDb(d, l);
