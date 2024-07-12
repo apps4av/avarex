@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport.dart';
 import 'package:avaremp/documents_screen.dart';
@@ -123,13 +124,6 @@ class MapScreenState extends State<MapScreen> {
     return exitResult ?? false;
   }
 
-  void _handlePress(TapPosition tapPosition, LatLng point) async {
-    List<Destination> items = await MainDatabaseHelper.db.findNear(point);
-    setState(() {
-      showDestination(this.context, items[0]);
-    });
-  }
-
   @override
   void initState() {
     _controller = MapController();
@@ -169,7 +163,7 @@ class MapScreenState extends State<MapScreen> {
               _northUp ? 0 : -Storage().position.heading);
         }
       }
-      catch (e) {} // addign to lat lon is dangerous
+      catch (e) {} // adding to lat lon is dangerous
     }
 
     _previousPosition = Gps.toLatLng(Storage().position);
@@ -192,14 +186,19 @@ class MapScreenState extends State<MapScreen> {
 
     // start from known location
     MapOptions opts = MapOptions(
-      initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
+      initialCenter: Gps.toLatLng(Storage().position),
       initialZoom: Storage().settings.getZoom(),
       minZoom: 2, // this is less crazy
       maxZoom: 20, // max for USGS
       interactionOptions: InteractionOptions(flags: _northUp ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
-      onLongPress: _handlePress,
+      onLongPress: (tap, point) async {
+        List<Destination> items = await MainDatabaseHelper.db.findNear(point);
+        setState(() {
+          showDestination(this.context, items[0]);
+        });
+      },
       onPointerDown: (PointerDownEvent event, position) { // calculate down pointers here
         _ruler.setPointer(event.pointer, position);
       },
@@ -743,12 +742,12 @@ class MapScreenState extends State<MapScreen> {
       );
 
       layers.add( // track layer
-        ValueListenableBuilder<Position>(
-          valueListenable: Storage().gpsChange,
+        ValueListenableBuilder<int>(
+          valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             // this place
             PlanRoute here = Storage().route;
-            List<LatLng> path = here.getPathFromLocation(value);
+            List<LatLng> path = here.getPathFromLocation(Storage().position);
             return PolylineLayer(
               polylines: [
                 Polyline(
@@ -774,7 +773,20 @@ class MapScreenState extends State<MapScreen> {
                   Marker(alignment: Alignment.center, point: d.coordinate,
                     child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                       child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
-                        child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor)))),
+                        child: GestureDetector(
+                            onLongPressMoveUpdate: (details) {
+                              if(null != _controller) { // start rubber banding
+                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestination(d, l);
+                              }
+                            },
+                            onLongPressEnd: (details) {
+                              if(null != _controller) { // end rubber banding
+                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestinationFromDb(d, l);
+                              }
+                            },
+                            child: DestinationFactory.getIcon(d.type, Constants.instrumentsNormalValueColor))))),
                 for(Destination d in Storage().route.getAllDestinations()) // plan route
                   Marker(alignment: Alignment.bottomRight, point: d.coordinate, width: 64,
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,

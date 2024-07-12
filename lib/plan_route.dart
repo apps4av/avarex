@@ -562,4 +562,29 @@ class PlanRoute {
     return _waypoints.map((e) => e.destination.locationID).toList().join(" ");
   }
 
+  // for rubber banding
+  void replaceDestination(Destination d, LatLng ll) {
+    int index = _waypoints.indexWhere((element) => element.destination == d);
+    if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
+      _waypoints[index] = Waypoint(Destination.fromLatLng(ll));
+      _current = _waypoints[index];
+      _update(true);
+    }
+  }
+
+  // also for rubber banding
+  void replaceDestinationFromDb(Destination d, LatLng ll) {
+    int index = _waypoints.indexWhere((element) => element.destination == d);
+    if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
+      MainDatabaseHelper.db.findNear(ll).then((onValue) {
+        if(onValue.isEmpty) {
+          return;
+        }
+        _waypoints[index] = Waypoint(onValue[0]);
+        _current = _waypoints[index];
+        _update(true);
+      });
+    }
+  }
+
 }

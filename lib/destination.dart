@@ -108,8 +108,8 @@ class Destination {
 
   factory Destination.fromLatLng(LatLng ll) {
     return Destination(
-        locationID: ll.toString(),
-        facilityName: ll.toString(),
+        locationID: ll.toSexagesimal(),
+        facilityName: ll.toSexagesimal(),
         type: Destination.typeGps,
         coordinate: ll);
   }
