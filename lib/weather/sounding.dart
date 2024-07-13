@@ -40,8 +40,8 @@ class Sounding {
     String day = now.day.toString().padLeft(2, '0');
     String month = now.month.toString().padLeft(2, '0');
     String url = "https://www.spc.noaa.gov/exper/soundings/$year$month$day${hour}_OBS/$station.gif";
-    return IconButton(
-        icon: const Icon(Icons.auto_graph),
+    return TextButton(
+        child: const Text("Skew-T"),
         onPressed: () {
           CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager, errorWidget: errorImage,);
           showDialog(context: context,

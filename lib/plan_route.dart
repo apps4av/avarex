@@ -614,8 +614,7 @@ class PlanRoute {
 
 
   // for rubber banding
-  void replaceDestination(Destination d, LatLng ll) {
-    int index = _waypoints.indexWhere((element) => element.destination == d);
+  void replaceDestination(int index, LatLng ll) {
     if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
       _waypoints[index] = Waypoint(Destination.fromLatLng(ll));
       _current = _waypoints[0];
@@ -625,8 +624,7 @@ class PlanRoute {
 
 
   // also for rubber banding
-  void replaceDestinationFromDb(Destination d, LatLng ll) {
-    int index = _waypoints.indexWhere((element) => element.destination == d);
+  void replaceDestinationFromDb(int index, LatLng ll) {
     if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
       MainDatabaseHelper.db.findNear(ll).then((onValue) {
         if(onValue.isEmpty) {
