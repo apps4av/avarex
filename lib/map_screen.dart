@@ -187,7 +187,7 @@ class MapScreenState extends State<MapScreen> {
 
     // start from known location
     MapOptions opts = MapOptions(
-      initialCenter: Gps.toLatLng(Storage().position),
+      initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
       minZoom: 2, // this is less crazy
       maxZoom: 20, // max for USGS
