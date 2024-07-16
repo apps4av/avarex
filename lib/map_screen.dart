@@ -109,7 +109,7 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<bool> _layersState = Storage().settings.getLayersState();
-  final int disableClusteringAtZoom = 6;
+  final int disableClusteringAtZoom = 10;
   final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
 
