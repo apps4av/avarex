@@ -189,7 +189,8 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       return true;
     }
     else {
-      if (info.ifRouteChanged(context)) {
+      Route? route = info.currentRoute(context);
+      if (route == null || route.settings.name == null || route.settings.name != '/') {
         return false; // so we do not show exit on other routes
       }
       showDialog(context: context, builder: (BuildContext context) {

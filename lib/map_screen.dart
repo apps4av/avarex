@@ -109,7 +109,8 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<bool> _layersState = Storage().settings.getLayersState();
-  final int disableClusteringAtZoom = 8;
+  final int disableClusteringAtZoom = 6;
+  final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
 
   Future<bool> showDestination(BuildContext context, Destination destination) async {
@@ -263,6 +264,7 @@ class MapScreenState extends State<MapScreen> {
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                     options: MarkerClusterLayerOptions(
                       disableClusteringAtZoom: disableClusteringAtZoom,
+                      maxClusterRadius: maxClusterRadius,
                       markers: [
                         for(Metar m in metars)
                           Marker(point: m.coordinate,
@@ -291,6 +293,7 @@ class MapScreenState extends State<MapScreen> {
                 return MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
                     options: MarkerClusterLayerOptions(
                       disableClusteringAtZoom: disableClusteringAtZoom,
+                      maxClusterRadius: maxClusterRadius,
                       markers: [
                         for(Taf t in tafs)
                           Marker(point: t.coordinate,
@@ -321,6 +324,7 @@ class MapScreenState extends State<MapScreen> {
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                     options: MarkerClusterLayerOptions(
                       disableClusteringAtZoom: disableClusteringAtZoom,
+                      maxClusterRadius: maxClusterRadius,
                       markers: [
                         for(Airep a in airep)
                           Marker(point: a.coordinates,
@@ -374,6 +378,7 @@ class MapScreenState extends State<MapScreen> {
                 return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                   options: MarkerClusterLayerOptions(
                     disableClusteringAtZoom: disableClusteringAtZoom,
+                    maxClusterRadius: maxClusterRadius,
                     markers: [
                       // route
                       for(AirSigmet a in airSigmet)
@@ -466,6 +471,7 @@ class MapScreenState extends State<MapScreen> {
             return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
                 options: MarkerClusterLayerOptions(
                   disableClusteringAtZoom: disableClusteringAtZoom,
+                  maxClusterRadius: maxClusterRadius,
                   markers: [
                     for (Tfr tfr in tfrs)
                       if(tfr.isRelevant())
