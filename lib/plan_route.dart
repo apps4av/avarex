@@ -570,6 +570,8 @@ class PlanRoute {
 
   // for rubber banding
   void insertWaypoint(Waypoint waypoint) {
+    Storage().realmHelper.addRecent(waypoint.destination);
+
     if(Destination.isAirway(waypoint.destination.type) || _waypoints.isEmpty) {
       addWaypoint(waypoint); // airways cannot be added in the middle. that's confusing
       return;

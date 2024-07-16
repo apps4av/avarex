@@ -18,6 +18,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
 
 import 'airport.dart';
+import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'weather/metar.dart';
@@ -307,6 +308,18 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
+              TextButton(
+                onPressed: () {
+                  Storage().realmHelper.addRecent(future.showDestination);
+                  Storage().settings.setCenterLongitude(future.showDestination.coordinate.longitude);
+                  Storage().settings.setCenterLatitude(future.showDestination.coordinate.latitude);
+                  Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
+                  MainScreenState.gotoMap();
+                  Navigator.of(context).pop(); // hide bottom sheet
+                },
+                child: const Text("Show"),
+              )
+
           ]))),
           // various info
           Expanded(flex: 7, child: CarouselSlider(

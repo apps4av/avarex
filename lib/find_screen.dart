@@ -1,11 +1,8 @@
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/longpress_widget.dart';
-import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-
-import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'gps.dart';
@@ -119,16 +116,6 @@ class FindScreenState extends State<FindScreen> {
                         title: Row(
                             children:[
                               Text(item.locationID),
-                              TextButton(
-                                onPressed: () {
-                                  Storage().realmHelper.addRecent(item);
-                                  Storage().settings.setCenterLongitude(item.coordinate.longitude);
-                                  Storage().settings.setCenterLatitude(item.coordinate.latitude);
-                                  Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
-                                  MainScreenState.gotoMap();
-                                },
-                                child: const Text("Show on Map"),
-                              )
                             ]
                         ),
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
