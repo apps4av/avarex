@@ -5,7 +5,6 @@ import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
-import 'package:back_button_interceptor/back_button_interceptor.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -29,6 +28,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   static const tabLocationPlan = 2;
   static const tabLocationFind = 3;
 
+  bool _drawerOpen = false;
   int _selectedIndex = tabLocationMap; // for various tab screens
 
   // define tabs here
@@ -71,84 +71,125 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
     bool apple = (Platform.isIOS || Platform.isMacOS);
 
-    return Scaffold(
-      appBar: AppBar(toolbarHeight: 0,), // no appbar needed but use it for safe area
-      extendBodyBehindAppBar: false,
-      extendBody: true,
-      endDrawerEnableOpenDragGesture: false,
-      drawerEnableOpenDragGesture: false,
-      drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
-        child: Drawer(
-          child: ListView(children: [
-            ListTile(
-              title: const Text("AvareX"),
-              subtitle: FutureBuilder( // get version from pubspec.yaml
-                  future: rootBundle.loadString("pubspec.yaml"),
-                  builder: (context, snapshot) {
-                    String version = "Unknown";
-                    if (snapshot.hasData) {
-                      var yaml = loadYaml(snapshot.data!);
-                      version = yaml["version"];
-                    }
-                    return Text('Version: $version');
-                  }),
-              trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
-                onPressed: () {
-                  Storage().settings.setIntro(true);
-                  Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const OnBoardingScreen()),);
-                },
-              ),
-              leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
-            if(!apple)
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if(didPop) {
+          return;
+        }
+        else {
+          if(_selectedIndex != tabLocationMap) {
+            gotoMap(); // go to map on back
+          }
+          else if(_drawerOpen) {
+            Navigator.pop(context); // close drawer
+          }
+          else {
+            showDialog(context: context, builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Exit App?'),
+                content: const Text("Do you want to exit this app?"),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Yes'),
+                    onPressed: () {
+                      SystemNavigator.pop();
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('No'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            });
+          }
+        }
+      },
+      child: Scaffold(
+        onDrawerChanged: (isOpened) {
+          _drawerOpen = isOpened;
+        },
+        appBar: AppBar(toolbarHeight: 0,), // no appbar needed but use it for safe area
+        extendBodyBehindAppBar: false,
+        extendBody: true,
+        endDrawerEnableOpenDragGesture: false,
+        drawerEnableOpenDragGesture: false,
+        drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
+          child: Drawer(
+            child: ListView(children: [
               ListTile(
-                // this is apple issue. They do not allow donation links in the app
-                title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
-                // this is apple issue. They do not allow donation links in the app
-                onTap: () {
-                  launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));
-                },
-              ),
-            ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/download');}, dense: true,),
-            ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/documents');}, dense: true,),
-            ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/aircraft');}, dense: true,),
-            ListTile(title: const Text("Check Lists"), leading: Icon(MdiIcons.check), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/checklists');}, dense: true,),
-            ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/wnb');}, dense: true,),
-            ListTile(title: const Text("Online Backup"), leading: Icon(MdiIcons.cloudUpload), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/online');}, dense: true,),
-          ],
-        ))
-      ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(5),
-        child:BottomNavigationBar(
-          key: Storage().globalKeyBottomNavigationBar,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          showUnselectedLabels: false,
-          selectedItemColor: Colors.white,
-          items: <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.map, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
-              label: 'MAP',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
-              label: 'PLATE',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.route, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
-              label: 'PLAN',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))],),
-              label: 'FIND',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          onTap: mOnItemTapped,
+                title: const Text("AvareX"),
+                subtitle: FutureBuilder( // get version from pubspec.yaml
+                    future: rootBundle.loadString("pubspec.yaml"),
+                    builder: (context, snapshot) {
+                      String version = "Unknown";
+                      if (snapshot.hasData) {
+                        var yaml = loadYaml(snapshot.data!);
+                        version = yaml["version"];
+                      }
+                      return Text('Version: $version');
+                    }),
+                trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
+                  onPressed: () {
+                    Storage().settings.setIntro(true);
+                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const OnBoardingScreen()),);
+                  },
+                ),
+                leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
+              if(!apple)
+                ListTile(
+                  // this is apple issue. They do not allow donation links in the app
+                  title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
+                  // this is apple issue. They do not allow donation links in the app
+                  onTap: () {
+                    launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));
+                  },
+                ),
+              ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/download');}, dense: true,),
+              ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/documents');}, dense: true,),
+              ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/aircraft');}, dense: true,),
+              ListTile(title: const Text("Check Lists"), leading: Icon(MdiIcons.check), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/checklists');}, dense: true,),
+              ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/wnb');}, dense: true,),
+              ListTile(title: const Text("Online Backup"), leading: Icon(MdiIcons.cloudUpload), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/online');}, dense: true,),
+            ],
+          ))
         ),
+        body: Center(
+          child: _widgetOptions.elementAt(_selectedIndex),
+        ),
+        bottomNavigationBar: Container(
+          padding: const EdgeInsets.all(5),
+          child:BottomNavigationBar(
+            key: Storage().globalKeyBottomNavigationBar,
+            type: BottomNavigationBarType.fixed,
+            backgroundColor: Colors.transparent,
+            showUnselectedLabels: false,
+            selectedItemColor: Colors.white,
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
+                label: 'MAP',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
+                label: 'PLATE',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.route, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
+                label: 'PLAN',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))],),
+                label: 'FIND',
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            onTap: mOnItemTapped,
+          ),
+        )
       )
     );
   }
@@ -156,7 +197,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   @override
   void dispose() {
     Storage().stopIO();
-    BackButtonInterceptor.remove(_interceptor);
     super.dispose();
   }
 
@@ -165,7 +205,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     super.initState();
     Storage().startIO();
     WidgetsBinding.instance.addObserver(this);
-    BackButtonInterceptor.add(_interceptor, context: context);
   }
 
   @override
@@ -180,41 +219,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         Storage().stopIO();
         break;
     }
-  }
-
-  // back button intercept on android
-  bool _interceptor(bool stopDefaultButtonEvent, RouteInfo info) {
-    if(_selectedIndex != tabLocationMap) {
-      gotoMap(); // go to map on back
-      return true;
-    }
-    else {
-      Route? route = info.currentRoute(context);
-      if (route == null || route.settings.name == null || route.settings.name != '/') {
-        return false; // so we do not show exit on other routes
-      }
-      showDialog(context: context, builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Exit App?'),
-          content: const Text("Do you want to exit this app?"),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Yes'),
-              onPressed: () {
-                SystemNavigator.pop();
-              },
-            ),
-            TextButton(
-              child: const Text('No'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      });
-    }
-    return false;
   }
 }
 
