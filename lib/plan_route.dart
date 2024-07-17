@@ -181,17 +181,6 @@ class PlanRoute {
           _allDestinations[index + 1],
           Storage().settings.getTas().toDouble(),
           Storage().settings.getFuelBurn().toDouble(), wd, ws);
-        // calculate passage
-        Passage? p = _passage;
-        if(null == p) {
-          p = Passage(_allDestinations[index + 1].coordinate);
-          _passage = p;
-        }
-        if(p.update(Gps.toLatLng(Storage().position))) {
-          // passed
-          advance();
-          _passage = null;
-        }
       }
       else {
         calc = DestinationCalculations(
@@ -201,6 +190,20 @@ class PlanRoute {
       }
       calc.calculateTo();
       _allDestinations[index + 1].calculations = calc;
+    }
+
+    // calculate passage
+    Passage? p = _passage;
+    if(null == p && _current != null) {
+      p = Passage(_current!.destination.coordinate);
+      _passage = p;
+    }
+    if(null != p) {
+      if (p.update(Gps.toLatLng(Storage().position))) {
+        // passed
+        advance();
+        _passage = null;
+      }
     }
 
     //make connections to paths
@@ -261,10 +264,10 @@ class PlanRoute {
       int index = _waypoints.indexOf(_current!);
       index++;
       if (index < _waypoints.length) {
-        _current = _waypoints[index];
+        _setCurrent(_waypoints[index]);
       }
       if (index >= _waypoints.length) {
-        _current = _waypoints[0]; // done, go back
+        _setCurrent(_waypoints[0]); // done, go back
       }
       update();
     }
@@ -276,7 +279,7 @@ class PlanRoute {
 
   Waypoint removeWaypointAt(int index) {
     Waypoint waypoint = _waypoints.removeAt(index);
-    _current = (waypoint == _current) ? null : _current; // clear next its removed
+    _setCurrent((waypoint == _current) ? null : _current); // clear next its removed
     _update(true);
     return(waypoint);
   }
@@ -284,7 +287,7 @@ class PlanRoute {
   void addDirectTo(Waypoint waypoint) {
     Storage().realmHelper.addRecent(waypoint.destination);
     addWaypoint(waypoint);
-    _current = _waypoints[_waypoints.indexOf(waypoint)]; // go here
+    _setCurrent(_waypoints[_waypoints.indexOf(waypoint)]); // go here
     _update(true);
   }
 
@@ -301,13 +304,13 @@ class PlanRoute {
   }
 
   void setCurrentWaypointWithWaypoint(Waypoint waypoint) {
-    _current = _waypoints[_waypoints.indexOf(waypoint)];
+    _setCurrent(_waypoints[_waypoints.indexOf(waypoint)]);
     update();
   }
 
   void setCurrentWaypoint(int index) {
     if(_waypoints.isNotEmpty) {
-      _current = _waypoints[index];
+      _setCurrent(_waypoints[index]);
     }
     update();
   }
@@ -358,14 +361,14 @@ class PlanRoute {
       if(Destination.isAirway(w.destination.type)) {
         int index = w.airwayDestinationsOnRoute.indexOf(d);
         if(index >= 0) {
-          _current = w;
+          _setCurrent(w);
           w.currentAirwayDestinationIndex = index;
           return;
         }
       }
       else {
         if (w.destination == d) {
-          _current = w;
+          _setCurrent(w);
           return;
         }
       }
@@ -406,7 +409,7 @@ class PlanRoute {
   // copy a plan into this
   void copyFrom(PlanRoute other) {
     name = other.name;
-    _current = null;
+    _setCurrent(null);
     _waypoints.removeRange(0, _waypoints.length);
     for(Waypoint w in other._waypoints) {
       addWaypoint(w);
@@ -609,7 +612,7 @@ class PlanRoute {
       else {
         _waypoints.insert(selected + 1, waypoint);
       }
-      _current = _waypoints[0];
+      _setCurrent(_waypoints[0]);
       _update(true);
     }
   }
@@ -619,7 +622,7 @@ class PlanRoute {
   void replaceDestination(int index, LatLng ll) {
     if(index >= 0 && index < _waypoints.length && (!Destination.isAirway(_waypoints[index].destination.type))) {
       _waypoints[index] = Waypoint(Destination.fromLatLng(ll));
-      _current = _waypoints[0];
+      _setCurrent(_waypoints[0]);
       _update(true);
     }
   }
@@ -633,10 +636,15 @@ class PlanRoute {
           return;
         }
         _waypoints[index] = Waypoint(onValue[0]);
-        _current = _waypoints[0];
+        _setCurrent(_waypoints[0]);
         _update(true);
       });
     }
   }
 
+
+  void _setCurrent(Waypoint? w) {
+    _current = w;
+    _passage = null;
+  }
 }
