@@ -58,6 +58,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _eta = "";
   String _ete = "";
   String _source = "";
+  String _tac = "00:00";
 
   @override
   void dispose() {
@@ -222,6 +223,7 @@ class InstrumentListState extends State<InstrumentList> {
       _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Constants.instrumentNoticeBackgroundColor : Constants.instrumentBackgroundColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Int." : "Ext.";
+      _tac = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
   }
 
@@ -262,6 +264,11 @@ class InstrumentListState extends State<InstrumentList> {
       _itemsColors[_items.indexOf("DNT")] = Constants.instrumentBackgroundColor;
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
     });
+  }
+
+  // down timer
+  void _resetTacTimer() {
+    Storage().flightStatus.resetFlightTime();
   }
 
   // make an instrument for top line
@@ -314,6 +321,10 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "SRC":
         value = _source;
+        break;
+      case "TAC":
+        value = _tac;
+        cb = _resetTacTimer;
         break;
     }
 

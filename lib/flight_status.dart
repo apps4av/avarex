@@ -7,6 +7,7 @@ class FlightStatus {
   static const String phaseTaxi = "Taxi";
   static const String phaseAirborne = "Airborne";
   static const int transitionSpeed = 20;
+  int flightTime = 0;
 
   String phase = phaseTaxi;
   String lastPhase = phaseTaxi;
@@ -18,6 +19,10 @@ class FlightStatus {
     double q = GeoCalculations.convertSpeed(inSpeed);
     _speeds = _speeds.sublist(1)..add(q);
     double speed = _speeds.reduce((a, b) {return a + b;}) / _speeds.length;
+
+    if(phase == phaseAirborne) {
+      flightTime++;
+    }
 
     // calculate flight status used for things like auto load taxi diagram, flight time
     if(phase == phaseTaxi && lastPhase == phaseTaxi && speed > transitionSpeed) {
@@ -45,6 +50,10 @@ class FlightStatus {
     lastPhase = phase;
     return flightStateNoChange;
 
+  }
+
+  void resetFlightTime() {
+    flightTime = 0;
   }
 
 }
