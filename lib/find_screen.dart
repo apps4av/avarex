@@ -3,10 +3,12 @@ import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'gps.dart';
 import 'data/main_database_helper.dart';
+import 'main_screen.dart';
 
 class FindScreen extends StatefulWidget {
   FindScreen({super.key});
@@ -121,7 +123,16 @@ class FindScreenState extends State<FindScreen> {
                         subtitle: Text("${item.facilityName} ( ${item.type} )"),
                         dense: true,
                         isThreeLine: true,
-                        trailing: Text("${geo.calculateDistance(item.coordinate, position).round()}NM\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0"),
+                        trailing: TextButton(
+                          onPressed: () {
+                            Storage().realmHelper.addRecent(item);
+                            Storage().settings.setCenterLongitude(item.coordinate.longitude);
+                            Storage().settings.setCenterLatitude(item.coordinate.latitude);
+                            Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
+                            MainScreenState.gotoMap();
+                          },
+                          child: Text("${geo.calculateDistance(item.coordinate, position).round()}NM\n${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0")
+                        ),
                         onTap: () {
                           setState(() {
                             showDestination(context, item);

@@ -18,7 +18,6 @@ import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
 
 import 'airport.dart';
-import 'chart.dart';
 import 'constants.dart';
 import 'destination.dart';
 import 'weather/metar.dart';
@@ -71,8 +70,8 @@ class LongPressFuture {
 
       // show first plate
       List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, showDestination.locationID);
-      if(plates.isNotEmpty) {
-        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, "AIRPORT-DIAGRAM"));
+      if(plates.isNotEmpty && plates[0].contains("AIRPORT DIAGRAM")) {
+        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, plates[0]));
         if (await file.exists()) {
           airportDiagram = Image.file(file);
         }
@@ -308,17 +307,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
-              TextButton(
-                onPressed: () {
-                  Storage().realmHelper.addRecent(future.showDestination);
-                  Storage().settings.setCenterLongitude(future.showDestination.coordinate.longitude);
-                  Storage().settings.setCenterLatitude(future.showDestination.coordinate.latitude);
-                  Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
-                  MainScreenState.gotoMap();
-                  Navigator.of(context).pop(); // hide bottom sheet
-                },
-                child: const Text("Show"),
-              )
 
           ]))),
           // various info
