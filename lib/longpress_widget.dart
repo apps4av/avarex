@@ -69,12 +69,10 @@ class LongPressFuture {
       ad = Airport.runwaysWidget(showDestination as AirportDestination, dimensions);
 
       // show first plate
-      List<String> plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, showDestination.locationID);
-      if(plates.isNotEmpty && plates[0].contains("AIRPORT DIAGRAM")) {
-        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, plates[0]));
-        if (await file.exists()) {
-          airportDiagram = Image.file(file);
-        }
+      String? apd = await PathUtils.getAirportDiagram(Storage().dataDir, showDestination.locationID);
+      if(apd != null) {
+        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, apd));
+        airportDiagram = Image.file(file);
       }
 
       pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(showDestination as AirportDestination)));

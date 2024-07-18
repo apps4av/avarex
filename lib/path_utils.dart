@@ -158,4 +158,15 @@ class PathUtils {
     f.delete();
   }
 
+
+  static Future<String?> getAirportDiagram(String base, String airportId) async {
+    List<String> plates = await PathUtils.getPlatesAndCSupSorted(base, airportId);
+    if (plates.isNotEmpty && plates[0].contains("AIRPORT DIAGRAM")) {
+      return getPlatePath(base, airportId, plates[0]);
+    }
+    return null;
+  }
+
 }
+
+
