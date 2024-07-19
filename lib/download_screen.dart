@@ -74,7 +74,7 @@ class DownloadScreenState extends State<DownloadScreen> {
 
   void _removeFromTotal() {
     setState(() {
-      _total--;
+      _total = _total > 0 ? _total-- : 0;
     });
   }
 

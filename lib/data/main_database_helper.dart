@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -8,6 +9,7 @@ import 'package:sqflite/sqflite.dart';
 
 import '../destination.dart';
 import '../saa.dart';
+import 'cifp.dart';
 
 class MainDatabaseHelper {
   MainDatabaseHelper._();
@@ -294,7 +296,32 @@ class MainDatabaseHelper {
 
     return AirwayDestination.fromMap(maps);
   }
-  
+
+  Future<List<CifpSidStarApproachLine>> findCifpStar(String airport, String id, String transition) async {
+    String k = Constants.useK ? "K" : "";
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$k$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='E' and (trim(transition_identifier)='$transition' or trim(transition_identifier)='ALL')";
+      maps = await db.rawQuery(qry);
+    }
+    return List.generate(maps.length, (i) {
+      return CifpSidStarApproachLine.fromMap(maps[i]);
+    });
+  }
+
+  Future<List<CifpSidStarApproachLine>> findCifpSid(String airport, String id, String transition) async {
+    String k = Constants.useK ? "K" : "";
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$k$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='D' and trim(transition_identifier)='$transition'";
+      maps = await db.rawQuery(qry);
+    }
+    return List.generate(maps.length, (i) {
+      return CifpSidStarApproachLine.fromMap(maps[i]);
+    });
+  }
 
 }
 
