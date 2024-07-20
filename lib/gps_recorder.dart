@@ -3,6 +3,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/instrument_list.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gpx/gpx.dart';
 import 'package:latlong2/latlong.dart';
@@ -27,8 +28,8 @@ class GpsRecorder {
 
   void add(Position position) {
 
-    double speed = position.speed * 1.94384;
-    double altitude = position.altitude * 3.28084;
+    double speed = position.speed * UnitConversion.mpsTo;
+    double altitude = position.altitude * UnitConversion.mToF;
     double heading = position.heading;
     bool recordPoint = false;
     LatLng coordinate = Gps.toLatLng(position);

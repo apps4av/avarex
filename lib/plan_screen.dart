@@ -189,7 +189,7 @@ class PlanScreenState extends State<PlanScreen> {
                         Storage().settings.setTas(pValue ?? Storage().settings.getTas());
                       },
                       controller: TextEditingController()..text = Storage().settings.getTas().round().toString(),
-                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "KT")
+                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "ASpd")
                   ))),
                   Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
                     keyboardType: TextInputType.number,
@@ -208,7 +208,7 @@ class PlanScreenState extends State<PlanScreen> {
                         Storage().route.altitude = pValue.toString();
                       },
                       controller: TextEditingController()..text = Storage().route.altitude,
-                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Ft")
+                      decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
                   ))),
 
                   IconButton(icon: const Icon(Icons.show_chart), onPressed:() {

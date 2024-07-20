@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
@@ -212,7 +213,7 @@ class AudibleTrafficAlerts {
       List<Traffic?> trafficList, Position? ownshipLocation, int ownshipUpdateTimeMs, double ownVspeed, bool ownIsAirborne) {
     if (!_isRunning ||
         ownshipLocation == null ||
-        (Constants.mpsToKt(ownshipLocation.speed) < prefAudibleTrafficAlertsMinSpeed) ||
+        (UnitConversion.mpsTo * ownshipLocation.speed < prefAudibleTrafficAlertsMinSpeed) ||
         !(ownIsAirborne || prefIsAudibleGroundAlertsEnabled)) {
       return;
     }
@@ -282,8 +283,8 @@ class AudibleTrafficAlerts {
   }
 
   _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double ownVspeed) {
-    final int ownSpeedInKts = Constants.mpsToKt(ownshipLocation.speed).round();
-    final double ownAltInFeet = Constants.mToFt(ownshipLocation.altitude);
+    final int ownSpeed = (UnitConversion.mpsTo * ownshipLocation.speed).round();
+    final double ownAlt = UnitConversion.mToF * ownshipLocation.altitude;
     final double closingEventTimeSec = (_closestApproachTime(
                 traffic.message.coordinates.latitude,
                 traffic.message.coordinates.longitude,
@@ -292,11 +293,11 @@ class AudibleTrafficAlerts {
                 traffic.message.heading,
                 ownshipLocation.heading,
                 traffic.message.velocity.round(),
-                ownSpeedInKts)).abs() * _kSecondsPerHour;
+                ownSpeed)).abs() * _kSecondsPerHour;
     if (closingEventTimeSec < prefClosingTimeThresholdSeconds) {
       // Gate #1: Time threshold met
       final Position myCaLoc = _locationAfterTime(ownshipLocation.latitude, ownshipLocation.longitude, ownshipLocation.heading,
-          ownSpeedInKts * 1.0, closingEventTimeSec * _kHoursPerSecond, ownAltInFeet, ownVspeed);
+          ownSpeed * 1.0, closingEventTimeSec * _kHoursPerSecond, ownAlt, ownVspeed);
       final Position theirCaLoc = _locationAfterTime(
           traffic.message.coordinates.latitude,
           traffic.message.coordinates.longitude,

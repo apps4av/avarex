@@ -1,4 +1,5 @@
 import 'package:avaremp/nmea/nmea_message.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:latlong2/latlong.dart';
 
 class RTMMessage extends NmeaMessage {
@@ -43,7 +44,7 @@ class RTMMessage extends NmeaMessage {
 
       altitude = double.parse(tokens[7]).round();
       track = double.parse(tokens[8]).round();
-      speed = (double.parse(tokens[9]) / 1.94384).round();
+      speed = (double.parse(tokens[9]) * UnitConversion.toMps).round();
 
     }
     catch (e) {}

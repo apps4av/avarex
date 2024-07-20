@@ -63,11 +63,11 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    provider.setString("key-instruments-v11", instruments);
+    provider.setString("key-instruments-v12", instruments);
   }
 
   String getInstruments() {
-    return provider.getValue("key-instruments-v11", defaultValue: "GS,ALT,MT,NXT,DIS,BRG,ETA,ETE,UPT,DNT,UTC,SRC,TAC") as String;
+    return provider.getValue("key-instruments-v12", defaultValue: "GS,ALT,MT,NXT,DIS,BRG,ETA,ETE,UPT,DNT,UTC,SRC,FLT") as String;
   }
 
   List<String> getLayers() {

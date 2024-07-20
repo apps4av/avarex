@@ -1,4 +1,6 @@
 import 'dart:typed_data';
+import 'package:avaremp/unit_conversion.dart';
+
 import 'message.dart';
 
 class OwnShipGeometricAltitudeMessage extends Message {
@@ -21,7 +23,7 @@ class OwnShipGeometricAltitudeMessage extends Message {
     else {
       double alt = upper.toDouble() + lower.toDouble();
       alt *= 5;
-      alt /= 3.28084;
+      alt /= UnitConversion.mToF;
       altitude = alt.round();
     }
   }

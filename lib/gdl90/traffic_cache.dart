@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
@@ -38,7 +39,7 @@ class Traffic {
     // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
     // }    
-    verticalOwnshipDistanceFt = Constants.mToFt(Storage().position.altitude) - message.altitude;
+    verticalOwnshipDistanceFt = UnitConversion.mToF * Storage().position.altitude - message.altitude;
   }
 
   bool isOld() {
@@ -71,8 +72,8 @@ class Traffic {
   @override
   String toString() {
     return "${message.callSign}\n${message.altitude.toInt()} ft\n"
-    "${(message.velocity * 1.94384).toInt()} knots\n"
-    "${(message.verticalSpeed * 3.28).toInt()} fpm";
+    "${(message.velocity * UnitConversion.mpsTo).toInt()} knots\n"
+    "${(message.verticalSpeed * UnitConversion.mToF).toInt()} fpm";
   }
 }
 
@@ -245,8 +246,8 @@ class TrafficPainter extends CustomPainter {
   static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
-  static const double _kMetersToFeetCont = 3.28084;
-  static const double _kMetersPerSecondToKnots = 1.94384;
+  static final double _kMetersToFeetCont = UnitConversion.mToF;
+  static final double _kMetersPerSecondToSpeed = UnitConversion.mpsTo;
   static const double _kDivBy60Mult = 1.0 / 60.0;
   static const double _kDivBy1000Mult = 1.0 / 1000.0;
   // UI Default constants
@@ -507,7 +508,7 @@ class TrafficPainter extends CustomPainter {
 
   @pragma("vm:prefer-inline")
   static int _getVelocityLevel(double veloMps) {
-    return (veloMps * _kMetersPerSecondToKnots * _kDivBy60Mult).round();
+    return (veloMps * _kMetersPerSecondToSpeed * _kDivBy60Mult).round();
   }  
 
   /// Recursive helper to join multiple paths together via a chained union operation

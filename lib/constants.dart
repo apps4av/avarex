@@ -7,17 +7,10 @@ class Constants {
   static const int _hashIntCoprimeSeed = 23;
   static const int _hashIntCoprimeMultiplier = 31;
 
-  static const double _kMetersToFeet = 3.28084;
-  static const double _kMpsToKnotsConv = 1.0 / 0.514444;  
-
   static const int kMaxIntValue = 0x7FFFFFFFFFFFFFFF;
 
   @pragma("vm:prefer-inline")
-  static double mToFt(double meters) { return _kMetersToFeet * meters; }
   @pragma("vm:prefer-inline")
-  static double mpsToKt(double metersPerSecond) { return _kMpsToKnotsConv * metersPerSecond; }  
-  static double mToNm(double meters) {return 0.000539957 * meters;}
-  static double nmToM(distance) {return distance / 0.000539957;}
   static String secondsToHHmm(int seconds) {
     final Duration duration = Duration(seconds: seconds);
     final List<String> tokens = duration.toString().split(":");

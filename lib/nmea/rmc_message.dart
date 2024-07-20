@@ -1,4 +1,5 @@
 import 'package:avaremp/nmea/nmea_message.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:latlong2/latlong.dart';
 
 class RMCMessage extends NmeaMessage {
@@ -35,7 +36,7 @@ class RMCMessage extends NmeaMessage {
 
       coordinate = LatLng(lat, lon);
 
-      speed = (double.parse(tokens[7]) / 1.94384).round();
+      speed = (double.parse(tokens[7]) * UnitConversion.toMps).round();
       track = double.parse(tokens[8]).round();
 
     }

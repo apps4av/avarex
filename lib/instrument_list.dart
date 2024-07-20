@@ -5,6 +5,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
@@ -58,7 +59,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _eta = "";
   String _ete = "";
   String _source = "";
-  String _tac = "00:00";
+  String _flightTime = "00:00";
 
   @override
   void dispose() {
@@ -148,7 +149,7 @@ class InstrumentListState extends State<InstrumentList> {
         if(destElev != null) {
           // Calculate our relative AGL compared to destination. If we are
           // lower then no display info
-          double relativeAGL = Constants.mToFt(Storage().position.altitude) - destElev;
+          double relativeAGL = UnitConversion.mToF * Storage().position.altitude - destElev;
 
           // Convert the destination distance to feet.
           double destDist = distance;
@@ -169,7 +170,7 @@ class InstrumentListState extends State<InstrumentList> {
         double? wd;
         String? station = WindsCache.locateNearestStation(next.destination.coordinate);
         WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
-        (wd, ws) = WindsCache.getWindAtAltitude(Constants.mToFt(Storage().position.altitude), wa);
+        (wd, ws) = WindsCache.getWindAtAltitude(UnitConversion.mToF * Storage().position.altitude, wa);
 
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,
@@ -223,7 +224,7 @@ class InstrumentListState extends State<InstrumentList> {
       _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Constants.instrumentNoticeBackgroundColor : Constants.instrumentBackgroundColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Int." : "Ext.";
-      _tac = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
+      _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
   }
 
@@ -322,8 +323,8 @@ class InstrumentListState extends State<InstrumentList> {
       case "SRC":
         value = _source;
         break;
-      case "TAC":
-        value = _tac;
+      case "FLT":
+        value = _flightTime;
         cb = _resetTacTimer;
         break;
     }

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'message.dart';
@@ -33,7 +34,7 @@ class OwnShipMessage extends Message {
         alt = -1000;
       }
       // meter
-      altitude = alt.toDouble() / 3.28084;
+      altitude = alt.toDouble() / UnitConversion.mToF;
     }
 
     airborne = (message[11] & 0x08) != 0;
