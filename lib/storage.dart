@@ -25,6 +25,7 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/stack_with_one.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:avaremp/weather/airep_cache.dart';
 import 'package:avaremp/weather/airsigmet_cache.dart';
 import 'package:avaremp/weather/notam_cache.dart';
@@ -90,6 +91,7 @@ class Storage {
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
+  late UnitConversion units;
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -264,6 +266,8 @@ class Storage {
   }
 
   Future<void> init() async {
+    await settings.initSettings();
+    units = UnitConversion(settings.getUnits());
     flightTimer = FlightTimer(true, 0, timeChange);
     flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
     DbGeneral.set(); // set database platform
@@ -271,8 +275,7 @@ class Storage {
     try {
       WakelockPlus.enable(); // keep screen on
     }
-    catch(e) {
-    }
+    catch(e) {}
     // ask for GPS permission
     await _gps.isPermissionDenied();
     position = await Gps().getLastPosition();
@@ -290,7 +293,6 @@ class Storage {
     osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
     mesonetCache = List.generate(5 , (index) => FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "radar$index")));
 
-    await settings.initSettings();
     // this is a long login process, do not await here
 
     String username;

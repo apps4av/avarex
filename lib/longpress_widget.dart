@@ -152,7 +152,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
     double bearing = geo.calculateBearing(ll, widget.destination.coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, geo.getVariation(ll))}");
     String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
-    String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}ft";
+    String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}";
     String label = "$facility (${future.showDestination.locationID})$elevation, $direction";
 
     Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD

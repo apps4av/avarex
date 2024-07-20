@@ -70,6 +70,14 @@ class AppSettings {
     return provider.getValue("key-instruments-v12", defaultValue: "GS,ALT,MT,NXT,DIS,BRG,ETA,ETE,UPT,DNT,UTC,SRC,FLT") as String;
   }
 
+  void setUnits(String units) {
+    provider.setString("key-units", units);
+  }
+
+  String getUnits() {
+    return provider.getValue("key-units", defaultValue: "Maritime") as String;
+  }
+
   List<String> getLayers() {
     return (provider.getValue("key-layers-v35", defaultValue: "Nav,Circles,Chart,OSM,Weather,NOAA-Loop,TFR,Plate,Traffic,PFD,Tracks") as String).split(",");
   }

@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:avaremp/gdl90/audible_traffic_alerts.dart';
@@ -39,7 +38,7 @@ class Traffic {
     // if (vicentyDist < 100 || horizontalOwnshipDistanceNmi < 100) {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
     // }    
-    verticalOwnshipDistanceFt = UnitConversion.mToF * Storage().position.altitude - message.altitude;
+    verticalOwnshipDistanceFt = Storage().units.mToF * Storage().position.altitude - message.altitude;
   }
 
   bool isOld() {
@@ -72,8 +71,8 @@ class Traffic {
   @override
   String toString() {
     return "${message.callSign}\n${message.altitude.toInt()} ft\n"
-    "${(message.velocity * UnitConversion.mpsTo).toInt()} knots\n"
-    "${(message.verticalSpeed * UnitConversion.mToF).toInt()} fpm";
+    "${(message.velocity * Storage().units.mpsTo).toInt()} knots\n"
+    "${(message.verticalSpeed * Storage().units.mToF).toInt()} fpm";
   }
 }
 
@@ -246,8 +245,8 @@ class TrafficPainter extends CustomPainter {
   static final Map<int,ui.Image> _imageCache = {};      // Rasterized pixel image cache (for non-realtime config, e.g., no shadow off)
 
   // Const's for magic #'s and division speedup
-  static final double _kMetersToFeetCont = UnitConversion.mToF;
-  static final double _kMetersPerSecondToSpeed = UnitConversion.mpsTo;
+  static final double _kMetersToFeetCont = Storage().units.mToF;
+  static final double _kMetersPerSecondToSpeed = Storage().units.mpsTo;
   static const double _kDivBy60Mult = 1.0 / 60.0;
   static const double _kDivBy1000Mult = 1.0 / 1000.0;
   // UI Default constants

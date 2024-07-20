@@ -5,7 +5,6 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/unit_conversion.dart';
 import 'package:avaremp/waypoint.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
@@ -149,7 +148,7 @@ class InstrumentListState extends State<InstrumentList> {
         if(destElev != null) {
           // Calculate our relative AGL compared to destination. If we are
           // lower then no display info
-          double relativeAGL = UnitConversion.mToF * Storage().position.altitude - destElev;
+          double relativeAGL = Storage().units.mToF * Storage().position.altitude - destElev;
 
           // Convert the destination distance to feet.
           double destDist = distance;
@@ -170,7 +169,7 @@ class InstrumentListState extends State<InstrumentList> {
         double? wd;
         String? station = WindsCache.locateNearestStation(next.destination.coordinate);
         WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
-        (wd, ws) = WindsCache.getWindAtAltitude(UnitConversion.mToF * Storage().position.altitude, wa);
+        (wd, ws) = WindsCache.getWindAtAltitude(Storage().units.mToF * Storage().position.altitude, wa);
 
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,

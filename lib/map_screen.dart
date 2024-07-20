@@ -10,7 +10,6 @@ import 'package:avaremp/instrument_list.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/unit_conversion.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
 import 'package:avaremp/weather/taf.dart';
@@ -592,7 +591,7 @@ class MapScreenState extends State<MapScreen> {
                     borderStrokeWidth: 3,
                     borderColor: Constants.distanceCircleColor,
                     color: Colors.transparent,
-                    radius: UnitConversion.toM * 10,
+                    radius: Storage().units.toM * 10,
                     // 10 nm circle
                     useRadiusInMeter: true,
                     point: Gps.toLatLng(value),
@@ -601,7 +600,7 @@ class MapScreenState extends State<MapScreen> {
                     borderStrokeWidth: 3,
                     borderColor: Constants.distanceCircleColor,
                     color: Colors.transparent,
-                    radius: UnitConversion.toM * 5,
+                    radius: Storage().units.toM * 5,
                     // 15 nm circle
                     useRadiusInMeter: true,
                     point: Gps.toLatLng(value),
@@ -610,7 +609,7 @@ class MapScreenState extends State<MapScreen> {
                     borderStrokeWidth: 3,
                     borderColor: Constants.distanceCircleColor,
                     color: Colors.transparent,
-                    radius: UnitConversion.toM * 2,
+                    radius: Storage().units.toM * 2,
                     // 10 nm circle
                     useRadiusInMeter: true,
                     point: Gps.toLatLng(value),

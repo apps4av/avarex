@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'geomag-master/lib/geomag.dart';
 
@@ -108,12 +108,12 @@ class GeoCalculations {
 
 
   double calculateDistance(LatLng ll1, LatLng ll2) {
-    return UnitConversion.mTo * _distance(ll1, ll2);
+    return Storage().units.mTo * _distance(ll1, ll2);
   }
 
   /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)
   double calculateFastDistance(LatLng ll1, LatLng ll2) {
-    return UnitConversion.mTo * _haversineDistance(ll1, ll2);
+    return Storage().units.mTo * _haversineDistance(ll1, ll2);
   }  
 
   double calculateBearing(LatLng ll1, LatLng ll2) {
@@ -127,14 +127,14 @@ class GeoCalculations {
   }
 
   LatLng calculateOffset(LatLng from, double distance, double heading) {
-    return _distance.offset(from, UnitConversion.toM * distance, heading);
+    return _distance.offset(from, Storage().units.toM * distance, heading);
   }
 
   static double convertSpeed(double gpsSpeed) {
-    return (gpsSpeed * UnitConversion.mpsTo);
+    return (gpsSpeed * Storage().units.mpsTo);
   }
   static double convertAltitude(double gpsAltitude) {
-    return (gpsAltitude * UnitConversion.mToF);
+    return (gpsAltitude * Storage().units.mToF);
   }
 
 }

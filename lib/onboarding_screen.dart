@@ -1,5 +1,6 @@
 import 'package:avaremp/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'main_screen.dart';
@@ -51,10 +52,11 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
 
     // make GPS page, this requires logic.
     PageViewModel gpsPage = PageViewModel(
-      title: "GPS",
+      title: "Internet and GPS",
       bodyWidget: Column(
           children:[
-            const Text("Make sure you are in an area where GPS signals are strong.\n\n"
+            const Text("Connect this device to the Internet. Internet connection is required to download charts and weather. The connection may be turned off during the flight.\n\n\n"
+              "Make sure you are in an area where GPS signals are strong.\n\n"
               "The app uses the best possible GPS source available on this device.\n"
               " 1) You must provide the app with permissions to access the GPS.\n"
               " 2) You may connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.\n"),
@@ -64,6 +66,27 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
           ]
       ),
 
+      decoration: pageDecoration,
+    );
+
+    // make GPS page, this requires logic.
+    PageViewModel unitsPage = PageViewModel(
+      title: "Units",
+      bodyWidget: Column(
+          children:[
+            Text("Select your preferred distance, speed, and elevation units (${Storage().settings.getUnits()})\n"),
+            Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
+              setState(() {
+                if(value == true) {
+                  Storage().settings.setUnits("Maritime");
+                } else {
+                  Storage().settings.setUnits("Imperial");
+                }
+                Storage().units = UnitConversion(Storage().settings.getUnits());
+              });
+            }),
+          ]
+      ),
       decoration: pageDecoration,
     );
 
@@ -132,12 +155,8 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
         ),
-        PageViewModel(
-          title: "Internet",
-          bodyWidget: const Text("Connect this device to the Internet.\nInternet connection is required to download charts and weather.\nThe connection may be turned off during the flight."),
-          decoration: pageDecoration,
-        ),
         gpsPage,
+        unitsPage,
         PageViewModel(
           title: "Databases and Aviation Maps",
           bodyWidget: Column(children:[

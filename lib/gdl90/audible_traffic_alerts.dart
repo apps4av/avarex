@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
@@ -213,7 +213,7 @@ class AudibleTrafficAlerts {
       List<Traffic?> trafficList, Position? ownshipLocation, int ownshipUpdateTimeMs, double ownVspeed, bool ownIsAirborne) {
     if (!_isRunning ||
         ownshipLocation == null ||
-        (UnitConversion.mpsTo * ownshipLocation.speed < prefAudibleTrafficAlertsMinSpeed) ||
+        (Storage().units.mpsTo * ownshipLocation.speed < prefAudibleTrafficAlertsMinSpeed) ||
         !(ownIsAirborne || prefIsAudibleGroundAlertsEnabled)) {
       return;
     }
@@ -283,8 +283,8 @@ class AudibleTrafficAlerts {
   }
 
   _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double ownVspeed) {
-    final int ownSpeed = (UnitConversion.mpsTo * ownshipLocation.speed).round();
-    final double ownAlt = UnitConversion.mToF * ownshipLocation.altitude;
+    final int ownSpeed = (Storage().units.mpsTo * ownshipLocation.speed).round();
+    final double ownAlt = Storage().units.mToF * ownshipLocation.altitude;
     final double closingEventTimeSec = (_closestApproachTime(
                 traffic.message.coordinates.latitude,
                 traffic.message.coordinates.longitude,

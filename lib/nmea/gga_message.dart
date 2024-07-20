@@ -1,5 +1,5 @@
 import 'package:avaremp/nmea/nmea_message.dart';
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 
 class GGAMessage extends NmeaMessage {
@@ -37,7 +37,7 @@ class GGAMessage extends NmeaMessage {
 
       double alt = double.parse(tokens[9]);
       if(tokens[10] == "M") {
-        altitude = (alt * UnitConversion.mToF).round();
+        altitude = (alt * Storage().units.mToF).round();
       }
       else {
         altitude = alt.round();

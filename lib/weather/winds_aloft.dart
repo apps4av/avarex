@@ -1,3 +1,4 @@
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 
 class WindsAloft extends Weather {
@@ -37,7 +38,7 @@ class WindsAloft extends Weather {
       speed += 100;
     }
 
-    return(dir, speed);
+    return(dir, (speed.toDouble() * Storage().units.knotsTo).round());
   }
 
   (double?, double?) getWindAtAltitude(double altitude) { // dir, speed
@@ -221,7 +222,7 @@ class WindsAloft extends Weather {
       double? dir;
       (dir, speed) = getWindAtAltitude(altitude);
       // show dir, speed, and actual string for every 3000ft
-      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir == null ? "" : "${dir.round().toString().padLeft(3, "0")}\u00b0"} ${speed == null ? "" : "${speed.round()}KT"} (${getWindAtAltitudeRaw(altitude.round())})\n";
+      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir == null ? "" : "${dir.round().toString().padLeft(3, "0")}\u00b0"} ${speed == null ? "" : "@${speed.round()}"} (${getWindAtAltitudeRaw(altitude.round())})\n";
     }
     return wind;
   }

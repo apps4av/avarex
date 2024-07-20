@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/storage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
@@ -20,7 +20,7 @@ class AltitudeProfile {
     if (response.statusCode == 200) {
       var data = jsonDecode(response.body);
       for (int i = 0; i < data['results'].length; i++) {
-        altitudes.add(data['results'][i]['elevation'] * UnitConversion.mToF);
+        altitudes.add(data['results'][i]['elevation'] * Storage().units.mToF);
       }
     }
     return altitudes;
