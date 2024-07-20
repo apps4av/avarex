@@ -155,5 +155,22 @@ class Metar extends Weather {
     }
     return category;
   }
+
+  double? getWindDirection() {
+    List<String> tokens = text.split(" ");
+    for (String token in tokens) {
+      final RegExp wind = RegExp(
+          r'^(?<dir>\d{3}|VRB)(?<speed>\d{2,3})(G(?<gust>\d{2,3}))?(?<unit>KT)$');
+      var w = wind.firstMatch(token);
+      if (w != null) {
+        String speed = w.namedGroup("dir")!;
+        try {
+          return double.parse(speed);
+        }
+        catch (e) {}
+      }
+    }
+    return null;
+  }
 }
 

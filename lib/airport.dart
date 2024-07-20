@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/metar.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -115,7 +117,7 @@ class Airport {
         else {
           endNotch = geo.calculateOffset(end, 2, -90 + heading);
         }
-        runways.add(MapRunway(start, end, endNotch, r['HEIdent']));
+        runways.add(MapRunway(start, end, endNotch, r['HEIdent'], heading));
       }
       catch (e) {}
 
@@ -134,10 +136,35 @@ class Airport {
         else {
           endNotch = geo.calculateOffset(end, 2, -90 + heading);
         }
-        runways.add(MapRunway(start, end, endNotch, r['LEIdent']));
+        runways.add(MapRunway(start, end, endNotch, r['LEIdent'], heading));
       }
       catch (e) {}
     }
+
+    // calculate best runways based on wind direction
+    double? windDirection;
+    String k = Constants.useK? "K" : "";
+    Metar? metar = Storage().realmHelper.getMetar("$k${destination.locationID}");
+    double minWind = 0;
+    int index = -1;
+    if(metar != null) {
+      windDirection = metar.getWindDirection();
+      if(windDirection != null) {
+        for(MapRunway runway in runways) {
+          // wind component
+          double speedComponent = sqrt(1 - cos((runway.heading - windDirection) * pi / 180.0));
+          if(speedComponent > minWind) {
+            minWind = speedComponent;
+            index = runways.indexOf(runway);
+          }
+        }
+      }
+    }
+
+    if(index != -1) {
+      runways[index].best = true;
+    }
+
     return runways;
   }
 }
@@ -145,11 +172,13 @@ class Airport {
 class MapRunway {
   static const double lengthStart = 4; // nm
 
-  LatLng start;
-  LatLng end;
-  String name;
-  LatLng endNotch;
-  MapRunway(this.start, this.end, this.endNotch, this.name);
+  final LatLng start;
+  final LatLng end;
+  final String name;
+  final LatLng endNotch;
+  final double heading;
+  bool best = false;
+  MapRunway(this.start, this.end, this.endNotch, this.name, this.heading);
 }
 
 class RunwayPainter extends CustomPainter {

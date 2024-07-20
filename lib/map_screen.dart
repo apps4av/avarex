@@ -741,7 +741,7 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)))),
+                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: r.best ? Colors.green : Colors.purple, child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)))),
               ],
             );
           },
