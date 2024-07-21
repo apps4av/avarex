@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
@@ -61,47 +62,26 @@ class MapScreenState extends State<MapScreen> {
       tileProvider: FMTC.instance('mapStoreAIP').getTileProvider(headers: {"x-openaip-client-id" : "@@___openaip_client_id__@@"}));
   */
 
-  // 4 images for animation
-  List<TileLayer> nexradLayer = [
-    TileLayer(
-        maxNativeZoom: 5,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-        tileProvider: CachedTileProvider(
-          // maxStale keeps the tile cached for the given Duration and
-          // tries to revalidate the next time it gets requested
-          maxStale: const Duration(minutes: 5),
-          store: Storage().mesonetCache[0]),
-    ),
-    TileLayer(
-        maxNativeZoom: 5,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-        tileProvider: CachedTileProvider(
-          maxStale: const Duration(minutes: 5),
-          store: Storage().mesonetCache[1]),
-    ),
-    TileLayer(
-        maxNativeZoom: 5,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-        tileProvider: CachedTileProvider(
-          maxStale: const Duration(minutes: 5),
-          store: Storage().mesonetCache[2]),
-
-  ),
-    TileLayer(
-        maxNativeZoom: 5,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-        tileProvider: CachedTileProvider(
-          maxStale: const Duration(minutes: 5),
-          store: Storage().mesonetCache[3]),
-    ),
-    TileLayer(
-        maxNativeZoom: 5,
-        urlTemplate: "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
-        tileProvider: CachedTileProvider(
-          maxStale: const Duration(minutes: 5),
-          store: Storage().mesonetCache[4]),
-    ),
-  ];
+  // 5 images for animation
+  List<TileLayer> nexradLayer = List.generate(5, (int index) {
+    List<String> mesonets = [
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
+    ];
+    return TileLayer(
+      maxNativeZoom: 5,
+      reset: Storage().mapReset.stream,
+      urlTemplate: mesonets[index],
+      tileProvider: CachedTileProvider(
+        // maxStale keeps the tile cached for the given Duration and
+        // tries to revalidate the next time it gets requested
+          maxStale: const Duration(minutes: 1),
+          store: Storage().mesonetCache[index]),
+    );
+  });
 
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
