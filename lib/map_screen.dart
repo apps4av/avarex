@@ -43,9 +43,11 @@ class MapScreen extends StatefulWidget {
 
 class MapScreenState extends State<MapScreen> {
 
-  StreamController<void> mapReset = StreamController<void>(); // to reset the radar map
+  StreamController<void>? mapReset; // to reset the radar map
   void resetRadar() {
-    mapReset.add(null);
+    if(mapReset != null) {
+      mapReset!.add(null);
+    }
     for(int i = 0; i < Storage().mesonetCache.length; i++) {
       Storage().mesonetCache[i].clean(); // clean mesonet cache
     }
@@ -127,6 +129,11 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
 
+    if(mapReset != null) {
+      mapReset!.close();
+    }
+    mapReset = StreamController();
+
     TileLayer osmLayer = TileLayer(
       urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       tileProvider: CachedTileProvider(
@@ -154,7 +161,7 @@ class MapScreenState extends State<MapScreen> {
       ];
       return TileLayer(
         maxNativeZoom: 5,
-        reset: mapReset.stream,
+        reset: mapReset!.stream,
         urlTemplate: mesonets[index],
         tileProvider: CachedTileProvider(
           // maxStale keeps the tile cached for the given Duration and
