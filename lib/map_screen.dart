@@ -42,47 +42,20 @@ class MapScreen extends StatefulWidget {
 }
 
 class MapScreenState extends State<MapScreen> {
+
+  StreamController<void> mapReset = StreamController<void>(); // to reset the radar map
+  void resetRadar() {
+    mapReset.add(null);
+    for(int i = 0; i < Storage().mesonetCache.length; i++) {
+      Storage().mesonetCache[i].clean(); // clean mesonet cache
+    }
+  }
+
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
   bool _rubberBanding = false;
   final Ruler _ruler = Ruler();
-
-  TileLayer osmLayer = TileLayer(
-      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-        maxStale: const Duration(days: 30),
-        store: Storage().osmCache),
-  );
-  /* To be added later as it has issues
-  TileLayer aipLayer = TileLayer(
-      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png",
-      tileProvider: FMTC.instance('mapStoreAIP').getTileProvider(headers: {"x-openaip-client-id" : "@@___openaip_client_id__@@"}));
-  */
-
-  // 5 images for animation
-  List<TileLayer> nexradLayer = List.generate(5, (int index) {
-    List<String> mesonets = [
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
-    ];
-    return TileLayer(
-      maxNativeZoom: 5,
-      reset: Storage().mapReset.stream,
-      urlTemplate: mesonets[index],
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-          maxStale: const Duration(minutes: 1),
-          store: Storage().mesonetCache[index]),
-    );
-  });
-
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   MapController? _controller;
@@ -154,8 +127,42 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
 
+    TileLayer osmLayer = TileLayer(
+      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      tileProvider: CachedTileProvider(
+        // maxStale keeps the tile cached for the given Duration and
+        // tries to revalidate the next time it gets requested
+          maxStale: const Duration(days: 30),
+          store: Storage().osmCache),
+    );
+    /* To be added later as it has issues
+        TileLayer aipLayer = TileLayer(
+          urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png",
+          tileProvider: FMTC.instance('mapStoreAIP').getTileProvider(headers: {"x-openaip-client-id" : "@@___openaip_client_id__@@"}));
+    */
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
+
+    // 5 images for animation
+    List<TileLayer> nexradLayer = List.generate(5, (int index) {
+      List<String> mesonets = [
+        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
+      ];
+      return TileLayer(
+        maxNativeZoom: 5,
+        reset: mapReset.stream,
+        urlTemplate: mesonets[index],
+        tileProvider: CachedTileProvider(
+          // maxStale keeps the tile cached for the given Duration and
+          // tries to revalidate the next time it gets requested
+            maxStale: const Duration(minutes: 1),
+            store: Storage().mesonetCache[index]),
+      );
+    });
 
     //add layers
     List<Widget> layers = [];
@@ -217,6 +224,10 @@ class MapScreenState extends State<MapScreen> {
           ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
+                if(value % 300 == 0) {
+                  // download new nexrad every 5 minutes
+                  resetRadar();
+                }
                 return nexradLayer[value % nexradLength]; // animate every 3 seconds
           })
       );

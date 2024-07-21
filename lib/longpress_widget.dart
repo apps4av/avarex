@@ -71,7 +71,7 @@ class LongPressFuture {
       // show first plate
       String? apd = await PathUtils.getAirportDiagram(Storage().dataDir, showDestination.locationID);
       if(apd != null) {
-        File file = File(PathUtils.getPlatePath(Storage().dataDir, showDestination.locationID, apd));
+        File file = File(PathUtils.getFilePath(Storage().dataDir, PathUtils.getFilePath(showDestination.locationID, apd)));
         airportDiagram = Image.file(file);
       }
 

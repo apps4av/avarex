@@ -92,7 +92,6 @@ class Storage {
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
   late UnitConversion units;
-  final StreamController mapReset = StreamController();
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -393,10 +392,6 @@ class Storage {
         airep.download();
         airSigmet.download();
         // nexrad update
-        mapReset.add(null);
-        for(int i = 0; i < mesonetCache.length; i++) {
-          mesonetCache[i].clean(); // clean mesonet cache
-        }
       }
       // check GPS enabled
     });
