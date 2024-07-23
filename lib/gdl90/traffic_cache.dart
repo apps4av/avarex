@@ -78,7 +78,7 @@ class Traffic {
   @override
   String toString() {
     return "${message.callSign}\n${message.altitude.toInt()} ft\n"
-    "${(message.velocity * Storage().units.mpsTo).toInt()} knots\n"
+    "${(message.velocity * Storage().units.mpsTo).toInt()} ${Storage().settings.getUnits() == "Imperial" ? "mph" : "knots" }\n"
     "${(message.verticalSpeed * Storage().units.mToF).toInt()} fpm";
   }
 }
