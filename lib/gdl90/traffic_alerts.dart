@@ -15,8 +15,6 @@ enum DistanceCalloutOption { none, rounded, decimal }
 
 enum NumberFormatOption { colloquial, individualDigit }
 
-const _mToFt = 3.28084;
-const _mpsToKt = 1.94384;
 
 const double _deg180inv = 1.0 / 180.0;
 @pragma("vm:prefer-inline")
@@ -214,8 +212,8 @@ class TrafficAlerts {
     if (traffic.verticalOwnshipDistanceFt.abs() < prefTrafficAlertsHeight 
       && traffic.horizontalOwnshipDistanceNmi < prefAudibleTrafficAlertsDistanceMinimum)
     {
-      final int ownSpeedInKts = (ownshipPosition.speed * _mpsToKt).round();
-      final double ownAltInFeet = ownshipPosition.altitude * _mToFt;
+      final int ownSpeedInKts = (ownshipPosition.speed * Storage().units.mpsTo).round();
+      final double ownAltInFeet = ownshipPosition.altitude * Storage().units.mToF;
       traffic.closingInSeconds =  (_closestApproachTime(
                 traffic.message.coordinates.latitude,
                 traffic.message.coordinates.longitude,
