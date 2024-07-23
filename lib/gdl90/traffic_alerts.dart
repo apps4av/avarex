@@ -285,6 +285,7 @@ class TrafficAlerts {
                 traffic.closingInSeconds > -1 
                     && traffic.closingInSeconds < prefClosingTimeThresholdSeconds 
                     && traffic.verticalOwnshipDistanceFt <= prefClosingAlertAltitude
+                    && traffic.closestApproachDistanceNmi >= 0 // not default
                     && traffic.closestApproachDistanceNmi <= prefClosestApproachThresholdNmi
                     && traffic.closestApproachDistanceNmi < traffic.horizontalOwnshipDistanceNmi  // catches cases when moving away
                   ? _ClosingEvent(traffic.closingInSeconds, traffic.closestApproachDistanceNmi, 
