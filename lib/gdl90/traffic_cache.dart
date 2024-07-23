@@ -504,8 +504,9 @@ class TrafficPainter extends AbstractCachedCustomPainter {
 
 /// Painter for traffic vertical status text box (+/- flight level, and vertical speed direction arrows)
 class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
-  static const _vertLocationTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 16);
-  static const _vertSpeedArrowStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 24);
+  static const double _vertLocationFontSize = 16, _vertSpeedArrowFontSize = 24;
+  static const _vertLocationTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: _vertLocationFontSize);
+  static const _vertSpeedArrowStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: _vertSpeedArrowFontSize);
   static final _boundingBoxPaint = Paint()..color = const Color.fromRGBO(0, 0, 0, .2);
   static final _leadingZeroFmt = intl.NumberFormat("00");
   static const double _offsetX = 24, _offsetY = 0;
@@ -547,7 +548,7 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
         minWidth: 0,
         maxWidth: directionText.length*_charPixeslWidth+_charPixeslWidth,
       );   
-      verticalSpeedTextPainter.paint(canvas, Offset(_offsetX+(vertLocationMsg.length*_charPixeslWidth), _offsetY-6));  
+      verticalSpeedTextPainter.paint(canvas, Offset(_offsetX+(vertLocationMsg.length*_charPixeslWidth), _offsetY-(_vertSpeedArrowFontSize-_vertLocationFontSize)));  
     }
 
   }
