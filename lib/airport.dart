@@ -102,43 +102,87 @@ class Airport {
     // pairs of two where a line will be drawn for runway, first is runway threshold, second 10 miles out
     List<MapRunway> runways = [];
     for(Map<String, dynamic> r in destination.runways) {
+      double lat;
       try {
-        double lat = double.parse(r['LELatitude']);
-        double length = double.parse(r['Length']);
-        double lon = double.parse(r['LELongitude']);
-        double heading = double.parse(r['LEHeadingT']);
-        LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
-        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, heading);
-        bool leftPattern = r['HEPattern'] == 'Y' ? false : true;
-        LatLng endNotch;
-        if(leftPattern) {
-          endNotch = geo.calculateOffset(end, 2, 90 + heading);
-        }
-        else {
-          endNotch = geo.calculateOffset(end, 2, -90 + heading);
-        }
-        runways.add(MapRunway(start, end, endNotch, r['HEIdent'], heading));
+        lat = double.parse(r['LELatitude']);
       }
-      catch (e) {}
+      catch (e) {
+        lat = destination.coordinate.latitude;
+      }
+      double lon;
+      try {
+        lon = double.parse(r['LELongitude']);
+      }
+      catch (e) {
+        lon = destination.coordinate.longitude;
+      }
+      double length;
+      try {
+        length = double.parse(r['Length']);
+      }
+      catch (e) {
+        length = 1000;
+      }
+      double headingL;
+      double headingH;
 
       try {
-        double lat = double.parse(r['HELatitude']);
-        double length = double.parse(r['Length']);
-        double lon = double.parse(r['HELongitude']);
-        double heading = double.parse(r['LEHeadingT']) + 180; // note HE heading not in db
-        LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, heading);
-        LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, heading);
-        bool leftPattern = r['LEPattern'] == 'Y' ? false : true;
-        LatLng endNotch;
-        if(leftPattern) {
-          endNotch = geo.calculateOffset(end, 2, 90 + heading);
-        }
-        else {
-          endNotch = geo.calculateOffset(end, 2, -90 + heading);
-        }
-        runways.add(MapRunway(start, end, endNotch, r['LEIdent'], heading));
+        headingL = double.parse(r['LEHeadingT']);
       }
-      catch (e) {}
+      catch (e) {
+        try {
+          headingL =
+              double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCR]'), '')) * 10 - geo.getVariation(LatLng(lat, lon)); // remove L, R, C from it
+        }
+        catch (e) {
+          continue; // give up, as we tried everything possible to find a runway
+        }
+      }
+      headingH = headingL + 180;
+
+      LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, headingL);
+      LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, headingL);
+      bool leftPattern = r['HEPattern'] == 'Y' ? false : true;
+      LatLng endNotch;
+      if(leftPattern) {
+        endNotch = geo.calculateOffset(end, 2, 90 + headingL);
+      }
+      else {
+        endNotch = geo.calculateOffset(end, 2, -90 + headingL);
+      }
+      MapRunway rr = MapRunway(start, end, endNotch, r['HEIdent'], headingL);
+      runways.add(rr);
+
+      try {
+        lat = double.parse(r['HELatitude']);
+      }
+      catch (e) {
+        lat = destination.coordinate.latitude;
+      }
+      try {
+        lon = double.parse(r['HELongitude']);
+      }
+      catch (e) {
+        lon = destination.coordinate.longitude;
+      }
+      try {
+        length = double.parse(r['Length']);
+      }
+      catch (e) {
+        length = 1000;
+      }
+      start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, headingH);
+      end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, headingH);
+      leftPattern = r['LEPattern'] == 'Y' ? false : true;
+      if(leftPattern) {
+        endNotch = geo.calculateOffset(end, 2, 90 + headingH);
+      }
+      else {
+        endNotch = geo.calculateOffset(end, 2, -90 + headingH);
+      }
+      rr = MapRunway(start, end, endNotch, r['LEIdent'], headingH);
+      runways.add(rr);
+
     }
 
     // calculate best runways based on wind direction
