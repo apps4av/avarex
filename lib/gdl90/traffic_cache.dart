@@ -27,7 +27,7 @@ class Traffic {
   double horizontalOwnshipDistanceNmi = 0;
   double verticalOwnshipDistanceFt = 0;
   double closingInSeconds = -1;
-  double closestApproachDistanceNmi = -1;
+  double closestApproachDistanceNmi = 999999;
   TrafficAlertLevel alertLevel = TrafficAlertLevel.none;
 
   Traffic(this.message) {
