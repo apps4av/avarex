@@ -527,7 +527,7 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
     }
     
     final String statusMsg = (_flightLevelDiff > 0 ? "+" : "") + _leadingZeroFmt.format(_flightLevelDiff)
-        + (_vspeedDirection > 0 ? "🠉" : (_vspeedDirection < 0 ? "🠋": ""));
+        + (_vspeedDirection > 0 ? "⇑" : (_vspeedDirection < 0 ? "⇓": ""));
     // Draw transluscent bounding box for greater visibility (especially sectionals)
     final ui.Path statusBoundingBox = ui.Path()
       ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+statusMsg.length*11, _offsetY+24)); 
