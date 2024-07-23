@@ -504,10 +504,12 @@ class TrafficPainter extends AbstractCachedCustomPainter {
 
 /// Painter for traffic vertical status text box (+/- flight level, and vertical speed direction arrows)
 class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
-  static const _statusTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 16);
+  static const _vertLocationTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 16);
+  static const _vertSpeedArrowStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w900, fontSize: 24);
   static final _boundingBoxPaint = Paint()..color = const Color.fromRGBO(0, 0, 0, .2);
   static final _leadingZeroFmt = intl.NumberFormat("00");
   static const double _offsetX = 24, _offsetY = 0;
+  static const double _charPixeslWidth = 10;
 
   final int _flightLevelDiff;
   final int _vspeedDirection;
@@ -526,19 +528,28 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
       return;
     }
     
-    final String statusMsg = (_flightLevelDiff > 0 ? "+" : "") + _leadingZeroFmt.format(_flightLevelDiff)
-        + (_vspeedDirection > 0 ? "⇑" : (_vspeedDirection < 0 ? "⇓": ""));
+    final String vertLocationMsg = (_flightLevelDiff > 0 ? "+" : "") + _leadingZeroFmt.format(_flightLevelDiff);
+    final String directionText = (_vspeedDirection > 0 ? "↑" : (_vspeedDirection < 0 ? "↓": ""));
     // Draw transluscent bounding box for greater visibility (especially sectionals)
     final ui.Path statusBoundingBox = ui.Path()
-      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+statusMsg.length*11, _offsetY+24)); 
+      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(vertLocationMsg.length+directionText.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+24)); 
     canvas.drawPath(statusBoundingBox, _boundingBoxPaint);   
     // Paint vertical position  
-    final textPainter = TextPainter(text: TextSpan(text: statusMsg, style: _statusTextStyle), textDirection: TextDirection.ltr);
-    textPainter.layout(
+    final vertLocationTextPainter = TextPainter(text: TextSpan(text: vertLocationMsg, style: _vertLocationTextStyle), textDirection: TextDirection.ltr);
+    vertLocationTextPainter.layout(
       minWidth: 0,
-      maxWidth: 200,
+      maxWidth: vertLocationMsg.length*_charPixeslWidth,
     );    
-    textPainter.paint(canvas, const Offset(_offsetX, _offsetY));
+    vertLocationTextPainter.paint(canvas, const Offset(_offsetX, _offsetY));
+    if (directionText.isNotEmpty) {
+      final verticalSpeedTextPainter = TextPainter(text: TextSpan(text: directionText, style: _vertSpeedArrowStyle), textDirection: TextDirection.ltr);
+      verticalSpeedTextPainter.layout(
+        minWidth: 0,
+        maxWidth: directionText.length*_charPixeslWidth+_charPixeslWidth,
+      );   
+      verticalSpeedTextPainter.paint(canvas, Offset(_offsetX+(vertLocationMsg.length*_charPixeslWidth), _offsetY-6));  
+    }
+
   }
 
   /// get flight level
