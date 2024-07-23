@@ -24,7 +24,7 @@ const double _ln10inv = 1.0 / ln10;
 @pragma("vm:prefer-inline")
 double _log10(num x) => log(x) * _ln10inv;
 
-/// Class to calculate and speak audio alerts for nearby and closing-in (TCPA) traffic
+/// Class to calculate audible and visual alerts for nearby and closing-in (TCPA) traffic
 class TrafficAlerts {
   static const double _kSecondsPerHour = 3600.000;
   static const double _kHoursPerSecond = 1.0 / 3600.000;
@@ -288,8 +288,7 @@ class TrafficAlerts {
                     && traffic.closestApproachDistanceNmi >= 0 // not default
                     && traffic.closestApproachDistanceNmi <= prefClosestApproachThresholdNmi
                     && traffic.closestApproachDistanceNmi < traffic.horizontalOwnshipDistanceNmi  // catches cases when moving away
-                  ? _ClosingEvent(traffic.closingInSeconds, traffic.closestApproachDistanceNmi, 
-                    traffic.alertLevel == TrafficAlertLevel.resolution) 
+                  ? _ClosingEvent(traffic) 
                   : null));
           
       } else if (hasUpdate) {
@@ -540,7 +539,7 @@ class TrafficAlerts {
     if (_addClosingSecondsAudio(alertAudio, closingEvent.closingSeconds())) {
       if (prefDistanceCalloutOption != DistanceCalloutOption.none) {
         alertAudio.add(_withinAudio);
-        _addDistanceAudio(alertAudio, closingEvent._closestApproachDistanceNmi);
+        _addDistanceAudio(alertAudio, closingEvent._traffic.closestApproachDistanceNmi);
       }
     }
   }
@@ -628,24 +627,22 @@ class TrafficAlerts {
 }
 
 class _ClosingEvent {
-  final double _closingTimeSec;
-  final double _closestApproachDistanceNmi;
+  final Traffic _traffic;
   final int _eventTimeMillis;
   final bool _isCriticallyClose;
 
-  _ClosingEvent(double closingTimeSec, double closestApproachDistanceNmi, bool isCriticallyClose)
-      : _closingTimeSec = closingTimeSec,
-        _closestApproachDistanceNmi = closestApproachDistanceNmi,
-        _isCriticallyClose = isCriticallyClose,
+  _ClosingEvent(Traffic traffic)
+      : _traffic = traffic,
+        _isCriticallyClose = traffic.alertLevel == TrafficAlertLevel.resolution,
         _eventTimeMillis = DateTime.now().millisecondsSinceEpoch;
 
   double closingSeconds() {
-    return _closingTimeSec - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) * TrafficAlerts._kSecPerMillseconds;
+    return _traffic.closingInSeconds - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) * TrafficAlerts._kSecPerMillseconds;
   }
 
   @override
   String toString() {
-    return "${_closingTimeSec}s within ${_closestApproachDistanceNmi}mi${_isCriticallyClose ? " CRITICAL " : ""}";
+    return " in ${_traffic.closingInSeconds}s will be within ${_traffic.closestApproachDistanceNmi}mi ${_isCriticallyClose ? " CRITICAL " : ""}";
   }
 }
 
