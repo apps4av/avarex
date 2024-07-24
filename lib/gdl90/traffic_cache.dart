@@ -241,12 +241,12 @@ enum _TrafficAircraftIconType { unmapped, light, large, rotorcraft }
 class TrafficPainter extends AbstractCachedCustomPainter {
 
   // Preference control variables
-  static bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
-  static bool prefAltDiffOpacityGraduation = false;         // Gradually vary opacity of icon based on altitude diff from ownship
-  static bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
-  static bool prefShowBoundingBox = false;                  // Display outlined bounding box around icon for higher visibility
-  static bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
-  static bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
+  static const bool prefShowSpeedBarb = false;                    // Shows line/barb at tip of icon based on speed/velocity
+  static const bool prefAltDiffOpacityGraduation = false;         // Gradually vary opacity of icon based on altitude diff from ownship
+  static const bool prefUseDifferentDefaultIconThanLight = false; // Use a different default icon for unmapped or "0" emitter category ID traffic
+  static const bool prefShowBoundingBox = false;                  // Display outlined bounding box around icon for higher visibility
+  static const bool prefShowShadow = false;                       // Display shadow effect "under" aircraft for higher visibility
+  static const bool prefShowShapeOutline = true;                  // Display solid outline around aircraft for higher visibility
 
   // Const's for magic #'s and division speedup
   static final double _kMetersToFeetCont = Storage().units.mToF;
@@ -339,12 +339,12 @@ class TrafficPainter extends AbstractCachedCustomPainter {
   TrafficPainter(Traffic traffic) 
     : _aircraftType = _getAircraftIconType(traffic.message.emitter), 
       _isAirborne = traffic.message.airborne,
-      _flightLevelDiff = _getGrossFlightLevelDiff(traffic), 
-      _vspeedDirection = getVerticalSpeedDirection(traffic.message.verticalSpeed),
+      _flightLevelDiff = prefAltDiffOpacityGraduation || !TrafficCache.ac20_172Mode ? _getGrossFlightLevelDiff(traffic) : 0, 
+      _vspeedDirection = !TrafficCache.ac20_172Mode ? getVerticalSpeedDirection(traffic.message.verticalSpeed) : 0,
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0,
       _alertLevel = traffic.alertLevel,
       super([ _getAircraftIconType(traffic.message.emitter).index, traffic.message.airborne ? 1 : 0, 
-        prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic) : 0, // no variation on alt diff if no opacity gradation
+        prefAltDiffOpacityGraduation || !TrafficCache.ac20_172Mode ? _getGrossFlightLevelDiff(traffic) : 0, // no variation on alt diff if no opacity gradation or in AC 20-172 mode
         !TrafficCache.ac20_172Mode ? getVerticalSpeedDirection(traffic.message.verticalSpeed) : 0, // No variation for +/- overlay if AC 20-172 mode 
         prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0, traffic.alertLevel.index ], prefShowShadow, const Size(32, 32));
 
