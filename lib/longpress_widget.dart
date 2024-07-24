@@ -26,8 +26,6 @@ import 'nav.dart';
 class LongPressWidget extends StatefulWidget {
   final Destination destination;
 
-  // it crashes if not static
-
   const LongPressWidget({super.key, required this.destination});
 
   @override
@@ -75,15 +73,17 @@ class LongPressFuture {
         airportDiagram = Image.file(file);
       }
 
-      pages.add(Airport.frequenciesWidget(Airport.parseFrequencies(showDestination as AirportDestination)));
+      pages.add(Airport.parseFrequencies(showDestination as AirportDestination));
 
     }
     else if(showDestination is NavDestination) {
       pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));
     }
     else if(showDestination is FixDestination) {
+      pages.add(const Text("Fix"));
     }
     else if(showDestination is AirwayDestination) {
+      pages.add(const Text("Airway"));
     }
     else if (showDestination is GpsDestination) {
       // add labeling support
@@ -186,7 +186,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
     }
     Widget? sounding = Sounding.getSoundingImage(widget.destination.coordinate, context);
 
-
     if(future.showDestination is AirportDestination) {
       Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
       Weather? w1 = Storage().taf.get("$k${future.showDestination.locationID}");
@@ -197,7 +196,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             w != null
                 ? ListTile(title: const Text("METAR"),
               subtitle: Text((w as Metar).text),
-              leading: Icon(Icons.circle_outlined, color: w.getColor(),),)
+              leading: Icon(Icons.circle_outlined, color: w.getColor(), size:32),)
                 : Container(),
             w1 != null ? ListTile(title: const Text("TAF"),
                 subtitle: Text((w1 as Taf).text),
@@ -213,7 +212,11 @@ class LongPressWidgetState extends State<LongPressWidget> {
             if (snapshot.hasData) {
               Weather? w2 = snapshot.data;
               if (w2 != null) {
-                return SingleChildScrollView(child: Text(w2.toString()));
+                List<String> notams = w2.toString().split("\n\n");
+                notams.insert(0, "NOTAMS");
+                return ListView.builder(itemCount: notams.length, itemBuilder: (context, index) {
+                  return ListTile(leading: index == 0 ? const Text("") : Text(notams[index].substring(0, 4)), title: Text(notams[index]));
+                });
               }
               else {
                 return Container();
@@ -230,6 +233,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       saaPage = future.pages.length;
       future.pages.add(ListView(
         children: [
+          ListTile(title: const Text("SUA")),
           for(Saa s in future.saa)
             ListTile(title: Text(s.designator),
                 subtitle: Text(s.toString())),
@@ -241,11 +245,14 @@ class LongPressWidgetState extends State<LongPressWidget> {
       windsPage = future.pages.length;
       WindsAloft wa = winds as WindsAloft;
       future.pages.add(
-        SingleChildScrollView(child: Column(children:[
-          if(sounding != null)
-            sounding,
-          Text(wa.toString())
-        ]))
+        ListView(children: [
+          ListTile(title: Text(winds.toString())),
+          if(sounding != null) ListTile(leading: sounding),
+          for((String, String) wl in wa.toList()) ListTile(
+            leading: Text(wl.$1),
+            title: Text(wl.$2),
+          ),
+        ])
       );
     }
 

@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
@@ -12,7 +11,7 @@ import 'constants.dart';
 
 class Airport {
 
-  static String parseFrequencies(AirportDestination airport) {
+  static ListView parseFrequencies(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
     List<Map<String, dynamic>> awos = airport.awos;
@@ -55,46 +54,20 @@ class Airport {
       catch(e) {}
     }
 
-    String ret = "";
-
-    if(tower.isNotEmpty) {
-      ret += "Tower\n    ";
-      ret += tower.join("\n    ");
-    }
-    if(ground.isNotEmpty) {
-      ret += "\nGround\n    ";
-      ret += ground.join("\n    ");
-    }
-    if(clearance.isNotEmpty) {
-      ret += "\nClearance\n    ";
-      ret += clearance.join("\n    ");
-    }
-    if(atis.isNotEmpty) {
-      ret += "\nATIS\n    ";
-      ret += atis.join("\n    ");
-    }
-    if(airport.ctaf.isNotEmpty) {
-      ret += "\nCTAF\n    ";
-      ret += airport.ctaf;
-    }
-    if(airport.unicom.isNotEmpty) {
-      ret += "\nUNICOM\n    ";
-      ret += airport.unicom;
-    }
-    if(automated.isNotEmpty) {
-      ret += "\nAutomated\n    ";
-      ret += automated.join("\n    ");
-    }
-
-    return ret;
+    ListView view = ListView(children: [
+      if(tower.isNotEmpty) ListTile(leading: const Icon(Icons.cell_tower), title: const Text("Tower"), subtitle: Text(tower.join("\n"))),
+      if(ground.isNotEmpty) ListTile(leading: const Icon(Icons.airport_shuttle), title: const Text("Ground"), subtitle: Text(ground.join("\n"))),
+      if(atis.isNotEmpty) ListTile(leading: const Icon(Icons.thermostat), title: const Text("ATIS"), subtitle: Text(atis.join("\n"))),
+      if(clearance.isNotEmpty) ListTile(leading: const Icon(Icons.perm_identity), title: const Text("Clearance"), subtitle: Text(clearance.join("\n"))),
+      if(airport.ctaf.isNotEmpty) ListTile(leading: const Icon(Icons.radio), title: const Text("CTAF"), subtitle: Text(airport.ctaf)),
+      if(airport.unicom.isNotEmpty) ListTile(leading: const Icon(Icons.radio), title: const Text("UNICOM"), subtitle: Text(airport.unicom)),
+      if(automated.isNotEmpty) ListTile(leading: const Icon(Icons.air), title: const Text("Automated"), subtitle: Text(automated.join("\n"))),
+    ]);
+    return view;
   }
 
   static Widget runwaysWidget(AirportDestination airport, double dimensions) {
     return CustomPaint(size: Size(dimensions, dimensions), painter: RunwayPainter(airport));
-  }
-
-  static Widget frequenciesWidget(String frequencies) {
-    return AutoSizeText(frequencies, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible);
   }
 
   static List<MapRunway> getRunwaysForMap(AirportDestination destination) {

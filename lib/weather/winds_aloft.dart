@@ -212,18 +212,25 @@ class WindsAloft extends Weather {
     );
   }
 
-  @override
-  toString() {
-    DateTime zulu = expires.toUtc(); // winds in Zulu time
-    // boilerplate
-    String wind = "Winds - $station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z\n\n";
+
+  List<(String, String)> toList() {
+    List<(String, String)> winds = [];
     for(double altitude = 3000; altitude < 42000; altitude += 3000) {
       double? speed;
       double? dir;
       (dir, speed) = getWindAtAltitude(altitude);
       // show dir, speed, and actual string for every 3000ft
-      wind += " @${altitude.round().toString().toString().padLeft(5, "0")}FT ${dir == null ? "" : "${dir.round().toString().padLeft(3, "0")}\u00b0"} ${speed == null ? "" : "@${speed.round()}"} (${getWindAtAltitudeRaw(altitude.round())})\n";
+      winds.add(((altitude.round().toString().toString().padLeft(5, "0")), "${dir == null ? "" : "${dir.round().toString().padLeft(3, "0")}\u00b0"} ${speed == null ? "" : "@${speed.round()}"} (${getWindAtAltitudeRaw(altitude.round())})"));
     }
+    return winds;
+  }
+
+
+  @override
+  toString() {
+    DateTime zulu = expires.toUtc(); // winds in Zulu time
+    // boilerplate
+    String wind = "Winds - $station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z";
     return wind;
   }
 }
