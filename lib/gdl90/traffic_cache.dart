@@ -343,9 +343,10 @@ class TrafficPainter extends AbstractCachedCustomPainter {
       _vspeedDirection = getVerticalSpeedDirection(traffic.message.verticalSpeed),
       _velocityLevel = prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0,
       _alertLevel = traffic.alertLevel,
-      super([ _getAircraftIconType(traffic.message.emitter).index, traffic.message.airborne ? 1 : 0, _getGrossFlightLevelDiff(traffic),
-        getVerticalSpeedDirection(traffic.message.verticalSpeed), prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0,
-        traffic.alertLevel.index ], prefShowShadow, const Size(32, 32));
+      super([ _getAircraftIconType(traffic.message.emitter).index, traffic.message.airborne ? 1 : 0, 
+        prefAltDiffOpacityGraduation ? _getGrossFlightLevelDiff(traffic) : 0, // no variation on alt diff if no opacity gradation
+        !TrafficCache.ac20_172Mode ? getVerticalSpeedDirection(traffic.message.verticalSpeed) : 0, // No variation for +/- overlay if AC 20-172 mode 
+        prefShowSpeedBarb ? _getVelocityLevel(traffic.message.velocity) : 0, traffic.alertLevel.index ], prefShowShadow, const Size(32, 32));
 
   /// Paint arcraft, vertical speed direction overlay, and optionially (horizontal) speed barb
   @override 
