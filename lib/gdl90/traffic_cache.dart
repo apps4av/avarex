@@ -543,6 +543,7 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
       maxWidth: vertLocationMsg.length*_charPixeslWidth,
     );    
     vertLocationTextPainter.paint(canvas, const Offset(_offsetX, _offsetY));
+    // Paint ascending/descending direction arrows (if not flying level)
     if (directionText.isNotEmpty) {
       final verticalSpeedTextPainter = TextPainter(text: TextSpan(text: directionText, style: _vertSpeedArrowStyle), textDirection: TextDirection.ltr);
       verticalSpeedTextPainter.layout(
@@ -551,7 +552,6 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
       );   
       verticalSpeedTextPainter.paint(canvas, Offset(_offsetX+(vertLocationMsg.length*_charPixeslWidth), _offsetY-(_vertSpeedArrowFontSize-_vertLocationFontSize)));  
     }
-
   }
 
   /// get flight level
@@ -563,7 +563,7 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
 
 /// Paints an AC 20-172 alert overlay (orange circle for nearby alert, red box for critical resolution alert)
 class AlertBoxPainter extends AbstractCachedCustomPainter {
-  static const _alertRect = Rect.fromLTRB(-10, -10, 50, 50);
+  static const _alertRect = Rect.fromLTRB(-15, -15, 45, 45);
   static final _alertCircle = ui.Path()..addOval(_alertRect);
   static final _resolutionBox = ui.Path()..addRect(_alertRect);
   static final Paint _outlinePaint = Paint()
@@ -659,7 +659,7 @@ abstract class AbstractCachedCustomPainter extends CustomPainter {
     canvas.drawPicture(picture);
   }
 
-  /// Hook for implementing painter to paint their icon UI
+  /// Abstract hook for implementing painter to paint the custom UI
   void freshPaint(ui.Canvas canvas);
 
   @override
