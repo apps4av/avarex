@@ -1,7 +1,7 @@
 
 // Each chart in a list, color gray mean not downloaded, green means downloaded and current, red means downloaded and expired
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import 'download.dart';
 
@@ -10,11 +10,11 @@ class Chart {
   String filename;
   IconData icon;
   int state;
-  double progress; // 0 to 1 = 100%
   String subtitle;
   Color color;
   bool enabled;
   Download download;
+  ValueNotifier<int> progress = ValueNotifier<int>(0); // 0 to 100 and <0 for error
 
   Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download);
 

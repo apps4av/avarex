@@ -57,7 +57,7 @@ class Download {
     return current != version;
   }
 
-  Future<void> delete(Chart chart, Function(Chart, double)? callback) async {
+  Future<void> delete(Chart chart, Function(Chart, int)? callback) async {
     _cancelDownloadAndDelete = false;
     callback!(chart, 0); // start
 
@@ -94,7 +94,7 @@ class Download {
       }
       progress = index / s.length;
       if (progress - lastProgress >= 0.01) { // 1% change min
-        callback(chart, progress);
+        callback(chart, (progress * 100).toInt());
         lastProgress = progress;
       }
     }
@@ -103,10 +103,10 @@ class Download {
     await Storage().checkChartsExist();
     await Storage().checkDataExpiry();
 
-    callback(chart, 1); // done
+    callback(chart, 100); // done
   }
 
-  Future<void> download(Chart chart, Function(Chart, double)? callback) async {
+  Future<void> download(Chart chart, Function(Chart, int)? callback) async {
     _cancelDownloadAndDelete = false;
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
@@ -133,7 +133,7 @@ class Download {
       if (total != -1) {
         double progress = received / total * 0.5; // 0 to 0.5 for download
         if (progress - lastProgress >= 0.1) { // 10% change min
-          callback(chart, progress);
+          callback(chart, (progress * 100).toInt());
           lastProgress = progress;
         }
       }
@@ -152,7 +152,7 @@ class Download {
         return (e);}
       ).pipe(out);
       out.close();
-      callback(chart, 0.5); // unzip start
+      callback(chart, 50); // unzip start
     }
     catch(e) {
       callback(chart, -1);
@@ -181,9 +181,8 @@ class Download {
             }
             double fraction = num++ / entries.length.toDouble();
             double progress = 0.5 + (fraction / 2); // 0.50 to 1
-            if (progress - lastProgress >=
-                0.1) { // unzip is faster than download
-              callback(chart, progress);
+            if (progress - lastProgress >= 0.1) { // unzip is faster than download
+              callback(chart, (progress * 100).toInt());
               lastProgress = progress;
             }
           }
@@ -213,7 +212,7 @@ class Download {
           double fraction = num++ / archive.length.toDouble();
           double progress = 0.5 + (fraction / 2); // 0.50 to 1
           if (progress - lastProgress >= 0.1) { // unzip is faster than download
-            callback(chart, progress);
+            callback(chart, (progress * 100).toInt());
             lastProgress = progress;
           }
         }
@@ -222,7 +221,7 @@ class Download {
       }
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
-      callback(chart, 1); // done
+      callback(chart, 100); // done
     } catch (e) {
       callback(chart, -1);
     }

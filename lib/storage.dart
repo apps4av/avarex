@@ -49,6 +49,7 @@ import 'app_settings.dart';
 import 'data/db_general.dart';
 import 'data/realm_helper.dart';
 import 'destination.dart';
+import 'download_manager.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
@@ -92,6 +93,7 @@ class Storage {
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
   late UnitConversion units;
+  DownloadManager downloadManager = DownloadManager();
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";

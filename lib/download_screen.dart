@@ -1,6 +1,8 @@
 
 import 'package:avaremp/faa_dates.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'download.dart';
@@ -32,10 +34,6 @@ class DownloadScreen extends StatefulWidget {
 
 class DownloadScreenState extends State<DownloadScreen> {
 
-  bool _stopped = false;
-  int _total = 0;
-  int _totalStartWith = 0;
-
   DownloadScreenState() {
     for (ChartCategory cg in _allCharts) {
       for (Chart chart in cg.charts) {
@@ -44,39 +42,6 @@ class DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  @override
-  void deactivate() {
-    super.deactivate();
-    // cancel all tasks
-    _stopped = true;
-  }
-
-  @override
-  void activate() {
-    super.activate();
-    // cancel all tasks
-    _stopped = false;
-  }
-
-  void _addToTotal() {
-    setState(() {
-      _total++;
-      _totalStartWith++;
-    });
-  }
-
-  void _initTotal() {
-    setState(() {
-      _totalStartWith = 0;
-      _total = 0;
-    });
-  }
-
-  void _removeFromTotal() {
-    setState(() {
-      _total = _total > 0 ? _total - 1 : 0;
-    });
-  }
 
   // show regions file in a modal dialog using widgetzoom
   void _showMap() {
@@ -105,8 +70,6 @@ class DownloadScreenState extends State<DownloadScreen> {
         backgroundColor: Constants.appBarBackgroundColor,
         title: Row(children:[const Text("Download"), IconButton(icon: const Icon(Icons.info), onPressed: _showMap )]),
         actions: [
-          if(_total != 0)
-            Text("${(_totalStartWith - _total)} / $_totalStartWith"),
           Padding(padding: const EdgeInsets.all(10), child: TextButton(onPressed: () => {_start()}, child: const Text("Start"))),
         ],
       ),
@@ -133,22 +96,33 @@ class DownloadScreenState extends State<DownloadScreen> {
 
     for (Chart chart in chartCategory.charts) {
       columnContent.add(
-        ListTile(
-            title: Text(chart.name),
-            subtitle: Text(chart.subtitle, style: TextStyle(color: chart.color),),
-            trailing: CircularProgressIndicator(value: chart.progress),
-            leading: Icon(chart.icon, color:chart.color),
-            enabled: chart.enabled,
-            // change icon on tap
-            onTap: () {
-              setState(() {
-                _chartTouched(chart);
-              });
+          ValueListenableBuilder<int>(
+            valueListenable: chart.progress,
+            builder: (context, value, _) {
+            if(value >= 100) {
+              // download success
+              chart.progress.value = 0;
+              _getChartStateFromLocal(chart);
             }
-        ),
-      );
+            return ListTile(
+              title: Text(chart.name),
+              subtitle: Text(chart.subtitle, style: TextStyle(color: chart.color),),
+              trailing: Stack(alignment: Alignment.center, children: [
+                CircularProgressIndicator(value: value.toDouble() / 100),
+                Visibility(visible: value > 0, child:
+                  IconButton(icon:  const Icon(Icons.stop_circle), onPressed: () { chart.download.cancel();},)),
+              ]),
+              leading: Icon(chart.icon, color:chart.color),
+              enabled: chart.enabled,
+              // change icon on tap
+              onTap: () {
+                setState(() {
+                  _chartTouched(chart);
+                });
+              });
+            })
+        );
     }
-
     return columnContent;
   }
 
@@ -310,77 +284,12 @@ class DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  void _downloadCallback(Chart chart, double progress) {
-    if(_stopped) { // view switched, cancel
-      chart.enabled = true;
-      chart.progress = 0;
-      chart.download.cancel();
-      _removeFromTotal();
-      return;
-    }
-    setState(() {
-      chart.progress = progress;
-      if(0 == progress) {
-        chart.subtitle = "Downloading";
-        chart.enabled = false;
-      }
-      else if(0.5 == progress) {
-        chart.subtitle = "Installing";
-        chart.enabled = false;
-      }
-      else if(1 == progress) {
-        chart.progress = 0;
-        chart.subtitle = "Download Success";
-        chart.enabled = true;
-        // re-check all charts expiry
-      }
-      else if(-1 == progress) {
-        chart.progress = 0;
-        chart.subtitle = "Download Failed";
-        chart.enabled = true;
-      }
-    });
-    if(-1 == progress || 1 == progress) {
-      _removeFromTotal();
-      _getChartStateFromLocal(chart); // something changed
-    }
-  }
-
-  void _deleteCallback(Chart chart, double progress) {
-    if(_stopped) {
-      chart.enabled = true;
-      chart.progress = 0;
-      chart.download.cancel();
-      _removeFromTotal();
-      return;
-    }
-    setState(() {
-      chart.progress = progress;
-      if(0 == progress) {
-        chart.subtitle = "Uninstalling";
-        chart.enabled = false;
-      }
-      else if(1 == progress) {
-        chart.progress = 0;
-        chart.enabled = true;
-      }
-      else if(-1 == progress) {
-        chart.progress = 0;
-        chart.enabled = true;
-      }
-    });
-    if(-1 == progress || 1 == progress) {
-      _removeFromTotal();
-      _getChartStateFromLocal(chart); // something changed
-    }
-  }
-
   // Do actions on all charts
   void _start() async {
-    if(_total != 0) {
+    if(Storage().downloadManager.total() != 0) {
+      Toastification().show(context: context, title: Text("Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
       return; // let DL finish
     }
-    _initTotal();
     for (int category = 0; category < _allCharts.length; category++) {
       for (int chart = 0; chart < _allCharts[category].charts.length; chart++) {
         ChartCategory cg = _allCharts[category];
@@ -394,16 +303,20 @@ class DownloadScreenState extends State<DownloadScreen> {
             ct.state == _stateExpiredNone ||
             ct.state == _stateExpiredDownload) {
           // download this chart
-          ct.download.download(ct, _downloadCallback);
-          _addToTotal();
+          Storage().downloadManager.download(ct);
         }
         if (ct.state == _stateCurrentDelete ||
             ct.state == _stateExpiredDelete) {
           // delete this chart
-          ct.download.delete(ct, _deleteCallback);
-          _addToTotal();
+          Storage().downloadManager.delete(ct);
         }
       }
+    }
+    if(0 == Storage().downloadManager.total()) {
+      Toastification().show(context: context, title: const Text("Please select items to Download/Update/Install"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+    }
+    else {
+      Toastification().show(context: context, title: Text("Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
     }
   }
 
@@ -427,7 +340,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       ChartCategory.databases,
       _absentColor,
       [
-        Chart('Databases', _absentColor, _absentIcon, 'databases', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Databases', _absentColor, _absentIcon, 'databases', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ],
       false,
     ),
@@ -435,105 +348,105 @@ class DownloadScreenState extends State<DownloadScreen> {
       ChartCategory.sectional,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_SEC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_SEC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_SEC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_SEC', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.tac,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_TAC',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_TAC', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_TAC',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_TAC', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.ifrl,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_L',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_L', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_L',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_L', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.ifrh,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_H',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_H', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_H',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_H', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.ifra,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_A',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_A', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_ENR_A',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_ENR_A', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.heli,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_HEL',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_HEL', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_HEL',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_HEL', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
     ChartCategory(
       ChartCategory.flyway,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_FLY',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_FLY', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_FLY',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_FLY', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], true,
     ),
 
@@ -541,30 +454,30 @@ class DownloadScreenState extends State<DownloadScreen> {
       ChartCategory.plates,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_TPP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_TPP', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_TPP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_TPP', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], false,
     ),
     ChartCategory(
       ChartCategory.csup,
       _absentColor,
       [
-        Chart('Northeast',    _absentColor, _absentIcon, 'NE_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('North Central', _absentColor, _absentIcon, 'NC_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Northwest',    _absentColor, _absentIcon, 'NW_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southeast',    _absentColor, _absentIcon, 'SE_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('South Central', _absentColor, _absentIcon, 'SC_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Southwest',    _absentColor, _absentIcon, 'SW_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('East Central',  _absentColor, _absentIcon, 'EC_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Alaska',        _absentColor, _absentIcon, 'AK_CSUP',  _stateAbsentNone, "", 0, true, Download()),
-        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_CSUP', _stateAbsentNone, "", 0, true, Download()),
+        Chart('Northeast',    _absentColor, _absentIcon, 'NE_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'NC_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'NW_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'SE_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'SC_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'SW_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'EC_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'AK_CSUP',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'PAC_CSUP', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], false,
     ),
   ];
