@@ -15,7 +15,7 @@ class DownloadManager {
     return null;
   }
 
-  void download(Chart chart) {
+  void download(Chart chart, bool nextCycle) {
     if (null != _findChart(chart)) {
       // already downloading
       return;
@@ -23,7 +23,7 @@ class DownloadManager {
     chart.enabled = false;
     chart.progress.value = 0;
     _charts.add(chart);
-    chart.download.download(chart, (c, progress) {
+    chart.download.download(chart, nextCycle, (c, progress) {
       Chart? c = _findChart(chart);
       if (null != c) {
         c.progress.value = progress;

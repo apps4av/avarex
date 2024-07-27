@@ -34,6 +34,8 @@ class DownloadScreen extends StatefulWidget {
 
 class DownloadScreenState extends State<DownloadScreen> {
 
+  bool _nextCycle = false;
+
   DownloadScreenState() {
     for (ChartCategory cg in _allCharts) {
       for (Chart chart in cg.charts) {
@@ -70,6 +72,13 @@ class DownloadScreenState extends State<DownloadScreen> {
         backgroundColor: Constants.appBarBackgroundColor,
         title: Row(children:[const Text("Download"), IconButton(icon: const Icon(Icons.info), onPressed: _showMap )]),
         actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _nextCycle = !_nextCycle;
+              });
+            },
+            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle")),
           Padding(padding: const EdgeInsets.all(10), child: TextButton(onPressed: () => {_start()}, child: const Text("Start"))),
         ],
       ),
@@ -303,7 +312,7 @@ class DownloadScreenState extends State<DownloadScreen> {
             ct.state == _stateExpiredNone ||
             ct.state == _stateExpiredDownload) {
           // download this chart
-          Storage().downloadManager.download(ct);
+          Storage().downloadManager.download(ct, _nextCycle);
         }
         if (ct.state == _stateCurrentDelete ||
             ct.state == _stateExpiredDelete) {

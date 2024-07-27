@@ -106,7 +106,7 @@ class Download {
     callback(chart, 100); // done
   }
 
-  Future<void> download(Chart chart, Function(Chart, int)? callback) async {
+  Future<void> download(Chart chart, bool nextCycle, Function(Chart, int)? callback) async {
     _cancelDownloadAndDelete = false;
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
@@ -116,6 +116,9 @@ class Download {
 
     try {
       _currentCycle = await http.read(Uri.parse("$_server/version.php"));
+      if(nextCycle) {
+        _currentCycle = FaaDates.getNextCycle(_currentCycle);
+      }
     }
     catch(e) {
       callback(chart, -1); // cycle not known
