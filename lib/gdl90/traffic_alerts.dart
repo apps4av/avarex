@@ -15,6 +15,7 @@ enum DistanceCalloutOption { none, rounded, decimal }
 
 enum NumberFormatOption { colloquial, individualDigit }
 
+
 const double _deg180inv = 1.0 / 180.0;
 @pragma("vm:prefer-inline")
 double _radians(double deg) => deg * _deg180inv * pi;
@@ -23,8 +24,8 @@ const double _ln10inv = 1.0 / ln10;
 @pragma("vm:prefer-inline")
 double _log10(num x) => log(x) * _ln10inv;
 
-/// Class to calculate and speak audio alerts for nearby and closing-in (TCPA) traffic
-class AudibleTrafficAlerts {
+/// Class to calculate audible and visual alerts for nearby and closing-in (TCPA) traffic
+class TrafficAlerts {
   static const double _kSecondsPerHour = 3600.000;
   static const double _kHoursPerSecond = 1.0 / 3600.000;
   static const double _kSecPerAudioSegment = 0.7; // SWAG ==> TODO: Worth putting in code to compute duration of audio-to-date exactly?
@@ -33,7 +34,7 @@ class AudibleTrafficAlerts {
   static const double _kSecPerMillseconds = 0.001;
   static const double _kHalf = 0.5;
 
-  static AudibleTrafficAlerts? _instance;
+  static TrafficAlerts? _instance;
 
   // Audio assets for each sound used to compose an alert
   final AssetSource _trafficAudio = AssetSource("tr_traffic.mp3");
@@ -121,48 +122,38 @@ class AudibleTrafficAlerts {
   final List<int> _phoneticAlphaIcaoSequenceQueue = [];
 
   // General audible alert preferences
-  bool prefIsAudibleGroundAlertsEnabled = false;
-  bool prefVerticalAttitudeCallout = false;
-  DistanceCalloutOption prefDistanceCalloutOption = DistanceCalloutOption.none;
-  NumberFormatOption prefNumberFormatOption = NumberFormatOption.colloquial;
-  TrafficIdOption prefTrafficIdOption = TrafficIdOption.none;
-  bool prefTopGunDorkMode = false;
-  int prefAudibleTrafficAlertsMinSpeed = 0;
-  int prefAudibleTrafficAlertsDistanceMinimum = 5;
-  double prefTrafficAlertsHeight = 1000;
-  int prefMaxAlertFrequencySeconds = 15;
-  int prefTimeBetweenAnyAlertMs = 750;
+  static bool prefVerticalAttitudeCallout = false;
+  static DistanceCalloutOption prefDistanceCalloutOption = DistanceCalloutOption.none;
+  static NumberFormatOption prefNumberFormatOption = NumberFormatOption.colloquial;
+  static TrafficIdOption prefTrafficIdOption = TrafficIdOption.none;
+  static bool prefTopGunDorkMode = false;
+  static int prefAudibleTrafficAlertsMinSpeed = 0;
+  static int prefAudibleTrafficAlertsDistanceMinimum = 5;
+  static double prefTrafficAlertsHeight = 1000;
+  static int prefMaxAlertFrequencySeconds = 15;
+  static int prefTimeBetweenAnyAlertMs = 750;
   // Closing (TCPA) alert preferences
-  bool prefIsAudibleClosingInAlerts = true;
-  double prefClosingAlertAltitude = 1000;
-  double prefClosingTimeThresholdSeconds = 60;
-  double prefClosestApproachThresholdNmi = 1;
-  double prefCriticalClosingAlertRatio = 0.5;
-  double _prefAudioPlayRate = 1;
-  set prefAudioPlayRate(double playRate) {
-    if (_player._audioPlayer.playbackRate != playRate) {
-      _player._audioPlayer.setPlaybackRate(playRate);
-    }
-    _prefAudioPlayRate = playRate;
-  }
-  double get prefAudioPlayRate {
-    return _prefAudioPlayRate;
-  }
+  static double prefClosingAlertAltitude = 1000;
+  static double prefClosingTimeThresholdSeconds = 60;
+  static double prefClosestApproachThresholdNmi = 1;
+  static double prefCriticalClosingAlertRatio = 0.5;
+  static double prefAudioPlayRate = 1;
 
   bool _isRunning = false;
   bool _isPlaying = false;
 
   final _AudioSequencePlayer _player = _AudioSequencePlayer("assets/audio/traffic_alerts/");
 
-  final Completer<AudibleTrafficAlerts> _startupCompleter = Completer();
+  final Completer<TrafficAlerts> _startupCompleter = Completer();
 
-  static Future<AudibleTrafficAlerts?> getAndStartAudibleTrafficAlerts() async {
+  static Future<TrafficAlerts?> getAndStartTrafficAlerts() async {
     if (_instance == null) {
-      _instance = AudibleTrafficAlerts._privateConstructor();
+      _instance = TrafficAlerts._privateConstructor();
       _instance?._loadAudio().then((value) {
         _instance?._isRunning = true;
         _instance?._startupCompleter.complete(_instance);
       });
+      _instance?._player._audioPlayer.setPlaybackRate(prefAudioPlayRate);
     }
     return _instance?._startupCompleter.future;
   }
@@ -179,7 +170,7 @@ class AudibleTrafficAlerts {
     }
   }
 
-  AudibleTrafficAlerts._privateConstructor();
+  TrafficAlerts._privateConstructor();
 
   Future<List<Uri>> _loadAudio() async {
     final List<AssetSource> audioAssets = [
@@ -209,18 +200,76 @@ class AudibleTrafficAlerts {
     return _player.preCacheAudioAssets(audioAssets);
   }
 
+  /// Encapsulate all traffic alerting calculations, setting alert level and closing/TCPA fields on traffic object
+  static void setTrafficAlertFields(Traffic? traffic, Position? ownshipPosition, bool ownIsAirborne, double ownVspeed) {
+    if (traffic == null || ownshipPosition == null) {
+      return;
+    }
+    if (!traffic.message.airborne || !ownIsAirborne) {
+      traffic.alertLevel = TrafficAlertLevel.none;
+      return;
+    }
+    if (traffic.verticalOwnshipDistanceFt.abs() < prefTrafficAlertsHeight 
+      && traffic.horizontalOwnshipDistanceNmi < prefAudibleTrafficAlertsDistanceMinimum)
+    {
+      final int ownSpeedInKts = (ownshipPosition.speed * Storage().units.mpsTo).round();
+      final double ownAltInFeet = ownshipPosition.altitude * Storage().units.mToF;
+      traffic.closingInSeconds =  (_closestApproachTime(
+                traffic.message.coordinates.latitude,
+                traffic.message.coordinates.longitude,
+                ownshipPosition.latitude,
+                ownshipPosition.longitude,
+                traffic.message.heading,
+                ownshipPosition.heading,
+                traffic.message.velocity.round(),
+                ownSpeedInKts)).abs() * _kSecondsPerHour;
+      if (traffic.closingInSeconds < prefClosingTimeThresholdSeconds) {
+        // Gate #1: Time threshold met
+        final Position myCaLoc = _locationAfterTime(ownshipPosition.latitude, ownshipPosition.longitude, ownshipPosition.heading,
+            ownSpeedInKts * 1.0, traffic.closingInSeconds * _kHoursPerSecond, ownAltInFeet, ownVspeed);
+        final Position theirCaLoc = _locationAfterTime(
+            traffic.message.coordinates.latitude,
+            traffic.message.coordinates.longitude,
+            traffic.message.heading,
+            traffic.message.velocity,
+            traffic.closingInSeconds * _kHoursPerSecond,
+            traffic.message.altitude,
+            traffic.message.verticalSpeed);
+        final double altDiff = myCaLoc.altitude - theirCaLoc.altitude;
+        // Gate #2: If traffic will be within configured "cylinder" of closing/TCPA alerts, create a closing event
+        if (altDiff.abs() < prefClosingAlertAltitude &&
+            (traffic.closestApproachDistanceNmi = _greatCircleDistanceNmi(myCaLoc.latitude, myCaLoc.longitude, theirCaLoc.latitude, theirCaLoc.longitude)) <
+                prefClosestApproachThresholdNmi &&
+            traffic.horizontalOwnshipDistanceNmi > traffic.closestApproachDistanceNmi) // catches cases when moving away
+        {
+          if (prefCriticalClosingAlertRatio > 0 &&
+              (traffic.closingInSeconds / prefClosingTimeThresholdSeconds) <= prefCriticalClosingAlertRatio &&
+              (traffic.closestApproachDistanceNmi / prefClosestApproachThresholdNmi) <= prefCriticalClosingAlertRatio) 
+          {
+            // Gate #3: Traffic will come critically close within the configured time and space parameters
+            traffic.alertLevel = TrafficAlertLevel.resolution;  
+            return;          
+          }
+        }
+      }
+      traffic.alertLevel = TrafficAlertLevel.advisory;
+      return;
+    }
+    traffic.closingInSeconds = -1;
+    traffic.alertLevel = TrafficAlertLevel.none;
+  }
+
   void processTrafficForAudibleAlerts(
       List<Traffic?> trafficList, Position? ownshipLocation, int ownshipUpdateTimeMs, double ownVspeed, bool ownIsAirborne) {
     if (!_isRunning ||
         ownshipLocation == null ||
         (Storage().units.mpsTo * ownshipLocation.speed < prefAudibleTrafficAlertsMinSpeed) ||
-        !(ownIsAirborne || prefIsAudibleGroundAlertsEnabled)) {
+        !ownIsAirborne) {
       return;
     }
-
     bool hasInserts = false;
     for (final traffic in trafficList) {
-      if (traffic == null || !(traffic.message.airborne || prefIsAudibleGroundAlertsEnabled)) {
+      if (traffic == null || !(traffic.message.airborne)) {
         continue;
       }
       final int trafficPositionTimeCalcUpdateValue = Constants.hashInts([ traffic.message.time.millisecondsSinceEpoch, ownshipUpdateTimeMs ]);
@@ -229,14 +278,17 @@ class AudibleTrafficAlerts {
       final bool hasUpdate;
       // Ensure traffic has been recently updated, and if within the alerts threshold "cylinder", upsert it to the alert queue
       if ((hasUpdate = lastTrafficPositionUpdateValue == null || lastTrafficPositionUpdateValue != trafficPositionTimeCalcUpdateValue)
-          && traffic.verticalOwnshipDistanceFt.abs() < prefTrafficAlertsHeight
-          && traffic.horizontalOwnshipDistanceNmi < prefAudibleTrafficAlertsDistanceMinimum) 
+          && (traffic.alertLevel == TrafficAlertLevel.advisory || traffic.alertLevel == TrafficAlertLevel.resolution)) 
       {
         hasInserts = hasInserts ||
-            _upsertTrafficAlertQueue(_AlertItem(
-                traffic,
-                ownshipLocation,
-                prefIsAudibleClosingInAlerts ? _determineClosingEvent(ownshipLocation, traffic, ownVspeed) : null));
+            _upsertTrafficAudibleAlertQueue(_AlertItem(traffic, ownshipLocation,
+                traffic.closingInSeconds > -1 
+                    && traffic.closingInSeconds < prefClosingTimeThresholdSeconds 
+                    && traffic.verticalOwnshipDistanceFt <= prefClosingAlertAltitude
+                    && traffic.closestApproachDistanceNmi <= prefClosestApproachThresholdNmi
+                    && traffic.closestApproachDistanceNmi < traffic.horizontalOwnshipDistanceNmi  // catches cases when moving away
+                  ? _ClosingEvent(traffic) 
+                  : null));
           
       } else if (hasUpdate) {
         // Prune out any alert for this traffic that no longer qualifies (e.g., distance exceeded before able to process/speak)
@@ -254,7 +306,7 @@ class AudibleTrafficAlerts {
     }
   }
 
-  bool _upsertTrafficAlertQueue(_AlertItem alert) {
+  bool _upsertTrafficAudibleAlertQueue(_AlertItem alert) {
     final int existingIndex = _alertQueue.indexOf(alert);
     if (existingIndex == -1) {
       // If this is a "critically close" alert, put it ahead of the first non-critically close alert
@@ -280,47 +332,6 @@ class AudibleTrafficAlerts {
       _alertQueue[existingIndex] = alert;
     }
     return false;
-  }
-
-  _ClosingEvent? _determineClosingEvent(Position ownshipLocation, Traffic traffic, double ownVspeed) {
-    final int ownSpeed = (Storage().units.mpsTo * ownshipLocation.speed).round();
-    final double ownAlt = Storage().units.mToF * ownshipLocation.altitude;
-    final double closingEventTimeSec = (_closestApproachTime(
-                traffic.message.coordinates.latitude,
-                traffic.message.coordinates.longitude,
-                ownshipLocation.latitude,
-                ownshipLocation.longitude,
-                traffic.message.heading,
-                ownshipLocation.heading,
-                traffic.message.velocity.round(),
-                ownSpeed)).abs() * _kSecondsPerHour;
-    if (closingEventTimeSec < prefClosingTimeThresholdSeconds) {
-      // Gate #1: Time threshold met
-      final Position myCaLoc = _locationAfterTime(ownshipLocation.latitude, ownshipLocation.longitude, ownshipLocation.heading,
-          ownSpeed * 1.0, closingEventTimeSec * _kHoursPerSecond, ownAlt, ownVspeed);
-      final Position theirCaLoc = _locationAfterTime(
-          traffic.message.coordinates.latitude,
-          traffic.message.coordinates.longitude,
-          traffic.message.heading,
-          traffic.message.velocity,
-          closingEventTimeSec * _kHoursPerSecond,
-          traffic.message.altitude,
-          traffic.message.verticalSpeed);
-      double? caDistance;
-      final double altDiff = myCaLoc.altitude - theirCaLoc.altitude;
-      // Gate #2: If traffic will be within configured "cylinder" of closing/TCPA alerts, create a closing event
-      if (altDiff.abs() < prefClosingAlertAltitude &&
-          (caDistance = _greatCircleDistanceNmi(myCaLoc.latitude, myCaLoc.longitude, theirCaLoc.latitude, theirCaLoc.longitude)) <
-              prefClosestApproachThresholdNmi &&
-          traffic.horizontalOwnshipDistanceNmi > caDistance) // catches cases when moving away
-      {
-        final bool criticallyClose = prefCriticalClosingAlertRatio > 0 &&
-            (closingEventTimeSec / prefClosingTimeThresholdSeconds) <= prefCriticalClosingAlertRatio &&
-            (caDistance / prefClosestApproachThresholdNmi) <= prefCriticalClosingAlertRatio;
-        return _ClosingEvent(closingEventTimeSec, caDistance, criticallyClose);
-      }
-    }
-    return null;
   }
 
   void runAudibleAlertsQueueProcessing() {
@@ -527,7 +538,7 @@ class AudibleTrafficAlerts {
     if (_addClosingSecondsAudio(alertAudio, closingEvent.closingSeconds())) {
       if (prefDistanceCalloutOption != DistanceCalloutOption.none) {
         alertAudio.add(_withinAudio);
-        _addDistanceAudio(alertAudio, closingEvent._closestApproachDistanceNmi);
+        _addDistanceAudio(alertAudio, closingEvent._traffic.closestApproachDistanceNmi);
       }
     }
   }
@@ -615,24 +626,22 @@ class AudibleTrafficAlerts {
 }
 
 class _ClosingEvent {
-  final double _closingTimeSec;
-  final double _closestApproachDistanceNmi;
+  final Traffic _traffic;
   final int _eventTimeMillis;
   final bool _isCriticallyClose;
 
-  _ClosingEvent(double closingTimeSec, double closestApproachDistanceNmi, bool isCriticallyClose)
-      : _closingTimeSec = closingTimeSec,
-        _closestApproachDistanceNmi = closestApproachDistanceNmi,
-        _isCriticallyClose = isCriticallyClose,
+  _ClosingEvent(Traffic traffic)
+      : _traffic = traffic,
+        _isCriticallyClose = traffic.alertLevel == TrafficAlertLevel.resolution,
         _eventTimeMillis = DateTime.now().millisecondsSinceEpoch;
 
   double closingSeconds() {
-    return _closingTimeSec - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) * AudibleTrafficAlerts._kSecPerMillseconds;
+    return _traffic.closingInSeconds - (DateTime.now().millisecondsSinceEpoch - _eventTimeMillis) * TrafficAlerts._kSecPerMillseconds;
   }
 
   @override
   String toString() {
-    return "${_closingTimeSec}s within ${_closestApproachDistanceNmi}mi${_isCriticallyClose ? " CRITICAL " : ""}";
+    return " in ${_traffic.closingInSeconds}s will be within ${_traffic.closestApproachDistanceNmi}mi ${_isCriticallyClose ? " CRITICAL " : ""}";
   }
 }
 
@@ -644,7 +653,7 @@ class _AlertItem {
   _AlertItem(Traffic traffic, Position ownLocation, _ClosingEvent? closingEvent)
       : _traffic = traffic,
         _closingEvent = closingEvent,
-        _clockHour = AudibleTrafficAlerts._nearestClockHourFromHeadingAndLocations(
+        _clockHour = TrafficAlerts._nearestClockHourFromHeadingAndLocations(
           ownLocation.latitude,
           ownLocation.longitude,
           traffic.message.coordinates.latitude,
@@ -661,7 +670,7 @@ class _AlertItem {
 
   @override
   String toString() {
-    return "[${AudibleTrafficAlerts._getTrafficKey(_traffic)}]: dist=${_traffic.horizontalOwnshipDistanceNmi}nmi, altdiff=${_traffic.verticalOwnshipDistanceFt}, ce=[$_closingEvent]";
+    return "[${TrafficAlerts._getTrafficKey(_traffic)}]: dist=${_traffic.horizontalOwnshipDistanceNmi}nmi, altdiff=${_traffic.verticalOwnshipDistanceFt}, ce=[$_closingEvent]";
   }
 }
 

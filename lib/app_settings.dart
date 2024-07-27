@@ -1,6 +1,3 @@
-
-import 'dart:io';
-
 import 'package:avaremp/chart.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/settings_cache_provider.dart';
@@ -8,10 +5,15 @@ import 'package:avaremp/settings_cache_provider.dart';
 class AppSettings {
 
   late final SettingsCacheProvider provider;
+  // local vars, to prevent constant cache lookups that are showing up in CPU flamechart
+  bool _localAudibleAlertsEnabledSetting = true;  
+  String _localUnits = "Maritime";
 
   Future<void> initSettings() async {
     provider = SettingsCacheProvider();
     provider.init();
+    _localAudibleAlertsEnabledSetting = provider.getValue("key-audible-alerts", defaultValue: _localAudibleAlertsEnabledSetting) as bool;
+    _localUnits = provider.getValue("key-units", defaultValue: _localUnits) as String;
   }
 
   void setChartType(String chart) {
@@ -72,10 +74,11 @@ class AppSettings {
 
   void setUnits(String units) {
     provider.setString("key-units", units);
+    _localUnits = units;
   }
 
   String getUnits() {
-    return provider.getValue("key-units", defaultValue: "Maritime") as String;
+    return _localUnits; // Due to number of times called, using local/memory var results in significant CPU relief
   }
 
   List<String> getLayers() {
@@ -194,13 +197,13 @@ class AppSettings {
     return provider.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
-  bool isAudibleAlertsEnabled() {
-    bool val = provider.getValue("key-audible-alerts", defaultValue: true) as bool;
-    return Platform.isWindows ? false : val; // disable alerts for windows due to crash. XXX.
+  bool isAudibleAlertsEnabled() { 
+    return _localAudibleAlertsEnabledSetting; // Due to number of times called, using local/memory var results in significant CPU relief
   }
 
   void setAudibleAlertsEnabled(bool value) {
     provider.setBool("key-audible-alerts", value);
+    _localAudibleAlertsEnabledSetting = value;
   }
 
   bool isInstrumentsVisiblePlate() {
@@ -212,4 +215,3 @@ class AppSettings {
   }
 
 }
-
