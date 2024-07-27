@@ -56,11 +56,16 @@ class FaaDates {
   }
 
   // this will work till 2029
-  static String getCurrentCycle() {
+  static String getCurrentCycle({DateTime? from}) {
     final DateTime epoch = DateTime.parse("2024-01-25 09:00:00Z");
     const int validYears = 5;
     int lastYear = epoch.year % 2000;
     int cycle = 0;
+    DateTime now = DateTime.now().toUtc();
+    if(from != null) {
+      now = from;
+    }
+
     // x years worth
     for(int day = 0; day < validYears * 365; day += 28) {
       DateTime date = epoch.add(Duration(days: day));
@@ -73,13 +78,28 @@ class FaaDates {
         lastYear = year;
       }
       String faaCycle = "$year${cycle.toString().padLeft(2, '0')}";
-      DateTime now = DateTime.now().toUtc();
       Duration diff = now.difference(date);
       if(diff.inSeconds > 0 && diff.inSeconds < const Duration(days:28).inSeconds) {
         return faaCycle;
       }
     }
     return ("0000");
+  }
+
+  static String getNextCycle(String cycle) {
+    String range = getVersionRange(cycle);
+    RegExp exp = RegExp(r"\((?<start>.*)-(.*)\)");
+    RegExpMatch? m = exp.firstMatch(range);
+    if(m != null) {
+      String? start = m.namedGroup("start");
+      if (start != null) {
+        // parse date in format MM/dd/yyyy
+        DateTime startDt = DateFormat("MM/dd/yyyy").parse(start);
+        startDt = startDt.add(const Duration(days: 29));
+        return getCurrentCycle(from: startDt);
+      }
+    }
+    return "0000";
   }
 
 }
