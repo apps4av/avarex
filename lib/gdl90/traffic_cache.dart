@@ -65,7 +65,7 @@ class Traffic {
               child: CustomPaint(painter: TrafficPainter(this))
             ),
             if(!isAudibleAlertsEnabled) // show muted symbol
-              const Icon(Icons.volume_off, color: Colors.white54, size: 24)              
+              const Icon(Icons.volume_off, color: Colors.black, size: 20)
           ]),
           CustomPaint(painter: TrafficVerticalStatusPainter(this))        
     ]);
