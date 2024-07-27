@@ -72,18 +72,11 @@ class DownloadScreenState extends State<DownloadScreen> {
         backgroundColor: Constants.appBarBackgroundColor,
         title: Row(children:[const Text("Download"), IconButton(icon: const Icon(Icons.info), onPressed: _showMap )]),
         actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _nextCycle = !_nextCycle;
-              });
-            },
-            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle")),
           Padding(padding: const EdgeInsets.all(10), child: TextButton(onPressed: () => {_start()}, child: const Text("Start"))),
         ],
       ),
 
-      body: ListView.builder(
+      body: Stack(children:[ListView.builder(
           itemCount: _allCharts.length,
           itemBuilder: (context, index) {
             return ExpansionTile(
@@ -96,6 +89,14 @@ class DownloadScreenState extends State<DownloadScreen> {
             );
           },
         ),
+        Positioned(child: Align(alignment: Alignment.bottomRight, child: Padding(padding: const EdgeInsets.all(10), child:TextButton(
+            onPressed: () {
+              setState(() {
+                _nextCycle = !_nextCycle;
+              });
+            },
+            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle"))))),
+      ]),
     );
   }
 
