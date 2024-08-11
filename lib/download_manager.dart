@@ -8,7 +8,7 @@ class DownloadManager {
 
   Chart? _findChart(Chart chart) {
     for (Chart c in _charts) {
-      if (c.name == chart.name) {
+      if (c.filename == chart.filename) {
         return c;
       }
     }
