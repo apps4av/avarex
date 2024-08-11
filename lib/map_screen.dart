@@ -822,7 +822,7 @@ class MapScreenState extends State<MapScreen> {
                             },
                             onTap: () {
                               setState(() {
-                                Storage().route.setCurrentWaypoint(index);
+                                Storage().route.setCurrentWaypointFromDestinationIndex(index);
                               });
                           },
                           child: AutoSizeText(Storage().route.getAllDestinations()[index].locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))

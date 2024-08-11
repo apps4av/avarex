@@ -315,6 +315,13 @@ class PlanRoute {
     update();
   }
 
+  void setCurrentWaypointFromDestinationIndex(int index) {
+    if(_allDestinations.length > index) {
+      Destination d = _allDestinations[index];
+      setCurrentWaypointFromDestination(d);
+    }
+  }
+
   Waypoint getWaypointAt(int index) {
     return _waypoints[index];
   }
