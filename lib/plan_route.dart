@@ -627,11 +627,15 @@ class PlanRoute {
 
   // for rubber banding
   void replaceDestination(int index, LatLng ll) {
-    if(Destination.isAirway(_waypoints[index].destination.type)) {
-      return;
-    }
-    if(index >= 0 && index < _waypoints.length) {
-      _waypoints[index] = Waypoint(Destination.fromLatLng(ll));
+    if(index >= 0 && index < _allDestinations.length) {
+      if(Destination.isAirway(_allDestinations[index].type)) {
+        return;
+      }
+      for(int d = 0; d < _waypoints.length; d++) {
+        if(_waypoints[d].destination == _allDestinations[index]) {
+          _waypoints[d] = Waypoint(Destination.fromLatLng(ll));
+        }
+      }
       _setCurrent(_waypoints[0]);
       _update(true);
     }
@@ -640,22 +644,33 @@ class PlanRoute {
 
   // also for rubber banding
   void replaceDestinationFromDb(int index, LatLng ll) {
-    if(Destination.isAirway(_waypoints[index].destination.type)) {
-      return;
-    }
-    if(index >= 0 && index < _waypoints.length) {
+    if(index >= 0 && index < _allDestinations.length) {
+      if(Destination.isAirway(_allDestinations[index].type)) {
+        return;
+      }
       MainDatabaseHelper.db.findNear(ll, factor: 0.0001).then((onValue) { // snap but not too far
         if(Destination.isAirport(onValue[0].type)) {
           MainDatabaseHelper.db.findAirport(onValue[0].locationID).then((airport) {
-            _waypoints[index] = Waypoint(airport!);
+            for(int d = 0; d < _waypoints.length; d++) {
+              if(_waypoints[d].destination == _allDestinations[index]) {
+                _waypoints[d] = Waypoint(airport!);
+              }
+            }
             _setCurrent(_waypoints[0]);
             _update(true);
             return;
           });
         }
-        _waypoints[index] = Waypoint(onValue[0]);
-        _setCurrent(_waypoints[0]);
-        _update(true);
+        else {
+          for(int d = 0; d < _waypoints.length; d++) {
+            if(_waypoints[d].destination == _allDestinations[index]) {
+              _waypoints[d] = Waypoint(onValue[0]);
+              _setCurrent(_waypoints[0]);
+              _update(true);
+              return;
+            }
+          }
+        }
       });
     }
   }
