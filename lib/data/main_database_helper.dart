@@ -113,7 +113,7 @@ class MainDatabaseHelper {
     return ret;
   }
 
-  Future<Destination> findDestinationByCoordinates(LatLng point) async {
+  Future<Destination> findDestinationByCoordinates(LatLng point, {double factor = 0.001}) async {
 
     final db = await database;
     if (db != null) {
@@ -124,9 +124,9 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < $factor} "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by distance asc limit 1";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
       if(maps.isNotEmpty) {
@@ -138,7 +138,7 @@ class MainDatabaseHelper {
     return(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
   }
 
-  Future<List<Destination>> findNear(LatLng point) async {
+  Future<List<Destination>> findNear(LatLng point, {double factor = 0.001}) async {
     final db = await database;
     List<Destination> ret = [];
     if (db != null) {
@@ -149,9 +149,9 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < 0.001 and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < $factor and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by Type asc, distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
@@ -216,7 +216,7 @@ class MainDatabaseHelper {
     return(ret);
   }
 
-  Future<Destination> findNearNavOrFixElseGps(LatLng point) async {
+  Future<Destination> findNearNavOrFixElseGps(LatLng point, {double factor = 0.001}) async {
     final db = await database;
     if (db != null) {
       num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
@@ -226,8 +226,8 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < 0.001 "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < 0.001 "
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor} "
           "order by distance asc limit 1";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 

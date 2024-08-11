@@ -637,7 +637,7 @@ class PlanRoute {
       return;
     }
     if(index >= 0 && index < _waypoints.length) {
-      MainDatabaseHelper.db.findNear(ll).then((onValue) {
+      MainDatabaseHelper.db.findNear(ll, factor: 0.0001).then((onValue) { // snap but not too far
         if(Destination.isAirport(onValue[0].type)) {
           MainDatabaseHelper.db.findAirport(onValue[0].locationID).then((airport) {
             _waypoints[index] = Waypoint(airport!);
