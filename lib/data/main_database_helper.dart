@@ -227,7 +227,7 @@ class MainDatabaseHelper {
 
       String qry =
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor} "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by distance asc limit 1";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
