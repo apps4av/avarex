@@ -112,7 +112,7 @@ class LongPressFuture {
 
 class LongPressWidgetState extends State<LongPressWidget> {
 
-  final CarouselController _controller = CarouselController();
+  final CarouselSliderController _controller = CarouselSliderController();
 
   void labelCallback(String value) {
     Navigator.of(context).pop();

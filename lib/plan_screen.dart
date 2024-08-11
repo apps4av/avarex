@@ -20,7 +20,7 @@ class PlanScreen extends StatefulWidget {
 class PlanScreenState extends State<PlanScreen> {
 
 
-  final CarouselController _controller = CarouselController();
+  final CarouselSliderController _controller = CarouselSliderController();
 
   Widget _makeContent() {
 
