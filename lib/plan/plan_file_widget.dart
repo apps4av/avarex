@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/destination.dart';
+import 'package:avaremp/destination/destination.dart';
 
 class PlanFileWidget extends StatefulWidget {
   const PlanFileWidget({super.key});

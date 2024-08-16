@@ -15,18 +15,18 @@ import 'package:avaremp/data/weather_winds.dart';
 import 'package:avaremp/wnb.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:realm/realm.dart';
-import '../aircraft.dart';
-import '../checklist.dart';
-import '../destination.dart';
-import '../plan/plan_route.dart';
-import '../storage.dart';
-import '../weather/airep.dart';
-import '../weather/airsigmet.dart';
-import '../weather/metar.dart';
-import '../weather/notam.dart';
-import '../weather/taf.dart';
-import '../weather/tfr.dart';
-import '../weather/winds_aloft.dart';
+import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/checklist.dart';
+import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/plan/plan_route.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/airep.dart';
+import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/metar.dart';
+import 'package:avaremp/weather/notam.dart';
+import 'package:avaremp/weather/taf.dart';
+import 'package:avaremp/weather/tfr.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
 
 class RealmHelper {
 

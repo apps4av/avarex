@@ -17,11 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
 
-import 'airport.dart';
+import 'destination/airport.dart';
 import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'weather/metar.dart';
-import 'nav.dart';
+import 'package:avaremp/destination/nav.dart';
 
 class LongPressWidget extends StatefulWidget {
   final Destination destination;

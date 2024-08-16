@@ -1,5 +1,5 @@
 
-import '../destination.dart';
+import 'package:avaremp/destination/destination.dart';
 
 class Waypoint {
 

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:avaremp/destination_calculations.dart';
+import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
@@ -13,7 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'gps.dart';
 
 

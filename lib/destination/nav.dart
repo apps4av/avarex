@@ -1,5 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:avaremp/destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'package:flutter/material.dart';
 
 class Nav {

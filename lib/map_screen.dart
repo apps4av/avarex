@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:avaremp/airport.dart';
+import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -29,7 +29,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:path/path.dart';
 import 'chart.dart';
 import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'download_screen.dart';
 import 'gps.dart';
 import 'longpress_widget.dart';

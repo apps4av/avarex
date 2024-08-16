@@ -48,7 +48,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
 import 'data/db_general.dart';
 import 'data/realm_helper.dart';
-import 'destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'download_manager.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';

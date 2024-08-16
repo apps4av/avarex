@@ -1,13 +1,13 @@
 import 'dart:math';
 
-import 'package:avaremp/destination.dart';
+import 'destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'constants.dart';
+import '../constants.dart';
 
 class Airport {
 

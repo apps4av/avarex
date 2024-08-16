@@ -1,9 +1,9 @@
-import 'package:avaremp/destination.dart';
+import 'destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'data/main_database_helper.dart';
+import '../data/main_database_helper.dart';
 
 
 // airway calculations

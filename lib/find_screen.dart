@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'chart.dart';
 import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'gps.dart';
 import 'data/main_database_helper.dart';
 import 'main_screen.dart';

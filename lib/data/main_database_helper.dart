@@ -7,8 +7,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
-import '../destination.dart';
-import '../saa.dart';
+import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/saa.dart';
 import 'cifp.dart';
 
 class MainDatabaseHelper {

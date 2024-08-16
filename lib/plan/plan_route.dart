@@ -1,7 +1,7 @@
 
 import 'dart:convert';
 
-import 'package:avaremp/airway.dart';
+import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -16,8 +16,8 @@ import 'package:latlong2/latlong.dart';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 
-import 'package:avaremp/destination.dart';
-import 'package:avaremp/destination_calculations.dart';
+import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/gps.dart';
 
 class PlanRoute {
