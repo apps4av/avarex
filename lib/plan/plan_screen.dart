@@ -1,15 +1,15 @@
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/plan_create_widget.dart';
-import 'package:avaremp/plan_file_widget.dart';
-import 'package:avaremp/plan_item_widget.dart';
-import 'package:avaremp/plan_line_widget.dart';
-import 'package:avaremp/plan_load_save_widget.dart';
-import 'package:avaremp/plan_manage_widget.dart';
-import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/plan/plan_create_widget.dart';
+import 'plan_file_widget.dart';
+import 'plan_item_widget.dart';
+import 'plan_line_widget.dart';
+import 'plan_load_save_widget.dart';
+import 'plan_manage_widget.dart';
+import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'data/altitude_profile.dart';
+import 'package:avaremp/data/altitude_profile.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});

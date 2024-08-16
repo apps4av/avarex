@@ -5,9 +5,9 @@ import 'package:avaremp/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/passage.dart';
+import 'package:avaremp/plan/passage.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
@@ -16,9 +16,9 @@ import 'package:latlong2/latlong.dart';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 
-import 'destination.dart';
-import 'destination_calculations.dart';
-import 'gps.dart';
+import 'package:avaremp/destination.dart';
+import 'package:avaremp/destination_calculations.dart';
+import 'package:avaremp/gps.dart';
 
 class PlanRoute {
 

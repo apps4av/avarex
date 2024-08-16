@@ -1,9 +1,9 @@
-import 'package:avaremp/plan_line_widget.dart';
-import 'package:avaremp/waypoint.dart';
+import 'plan_line_widget.dart';
+import 'package:avaremp/plan/waypoint.dart';
 import 'package:flutter/material.dart';
-import 'airway.dart';
-import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/airway.dart';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/destination.dart';
 
 class PlanItemWidget extends StatefulWidget {
   final Waypoint waypoint;

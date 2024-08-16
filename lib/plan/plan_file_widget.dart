@@ -1,15 +1,15 @@
 
-import 'package:avaremp/plan_lmfs.dart';
-import 'package:avaremp/plan_route.dart';
+import 'plan_lmfs.dart';
+import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/twilight_calculator.dart';
 import 'package:day_night_time_picker/lib/daynight_timepicker.dart';
 import 'package:day_night_time_picker/lib/state/time.dart';
 import 'package:flutter/material.dart';
 
-import 'aircraft.dart';
-import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/destination.dart';
 
 class PlanFileWidget extends StatefulWidget {
   const PlanFileWidget({super.key});

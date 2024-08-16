@@ -8,7 +8,7 @@ import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
-import 'package:avaremp/waypoint.dart';
+import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';

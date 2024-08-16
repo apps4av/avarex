@@ -1,5 +1,5 @@
-import 'package:avaremp/plan_file_widget.dart';
-import 'package:avaremp/plan_lmfs.dart';
+import 'plan_file_widget.dart';
+import 'plan_lmfs.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avaremp/storage.dart';

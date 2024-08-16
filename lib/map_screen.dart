@@ -9,7 +9,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/instrument_list.dart';
 import 'package:avaremp/pfd_painter.dart';
-import 'package:avaremp/plan_route.dart';
+import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';

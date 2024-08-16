@@ -18,7 +18,7 @@ import 'package:realm/realm.dart';
 import '../aircraft.dart';
 import '../checklist.dart';
 import '../destination.dart';
-import '../plan_route.dart';
+import '../plan/plan_route.dart';
 import '../storage.dart';
 import '../weather/airep.dart';
 import '../weather/airsigmet.dart';

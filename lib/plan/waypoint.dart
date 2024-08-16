@@ -1,5 +1,5 @@
 
-import 'destination.dart';
+import '../destination.dart';
 
 class Waypoint {
 

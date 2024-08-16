@@ -1,8 +1,8 @@
 import 'package:avaremp/destination_calculations.dart';
 import 'package:flutter/material.dart';
 
-import 'constants.dart';
-import 'destination.dart';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/destination.dart';
 
 class PlanLineWidget extends StatefulWidget {
 

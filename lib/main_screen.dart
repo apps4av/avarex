@@ -2,7 +2,7 @@
 import 'dart:io';
 
 import 'package:avaremp/onboarding_screen.dart';
-import 'package:avaremp/plan_screen.dart';
+import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
