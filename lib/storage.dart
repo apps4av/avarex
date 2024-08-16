@@ -227,7 +227,7 @@ class Storage {
       while(true) {
         Uint8List? message = _nmeaBuffer.get();
         if (null != message) {
-          NmeaMessage? m = NmeaMessageFactory.buildMessage(data);
+          NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
           if(m != null && m is NmeaOwnShipMessage) {
             NmeaOwnShipMessage m0 = m;
             myIcao = m0.icao;

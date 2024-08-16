@@ -36,7 +36,7 @@ class GGAMessage extends NmeaMessage {
       coordinate = LatLng(lat, lon);
 
       double alt = double.parse(tokens[9]);
-      if(tokens[10] == "M") {
+      if(tokens[10] != "M") {
         altitude = (alt * Storage().units.mToF).round();
       }
       else {
