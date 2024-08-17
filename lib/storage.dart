@@ -73,6 +73,7 @@ class Storage {
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
+  final flightStateChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   late WindsCache winds;
@@ -336,22 +337,8 @@ class Storage {
       position = _gpsStack.pop();
       gpsChange.value = position; // tell everyone
 
-      // auto switch to airport diagram
-      if (FlightStatus.flightStateLanded == flightStatus.update(position.speed)) {
-        loadApd() async {
-          List<Destination> airports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(
-              LatLng(position.latitude, position.longitude), 0);
-          if(airports.isNotEmpty) {
-            String? plate = await PathUtils.getAirportDiagram(Storage().dataDir, airports[0].locationID);
-            if(plate != null) {
-              settings.setCurrentPlateAirport(airports[0].locationID);
-              currentPlate = plate;
-              loadPlate();
-            }
-          }
-        }
-        loadApd();
-      }
+      // auto switch to airport diagram on landing
+      flightStateChange.value = flightStatus.update(position.speed);
 
       route.update(); // change to route
       int now = DateTime.now().millisecondsSinceEpoch;

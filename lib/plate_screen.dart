@@ -2,11 +2,13 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/flight_status.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
@@ -27,7 +29,21 @@ class PlatesFuture {
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
-  Future<void> _getAll() async {
+  Future<void> _getAll(landed) async {
+    if(landed) {
+      // on landing, add to recent the airport we landed at, then set it as current airport
+      List<Destination> airports = await MainDatabaseHelper.db
+          .findNearestAirportsWithRunways(
+          LatLng(Storage().position.latitude, Storage().position.longitude), 0);
+      if (airports.isNotEmpty) {
+        String? plate = await PathUtils.getAirportDiagram(
+            Storage().dataDir, airports[0].locationID);
+        if (plate != null) {
+          _currentPlateAirport = airports[0].locationID;
+          Storage().realmHelper.addRecent(airports[0]);
+        }
+      }
+    }
 
     // get location ID only
     _airports = (Storage().realmHelper.getRecentAirports()).map((e) => e.locationID).toList();
@@ -50,8 +66,8 @@ class PlatesFuture {
         .findAirport(Storage().settings.getCurrentPlateAirport());
   }
 
-  Future<PlatesFuture> getAll() async {
-    await _getAll();
+  Future<PlatesFuture> getAll(bool landed) async {
+    await _getAll(landed);
     return this;
   }
 
@@ -74,8 +90,10 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-        future: PlatesFuture().getAll(),
+    // this is to listen for landing event, show airport diagram on landing when this screen shows
+    return ValueListenableBuilder(valueListenable: Storage().flightStateChange, builder: (BuildContext context, int value, Widget? child) {
+      return FutureBuilder(
+        future: PlatesFuture().getAll(value == FlightStatus.flightStateLanded),
         builder: (context, snapshot) {
           if(snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -84,7 +102,8 @@ class PlateScreenState extends State<PlateScreen> {
             return _makeContent(null);
           }
         }
-    );
+      );
+    });
   }
 
   // on change of airport, reload first item of the new airport
