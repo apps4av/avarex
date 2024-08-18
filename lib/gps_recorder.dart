@@ -28,7 +28,7 @@ class GpsRecorder {
   void add(Position position) {
 
     double speed = position.speed * Storage().units.mpsTo;
-    double altitude = position.altitude * Storage().units.mToF;
+    double altitude = position.altitude;
     double heading = position.heading;
     bool recordPoint = false;
     LatLng coordinate = Gps.toLatLng(position);
@@ -51,8 +51,8 @@ class GpsRecorder {
       recordPoint = true;
     }
 
-    // If the altitude is 100' or greater different
-    if((altitude - last.altitude) > 100) {
+    // If the altitude is 30 meters or greater different
+    if((altitude - last.altitude) > 30) {
       recordPoint = true;
     }
 
@@ -78,7 +78,7 @@ class GpsRecorder {
 
     _last = TrackPosition(Gps.toLatLng(position), altitude, speed, heading, DateTime.now());
 
-    gpx.wpts.add(Wpt(lat: last.coordinate.latitude, lon: last.coordinate.longitude, ele: last.altitude, time: DateTime.now()));
+    gpx.wpts.add(Wpt(lat: last.coordinate.latitude, lon: last.coordinate.longitude, ele: last.altitude, desc: "speed=${last.speed.round()}", time: DateTime.now()));
   }
 
   void reset() {
