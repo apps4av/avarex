@@ -2,6 +2,8 @@
 // Each chart in a list, color gray mean not downloaded, green means downloaded and current, red means downloaded and expired
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import 'download.dart';
 
@@ -17,6 +19,26 @@ class Chart {
   ValueNotifier<int> progress = ValueNotifier<int>(0); // 0 to 100 and <0 for error
 
   Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download);
+
+  static String getChartRegion(LatLng coordinate) {
+    List<(LatLngBounds, String)> regionCoordinates = [
+      (LatLngBounds(const LatLng(71, -180), const LatLng(51, -126)), "ak"),   // Alaska
+      (LatLngBounds(const LatLng(24, -162), const LatLng(18, -152)), "pac"),   // Pacific
+      (LatLngBounds(const LatLng(50, -125), const LatLng(40, -103)), "nw"),   // Northwest
+      (LatLngBounds(const LatLng(40, -125), const LatLng(15, -103)), "sw"),   // Southwest
+      (LatLngBounds(const LatLng(50, -105), const LatLng(37, -90)), "nc"),   // North Central
+      (LatLngBounds(const LatLng(50, -95),  const LatLng(37, -80)), "ec"),   // East Central
+      (LatLngBounds(const LatLng(37, -110), const LatLng(15, -90)), "sc"),   // South Central
+      (LatLngBounds(const LatLng(50, -80),  const LatLng(37, -60)), "ne"),   // Northeast
+      (LatLngBounds(const LatLng(37, -90),  const LatLng(15, -60)), "se"),   // Southeast
+    ];
+    for (var region in regionCoordinates) {
+      if(region.$1.contains(coordinate)) {
+        return region.$2;
+      }
+    }
+    return "";
+  }
 
 }
 

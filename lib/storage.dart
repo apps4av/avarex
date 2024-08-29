@@ -42,7 +42,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
@@ -304,11 +303,6 @@ class Storage {
     realmHelper.login([username, password]);
     await checkChartsExist();
     await checkDataExpiry();
-
-    String path = join(dataDir, "256.png");
-    ByteData data = await rootBundle.load("assets/images/256.png");
-    List<int> bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-    await File(path).writeAsBytes(bytes);
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;

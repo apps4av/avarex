@@ -26,7 +26,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:path/path.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -1160,7 +1159,18 @@ class ChartTileProvider extends TileProvider {
       // get rid of annoying tile name error problem by providing a transparent tile
       return FileImage(File(getTileUrl(coordinates, options)));
     }
-    return FileImage(File(join(Storage().dataDir, "256.png")));
+
+    // find lat/lon from tile number, upper left
+    num n = pow(2, coordinates.z);
+    double lon = coordinates.x / n * 360.0 - 180.0;
+    double lat = 2 * atan(exp((180 - ((coordinates.y) / n) * 360) * pi / 180)) * 180 / pi - 90;
+
+    // get file to download message in tile missing
+    String name = Chart.getChartRegion(LatLng(lat, lon));
+    if(name.isEmpty) {
+      return const AssetImage("assets/images/512.png");
+    }
+    return AssetImage("assets/images/dl_$name.png");
   }
 }
 
