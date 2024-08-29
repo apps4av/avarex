@@ -222,7 +222,7 @@ class InstrumentListState extends State<InstrumentList> {
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
       _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Constants.instrumentNoticeBackgroundColor : Constants.instrumentBackgroundColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
-      _source = Storage().gpsInternal ? "Int." : "Ext.";
+      _source = Storage().gpsInternal ? "Internal" : "External";
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
   }
@@ -338,8 +338,8 @@ class InstrumentListState extends State<InstrumentList> {
           decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
             child: Column(
               children: [
-                Expanded(flex: 1, child: Text(_items[index], style: const TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalLabelColor, fontWeight: FontWeight.w600, fontSize: 14), maxLines: 1,)),
-                Expanded(flex: 1, child: Text(value, style: const TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Constants.instrumentsNormalValueColor, fontSize: 18, fontWeight: FontWeight.w600), maxLines: 1,)),
+                Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle(shadows: [Shadow(offset: Offset(1, 1))], color: Constants.instrumentsNormalLabelColor), maxLines: 1,)))),
+                Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle(shadows: [Shadow(offset: Offset(1, 1))], color: Constants.instrumentsNormalValueColor), maxLines: 1,)))),
               ]
             ),
           )
@@ -356,6 +356,7 @@ class InstrumentListState extends State<InstrumentList> {
 
     // user can rearrange widgets
     return ReorderableListView(
+      shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
       header: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, color: Constants.instrumentsNormalValueColor, size: 24, shadows: [Shadow(offset: Offset(1, 1))],)),
