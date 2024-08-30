@@ -45,7 +45,7 @@ class InstrumentList extends StatefulWidget {
 class InstrumentListState extends State<InstrumentList> {
   static final DateFormat _hourMinuteFormatter = DateFormat('HH:mm');
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
-  final List<Color> _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Constants.instrumentBackgroundColor);
+  late List<Color> _itemsColors;
   String _gndSpeed = "0";
   String _altitude = "0";
   String _magneticHeading = "0\u00b0";
@@ -220,7 +220,7 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
-      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Constants.instrumentNoticeBackgroundColor : Constants.instrumentBackgroundColor;
+      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Colors.red : Theme.of(context).cardColor.withOpacity(0.6);
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Internal" : "External";
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
@@ -228,6 +228,7 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
   InstrumentListState() {
+
 
     Storage().gpsChange.addListener(_gpsListener);
     // connect to dest change
@@ -261,7 +262,7 @@ class InstrumentListState extends State<InstrumentList> {
       Storage().flightDownTimer.start();
     }
     setState(() {
-      _itemsColors[_items.indexOf("DNT")] = Constants.instrumentBackgroundColor;
+      _itemsColors[_items.indexOf("DNT")] = Theme.of(context).cardColor.withOpacity(0.6);
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
     });
   }
@@ -338,8 +339,8 @@ class InstrumentListState extends State<InstrumentList> {
           decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
             child: Column(
               children: [
-                Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle(shadows: [Shadow(offset: Offset(1, 1))], color: Constants.instrumentsNormalLabelColor), maxLines: 1,)))),
-                Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle(shadows: [Shadow(offset: Offset(1, 1))], color: Constants.instrumentsNormalValueColor), maxLines: 1,)))),
+                Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
+                Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle( ), maxLines: 1,)))),
               ]
             ),
           )
@@ -349,6 +350,8 @@ class InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
+    _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Theme.of(context).cardColor.withOpacity(0.6));
+
     // init everything
     _gpsListener();
     _routeListener();
