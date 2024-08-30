@@ -70,7 +70,7 @@ class WnbScreenState extends State<WnbScreen> {
         child: DropdownButtonHideUnderline(
             child: DropdownButton2<String>( // wnb selection
               buttonStyleData: ButtonStyleData(
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
               ),
               dropdownStyleData: DropdownStyleData(
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
@@ -100,7 +100,7 @@ class WnbScreenState extends State<WnbScreen> {
 
     List<ScatterSpot> makeSpotData() {
       List<ScatterSpot> spots = _plotData.asMap().entries.map((e) {
-        return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getPaint(4, Colors.yellow),);
+        return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getPaint(4, Colors.blueAccent),);
       }).toList();
       spots.insert(0, ScatterSpot(_cgData.dx, _cgData.dy, dotPainter: getPaint(6, _isInside() ? Colors.green : Colors.red),));
       return spots;
@@ -253,10 +253,10 @@ class WnbScreenState extends State<WnbScreen> {
                       show: true,
                       drawHorizontalLine: true,
                       checkToShowHorizontalLine: (value) => true,
-                      getDrawingHorizontalLine: (value) => FlLine(color: _editing ? Colors.white : Colors.grey,),
+                      getDrawingHorizontalLine: (value) => FlLine(color: _editing ? Theme.of(context).textTheme.titleLarge?.color : Theme.of(context).disabledColor,),
                       drawVerticalLine: true,
                       checkToShowVerticalLine: (value) => true,
-                      getDrawingVerticalLine: (value) => FlLine(color: _editing ? Colors.white : Colors.grey,),
+                      getDrawingVerticalLine: (value) => FlLine(color: _editing ? Theme.of(context).textTheme.titleLarge?.color : Theme.of(context).disabledColor,),
                     ),
 
                     scatterTouchData: ScatterTouchData(

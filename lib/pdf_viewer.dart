@@ -138,8 +138,7 @@ class PdfViewerState extends State<PdfViewer> {
                       'No result',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white),
+                          fontSize: 16),
                     ),
                   ),
                 ],
@@ -324,7 +323,7 @@ class SearchToolbarState extends State<SearchToolbar> {
               width: 24,
               height: 24,
               child: CircularProgressIndicator(
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
           ),

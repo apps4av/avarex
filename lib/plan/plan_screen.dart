@@ -243,7 +243,7 @@ class PlanScreenState extends State<PlanScreen> {
     return Stack(children:[
       const Align(alignment: Alignment.topLeft, child: Padding(padding: EdgeInsets.all(10), child:Text("Plan Altitude Profile ft/NM"))),
       Padding(padding: const EdgeInsets.all(20), child: SizedBox(width : square, height : square, child: AltitudeProfile.makeChart(data))),
-      Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white))),
+      Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36))),
     ]
     );
   }

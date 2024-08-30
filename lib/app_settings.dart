@@ -32,6 +32,14 @@ class AppSettings {
     provider.setBool("key-north-up", northUp);
   }
 
+  bool isLightMode() {
+    return provider.getValue("key-light-mode", defaultValue: true) as bool;
+  }
+
+  void setLightMode(bool lightMode) {
+    provider.setBool("key-light-mode", lightMode);
+  }
+
   void setZoom(double zoom) {
     provider.setDouble("key-chart-zoom", zoom);
   }

@@ -964,8 +964,8 @@ class MapScreenState extends State<MapScreen> {
                           padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
                           child: TextButton(
                             style: TextButton.styleFrom(
-                              backgroundColor: Constants.centerButtonBackgroundColor,
                               padding: const EdgeInsets.all(5.0),
+                              backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                             ),
                             onPressed: () {
                               Position p = Storage().position;
@@ -992,12 +992,12 @@ class MapScreenState extends State<MapScreen> {
                           child: Row(children:[
                             // menu
                             TextButton(
-                              style: TextButton.styleFrom(
-                                backgroundColor: Constants.centerButtonBackgroundColor,
-                              ),
                               onPressed: () {
                                 Scaffold.of(context).openDrawer();
                               },
+                              style: TextButton.styleFrom(
+                                backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)
+                              ),
                               child: const Text("Menu"),
                             ),
 
@@ -1012,8 +1012,9 @@ class MapScreenState extends State<MapScreen> {
                                 icon: ValueListenableBuilder<Position>(
                                     valueListenable: Storage().gpsChange,
                                     builder: (context, value, _) {
-                                      return CircleAvatar( // in track up, rotate icon
-                                          backgroundColor: Constants.dropDownButtonBackgroundColor,
+                                      return CircleAvatar(
+                                          backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                          // in track up, rotate icon
                                           child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
                                           Transform.rotate(
                                               angle: value.heading * pi / 180,
@@ -1043,11 +1044,13 @@ class MapScreenState extends State<MapScreen> {
                                       _ruler.init();
                                       _ruler.startMeasure();
                                     }
-                                  });}, icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
+                                  });}, icon: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                      child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
                                   // switch layers on off
-                                  PopupMenuButton( // airport selection
+                                  PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",
-                                    icon: CircleAvatar(backgroundColor: Constants.dropDownButtonBackgroundColor, child: const Icon(Icons.layers)),
+                                    icon: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                        child: const Icon(Icons.layers)),
                                     initialValue: _layers[0],
                                     itemBuilder: (BuildContext context) =>
                                         List.generate(_layers.length, (int index) => PopupMenuItem(
@@ -1095,7 +1098,7 @@ class MapScreenState extends State<MapScreen> {
                                   DropdownButtonHideUnderline(
                                     child:DropdownButton2<String>(
                                       buttonStyleData: ButtonStyleData(
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)),
                                       ),
                                       dropdownStyleData: DropdownStyleData(
                                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
@@ -1218,9 +1221,9 @@ class Ruler {
 
   Color color() {
     if(_measuring) {
-      return Colors.blueAccent;
+      return Colors.red;
     }
-    return Constants.instrumentsNormalValueColor;
+    return Colors.green;
   }
 
   void startMeasure() {

@@ -49,11 +49,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
   bool _sending = false;
   String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
-  Color _errorColor = Colors.white;
+  Color? _errorColor;
   
   @override
   Widget build(BuildContext context) {
-
     _aircraft = Storage().realmHelper.getAllAircraft();
     return _makeContent(_aircraft);
   }

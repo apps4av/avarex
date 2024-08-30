@@ -46,7 +46,7 @@ class AircraftScreenState extends State<AircraftScreen> {
         child: DropdownButtonHideUnderline(
             child: DropdownButton2<String>( // airport selection
               buttonStyleData: ButtonStyleData(
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
               ),
               dropdownStyleData: DropdownStyleData(
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),

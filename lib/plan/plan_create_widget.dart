@@ -115,7 +115,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                                           title: SelectableText(value[index].route),);
                                       })
                                   ),
-                                  Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                                  Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                                 ])
                             )
                         );

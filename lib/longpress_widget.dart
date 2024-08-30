@@ -37,14 +37,12 @@ class LongPressFuture {
 
   Destination destination;
   Destination showDestination;
-  double dimensions;
   Function(String value) labelCallback;
   Image? airportDiagram;
-  Widget? ad;
   int? elevation;
   List<Saa> saa = [];
 
-  LongPressFuture(this.destination, this.dimensions, this.labelCallback) : showDestination =
+  LongPressFuture(this.destination, this.labelCallback) : showDestination =
       Destination( // GPS default then others
           locationID: Destination.formatSexagesimal(
               destination.coordinate.toSexagesimal()),
@@ -62,9 +60,6 @@ class LongPressFuture {
     if(showDestination is AirportDestination) {
 
       elevation = (showDestination as AirportDestination).elevation.round();
-
-      // made up airport dia
-      ad = Airport.runwaysWidget(showDestination as AirportDestination, dimensions);
 
       // show first plate
       String? apd = await PathUtils.getAirportDiagram(Storage().dataDir, showDestination.locationID);
@@ -121,12 +116,8 @@ class LongPressWidgetState extends State<LongPressWidget> {
   @override
   Widget build(BuildContext context) {
 
-    double width = Constants.screenWidth(context);
-    double height = Constants.screenHeight(context);
-    double dimensions = width > height ? height : width;
-
     return FutureBuilder(
-        future: LongPressFuture(widget.destination, dimensions, labelCallback).getAll(),
+        future: LongPressFuture(widget.destination, labelCallback).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -156,20 +147,21 @@ class LongPressWidgetState extends State<LongPressWidget> {
     String label = "$facility (${future.showDestination.locationID})$elevation, $direction";
 
     Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD
+
     if(future.airportDiagram != null) {
-      airportDiagram = Center(child:ColorFiltered(
-        colorFilter: const ColorFilter.mode( //invert AD color
-          Colors.white,
-          BlendMode.difference,
-        ),
-        child: Container(
-          color: Colors.white,
+      airportDiagram = Center(child: Container(
           child: future.airportDiagram,
         ),
-      ));
+      );
     }
-    else if (future.ad != null) {
-      airportDiagram = Center(child: future.ad);
+    else if (future.showDestination is AirportDestination) {
+      // made up airport dia
+      double width = Constants.screenWidth(context);
+      double height = Constants.screenHeight(context);
+      double dimensions = width > height ? height : width;
+      Widget ad = Airport.runwaysWidget(future.showDestination as AirportDestination, dimensions, context);
+      print("eeeeee");
+      airportDiagram = Center(child: ad);
     }
 
 
@@ -366,7 +358,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                     builder: (BuildContext context) => Dialog.fullscreen(
                       child: Stack(children:[
                         InteractiveViewer(child: airportDiagram!),
-                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                       ]
                     )
                   )),

@@ -133,7 +133,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
          child: Container(
            margin: const EdgeInsets.all(10.0),
            decoration: BoxDecoration(
-             border: Border.all(color: Colors.white),
+             border: Border.all(color: Theme.of(context).colorScheme.primary),
              borderRadius: const BorderRadius.all(Radius.circular(10))
            ),
            child:
@@ -279,7 +279,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
               DropdownButtonHideUnderline(child:
                 DropdownButton2<String>( // airport selection
                   buttonStyleData: ButtonStyleData(
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Constants.dropDownButtonBackgroundColor),
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
                   ),
                   dropdownStyleData: DropdownStyleData(
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),

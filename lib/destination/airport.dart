@@ -66,8 +66,8 @@ class Airport {
     return view;
   }
 
-  static Widget runwaysWidget(AirportDestination airport, double dimensions) {
-    return CustomPaint(size: Size(dimensions, dimensions), painter: RunwayPainter(airport));
+  static Widget runwaysWidget(AirportDestination airport, double dimensions, BuildContext context) {
+    return CustomPaint(size: Size(dimensions, dimensions), painter: RunwayPainter(airport, context));
   }
 
   static List<MapRunway> getRunwaysForMap(AirportDestination destination) {
@@ -201,8 +201,9 @@ class MapRunway {
 class RunwayPainter extends CustomPainter {
 
   AirportDestination airport;
+  BuildContext context;
 
-  RunwayPainter(this.airport);
+  RunwayPainter(this.airport, this.context);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -282,7 +283,7 @@ class RunwayPainter extends CustomPainter {
 
         final paintLine = Paint()
           ..strokeWidth = width
-          ..color = Constants.runwayColor; // runway color
+          ..color = Colors.green.withOpacity(0.8); // runway color
 
         double offsetX = 0;
         double offsetY = 0;
@@ -294,7 +295,7 @@ class RunwayPainter extends CustomPainter {
         String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
         String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
         String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
-        TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: ident);
+        TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: ident);
         TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(lx + offsetX, ly + offsetY));
@@ -306,7 +307,7 @@ class RunwayPainter extends CustomPainter {
         lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
         ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
         vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
-        span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: ident);
+        span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: ident);
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
         tp.paint(canvas, Offset(hx + offsetX, hy + offsetY));
@@ -316,7 +317,7 @@ class RunwayPainter extends CustomPainter {
       }
       catch(e) {}
     }
-    TextSpan span = TextSpan(style: TextStyle(color: Colors.white, fontSize: scale / 64), text: info);
+    TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: info);
     TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
     tp.layout();
     tp.paint(canvas, Offset(10, scale.toInt() / 4))  ;

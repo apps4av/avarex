@@ -19,7 +19,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
 
   bool _sending = false;
   String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
-  Color _errorColor = Colors.white;
+  Color? _errorColor;
 
   Future<LmfsPlanList> getPlans() async {
     LmfsPlanList ret;

@@ -60,7 +60,7 @@ class OnlineScreenState extends State<OnlineScreen> {
                                         },
                                     "You are now registered.")
                             ),
-                            Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                            Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                           ])
                       )
               );
@@ -84,7 +84,7 @@ class OnlineScreenState extends State<OnlineScreen> {
                               }
                             }, "Your password has been reset.")
                         ),
-                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                       ])
                   )
               );
@@ -106,7 +106,7 @@ class OnlineScreenState extends State<OnlineScreen> {
                                   Storage().realmHelper.logout([]).then((value) => setState(() {}));
                                 }, "Your account has been deleted."),
                           ),
-                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.white)))
+                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                         ])
                     )
             );

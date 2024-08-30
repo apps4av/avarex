@@ -28,12 +28,6 @@ class Constants {
     return hash;
   }
 
-  static const Color appBarButtonColor = Colors.white;
-
-  static const Color dropDownButtonIconColor = Colors.transparent;
-  static Color dropDownButtonBackgroundColor = Colors.black.withAlpha(156);
-  static Color centerButtonBackgroundColor = Colors.black.withAlpha(156);
-  static Color runwayColor = Colors.white.withAlpha(100);
   static Color runwayMapColor = Colors.pinkAccent;
 
   static const Color chartAbsentColor = Colors.grey;
@@ -53,6 +47,19 @@ class Constants {
 
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
   static Color bottomNavBarIconColor = Colors.white;
+
+  static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
+  static const Color speedCircleColor = Color.fromARGB(200, 0, 255, 0);
+  static const Color planCurrentColor = Colors.purpleAccent;
+  static const Color planNextColor = Colors.grey;
+  static const Color planPassedColor = Colors.cyanAccent;
+  static const Color trackColor = Colors.brown;
+  static const Color tracksColor = Colors.green;
+  static const Color planBorderColor = Colors.black;
+  static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
+  static const Color plateMarkColor = Color.fromARGB(150, 0, 255, 0);
+  static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
+  static const Color tfrColorFuture = Color.fromARGB(150, 255, 103, 2);
 
   static double dropDownButtonFontSize = 14;
 
@@ -77,18 +84,5 @@ class Constants {
   static bool isPortrait(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
-
-  static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
-  static const Color speedCircleColor = Color.fromARGB(200, 0, 255, 0);
-  static const Color planCurrentColor = Colors.purpleAccent;
-  static const Color planNextColor = Colors.grey;
-  static const Color planPassedColor = Colors.cyanAccent;
-  static const Color trackColor = Colors.brown;
-  static const Color tracksColor = Colors.green;
-  static const Color planBorderColor = Colors.black;
-  static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
-  static const Color plateMarkColor = Color.fromARGB(150, 0, 255, 0);
-  static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
-  static const Color tfrColorFuture = Color.fromARGB(150, 255, 103, 2);
 
 }

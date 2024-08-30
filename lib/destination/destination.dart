@@ -290,8 +290,7 @@ class DestinationFactory {
     return ret;
   }
 
-  static Widget getIcon(String type, Color? color) {
-    color = color ?? Colors.white;
+  static Widget getIcon(String type, Color color) {
     if(Destination.isNav(type)) {
       return Transform.rotate(angle: 90 * pi / 180, child: Icon(MdiIcons.hexagonOutline, color: color,)); // hexagon rotated looks like a vor
     }

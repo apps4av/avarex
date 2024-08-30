@@ -151,7 +151,11 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
 
         PageViewModel(
           title: "Welcome to AvareX!",
-          body: "This introduction will show you the necessary steps to operate the app.",
+          bodyWidget: Column(
+            children:[
+              const Text("This introduction will show you the necessary steps to operate the app."),
+            ]
+          ),
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
         ),

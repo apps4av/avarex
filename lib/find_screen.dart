@@ -138,7 +138,7 @@ class FindScreenState extends State<FindScreen> {
                             showDestination(context, item);
                           });
                         },
-                        leading: DestinationFactory.getIcon(item.type, null)
+                        leading: DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary)
                       ),
                     );
                   },
