@@ -639,7 +639,7 @@ class MapScreenState extends State<MapScreen> {
                       CircleAvatar(
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("10", style: TextStyle(fontSize: 14,
-                            color: Constants.instrumentsNormalValueColor,),)))),
+                            color: Colors.white,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
                       Gps.toLatLng(value), 5, 330),
                       child: Transform.rotate(
@@ -648,7 +648,7 @@ class MapScreenState extends State<MapScreen> {
                       CircleAvatar(
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("5", style: TextStyle(fontSize: 14,
-                            color: Constants.instrumentsNormalValueColor,),)))),
+                            color: Colors.white,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
                       Gps.toLatLng(value), 2, 330),
                       child: Transform.rotate(
@@ -657,7 +657,7 @@ class MapScreenState extends State<MapScreen> {
                       CircleAvatar(
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("2", style: TextStyle(fontSize: 14,
-                            color: Constants.instrumentsNormalValueColor,),)))),
+                            color: Colors.white,),)))),
                 ],
               );
             },
@@ -736,7 +736,7 @@ class MapScreenState extends State<MapScreen> {
                 for(MapRunway r in runways)
                   Marker(point: r.end,
                       width: 34,
-                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: r.best ? Colors.green : Colors.purple, child:Text(r.name, style: const TextStyle(fontSize: 14, color: Constants.instrumentsNormalValueColor, ),)))),
+                      child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: CircleAvatar(backgroundColor: r.best ? Colors.green : Colors.purple, child:Text(r.name, style: const TextStyle(fontSize: 14, color: Colors.white, ),)))),
               ],
             );
           },
@@ -795,7 +795,7 @@ class MapScreenState extends State<MapScreen> {
                                 Storage().route.replaceDestinationFromDb(index, l);
                               }
                             },
-                            child: DestinationFactory.getIcon(Storage().route.getAllDestinations()[index].type, _rubberBanding ? Colors.red : Constants.instrumentsNormalValueColor))))),
+                            child: DestinationFactory.getIcon(Storage().route.getAllDestinations()[index].type, _rubberBanding ? Colors.red : Colors.white))))),
                 for(int index = 0; index < Storage().route.getAllDestinations().length; index++) // plan route
                   Marker(alignment: Alignment.bottomRight, point: Storage().route.getAllDestinations()[index].coordinate, width: 64,
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
@@ -824,7 +824,7 @@ class MapScreenState extends State<MapScreen> {
                                 Storage().route.setCurrentWaypointFromDestinationIndex(index);
                               });
                           },
-                          child: AutoSizeText(Storage().route.getAllDestinations()[index].locationID, style: TextStyle(color: Constants.instrumentsNormalLabelColor, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
+                          child: AutoSizeText(Storage().route.getAllDestinations()[index].locationID, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
               ],
             );
           },

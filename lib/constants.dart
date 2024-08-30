@@ -36,9 +36,6 @@ class Constants {
 
   static const Color mapBackgroundColor = Colors.black;
 
-  static const Color instrumentsNormalValueColor = Colors.white;
-  static const Color instrumentsNormalLabelColor = Colors.white;
-
   static Color appBarBackgroundColor = Colors.transparent;
   static Color waypointBackgroundColor = Colors.black26.withAlpha(156);
   static Color measureBackgroundColor = Colors.black26.withAlpha(156);
