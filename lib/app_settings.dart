@@ -33,7 +33,7 @@ class AppSettings {
   }
 
   bool isLightMode() {
-    return provider.getValue("key-light-mode", defaultValue: true) as bool;
+    return provider.getValue("key-light-mode", defaultValue: false) as bool;
   }
 
   void setLightMode(bool lightMode) {

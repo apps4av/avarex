@@ -98,6 +98,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       pages: [
         PageViewModel(
           title: "Sign the Terms of Use",
+
           bodyWidget: Column(children: [
             const Text(
                 """

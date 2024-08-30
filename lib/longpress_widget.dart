@@ -160,7 +160,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
       double height = Constants.screenHeight(context);
       double dimensions = width > height ? height : width;
       Widget ad = Airport.runwaysWidget(future.showDestination as AirportDestination, dimensions, context);
-      print("eeeeee");
       airportDiagram = Center(child: ad);
     }
 
