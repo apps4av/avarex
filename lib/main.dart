@@ -22,21 +22,26 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => Storage().settings.showIntro() ? const OnBoardingScreen() : const MainScreen(),
-        '/download': (context) => const DownloadScreen(),
-        '/documents': (context) => const DocumentsScreen(),
-        '/aircraft': (context) => const AircraftScreen(),
-        '/checklists': (context) => const ChecklistScreen(),
-        '/wnb': (context) => const WnbScreen(),
-        '/online': (context) => const OnlineScreen(),
-      },
-      theme : ThemeData(
-        brightness: Brightness.dark,
-      ),
-    );
+    return ValueListenableBuilder<ThemeData>(
+        valueListenable: Storage().themeNotifier,
+        builder: (context, value, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            initialRoute: '/',
+            routes: {
+              '/': (context) =>
+              Storage().settings.showIntro()
+                  ? const OnBoardingScreen()
+                  : const MainScreen(),
+              '/download': (context) => const DownloadScreen(),
+              '/documents': (context) => const DocumentsScreen(),
+              '/aircraft': (context) => const AircraftScreen(),
+              '/checklists': (context) => const ChecklistScreen(),
+              '/wnb': (context) => const WnbScreen(),
+              '/online': (context) => const OnlineScreen(),
+            },
+            theme: value,
+          );
+        });
+    }
   }
-}

@@ -154,8 +154,19 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
           bodyWidget: Column(
             children:[
               const Text("This introduction will show you the necessary steps to operate the app."),
-            ]
-          ),
+              const Padding(padding: EdgeInsets.all(20)),
+              Row(mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.dark_mode),
+                  Switch(value: Storage().settings.isLightMode(), onChanged: (value) {
+                    setState(() {
+                      Storage().settings.setLightMode(!Storage().settings.isLightMode());
+                      Storage().themeNotifier.value = Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark();
+                    });
+                  }),
+                  const Icon(Icons.light_mode),
+              ]),
+          ]),
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
         ),

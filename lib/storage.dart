@@ -80,6 +80,7 @@ class Storage {
   late TafCache taf;
   late TfrCache tfr;
   late AirepCache airep;
+  late ValueNotifier<ThemeData> themeNotifier;
   late AirSigmetCache airSigmet;
   late NotamCache notam;
   final NexradCache nexradCache = NexradCache();
@@ -269,6 +270,7 @@ class Storage {
 
   Future<void> init() async {
     await settings.initSettings();
+    themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
     units = UnitConversion(settings.getUnits());
     flightTimer = FlightTimer(true, 0, timeChange);
     flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
