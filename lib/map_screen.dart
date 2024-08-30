@@ -971,10 +971,11 @@ class MapScreenState extends State<MapScreen> {
                               Position p = Storage().position;
                               LatLng l = LatLng(p.latitude, p.longitude);
                               if(_northUp) {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                                // do not change zoom on center
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, 0);// rotate to heading on center on track up
                               }
                               else {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, -p.heading);
                               }
                             },
                             child: const Text("Center"),
@@ -1163,13 +1164,8 @@ class ChartTileProvider extends TileProvider {
       return FileImage(File(getTileUrl(coordinates, options)));
     }
 
-    // find lat/lon from tile number, upper left
-    num n = pow(2, coordinates.z);
-    double lon = coordinates.x / n * 360.0 - 180.0;
-    double lat = 2 * atan(exp((180 - ((coordinates.y) / n) * 360) * pi / 180)) * 180 / pi - 90;
-
     // get file to download message in tile missing
-    String name = Chart.getChartRegion(LatLng(lat, lon));
+    String name = Chart.getChartRegion(coordinates.x, coordinates.y, coordinates.z);
     if(name.isEmpty) {
       return const AssetImage("assets/images/512.png");
     }
