@@ -53,6 +53,12 @@ class MainDatabaseHelper {
   Future<List<Destination>> findDestinations(String match) async {
     List<Map<String, dynamic>> maps = [];
     List<Map<String, dynamic>> mapsAirways = [];
+    if(match.contains("@")) {
+      // parse sexagesimal coordinate like my location @ 34 12 34 N 118 12 34 W
+      List<String> parts = match.split("@");
+      LatLng coordinate = Destination.parseFromSexagesimalFullOrPartial(parts[1]);
+      return [GpsDestination(locationID: Destination.formatSexagesimal(coordinate.toSexagesimal()), type: Destination.typeGps, facilityName: parts[0], coordinate: coordinate)];
+    }
     final db = await database;
     if (db != null) {
       maps = await db.rawQuery(

@@ -51,6 +51,43 @@ class Destination {
     return input.replaceAll("'", " ").replaceAll("\"", " ").replaceAll("\u00b0", " ");
   }
 
+  static LatLng parseFromSexagesimalFullOrPartial(String input) {
+    double lat = 0;
+    double latMin = 0;
+    double latSec = 0;
+    String latGeo = "N";
+    double lon = 0;
+    double lonMin = 0;
+    double lonSec = 0;
+    String lonGeo = "W";
+
+    List<String> inputs = input.trim().split(" ");
+
+    try {
+      lat = double.parse(inputs[0]);
+      latMin = double.parse(inputs[1]);
+      latSec = double.parse(inputs[2]);
+      latGeo = inputs[3];
+      lon = double.parse(inputs[4]);
+      lonMin = double.parse(inputs[5]);
+      lonSec = double.parse(inputs[6]);
+      lonGeo = inputs[7];
+    }
+    catch (e) {
+      // return partial
+    }
+    lat += latMin / 60.0 + latSec / 3600.0;
+    lon += lonMin / 60.0 + lonSec / 3600.0;
+    if(latGeo == "S") {
+      lat = -lat;
+    }
+    if(lonGeo == "W") {
+      lon = -lon;
+    }
+    LatLng coordinate = LatLng(lat, lon);
+    return coordinate;
+  }
+
   static bool isAirport(String type) {
     return type == "AIRPORT" ||
         type == "SEAPLANE BAS" ||
