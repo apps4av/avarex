@@ -43,7 +43,8 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     Column(children: [
       ListTile(
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Theme.of(context).colorScheme.primary),
-          title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
+          // Do not clobber plan with GPS sexagesimal
+          title: Text(widget.waypoint.destination.type == Destination.typeGps ? widget.waypoint.destination.facilityName : widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
           subtitle: PlanLineWidget(destination: widget.waypoint.destination),
           onTap: () {
             widget.onTap();

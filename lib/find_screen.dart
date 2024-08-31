@@ -102,7 +102,26 @@ class FindScreenState extends State<FindScreen> {
                               Text(item.locationID),
                             ]
                         ),
-                        subtitle: Text("${item.facilityName} ( ${item.type} )"),
+                        subtitle: item.type != Destination.typeGps ?
+                          Text("${item.facilityName} ( ${item.type} )") :
+                          Row(
+                              children: [
+                                Expanded(flex: 1, child:TextField(
+                                    onSubmitted: (value) {
+                                      setState(() {
+                                        Destination d = GpsDestination(
+                                            locationID: item.locationID,
+                                            type: item.type,
+                                            facilityName: value,
+                                            coordinate: item.coordinate);
+                                        Storage().realmHelper.addRecent(d);
+                                      });
+                                    },
+                                    controller: TextEditingController()..text = item.facilityName,
+                                )),
+                                const Expanded(flex: 1, child:Text("(GPS)"))
+                              ]
+                          ),
                         dense: true,
                         isThreeLine: true,
                         trailing: TextButton(

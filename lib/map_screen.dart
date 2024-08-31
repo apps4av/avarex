@@ -769,10 +769,11 @@ class MapScreenState extends State<MapScreen> {
         ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
+            List<Destination> destinations = Storage().route.getAllDestinations();
             return MarkerLayer(
               markers: [
-                for(int index = 0; index < Storage().route.getAllDestinations().length; index++) // plan route
-                  Marker(alignment: Alignment.center, point: Storage().route.getAllDestinations()[index].coordinate,
+                for(int index = 0; index < destinations.length; index++) // plan route
+                  Marker(alignment: Alignment.center, point: destinations[index].coordinate,
                     child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                       child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
                         child: GestureDetector(
@@ -795,9 +796,9 @@ class MapScreenState extends State<MapScreen> {
                                 Storage().route.replaceDestinationFromDb(index, l);
                               }
                             },
-                            child: DestinationFactory.getIcon(Storage().route.getAllDestinations()[index].type, _rubberBanding ? Colors.red : Colors.white))))),
-                for(int index = 0; index < Storage().route.getAllDestinations().length; index++) // plan route
-                  Marker(alignment: Alignment.bottomRight, point: Storage().route.getAllDestinations()[index].coordinate, width: 64,
+                            child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white))))),
+                for(int index = 0; index < destinations.length; index++) // plan route
+                  Marker(alignment: Alignment.bottomRight, point: destinations[index].coordinate, width: 64,
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                         child: GestureDetector(
                             onLongPressMoveUpdate: (details) {
@@ -824,7 +825,8 @@ class MapScreenState extends State<MapScreen> {
                                 Storage().route.setCurrentWaypointFromDestinationIndex(index);
                               });
                           },
-                          child: AutoSizeText(Storage().route.getAllDestinations()[index].locationID, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
+                          // do not clobber screen with sexagesimal
+                          child: AutoSizeText(destinations[index].type != Destination.typeGps ? destinations[index].locationID : destinations[index].facilityName, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
               ],
             );
           },

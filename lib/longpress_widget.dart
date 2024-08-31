@@ -39,12 +39,11 @@ class LongPressFuture {
 
   Destination destination;
   Destination showDestination;
-  Function(String value) labelCallback;
   Image? airportDiagram;
   int? elevation;
   List<Saa> saa = [];
 
-  LongPressFuture(this.destination, this.labelCallback) : showDestination =
+  LongPressFuture(this.destination) : showDestination =
       Destination( // GPS default then others
           locationID: Destination.formatSexagesimal(
               destination.coordinate.toSexagesimal()),
@@ -82,21 +81,6 @@ class LongPressFuture {
     else if(showDestination is AirwayDestination) {
       pages.add(const Text("Airway"));
     }
-    else if (showDestination is GpsDestination) {
-      // add labeling support
-      pages.add(Container(padding: const EdgeInsets.all(50), child:TextFormField(
-        decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Set Label'),
-        onFieldSubmitted: (value) {
-          Destination d = GpsDestination(
-              locationID: showDestination.locationID,
-              type: showDestination.type,
-              facilityName: value,
-              coordinate: showDestination.coordinate);
-          Storage().realmHelper.addRecent(d);
-
-          labelCallback(value);
-      },)));
-    }
     // SUA for every press
     saa = await MainDatabaseHelper.db.getSaa(destination.coordinate);
   }
@@ -111,15 +95,11 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
   final CarouselSliderController _controller = CarouselSliderController();
 
-  void labelCallback(String value) {
-    Navigator.of(context).pop();
-  }
-
   @override
   Widget build(BuildContext context) {
 
     return FutureBuilder(
-        future: LongPressFuture(widget.destination, labelCallback).getAll(),
+        future: LongPressFuture(widget.destination).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
