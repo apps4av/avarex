@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -56,43 +55,17 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirways = [];
     final db = await database;
     if (db != null) {
-      if(match.startsWith(".") && match.length > 1) {
-        maps = await db.rawQuery(
-          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '${match.substring(1)}%') limit $_limit"
-        );
-      }
-      else if(match.startsWith(",") && match.length > 1) {
-        maps = await db.rawQuery(
-          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav where (LocationID like '${match.substring(1)}%') limit $_limit"
-        );
-      }
-      else if(match.startsWith("!") && match.length > 1) {
-        maps = await db.rawQuery(
-          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix where (LocationID like '${match.substring(1)}%') limit $_limit"
-        );
-      }
-      else if(match.startsWith(":") && match.length > 1) {
-        maps = await db.rawQuery(
-          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (FacilityName like '%${match.substring(1)}%') limit $_limit"
-        );
-      }
-      else {
-        maps = await db.rawQuery(
-          // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-            "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
-            "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
-            "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
-            "order by Type asc limit $_limit"
-        );
-        mapsAirways = await db.rawQuery(
-            "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
-                "order by cast(sequence as integer) asc limit 1"
-        );
-      }
+      maps = await db.rawQuery(
+        // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
+          "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
+          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
+          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
+          "order by Type asc limit $_limit"
+      );
+      mapsAirways = await db.rawQuery(
+          "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
+              "order by cast(sequence as integer) asc limit 1"
+      );
     }
 
     List<Destination> ret = List.generate(maps.length, (i) {
@@ -185,6 +158,18 @@ class MainDatabaseHelper {
     return(ret);
   }
 
+  Future<String> getFaaName(String icao) async {
+    final db = await database;
+    if (db != null) {
+      String qry = "select FaaID from airports where LocationID = '$icao'";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      if(maps.isNotEmpty) {
+        return maps[0]['FaaID'] as String;
+      }
+    }
+    return icao;
+  }
+
   Future<List<Destination>> findNearestAirportsWithRunways(LatLng point, int runwayLength) async {
     final db = await database;
     List<Destination> ret = [];
@@ -196,9 +181,9 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry =
-          "select airports.LocationID, airports.FacilityName, airports.Type, airports.ARPLongitude, airports.ARPLatitude, airportrunways.Length, $asDistance as distance from airports "
+          "select airports.LocationID, airports.DLID, airports.FacilityName, airports.Type, airports.ARPLongitude, airports.ARPLatitude, airportrunways.Length, $asDistance as distance from airports "
           "left join airportrunways where "
-          "airports.LocationID = airportrunways.LocationID and airports.Type='AIRPORT' and cast (airportrunways.Length as INTEGER) >= $runwayLength "
+          "airports.DLID = airportrunways.DLID and airports.Type='AIRPORT' and cast (airportrunways.Length as INTEGER) >= $runwayLength "
           "order by distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
@@ -246,15 +231,17 @@ class MainDatabaseHelper {
     final db = await database;
     if (db != null) {
       mapsAirports = await db.rawQuery("select * from airports       where LocationID = '$airport'");
-      mapsFreq = await db.rawQuery(    "select * from airportfreq    where LocationID = '$airport'");
-      mapsRunways = await db.rawQuery( "select * from airportrunways where LocationID = '$airport'");
-      mapsAwos = await db.rawQuery(    "select * from awos           where LocationID = '$airport'");
-    }
-    if(mapsAirports.isEmpty) {
-      return null;
+      if(mapsAirports.isEmpty) {
+        return null;
+      }
+      String dlid = mapsAirports[0]['DLID'] as String;
+      mapsFreq = await db.rawQuery(    "select * from airportfreq    where DLID = '$dlid'");
+      mapsRunways = await db.rawQuery( "select * from airportrunways where DLID = '$dlid'");
+      mapsAwos = await db.rawQuery(    "select * from awos           where DLID = '$dlid'");
+      return AirportDestination.fromMap(mapsAirports[0], mapsFreq, mapsAwos, mapsRunways);
     }
 
-    return AirportDestination.fromMap(mapsAirports[0], mapsFreq, mapsAwos, mapsRunways);
+    return null;
   }
 
   Future<NavDestination?> findNav(String nav) async {
@@ -298,11 +285,10 @@ class MainDatabaseHelper {
   }
 
   Future<List<CifpSidStarApproachLine>> findCifpStar(String airport, String id, String transition) async {
-    String k = Constants.useK ? "K" : "";
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$k$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='E' and (trim(transition_identifier)='$transition' or trim(transition_identifier)='ALL')";
+      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='E' and (trim(transition_identifier)='$transition' or trim(transition_identifier)='ALL')";
       maps = await db.rawQuery(qry);
     }
     return List.generate(maps.length, (i) {
@@ -311,11 +297,10 @@ class MainDatabaseHelper {
   }
 
   Future<List<CifpSidStarApproachLine>> findCifpSid(String airport, String id, String transition) async {
-    String k = Constants.useK ? "K" : "";
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$k$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='D' and trim(transition_identifier)='$transition'";
+      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='D' and trim(transition_identifier)='$transition'";
       maps = await db.rawQuery(qry);
     }
     return List.generate(maps.length, (i) {

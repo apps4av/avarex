@@ -54,22 +54,6 @@ class FindScreenState extends State<FindScreen> {
     );
   }
 
-  String _filterToDescription() {
-    if(_searchText.startsWith(".")) {
-      return "Airport by ID (.)";
-    }
-    else if(_searchText.startsWith(",")) {
-      return "Navigation Aid (,)";
-    }
-    else if(_searchText.startsWith("!")) {
-      return "Fix (!)";
-    }
-    else if(_searchText.startsWith(":")) {
-      return "Airport by Name (:)";
-    }
-    return("");
-  }
-
   Widget _makeContent(List<Destination>? items, bool searching) {
 
     GeoCalculations geo = GeoCalculations();
@@ -82,8 +66,8 @@ class FindScreenState extends State<FindScreen> {
           Column (children: [
             Expanded(
                 flex: 2,
-                child: Stack(
-                  children: [TextFormField(
+                child: TextFormField(
+                    decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Find"),
                     onChanged: (value) {
                       setState(() {
                         _searchText = value;
@@ -91,9 +75,7 @@ class FindScreenState extends State<FindScreen> {
                         items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                       });
                     },
-                    decoration: InputDecoration(icon: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To search for an airport by ID, start with a .\nTo search for a navigation aid by ID, start with a ,\nTo search for a fix by ID, start with a !\nTo search for an airport by name, start with a :\nOr start typing anything to search everywhere.", child: Icon(Icons.info)), border: const UnderlineInputBorder(), labelText: 'Find ${_filterToDescription()}')
-                  ),
-                ])
+                )
             ),
             Expanded(
                 flex: 7,

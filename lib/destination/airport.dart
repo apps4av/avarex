@@ -7,8 +7,6 @@ import 'package:avaremp/weather/metar.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../constants.dart';
-
 class Airport {
 
   static ListView parseFrequencies(AirportDestination airport) {
@@ -160,8 +158,7 @@ class Airport {
 
     // calculate best runways based on wind direction
     double? windDirection;
-    String k = Constants.useK? "K" : "";
-    Metar? metar = Storage().realmHelper.getMetar("$k${destination.locationID}");
+    Metar? metar = Storage().realmHelper.getMetar(destination.locationID);
     double minWind = 0;
     int index = -1;
     if(metar != null) {

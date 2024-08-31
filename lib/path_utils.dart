@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
@@ -20,63 +21,9 @@ class PathUtils {
     return path.join(base, filename);
   }
 
-  static String getPlateFilePath(String base, String airport, String plate) {
-    String plates = path.join(base, "plates");
-    String id = path.join(plates, airport);
-    String filename = path.join(id, "$plate.png");
-    return(filename);
-  }
-
-  static String getCsupFilePath(String base, String airport, String plate) {
-    String plates = path.join(base, "afd");
-    String id = path.join(plates, airport);
-    String filename = path.join(id, "$plate.png");
-    return(filename);
-  }
-
   static String getFilePath(String base, String file) {
     String id = path.join(base, file);
     return(id);
-  }
-
-  static String getMinimumsFilePath(String base, String name) {
-    String afd = path.join(base, "minimums");
-    String filename = path.join(afd, "${name[0]}/$name.png");
-    return(filename);
-  }
-
-  static Future<List<String>> getPlateNames(String base, String airport) async {
-    List<String> ret = [];
-    try {
-      String plates = path.join(base, "plates");
-      String id = path.join(plates, airport);
-      final d = Directory(id);
-      final List<FileSystemEntity> entities = await d.list().toList();
-      for (FileSystemEntity en in entities) {
-        ret.add(basenameWithoutExtension(en.path));
-      }
-    }
-    catch(e) {
-      ret = [];
-    }
-    return(ret);
-  }
-
-  static Future<List<String>> getCsupNames(String base, String airport) async {
-    List<String> ret = [];
-    try {
-      String plates = path.join(base, "afd");
-      String id = path.join(plates, airport);
-      final d = Directory(id);
-      final List<FileSystemEntity> entities = await d.list().toList();
-      for (FileSystemEntity en in entities) {
-        ret.add(basenameWithoutExtension(en.path));
-      }
-    }
-    catch(e) {
-      ret = [];
-    }
-    return(ret);
   }
 
   static String filename(String url) {
@@ -123,12 +70,64 @@ class PathUtils {
     catch(e) {}
   }
 
-  static Future<List<String>> getPlatesAndCSupSorted(String base, String airport) async {
+  static String _getPlateFilePath(String base, String airport, String plate) {
+    String plates = path.join(base, "plates");
+    String id = path.join(plates, airport);
+    String filename = path.join(id, "$plate.png");
+    return(filename);
+  }
+
+  static String _getCsupFilePath(String base, String airport, String plate) {
+    String plates = path.join(base, "afd");
+    String id = path.join(plates, airport);
+    String filename = path.join(id, "$plate.png");
+    return(filename);
+  }
+
+  static Future<List<String>> _getPlateNames(String base, String airport) async {
+    List<String> ret = [];
+    try {
+      String plates = path.join(base, "plates");
+      String id = path.join(plates, airport);
+      final d = Directory(id);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        ret.add(basenameWithoutExtension(en.path));
+      }
+    }
+    catch(e) {
+      ret = [];
+    }
+    return(ret);
+  }
+
+  static Future<List<String>> _getCsupNames(String base, String airport) async {
+    List<String> ret = [];
+    try {
+      String plates = path.join(base, "afd");
+      String id = path.join(plates, airport);
+      final d = Directory(id);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        ret.add(basenameWithoutExtension(en.path));
+      }
+    }
+    catch(e) {
+      ret = [];
+    }
+    return(ret);
+  }
+
+
+  static Future<List<String>> getPlatesAndCSupSorted(String base, String airportId) async {
     List<String> plates = [];
     List<String> csup = [];
 
-    plates = await PathUtils.getPlateNames(base, airport);
-    csup = await PathUtils.getCsupNames(base, airport);
+    //XXX: Plates and CSUP are not in ICAO
+    String airport = await MainDatabaseHelper.db.getFaaName(airportId);
+
+    plates = await _getPlateNames(base, airport);
+    csup = await _getCsupNames(base, airport);
     plates.addAll(csup);
 
     // combine plates and csup
@@ -137,13 +136,16 @@ class PathUtils {
     return(plates);
   }
 
-  static String getPlatePath(String base, String airport, String name) {
+  static Future<String> getPlatePath(String base, String airportId, String name) async {
+
+    //XXX: Plates and CSUP are not in ICAO
+    String airport = await MainDatabaseHelper.db.getFaaName(airportId);
 
     // this should be simplified in server code. Just put CSUP and minimums in each airport where it belongs
-    String path = getPlateFilePath(base, airport, name);
+    String path = _getPlateFilePath(base, airport, name);
 
     if(_expCsup.hasMatch(name)) {
-      return getCsupFilePath(base, airport, name);
+      return _getCsupFilePath(base, airport, name);
     }
 
     return(path);

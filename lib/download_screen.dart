@@ -354,7 +354,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       ChartCategory.databases,
       _absentColor,
       [
-        Chart('Databases', _absentColor, _absentIcon, 'databases', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Databases', _absentColor, _absentIcon, 'databasesx', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ],
       false,
     ),

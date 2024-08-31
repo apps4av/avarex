@@ -393,7 +393,7 @@ class Storage {
   Future<void> loadPlate() async {
     String plateAirport = settings.getCurrentPlateAirport();
     plateAirportDestination = await MainDatabaseHelper.db.findAirport(plateAirport);
-    String path = PathUtils.getPlatePath(dataDir, plateAirport, currentPlate);
+    String path = await PathUtils.getPlatePath(dataDir, plateAirport, currentPlate);
     File file = File(path);
     Completer<ui.Image> completerPlate = Completer();
     Uint8List bytes;

@@ -8,7 +8,6 @@ import 'package:day_night_time_picker/lib/state/time.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avaremp/aircraft.dart';
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 
 class PlanFileWidget extends StatefulWidget {
@@ -96,7 +95,6 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
       return Container();
     }
 
-    String k = Constants.useK ? "K" : "";
     PlanRoute route = Storage().route;
     int length = route.length;
 
@@ -284,7 +282,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   if(length > 0) {
                     Destination departure = route.getWaypointAt(0).destination;
                     if (departure is AirportDestination) {
-                      _departure = "$k${departure.locationID}";
+                      _departure = departure.locationID;
                     }
                   }
                 });
@@ -438,7 +436,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   if(length > 1) {
                     Destination destination = route.getWaypointAt(length - 1).destination;
                     if (destination is AirportDestination) {
-                      _destination = "$k${destination.locationID}";
+                      _destination = destination.locationID;
                     }
                   }
                 });

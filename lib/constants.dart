@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  static const bool useK = true;
   static const weatherUpdateTimeMin = 10;
 
   static const int _hashIntCoprimeSeed = 23;

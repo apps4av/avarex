@@ -6,6 +6,7 @@ import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/notam.dart';
 import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/plan/waypoint.dart';
@@ -14,6 +15,7 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
 
@@ -164,8 +166,6 @@ class LongPressWidgetState extends State<LongPressWidget> {
     }
 
 
-    String k = Constants.useK ? "K" : "";
-
     int? metarPage;
     int? notamPage;
     int? saaPage;
@@ -178,8 +178,8 @@ class LongPressWidgetState extends State<LongPressWidget> {
     Widget? sounding = Sounding.getSoundingImage(widget.destination.coordinate, context);
 
     if(future.showDestination is AirportDestination) {
-      Weather? w = Storage().metar.get("$k${future.showDestination.locationID}");
-      Weather? w1 = Storage().taf.get("$k${future.showDestination.locationID}");
+      Weather? w = Storage().metar.get(future.showDestination.locationID);
+      Weather? w1 = Storage().taf.get(future.showDestination.locationID);
       if(w != null || w1 != null) {
         metarPage = future.pages.length;
         future.pages.add(ListView(
@@ -197,17 +197,12 @@ class LongPressWidgetState extends State<LongPressWidget> {
       }
       // NOATMS get downloaded on the fly so make this a future.
       notamPage = future.pages.length;
-      future.pages.add(FutureBuilder(future: Storage().notam.getSync(
-          "$k${future.showDestination.locationID}"),
+      future.pages.add(FutureBuilder(future: Storage().notam.getSync(future.showDestination.locationID),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               Weather? w2 = snapshot.data;
               if (w2 != null) {
-                List<String> notams = w2.toString().split("\n\n");
-                notams.insert(0, "NOTAMS");
-                return ListView.builder(itemCount: notams.length, itemBuilder: (context, index) {
-                  return ListTile(leading: index == 0 ? const Text("") : Text(notams[index].substring(0, 4)), title: Text(notams[index]));
-                });
+                return SingleChildScrollView(child:HtmlWidget((w2 as Notam).text));
               }
               else {
                 return Container();
