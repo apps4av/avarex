@@ -865,9 +865,7 @@ class MapScreenState extends State<MapScreen> {
                       width: 64,
                       height: 64,
                       point: current,
-                      child: Transform.rotate(angle: _northUp ? 0 : value.heading * pi / 180,
-                          child: CustomPaint(painter: WindBarbPainter(ws, wd))
-                      )
+                      child: CustomPaint(painter: WindBarbPainter(ws, wd))
                   ),
               ],
             );

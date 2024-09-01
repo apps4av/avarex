@@ -103,7 +103,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
             const Text(
                 """
 ** YOU MUST FULLY READ, AGREE TO, AND SIGN THIS AGREEMENT TO CONTINUE. **\n\n
-This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including Android devices, related to its use.
+This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including devices, related to its use.
 
 ** What Information We Collect **
 
