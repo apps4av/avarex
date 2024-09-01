@@ -70,6 +70,13 @@ class _PieChartPainter extends CustomPainter {
       canvas.drawArc(Rect.fromLTRB(offset * 4 + 3, offset * 4 + 3, sizeDraw - offset * 4, sizeDraw - offset * 4), angleStart * pi / 180, (angleEnd - angleStart) * pi / 180, false, paint);
     }
 
+    // draw a line from center to the edge that represents the current time in zulu
+    DateTime now = DateTime.now().toUtc();
+    double hours = now.hour + now.day * 24 + now.month * 24 * 30 + now.year * 24 * 30 * 12;
+    double angle = (hours % 12) / 12 * 360 - 90;
+    paint.color = Colors.black;
+    paint.strokeWidth = 1;
+    canvas.drawLine(Offset(size.width / 2, size.height / 2), Offset(size.width / 2 + size.height / 2 * cos(angle * pi / 180), size.height / 2 + size.height / 2 * sin(angle * pi / 180)), paint);
 
   }
 
