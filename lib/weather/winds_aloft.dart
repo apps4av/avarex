@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
+import 'package:flutter/material.dart';
 
 class WindsAloft extends Weather {
   String w3k;
@@ -234,4 +237,56 @@ class WindsAloft extends Weather {
     return wind;
   }
 }
+
+class WindBarbPainter extends CustomPainter {
+  final double speed;
+  final double direction;
+
+  WindBarbPainter(this.speed, this.direction);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    // Draw the main arrow line
+    double x = size.width / 2;
+    double y = size.height / 2;
+    double length = size.width;
+    double angle = (direction - 90) * pi / 180;
+    double x2 = x + length * cos(angle);
+    double y2 = y + length * sin(angle);
+    canvas.drawLine(Offset(x, y), Offset(x2, y2), paint);
+
+    // Draw barbs for wind speed
+    double barbLength = 15;
+    double barbSpacing = size.width / 8;
+    int fullBarbs = (speed / 10).floor();
+    int halfBarbs = ((speed % 10) / 5).floor();
+
+    for (int i = 0; i < fullBarbs; i++) {
+      double barbX = x2 - (i) * barbSpacing * cos(angle);
+      double barbY = y2 - (i) * barbSpacing * sin(angle);
+      double barbX2 = barbX - barbLength * cos(angle + pi / 2);
+      double barbY2 = barbY - barbLength * sin(angle + pi / 2);
+      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), paint);
+    }
+
+    if (halfBarbs > 0) {
+      double barbX = x2 - (fullBarbs) * barbSpacing * cos(angle);
+      double barbY = y2 - (fullBarbs) * barbSpacing * sin(angle);
+      double barbX2 = barbX - (barbLength / 2) * cos(angle + pi / 2);
+      double barbY2 = barbY - (barbLength / 2) * sin(angle + pi / 2);
+      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
+
 
