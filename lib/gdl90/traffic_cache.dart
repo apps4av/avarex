@@ -228,6 +228,10 @@ class TrafficCache {
 
     for(Traffic? check in _traffic) {
       if(null != check) {
+        if(check.isOld()) {
+          // do not show old
+          continue;
+        }
         ret.add(check);
       }
     }
