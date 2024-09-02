@@ -84,6 +84,11 @@ class NexradCache {
     // get only drawable images
     List<NexradImage> ret = [];
     for(NexradImage img in _cacheNexrad.values) {
+      if(img.isExpired()) {
+        img.discard();
+        continue;
+      }
+
       Uint8List? imgLocal = img.getImage();
       if(imgLocal != null) {
         // filter out that dont have images
@@ -97,6 +102,10 @@ class NexradCache {
     // get only drawable images
     List<NexradImage> ret = [];
     for(NexradImage img in _cacheNexradConus.values) {
+      if(img.isExpired()) {
+        img.discard();
+        continue;
+      }
       Uint8List? imgLocal = img.getImage();
       if(imgLocal != null) {
         // filter out that dont have images
@@ -118,6 +127,11 @@ class NexradImage {
   double _scaleY = 1;
   LatLng _coordinate = const LatLng(0, 0);
   Uint8List? _image;
+
+  bool isExpired() {
+    Duration diff = time.difference(DateTime.now());
+    return (diff.inSeconds < -600); // ten min expire
+  }
 
   NexradImage(this._data, this._block, this._conus) : time = DateTime.now() {
 
