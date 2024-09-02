@@ -107,7 +107,7 @@ This is not an FAA certified GPS. You must assume this software will fail when l
 
 ** What Information We Collect **
 
-The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform. The email information we collect is used for internal verification to complete registrations / transactions, ensure appropriate legal use of the service, provide notification to users about updates to the service, provide notification to users about content upgrade, and help provide technical support to our users. The privacy of your personal information is very important to us. We will delete all your information from our records when you unregister from the online service.
+The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address) and password. This information must be provided in order to register and use our platform. This information is used for internal verification to complete registrations / transactions, ensure appropriate legal use of the service, provide notification to users about updates to the service, provide notification to users about content upgrade, and help provide technical support to our users. The users of the app may store their flight plans, aircraft particulars, flight filing information, checklists, and weight & balance information on our servers, using the online service. The privacy of your personal information is very important to us. We will delete all your information from our records when you unregister from the online service.
 
 ** Sharing Your Personal Information **
 
@@ -122,13 +122,6 @@ We utilize generally accepted security measures (such as encryption / HTTPS) to 
 If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com and we will act promptly to investigate, correct as appropriate, and advise you of the correction. Please identify the issue as a Privacy Policy concern in your communication to apps4av@gmail.com.
 
 ** Register/Sign This Document **
-
-The development team for this free aviation app is dedicated to empowering pilots with helpful free, open source, ad-free, and safe tools. To that end we have decided to require anonymous Registration of users in order to:
- * Advise users immediately in the event we discover any errors in the app or in the FAA materials we process and provide to our users at no charge.
- * Begin offering additional features useful to pilots, such as local airport info and attractions provided by pilots.
- * Enable the potential for future features such as direct anonymous but verified communication between users or devices such as sharing Waypoints, Tracks, and Plans.
- * Ensure that you assume all liability for your use of our free tools more conveniently, without the need to click an agreement at every launch of the app.
- * File flight plans with the FAA.
 
 Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking "Tap here to sign" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
 """
