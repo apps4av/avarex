@@ -6,7 +6,6 @@ import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
-import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -167,9 +166,7 @@ class InstrumentListState extends State<InstrumentList> {
         // find time to next, not interested in fuel
         double? ws;
         double? wd;
-        String? station = WindsCache.locateNearestStation(next.destination.coordinate);
-        WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
-        (wd, ws) = WindsCache.getWindAtAltitude(Storage().units.mToF * Storage().position.altitude, wa);
+        (wd, ws) = WindsCache.getWindsAt(next.destination.coordinate, GeoCalculations.convertAltitude(Storage().position.altitude));
 
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,

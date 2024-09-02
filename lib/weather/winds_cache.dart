@@ -12,6 +12,16 @@ class WindsCache extends WeatherCache {
 
   WindsCache(super.url, super.dbCall);
 
+  // metar if winds from ground need to be used
+  static (double?, double?) getWindsAt(LatLng coordinate, double altitude) {
+    double? ws;
+    double? wd;
+    String? station = WindsCache.locateNearestStation(coordinate);
+    WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
+    (wd, ws) = WindsCache.getWindAtAltitude(altitude, wa);
+    return (wd, ws);
+  }
+
   @override
   Future<void> parse(Uint8List data, [String? argument]) async {
 

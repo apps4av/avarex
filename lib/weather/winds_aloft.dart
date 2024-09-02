@@ -5,6 +5,7 @@ import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
 
 class WindsAloft extends Weather {
+  String? w0k; // this optionally comes from metar.
   String w3k;
   String w6k;
   String w9k;
@@ -72,7 +73,7 @@ class WindsAloft extends Weather {
       higherAltitude = 3000;
       lowerAltitude = 0;
       wHigher = w3k;
-      wLower = w3k;
+      wLower = w0k ?? w3k;
     }
     else if (altitude >= 3000 && altitude < 6000) {
       higherAltitude = 6000;

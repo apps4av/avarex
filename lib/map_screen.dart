@@ -841,13 +841,9 @@ class MapScreenState extends State<MapScreen> {
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             LatLng current = LatLng(value.latitude, value.longitude);
-
-            double altitude = value.altitude;
-            String? station = WindsCache.locateNearestStation(LatLng(value.latitude, value.longitude));
-            WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
             double? ws;
             double? wd;
-            (wd, ws) = WindsCache.getWindAtAltitude(altitude, wa);
+            (wd, ws) = WindsCache.getWindsAt(current, GeoCalculations.convertAltitude(value.altitude));
 
             return MarkerLayer(
               markers: [

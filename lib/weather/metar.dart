@@ -77,6 +77,27 @@ class Metar extends Weather {
     return text;
   }
 
+  static (String?, String?) getWind(String report) {
+    final RegExp wind = RegExp(r'^(?<dir>([0-2][0-9]|3[0-6])0|///|VRB)'
+      r'P?(?<speed>\d{2,3}|//|///)'
+      r'(G(P)?(?<gust>\d{2,3}))?'
+      r'(?<units>KT|MPS)$');
+
+    List<String> tokens = report.split(" ");
+    for(String token in tokens) {
+
+      var windSpeedDir = wind.firstMatch(token);
+      if(windSpeedDir != null) {
+        String? dir = windSpeedDir.namedGroup("dir");
+        String? speed = windSpeedDir.namedGroup("speed");
+        if(dir != null && speed != null) {
+          return (dir, speed);
+        }
+      }
+    }
+    return(null, null);
+  }
+
   static String getCategory(String report) {
     List<String> tokens = report.split(" ");
     String? integer;
