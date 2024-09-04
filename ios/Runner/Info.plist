@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app does not use the microphone for any purpose, but an SDK used for developing this app may contain calls to the microphone API.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
