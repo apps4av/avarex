@@ -81,7 +81,6 @@ dependencies:
   dio_cache_interceptor_file_store: ^1.2.3
   point_in_polygon: ^1.0.0
   toastification: ^2.0.0
-  flutter_widget_from_html: ^0.15.2
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:
     git:

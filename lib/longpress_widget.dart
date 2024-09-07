@@ -15,7 +15,6 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
 
@@ -182,7 +181,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             if (snapshot.hasData) {
               Weather? w2 = snapshot.data;
               if (w2 != null) {
-                return SingleChildScrollView(child:HtmlWidget((w2 as Notam).text));
+                return SingleChildScrollView(child:Text((w2 as Notam).text));
               }
               else {
                 return Container();
