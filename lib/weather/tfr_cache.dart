@@ -48,16 +48,17 @@ class TfrCache extends WeatherCache {
         continue; // no shape exists for this TFR
       }
 
-      int numInGroup = tfrGroups.length;
-      int groupCount = 0;
+      // how many points each group can have
+      int gCount = 0;
 
       for(var tfrGroup in tfrGroups) {
 
+        final Iterable<XmlElement> scheduledGroups;
+
         String upper = "Check NOTAMs";
         String lower = "Check NOTAMs";
-        String effective = "2000-01-01T00:00:00";
-        String expire = "2100-01-01T00:00:00";
-
+        List<String> effectiveGroup = [];
+        List<String> expireGroup = [];
         try {
           upper = tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString();
         }
@@ -67,20 +68,23 @@ class TfrCache extends WeatherCache {
         }
         catch(e) {}
         try {
-          effective = tfrGroup.findAllElements("dateEffective").first.innerText.toString();
+          scheduledGroups = tfrGroup.findAllElements("ScheduleGroup");
+          for(var scheduledGroup in scheduledGroups) {
+            effectiveGroup.add(scheduledGroup.findAllElements("dateEffective").first.innerText.toString());
+            expireGroup.add(scheduledGroup.findAllElements("dateExpire").first.innerText.toString());
+          }
         }
         catch(e) {}
-        try {
-          expire = tfrGroup.findAllElements("dateExpire").first.innerText.toString();
+        if(effectiveGroup.isEmpty || expireGroup.isEmpty) {
+          effectiveGroup = ["2000-01-01T00:00:00"];
+          expireGroup = ["2100-01-01T00:00:00"];
         }
-        catch(e) {}
-
 
         try {
           var area = tfrGroup.findAllElements("abdMergedArea").first;
           var latitudes = area.findAllElements("geoLat");
           var longitudes = area.findAllElements("geoLong");
-          var code = tfrGroup.findAllElements("codeId");
+          var code = tfrGroup.findAllElements("codeId").first.innerText;
 
           List<LatLng> ll = [];
           for(int count = 0; count < latitudes.length; count++) {
@@ -106,15 +110,27 @@ class TfrCache extends WeatherCache {
             continue;
           }
 
-          DateTime startsDt = DateTime.parse(effective);
-          DateTime endsDt = DateTime.parse(expire);
+          // add each TFR for a given date/time as a separate TFR
+          for(int count = effectiveGroup.length - 1; count >= 0; count--) { // draw last first so first can be drawn on top
+            String effective = effectiveGroup[count];
+            String expire = expireGroup[count];
+            // parse date (UTC
+            DateTime startsDt = DateTime.parse(effective);
+            DateTime endsDt = DateTime.parse(expire);
 
-          Tfr tfr = Tfr(code.first.toString(), time, ll, upper.toString(), lower.toString(),
-              startsDt.millisecondsSinceEpoch, endsDt.millisecondsSinceEpoch, groupCount * ((ll.length - 1) ~/ numInGroup));
-          tfrs.add(tfr);
+            Tfr tfr = Tfr(
+                "$url@$code$gCount",
+                time,
+                ll,
+                upper.toString(),
+                lower.toString(),
+                startsDt.millisecondsSinceEpoch,
+                endsDt.millisecondsSinceEpoch,
+                gCount % ll.length);
+            tfrs.add(tfr);
+            gCount = gCount + 1;
+          }
           // this separates duplicate with different times TFRs labels so all can be shown
-          groupCount++;
-
         }
         catch(e) {
           // no coordinates
