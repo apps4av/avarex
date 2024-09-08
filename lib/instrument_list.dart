@@ -280,9 +280,9 @@ class InstrumentListState extends State<InstrumentList> {
   // make an instrument for top line
   Widget _makeInstrument(int index) {
     bool portrait = Constants.isPortrait(context);
-    double width = Constants.screenWidth(context) / 9.7; // get more instruments in
+    double width = Constants.screenWidth(context) / 9.7 / Storage().settings.getInstrumentScaleFactor(); // get more instruments in
     if(portrait) {
-      width = Constants.screenWidth(context) / 5.7;
+      width = Constants.screenWidth(context) / 5.7 / Storage().settings.getInstrumentScaleFactor();
     }
 
     String value = "";
@@ -367,8 +367,22 @@ class InstrumentListState extends State<InstrumentList> {
       shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      header: const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, size: 24,)),
       footer: const Padding(padding: EdgeInsets.all(10)),
+      header: Column(children:[
+        GestureDetector(
+          onTap:() {
+            Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
+          },
+          child: const Icon(Icons.arrow_circle_right, size: 20)
+        ),
+        const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, size: 24,)),
+        GestureDetector(
+            onTap:() {
+              Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+            },
+            child: const Icon(Icons.arrow_circle_left, size: 20)
+        )
+      ]),
       buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)

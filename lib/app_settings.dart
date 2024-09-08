@@ -222,4 +222,19 @@ class AppSettings {
     provider.setBool("key-enable-instruments-plate", value);
   }
 
+  double getInstrumentScaleFactor() {
+    return provider.getValue("key-instrument-scale-factor", defaultValue: 1.0) as double;
+  }
+
+  void setInstrumentScaleFactor(double value) {
+    // limit 2x
+    if(value > 2.0) {
+      value = 2.0;
+    }
+    if(value < 0.5) {
+      value = 0.5;
+    }
+    provider.setDouble("key-instrument-scale-factor", value);
+  }
+
 }
