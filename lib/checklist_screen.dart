@@ -50,6 +50,16 @@ class ChecklistScreenState extends State<ChecklistScreen> {
             return;
           }
           String name = lines.removeAt(0);
+          //remove trailing empty lines
+          while(!lines.isEmpty)
+          {
+            if(lines[lines.length - 1].length == 0) {
+                lines.removeAt(lines.length - 1);
+            }
+            else {
+                break;
+            }
+          }
           Checklist list = Checklist(name, "", lines);
           Storage().realmHelper.addChecklist(list);
         }));},
