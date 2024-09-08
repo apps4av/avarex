@@ -296,7 +296,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     catch(e) {}
                   },
                   controller: TextEditingController()..text = stringTime(_departureDateTime),
-                  decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time')
+                  decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time Zulu')
               ),
 
               SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children:[
@@ -327,7 +327,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     ),
                   );
                 },
-                child: const Text("Time"),),
+                child: const Text("Local"),),
 
                 TextButton(
                   onPressed: () {
@@ -418,6 +418,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   onChanged: (value) {
                     _otherInformation = value;
                   },
+                  controller: TextEditingController()..text = _otherInformation,
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Other Information')
               ),
 
