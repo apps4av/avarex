@@ -68,7 +68,7 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
   String _truncate(String value) {
-    int maxLength = 5;
+    int maxLength = 10;
     return value.length > maxLength ? value.substring(0, maxLength) : value;
   }
 
@@ -205,7 +205,15 @@ class InstrumentListState extends State<InstrumentList> {
         _destination = "";
       }
       else {
-        _destination = _truncate(d.locationID);
+        if(Destination.typeGps == d.type) {
+          _destination = _truncate(d.facilityName);
+        }
+        else if(Destination.typeAirway == d.type && d.secondaryName != null) {
+          _destination = _truncate(d.secondaryName!);
+        }
+        else {
+          _destination = _truncate(d.locationID);
+        }
       }
       var (distance, bearing) = _getDistanceBearing();
       _distance = _truncate(distance.round().toString());

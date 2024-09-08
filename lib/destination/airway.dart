@@ -123,6 +123,15 @@ class Airway {
       }
     }
 
+    // fill up actual names of places in the airway segments, but do it in background
+    void populate() async {
+      for(Destination d in ret) {
+        Destination destinationFound = await MainDatabaseHelper.db.findNearNavOrFixElseGps(d.coordinate);
+        d.secondaryName = destinationFound.locationID;
+      }
+    }
+    populate();
+
     return ret;
   }
 }

@@ -15,6 +15,7 @@ class Destination {
   final String type;
   final String facilityName;
   final LatLng coordinate;
+  String? secondaryName; // used for holding other names like airway name
   DestinationCalculations? calculations; // how to get there
 
   Destination({

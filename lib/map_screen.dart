@@ -992,6 +992,17 @@ class MapScreenState extends State<MapScreen> {
                                 _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, -p.heading);
                               }
                             },
+                            onLongPress: () {
+                              Position p = Storage().position;
+                              LatLng l = LatLng(p.latitude, p.longitude);
+                              if(_northUp) {
+                                // do not change zoom on center
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                              }
+                              else {
+                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                              }
+                            },
                             child: const Text("Center"),
                           )
                       )
