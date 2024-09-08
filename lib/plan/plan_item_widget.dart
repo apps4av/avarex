@@ -1,7 +1,6 @@
 import 'plan_line_widget.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:flutter/material.dart';
-import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 
@@ -26,17 +25,16 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
     // different tiles for airways
     return Destination.isAirway(widget.waypoint.destination.type) ?
 
-     FutureBuilder(
-        future: AirwayLookupFuture(widget.waypoint).getAll(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return _makeContent(snapshot.data);
-          }
-          else {
-            return _makeContent(null);
-          }
-        }
-    )
+    Column(children: [
+      ExpansionTile(
+        leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Theme.of(context).colorScheme.primary),
+        title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary),),
+        subtitle: Text(widget.waypoint.destination.secondaryName != null ? widget.waypoint.destination.secondaryName! : widget.waypoint.destination.locationID),
+        children: <Widget>[
+          Column(children: _buildExpandableContent(),)
+        ],
+      ),
+    ])
 
     :
 
@@ -54,35 +52,17 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
 
   }
 
-  Widget _makeContent(AirwayLookupFuture? future) {
 
-    return Column(children: [
-      ExpansionTile(
-        leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Theme.of(context).colorScheme.primary),
-        title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary),),
-        subtitle: Text(future == null || future.lookupAirwaySegments.isEmpty ? "" : future.lookupAirwaySegments[widget.waypoint.currentAirwayDestinationIndex].locationID),
-        children: <Widget>[
-          Column(children: _buildExpandableContent(future),)
-        ],
-      ),
-    ]);
-
-  }
-
-  List<Widget> _buildExpandableContent(AirwayLookupFuture? future) {
+  List<Widget> _buildExpandableContent() {
     List<Widget> columnContent = [];
-
-    if(null == future) {
-      return [];
-    }
 
     List<Destination> destinations = widget.waypoint.airwayDestinationsOnRoute;
 
     for (int index = 0; index < destinations.length; index++) {
       columnContent.add(
         ListTile(
-          title: Text(future.lookupAirwaySegments[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.current) ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
-          subtitle: PlanLineWidget(destination: future.lookupAirwaySegments[index],),
+          title: Text(destinations[index].secondaryName != null ? destinations[index].secondaryName! : destinations[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.current) ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
+          subtitle: PlanLineWidget(destination: destinations[index],),
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Theme.of(context).colorScheme.primary),
           onTap: () {
             setState(() {

@@ -1,5 +1,7 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/plan/plan_create_widget.dart';
+import 'package:flutter/services.dart';
+import 'package:toastification/toastification.dart';
 import 'plan_file_widget.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
@@ -117,7 +119,10 @@ class PlanScreenState extends State<PlanScreen> {
                 builder: (context, value, _) {
                   return ListTile( // header
                     key: Key(Storage().getKey()),
-                    leading: const Icon(Icons.summarize_outlined),
+                    leading: GestureDetector(child: const Icon(Icons.summarize_outlined), onTap: () {
+                      Clipboard.setData(ClipboardData(text: Storage().route.toString()));
+                      Toastification().show(context: context, title: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    },),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
                 }
