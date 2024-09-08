@@ -175,14 +175,14 @@ class PlanRoute {
         calc = DestinationCalculations(
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
           _allDestinations[index + 1],
-          Storage().settings.getTas().toDouble(),
-          Storage().settings.getFuelBurn().toDouble(), wd, ws);
+          Storage().settings.getTas(),
+          Storage().settings.getFuelBurn(), wd, ws);
       }
       else {
         calc = DestinationCalculations(
             _allDestinations[index], _allDestinations[index + 1],
-            Storage().settings.getTas().toDouble(),
-            Storage().settings.getFuelBurn().toDouble(), wd, ws);
+            Storage().settings.getTas(),
+            Storage().settings.getFuelBurn(), wd, ws);
       }
       calc.calculateTo();
       _allDestinations[index + 1].calculations = calc;

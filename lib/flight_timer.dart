@@ -10,6 +10,12 @@ class FlightTimer {
   bool _expired = false;
 
   FlightTimer(this._up, this._startCount, ValueNotifier timeChange) {
+    if(_up) {
+      _count = 0;
+    }
+    else {
+      _count = _startCount;
+    }
     timeChange.addListener(_timeListener);
   }
 

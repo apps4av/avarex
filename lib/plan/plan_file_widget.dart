@@ -354,9 +354,9 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Cruising Speed')
               ),
 
-              Row(children:[TextButton(child: Text(Storage().settings.getTas().toString()), onPressed: () {
+              Row(children:[TextButton(child: Text(Storage().settings.getTas().round().toString()), onPressed: () {
                 setState(() {
-                  _cruisingSpeed = Storage().settings.getTas().toString();
+                  _cruisingSpeed = Storage().settings.getTas().round().toString();
                 });
               },)]),
 

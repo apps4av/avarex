@@ -188,7 +188,7 @@ class PlanScreenState extends State<PlanScreen> {
                     },
                     child: const Text("Actions"),),
                   Padding(padding: const EdgeInsets.all(5), child:SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                      keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                       onChanged: (value) {
                         double? pValue = double.tryParse(value);
                         Storage().settings.setTas(pValue ?? Storage().settings.getTas());
@@ -197,7 +197,7 @@ class PlanScreenState extends State<PlanScreen> {
                       decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "ASpd")
                   ))),
                   Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                    keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                     onChanged: (value) {
                       double? pValue = double.tryParse(value);
                       Storage().settings.setFuelBurn(pValue ?? Storage().settings.getFuelBurn());
@@ -206,7 +206,7 @@ class PlanScreenState extends State<PlanScreen> {
                     decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "GPH")
                   ))),
                   Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                      keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                       onChanged: (value) {
                         int? pValue = int.tryParse(value);
                         pValue ??= 3000;
