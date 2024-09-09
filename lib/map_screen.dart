@@ -236,7 +236,11 @@ class MapScreenState extends State<MapScreen> {
                   // download new nexrad every 5 minutes
                   resetRadar();
                 }
-                return nexradLayer[value % nexradLength]; // animate every 3 seconds
+                int index = value % (nexradLength * 2);
+                if(index > nexradLength - 1) {
+                  index = nexradLength - 1; // give 2 times the time for latest to stay on
+                }
+                return nexradLayer[index]; // animate every 3 seconds
           })
       );
 
@@ -245,8 +249,12 @@ class MapScreenState extends State<MapScreen> {
           ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
+                int index = value % (nexradLength * 2);
+                if(index > nexradLength - 1) {
+                  index = nexradLength - 1; // give 2 times the time for latest to stay on
+                }
                 return Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
-                  child: Slider(value: (value % nexradLength) / (nexradLength - 1), onChanged: (double value) {  },),
+                  child: Slider(value: index / (nexradLength - 1), onChanged: (double value) {  },),
               );
           })
       );
