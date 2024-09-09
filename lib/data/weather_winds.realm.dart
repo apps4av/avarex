@@ -13,6 +13,7 @@ class WeatherWinds extends _WeatherWinds
     ObjectId id,
     String station,
     int utcMs,
+    String w0k,
     String w3k,
     String w6k,
     String w9k,
@@ -26,6 +27,7 @@ class WeatherWinds extends _WeatherWinds
     RealmObjectBase.set(this, '_id', id);
     RealmObjectBase.set(this, 'station', station);
     RealmObjectBase.set(this, 'utcMs', utcMs);
+    RealmObjectBase.set(this, 'w0k', w0k);
     RealmObjectBase.set(this, 'w3k', w3k);
     RealmObjectBase.set(this, 'w6k', w6k);
     RealmObjectBase.set(this, 'w9k', w9k);
@@ -53,6 +55,11 @@ class WeatherWinds extends _WeatherWinds
   int get utcMs => RealmObjectBase.get<int>(this, 'utcMs') as int;
   @override
   set utcMs(int value) => RealmObjectBase.set(this, 'utcMs', value);
+
+  @override
+  String get w0k => RealmObjectBase.get<String>(this, 'w0k') as String;
+  @override
+  set w0k(String value) => RealmObjectBase.set(this, 'w0k', value);
 
   @override
   String get w3k => RealmObjectBase.get<String>(this, 'w3k') as String;
@@ -111,6 +118,7 @@ class WeatherWinds extends _WeatherWinds
       '_id': id.toEJson(),
       'station': station.toEJson(),
       'utcMs': utcMs.toEJson(),
+      'w0k': w0k.toEJson(),
       'w3k': w3k.toEJson(),
       'w6k': w6k.toEJson(),
       'w9k': w9k.toEJson(),
@@ -130,6 +138,7 @@ class WeatherWinds extends _WeatherWinds
         '_id': EJsonValue id,
         'station': EJsonValue station,
         'utcMs': EJsonValue utcMs,
+        'w0k': EJsonValue w0k,
         'w3k': EJsonValue w3k,
         'w6k': EJsonValue w6k,
         'w9k': EJsonValue w9k,
@@ -144,6 +153,7 @@ class WeatherWinds extends _WeatherWinds
           fromEJson(id),
           fromEJson(station),
           fromEJson(utcMs),
+          fromEJson(w0k),
           fromEJson(w3k),
           fromEJson(w6k),
           fromEJson(w9k),
@@ -166,6 +176,7 @@ class WeatherWinds extends _WeatherWinds
           mapTo: '_id', primaryKey: true),
       SchemaProperty('station', RealmPropertyType.string),
       SchemaProperty('utcMs', RealmPropertyType.int),
+      SchemaProperty('w0k', RealmPropertyType.string),
       SchemaProperty('w3k', RealmPropertyType.string),
       SchemaProperty('w6k', RealmPropertyType.string),
       SchemaProperty('w9k', RealmPropertyType.string),

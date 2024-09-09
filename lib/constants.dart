@@ -37,7 +37,6 @@ class Constants {
 
   static Color appBarBackgroundColor = Colors.transparent;
   static Color waypointBackgroundColor = Colors.black26.withAlpha(156);
-  static Color measureBackgroundColor = Colors.black26.withAlpha(156);
 
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
   static Color bottomNavBarIconColor = Colors.white;

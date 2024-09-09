@@ -1,6 +1,7 @@
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 
 import '../constants.dart';
 import '../storage.dart';
@@ -118,6 +119,7 @@ class TextualWeatherProduct extends Product {
       tokens[1] = tokens[1].replaceAll("\\s+", " ");
       List<String> winds = tokens[1].split(" ");
       List<String> alts = tokens[0].split(" ");
+      String w0k = "";
       String w3k = "";
       String w6k = "";
       String w9k = "";
@@ -176,8 +178,11 @@ class TextualWeatherProduct extends Product {
           w39k = winds[i - 2];
         }
       }
+      if(coordinate != null) {
+        w0k = WindsCache.getWind0kFromMetar(coordinate!);
+      }
       WindsAloft wa = WindsAloft(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
-          w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
+          w0k, w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
       Storage().winds.put(wa);
     }
     catch (e) {}

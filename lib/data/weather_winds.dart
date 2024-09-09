@@ -11,6 +11,7 @@ class _WeatherWinds {
 
   late String station;
   late int utcMs;
+  late String w0k;
   late String w3k;
   late String w6k;
   late String w9k;

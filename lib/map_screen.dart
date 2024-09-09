@@ -883,7 +883,7 @@ class MapScreenState extends State<MapScreen> {
               for(LatLng point in points)
                 Marker(point: point, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
               for(int calculationN = 0; calculationN < calculations.length; calculationN++)
-                Marker(alignment: Alignment.bottomRight, point: points[calculationN + 1], width: 128, child: Text("${calculations[calculationN].$1.toString()}/${calculations[calculationN].$2.toString()}\u00b0", style: TextStyle(backgroundColor: Constants.measureBackgroundColor),))
+                Marker(alignment: Alignment.bottomRight, point: points[calculationN + 1], width: 128, child: Text("${calculations[calculationN].$1.toString()}/${calculations[calculationN].$2.toString()}\u00b0", style: TextStyle(backgroundColor: Theme.of(context).cardColor.withOpacity(0.6)),))
             ],
           );
         },

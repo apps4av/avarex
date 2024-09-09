@@ -31,7 +31,7 @@ import 'package:avaremp/weather/winds_aloft.dart';
 class RealmHelper {
 
 
-  static const int _schemaVersion = 11;
+  static const int _schemaVersion = 12;
 
   // remote syncs
   final List<SchemaObject> _remoteObjects = [
@@ -577,6 +577,7 @@ class RealmHelper {
     WeatherWinds object = WeatherWinds(ObjectId(),
       wa.station,
       wa.expires.millisecondsSinceEpoch,
+      wa.w0k,
       wa.w3k,
       wa.w6k,
       wa.w9k,
@@ -608,6 +609,7 @@ class RealmHelper {
         WeatherWinds object = WeatherWinds(ObjectId(),
             w.station,
             w.expires.millisecondsSinceEpoch,
+            w.w0k,
             w.w3k,
             w.w6k,
             w.w9k,
@@ -631,6 +633,7 @@ class RealmHelper {
       return WindsAloft(
         object.station,
         DateTime.fromMillisecondsSinceEpoch(object.utcMs),
+        object.w0k,
         object.w3k,
         object.w6k,
         object.w9k,
@@ -654,6 +657,7 @@ class RealmHelper {
       return WindsAloft(
         e.station,
         DateTime.fromMillisecondsSinceEpoch(e.utcMs),
+        e.w0k,
         e.w3k,
         e.w6k,
         e.w9k,

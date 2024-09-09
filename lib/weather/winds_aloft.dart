@@ -5,7 +5,7 @@ import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
 
 class WindsAloft extends Weather {
-  String? w0k; // this optionally comes from metar.
+  String w0k; // this optionally comes from metar.
   String w3k;
   String w6k;
   String w9k;
@@ -16,7 +16,7 @@ class WindsAloft extends Weather {
   String w34k;
   String w39k;
 
-  WindsAloft(super.station, super.expires, this.w3k, this.w6k, this.w9k, this.w12k, this.w18k, this.w24k, this.w30k, this.w34k, this.w39k);
+  WindsAloft(super.station, super.expires, this.w0k, this.w3k, this.w6k, this.w9k, this.w12k, this.w18k, this.w24k, this.w30k, this.w34k, this.w39k);
 
   (int?, int?) decodeWind(String wind) {
 
@@ -65,6 +65,7 @@ class WindsAloft extends Weather {
     w9k = w9k.isEmpty ? w12k : w9k;
     w6k = w6k.isEmpty ? w9k : w6k;
     w3k = w3k.isEmpty ? w6k : w3k;
+    w0k = w0k.isEmpty ? w3k : w0k;
 
     if (altitude < 0) {
       return (0, 0);
@@ -73,7 +74,7 @@ class WindsAloft extends Weather {
       higherAltitude = 3000;
       lowerAltitude = 0;
       wHigher = w3k;
-      wLower = w0k ?? w3k;
+      wLower = w0k;
     }
     else if (altitude >= 3000 && altitude < 6000) {
       higherAltitude = 6000;
@@ -151,6 +152,9 @@ class WindsAloft extends Weather {
 
   String getWindAtAltitudeRaw(int altitude) { // dir, speed
 
+    if (altitude == 0) {
+      return w0k;
+    }
     if (altitude == 3000) {
       return w3k;
     }
@@ -186,6 +190,7 @@ class WindsAloft extends Weather {
     Map<String, Object?> map  = {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
+      "w0k": w0k,
       "w3k": w3k,
       "w6k": w6k,
       "w9k": w9k,
@@ -204,6 +209,7 @@ class WindsAloft extends Weather {
     return WindsAloft(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
+      maps['w0k'] as String,
       maps['w3k'] as String,
       maps['w6k'] as String,
       maps['w9k'] as String,
@@ -219,7 +225,7 @@ class WindsAloft extends Weather {
 
   List<(String, String)> toList() {
     List<(String, String)> winds = [];
-    for(double altitude = 3000; altitude < 42000; altitude += 3000) {
+    for(double altitude = 0; altitude < 42000; altitude += 3000) {
       double? speed;
       double? dir;
       (dir, speed) = getWindAtAltitude(altitude);

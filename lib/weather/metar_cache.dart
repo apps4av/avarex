@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,6 +37,22 @@ class MetarCache extends WeatherCache {
       }
     }
     Storage().realmHelper.addMetars(metars);
+  }
+
+  // Get Closets Metar of this coordinate
+  Metar? getClosestMetar(LatLng coordinate) {
+    GeoCalculations geo = GeoCalculations();
+    double distance = 25; // do not use metars more than 25 miles away
+    Metar? selected;
+    List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
+    for(Metar m in metars) {
+      double d = geo.calculateDistance(m.coordinate, coordinate);
+      if(d < distance) {
+        selected = m;
+        distance = d;
+      }
+    }
+    return selected;
   }
 
 }

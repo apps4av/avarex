@@ -7,6 +7,8 @@ import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'metar.dart';
+
 
 class WindsCache extends WeatherCache {
 
@@ -83,7 +85,8 @@ class WindsCache extends WeatherCache {
         if(expires == null) {
           continue;
         }
-        WindsAloft w = WindsAloft(station, expires, k3, k6, k9, k12, k18, k24, k30, k34, k39);
+
+        WindsAloft w = WindsAloft(station, expires, await getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
         winds.add(w);
       }
       catch (e) {}
@@ -113,6 +116,28 @@ class WindsCache extends WeatherCache {
       return(null, null);
     }
     return(w.getWindAtAltitude(altitude));
+  }
+
+  static String getWind0kFromMetar(LatLng coordinate) {
+    Metar? m = Storage().metar.getClosestMetar(coordinate);
+    String k0 = "";
+    if(m != null) {
+      String? wd;
+      String? ws;
+      (wd, ws) = Metar.getWind(m.text);
+      if(wd != null && ws != null) {
+        try {
+          int wdInt = int.parse(wd) ~/ 10;
+          int wsInt = int.parse(ws);
+          if(wsInt > 99) {
+            wsInt = 99; // this is crazy.
+          }
+          k0 = wdInt.toString().padLeft(2, "0") + wsInt.toString().padLeft(2, "0");
+        }
+        catch (e) {}
+      }
+    }
+    return k0;
   }
 
   static const Map<String, LatLng> _stationMap = {
