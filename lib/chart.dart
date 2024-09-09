@@ -18,7 +18,7 @@ class Chart {
   Color color;
   bool enabled;
   Download download;
-  ValueNotifier<int> progress = ValueNotifier<int>(0); // 0 to 100 and <0 for error
+  ValueNotifier<int> progress; // 0 to 100 and <0 for error
 
   Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download);
 

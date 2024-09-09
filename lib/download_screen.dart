@@ -36,14 +36,31 @@ class DownloadScreenState extends State<DownloadScreen> {
 
   bool _nextCycle = false;
 
-  DownloadScreenState() {
+  @override
+  void initState() {
+    super.initState();
+    for (ChartCategory cg in _allCharts) {
+      for (Chart chart in cg.charts) {
+        _getChartStateFromLocal(chart); // start with reading from disk async
+      }
+    }
+    Storage().downloadManager.downloads.addListener(_finishedListener);
+  }
+
+  @override
+  void dispose() {
+    Storage().downloadManager.downloads.removeListener(_finishedListener);
+    super.dispose();
+  }
+
+  // this is needed to sync when downloads are complete
+  void _finishedListener() {
     for (ChartCategory cg in _allCharts) {
       for (Chart chart in cg.charts) {
         _getChartStateFromLocal(chart); // start with reading from disk async
       }
     }
   }
-
 
   // show regions file in a modal dialog using widgetzoom
   void _showMap() {

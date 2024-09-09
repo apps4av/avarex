@@ -1,10 +1,14 @@
 
+import 'package:flutter/material.dart';
+
 import 'chart.dart';
 
 
 class DownloadManager {
 
   final List<Chart> _charts = [];
+
+  final ValueNotifier<int> downloads = ValueNotifier<int>(0);
 
   Chart? _findChart(Chart chart) {
     for (Chart c in _charts) {
@@ -39,6 +43,7 @@ class DownloadManager {
           c.subtitle = "Download Success";
           c.enabled = true;
           _charts.remove(c);
+          downloads.value++;
         }
         else if (progress < 0) {
           c.subtitle = "Download Failed";
@@ -78,6 +83,7 @@ class DownloadManager {
         else if(100 == progress) {
           chart.enabled = true;
           _charts.remove(c);
+          downloads.value++;
         }
         else if(progress < 0) {
           chart.enabled = true;
