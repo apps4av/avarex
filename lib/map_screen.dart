@@ -69,14 +69,14 @@ class MapScreenState extends State<MapScreen> {
   final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
 
-  Future<bool> showDestination(BuildContext context, Destination destination) async {
+  Future<bool> showDestination(BuildContext context, List<Destination> destinations) async {
     bool? exitResult = await showModalBottomSheet(
       context: context,
       showDragHandle: true,
       useSafeArea: true,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return LongPressWidget(destination: destination);
+        return LongPressWidget(destinations: destinations);
       },
     );
     return exitResult ?? false;
@@ -193,7 +193,7 @@ class MapScreenState extends State<MapScreen> {
       onLongPress: (tap, point) async {
         List<Destination> items = await MainDatabaseHelper.db.findNear(point);
         setState(() {
-          showDestination(this.context, items[0]);
+          showDestination(this.context, items);
         });
       },
       onPointerDown: (PointerDownEvent event, position) { // calculate down pointers here

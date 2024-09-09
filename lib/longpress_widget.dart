@@ -25,9 +25,9 @@ import 'weather/metar.dart';
 import 'package:avaremp/destination/nav.dart';
 
 class LongPressWidget extends StatefulWidget {
-  final Destination destination;
+  final List<Destination> destinations;
 
-  const LongPressWidget({super.key, required this.destination});
+  const LongPressWidget({super.key, required this.destinations});
 
   @override
   State<StatefulWidget> createState() => LongPressWidgetState();
@@ -98,7 +98,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
   Widget build(BuildContext context) {
 
     return FutureBuilder(
-        future: LongPressFuture(widget.destination).getAll(),
+        future: LongPressFuture(widget.destinations[0]).getAll(),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
@@ -120,8 +120,8 @@ class LongPressWidgetState extends State<LongPressWidget> {
     // general direction from where we are
     GeoCalculations geo = GeoCalculations();
     LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
-    double distance = geo.calculateDistance(ll, widget.destination.coordinate);
-    double bearing = geo.calculateBearing(ll, widget.destination.coordinate);
+    double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
+    double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, geo.getVariation(ll))}");
     String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
     String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}";
@@ -144,17 +144,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
       airportDiagram = Center(child: ad);
     }
 
-
     int? metarPage;
     int? notamPage;
     int? saaPage;
     int? windsPage;
     Weather? winds;
-    String? station = WindsCache.locateNearestStation(widget.destination.coordinate);
+    String? station = WindsCache.locateNearestStation(widget.destinations[0].coordinate);
     if(station != null) {
       winds = Storage().winds.get(station);
     }
-    Widget? sounding = Sounding.getSoundingImage(widget.destination.coordinate, context);
+    Widget? sounding = Sounding.getSoundingImage(widget.destinations[0].coordinate, context);
 
     if(future.showDestination is AirportDestination) {
       Weather? w = Storage().metar.get(future.showDestination.locationID);
@@ -181,7 +180,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             if (snapshot.hasData) {
               Weather? w2 = snapshot.data;
               if (w2 != null) {
-                return SingleChildScrollView(child:Text((w2 as Notam).text));
+                return SingleChildScrollView(child:Text("NOTAMs - ${(w2 as Notam).text}"));
               }
               else {
                 return Container();

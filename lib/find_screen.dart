@@ -32,7 +32,7 @@ class FindScreenState extends State<FindScreen> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return LongPressWidget(destination: destination);
+        return LongPressWidget(destinations: [destination]);
       },
     );
     return exitResult ?? false;

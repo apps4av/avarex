@@ -3,6 +3,10 @@
 *.log
 *.pyc
 *.swp
+*.xccconfig
+*.cc
+*.lock
+*.cmake
 generated_plugin*
 pubspec.lock
 .DS_Store
