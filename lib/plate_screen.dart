@@ -207,7 +207,7 @@ class PlateScreenState extends State<PlateScreen> {
                         items: plates.map((String item) {
                           return DropdownMenuItem<String>(
                               value: item,
-                              child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize,)),
+                              child: ListTile(leading: Icon(Icons.receipt, color: _getPlateColor(item)), title: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize,))),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -256,6 +256,35 @@ class PlateScreenState extends State<PlateScreen> {
 
     ]
     ));
+  }
+  
+  Color _getPlateColor(String name) {
+    if(name.startsWith("APD")) {
+      return Colors.green;
+    }
+    else if(name.startsWith("CSUP")) {
+      return Colors.blue;
+    }
+    else if(name.startsWith("DP")) {
+      return Colors.orange;
+    }
+    else if(name.startsWith("IAP")) {
+      return Colors.purpleAccent;
+    }
+    else if(name.startsWith("STAR")) {
+      return Colors.cyan;
+    }
+    else if(name.startsWith("MIN")) {
+      return Colors.yellow;
+    }
+    else if(name.startsWith("HOT")) {
+      return Colors.red;
+    }
+    else if(name.startsWith("LAH")) {
+      return Colors.red;
+    }
+
+    return Colors.grey;
   }
 }
 
