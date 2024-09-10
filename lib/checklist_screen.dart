@@ -51,9 +51,9 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           }
           String name = lines.removeAt(0);
           //remove trailing empty lines
-          while(!lines.isEmpty)
+          while(lines.isNotEmpty)
           {
-            if(lines[lines.length - 1].length == 0) {
+            if(lines[lines.length - 1].isEmpty) {
                 lines.removeAt(lines.length - 1);
             }
             else {
