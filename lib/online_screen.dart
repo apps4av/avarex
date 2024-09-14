@@ -47,8 +47,10 @@ class OnlineScreenState extends State<OnlineScreen> {
                   builder: (BuildContext context) =>
                       Dialog.fullscreen(
                           child: Stack(children:[
-                            Padding(padding: const EdgeInsets.fromLTRB(40, 50, 40, 0),
-                                child:ProgressButtonMessageInputWidget(
+                            const Padding(padding: EdgeInsets.fromLTRB(40, 50, 40, 0),
+                                child: Text("Registration is disabled for Beta testing."),
+                                //ZKZK realm is going out of business, do find a new database
+/*                                 child:ProgressButtonMessageInputWidget(
                                     "To register a new account, enter an email and password then press Submit.", "Email", email, "Password", password, "Submit", Storage().realmHelper.registerUser,
                                         (result, input1, input2) {
                                           if(result) {
@@ -59,6 +61,7 @@ class OnlineScreenState extends State<OnlineScreen> {
                                           };
                                         },
                                     "You are now registered.")
+*/
                             ),
                             Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
                           ])
