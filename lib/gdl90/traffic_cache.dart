@@ -67,7 +67,8 @@ class Traffic {
             if(!isAudibleAlertsEnabled) // show muted symbol
               const Icon(Icons.volume_off, color: Colors.black, size: 20)
           ]),
-          CustomPaint(painter: TrafficVerticalStatusPainter(this))        
+          CustomPaint(painter: TrafficVerticalStatusPainter(this)),
+          CustomPaint(painter: TrafficIdPainter(this))  // TODO: Maybe make this switchable config item down the line?
     ]);
   }
 
@@ -563,6 +564,42 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
   static int getFlightLevelDiff(final Traffic traffic) {
     return -(traffic.verticalOwnshipDistanceFt / 100).round();
   }  
+}
+
+/// Painter for traffic identifier (N-number if in ADSB message, ICAO number if not)
+class TrafficIdPainter extends AbstractCachedCustomPainter {
+  static const double _trafficIdFontSize = 16;
+  static final _boundingBoxPaint = Paint()..color = const Color.fromRGBO(0, 0, 0, .2);
+  static const _trafficIdTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Colors.white, fontWeight: FontWeight.w600, fontSize: _trafficIdFontSize);
+  static const double _offsetX = 24, _offsetY = 24;
+  static const double _charPixeslWidth = 11;
+
+  final String _trafficId;
+  final bool _isAirborne;
+
+  TrafficIdPainter(final Traffic t): 
+    _trafficId = t.message.callSign.isNotEmpty ? t.message.callSign : t.message.icao.toString(),
+    _isAirborne = t.message.airborne,
+    super([ (t.message.callSign.isNotEmpty ? t.message.callSign : t.message.icao.toString()).hashCode, t.message.airborne ? 1 : 0 ], 
+      false, Size((t.message.callSign.isNotEmpty ? t.message.callSign : t.message.icao.toString()).length*_charPixeslWidth+24, 42));
+    
+  @override
+  void freshPaint(ui.Canvas canvas) {
+    if (!_isAirborne) { // Don't clutter UI with ID's of aircraft on the ground--airports would be a mess
+      return;
+    }
+    // paint transluscent bounding box
+    final ui.Path statusBoundingBox = ui.Path()
+      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(_trafficId.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+32));
+    canvas.drawPath(statusBoundingBox, _boundingBoxPaint);
+    // paint traffic ID
+    final trafficIdTextPainter = TextPainter(text: TextSpan(text: _trafficId, style: _trafficIdTextStyle), textDirection: TextDirection.ltr);
+    trafficIdTextPainter.layout(
+      minWidth: 0,
+      maxWidth: _trafficId.length*_charPixeslWidth,
+    );    
+    trafficIdTextPainter.paint(canvas, const Offset(_offsetX, _offsetY));    
+  }
 }
 
 /// Paints an AC 20-172 alert overlay (orange circle for nearby alert, red box for critical resolution alert)
