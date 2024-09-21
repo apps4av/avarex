@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/flight_status.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -206,8 +207,8 @@ class PlateScreenState extends State<PlateScreen> {
                         value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
                         items: plates.map((String item) {
                           return DropdownMenuItem<String>(
-                              value: item,
-                              child: ListTile(leading: Icon(Icons.receipt, color: _getPlateColor(item)), title: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize,))),
+                            value: item,
+                            child: AutoSizeText(item, minFontSize: 2, maxLines: 1, style: TextStyle(decoration: TextDecoration.underline, decorationThickness: 3, decorationColor: _getPlateColor(item))),
                           );
                         }).toList(),
                         onChanged: (value) {

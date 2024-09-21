@@ -367,21 +367,21 @@ class InstrumentListState extends State<InstrumentList> {
       shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      footer: const Padding(padding: EdgeInsets.all(10)),
+      footer: GestureDetector(
+        onTap:() {
+          Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+        },
+        child: const Icon(Icons.arrow_circle_left)
+      ),
       header: Column(children:[
+        Flexible(flex:1, child:
         GestureDetector(
           onTap:() {
             Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
           },
-          child: const Icon(Icons.arrow_circle_right, size: 20)
-        ),
-        const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info, size: 24,)),
-        GestureDetector(
-            onTap:() {
-              Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
-            },
-            child: const Icon(Icons.arrow_circle_left, size: 20)
-        )
+          child: const Icon(Icons.arrow_circle_right)
+        )),
+        const Flexible(flex:1, child: Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info))),
       ]),
       buildDefaultDragHandles: false,
       children: <Widget>[

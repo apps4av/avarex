@@ -271,6 +271,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 onPressed: () { // go to plate
                   if(future.showDestination is AirportDestination) {
                     Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
+                    Storage().realmHelper.addRecent(future.showDestination);
                   }
                   MainScreenState.gotoPlate();
                   Navigator.of(context).pop(); // hide bottom sheet
