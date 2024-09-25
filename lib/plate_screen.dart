@@ -208,7 +208,16 @@ class PlateScreenState extends State<PlateScreen> {
                         items: plates.map((String item) {
                           return DropdownMenuItem<String>(
                             value: item,
-                            child: AutoSizeText(item, minFontSize: 2, maxLines: 1, style: TextStyle(decoration: TextDecoration.underline, decorationThickness: 3, decorationColor: _getPlateColor(item))),
+                            child: Row(children:[
+                              Expanded(child:
+                                Container(
+                                  decoration: BoxDecoration(color: _getPlateColor(item),
+                                    borderRadius: BorderRadius.circular(5),),
+                                    child: Padding(padding: const EdgeInsets.all(5), child:
+                                      AutoSizeText(item, minFontSize: 2, maxLines: 1,)),
+                                )
+                              )
+                            ])
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -267,7 +276,7 @@ class PlateScreenState extends State<PlateScreen> {
       return Colors.blue;
     }
     else if(name.startsWith("DP")) {
-      return Colors.orange;
+      return Colors.pinkAccent;
     }
     else if(name.startsWith("IAP")) {
       return Colors.purpleAccent;
@@ -276,7 +285,7 @@ class PlateScreenState extends State<PlateScreen> {
       return Colors.cyan;
     }
     else if(name.startsWith("MIN")) {
-      return Colors.yellow;
+      return Colors.brown;
     }
     else if(name.startsWith("HOT")) {
       return Colors.red;
