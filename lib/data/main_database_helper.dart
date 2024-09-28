@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -86,17 +87,7 @@ class MainDatabaseHelper {
       List<String> segments = match.split(".");
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
-        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where trim(airport_identifier) like '$airport%' and trim(transition_identifier) != 'ALL'";
-        if (segments.length >= 2) {
-          // add ID
-          qry += " and trim(sid_star_approach_identifier) like '${segments[1]
-              .toUpperCase()}%'";
-        }
-        if (segments.length >= 3) {
-          // add transition
-          qry += " and trim(transition_identifier) like '${segments[2]
-              .toUpperCase()}%'";
-        }
+        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where trim(airport_identifier) like '$airport%' and trim(transition_identifier) != 'ALL' and trim(transition_identifier) != ''";
         mapsProcedures = await db.rawQuery(qry);
       }
     }
@@ -119,7 +110,7 @@ class MainDatabaseHelper {
       // find the airport for this
       Destination? da = await findAirport(airport);
       if(null != da) {
-        // all procedures get airport coordinate
+        // all procedures get airport coordinate, procedures always 3 segments airport.sid.transition
         List<Destination> d = List.generate(mapsProcedures.length, (i) {
           String lid = (mapsProcedures[i]['airport_identifier'] as String).trim();
           String transition = (mapsProcedures[i]['transition_identifier'] as String).trim();
@@ -333,55 +324,64 @@ class MainDatabaseHelper {
       return null;
     }
 
-    return AirwayDestination.fromMap(maps);
+    return AirwayDestination.fromMap(maps[0]["name"], maps);
   }
 
   // procedure is same as airway as its a bunch of points
-  Future<AirwayDestination?> findProcedure(String locationID) async {
-    List<Map<String, dynamic>> maps = [];
-    List<String> segments = locationID.split(".");
-    String qry = "";
-    // find all segments for the ID including 'ALL' if transitions is specified
-    if(segments.length == 2) {
-      qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and trim(transition_identifier) = ''";
-    }
-    else if(segments.length == 3) {
-      qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and (trim(transition_identifier) = '${segments[2].toUpperCase()}' or trim(transition_identifier) = 'ALL')";
-    }
-    else {
+  Future<AirwayDestination?> findProcedure(String procedureName) async {
+    List<Map<String, dynamic>> maps1 = [];
+    List<Map<String, dynamic>> maps2 = [];
+    List<String> segments = procedureName.split(".");
+    String? qry1;
+    String? qry2;
+    if(segments.length != 3) {
       return null;
     }
+
+    // sid/star/transition
+    qry1 = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and trim(transition_identifier) = '${segments[2].toUpperCase()}' order by trim(sequence_number) asc";
+    qry2 = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and (trim(transition_identifier) = 'ALL' or trim(transition_identifier) = '') order by trim(sequence_number) asc";
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery(qry);
+      maps1 = await db.rawQuery(qry1);
+      maps2 = await db.rawQuery(qry2);
     }
-    if(maps.isEmpty) {
+    if(maps1.isEmpty && maps2.isEmpty) {
       return null;
     }
 
     // resolve everything and add to the list
-    List<Map<String, dynamic>> maps2 = [];
-    for(var m in maps) {
+    List<Map<String, dynamic>> mapsCombined = [];
+    for(var m in (maps1 + maps2)) {
+      String id = m['fix_identifier'].trim();
       Destination? d;
-      d = await findFix(m['fix_identifier'].trim());
+      d = await findFix(id);
       if(null == d) {
-        d = await findNav(m['fix_identifier'].trim());
+        d = await findNav(id);
         if(null == d) {
-          continue;
+          // runway
+          // find runway if not a fix or a nav
+          AirportDestination? da = await findAirport(segments[0]);
+          if(da != null) {
+            LatLng? ll = await Airport.findCoordinatesFromRunway(da, id);
+            if(ll != null) {
+              d = GpsDestination(locationID: id, type: Destination.typeGps, facilityName: id, coordinate: ll);
+            }
+          }
         }
+      }
+      if(null == d) {
+        continue;
       }
       Map<String, dynamic> m2 = Map.from(m);
       // name is required so is lat/lon
-      m2["name"] = locationID;
+      m2["name"] = d.locationID;
       m2["Latitude"] = d.coordinate.latitude;
       m2["Longitude"] = d.coordinate.longitude;
-      maps2.add(m2);
+      mapsCombined.add(m2);
     }
-
-    return AirwayDestination.fromMap(maps2);
-
+    return AirwayDestination.fromMap(procedureName, mapsCombined);
   }
-
 
 }
 

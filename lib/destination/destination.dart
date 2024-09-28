@@ -291,7 +291,7 @@ class AirwayDestination extends Destination {
     required this.points
   });
 
-  factory AirwayDestination.fromMap(List<Map<String, dynamic>> maps) {
+  factory AirwayDestination.fromMap(String name, List<Map<String, dynamic>> maps) {
 
     // airway has multiple entries for sequences
     List<Destination> ret = List.generate(maps.length, (i) {
@@ -304,9 +304,9 @@ class AirwayDestination extends Destination {
     });
 
     return AirwayDestination(
-        locationID: ret[0].locationID,
+        locationID: name,
         type: ret[0].type,
-        facilityName: ret[0].facilityName,
+        facilityName: name,
         coordinate: ret[0].coordinate,
         points: ret);
   }

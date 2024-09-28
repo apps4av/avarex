@@ -65,7 +65,23 @@ class Airway {
   // Find all points between start and end on an airway
   static List<Destination> find(Destination start, AirwayDestination airway, Destination end) {
 
+
     List<Destination> ret = [];
+
+    if(airway.locationID.contains(".")) {
+      // procedure
+      for(Destination d in airway.points) {
+        Destination n = Destination(locationID: airway.locationID,
+            type: d.type,
+            facilityName: d.facilityName,
+            coordinate: d.coordinate);
+        n.secondaryName = d.locationID;
+        ret.add(n);
+      }
+
+      return ret;
+    }
+
     List<LatLng> coordinates = airway.points.map((e) => e.coordinate).toList();
     GeoCalculations calc = GeoCalculations();
 

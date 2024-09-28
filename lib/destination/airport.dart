@@ -9,6 +9,41 @@ import 'package:latlong2/latlong.dart';
 
 class Airport {
 
+  static Future<LatLng?> findCoordinatesFromRunway(AirportDestination da, String runwayName) async {
+    // runway
+    // find runway if not a fix or a nav
+    LatLng? ll;
+    RegExp regexp = RegExp(r"RW(?<runway>\d+[LRC]?)");
+    RegExpMatch? runway = regexp.firstMatch(runwayName);
+    if(null == runway) {
+      return ll;
+    }
+    String? name = runway.namedGroup("runway");
+    if(name == null) {
+      return ll;
+    }
+    for (var r in da.runways) {
+      try {
+        if (name == r['LEIdent']) {
+          double lat = double.parse(r['LELatitude']);
+          double lon = double.parse(r['LELongitude']);
+          ll = LatLng(lat, lon);
+          break;
+        }
+        if (name == r['HEIdent']) {
+          double lat = double.parse(r['HELatitude']);
+          double lon = double.parse(r['HELongitude']);
+          ll = LatLng(lat, lon);
+          break;
+        }
+      }
+      catch(e) {
+        continue;
+      }
+    }
+    return ll;
+  }
+
   static ListView parseFrequencies(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
@@ -324,6 +359,7 @@ class RunwayPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
   return false;
   }
+
 
 
 }
