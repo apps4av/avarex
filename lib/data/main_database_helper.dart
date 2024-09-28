@@ -8,7 +8,6 @@ import 'package:sqflite/sqflite.dart';
 
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/saa.dart';
-import 'cifp.dart';
 
 class MainDatabaseHelper {
   MainDatabaseHelper._();
@@ -53,6 +52,8 @@ class MainDatabaseHelper {
   Future<List<Destination>> findDestinations(String match) async {
     List<Map<String, dynamic>> maps = [];
     List<Map<String, dynamic>> mapsAirways = [];
+    List<Map<String, dynamic>> mapsProcedures = [];
+    String? airport;
     if(match.startsWith("!") && match.endsWith("!")) {
       //address between ! and !
       String address = match.substring(1, match.length - 1);
@@ -80,12 +81,29 @@ class MainDatabaseHelper {
           "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
               "order by cast(sequence as integer) asc limit 1"
       );
+
+      // CIFP procedures
+      List<String> segments = match.split(".");
+      if(segments.isNotEmpty) {
+        airport = segments[0].toUpperCase();
+        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where trim(airport_identifier) like '$airport%' and trim(transition_identifier) != 'ALL'";
+        if (segments.length >= 2) {
+          // add ID
+          qry += " and trim(sid_star_approach_identifier) like '${segments[1]
+              .toUpperCase()}%'";
+        }
+        if (segments.length >= 3) {
+          // add transition
+          qry += " and trim(transition_identifier) like '${segments[2]
+              .toUpperCase()}%'";
+        }
+        mapsProcedures = await db.rawQuery(qry);
+      }
     }
 
     List<Destination> ret = List.generate(maps.length, (i) {
       return Destination.fromMap(maps[i]);
     });
-
 
     if(mapsAirways.isNotEmpty) {
       Destination d = Destination(
@@ -95,6 +113,26 @@ class MainDatabaseHelper {
           coordinate: LatLng(mapsAirways[0]['Latitude'] as double, mapsAirways[0]['Longitude'] as double),
         );
       ret.add(d);
+    }
+
+    if(mapsProcedures.isNotEmpty && airport != null) {
+      // find the airport for this
+      Destination? da = await findAirport(airport);
+      if(null != da) {
+        // all procedures get airport coordinate
+        List<Destination> d = List.generate(mapsProcedures.length, (i) {
+          String lid = (mapsProcedures[i]['airport_identifier'] as String).trim();
+          String transition = (mapsProcedures[i]['transition_identifier'] as String).trim();
+          String id = (mapsProcedures[i]['sid_star_approach_identifier'] as String).trim();
+          String name = "$lid.$id${transition.isEmpty ? '' : '.'}$transition"; // transition is optional
+          return Destination(locationID: name,
+              facilityName: name,
+              type: Destination.typeAirway,
+              coordinate: da.coordinate);
+        });
+        ret.addAll(d);
+      }
+
     }
 
     return ret;
@@ -262,7 +300,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from nav where LocationID = '$nav'");
+      maps = await db.rawQuery("select * from nav where LocationID = '$nav' limit 1");
     }
     if(maps.isEmpty) {
       return null;
@@ -275,7 +313,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from fix where LocationID = '$fix'");
+      maps = await db.rawQuery("select * from fix where LocationID = '$fix' limit 1");
     }
     if(maps.isEmpty) {
       return null;
@@ -298,29 +336,52 @@ class MainDatabaseHelper {
     return AirwayDestination.fromMap(maps);
   }
 
-  Future<List<CifpSidStarApproachLine>> findCifpStar(String airport, String id, String transition) async {
+  // procedure is same as airway as its a bunch of points
+  Future<AirwayDestination?> findProcedure(String locationID) async {
     List<Map<String, dynamic>> maps = [];
+    List<String> segments = locationID.split(".");
+    String qry = "";
+    // find all segments for the ID including 'ALL' if transitions is specified
+    if(segments.length == 2) {
+      qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and trim(transition_identifier) = ''";
+    }
+    else if(segments.length == 3) {
+      qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and (trim(transition_identifier) = '${segments[2].toUpperCase()}' or trim(transition_identifier) = 'ALL')";
+    }
+    else {
+      return null;
+    }
     final db = await database;
     if (db != null) {
-      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='E' and (trim(transition_identifier)='$transition' or trim(transition_identifier)='ALL')";
       maps = await db.rawQuery(qry);
     }
-    return List.generate(maps.length, (i) {
-      return CifpSidStarApproachLine.fromMap(maps[i]);
-    });
+    if(maps.isEmpty) {
+      return null;
+    }
+
+    // resolve everything and add to the list
+    List<Map<String, dynamic>> maps2 = [];
+    for(var m in maps) {
+      Destination? d;
+      d = await findFix(m['fix_identifier'].trim());
+      if(null == d) {
+        d = await findNav(m['fix_identifier'].trim());
+        if(null == d) {
+          continue;
+        }
+      }
+      Map<String, dynamic> m2 = Map.from(m);
+      // name is required so is lat/lon
+      m2["name"] = locationID;
+      m2["Latitude"] = d.coordinate.latitude;
+      m2["Longitude"] = d.coordinate.longitude;
+      maps2.add(m2);
+    }
+
+    return AirwayDestination.fromMap(maps2);
+
   }
 
-  Future<List<CifpSidStarApproachLine>> findCifpSid(String airport, String id, String transition) async {
-    List<Map<String, dynamic>> maps = [];
-    final db = await database;
-    if (db != null) {
-      String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '$airport' and trim(sid_star_approach_identifier) = '$id' and subsection_code='D' and trim(transition_identifier)='$transition'";
-      maps = await db.rawQuery(qry);
-    }
-    return List.generate(maps.length, (i) {
-      return CifpSidStarApproachLine.fromMap(maps[i]);
-    });
-  }
 
 }
 

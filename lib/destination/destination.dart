@@ -332,6 +332,10 @@ class DestinationFactory {
       FixDestination? destination = await MainDatabaseHelper.db.findFix(d.locationID);
       ret = destination ?? d;
     }
+    else if (Destination.isAirway(type) && d.locationID.contains(".")) {
+      AirwayDestination? destination = await MainDatabaseHelper.db.findProcedure(d.locationID);
+      ret = destination ?? d;
+    }
     else if (Destination.isAirway(type)) {
       AirwayDestination? destination = await MainDatabaseHelper.db.findAirway(d.locationID);
       ret = destination ?? d;
