@@ -291,57 +291,54 @@ class LongPressWidgetState extends State<LongPressWidget> {
               aspectRatio: Constants.carouselAspectRatio(context),
             ),
           )),
-        ],
-        ),
-        // add various buttons that expand to diagram
-        Positioned(child: Align(
-          alignment: Alignment.bottomRight,
-          child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-          if (future.pages.length > 1)
-            TextButton(
-                child: const Text("Main"),
-                onPressed: () => _controller.animateToPage(0)
-            ),
-          if (metarPage != null)
-            TextButton(
-                child: const Text("METAR"),
-                onPressed: () => _controller.animateToPage(metarPage!)
-            ),
-          if(notamPage != null)
-            TextButton(
-              child: const Text("NOTAM"),
-              onPressed: () => _controller.animateToPage(notamPage!)
-            ),
-          if(saaPage != null)
-            TextButton(
-                child: const Text("SUA"),
-                onPressed: () => _controller.animateToPage(saaPage!)
-            ),
-          if(windsPage != null)
-            TextButton(
-                child: const Text("Wind"),
-                onPressed: () => _controller.animateToPage(windsPage!)
-          ),
 
-    if(airportDiagram != null)
-            TextButton(
-                child: const Text("AD"),
-                onPressed: () => {
-                  showDialog(context: context,
-                    builder: (BuildContext context) => Dialog.fullscreen(
-                      child: Stack(children:[
-                        InteractiveViewer(child: airportDiagram!),
-                        Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
-                      ]
-                    )
-                  )),
-                }
+          // add various buttons that expand to diagram
+          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end, children:[
+            if (future.pages.length > 1)
+              TextButton(
+                  child: const Text("Main"),
+                  onPressed: () => _controller.animateToPage(0)
+              ),
+            if (metarPage != null)
+              TextButton(
+                  child: const Text("METAR"),
+                  onPressed: () => _controller.animateToPage(metarPage!)
+              ),
+            if(notamPage != null)
+              TextButton(
+                child: const Text("NOTAM"),
+                onPressed: () => _controller.animateToPage(notamPage!)
+              ),
+            if(saaPage != null)
+              TextButton(
+                  child: const Text("SUA"),
+                  onPressed: () => _controller.animateToPage(saaPage!)
+              ),
+            if(windsPage != null)
+              TextButton(
+                  child: const Text("Wind"),
+                  onPressed: () => _controller.animateToPage(windsPage!)
             ),
-          ]
-          )),
-        )),
+
+            if(airportDiagram != null)
+              TextButton(
+                  child: const Text("AD"),
+                  onPressed: () => {
+                    showDialog(context: context,
+                      builder: (BuildContext context) => Dialog.fullscreen(
+                        child: Stack(children:[
+                          InteractiveViewer(child: airportDiagram!),
+                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
+                        ]
+                      )
+                    )),
+                  }
+              ),
+            ]
+            )),
+          ),
       ],
-      )
+      )]),
     );
   }
 }
