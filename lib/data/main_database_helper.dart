@@ -339,6 +339,7 @@ class MainDatabaseHelper {
     List<String> segments = procedureName.split(".");
     String? qry1;
     String? qry2;
+    String lastId = "";
     if(segments.length != 3) {
       return null;
     }
@@ -359,6 +360,10 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsCombined = [];
     for(var m in (maps1 + maps2)) {
       String id = m['fix_identifier'].trim();
+      if(id == lastId) {
+        // duplicates, need to remove
+        continue;
+      }
       Destination? d;
       d = await findFix(id);
       if(null == d) {
@@ -384,6 +389,7 @@ class MainDatabaseHelper {
       m2["Latitude"] = d.coordinate.latitude;
       m2["Longitude"] = d.coordinate.longitude;
       mapsCombined.add(m2);
+      lastId = id;
     }
     return AirwayDestination.fromMap(procedureName, mapsCombined);
   }

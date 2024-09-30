@@ -44,19 +44,32 @@ class PlanRoute {
 
     waypoint.currentAirwayDestinationIndex = 0; // on change to airway, reset it
     waypoint.airwayDestinationsOnRoute = [];
+    List<Destination> points = [];
 
     // adjust airways, nothing to do when airway is not in the middle of points
     int index = _waypoints.indexOf(waypoint);
-    // need a start and end
-    if(index == 0 || index == _waypoints.length - 1) {
-      return;
+    AirwayDestination airway = _waypoints[index].destination as AirwayDestination;
+
+    if(airway.locationID.contains(".")) {
+      // procedure
+      for(Destination d in airway.points) {
+        Destination n = Destination(locationID: airway.locationID,
+            type: d.type,
+            facilityName: d.facilityName,
+            coordinate: d.coordinate);
+        n.secondaryName = d.locationID;
+        points.add(n);
+      }
+    }
+    // need a start and end for airway
+    else if(index > 0 && index < _waypoints.length - 1) {
+      // replace the airway with the new airway with the right points
+      points = Airway.find(
+          _waypoints[index - 1].destination,
+          airway,
+          _waypoints[index + 1].destination);
     }
 
-    // replace the airway with the new airway with the right points
-    List<Destination> points = Airway.find(
-        _waypoints[index - 1].destination,
-        _waypoints[index].destination as AirwayDestination,
-        _waypoints[index + 1].destination);
     if(points.isNotEmpty) {
       waypoint.airwayDestinationsOnRoute = points;
     }
