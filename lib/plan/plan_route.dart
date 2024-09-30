@@ -140,7 +140,7 @@ class PlanRoute {
       _current ??= _waypoints[0];
     }
 
-    if(_waypoints.length < 2) {
+    if(_waypoints.isEmpty) {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNextHighResolution = [];
@@ -243,7 +243,12 @@ class PlanRoute {
 
     if(destinationsNext.isEmpty) {
       // last leg
-      totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
+      if(_allDestinations.isNotEmpty) {
+        totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
+      }
+      else {
+        totalCalculations = null;
+      }
     }
     // sum
     else {
