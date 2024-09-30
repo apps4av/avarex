@@ -123,7 +123,7 @@ class MainDatabaseHelper {
           String name = "$lid.$id${transition.isEmpty ? '' : '.'}$transition"; // transition is optional
           return Destination(locationID: name,
               facilityName: name,
-              type: Destination.typeAirway,
+              type: Destination.typeProcedure,
               coordinate: da.coordinate);
         });
         ret.addAll(d);
@@ -333,7 +333,7 @@ class MainDatabaseHelper {
   }
 
   // procedure is same as airway as its a bunch of points
-  Future<AirwayDestination?> findProcedure(String procedureName) async {
+  Future<ProcedureDestination?> findProcedure(String procedureName) async {
     List<Map<String, dynamic>> maps1 = [];
     List<Map<String, dynamic>> maps2 = [];
     List<String> segments = procedureName.split(".");
@@ -385,13 +385,12 @@ class MainDatabaseHelper {
       }
       Map<String, dynamic> m2 = Map.from(m);
       // name is required so is lat/lon
-      m2["name"] = d.locationID;
       m2["Latitude"] = d.coordinate.latitude;
       m2["Longitude"] = d.coordinate.longitude;
       mapsCombined.add(m2);
       lastId = id;
     }
-    return AirwayDestination.fromMap(procedureName, mapsCombined);
+    return ProcedureDestination.fromMap(procedureName, mapsCombined);
   }
 
 }

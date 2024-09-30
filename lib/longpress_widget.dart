@@ -80,6 +80,9 @@ class LongPressFuture {
     else if(showDestination is AirwayDestination) {
       pages.add(const Text(Destination.typeAirway));
     }
+    else if(showDestination is ProcedureDestination) {
+      pages.add(const Text(Destination.typeProcedure));
+    }
     // SUA for every press
     saa = await MainDatabaseHelper.db.getSaa(destination.coordinate);
   }

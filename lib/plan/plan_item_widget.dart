@@ -23,11 +23,11 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
   Widget build(BuildContext context) {
 
     // different tiles for airways
-    return Destination.isAirway(widget.waypoint.destination.type) ?
+    return Destination.isAirway(widget.waypoint.destination.type) || Destination.isProcedure(widget.waypoint.destination.type) ?
 
     Column(children: [
       ExpansionTile(
-        leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.airwayDestinationsOnRoute.isEmpty ? Colors.red : Theme.of(context).colorScheme.primary),
+        leading: DestinationFactory.getIcon(widget.waypoint.destination.type, widget.waypoint.destinationsOnRoute.isEmpty ? Colors.red : Theme.of(context).colorScheme.primary),
         title: Text(widget.waypoint.destination.locationID, style: TextStyle(color: widget.current ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary),),
         subtitle: Text(widget.waypoint.destination.secondaryName != null ? widget.waypoint.destination.secondaryName! : widget.waypoint.destination.locationID),
         children: <Widget>[
@@ -56,17 +56,17 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
   List<Widget> _buildExpandableContent() {
     List<Widget> columnContent = [];
 
-    List<Destination> destinations = widget.waypoint.airwayDestinationsOnRoute;
+    List<Destination> destinations = widget.waypoint.destinationsOnRoute;
 
     for (int index = 0; index < destinations.length; index++) {
       columnContent.add(
         ListTile(
-          title: Text(destinations[index].secondaryName != null ? destinations[index].secondaryName! : destinations[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.airwayDestinationsOnRoute[widget.waypoint.currentAirwayDestinationIndex] && widget.current) ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
+          title: Text(destinations[index].secondaryName != null ? destinations[index].secondaryName! : destinations[index].locationID, style : TextStyle(color : (destinations[index] == widget.waypoint.destinationsOnRoute[widget.waypoint.currentDestinationIndex] && widget.current) ? Constants.planCurrentColor : Theme.of(context).colorScheme.primary)),
           subtitle: PlanLineWidget(destination: destinations[index],),
           leading: DestinationFactory.getIcon(widget.waypoint.destination.type, Theme.of(context).colorScheme.primary),
           onTap: () {
             setState(() {
-              widget.waypoint.currentAirwayDestinationIndex = widget.waypoint.airwayDestinationsOnRoute.indexOf(destinations[index]);
+              widget.waypoint.currentDestinationIndex = widget.waypoint.destinationsOnRoute.indexOf(destinations[index]);
               widget.onTap();// go to this point in airway
             });
           }

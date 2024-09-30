@@ -208,7 +208,7 @@ class InstrumentListState extends State<InstrumentList> {
         if(Destination.typeGps == d.type) {
           _destination = _truncate(d.facilityName);
         }
-        else if(Destination.typeAirway == d.type && d.secondaryName != null) {
+        else if((Destination.isAirway(d.type) || (Destination.isProcedure(d.type))) && d.secondaryName != null) {
           _destination = _truncate(d.secondaryName!);
         }
         else {
