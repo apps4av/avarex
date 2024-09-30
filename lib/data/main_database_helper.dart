@@ -83,11 +83,16 @@ class MainDatabaseHelper {
               "order by cast(sequence as integer) asc limit 1"
       );
 
-      // CIFP procedures
+      // CIFP procedures all separated by .
       List<String> segments = match.split(".");
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
-        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where trim(airport_identifier) like '$airport%' and trim(transition_identifier) != 'ALL' and trim(transition_identifier) != ''";
+        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
+          " trim(airport_identifier) like '$airport%' and"
+          " trim(transition_identifier) != 'ALL' and" // ALL and empty are continuation of a procedure, ALL for SID/STAR, '' for approach
+          " trim(transition_identifier) != ''"
+          "${segments.length > 1 ? " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'" : ""}"
+          "${segments.length > 2 ? " and trim(transition_identifier) like '${segments[2].toUpperCase()}%'" : ""}";
         mapsProcedures = await db.rawQuery(qry);
       }
     }
