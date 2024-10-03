@@ -121,9 +121,9 @@ class LmfsPlanList {
 }
 
 class LmfsInterface {
-  static const String _avareLmfsUrl = "https://apps4av.net/new/lmfs.php";
-  static const String _avareRegisterUrl = "https://apps4av.net/new/register.php";
-  static const String _avareUnregisterUrl = "https://apps4av.net/new/unregister.php";
+  static const String _avareLmfsUrl = "https://www.apps4av.org/site/lmfs.php";
+  static const String _avareRegisterUrl = "https://www.apps4av.org/site/register.php";
+  static const String _avareUnregisterUrl = "https://www.apps4av.org/site/unregister.php";
   late Map<String, String> _params;
   late String error;
 
