@@ -88,9 +88,7 @@ class MainDatabaseHelper {
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
         String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
-          " trim(airport_identifier) like '$airport%' and"
-          " trim(transition_identifier) != 'ALL' and" // ALL and empty are continuation of a procedure, ALL for SID/STAR, '' for approach
-          " trim(transition_identifier) != ''"
+          " trim(airport_identifier) like '$airport%' "
           "${segments.length > 1 ? " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'" : ""}"
           "${segments.length > 2 ? " and trim(transition_identifier) like '${segments[2].toUpperCase()}%'" : ""}";
         mapsProcedures = await db.rawQuery(qry);
@@ -334,31 +332,33 @@ class MainDatabaseHelper {
 
   // procedure is same as airway as its a bunch of points
   Future<ProcedureDestination?> findProcedure(String procedureName) async {
-    List<Map<String, dynamic>> maps1 = [];
-    List<Map<String, dynamic>> maps2 = [];
+    List<Map<String, dynamic>> maps = [];
     List<String> segments = procedureName.split(".");
-    String? qry1;
-    String? qry2;
+    String? qry;
     String lastId = "";
-    if(segments.length != 3) {
+    if(segments.length < 2) {
       return null;
+    }
+    if(segments.length < 3) {
+      segments.add("");
     }
 
     // sid/star/transition
-    qry1 = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and trim(transition_identifier) = '${segments[2].toUpperCase()}' order by trim(sequence_number) asc";
-    qry2 = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}' and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}' and (trim(transition_identifier) = 'ALL' or trim(transition_identifier) = '') order by trim(sequence_number) asc";
+    qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}'"
+        " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'"
+        " and trim(transition_identifier) = '${segments[2].toUpperCase()}'"
+        " order by trim(sequence_number) asc";
     final db = await database;
     if (db != null) {
-      maps1 = await db.rawQuery(qry1);
-      maps2 = await db.rawQuery(qry2);
+      maps = await db.rawQuery(qry);
     }
-    if(maps1.isEmpty && maps2.isEmpty) {
+    if(maps.isEmpty) {
       return null;
     }
 
     // resolve everything and add to the list
     List<Map<String, dynamic>> mapsCombined = [];
-    for(var m in (maps1 + maps2)) {
+    for(var m in maps) {
       String id = m['fix_identifier'].trim();
       if(id == lastId) {
         // duplicates, need to remove
