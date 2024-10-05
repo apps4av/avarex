@@ -4,38 +4,38 @@ import 'package:avaremp/destination/destination.dart';
 class Waypoint {
 
   final Destination _destination;
-  List<Destination> airwayDestinationsOnRoute = [];
-  int currentAirwayDestinationIndex = 0;
+  List<Destination> destinationsOnRoute = [];
+  int currentDestinationIndex = 0;
 
   Waypoint(this._destination);
 
   Destination get destination {
-    return airwayDestinationsOnRoute.isNotEmpty ?
-    airwayDestinationsOnRoute[currentAirwayDestinationIndex] : _destination;
+    return destinationsOnRoute.isNotEmpty ?
+    destinationsOnRoute[currentDestinationIndex] : _destination;
   }
 
   // return points passed, current, next
   List<Destination> getDestinationsNext() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return currentAirwayDestinationIndex == (airwayDestinationsOnRoute.length - 1) ?
-      [] : airwayDestinationsOnRoute.sublist(currentAirwayDestinationIndex + 1, airwayDestinationsOnRoute.length);
+    if(destinationsOnRoute.isNotEmpty) {
+      return currentDestinationIndex == (destinationsOnRoute.length - 1) ?
+      [] : destinationsOnRoute.sublist(currentDestinationIndex + 1, destinationsOnRoute.length);
     }
     return [];
   }
 
   // return points passed, current, next
   List<Destination> getDestinationsPassed() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return currentAirwayDestinationIndex == 0 ?
-      [] : airwayDestinationsOnRoute.sublist(0, currentAirwayDestinationIndex);
+    if(destinationsOnRoute.isNotEmpty) {
+      return currentDestinationIndex == 0 ?
+      [] : destinationsOnRoute.sublist(0, currentDestinationIndex);
     }
     return [];
   }
 
   // return points passed, current, next
   List<Destination> getDestinationsCurrent() {
-    if(airwayDestinationsOnRoute.isNotEmpty) {
-      return [airwayDestinationsOnRoute[currentAirwayDestinationIndex]];
+    if(destinationsOnRoute.isNotEmpty) {
+      return [destinationsOnRoute[currentDestinationIndex]];
     }
     return [];
   }

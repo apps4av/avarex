@@ -39,26 +39,51 @@ class PlanRoute {
   int get length => _waypoints.length;
   bool get isNotEmpty => _waypoints.isNotEmpty;
 
-
-  void _airwayAdjust(Waypoint waypoint) {
-
-    waypoint.currentAirwayDestinationIndex = 0; // on change to airway, reset it
-    waypoint.airwayDestinationsOnRoute = [];
+  void _procedureAdjust(Waypoint waypoint) {
+    waypoint.currentDestinationIndex = 0; // on change to airway, reset it
+    waypoint.destinationsOnRoute = [];
+    List<Destination> points = [];
 
     // adjust airways, nothing to do when airway is not in the middle of points
     int index = _waypoints.indexOf(waypoint);
-    // need a start and end
-    if(index == 0 || index == _waypoints.length - 1) {
-      return;
+    ProcedureDestination procedure = _waypoints[index].destination as ProcedureDestination;
+
+    // procedure
+    for(Destination d in procedure.points) {
+      Destination n = Destination(locationID: procedure.locationID,
+          type: d.type,
+          facilityName: d.facilityName,
+          coordinate: d.coordinate);
+      n.secondaryName = d.locationID;
+      points.add(n);
     }
 
-    // replace the airway with the new airway with the right points
-    List<Destination> points = Airway.find(
-        _waypoints[index - 1].destination,
-        _waypoints[index].destination as AirwayDestination,
-        _waypoints[index + 1].destination);
     if(points.isNotEmpty) {
-      waypoint.airwayDestinationsOnRoute = points;
+      waypoint.destinationsOnRoute = points;
+    }
+
+  }
+
+  void _airwayAdjust(Waypoint waypoint) {
+
+    waypoint.currentDestinationIndex = 0; // on change to airway, reset it
+    waypoint.destinationsOnRoute = [];
+    List<Destination> points = [];
+
+    // adjust airways, nothing to do when airway is not in the middle of points
+    int index = _waypoints.indexOf(waypoint);
+    AirwayDestination airway = _waypoints[index].destination as AirwayDestination;
+
+    if(index > 0 && index < _waypoints.length - 1) {
+      // replace the airway with the new airway with the right points
+      points = Airway.find(
+          _waypoints[index - 1].destination,
+          airway,
+          _waypoints[index + 1].destination);
+    }
+
+    if(points.isNotEmpty) {
+      waypoint.destinationsOnRoute = points;
     }
   }
 
@@ -69,12 +94,12 @@ class PlanRoute {
     for(int index = 0; index < waypoints.length; index++) {
       Destination destination = waypoints[index].destination;
       // expand airways
-      if(Destination.isAirway(destination.type)) {
+      if(Destination.isAirway(destination.type) || Destination.isProcedure(destination.type)) {
         // skip empty airways
-        if(waypoints[index].airwayDestinationsOnRoute.isEmpty) {
+        if(waypoints[index].destinationsOnRoute.isEmpty) {
           continue;
         }
-        destinationsExpanded.addAll(waypoints[index].airwayDestinationsOnRoute);
+        destinationsExpanded.addAll(waypoints[index].destinationsOnRoute);
       }
       else {
         destinationsExpanded.add(destination);
@@ -115,7 +140,7 @@ class PlanRoute {
       _current ??= _waypoints[0];
     }
 
-    if(_waypoints.length < 2) {
+    if(_waypoints.isEmpty) {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNextHighResolution = [];
@@ -133,6 +158,9 @@ class PlanRoute {
         if (Destination.isAirway(destination.type)) {
           _airwayAdjust(_waypoints[index]); // add all airways
         }
+        else if (Destination.isProcedure(destination.type)) {
+          _procedureAdjust(_waypoints[index]); // add all airways
+        }
       }
     }
 
@@ -148,7 +176,7 @@ class PlanRoute {
     // current
     List<Destination> destinationsCurrent = [];
     Destination destination = current.destination;
-    if(Destination.isAirway(destination.type)) {
+    if(Destination.isAirway(destination.type) || Destination.isProcedure(destination.type)) {
       destinationsPassed.addAll(current.getDestinationsPassed());
       destinationsNext.insertAll(0, current.getDestinationsNext());
       destinationsCurrent.addAll(current.getDestinationsCurrent());
@@ -215,7 +243,12 @@ class PlanRoute {
 
     if(destinationsNext.isEmpty) {
       // last leg
-      totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
+      if(_allDestinations.isNotEmpty) {
+        totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
+      }
+      else {
+        totalCalculations = null;
+      }
     }
     // sum
     else {
@@ -249,10 +282,10 @@ class PlanRoute {
 
   void advance() {
     if(_current != null) {
-      if(Destination.isAirway(_current!.destination.type)) {
-        if(_current!.currentAirwayDestinationIndex < _current!.airwayDestinationsOnRoute.length - 1) {
+      if(Destination.isAirway(_current!.destination.type) || Destination.isProcedure(_current!.destination.type)) {
+        if(_current!.currentDestinationIndex < _current!.destinationsOnRoute.length - 1) {
           // flying on airway and not done
-          _current!.currentAirwayDestinationIndex++;
+          _current!.currentDestinationIndex++;
           update();
           return;
         }
@@ -361,11 +394,11 @@ class PlanRoute {
   // set waypoint based on destination object
   void setCurrentWaypointFromDestination(Destination d) {
     for(Waypoint w in _waypoints) {
-      if(Destination.isAirway(w.destination.type)) {
-        int index = w.airwayDestinationsOnRoute.indexOf(d);
+      if(Destination.isAirway(w.destination.type) || Destination.isProcedure(w.destination.type)) {
+        int index = w.destinationsOnRoute.indexOf(d);
         if(index >= 0) {
           _setCurrent(w);
-          w.currentAirwayDestinationIndex = index;
+          w.currentDestinationIndex = index;
           return;
         }
       }
@@ -578,7 +611,7 @@ class PlanRoute {
   void insertWaypoint(Waypoint waypoint) {
     Storage().realmHelper.addRecent(waypoint.destination);
 
-    if(Destination.isAirway(waypoint.destination.type) || _waypoints.isEmpty) {
+    if(Destination.isAirway(waypoint.destination.type) || Destination.isProcedure(waypoint.destination.type) || _waypoints.isEmpty) {
       addWaypoint(waypoint); // airways cannot be added in the middle. that's confusing
       return;
     }
@@ -624,7 +657,7 @@ class PlanRoute {
   // for rubber banding
   void replaceDestination(int index, LatLng ll) {
     if(index >= 0 && index < _allDestinations.length) {
-      if(Destination.isAirway(_allDestinations[index].type)) {
+      if(Destination.isAirway(_allDestinations[index].type) || Destination.isProcedure(_allDestinations[index].type)) {
         return;
       }
       for(int d = 0; d < _waypoints.length; d++) {
@@ -641,7 +674,7 @@ class PlanRoute {
   // also for rubber banding
   void replaceDestinationFromDb(int index, LatLng ll) {
     if(index >= 0 && index < _allDestinations.length) {
-      if(Destination.isAirway(_allDestinations[index].type)) {
+      if(Destination.isAirway(_allDestinations[index].type) || Destination.isProcedure(_allDestinations[index].type)) {
         return;
       }
       MainDatabaseHelper.db.findNear(ll, factor: 0.0001).then((onValue) { // snap but not too far

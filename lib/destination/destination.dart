@@ -32,9 +32,14 @@ class Destination {
 
   static const String typeGps = "GPS";
   static const String typeAirway = "Airway";
+  static const String typeProcedure = "Procedure";
 
   static bool isAirway(String type) {
     return type == typeAirway;
+  }
+
+  static bool isProcedure(String type) {
+    return type == typeProcedure;
   }
 
   static bool isNav(String type) {
@@ -291,7 +296,7 @@ class AirwayDestination extends Destination {
     required this.points
   });
 
-  factory AirwayDestination.fromMap(List<Map<String, dynamic>> maps) {
+  factory AirwayDestination.fromMap(String name, List<Map<String, dynamic>> maps) {
 
     // airway has multiple entries for sequences
     List<Destination> ret = List.generate(maps.length, (i) {
@@ -304,9 +309,43 @@ class AirwayDestination extends Destination {
     });
 
     return AirwayDestination(
-        locationID: ret[0].locationID,
+        locationID: name,
         type: ret[0].type,
-        facilityName: ret[0].facilityName,
+        facilityName: name,
+        coordinate: ret[0].coordinate,
+        points: ret);
+  }
+}
+
+
+class ProcedureDestination extends Destination {
+
+  List<Destination> points; // this has many waypoints
+
+  ProcedureDestination({
+    required super.locationID,
+    required super.type,
+    required super.facilityName,
+    required super.coordinate,
+    required this.points
+  });
+
+  factory ProcedureDestination.fromMap(String name, List<Map<String, dynamic>> maps) {
+
+    // airway has multiple entries for sequences
+    List<Destination> ret = List.generate(maps.length, (i) {
+      return Destination(
+        locationID: (maps[i]['fix_identifier'] as String).trim(),
+        facilityName: (maps[i]['fix_identifier'] as String).trim(),
+        type: Destination.typeProcedure,
+        coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
+      );
+    });
+
+    return ProcedureDestination(
+        locationID: name,
+        type: ret[0].type,
+        facilityName: name,
         coordinate: ret[0].coordinate,
         points: ret);
   }
@@ -336,6 +375,10 @@ class DestinationFactory {
       AirwayDestination? destination = await MainDatabaseHelper.db.findAirway(d.locationID);
       ret = destination ?? d;
     }
+    else if (Destination.isProcedure(type)) {
+      ProcedureDestination? destination = await MainDatabaseHelper.db.findProcedure(d.locationID);
+      ret = destination ?? d;
+    }
     else if (Destination.isGps(type)) {
       ret = GpsDestination(locationID: d.locationID, type: d.type, facilityName: d.facilityName, coordinate: d.coordinate);
     }
@@ -358,6 +401,9 @@ class DestinationFactory {
     }
     else if(Destination.isAirway(type)) {
       return Icon(MdiIcons.rayStartVertexEnd, color: color);
+    }
+    else if(Destination.isProcedure(type)) {
+      return Icon(MdiIcons.mapMarkerPath, color: color);
     }
     return Icon(MdiIcons.help, color: color);
   }
