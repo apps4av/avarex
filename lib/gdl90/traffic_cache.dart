@@ -297,8 +297,8 @@ class TrafficPainter extends AbstractCachedCustomPainter {
     ui.Path()..addPolygon([ const Offset(22, 0), const Offset(22, 3), const Offset(16, 7), const Offset(16, 1) ], true)
   ]);
   static final ui.Path _defaultAircraft = ui.Path()  // old default icon if no ICAO ID--just a triangle
-    ..addPolygon([ const Offset(4, 4), const Offset(15, 27), const Offset(16, 27), const Offset(27, 4), 
-      const Offset(16, 12), const Offset(15, 12) ], true);
+    ..addPolygon([ const Offset(5, 5), const Offset(15, 26), const Offset(16, 26), const Offset(26, 5), 
+      const Offset(16, 13), const Offset(15, 13) ], true);
   static final ui.Path _lightAircraft = _unionPaths([
     ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(12, 18, 19, 31), const Radius.circular(2))), // body
     ui.Path()..addRRect(RRect.fromRectAndRadius(const Rect.fromLTRB(0, 18, 31, 25), const Radius.circular(1))), // wings
@@ -604,7 +604,7 @@ class TrafficIdPainter extends AbstractCachedCustomPainter {
 
 /// Paints an AC 20-172 alert overlay (orange circle for nearby alert, red box for critical resolution alert)
 class AlertBoxPainter extends AbstractCachedCustomPainter {
-  static const _alertRect = Rect.fromLTRB(-11, -11, 41, 41);
+  static const _alertRect = Rect.fromLTRB(-10, -10, 40, 40);
   static final _alertCircle = ui.Path()..addOval(_alertRect);
   static final _resolutionBox = ui.Path()..addRect(_alertRect);
   static final Paint _outlinePaint = Paint()
