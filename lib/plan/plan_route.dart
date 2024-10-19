@@ -475,6 +475,9 @@ class PlanRoute {
     List<String> split = line.split(" ");
 
     for (String s in split) {
+      if(s.isEmpty) { // skip empty spaces
+        continue;
+      }
       List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s, exact: true);
       if(destinations.isEmpty) {
         continue;
