@@ -50,7 +50,8 @@ class MainDatabaseHelper {
 
   }
 
-  Future<List<Destination>> findDestinations(String match) async {
+  // Use exact = true for exact match, otherwise for search use exact = false
+  Future<List<Destination>> findDestinations(String match, {bool exact = false}) async {
     List<Map<String, dynamic>> maps = [];
     List<Map<String, dynamic>> mapsAirways = [];
     List<Map<String, dynamic>> mapsProcedures = [];
@@ -70,12 +71,13 @@ class MainDatabaseHelper {
       return [GpsDestination(locationID: Destination.formatSexagesimal(coordinate.toSexagesimal()), type: Destination.typeGps, facilityName: parts[0], coordinate: coordinate)];
     }
     final db = await database;
+    String eMatch = exact ? " = '$match'" : "like '$match%'";
     if (db != null) {
       maps = await db.rawQuery(
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-          "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID like '$match%') "
-          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID like '$match%') "
-          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID like '$match%') "
+          "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID $eMatch) "
+          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID $eMatch) "
+          "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID $eMatch) "
           "order by Type asc limit $_limit"
       );
       mapsAirways = await db.rawQuery(
@@ -87,10 +89,16 @@ class MainDatabaseHelper {
       List<String> segments = match.split(".");
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
+        String iMatch = "";
+        if(segments.length > 1) {
+          iMatch = exact ? " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'" : " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'";
+        }
+        String tMatch = "";
+        if(segments.length > 2) {
+          tMatch = exact ? " and trim(transition_identifier) = '${segments[2].toUpperCase()}'" : " and trim(transition_identifier) like '${segments[2].toUpperCase()}%'";
+        }
         String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
-          " trim(airport_identifier) like '$airport%' "
-          "${segments.length > 1 ? " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'" : ""}"
-          "${segments.length > 2 ? " and trim(transition_identifier) like '${segments[2].toUpperCase()}%'" : ""}";
+          " trim(airport_identifier) = '$airport' $iMatch $tMatch";
         mapsProcedures = await db.rawQuery(qry);
       }
     }

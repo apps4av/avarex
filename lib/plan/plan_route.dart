@@ -475,7 +475,7 @@ class PlanRoute {
     List<String> split = line.split(" ");
 
     for (String s in split) {
-      List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s);
+      List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s, exact: true);
       if(destinations.isEmpty) {
         continue;
       }
