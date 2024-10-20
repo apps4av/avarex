@@ -146,6 +146,7 @@ class Storage {
   late FileCacheStore osmCache;
   late List<FileCacheStore> mesonetCache;
   late FileCacheStore openaipCache;
+  late FileCacheStore topoCache;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -297,6 +298,7 @@ class Storage {
     // tiles cache
     osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
     openaipCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "openaip"));
+    topoCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "topo"));
     mesonetCache = List.generate(5 , (index) => FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "radar$index")));
 
     // this is a long login process, do not await here
