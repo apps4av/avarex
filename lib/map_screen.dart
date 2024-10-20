@@ -143,11 +143,11 @@ class MapScreenState extends State<MapScreen> {
           maxStale: const Duration(days: 30),
           store: Storage().osmCache),
     );
-    /* To be added later as it has issues
-        TileLayer aipLayer = TileLayer(
-          urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png",
-          tileProvider: FMTC.instance('mapStoreAIP').getTileProvider(headers: {"x-openaip-client-id" : "@@___openaip_client_id__@@"}));
-    */
+
+    TileLayer openaipLayer = TileLayer(
+      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
+      tileProvider: CachedTileProvider(store: Storage().openaipCache));
+
     String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
@@ -214,9 +214,10 @@ class MapScreenState extends State<MapScreen> {
     int lIndex = _layers.indexOf('OSM');
     if(_layersState[lIndex]) {
       layers.add(osmLayer);
+      layers.add(openaipLayer);
       layers.add( // OSM attribution
           Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
+            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenStreetMap and OpenAIP contributors',),],
             ),
           ));
     }
