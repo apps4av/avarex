@@ -31,7 +31,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                 flex: 6,
                 child: TextFormField(
                   onChanged: (value)  {
-                    _route = value;
+                    _route = value.toUpperCase(); // all input is upper case
                   },
                   initialValue: _route.trim(),
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Route',)
