@@ -29,7 +29,7 @@ class WmmCof {
     String? model;
     String? modelDate;
     final data = <WmmCofLineData>[];
-    lines.forEach((line) {
+    for (var line in lines) {
       final linevals = line.trim().split(fieldSplitterRegex);
       if (linevals.length == 3) {
         epoch = double.parse(linevals[0]);
@@ -38,7 +38,7 @@ class WmmCof {
       } else if (linevals.length == 6) {
         data.add(WmmCofLineData.fromParts(linevals));
       }
-    });
+    }
     return WmmCof(
         epoch: epoch!, model: model!, modelDate: modelDate!, wmm: data);
   }

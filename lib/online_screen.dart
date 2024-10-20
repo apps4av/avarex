@@ -33,7 +33,7 @@ class OnlineScreenState extends State<OnlineScreen> {
             if(result) {
               setState(() {
               });
-            };
+            }
           }, ""),
         if(loggedIn)
           ProgressButtonMessageWidget("You are logged in as $email, and your data is backed up automatically when Internet connection is available.", "Logout", Storage().realmHelper.logout, const [], (value) {

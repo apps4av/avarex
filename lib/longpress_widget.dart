@@ -200,7 +200,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
       saaPage = future.pages.length;
       future.pages.add(ListView(
         children: [
-          ListTile(title: const Text("SUA")),
+          const ListTile(title: Text("SUA")),
           for(Saa s in future.saa)
             ListTile(title: Text(s.designator),
                 subtitle: Text(s.toString())),

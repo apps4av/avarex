@@ -86,7 +86,7 @@ class WindsCache extends WeatherCache {
           continue;
         }
 
-        WindsAloft w = WindsAloft(station, expires, await getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+        WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
         winds.add(w);
       }
       catch (e) {}

@@ -123,7 +123,7 @@ class WnbScreenState extends State<WnbScreen> {
               enabled: _editing,
               controller: TextEditingController()..text = _wnb.maxX.toString(),
               decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm Max."),
-              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
               onChanged: (value) {
                 try {
                   double val = double.parse(value);
@@ -149,7 +149,7 @@ class WnbScreenState extends State<WnbScreen> {
                 enabled: _editing,
                 controller: TextEditingController()..text = _wnb.minX.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm Min."),
-                keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                 onChanged: (value) {
                   try {
                     double val = double.parse(value);
@@ -176,7 +176,7 @@ class WnbScreenState extends State<WnbScreen> {
               enabled: _editing,
               controller: TextEditingController()..text = _wnb.maxY.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight Max."),
-                keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                 onChanged: (value) {
                   try {
                     double val = double.parse(value);
@@ -202,7 +202,7 @@ class WnbScreenState extends State<WnbScreen> {
               enabled: _editing,
               controller: TextEditingController()..text = _wnb.minY.toString(),
                 decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight Min."),
-                keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
                 onChanged: (value) {
                   try {
                       double val = double.parse(value);
@@ -381,7 +381,7 @@ class WnbScreenState extends State<WnbScreen> {
             child: Padding(
                 padding: const EdgeInsets.all(10), child: TextFormField(
               controller: TextEditingController()..text = wnbItem.weight.toString(),
-              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
               enabled: _editing,
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Weight") : null,
               onChanged: (value) {
@@ -397,7 +397,7 @@ class WnbScreenState extends State<WnbScreen> {
                 padding: const EdgeInsets.all(10), child: TextFormField(
               controller: TextEditingController()..text = wnbItem.arm.toString(),
               enabled: _editing,
-              keyboardType: TextInputType.numberWithOptions(signed: true, decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
               decoration: index == 0 ? const InputDecoration(border: UnderlineInputBorder(), labelText: "Arm") : null,
               onChanged: (value) {
                 try {

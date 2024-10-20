@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
-import 'geomag-master/lib/geomag.dart';
+import 'package:avaremp/geomag-master/lib/geomag.dart';
 
 
 class GeoCalculations {
