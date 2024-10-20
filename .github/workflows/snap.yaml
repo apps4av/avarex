@@ -15,12 +15,13 @@ jobs:
           flutter-version: '3.22.2'
 
       - name: Find and Replace OpenAIP
-        uses: jacobtomlinson/gha-find-replace@v3
+        uses: richardrigutins/replace-in-files@v2
         with:
-          find: "@@___openaip_client_id__@@"
-          replace: ${{ secrets.OPENAIP_CLIENT_ID }}
-          include: "*.dart"
-          regex: false
+          files: '**/*.dart'
+          search-text: '@@___openaip_client_id__@@'
+          replacement-text: ${{ secrets.OPENAIP_CLIENT_ID }}
+          encoding: 'utf8'
+          max-parallelism: 10
 
       - name: Update source repo
         run: sudo apt-get update
