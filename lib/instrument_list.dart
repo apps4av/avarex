@@ -367,21 +367,25 @@ class InstrumentListState extends State<InstrumentList> {
       shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      header: SingleChildScrollView(scrollDirection: Axis.vertical, child: Column(children:[
-        GestureDetector(
-          onTap:() {
-            Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
-          },
-          child: const Icon(Icons.arrow_circle_right)
-        ),
-        GestureDetector(
-            onTap:() {
-              Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
-            },
-            child: const Icon(Icons.arrow_circle_left)
-        ),
-        const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.", child: Icon(Icons.info)),
-      ])),
+      header: Container(decoration: const BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(5)), color: Colors.black),
+          child: SingleChildScrollView(scrollDirection: Axis.vertical,
+            child: Column(children:[
+              const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.\nYou may resize this bar using the left and right arrows below.", child: Icon(Icons.info)),
+              GestureDetector(
+                onTap:() {
+                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
+                },
+                child: const Icon(Icons.arrow_circle_right, size:28),
+              ),
+              GestureDetector(
+                  onTap:() {
+                    Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+                  },
+                child: const Icon(Icons.arrow_circle_left, size:28),
+              ),
+            ])
+        )
+      ),
       buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)

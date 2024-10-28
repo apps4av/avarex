@@ -22,7 +22,7 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 
     if(widget.warning) {
       return IconButton(
-        icon: Icon(MdiIcons.alertCircle, color: Colors.red, size: 48),
+        icon: CircleAvatar(backgroundColor: Colors.black, radius: 20, child: Icon(MdiIcons.alertCircle, color: Colors.red, size: 40)),
           onPressed: () {
             Scaffold.of(context).openEndDrawer();
           },
