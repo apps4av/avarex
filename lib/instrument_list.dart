@@ -7,9 +7,11 @@ import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/winds_cache.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -367,23 +369,47 @@ class InstrumentListState extends State<InstrumentList> {
       shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      header: Container(decoration: const BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(5)), color: Colors.black),
-          child: SingleChildScrollView(scrollDirection: Axis.vertical,
-            child: Column(children:[
-              const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes.\nYou may resize this bar using the left and right arrows below.", child: Icon(Icons.info)),
-              GestureDetector(
+      header: DropdownButtonHideUnderline(
+        child:DropdownButton2<String>(
+          buttonStyleData: ButtonStyleData(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+          ),
+          dropdownStyleData: DropdownStyleData(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+          ),
+          isExpanded: false,
+          customButton: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.more_horiz),),
+            onChanged: (value) {
+              setState(() {
+              });
+            },
+          items: [
+            DropdownMenuItem(
+              value: "0",
+              child: const Text("i"),
+                // show toast with instructions in ontap
                 onTap:() {
-                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
-                },
-                child: const Icon(Icons.arrow_circle_right, size:28),
-              ),
-              GestureDetector(
-                  onTap:() {
-                    Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
-                  },
-                child: const Icon(Icons.arrow_circle_left, size:28),
-              ),
-            ])
+                  Toastification().show(context: context,
+                    title: const Text(
+                        "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes."),
+                    autoCloseDuration: const Duration(seconds: 3),
+                    icon: const Icon(Icons.info));
+                  }),
+            DropdownMenuItem(
+              value: "1",
+              onTap:() {
+                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
+              },
+              child: const Text("+"),
+            ),
+            DropdownMenuItem(
+              value: "2",
+              onTap:() {
+                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+              },
+              child: const Text("-"),
+            ),
+          ],
         )
       ),
       buildDefaultDragHandles: false,

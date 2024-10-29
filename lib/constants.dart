@@ -33,7 +33,7 @@ class Constants {
   static const Color chartCurrentColor = Colors.green;
   static const Color chartExpiredColor = Colors.red;
 
-  static const Color mapBackgroundColor = Colors.black;
+  static Color mapBackgroundColor = Colors.grey.shade800;
 
   static Color appBarBackgroundColor = Colors.transparent;
   static Color waypointBackgroundColor = Colors.black26.withAlpha(156);
