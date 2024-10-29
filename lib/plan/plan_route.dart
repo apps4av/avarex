@@ -295,9 +295,6 @@ class PlanRoute {
       if (index < _waypoints.length) {
         _setCurrent(_waypoints[index]);
       }
-      if (index >= _waypoints.length) {
-        _setCurrent(_waypoints[0]); // done, go back
-      }
       update();
     }
   }
