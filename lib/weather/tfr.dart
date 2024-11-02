@@ -51,7 +51,8 @@ class Tfr extends Weather {
       "upperAltitude": upperAltitude,
       "lowerAltitude": lowerAltitude,
       "msEffective": msEffective,
-      "msExpires": msExpires
+      "msExpires": msExpires,
+      "labelCoordinate": labelCoordinate
     };
     return map;
   }
