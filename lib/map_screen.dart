@@ -1289,7 +1289,7 @@ class Ruler {
     if(_measuring) {
       return Colors.red;
     }
-    return Colors.green;
+    return Colors.white;
   }
 
   void startMeasure() {

@@ -371,14 +371,12 @@ class InstrumentListState extends State<InstrumentList> {
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
       header: DropdownButtonHideUnderline(
         child:DropdownButton2<String>(
-          buttonStyleData: ButtonStyleData(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-          ),
           dropdownStyleData: DropdownStyleData(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            width: 96,
           ),
           isExpanded: false,
-          customButton: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.more_horiz),),
+          customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.arrow_drop_down),),
             onChanged: (value) {
               setState(() {
               });
@@ -386,12 +384,12 @@ class InstrumentListState extends State<InstrumentList> {
           items: [
             DropdownMenuItem(
               value: "0",
-              child: const Text("i"),
+              child: const Text("?", style: TextStyle(fontSize: 12),),
                 // show toast with instructions in ontap
                 onTap:() {
                   Toastification().show(context: context,
                     title: const Text(
-                        "You may hold and drag any box to rearrange its position.\nYou may left-slide this bar to see more boxes."),
+                        "You may hold and drag any box in the top sliding bar to rearrange its position."),
                     autoCloseDuration: const Duration(seconds: 3),
                     icon: const Icon(Icons.info));
                   }),
@@ -400,14 +398,14 @@ class InstrumentListState extends State<InstrumentList> {
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
               },
-              child: const Text("+"),
+              child: const Text("Expand", style: TextStyle(fontSize: 12),),
             ),
             DropdownMenuItem(
               value: "2",
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
               },
-              child: const Text("-"),
+              child: const Text("Contract", style: TextStyle(fontSize: 12),),
             ),
           ],
         )
