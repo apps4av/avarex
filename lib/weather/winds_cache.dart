@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
@@ -90,7 +91,7 @@ class WindsCache extends WeatherCache {
         winds.add(w);
       }
       catch (e) {}
-      Storage().realmHelper.addWindsAlofts(winds); // add to database
+      await WeatherDatabaseHelper.db.addWindsAlofts(winds);
     }
   }
 

@@ -1,13 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
-
-import '../constants.dart';
-import '../storage.dart';
 
 class TfrCache extends WeatherCache {
 
@@ -138,7 +137,8 @@ class TfrCache extends WeatherCache {
         }
       }
     }
-    Storage().realmHelper.addTfrs(tfrs);
+
+    await WeatherDatabaseHelper.db.addTfrs(tfrs);
   }
 }
 

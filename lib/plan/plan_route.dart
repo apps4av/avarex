@@ -709,4 +709,35 @@ class PlanRoute {
     _current = w;
     _passage = null;
   }
+
+  // convert route to json
+  Map<String, Object?> toMap(String name) {
+
+    // put all destinations in json
+    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
+    String json = jsonEncode(maps);
+
+    Map<String, Object?> jsonMap = {'name' : name, 'route' : json};
+
+    return jsonMap;
+  }
+
+  // convert json to Route
+  static Future<PlanRoute> fromMap(Map<String, Object?> maps, bool reverse) async {
+    PlanRoute route = PlanRoute(maps['name'] as String);
+    String json = maps['route'] as String;
+    List<dynamic> decoded = jsonDecode(json);
+    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
+
+    if(reverse) {
+      destinations = destinations.reversed.toList();
+    }
+    for (Destination d in destinations) {
+      Destination expanded = await DestinationFactory.make(d);
+      Waypoint w = Waypoint(expanded);
+      route.addWaypoint(w);
+    }
+    return route;
+  }
+
 }

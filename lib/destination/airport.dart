@@ -193,7 +193,7 @@ class Airport {
 
     // calculate best runways based on wind direction
     double? windDirection;
-    Metar? metar = Storage().realmHelper.getMetar(destination.locationID);
+    Metar? metar = Storage().metar.get(destination.locationID) as Metar?;
     double minWind = 0;
     int index = -1;
     if(metar != null) {

@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
-import '../storage.dart';
 import 'airep.dart';
 
 class AirepCache extends WeatherCache {
@@ -34,7 +34,7 @@ class AirepCache extends WeatherCache {
         continue;
       }
     }
-    Storage().realmHelper.addAireps(aireps);
+    await WeatherDatabaseHelper.db.addAireps(aireps);
   }
 }
 

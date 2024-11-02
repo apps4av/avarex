@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
-import '../constants.dart';
-import '../storage.dart';
 import 'metar.dart';
 
 
@@ -36,8 +37,8 @@ class MetarCache extends WeatherCache {
         continue;
       }
     }
-    Storage().realmHelper.addMetars(metars);
-  }
+    await WeatherDatabaseHelper.db.addMetars(metars);
+ }
 
   // Get Closets Metar of this coordinate
   Metar? getClosestMetar(LatLng coordinate) {

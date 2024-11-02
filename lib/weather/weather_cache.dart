@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/weather/metar_cache.dart';
 import 'package:avaremp/weather/taf_cache.dart';
 import 'package:avaremp/weather/tfr_cache.dart';
@@ -9,7 +10,6 @@ import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
-import '../storage.dart';
 import 'airep_cache.dart';
 import 'airsigmet_cache.dart';
 import 'notam_cache.dart';
@@ -98,47 +98,47 @@ class WeatherCache {
 
     if(type == MetarCache) {
       MetarCache cache = MetarCache("https://aviationweather.gov/data/cache/metars.cache.csv.gz",
-          Storage().realmHelper.getAllMetar);
+          WeatherDatabaseHelper.db.getAllMetar);
       return cache;
     }
     else if(type == TafCache) {
       TafCache cache = TafCache("https://aviationweather.gov/data/cache/tafs.cache.csv.gz",
-          Storage().realmHelper.getAllTaf);
+          WeatherDatabaseHelper.db.getAllTaf);
       return cache;
     }
     else if(type == WindsCache) {
       // default
       WeatherCache cache = WindsCache(
           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
-          Storage().realmHelper.getAllWindsAloft);
+          WeatherDatabaseHelper.db.getAllWindsAloft);
       return cache;
     }
     else if(type == TfrCache) {
       // default
       WeatherCache cache = TfrCache(
           "https://tfr.faa.gov/tfr2/list.html",
-          Storage().realmHelper.getAllTfr);
+          WeatherDatabaseHelper.db.getAllTfr);
       return cache;
     }
     else if(type == AirepCache) {
       // default
       WeatherCache cache = AirepCache(
           "https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz",
-          Storage().realmHelper.getAllAirep);
+          WeatherDatabaseHelper.db.getAllAirep);
       return cache;
     }
     else if(type == AirSigmetCache) {
       // default
       WeatherCache cache = AirSigmetCache(
           "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
-          Storage().realmHelper.getAllAirSigmet);
+          WeatherDatabaseHelper.db.getAllAirSigmet);
       return cache;
     }
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
           "https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do",
-          Storage().realmHelper.getAllNotams);
+          WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }
     else {

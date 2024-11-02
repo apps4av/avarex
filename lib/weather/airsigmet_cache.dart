@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../constants.dart';
-import '../storage.dart';
 import 'airsigmet.dart';
 
 class AirSigmetCache extends WeatherCache {
@@ -41,8 +41,8 @@ class AirSigmetCache extends WeatherCache {
         continue;
       }
     }
-    Storage().realmHelper.addAirSigmets(airSigmet);
 
+    await WeatherDatabaseHelper.db.addAirSigmets(airSigmet);
   }
 }
 
