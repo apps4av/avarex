@@ -303,6 +303,7 @@ class _PlatePainter extends CustomPainter {
 
   List<double>? _matrix;
   ui.Image? _image;
+  ui.Image? _imagePlane;
 
   // Define a paint object
   final _paint = Paint();
@@ -312,7 +313,7 @@ class _PlatePainter extends CustomPainter {
     ..color = Constants.plateMarkColor;
 
   final _paintLine = Paint()
-    ..strokeWidth = 10
+    ..strokeWidth = 6
     ..color = Constants.planeColor;
 
   _PlatePainter(ValueNotifier repaint): super(repaint: repaint);
@@ -321,6 +322,7 @@ class _PlatePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
 
     _image = Storage().imagePlate;
+    _imagePlane = Storage().imagePlane;
     _matrix = Storage().matrixPlate;
     Destination? center = Storage().plateAirportDestination;
 
@@ -390,9 +392,11 @@ class _PlatePainter extends CustomPainter {
         //draw airplane
         canvas.translate(pixX, pixY);
         canvas.rotate((heading + angle) * pi / 180);
+        canvas.drawImage(_imagePlane!, Offset(-_imagePlane!.width / 2, -_imagePlane!.height / 2), _paint);
         // draw all based on screen width, height
-        canvas.drawLine(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), _paintLine);
-        canvas.drawLine(Offset(2 * (size.height + size.width) / 64, 0), Offset(-2 * (size.height + size.width) / 64, 0), _paintLine);
+        _paintLine.shader = ui.Gradient.linear(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), [Colors.red, Colors.white]);
+        canvas.drawLine(Offset(0, (size.height + size.width) / 64 - _imagePlane!.height), Offset(0, -(size.height + size.width) / 2), _paintLine);
+        _paintLine.shader = null;
       }
       canvas.restore();
     }

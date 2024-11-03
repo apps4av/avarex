@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
@@ -880,9 +881,9 @@ class MapScreenState extends State<MapScreen> {
             return MarkerLayer(
               markers: [
                 Marker( // our position and heading to destination
-                    width: 32,
+                    width: 48,
                     height: (Constants.screenWidth(context) +
-                        Constants.screenHeight(context)) / 4,
+                        Constants.screenHeight(context)) / 2,
                     point: current,
                     child: Transform.rotate(angle: value.heading * pi / 180,
                         child: CustomPaint(painter: Plane())
@@ -1204,7 +1205,6 @@ class MapScreenState extends State<MapScreen> {
 
 class Plane extends CustomPainter {
 
-
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
     ..strokeWidth = 6
@@ -1213,11 +1213,12 @@ class Plane extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-
     // draw plane
-    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 16), Offset(size.width / 2, size.height / 2 + 16), _paintCenter);
-    canvas.drawLine(Offset(size.width / 2, size.height / 2 + 8), Offset(size.width / 2, 0), _paintCenter);
-    canvas.drawLine(Offset(size.width / 2 - 16, size.height / 2), Offset(size.width / 2 + 16, size.height / 2), _paintCenter);
+    paintImage(canvas: canvas, rect:
+      Rect.fromLTWH(0, size.height / 2 - size.width / 2, size.width, size.width), image: Storage().imagePlane!);
+    _paintCenter.shader = ui.Gradient.linear(Offset(size.width / 2, size.height / 2 - size.width * 3 / 4), Offset(size.width / 2, 0), [Colors.red, Colors.white]);
+    canvas.drawLine(Offset(size.width / 2, size.height / 2 - size.width * 3 / 4), Offset(size.width / 2, 0), _paintCenter);
+    _paintCenter.shader = null;
   }
 
   @override

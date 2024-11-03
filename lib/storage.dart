@@ -51,6 +51,7 @@ import 'download_manager.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';
 import 'gps.dart';
+import 'image_utils.dart';
 import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
@@ -128,6 +129,7 @@ class Storage {
 
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
+  ui.Image? imagePlane;
   Uint8List? imageBytesPlate;
   LatLng? topLeftPlate;
   LatLng? bottomRightPlate;
@@ -324,6 +326,9 @@ class Storage {
       Gps().requestPermissions();
     }
     gpsDisabled = await Gps().isDisabled();
+
+    // plane image
+    imagePlane = await ImageUtils.loadImageFromAssets('plane.png');
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
