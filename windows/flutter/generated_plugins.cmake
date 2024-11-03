@@ -6,7 +6,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   geolocator_windows
   msvcredist
-  realm
   share_plus
   syncfusion_pdfviewer_windows
   url_launcher_windows
