@@ -117,22 +117,6 @@ class AppSettings {
     return provider.getValue("key-user-email", defaultValue: "") as String;
   }
 
-  void setPasswordBackup(String password) {
-    provider.setString("key-user-password-backup", password);
-  }
-
-  String getPasswordBackup() {
-    return provider.getValue("key-user-password-backup", defaultValue: "") as String;
-  }
-
-  void setEmailBackup(String name) {
-    provider.setString("key-user-email-backup", name);
-  }
-
-  String getEmailBackup() {
-    return provider.getValue("key-user-email-backup", defaultValue: "") as String;
-  }
-
   void setLastRouteEntry(String value) {
     provider.setString("key-last-route-entry", value);
   }

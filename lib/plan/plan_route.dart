@@ -1,6 +1,7 @@
 
 import 'dart:convert';
 
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/faa_dates.dart';
@@ -311,14 +312,14 @@ class PlanRoute {
   }
 
   void addDirectTo(Waypoint waypoint) {
-    Storage().realmHelper.addRecent(waypoint.destination);
+    UserDatabaseHelper.db.addRecent(waypoint.destination);
     addWaypoint(waypoint);
     _setCurrent(_waypoints[_waypoints.indexOf(waypoint)]); // go here
     _update(true);
   }
 
   void addWaypoint(Waypoint waypoint) {
-    Storage().realmHelper.addRecent(waypoint.destination);
+    UserDatabaseHelper.db.addRecent(waypoint.destination);
     _waypoints.add(waypoint);
     _update(true);
   }
@@ -609,7 +610,7 @@ class PlanRoute {
 
   // for rubber banding
   void insertWaypoint(Waypoint waypoint) {
-    Storage().realmHelper.addRecent(waypoint.destination);
+    UserDatabaseHelper.db.addRecent(waypoint.destination);
 
     if(Destination.isAirway(waypoint.destination.type) || Destination.isProcedure(waypoint.destination.type) || _waypoints.isEmpty) {
       addWaypoint(waypoint); // airways cannot be added in the middle. that's confusing

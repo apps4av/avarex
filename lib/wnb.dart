@@ -34,6 +34,32 @@ class Wnb {
     return Wnb('New', '', List.generate(20, (index) => ""), 30, 1500, 50, 3000, []);
   }
 
+  factory Wnb.fromMap(Map<String, Object?> map) {
+    return Wnb(
+      map['name'] as String,
+      map['aircraft'] as String,
+      List<String>.from(jsonDecode(map['items'] as String)),
+      map['minX'] as double,
+      map['minY'] as double,
+      map['maxX'] as double,
+      map['maxY'] as double,
+      List<String>.from(jsonDecode(map['points'] as String))
+    );
+  }
+
+  Map<String, Object?> toMap() {
+    return {
+      'name': name,
+      'aircraft': aircraft,
+      'items': jsonEncode(items),
+      'minX': minX,
+      'minY': minY,
+      'maxX': maxX,
+      'maxY': maxY,
+      'points': jsonEncode(points)
+    };
+  }
+
 }
 
 

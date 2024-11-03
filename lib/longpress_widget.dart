@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/path_utils.dart';
@@ -274,7 +275,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 onPressed: () { // go to plate
                   if(future.showDestination is AirportDestination) {
                     Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
-                    Storage().realmHelper.addRecent(future.showDestination);
+                    UserDatabaseHelper.db.addRecent(future.showDestination);
                   }
                   MainScreenState.gotoPlate();
                   Navigator.of(context).pop(); // hide bottom sheet

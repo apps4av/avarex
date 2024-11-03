@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/checklist.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/wnb.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -52,6 +55,43 @@ class UserDatabaseHelper {
                 "value        text, "
                 "unique(key)  on conflict replace);");
 
+            await db.execute("create table wnb ("
+                "id           integer primary key autoincrement, "
+                "name         text, "
+                "aircraft     text, "
+                "items        text, "
+                "minX         float, "
+                "minY         float, "
+                "maxX         float, "
+                "maxY         float, "
+                "points       text, "
+                "unique(name) on conflict replace);");
+
+            await db.execute("create table checklist ("
+                "id           integer primary key autoincrement, "
+                "name         text, "
+                "aircraft     text, "
+                "items        text, "
+                "unique(name) on conflict replace);");
+
+            await db.execute("create table aircraft ("
+                "id           integer primary key autoincrement, "
+                "tail         text, "
+                "type         text, "
+                "wake         text, "
+                "icao         text, "
+                "equipment    text, "
+                "cruiseTas    text, "
+                "surveillance text, "
+                "fuelEndurance text, "
+                "color        text, "
+                "pic          text, "
+                "picInfo      text, "
+                "sinkRate     text, "
+                "fuelBurn     text, "
+                "base         text, "
+                "other        text, "
+                "unique(tail) on conflict replace);");
           },
           onOpen: (db) {});
   }
@@ -141,36 +181,143 @@ class UserDatabaseHelper {
     return route;
   }
 
-  static Future<void> insertSetting(Database? db, String key, String? value) {
-    Completer<void> completer = Completer();
-    Map<String, String?> map = {};
-    map[key] = value;
 
-    if(db != null) {
-      db.rawQuery("insert into settings (key, value) values ('$key', '$value')").then((value) => completer.complete());
+  Future<Wnb> getWnb(String name) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from wnb where name='$name'"); // most recent first
     }
-    return completer.future;
+
+    return Wnb.fromMap(maps[0]);
   }
 
-  static Future<void> deleteSetting(Database? db, String key) {
-    Completer<void> completer = Completer();
+  Future<void> addWnb(Wnb wnb) async {
+    final db = await database;
 
-    if(db != null) {
-      db.rawQuery("delete from settings where key=$key;").then((value) => completer.complete());
+    if (db != null) {
+      await db.insert("wnb", wnb.toMap());
     }
-    return completer.future;
   }
 
-  static Future<void> deleteAllSettings(Database? db) {
-    Completer<void> completer = Completer();
+  Future<void> deleteWnb(String name) async {
+    final db = await database;
 
-    if(db != null) {
-      db.rawQuery("delete * settings;").then((value) => completer.complete());
+    if (db != null) {
+      await db.rawQuery("delete from wnb where name='$name'");
     }
-    return completer.future;
   }
 
-  static Future<List<Map<String, dynamic>>> getAllSettings(Database? db) async {
+  Future<List<Wnb>> getAllWnb() async {
+    final db = await database;
+    List<Wnb> ret = [];
+    if(db != null) {
+      List<Map<String, dynamic>> maps = [];
+      maps = await db.rawQuery("select * from wnb order by id desc"); // most recent first
+      for(Map<String, dynamic> map in maps) {
+        ret.add(Wnb.fromMap(map));
+      }
+    }
+    return ret;
+  }
+
+  Future<void> addChecklist(Checklist checklist) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("checklist", checklist.toMap());
+    }
+  }
+
+  Future<void> deleteChecklist(String name) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.rawQuery("delete from checklist where name='$name'");
+    }
+  }
+
+  Future<List<Checklist>> getAllChecklist() async {
+    final db = await database;
+    List<Checklist> ret = [];
+    if(db != null) {
+      List<Map<String, dynamic>> maps = [];
+      maps = await db.rawQuery("select * from checklist order by id desc"); // most recent first
+
+      for(Map<String, dynamic> map in maps) {
+        ret.add(Checklist.fromMap(map));
+      }
+    }
+    return ret;
+  }
+
+  Future<Checklist> getChecklist() async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = [];
+    if(db != null) {
+      maps = await db.rawQuery("select * from checklist order by id desc"); // most recent first
+    }
+    return Checklist.fromMap(maps[0]);
+  }
+
+  Future<Aircraft> getAircraft(String name) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if(db != null) {
+      maps = await db.rawQuery("select * from aircraft where name='$name'"); // most recent first
+    }
+    return Aircraft.fromMap(maps[0]);
+  }
+
+  Future<void> addAircraft(Aircraft aircraft) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.insert("aircraft", aircraft.toMap());
+    }
+  }
+
+  Future<void> deleteAircraft(String name) async {
+    final db = await database;
+
+    if (db != null) {
+      await db.rawQuery("delete from aircraft where name='$name'");
+    }
+  }
+
+  Future<List<Aircraft>> getAllAircraft() async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = [];
+    List<Aircraft> ret = [];
+    if (db != null) {
+      maps = await db.rawQuery("select * from aircraft order by id desc"); // most recent first
+    }
+
+    for (Map<String, dynamic> map in maps) {
+      ret.add(Aircraft.fromMap(map));
+    }
+    return ret;
+  }
+
+  Future<void> insertSetting(String key, String? value) async {
+    final db = await database;
+
+    if(db != null) {
+      db.rawQuery("insert into settings (key, value) values ('$key', '$value')");
+    }
+  }
+
+  Future<void> deleteSetting(String key) async {
+    final db = await database;
+
+    if(db != null) {
+      await db.rawQuery("delete from settings where key=$key;");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAllSettings() async {
+    final db = await database;
+
     if(db != null) {
       List<Map<String, dynamic>> maps = await db.rawQuery("select * from settings;");
       return maps;

@@ -1,4 +1,5 @@
 import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -120,7 +121,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                         onDismissed: (direction) {
                           String? entry = _selected;
                           if(null != entry) {
-                            Storage().realmHelper.deleteAircraft(entry);
+                            UserDatabaseHelper.db.deleteAircraft(entry);
                           }
                           Storage().settings.setChecklist("");
                           setState(() {
@@ -135,9 +136,10 @@ class AircraftScreenState extends State<AircraftScreen> {
                         // take all of whats here and save
                         Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
                         Aircraft a = Aircraft.fromMap(mm);
-                        Storage().realmHelper.addAircraft(a);
-                        setState(() {
-                          Storage().settings.setAircraft(a.tail);
+                        UserDatabaseHelper.db.addAircraft(a).then((value) {
+                          setState(() {
+                            Storage().settings.setAircraft(a.tail);
+                          });
                         });
                       },
                       child: const Text("Save")
@@ -153,8 +155,16 @@ class AircraftScreenState extends State<AircraftScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Aircraft>? data = Storage().realmHelper.getAllAircraft();
-    return _makeContent(data);
+    return FutureBuilder<List<Aircraft>?>(
+      future: UserDatabaseHelper.db.getAllAircraft(),
+      builder: (BuildContext context, AsyncSnapshot<List<Aircraft>?> snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return _makeContent(snapshot.data);
+        } else {
+          return Container();
+        }
+      },
+    );
   }
 }
 

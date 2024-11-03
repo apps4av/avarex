@@ -1,3 +1,4 @@
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/longpress_widget.dart';
 import 'package:avaremp/storage.dart';
@@ -43,7 +44,7 @@ class FindScreenState extends State<FindScreen> {
     bool searching = true;
     return FutureBuilder(
       // this is a mix of sqlite and realm, so we need to wait for the result and for realm, do a future as dummy
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? Future.value(Storage().realmHelper.getRecent()) : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
+      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)), // find recent when not searching
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -91,9 +92,10 @@ class FindScreenState extends State<FindScreen> {
                       direction: DismissDirection.endToStart,
                       onDismissed:(direction) {
                         // Remove the item from the data source.
-                        Storage().realmHelper.deleteRecent(item);
-                        setState(() {
-                          items.removeAt(index);
+                        UserDatabaseHelper.db.deleteRecent(item).then((value) {
+                          setState(() {
+                            items.removeAt(index);
+                          });
                         });
                       },
                       child: ListTile(
@@ -114,7 +116,7 @@ class FindScreenState extends State<FindScreen> {
                                             type: item.type,
                                             facilityName: value,
                                             coordinate: item.coordinate);
-                                        Storage().realmHelper.addRecent(d);
+                                        UserDatabaseHelper.db.addRecent(d);
                                       });
                                     },
                                     controller: TextEditingController()..text = item.facilityName,
@@ -126,7 +128,7 @@ class FindScreenState extends State<FindScreen> {
                         isThreeLine: true,
                         trailing: TextButton(
                           onPressed: () {
-                            Storage().realmHelper.addRecent(item);
+                            UserDatabaseHelper.db.addRecent(item);
                             Storage().settings.setCenterLongitude(item.coordinate.longitude);
                             Storage().settings.setCenterLatitude(item.coordinate.latitude);
                             Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());

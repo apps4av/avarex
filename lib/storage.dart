@@ -46,7 +46,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'app_settings.dart';
 import 'data/db_general.dart';
-import 'data/realm_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'download_manager.dart';
 import 'flight_timer.dart';
@@ -89,7 +88,6 @@ class Storage {
   int myIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
-  final RealmHelper realmHelper = RealmHelper();
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
@@ -271,21 +269,7 @@ class Storage {
   }
 
   Future<void> init() async {
-    await settings.initSettings();
-    themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
-    units = UnitConversion(settings.getUnits());
-    flightTimer = FlightTimer(true, 0, timeChange);
-    flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
-    DbGeneral.set(); // set database platform
     WidgetsFlutterBinding.ensureInitialized();
-    try {
-      WakelockPlus.enable(); // keep screen on
-    }
-    catch(e) {}
-    // ask for GPS permission
-    await _gps.isPermissionDenied();
-    position = await Gps().getLastPosition();
-    _gpsStack.push(position);
     Directory dir = await getApplicationDocumentsDirectory();
     dataDir = PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
     dir = await getApplicationSupportDirectory();
@@ -295,6 +279,21 @@ class Storage {
       dir.createSync();
     }
 
+    await settings.initSettings();
+    themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
+    units = UnitConversion(settings.getUnits());
+    flightTimer = FlightTimer(true, 0, timeChange);
+    flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
+    DbGeneral.set(); // set database platform
+    try {
+      WakelockPlus.enable(); // keep screen on
+    }
+    catch(e) {}
+    // ask for GPS permission
+    await _gps.isPermissionDenied();
+    position = await Gps().getLastPosition();
+    _gpsStack.push(position);
+
     // tiles cache
     osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
     openaipCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "openaip"));
@@ -303,10 +302,6 @@ class Storage {
 
     // this is a long login process, do not await here
 
-    String username;
-    String password;
-    (username, password) = realmHelper.loadCredentials();
-    realmHelper.login([username, password]);
     await checkChartsExist();
     await checkDataExpiry();
 

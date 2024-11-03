@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/flight_status.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -41,13 +42,13 @@ class PlatesFuture {
             Storage().dataDir, airports[0].locationID);
         if (plate != null) {
           _currentPlateAirport = airports[0].locationID;
-          Storage().realmHelper.addRecent(airports[0]);
+          UserDatabaseHelper.db.addRecent(airports[0]);
         }
       }
     }
 
     // get location ID only
-    _airports = (Storage().realmHelper.getRecentAirports()).map((e) => e.locationID).toList();
+    _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(_currentPlateAirport.isEmpty) {
         if(_airports.isNotEmpty) {

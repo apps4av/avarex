@@ -6,7 +6,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
@@ -150,7 +149,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                      }, child: const Text("Share")),
                    ])),
                    Flexible(flex: 1, child: Row(children: [
-                   if((products.length - productsStatic.length) > 1)
+                   if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
                      Padding(padding: const EdgeInsets.fromLTRB(15, 5, 0, 0), child: Dismissible(key: GlobalKey(),
                        background: const Icon(Icons.delete_forever),
                        direction: DismissDirection.endToStart,
@@ -228,34 +227,10 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     products = [];
     products.addAll(productsStatic);
 
-    // copy docs from assets, only if they do not exist
-    copyDocs() async {
-      String doc = PathUtils.getFilePath("documents", "FAAFPLQuickReferenceBrochure.pdf");
-      String path = PathUtils.getFilePath(Storage().dataDir, doc);
-      if(!File(path).existsSync()) {
-        try {
-          // if fresh mkdir
-          Directory(PathUtils.getFilePath(Storage().dataDir, "documents"))
-              .createSync();
-        }
-        catch(e) {}
-        String path2 = PathUtils.getFilePath("assets", doc);
-        if(Platform.isWindows) { // windows root bundle bug, cannot use \
-          path2 = path2.replaceAll("\\", "/");
-        }
-        ByteData data = await rootBundle.load(path2);
-        List<int> bytes = data.buffer.asUint8List(
-            data.offsetInBytes, data.lengthInBytes);
-        await File(path).writeAsBytes(bytes);
-      }
-    }
-    copyDocs();
-
     // always show at least one doc
-    Document user = Document(DocumentsScreen.userDocuments, "ICAO Filing Guide",
-        PathUtils.getFilePath(Storage().dataDir,
-          PathUtils.getFilePath("documents", "FAAFPLQuickReferenceBrochure.pdf")));
-    products.add(user);
+    Document db = Document(DocumentsScreen.userDocuments, "User Data",
+        PathUtils.getFilePath(Storage().dataDir, "user.db"));
+    products.add(db);
 
     for(String doc in docs) {
       products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(doc), doc));
@@ -273,7 +248,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
-              child: const Tooltip(message: "Import text, PDF documents", child: Text("Import")),
+              child: const Tooltip(message: "Import text, PDF documents, user data", child: Text("Import")),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:

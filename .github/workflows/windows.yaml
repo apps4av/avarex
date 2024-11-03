@@ -25,8 +25,7 @@ jobs:
 
       - name: Install project dependencies
         run: flutter pub get
-      - name: Install project dependencies (realm)
-        run: dart run realm_dart install -t windows
+
       - name: Build artifacts
         run: flutter build windows --release
       - name: Build artifacts MSIX

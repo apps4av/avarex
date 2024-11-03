@@ -107,7 +107,7 @@ This is not an FAA certified GPS. You must assume this software will fail when l
 
 ** What Information We Collect **
 
-The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address) and password. This information must be provided in order to register and use our platform. This information is used for internal verification to complete registrations / transactions, ensure appropriate legal use of the service, provide notification to users about updates to the service, provide notification to users about content upgrade, and help provide technical support to our users. The users of the app may store their flight plans, aircraft particulars, flight filing information, checklists, and weight & balance information on our servers, using the online service. The privacy of your personal information is very important to us. We will delete all your information from our records when you unregister from the online service.
+The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform. This information is used for internal verification to complete registrations / transactions, ensure appropriate legal use of the service, provide notification to users about updates to the service, provide notification to users about content upgrade, and help provide technical support to our users.
 
 ** Sharing Your Personal Information **
 

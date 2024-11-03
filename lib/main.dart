@@ -7,7 +7,6 @@ import 'documents_screen.dart';
 import 'download_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
-import 'online_screen.dart';
 
 void main()  {
 
@@ -38,7 +37,6 @@ class MainApp extends StatelessWidget {
               '/aircraft': (context) => const AircraftScreen(),
               '/checklists': (context) => const ChecklistScreen(),
               '/wnb': (context) => const WnbScreen(),
-              '/online': (context) => const OnlineScreen(),
             },
             theme: value,
           );

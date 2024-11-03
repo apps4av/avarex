@@ -28,9 +28,6 @@ jobs:
           flutter pub get
           brew install create-dmg
 
-      - name: Install project dependencies (realm)
-        run: dart run realm_dart install -t macos
-
       - name: Build artifacts and sign
         run: |
           flutter build macos --release

@@ -1,3 +1,4 @@
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/wnb.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -306,7 +307,7 @@ class WnbScreenState extends State<WnbScreen> {
                 onDismissed: (direction) {
                   String? entry = _selected;
                   if(null != entry) {
-                    Storage().realmHelper.deleteWnb(entry);
+                    UserDatabaseHelper.db.deleteWnb(entry);
                   }
                   Storage().settings.setWnb("");
                   setState(() {
@@ -323,7 +324,7 @@ class WnbScreenState extends State<WnbScreen> {
                     // save
                     _wnb.points = Wnb.getPointsAsString(_plotData);
                     _wnb.items = _wnb.items;
-                    Storage().realmHelper.addWnb(_wnb).then((value) => setState(() {
+                    UserDatabaseHelper.db.addWnb(_wnb).then((value) => setState(() {
                       Storage().settings.setWnb(_wnb.name);
                       _editing = !_editing;
                     }));
@@ -430,8 +431,15 @@ class WnbScreenState extends State<WnbScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Wnb>? data = Storage().realmHelper.getAllWnb();
-    return _makeContent(data);
+    return FutureBuilder(
+      future: UserDatabaseHelper.db.getAllWnb(),
+      builder: (BuildContext context, AsyncSnapshot<List<Wnb>?> snapshot) {
+        if(snapshot.connectionState == ConnectionState.done) {
+          return _makeContent(snapshot.data);
+        }
+        return const Center(child: CircularProgressIndicator());
+      },
+    );
   }
 }
 

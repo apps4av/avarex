@@ -1,4 +1,6 @@
 
+import 'package:avaremp/data/user_database_helper.dart';
+
 import 'plan_lmfs.dart';
 import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -44,7 +46,6 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _aircraftColor = "";
   String _pilotInCommand = "";
   String _remarks = "";
-  List<Aircraft>? _aircraft;
 
   bool _sending = false;
   String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
@@ -52,8 +53,18 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   
   @override
   Widget build(BuildContext context) {
-    _aircraft = Storage().realmHelper.getAllAircraft();
-    return _makeContent(_aircraft);
+
+    return FutureBuilder(
+      future: UserDatabaseHelper.db.getAllAircraft(),
+      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+        if(snapshot.connectionState == ConnectionState.done) {
+          return _makeContent(snapshot.data);
+        }
+        else {
+          return Container();
+        }
+      },
+    );
   }
 
   PlanLmfs _makeLmfs() {

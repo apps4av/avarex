@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/checklist.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
@@ -53,7 +54,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           // remove empty lines
           lines = List<String>.from(lines).where((value) => value.isNotEmpty).toList();
           Checklist list = Checklist(name, "", lines);
-          Storage().realmHelper.addChecklist(list);
+          UserDatabaseHelper.db.addChecklist(list);
         }));},
       child: const Text("Import")
     ));
@@ -130,7 +131,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                     onDismissed: (direction) {
                       String? entry = _selected;
                       if(null != entry) {
-                        Storage().realmHelper.deleteChecklist(entry);
+                        UserDatabaseHelper.db.deleteChecklist(entry);
                       }
                       Storage().settings.setChecklist("");
                       setState(() {
@@ -146,8 +147,15 @@ class ChecklistScreenState extends State<ChecklistScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Checklist>? data = Storage().realmHelper.getAllChecklist();
-    return _makeContent(data);
+    return FutureBuilder(
+      future: UserDatabaseHelper.db.getAllChecklist(),
+      builder: (BuildContext context, AsyncSnapshot<List<Checklist>?> snapshot) {
+        if(snapshot.connectionState == ConnectionState.done) {
+          return _makeContent(snapshot.data);
+        }
+        return Container();
+      },
+    );
   }
 
   Future<List<String>> _pickFile() async {

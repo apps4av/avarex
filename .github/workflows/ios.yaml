@@ -47,9 +47,6 @@ jobs:
       - name: Install project dependencies
         run: flutter pub get
 
-      - name: Install project dependencies (realm)
-        run: dart run realm_dart install -t ios
-
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 

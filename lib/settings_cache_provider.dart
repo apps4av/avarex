@@ -1,39 +1,37 @@
 import 'dart:async';
-import 'package:avaremp/storage.dart';
-
-import 'data/realm_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 
 class SettingsCacheProvider {
 
-  final RealmHelper _userSettingsRealmHelper = Storage().realmHelper;
+  final Map<String, String?> _settings = {};
 
   bool containsKey(String key) {
-    bool contains = getKeys().contains(key);
+    bool contains = _settings.containsKey(key);
     return contains;
   }
 
   bool? getBool(String key, {bool? defaultValue}) {
-    String? value = _userSettingsRealmHelper.getSetting(key);
+    String? value = _settings[key];
     return value == null ? defaultValue : value == "false" ? false : true;
   }
 
   double? getDouble(String key, {double? defaultValue}) {
-    String? value = _userSettingsRealmHelper.getSetting(key);
+    String? value = _settings[key];
     return value == null ? defaultValue : double.parse(value);
   }
 
   int? getInt(String key, {int? defaultValue}) {
-    String? value = _userSettingsRealmHelper.getSetting(key);
+    String? value = _settings[key];
     return value == null ? defaultValue : int.parse(value);
   }
 
-  Set getKeys() {
-    return _userSettingsRealmHelper.getAllSettings().map((e) => e['key']).toSet();
+  String? getString(String key, {String? defaultValue}) {
+    String? value = _settings[key];
+    return value ?? defaultValue;
   }
 
-  String? getString(String key, {String? defaultValue}) {
-    String? value = _userSettingsRealmHelper.getSetting(key);
-    return value ?? defaultValue;
+  Set getKeys() {
+    return _settings.keys.toSet();
   }
 
   T? getValue<T>(String key, {T? defaultValue}) {
@@ -54,41 +52,45 @@ class SettingsCacheProvider {
   }
 
   Future<void> init() async {
-    return Future.value();
+    List<Map<String, dynamic>> all = await UserDatabaseHelper.db.getAllSettings();
+    for(var setting in all) {
+      _settings[setting['key']] = setting['value'] as String?;
+    }
   }
 
   Future<void> remove(String key) {
-    _userSettingsRealmHelper.deleteSetting(key);
-    return Future.value();
-  }
-
-  Future<void> removeAll() {
-    _userSettingsRealmHelper.deleteAllSettings();
+    _settings.remove(key);
+    UserDatabaseHelper.db.deleteSetting(key);
     return Future.value();
   }
 
   Future<void> setBool(String key, bool? value) {
-    _userSettingsRealmHelper.insertSetting(key, value.toString());
+    _settings[key] = value.toString();
+    UserDatabaseHelper.db.insertSetting(key, value.toString());
     return Future.value();
   }
 
   Future<void> setDouble(String key, double? value) {
-    _userSettingsRealmHelper.insertSetting(key, value.toString());
+    _settings[key] = value.toString();
+    UserDatabaseHelper.db.insertSetting(key, value.toString());
     return Future.value();
   }
 
   Future<void> setInt(String key, int? value) {
-    _userSettingsRealmHelper.insertSetting(key, value.toString());
+    _settings[key] = value.toString();
+    UserDatabaseHelper.db.insertSetting(key, value.toString());
     return Future.value();
   }
 
   Future<void> setObject<T>(String key, T? value) {
-    _userSettingsRealmHelper.insertSetting(key, value.toString());
+    _settings[key] = value.toString();
+    UserDatabaseHelper.db.insertSetting(key, value.toString());
     return Future.value();
   }
 
   Future<void> setString(String key, String? value) {
-    _userSettingsRealmHelper.insertSetting(key, value.toString());
+    _settings[key] = value.toString();
+    UserDatabaseHelper.db.insertSetting(key, value.toString());
     return Future.value();
   }
 

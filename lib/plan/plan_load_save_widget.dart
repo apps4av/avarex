@@ -1,3 +1,6 @@
+import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
+
 import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -18,10 +21,11 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
 
 
   void _saveRoute(PlanRoute route) {
-    Storage().realmHelper.addPlan(_name, route);
-    setState(() {
-      Storage().route.name = _name;
-      _currentItems.insert(0, Storage().route.name);
+    UserDatabaseHelper.db.addPlan(_name, route).then((value) {
+      setState(() {
+        Storage().route.name = _name;
+        _currentItems.insert(0, Storage().route.name);
+      });
     });
   }
 
@@ -77,7 +81,7 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                           PopupMenuItem<String>(
                             child: const Text('Load'),
                             onTap: () {
-                              Storage().realmHelper.getPlan(_currentItems[index], false).then((value) {
+                              UserDatabaseHelper.db.getPlan(_currentItems[index], false).then((value) {
                                 Storage().route.copyFrom(value);
                                 Storage().route.setCurrentWaypoint(0);
                                 Navigator.pop(context);
@@ -87,7 +91,7 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                           PopupMenuItem<String>(
                             child: const Text('Load Reversed'),
                             onTap: () {
-                              Storage().realmHelper.getPlan(_currentItems[index], true).then((value) {
+                              UserDatabaseHelper.db.getPlan(_currentItems[index], true).then((value) {
                                 Navigator.pop(context);
                                 Storage().route.copyFrom(value);
                                 Storage().route.setCurrentWaypoint(0);
@@ -97,9 +101,10 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                           PopupMenuItem<String>(
                             child: const Text('Delete'),
                             onTap: () {
-                              Storage().realmHelper.deletePlan(_currentItems[index]);
-                              setState(() {
-                                _currentItems.removeAt(index);
+                              UserDatabaseHelper.db.deletePlan(_currentItems[index]).then((value) {
+                                setState(() {
+                                  _currentItems.removeAt(index);
+                                });
                               });
                             },
                           ),
@@ -114,8 +119,18 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
 
   @override
   Widget build(BuildContext context) {
-    _currentItems = Storage().realmHelper.getPlans();
-    return _makeContent();
+    return FutureBuilder(
+      future: UserDatabaseHelper.db.getPlans(),
+      builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
+        if(snapshot.hasData) {
+          _currentItems = snapshot.data!;
+          return _makeContent();
+        }
+        else {
+          return Container();
+        }
+      },
+    );
   }
 }
 
