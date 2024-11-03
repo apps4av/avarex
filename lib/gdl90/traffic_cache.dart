@@ -14,7 +14,8 @@ import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;
-const int _kTrafficAltDiffThresholdFt = 3000;
+const int _kTrafficAltDiffThresholdFt = 2000;
+const int _kTrafficDistanceDiffThresholdNm = 10;
 
 enum TrafficAlertLevel { none, advisory, resolution }
 
@@ -131,10 +132,12 @@ class TrafficCache {
         }
         final Traffic trafficNew = Traffic(message);
         // only display/alert traffic that isn't too far from ownship
-        if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+        if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt ||
+          trafficNew.horizontalOwnshipDistanceNmi > _kTrafficDistanceDiffThresholdNm) {
            _traffic[i] = null;
           return;
         }
+
         _traffic[i] = trafficNew;
 
         // process any audible alerts from traffic (if enabled)
@@ -147,7 +150,8 @@ class TrafficCache {
     // put it in the end
     final Traffic trafficNew = Traffic(message);
     // only display/alert traffic that isn't too far from ownship
-    if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt) {
+    if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt ||
+      trafficNew.horizontalOwnshipDistanceNmi > _kTrafficDistanceDiffThresholdNm) {
       return;
     }    
     _traffic[maxEntries] = trafficNew;
