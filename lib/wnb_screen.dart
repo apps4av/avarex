@@ -434,11 +434,8 @@ class WnbScreenState extends State<WnbScreen> {
     return FutureBuilder(
       future: UserDatabaseHelper.db.getAllWnb(),
       builder: (BuildContext context, AsyncSnapshot<List<Wnb>?> snapshot) {
-        if(snapshot.connectionState == ConnectionState.done) {
-          return _makeContent(snapshot.data);
-        }
-        return const Center(child: CircularProgressIndicator());
-      },
+        return _makeContent(snapshot.data);
+      }
     );
   }
 }

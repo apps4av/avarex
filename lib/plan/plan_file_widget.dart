@@ -50,19 +50,17 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   bool _sending = false;
   String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
   Color? _errorColor;
-  
+  List<Aircraft>? _aircraft;
+
   @override
   Widget build(BuildContext context) {
-
     return FutureBuilder(
       future: UserDatabaseHelper.db.getAllAircraft(),
       builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-        if(snapshot.connectionState == ConnectionState.done) {
-          return _makeContent(snapshot.data);
+        if(null == snapshot.data) {
+          return _makeContent(_aircraft);
         }
-        else {
-          return Container();
-        }
+        return _makeContent(snapshot.data);
       },
     );
   }
@@ -102,6 +100,8 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
   Widget _makeContent(List<Aircraft>? aircraft) {
 
+    // this so we do not rebuild
+    _aircraft = aircraft;
     if(null == aircraft) {
       return Container();
     }
@@ -544,6 +544,9 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     onPressed: () {
                       setState(() {
                         _fuelEndurance = Duration(minutes: _fuelEndurance.inMinutes - 15);
+                        if(_fuelEndurance < Duration.zero) {
+                          _fuelEndurance = const Duration(minutes: 0);
+                        }
                       });
                     },
                     child: const Text("-15M")),
