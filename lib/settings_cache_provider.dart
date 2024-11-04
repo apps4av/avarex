@@ -56,6 +56,7 @@ class SettingsCacheProvider {
     for(var setting in all) {
       _settings[setting['key']] = setting['value'] as String?;
     }
+    return Future.value();
   }
 
   Future<void> remove(String key) {

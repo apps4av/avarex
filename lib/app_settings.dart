@@ -11,7 +11,7 @@ class AppSettings {
 
   Future<void> initSettings() async {
     provider = SettingsCacheProvider();
-    provider.init();
+    await provider.init();
     _localAudibleAlertsEnabledSetting = provider.getValue("key-audible-alerts", defaultValue: _localAudibleAlertsEnabledSetting) as bool;
     _localUnits = provider.getValue("key-units", defaultValue: _localUnits) as String;
   }
