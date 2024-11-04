@@ -280,13 +280,13 @@ class Storage {
     if(!dir.existsSync()) {
       dir.createSync();
     }
+    DbGeneral.set(); // set database platform
 
     await settings.initSettings();
     themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
     units = UnitConversion(settings.getUnits());
     flightTimer = FlightTimer(true, 0, timeChange);
     flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
-    DbGeneral.set(); // set database platform
     try {
       WakelockPlus.enable(); // keep screen on
     }

@@ -111,18 +111,19 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
+      double factor = 10;
       final LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      final LatLng topLeft = _controller!.camera.pointToLatLng(const Point(0, 0));
-      final LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(0, Constants.screenHeight(context)));
+      final LatLng topLeft = _controller!.camera.pointToLatLng(Point(0, -Constants.screenHeight(context) / factor));
+      final LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(0, Constants.screenHeight(context) + Constants.screenHeight(context) / factor));
       final double verticalDistance = GeoCalculations().calculateDistance(topLeft, bottomLeft);
       // find vertical lat/lon
-      final List<LatLng> vertical1 = calculations.findPoints(LatLng(center.latitude, topLeft.longitude), topLeft, verticalDistance / 10);
-      final List<LatLng> vertical2 = calculations.findPoints(LatLng(center.latitude, bottomLeft.longitude), bottomLeft, verticalDistance / 10);
+      final List<LatLng> vertical1 = calculations.findPoints(LatLng(center.latitude, topLeft.longitude), topLeft, verticalDistance / factor);
+      final List<LatLng> vertical2 = calculations.findPoints(LatLng(center.latitude, bottomLeft.longitude), bottomLeft, verticalDistance / factor);
       final List<LatLng> allPointsV = (vertical1 + vertical2).toSet().toList();
       final List<LatLng> onScreenPointsV = allPointsV.map(
               (e) => _controller!.camera.visibleBounds.contains(e) ? e : null).where((element) => element != null).toList().cast<LatLng>();
       // starts to look odd at 5 or below
-      tapeNotifier.value = ([], _controller!.camera.zoom > 5 ? onScreenPointsV : []);
+      tapeNotifier.value = ([], _controller!.camera.zoom > 5 && _northUp ? onScreenPointsV : []);
     }
   }
 
@@ -643,9 +644,9 @@ class MapScreenState extends State<MapScreen> {
                     for(LatLng l in value.$2)
                       Marker(point: l, width: 32, alignment: Alignment.centerRight,
                         child: Container(width: 32,
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(5)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
                           child: SizedBox(width: 32, child: FittedBox(
-                            child: Padding(padding: const EdgeInsets.all(2),
+                            child: Padding(padding: const EdgeInsets.all(3),
                               child:Text(calculations.calculateDistance(l, LatLng(Storage().gpsChange.value.latitude, l.longitude)).toStringAsFixed(1))))
                           )
                         )
