@@ -69,6 +69,8 @@ class MapScreenState extends State<MapScreen> {
   final int disableClusteringAtZoom = 10;
   final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
+  final GeoCalculations calculations = GeoCalculations();
+  final ValueNotifier<(List<LatLng>, List<LatLng>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<LatLng>)>(([],[]));
 
   Future<bool> showDestination(BuildContext context, List<Destination> destinations) async {
     bool? exitResult = await showModalBottomSheet(
@@ -106,9 +108,27 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
+  // for measuring tape
+  void _handleEvent(MapEvent mapEvent) {
+    if(_controller != null) {
+      final LatLng center = Gps.toLatLng(Storage().gpsChange.value);
+      final LatLng topLeft = _controller!.camera.pointToLatLng(const Point(0, 0));
+      final LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(0, Constants.screenHeight(context)));
+      final double verticalDistance = GeoCalculations().calculateDistance(topLeft, bottomLeft);
+      // find vertical lat/lon
+      final List<LatLng> vertical1 = calculations.findPoints(LatLng(center.latitude, topLeft.longitude), topLeft, verticalDistance / 10);
+      final List<LatLng> vertical2 = calculations.findPoints(LatLng(center.latitude, bottomLeft.longitude), bottomLeft, verticalDistance / 10);
+      final List<LatLng> allPointsV = (vertical1 + vertical2).toSet().toList();
+      final List<LatLng> onScreenPointsV = allPointsV.map(
+              (e) => _controller!.camera.visibleBounds.contains(e) ? e : null).where((element) => element != null).toList().cast<LatLng>();
+      // starts to look odd at 5 or below
+      tapeNotifier.value = ([], _controller!.camera.zoom > 5 ? onScreenPointsV : []);
+    }
+  }
+
   // this pans camera on move
   void _listen() {
-    LatLng cur = Gps.toLatLng(Storage().position);
+    final LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
     if(null != _controller) {
       try {
@@ -220,6 +240,7 @@ class MapScreenState extends State<MapScreen> {
           // do something
           _interacting = false;
         }
+        _handleEvent(mapEvent);
       },
     );
 
@@ -610,6 +631,31 @@ class MapScreenState extends State<MapScreen> {
 
     lIndex = _layers.indexOf('Circles');
       if(_layersState[lIndex]) {
+
+        layers.add( // tape
+          ValueListenableBuilder<(List<LatLng>, List<LatLng>)>(
+            valueListenable: tapeNotifier,
+            builder: (context, value, _) {
+              return MarkerLayer(
+                  markers: [
+                    // horizontal, not implemented yet
+                    // vertical
+                    for(LatLng l in value.$2)
+                      Marker(point: l, width: 32, alignment: Alignment.centerRight,
+                        child: Container(width: 32,
+                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(5)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                          child: SizedBox(width: 32, child: FittedBox(
+                            child: Padding(padding: const EdgeInsets.all(2),
+                              child:Text(calculations.calculateDistance(l, LatLng(Storage().gpsChange.value.latitude, l.longitude)).toStringAsFixed(1))))
+                          )
+                        )
+                      ),
+                  ]
+              );
+            },
+          ),
+        );
+
         layers.add( // circle layer
           ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,

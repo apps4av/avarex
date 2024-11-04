@@ -344,12 +344,11 @@ class InstrumentListState extends State<InstrumentList> {
           child: Container(
           width: width,
           decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
-            child: Column(
-              children: [
-                Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
-                Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle( ), maxLines: 1,)))),
-              ]
-            ),
+          child: Column(
+            children: [
+              Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
+              Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle( ), maxLines: 1,)))),
+            ]),
           )
       )
     );
