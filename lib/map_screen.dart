@@ -70,7 +70,7 @@ class MapScreenState extends State<MapScreen> {
   final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations calculations = GeoCalculations();
-  final ValueNotifier<(List<LatLng>, List<LatLng>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<LatLng>)>(([],[]));
+  final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
 
   Future<bool> showDestination(BuildContext context, List<Destination> destinations) async {
     bool? exitResult = await showModalBottomSheet(
@@ -112,17 +112,20 @@ class MapScreenState extends State<MapScreen> {
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
       // find 10 points on the screen left that have distance from airplane
-      List<Point> pointsVertical = List.generate(10, (index) => Point(0, Constants.screenHeight(context) * index / 10));
+      List<Point> pointsVertical = List.generate(4, (index) => Point(32, Constants.screenHeight(context) * index / 4));
       List<LatLng> llVertical = pointsVertical.map((e) => _controller!.camera.pointToLatLng(e)).toList();
-      // remove first and last 2 for better view
+      // only keep middle 2 for better view
       llVertical.removeRange(0, 2);
-      llVertical.removeRange(llVertical.length - 2, llVertical.length);
-      List<Point> pointsHorizontal = List.generate(10, (index) => Point(Constants.screenWidth(context) * index / 10, Constants.screenHeightForInstruments(context)));
+      List<Point> pointsHorizontal = List.generate(4, (index) => Point(Constants.screenWidth(context) * index / 4, Constants.screenHeightForInstruments(context) + 32 / 2));
       List<LatLng> llHorizontal = pointsHorizontal.map((e) => _controller!.camera.pointToLatLng(e)).toList();
-      // remove first and last 2 for better view
       llHorizontal.removeRange(0, 2);
-      llHorizontal.removeRange(llHorizontal.length - 2, llHorizontal.length);
-      tapeNotifier.value = (_controller!.camera.zoom > 5 && _northUp ? llHorizontal : [], _controller!.camera.zoom > 5 && _northUp ? llVertical : []);
+      // also add absolute distance point
+      Point point = Point(Constants.screenWidth(context) / 2, Constants.screenHeight(context) / 2);
+      LatLng center = _controller!.camera.pointToLatLng(point);
+      String distanceCenter = calculations.calculateDistance(center, Gps.toLatLng(Storage().gpsChange.value)).toStringAsFixed(1);
+      List<String> distanceH = llHorizontal.map((e) => calculations.calculateDistance(e, LatLng(e.latitude, Storage().gpsChange.value.longitude)).toStringAsFixed(1)).toList();
+      List<String> distanceV = llVertical.map((e) => calculations.calculateDistance(e, LatLng(Storage().gpsChange.value.latitude, e.longitude)).toStringAsFixed(1)).toList();
+      tapeNotifier.value = (_controller!.camera.zoom > 5 && _northUp ? (llHorizontal + llVertical + [center], distanceH + distanceV + [distanceCenter]) : ([], []));
     }
   }
 
@@ -633,32 +636,22 @@ class MapScreenState extends State<MapScreen> {
       if(_layersState[lIndex]) {
 
         layers.add( // tape
-          ValueListenableBuilder<(List<LatLng>, List<LatLng>)>(
+          ValueListenableBuilder<(List<LatLng>, List<String>)>(
             valueListenable: tapeNotifier,
             builder: (context, value, _) {
               return MarkerLayer(
                   markers: [
                     // horizontal, not implemented yet
                     // vertical
-                    for(LatLng l in value.$1)
-                      Marker(point: l, width: 32, alignment: Alignment.bottomCenter,
+                    for(int index = 0; index < value.$1.length; index++)
+                      Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
                           child: Container(width: 32,
                               decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
                               child: SizedBox(width: 32, child: FittedBox(
                                   child: Padding(padding: const EdgeInsets.all(3),
-                                      child:Text(calculations.calculateDistance(l, LatLng(l.latitude, Storage().gpsChange.value.longitude)).toStringAsFixed(1))))
-                              )
+                                      child:Text(value.$2[index])
+                              )))
                           )
-                      ),
-                    for(LatLng l in value.$2)
-                      Marker(point: l, width: 32, alignment: Alignment.centerRight,
-                        child: Container(width: 32,
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
-                          child: SizedBox(width: 32, child: FittedBox(
-                            child: Padding(padding: const EdgeInsets.all(3),
-                              child:Text(calculations.calculateDistance(l, LatLng(Storage().gpsChange.value.latitude, l.longitude)).toStringAsFixed(1))))
-                          )
-                        )
                       ),
                   ]
               );
