@@ -272,6 +272,7 @@ class RunwayPainter extends CustomPainter {
 
     String info = "";
 
+    //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
 
       double width = 0; // draw runways to width
@@ -313,6 +314,7 @@ class RunwayPainter extends CustomPainter {
         double hx = (left - heLon) * px;
         double hy = (top - heLat) * py;
 
+        // draws the runway
         final paintLine = Paint()
           ..strokeWidth = width
           ..color = Colors.green.withOpacity(0.8); // runway color
@@ -322,6 +324,7 @@ class RunwayPainter extends CustomPainter {
 
         canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
+        //create info string for low end runway identifier (1-17)
         String ident = "${r['LEIdent']} ";
         String pattern = r['LEPattern'] == 'Y' ? 'RP ' : '';
         String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
@@ -334,6 +337,7 @@ class RunwayPainter extends CustomPainter {
 
         info += "$ident$pattern$lights$ils$vgsi\n";
 
+        //create info string for high end runway identifier (18...36)
         ident = "${r['HEIdent']} ";
         pattern = r['HEPattern'] == 'Y' ? 'RP ' : '';
         lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
@@ -359,7 +363,4 @@ class RunwayPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
   return false;
   }
-
-
-
 }
