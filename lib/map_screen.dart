@@ -111,19 +111,18 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
-      double factor = 10;
-      final LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      final LatLng topLeft = _controller!.camera.pointToLatLng(Point(0, -Constants.screenHeight(context) / factor));
-      final LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(0, Constants.screenHeight(context) + Constants.screenHeight(context) / factor));
-      final double verticalDistance = GeoCalculations().calculateDistance(topLeft, bottomLeft);
-      // find vertical lat/lon
-      final List<LatLng> vertical1 = calculations.findPoints(LatLng(center.latitude, topLeft.longitude), topLeft, verticalDistance / factor);
-      final List<LatLng> vertical2 = calculations.findPoints(LatLng(center.latitude, bottomLeft.longitude), bottomLeft, verticalDistance / factor);
-      final List<LatLng> allPointsV = (vertical1 + vertical2).toSet().toList();
-      final List<LatLng> onScreenPointsV = allPointsV.map(
-              (e) => _controller!.camera.visibleBounds.contains(e) ? e : null).where((element) => element != null).toList().cast<LatLng>();
-      // starts to look odd at 5 or below
-      tapeNotifier.value = ([], _controller!.camera.zoom > 5 && _northUp ? onScreenPointsV : []);
+      // find 10 points on the screen left that have distance from airplane
+      List<Point> pointsVertical = List.generate(10, (index) => Point(0, Constants.screenHeight(context) * index / 10));
+      List<LatLng> llVertical = pointsVertical.map((e) => _controller!.camera.pointToLatLng(e)).toList();
+      // remove first and last 2 for better view
+      llVertical.removeRange(0, 2);
+      llVertical.removeRange(llVertical.length - 2, llVertical.length);
+      List<Point> pointsHorizontal = List.generate(10, (index) => Point(Constants.screenWidth(context) * index / 10, Constants.screenHeightForInstruments(context)));
+      List<LatLng> llHorizontal = pointsHorizontal.map((e) => _controller!.camera.pointToLatLng(e)).toList();
+      // remove first and last 2 for better view
+      llHorizontal.removeRange(0, 2);
+      llHorizontal.removeRange(llHorizontal.length - 2, llHorizontal.length);
+      tapeNotifier.value = (_controller!.camera.zoom > 5 && _northUp ? llHorizontal : [], _controller!.camera.zoom > 5 && _northUp ? llVertical : []);
     }
   }
 
@@ -641,6 +640,16 @@ class MapScreenState extends State<MapScreen> {
                   markers: [
                     // horizontal, not implemented yet
                     // vertical
+                    for(LatLng l in value.$1)
+                      Marker(point: l, width: 32, alignment: Alignment.bottomCenter,
+                          child: Container(width: 32,
+                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                              child: SizedBox(width: 32, child: FittedBox(
+                                  child: Padding(padding: const EdgeInsets.all(3),
+                                      child:Text(calculations.calculateDistance(l, LatLng(l.latitude, Storage().gpsChange.value.longitude)).toStringAsFixed(1))))
+                              )
+                          )
+                      ),
                     for(LatLng l in value.$2)
                       Marker(point: l, width: 32, alignment: Alignment.centerRight,
                         child: Container(width: 32,
