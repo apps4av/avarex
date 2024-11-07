@@ -111,21 +111,34 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
-      // find 10 points on the screen left that have distance from airplane
-      List<Point> pointsVertical = List.generate(4, (index) => Point(32, Constants.screenHeight(context) * index / 4));
-      List<LatLng> llVertical = pointsVertical.map((e) => _controller!.camera.pointToLatLng(e)).toList();
-      // only keep middle 2 for better view
-      llVertical.removeRange(0, 2);
-      List<Point> pointsHorizontal = List.generate(4, (index) => Point(Constants.screenWidth(context) * index / 4, Constants.screenHeightForInstruments(context) + 32 / 2));
-      List<LatLng> llHorizontal = pointsHorizontal.map((e) => _controller!.camera.pointToLatLng(e)).toList();
-      llHorizontal.removeRange(0, 2);
-      // also add absolute distance point
-      Point point = Point(Constants.screenWidth(context) / 2, Constants.screenHeight(context) / 2);
-      LatLng center = _controller!.camera.pointToLatLng(point);
-      String distanceCenter = calculations.calculateDistance(center, Gps.toLatLng(Storage().gpsChange.value)).toStringAsFixed(1);
-      List<String> distanceH = llHorizontal.map((e) => calculations.calculateDistance(e, LatLng(e.latitude, Storage().gpsChange.value.longitude)).toStringAsFixed(1)).toList();
-      List<String> distanceV = llVertical.map((e) => calculations.calculateDistance(e, LatLng(Storage().gpsChange.value.latitude, e.longitude)).toStringAsFixed(1)).toList();
-      tapeNotifier.value = (_controller!.camera.zoom > 5 && _northUp ? (llHorizontal + llVertical + [center], distanceH + distanceV + [distanceCenter]) : ([], []));
+      LatLng topLeft = _controller!.camera.pointToLatLng(const Point(16, 0));
+      LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(16, Constants.screenHeight(context)));
+      LatLng center = Gps.toLatLng(Storage().gpsChange.value);
+      double ticksInLatitude = (topLeft.latitude - bottomLeft.latitude) / 8;
+      // run a loop to find markers
+      List<LatLng> llVertical = [];
+      List<String> distanceVertical = [];
+      for(int sign in [1, -1]) { // both sides of 0
+        for (double latitude = center.latitude; latitude.abs() < 90; latitude += ticksInLatitude * sign) {
+          if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+            continue; // outside of view area
+          }
+          double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+          LatLng ll = LatLng(latitude, avgLon);
+          double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+          String distance = d.toStringAsFixed(1); // at approx 5 miles, add decimals
+          if(ticksInLatitude > 0.1) {
+            distance = d.round().toString();
+          }
+          distanceVertical.add(distance);
+          llVertical.add(ll);
+        }
+      }
+      // add center calculation for actual distance
+      Point point = Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + 16);
+      LatLng c = _controller!.camera.pointToLatLng(point);
+      String distanceCenter = calculations.calculateDistance(c, Gps.toLatLng(Storage().gpsChange.value)).toStringAsFixed(1);
+      tapeNotifier.value = _controller!.camera.zoom > 5 && _northUp ? (llVertical + [c], distanceVertical + [distanceCenter]) : ([], []);
     }
   }
 
