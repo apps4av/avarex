@@ -111,34 +111,43 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
+      LatLng center = Gps.toLatLng(Storage().gpsChange.value);
+      LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + 16));
+      String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
+      if(!_northUp) { // horizontal/vertical distances are not correct in track up
+        tapeNotifier.value = ([topCenter], [centralDistance]);
+        return;
+      }
       LatLng topLeft = _controller!.camera.pointToLatLng(const Point(16, 0));
       LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(16, Constants.screenHeight(context)));
-      LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      double ticksInLatitude = (topLeft.latitude - bottomLeft.latitude) / 8;
+      double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 8;
+      if(ticksInLatitude < 0.1) {
+        ticksInLatitude = 0.1; // avoid busy loop
+      }
       // run a loop to find markers
       List<LatLng> llVertical = [];
       List<String> distanceVertical = [];
-      for(int sign in [1, -1]) { // both sides of 0
-        for (double latitude = center.latitude; latitude.abs() < 90; latitude += ticksInLatitude * sign) {
-          if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
-            continue; // outside of view area
-          }
-          double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
-          LatLng ll = LatLng(latitude, avgLon);
-          double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
-          String distance = d.toStringAsFixed(1); // at approx 5 miles, add decimals
-          if(ticksInLatitude > 0.1) {
-            distance = d.round().toString();
-          }
-          distanceVertical.add(distance);
-          llVertical.add(ll);
+      for (double latitude = center.latitude; latitude < topLeft.latitude; latitude += ticksInLatitude) {
+        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+          continue; // outside of view area
         }
+        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+        LatLng ll = LatLng(latitude, avgLon);
+        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+        distanceVertical.add(d.round().toString());
+        llVertical.add(ll);
       }
-      // add center calculation for actual distance
-      Point point = Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + 16);
-      LatLng c = _controller!.camera.pointToLatLng(point);
-      String distanceCenter = calculations.calculateDistance(c, Gps.toLatLng(Storage().gpsChange.value)).toStringAsFixed(1);
-      tapeNotifier.value = _controller!.camera.zoom > 5 && _northUp ? (llVertical + [c], distanceVertical + [distanceCenter]) : ([], []);
+      for (double latitude = center.latitude; latitude > bottomLeft.latitude; latitude -= ticksInLatitude) {
+        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+          continue; // outside of view area
+        }
+        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+        LatLng ll = LatLng(latitude, avgLon);
+        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+        distanceVertical.add(d.round().toString());
+        llVertical.add(ll);
+      }
+      tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
     }
   }
 
@@ -647,24 +656,20 @@ class MapScreenState extends State<MapScreen> {
 
     lIndex = _layers.indexOf('Circles');
       if(_layersState[lIndex]) {
-
         layers.add( // tape
           ValueListenableBuilder<(List<LatLng>, List<String>)>(
             valueListenable: tapeNotifier,
             builder: (context, value, _) {
               return MarkerLayer(
                   markers: [
-                    // horizontal, not implemented yet
-                    // vertical
                     for(int index = 0; index < value.$1.length; index++)
                       Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
-                          child: Container(width: 32,
-                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
-                              child: SizedBox(width: 32, child: FittedBox(
-                                  child: Padding(padding: const EdgeInsets.all(3),
-                                      child:Text(value.$2[index])
-                              )))
-                          )
+                        child: Container(width: 32,
+                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(0)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                            child: SizedBox(width: 32, child: FittedBox(
+                              child: Padding(padding: const EdgeInsets.all(3),
+                                child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
+                        ))
                       ),
                   ]
               );
