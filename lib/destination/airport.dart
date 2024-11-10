@@ -343,11 +343,11 @@ class RunwayPainter extends CustomPainter {
         double offsetX = 0;
         double offsetY = 0;
 
+        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
+
         //calculate actual runway identifier headings
         double heHeading = pi/2 - atan2((leLat-heLat),(leLon-heLon));
         double leHeading = heHeading - pi;
-
-        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
         //create info string for low end runway identifier (1-17)
         String ident = "${r['LEIdent']} ";
@@ -379,7 +379,17 @@ class RunwayPainter extends CustomPainter {
         canvas.translate(hx + offsetX, hy + offsetY);
         canvas.rotate(heHeading);
         tp.paint(canvas, Offset(-(tp.width / 2),0));
+
+        //runway length text
+        canvas.rotate(pi/2); //rotate 90 degrees for runway length text
+        canvas.translate(-sqrt(pow(ly-hy, 2) + pow(lx-hx, 2))/2, 0); //move canvas to center of runway
+        String dimensions = "${r['Length']}x${r['Width']}\n";
+        span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 96), text: dimensions);
+        tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(-tp.width/2,(-width-tp.height) / 2));
         canvas.restore();
+
         info += "$ident$pattern$lights$ils$vgsi\n";
         info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
       }
@@ -388,7 +398,7 @@ class RunwayPainter extends CustomPainter {
     TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: info);
     TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
     tp.layout();
-    tp.paint(canvas, Offset(10, scale.toInt() / 4))  ;
+    tp.paint(canvas, Offset(10, scale.toInt() / 4));
   }
 
   @override
