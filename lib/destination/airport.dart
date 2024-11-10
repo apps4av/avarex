@@ -315,9 +315,30 @@ class RunwayPainter extends CustomPainter {
         double hy = (top - heLat) * py;
 
         // draws the runway
+        String surf = r['Surface'];
+        Color surfcolor = Colors.grey;
+
+        if(surf == 'WATER') {
+          surfcolor = Colors.blue;
+        }
+        else {
+          switch(surf.substring(0,4)) {
+            case 'ASPH':
+              surfcolor = Colors.grey.shade700;
+            case 'CONC':
+              surfcolor = Colors.grey;
+            case 'TURF':
+              surfcolor = Colors.green;
+            case 'DIRT':
+              surfcolor = Colors.brown;
+            case 'SAND':
+              surfcolor = Colors.amber.shade200;
+          }
+        }
+
         final paintLine = Paint()
           ..strokeWidth = width
-          ..color = Colors.green.withOpacity(0.8); // runway color
+          ..color = surfcolor.withOpacity(0.8);
 
         double offsetX = 0;
         double offsetY = 0;
