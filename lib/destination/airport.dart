@@ -272,6 +272,8 @@ class RunwayPainter extends CustomPainter {
 
     String info = "";
 
+    info += '${airport.facilityName} (${airport})\n';
+
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
 
