@@ -277,6 +277,67 @@ class RunwayPainter extends CustomPainter {
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
 
+      double labelpos = 0.5;
+      final intersections = <double>[0];
+      double leLat = 0;
+      double heLat = 0;
+      double leLon = 0;
+      double heLon = 0;
+
+      try {
+        double y1 = leLat = double.parse(r['LELatitude']);
+        double y2 = heLat = double.parse(r['HELatitude']);
+        double x1 = leLon = double.parse(r['LELongitude']);
+        double x2 = heLon = double.parse(r['HELongitude']);
+
+        for(Map<String, dynamic> i in runways) {
+          try {
+          //get the endpoints of the potential intersecting runway
+            double y3 = double.parse(i['LELatitude']);
+            double y4 = double.parse(i['HELatitude']);
+            double x3 = double.parse(i['LELongitude']);
+            double x4 = double.parse(i['HELongitude']);
+
+
+            double denominator = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+            if(denominator == 0) //the two runways are parallel, so they can't intersect (also rejects self)
+            {
+              continue;
+            }
+            double dividend_t = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4);
+            double dividend_u = (x1 - x2)*(y1 - y3) - (y1 - y2)*(x1 - x3);
+            double t = dividend_t / denominator;
+            double u = -dividend_u / denominator;
+
+            if((t >= 0 && t <= 1) && (u >=0 && u <= 1))
+            {
+              intersections.add(t);
+            }
+          }
+          catch (e) {
+          }
+        }
+      }
+      catch (e) {
+        //we weren't able to get runway dimensions, so skip this runway entirely (would have been skipped below anyways)
+        continue;
+      }
+
+      intersections.add(1);
+      //sort intersections along low end -> high end, intersection order is not necessarily in runway listed order
+      intersections.sort();
+
+      //the start and end of the longest segment of the runway between intersections
+      double l1 = intersections[0];
+      double l2 = intersections[1];
+      for(int i = 1; i < intersections.length - 1; i++) {
+        if(intersections[i+1] - intersections[i] > l2-l1){
+          l1 = intersections[i];
+          l2 = intersections[i+1];
+        }
+      }
+      labelpos = 1 - (l1 + l2)/2;
+
       double width = 0; // draw runways to width
       try {
         String w = r['Width'];
@@ -288,11 +349,6 @@ class RunwayPainter extends CustomPainter {
       width = width / 30;
 
       try {
-        double leLat = double.parse(r['LELatitude']);
-        double heLat = double.parse(r['HELatitude']);
-        double leLon = double.parse(r['LELongitude']);
-        double heLon = double.parse(r['HELongitude']);
-
         if(r['Length'] == "0") { // odd stuff like 0 length runways
           continue;
         }
@@ -384,8 +440,10 @@ class RunwayPainter extends CustomPainter {
 
         //runway length text
         canvas.rotate(pi/2); //rotate 90 degrees for runway length text
-        canvas.translate(-sqrt(pow(ly-hy, 2) + pow(lx-hx, 2))/2, 0); //move canvas to center of runway
+        canvas.translate(-sqrt(pow((ly-hy)*labelpos, 2) + pow((lx-hx)*labelpos, 2)), 0); //move canvas to center of runway
+
         String dimensions = "${r['Length']}x${r['Width']}\n";
+
         span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 96), text: dimensions);
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
