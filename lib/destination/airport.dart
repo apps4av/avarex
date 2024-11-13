@@ -237,6 +237,40 @@ class RunwayPainter extends CustomPainter {
 
   RunwayPainter(this.airport, this.context);
 
+  //For a given runway identifier (e.g. 16) returns the expected runway heading (e.g. 160)
+  static double getRunwayHeadingFromIdent(String ident)
+  {
+    if(ident.length > 2) {
+      ident = ident.substring(0,2);
+    }
+    double runwayNumber = 0;
+    try{
+      runwayNumber = double.parse(ident);
+    }
+    on FormatException {
+    //handle non-numeric runwy identifiers
+      switch(ident) {
+        case 'N':
+          runwayNumber = 0;
+        case 'NE':
+          runwayNumber = 4.5;
+        case 'E':
+          runwayNumber = 9;
+        case 'SE':
+          runwayNumber = 13.5;
+        case 'S':
+          runwayNumber = 18;
+        case 'SW':
+          runwayNumber = 22.5;
+        case 'W':
+          runwayNumber = 27;
+        case 'NW':
+          runwayNumber = 31.5;
+      }
+    }
+    return runwayNumber * 10;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
 
@@ -278,9 +312,13 @@ class RunwayPainter extends CustomPainter {
     String hemisphereLat = apLat > 0 ? 'N' : 'S';
     String hemisphereLon = apLon > 0 ? 'E' : 'W';
 
-    info += '${airport.facilityName} (${airport})\n';
-    info += 'ELEV ${airport.elevation}\'\n';
-    info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n\n';
+    try {
+      info += '${airport.facilityName} (${airport})\n';
+      info += 'ELEV ${airport.elevation}\'\n';
+      info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n\n';
+    }
+    catch (e) {
+    }
 
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
@@ -327,8 +365,6 @@ class RunwayPainter extends CustomPainter {
         }
       }
       catch (e) {
-        //we weren't able to get runway dimensions, so skip this runway entirely (would have been skipped below anyways)
-        continue;
       }
 
       intersections.add(1);
@@ -361,52 +397,81 @@ class RunwayPainter extends CustomPainter {
           continue;
         }
 
-        // adding this factor should cover all airport in US from center of the airport.
-        double left = apLon - avg;
-        double right = apLon + avg;
-        double top = apLat + avg;
-        double bottom = apLat - avg;
-
-        // move down and to the side
-
-        double px = scale / (left - right);
-        double py = scale / (top - bottom);
-
-        double lx = (left - leLon) * px;
-        double ly = (top - leLat) * py;
-        double hx = (left - heLon) * px;
-        double hy = (top - heLat) * py;
-
         // draws the runway
-        String surf = r['Surface'];
         Color surfcolor = Colors.grey;
+        try {
+          String surf = r['Surface'];
 
-        if(surf == 'WATER') {
-          surfcolor = Colors.blue;
-        }
-        else {
-          switch(surf.substring(0,4)) {
-            case 'ASPH':
-              surfcolor = Colors.grey.shade700;
-            case 'CONC':
-              surfcolor = Colors.grey;
-            case 'TURF':
-              surfcolor = Colors.green;
-            case 'DIRT':
-              surfcolor = Colors.brown;
-            case 'SAND':
-              surfcolor = Colors.amber.shade200;
+          if(surf == 'WATER') {
+            surfcolor = Colors.blue;
           }
+          else {
+            switch(surf.substring(0,4)) {
+              case 'ASPH':
+                surfcolor = Colors.grey.shade700;
+              case 'CONC':
+                surfcolor = Colors.grey;
+              case 'TURF':
+                surfcolor = Colors.green;
+              case 'DIRT':
+                surfcolor = Colors.brown;
+              case 'SAND':
+                surfcolor = Colors.amber.shade200;
+            }
+          }
+        }
+        catch (e) {
         }
 
         final paintLine = Paint()
           ..strokeWidth = width
           ..color = surfcolor.withOpacity(0.8);
 
-        double offsetX = 0;
-        double offsetY = 0;
+        //runways with no runway position information and only one runway (can't guess the position of multiple runways)
+        // (most private or small airports don't provide this information)
+        if(leLat == 0 && heLat == 0 && leLon == 0 && heLon == 0 && runways.length == 1)
+        {
+          try {
+              String runwayLength = r['Length'];
+              String runwayID = r['LEIdent'];
+              double heading = getRunwayHeadingFromIdent(runwayID);
+              avg = double.parse(runwayLength) / 6076 / 60; //ft -> minutes of lat/long (rounding up)
+              leLon = -sin(heading * pi / 180) * avg/2;
+              heLon = apLon - leLon;
+              leLon = apLon + leLon;
+              leLat = -cos(heading * pi / 180) * avg/2;
+              heLat = apLat - leLat;
+              leLat = apLat + leLat;
+          }
+          catch (e) {
+          }
+        }
+        else if(leLat == 0 && heLat == 0 && leLon == 0 && heLon == 0 && runways.length > 1)
+        {
+          continue;
+        }
 
-        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
+          // adding this factor should cover all airport in US from center of the airport.
+          double left = apLon - avg;
+          double right = apLon + avg;
+          double top = apLat + avg;
+          double bottom = apLat - avg;
+
+          // move down and to the side
+
+          double px = scale / (left - right);
+          double py = scale / (top - bottom);
+
+          double lx = (left - leLon) * px;
+          double ly = (top - leLat) * py;
+          double hx = (left - heLon) * px;
+          double hy = (top - heLat) * py;
+
+          double offsetX = 0;
+          double offsetY = 0;
+
+          canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
+
 
         //calculate actual runway identifier headings
         double heHeading = pi/2 - atan2((leLat-heLat),(leLon-heLon));
@@ -414,10 +479,7 @@ class RunwayPainter extends CustomPainter {
 
         //create info string for low end runway identifier (1-17)
         String ident = "${r['LEIdent']} ";
-        String pattern = r['LEPattern'] == 'Y' ? 'RP ' : '';
-        String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
-        String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
-        String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
+
         TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: ident);
         TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
@@ -427,6 +489,10 @@ class RunwayPainter extends CustomPainter {
         tp.paint(canvas, Offset(-(tp.width / 2),0));
         canvas.restore();
 
+        String pattern = r['LEPattern'] == 'Y' ? 'RP ' : '';
+        String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
+        String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
+        String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
         info += "$ident$pattern$lights$ils$vgsi\n";
 
         //create info string for high end runway identifier (18...36)
