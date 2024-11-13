@@ -272,7 +272,15 @@ class RunwayPainter extends CustomPainter {
 
     String info = "";
 
+    double apLat = airport.coordinate.latitude;
+    double apLon = airport.coordinate.longitude;
+
+    String hemisphereLat = apLat > 0 ? 'N' : 'S';
+    String hemisphereLon = apLon > 0 ? 'E' : 'W';
+
     info += '${airport.facilityName} (${airport})\n';
+    info += 'ELEV ${airport.elevation}\'\n';
+    info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n\n';
 
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
@@ -352,9 +360,6 @@ class RunwayPainter extends CustomPainter {
         if(r['Length'] == "0") { // odd stuff like 0 length runways
           continue;
         }
-
-        double apLat = airport.coordinate.latitude;
-        double apLon = airport.coordinate.longitude;
 
         // adding this factor should cover all airport in US from center of the airport.
         double left = apLon - avg;
