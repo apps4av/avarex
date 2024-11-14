@@ -271,6 +271,37 @@ class RunwayPainter extends CustomPainter {
     return runwayNumber * 10;
   }
 
+  //Attempts to query the appropriate runway color for the given runway object.
+  //Returns grey if no surface is defined.
+  static Color runwayColorFromSurface(Map<String, dynamic> r)
+  {
+    Color surfcolor = Colors.grey;
+    try {
+      String surf = r['Surface'];
+
+      if(surf == 'WATER') {
+        surfcolor = Colors.blue;
+      }
+      else {
+        switch(surf.substring(0,4)) {
+          case 'ASPH':
+            surfcolor = Colors.grey.shade700;
+          case 'CONC':
+            surfcolor = Colors.grey;
+          case 'TURF':
+            surfcolor = Colors.green;
+          case 'DIRT':
+            surfcolor = Colors.brown;
+          case 'SAND':
+            surfcolor = Colors.amber.shade200;
+        }
+      }
+    }
+    catch (e) {
+    }
+    return surfcolor;
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
 
@@ -397,32 +428,7 @@ class RunwayPainter extends CustomPainter {
           continue;
         }
 
-        // draws the runway
-        Color surfcolor = Colors.grey;
-        try {
-          String surf = r['Surface'];
-
-          if(surf == 'WATER') {
-            surfcolor = Colors.blue;
-          }
-          else {
-            switch(surf.substring(0,4)) {
-              case 'ASPH':
-                surfcolor = Colors.grey.shade700;
-              case 'CONC':
-                surfcolor = Colors.grey;
-              case 'TURF':
-                surfcolor = Colors.green;
-              case 'DIRT':
-                surfcolor = Colors.brown;
-              case 'SAND':
-                surfcolor = Colors.amber.shade200;
-            }
-          }
-        }
-        catch (e) {
-        }
-
+        Color surfcolor = runwayColorFromSurface(r);
         final paintLine = Paint()
           ..strokeWidth = width
           ..color = surfcolor.withOpacity(0.8);
