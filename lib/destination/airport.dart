@@ -503,10 +503,7 @@ class RunwayPainter extends CustomPainter {
 
         //create info string for high end runway identifier (18...36)
         ident = "${r['HEIdent']} ";
-        pattern = r['HEPattern'] == 'Y' ? 'RP ' : '';
-        lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
-        ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
-        vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
+
         span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: ident);
         tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
         tp.layout();
@@ -526,6 +523,11 @@ class RunwayPainter extends CustomPainter {
         tp.layout();
         tp.paint(canvas, Offset(-tp.width/2,(-width-tp.height) / 2));
         canvas.restore();
+
+        pattern = r['HEPattern'] == 'Y' ? 'RP ' : '';
+        lights = r['HELights'].isEmpty ? "" : "${r['HELights']} ";
+        ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
+        vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
 
         info += "$ident$pattern$lights$ils$vgsi\n";
         info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
