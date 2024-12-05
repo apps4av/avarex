@@ -65,15 +65,35 @@ class Sounding {
     'GRB', 'IAD', 'INL', 'FFC', 'KEY', 'MFL', 'TBW', 'JAX', 'CHS', 'PIT',
     'WAL', 'OKX', 'ALB', 'GYX', 'CAR', 'TUS', 'FGZ', 'NKX', 'OAK', 'REV',
     'MFR', 'SLE', 'UIL', 'TOP', 'ABQ', 'EPZ', 'OAX', 'SLC', 'BOI', 'LKN',
-    'RIW', 'GJT', 'DRT', 'VEF', 'OUN', 'OYU'
+    'RIW', 'GJT', 'DRT', 'VEF', 'OUN', 'OYU', 'ADN',
+    // all entries after this not listed on website
+    'YVP', 'YSM', 'YJT', 'YYR', 'YYQ', 'YZT', 'YYE', 'WSE',
+    'PASN', 'PACD', 'PAKN', 'PAMC', 'PANC', 'PADQ',
+    'PAOM', 'PAOT', 'PABR', 'PAFA', 'PAYA', 'PANT',
+    'PHLI', 'PHTO', 'NSTU', 'TJSJ'
+
   ];
 
-  // from SHARPPY
+  // from SHARPPY, except AK/HI, OYU
   static const Map<String, LatLng> _stationMap = {
-    'WPL': LatLng(49.15, -123.94), // Powell River Airport, Canada
-    'WMW': LatLng(45.92, -66.62), // Fredericton (Wilmot), Canada
+    'WPL': LatLng(51.47, -90.2), // Pickle Lake, Ontario, Canada
+    'WMW': LatLng(46.39, -75.96), // Maniwaki, Québec, Canada
     'YQI': LatLng(43.83, -66.09), // Yarmouth Airport, Canada
+    'OYU': LatLng(48.56, -81.38), // Timmins, Ontario, Canada (?)
+    'YZV': LatLng(50.23, -66.27), // Sept Isles, Québec, Canada
+    'YAH': LatLng(53.76, -73.67), // La Grande IV Hydro Plant, Québec, Canada
+    'YVP': LatLng(58.11, -68.42), // Kuujjuaq, Québec, Canada
+    'YSM': LatLng(60.01, -112), // Ft. Smith, NW Territories, Canada
+    'YJT': LatLng(48.54, -58.55), // Stephenville, Newfoundland, Canada
+    'YYR': LatLng(53.33, -60.42), // Goose Bay, Newfoundland, Canada
+    'YYQ': LatLng(58.73, -94.07), // Churchill, Manitoba, Canada
+    'YZT': LatLng(50.69, -127.37), // Port Hardy, British Columbia, Canada
+    'YYE': LatLng(58.54, -122.6), // Ft. Nelson, British Columbia, Canada
+    'WSE': LatLng(53.53, -114.08), // Edmonton, Alberta, Canada
     '76225': LatLng(28.73, -105.93), // Chihuahua, Mexico
+    '76526': LatLng(20.52, -103.31), // Guadalajara, Mexico
+    '76458': LatLng(23.16, -106.27), // Mazatlán, Mexico
+    'ADN': LatLng(25.87, -100.23), // Aeropuerto Del Norte, Monterrey, Mexico
     'SGF': LatLng(37.24, -93.38), // Springfield, Missouri, USA
     'LZK': LatLng(34.83, -92.25), // Little Rock, Arkansas, USA
     'FWD': LatLng(32.83, -97.30), // Fort Worth, Texas, USA
@@ -138,9 +158,22 @@ class Sounding {
     'DRT': LatLng(29.37, -100.92), // Del Rio, Texas, USA
     'VEF': LatLng(36.08, -115.17), // Las Vegas, Nevada, USA
     'OUN': LatLng(35.18, -97.44), // Norman, Oklahoma, USA
-    '76526': LatLng(20.52, -103.31), // Guadalajara, Mexico
-    '76458': LatLng(23.16, -106.27), // Mazatlán, Mexico
-    'OYU': LatLng(64.82, -147.87) // Oymyakon, Russia (Note: This is a fictional entry for demonstration purposes as "OYU" does not correspond to a known NOAA station code)
+    'PASN': LatLng(57.17, -170.22), // St. Paul Island, Alaska, USA
+    'PACD': LatLng(55.21, -162.73), // Cold Bay, Alaska, USA
+    'PAKN': LatLng(58.68, -156.65), // King Salmon, Alaska, USA
+    'PAMC': LatLng(62.95, -155.60), // McGrath, Alaska, USA
+    'PANC': LatLng(61.17, -150.00), // Anchorage, Alaska, USA
+    'PADQ': LatLng(57.75, -152.49), // Kodiak, Alaska, USA
+    'PAOM': LatLng(64.51, -165.44), // Nome, Alaska, USA
+    'PAOT': LatLng(66.88, -162.60), // Kotzebue, Alaska, USA
+    'PABR': LatLng(71.28, -156.77), // Utqiaġvik (Barrow), Alaska, USA
+    'PAFA': LatLng(64.81, -147.85), // Fairbanks, Alaska, USA
+    'PAYA': LatLng(59.50, -139.66), // Yakutat, Alaska, USA
+    'PANT': LatLng(55.04, -131.57), // Annette Island (Ketchikan), Alaska, USA
+    'PHLI': LatLng(21.98, -159.33), // Lihue, Hawaii, USA
+    'PHTO': LatLng(19.72, -155.05), // Hilo, Hawaii, USA
+    'NSTU': LatLng(-14.33, -170.71), // Pago Pago, American Samoa
+    'TJSJ': LatLng(18.43, -66), //San Juan, Puerto Rico
   };
 
 }
