@@ -13,7 +13,7 @@ import 'metar.dart';
 
 class WindsCache extends WeatherCache {
 
-  WindsCache(super.url, super.dbCall);
+  WindsCache(super.urls, super.dbCall);
 
   // metar if winds from ground need to be used
   static (double?, double?) getWindsAt(LatLng coordinate, double altitude) {
@@ -26,72 +26,114 @@ class WindsCache extends WeatherCache {
   }
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
 
     List<WindsAloft> winds = [];
-    String dataString = utf8.decode(data);
 
-    // parse winds, set expire time
-    RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
-    DateTime? expires;
+    for(Uint8List datum in data)
+    {
+      String dataString = utf8.decode(datum);
 
-    List<String> lines = dataString.split('\n');
-    for (String line in lines) {
-      line = line.trim();
-      RegExpMatch? match = exp1.firstMatch(line);
-      if (match != null) {
-        DateTime now = DateTime.now().toUtc();
-        expires = DateTime.utc(
-            now.year,
-            now.month,
-            now.day, //day
-            0,
-            0);
-        int from = int.parse(match[2]!);
-        int to = int.parse(match[3]!);
-        // if from > to then its next day
-        expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
-        break;
-      }
-    }
+      // parse winds, set expire time
+      RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
+      DateTime? expires;
 
-    bool start = false;
-    // parse winds, first check if a new download is needed
-    RegExp exp2 = RegExp("FT.*39000");
-    for (String line in lines) {
-      line = line.trim();
-      RegExpMatch? match = exp2.firstMatch(line);
-      if(match != null) {
-        start = true;
-        continue;
-      }
-      if(!start) {
-        continue;
-      }
-      try {
-        String station = line.substring(0, 3).trim();
-        String k3 = line.substring(4, 8).trim();
-        String k6 = line.substring(9, 16).trim();
-        String k9 = line.substring(17, 24).trim();
-        String k12 = line.substring(25, 32).trim();
-        String k18 = line.substring(33, 40).trim();
-        String k24 = line.substring(41, 48).trim();
-        String k30 = line.substring(49, 55).trim();
-        String k34 = line.substring(56, 62).trim();
-        String k39 = line.substring(63, 69).trim();
-        LatLng? coordinate = _stationMap[station];
-        if(coordinate == null) {
-          continue; // not recognized need this
+      List<String> lines = dataString.split('\n');
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp1.firstMatch(line);
+        if (match != null) {
+          DateTime now = DateTime.now().toUtc();
+          expires = DateTime.utc(
+              now.year,
+              now.month,
+              now.day, //day
+              0,
+              0);
+          int from = int.parse(match[2]!);
+          int to = int.parse(match[3]!);
+          // if from > to then its next day
+          expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
+          break;
         }
-        if(expires == null) {
+      }
+
+      bool start = false;
+      // parse winds, first check if a new download is needed
+      RegExp exp2 = RegExp("FT.*39000");
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp2.firstMatch(line);
+        if(match != null) {
+          start = true;
           continue;
         }
+        if(!start) {
+          continue;
+        }
+        try {
+          String station = line.substring(0, 3).trim();
+          String k3 = line.substring(4, 8).trim();
+          String k6 = line.substring(9, 16).trim();
+          String k9 = line.substring(17, 24).trim();
+          String k12 = line.substring(25, 32).trim();
+          String k18 = line.substring(33, 40).trim();
+          String k24 = line.substring(41, 48).trim();
+          String k30 = line.substring(49, 55).trim();
+          String k34 = line.substring(56, 62).trim();
+          String k39 = line.substring(63, 69).trim();
+          LatLng? coordinate = _stationMap[station];
+          if(coordinate == null) {
+            continue; // not recognized need this
+          }
+          if(expires == null) {
+            continue;
+          }
 
-        WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
-        winds.add(w);
+          WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+          winds.add(w);
+        }
+        catch (e) {}
+        await WeatherDatabaseHelper.db.addWindsAlofts(winds);
       }
-      catch (e) {}
-      await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+
+      //if the above data doesn't have data up to 39k ft, it is likely Hawaii data (goes to 24k only)
+      if(start == false)
+      {
+        for (String line in lines) {
+          line = line.trim();
+          exp2 = RegExp("FT.*24000");
+          RegExpMatch? match = exp2.firstMatch(line);
+          if(match != null) {
+            start = true;
+            continue;
+          }
+          if(!start) {
+            continue;
+          }
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(19, 23).trim();
+            String k6 = line.substring(24, 31).trim();
+            String k9 = line.substring(32, 39).trim();
+            String k12 = line.substring(40, 47).trim();
+            String k18 = line.substring(56, 63).trim();
+            String k24 = line.substring(64, 71).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            if(expires == null) {
+              continue;
+            }
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
+            winds.add(w);
+          }
+          catch (e) {
+          }
+          await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+        }
+      }
     }
   }
 
