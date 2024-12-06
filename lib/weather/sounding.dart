@@ -68,9 +68,9 @@ class Sounding {
     'RIW', 'GJT', 'DRT', 'VEF', 'OUN', 'OYU', 'ADN',
     // all entries after this not listed on website
     'YVP', 'YSM', 'YJT', 'YYR', 'YYQ', 'YZT', 'YYE', 'WSE',
-    'PASN', 'PACD', 'PAKN', 'PAMC', 'PANC', 'PADQ',
+    'PASN', 'PACD', 'PAKN', 'PAMC', 'PANC', 'PADQ', 'PABE'
     'PAOM', 'PAOT', 'PABR', 'PAFA', 'PAYA', 'PANT',
-    'PHLI', 'PHTO', 'NSTU', 'TJSJ'
+    'PHLI', 'PHTO', 'NSTU', 'TJSJ', 'MDSD', 'MKJP', 'TNCC'
 
   ];
 
@@ -164,6 +164,7 @@ class Sounding {
     'PAMC': LatLng(62.95, -155.60), // McGrath, Alaska, USA
     'PANC': LatLng(61.17, -150.00), // Anchorage, Alaska, USA
     'PADQ': LatLng(57.75, -152.49), // Kodiak, Alaska, USA
+    'PABE': LatLng(60.78, -161.8), // Bethel, Alaska, USA
     'PAOM': LatLng(64.51, -165.44), // Nome, Alaska, USA
     'PAOT': LatLng(66.88, -162.60), // Kotzebue, Alaska, USA
     'PABR': LatLng(71.28, -156.77), // Utqiaġvik (Barrow), Alaska, USA
@@ -173,7 +174,10 @@ class Sounding {
     'PHLI': LatLng(21.98, -159.33), // Lihue, Hawaii, USA
     'PHTO': LatLng(19.72, -155.05), // Hilo, Hawaii, USA
     'NSTU': LatLng(-14.33, -170.71), // Pago Pago, American Samoa
-    'TJSJ': LatLng(18.43, -66), //San Juan, Puerto Rico
+    'TJSJ': LatLng(18.43, -66), // San Juan, Puerto Rico
+    'MDSD': LatLng(18.43, -69.88), // Santo Domingo, Dominican Republic
+    'MKJP': LatLng(17.93, -76.79), // Kingston, Jamaica
+    'TNCC': LatLng(12.2, -68.97), // Willemstad, Curaçao
   };
 
 }
