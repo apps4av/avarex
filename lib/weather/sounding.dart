@@ -91,7 +91,7 @@ class Sounding {
     'YYE': LatLng(58.54, -122.6), // Ft. Nelson, British Columbia, Canada
     'WSE': LatLng(53.53, -114.08), // Edmonton, Alberta, Canada
     '76225': LatLng(28.73, -105.93), // Chihuahua, Mexico
-    '76526': LatLng(20.52, -103.31), // Guadalajara, Mexico
+    '76526': LatLng(22.75, -102.51), // Zachatecas, Mexico
     '76458': LatLng(23.16, -106.27), // Mazatlán, Mexico
     'ADN': LatLng(25.87, -100.23), // Aeropuerto Del Norte, Monterrey, Mexico
     'SGF': LatLng(37.24, -93.38), // Springfield, Missouri, USA
