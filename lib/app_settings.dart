@@ -32,6 +32,14 @@ class AppSettings {
     provider.setBool("key-north-up", northUp);
   }
 
+  bool isRubberBanding() {
+    return provider.getValue("key-rubber-banding", defaultValue: false) as bool;
+  }
+
+  void setRubberBanding(bool value) {
+    provider.setBool("key-rubber-banding", value);
+  }
+
   bool isLightMode() {
     return provider.getValue("key-light-mode", defaultValue: false) as bool;
   }

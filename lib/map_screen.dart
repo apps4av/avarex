@@ -880,18 +880,27 @@ class MapScreenState extends State<MapScreen> {
                       child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
                         child: GestureDetector(
                             onLongPressMoveUpdate: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               if(null != _controller && _rubberBanding) { // start rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestination(index, l);
                               }
-                            },
+                           },
                             onLongPressCancel: () {
                               _rubberBanding = false;
                             },
                             onLongPressStart: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               _rubberBanding = true;
                             },
                             onLongPressEnd: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               _rubberBanding = false;
                               if(null != _controller) { // end rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
@@ -904,18 +913,30 @@ class MapScreenState extends State<MapScreen> {
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                         child: GestureDetector(
                             onLongPressMoveUpdate: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               if(null != _controller && _rubberBanding) { // start rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestination(index, l);
                               }
                             },
                             onLongPressCancel: () {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               _rubberBanding = false;
                             },
                             onLongPressStart: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               _rubberBanding = true;
                             },
                             onLongPressEnd: (details) {
+                              if(!Storage().settings.isRubberBanding()) {
+                                return;
+                              }
                               _rubberBanding = false;
                               if(null != _controller) { // end rubber banding
                                 LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
@@ -1161,20 +1182,36 @@ class MapScreenState extends State<MapScreen> {
                             mainAxisAlignment: MainAxisAlignment.end, children:[
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
-                                  IconButton(onPressed: () {setState(() {
-                                    if(_ruler.isMeasuring()) {
-                                      _ruler.init();
-                                    }
-                                    else {
-                                      _ruler.init();
-                                      _ruler.startMeasure();
-                                    }
-                                  });}, icon: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                  IconButton(
+                                    tooltip: "Measure distances and bearings",
+                                    onPressed: () {
+                                      setState(() {
+                                        if(_ruler.isMeasuring()) {
+                                          _ruler.init();
+                                        }
+                                        else {
+                                          _ruler.init();
+                                          _ruler.startMeasure();
+                                        }
+                                      });
+                                    },
+                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
+
+                                  IconButton(
+                                    tooltip: "Enable rubber banding",
+                                    onPressed: () {
+                                      setState(() {
+                                        Storage().settings.isRubberBanding() ? Storage().settings.setRubberBanding(false) : Storage().settings.setRubberBanding(true);
+                                      });
+                                    },
+                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                      child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Colors.white,))),
+
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",
-                                    icon: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                         child: const Icon(Icons.layers)),
                                     initialValue: _layers[0],
                                     itemBuilder: (BuildContext context) =>
