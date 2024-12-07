@@ -108,20 +108,28 @@ class FindScreenState extends State<FindScreen> {
                           Text("${item.facilityName} ( ${item.type} )") :
                           Row(
                               children: [
-                                Expanded(flex: 1, child:TextField(
-                                    onSubmitted: (value) {
-                                      setState(() {
-                                        Destination d = GpsDestination(
-                                            locationID: item.locationID,
-                                            type: item.type,
-                                            facilityName: value,
-                                            coordinate: item.coordinate);
-                                        UserDatabaseHelper.db.addRecent(d);
-                                      });
-                                    },
-                                    controller: TextEditingController()..text = item.facilityName,
-                                )),
-                                const Expanded(flex: 1, child:Text("(GPS)"))
+                                IconButton(icon: const Icon(Icons.edit), onPressed: () {
+                                  showDialog(context: context, builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Facility Name'),
+                                      content: TextField(
+                                        onSubmitted: (value) {
+                                          setState(() {
+                                            Destination d = GpsDestination(
+                                                locationID: item.locationID,
+                                                type: item.type,
+                                                facilityName: value,
+                                                coordinate: item.coordinate);
+                                            UserDatabaseHelper.db.addRecent(d);
+                                          });
+                                          Navigator.of(context).pop();
+                                        },
+                                        controller: TextEditingController()..text = item.facilityName,
+                                      ),
+                                    );
+                                  });
+                                },),
+                                Text("${item.facilityName} ( ${item.type} )"),
                               ]
                           ),
                         dense: true,
