@@ -279,7 +279,7 @@ class RunwayPainter extends CustomPainter {
     try {
       String surf = r['Surface'];
 
-      if(surf == 'WATER') {
+      if(surf.substring(0,5) == 'WATER') {
         surfcolor = Colors.blue;
       }
       else {
