@@ -264,7 +264,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if(db != null) {
-      maps = await db.rawQuery("select * from aircraft where name='$name'"); // most recent first
+      maps = await db.rawQuery("select * from aircraft where tail='$name'"); // most recent first
     }
     return Aircraft.fromMap(maps[0]);
   }
@@ -281,7 +281,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.rawQuery("delete from aircraft where name='$name'");
+      await db.rawQuery("delete from aircraft where tail='$name'");
     }
   }
 
