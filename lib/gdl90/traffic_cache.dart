@@ -14,7 +14,7 @@ import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;
-const int _kTrafficAltDiffThresholdFt = 2000;
+const int _kTrafficAltDiffThresholdFt = 3000;
 const int _kTrafficDistanceDiffThresholdNm = 10;
 
 enum TrafficAlertLevel { none, advisory, resolution }

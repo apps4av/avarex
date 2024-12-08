@@ -74,19 +74,23 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       title: "Units",
       bodyWidget: Column(
           children:[
-            Text("Select your preferred distance, speed, and elevation units (${Storage().settings.getUnits()})\n"),
-            Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
-              setState(() {
-                if(value == true) {
-                  Storage().settings.setUnits("Maritime");
-                } else {
-                  Storage().settings.setUnits("Imperial");
-                }
-                Storage().units = UnitConversion(Storage().settings.getUnits());
-              });
-            }),
+            const Text("Select your preferred distance, speed, and elevation units"),
+            const Padding(padding: EdgeInsets.fromLTRB(0, 30, 0, 0)),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              const Text("SM/MPH/Feet"),
+              Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
+                setState(() {
+                  if(value == true) {
+                    Storage().settings.setUnits("Maritime");
+                  } else {
+                    Storage().settings.setUnits("Imperial");
+                  }
+                  Storage().units = UnitConversion(Storage().settings.getUnits());
+                });
+              }),
+              const Text("NM/Knots/Feet"),
           ]
-      ),
+      )]),
       decoration: pageDecoration,
     );
 

@@ -401,6 +401,20 @@ class MainDatabaseHelper {
     return ProcedureDestination.fromMap(procedureName, mapsCombined);
   }
 
+  Future<(double, double)> getGeoInfo(LatLng ll) async {
+    List<Map<String, dynamic>> maps = [];
+    final db = await database;
+    if (db != null) {
+      maps = await db.rawQuery("select * from geo where Longitude = '${ll.longitude.round()}' and Latitude = '${ll.latitude.round()}' limit 1");
+    }
+    if(maps.isEmpty) {
+      return (0.0, 0.0);
+    }
+
+    return (maps[0]['height'] as double, maps[0]['declination'] as double);
+
+  }
+
 }
 
 
