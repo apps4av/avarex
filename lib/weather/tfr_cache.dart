@@ -13,9 +13,9 @@ class TfrCache extends WeatherCache {
   TfrCache(super.url, super.dbCall);
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
     final List<Tfr> tfrs = [];
-    String decoded = utf8.decode(data);
+    String decoded = utf8.decode(data[0]);
 
     // parse for https://tfr.faa.gov/save_pages/detail_4_6599.html
     RegExp exp = RegExp("save_pages/detail_[0-9]*_[0-9]*.html");

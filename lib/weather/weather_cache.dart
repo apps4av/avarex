@@ -20,11 +20,11 @@ class WeatherCache {
 
   final Map<String, Weather> _map = {};
   bool _isDownloading = false;
-  final String url;
+  final List<String> urls;
   final Future<List<Weather>>Function() _dbCall;
   int lastInsertTime = DateTime.now().millisecondsSinceEpoch;
 
-  WeatherCache(this.url, this._dbCall) {
+  WeatherCache(this.urls, this._dbCall) {
     initialize();
   }
 
@@ -36,11 +36,15 @@ class WeatherCache {
       return;
     }
     _isDownloading = true;
-    try {
-      http.Response response = await http.get(Uri.parse(url));
-      await parse(response.bodyBytes);
+    List<Uint8List> responses = [];
+    for(String url in urls) {
+        try {
+          http.Response response = await http.get(Uri.parse(url));
+          responses.add(response.bodyBytes);
+        }
+        catch(e) {}
     }
-    catch(e) {}
+    await parse(responses);
     await initialize();
     _isDownloading = false;
   }
@@ -78,7 +82,7 @@ class WeatherCache {
     }
   }
 
-  Future<void> parse(Uint8List data, [String? argument]) async {
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
     // override this or nothing happens
     throw UnimplementedError();
   }
@@ -97,47 +101,50 @@ class WeatherCache {
   static WeatherCache make(Type type) {
 
     if(type == MetarCache) {
-      MetarCache cache = MetarCache("https://aviationweather.gov/data/cache/metars.cache.csv.gz",
+      MetarCache cache = MetarCache(["https://aviationweather.gov/data/cache/metars.cache.csv.gz"],
           WeatherDatabaseHelper.db.getAllMetar);
       return cache;
     }
     else if(type == TafCache) {
-      TafCache cache = TafCache("https://aviationweather.gov/data/cache/tafs.cache.csv.gz",
+      TafCache cache = TafCache(["https://aviationweather.gov/data/cache/tafs.cache.csv.gz"],
           WeatherDatabaseHelper.db.getAllTaf);
       return cache;
     }
     else if(type == WindsCache) {
       // default
       WeatherCache cache = WindsCache(
-          "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
+          ["https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low",
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=alaska&fcst=06&level=low",
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=06&level=low",
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=06&level=low"],
           WeatherDatabaseHelper.db.getAllWindsAloft);
       return cache;
     }
     else if(type == TfrCache) {
       // default
       WeatherCache cache = TfrCache(
-          "https://tfr.faa.gov/tfr2/list.html",
+          ["https://tfr.faa.gov/tfr2/list.html"],
           WeatherDatabaseHelper.db.getAllTfr);
       return cache;
     }
     else if(type == AirepCache) {
       // default
       WeatherCache cache = AirepCache(
-          "https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz",
+          ["https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz"],
           WeatherDatabaseHelper.db.getAllAirep);
       return cache;
     }
     else if(type == AirSigmetCache) {
       // default
       WeatherCache cache = AirSigmetCache(
-          "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
+          ["https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz"],
           WeatherDatabaseHelper.db.getAllAirSigmet);
       return cache;
     }
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
-          "https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do",
+          ["https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do"],
           WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }

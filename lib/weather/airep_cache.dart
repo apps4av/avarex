@@ -14,8 +14,8 @@ class AirepCache extends WeatherCache {
   AirepCache(super.url, super.dbCall);
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
-    final List<int> decodedData = GZipCodec().decode(data);
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
+    final List<int> decodedData = GZipCodec().decode(data[0]);
 
     List<Airep> aireps = [];
     String decoded = utf8.decode(decodedData, allowMalformed: true);
