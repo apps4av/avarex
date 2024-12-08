@@ -38,7 +38,7 @@ class MainDatabaseHelper {
   Future<List<LatLng>> findObstacles(LatLng point, double altitude) async {
     final db = await database;
     if (db != null) {
-      String qry = "select ARPLatitude, ARPLongitude, Height from obs where (Height > ${altitude - 200}) and (ARPLatitude > ${point.latitude - 0.4}) and (ARPLatitude < ${point.latitude + 0.4}) and (ARPLongitude > ${point.longitude - 0.4}) and (ARPLongitude < ${point.longitude + 0.4})";
+      String qry = "select ARPLatitude, ARPLongitude, Height from obs where (Height > ${altitude - 200}) and (ARPLatitude > ${point.latitude - 0.1}) and (ARPLatitude < ${point.latitude + 0.1}) and (ARPLongitude > ${point.longitude - 0.1}) and (ARPLongitude < ${point.longitude + 0.1})";
       return db.rawQuery(qry).then((maps) {
         return List.generate(maps.length, (i) {
           return LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double);

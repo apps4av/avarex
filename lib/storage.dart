@@ -84,6 +84,7 @@ class Storage {
   late AirSigmetCache airSigmet;
   late NotamCache notam;
   final NexradCache nexradCache = NexradCache();
+  List<LatLng> obstacles = [];
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
@@ -352,8 +353,15 @@ class Storage {
         gpsNoLock = false;
       }
 
-      if(timeChange.value % 5 == 0) {
+      if(timeChange.value % 15 == 0) {
+        // find obstacles every 15 seconds
+        MainDatabaseHelper.db.findObstacles(Gps.toLatLng(gpsChange.value), gpsChange.value.altitude * units.mToF).then((value) {
+          // do something with obstacles
+          obstacles = value;
+        });
+      }
 
+      if(timeChange.value % 5 == 0) {
         if(gpsInternal) {
           // check system for any issues
           bool permissionDenied = await Gps().isPermissionDenied();
