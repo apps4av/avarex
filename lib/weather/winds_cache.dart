@@ -134,6 +134,43 @@ class WindsCache extends WeatherCache {
           await WeatherDatabaseHelper.db.addWindsAlofts(winds);
         }
       }
+      //if the above data doesn't have data up to 24k ft, it is likely Canada data (goes to 18k only)
+      if(start == false)
+      {
+        for (String line in lines) {
+          line = line.trim();
+          print(line);
+          exp2 = RegExp("    *18000");
+          RegExpMatch? match = exp2.firstMatch(line);
+          if(match != null) {
+            start = true;
+            continue;
+          }
+          if(!start) {
+            continue;
+          }
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(4, 8).trim();
+            String k6 = line.substring(9, 16).trim();
+            String k9 = line.substring(17, 24).trim();
+            String k12 = line.substring(25, 32).trim();
+            String k18 = line.substring(33, 40).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            if(expires == null) {
+              continue;
+            }
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, '', '', '', '');
+            winds.add(w);
+          }
+          catch (e) {
+          }
+          await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+        }
+      }
     }
   }
 
