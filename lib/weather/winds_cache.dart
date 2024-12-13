@@ -10,6 +10,14 @@ import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
 
+enum WindsAloftProduct {
+  conUsLow,
+  alaskaLow,
+  canadaLow,
+  canadaHigh,
+  hawaiiLow,
+  pacificLow,
+}
 
 class WindsCache extends WeatherCache {
 
@@ -60,7 +68,8 @@ class WindsCache extends WeatherCache {
 
       bool start = false;
       // parse winds, first check if a new download is needed
-      RegExp exp2 = RegExp("FT.*39000");
+      WindsAloftProduct? p = getWindsAloftProductType(lines);
+      RegExp exp2 = RegExp("FT.*39000|FT.*18000|FT.*24000|.*9000    12000   18000.*");
       for (String line in lines) {
         line = line.trim();
         RegExpMatch? match = exp2.firstMatch(line);
@@ -71,46 +80,33 @@ class WindsCache extends WeatherCache {
         if(!start) {
           continue;
         }
-        try {
-          String station = line.substring(0, 3).trim();
-          String k3 = line.substring(4, 8).trim();
-          String k6 = line.substring(9, 16).trim();
-          String k9 = line.substring(17, 24).trim();
-          String k12 = line.substring(25, 32).trim();
-          String k18 = line.substring(33, 40).trim();
-          String k24 = line.substring(41, 48).trim();
-          String k30 = line.substring(49, 55).trim();
-          String k34 = line.substring(56, 62).trim();
-          String k39 = line.substring(63, 69).trim();
-          LatLng? coordinate = _stationMap[station];
-          if(coordinate == null) {
-            continue; // not recognized need this
-          }
-          if(expires == null) {
-            continue;
-          }
+        if(p == WindsAloftProduct.conUsLow || p == WindsAloftProduct.alaskaLow) {
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(4, 8).trim();
+            String k6 = line.substring(9, 16).trim();
+            String k9 = line.substring(17, 24).trim();
+            String k12 = line.substring(25, 32).trim();
+            String k18 = line.substring(33, 40).trim();
+            String k24 = line.substring(41, 48).trim();
+            String k30 = line.substring(49, 55).trim();
+            String k34 = line.substring(56, 62).trim();
+            String k39 = line.substring(63, 69).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            if(expires == null) {
+              continue;
+            }
 
-          WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
-          winds.add(w);
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            winds.add(w);
+          }
+          catch (e) {
+          }
         }
-        catch (e) {}
-        await WeatherDatabaseHelper.db.addWindsAlofts(winds);
-      }
-
-      //if the above data doesn't have data up to 39k ft, it is likely Hawaii data (goes to 24k only)
-      if(start == false)
-      {
-        for (String line in lines) {
-          line = line.trim();
-          exp2 = RegExp("FT.*24000");
-          RegExpMatch? match = exp2.firstMatch(line);
-          if(match != null) {
-            start = true;
-            continue;
-          }
-          if(!start) {
-            continue;
-          }
+        else if(p == WindsAloftProduct.pacificLow || p == WindsAloftProduct.hawaiiLow) {
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(19, 23).trim();
@@ -131,24 +127,8 @@ class WindsCache extends WeatherCache {
           }
           catch (e) {
           }
-          await WeatherDatabaseHelper.db.addWindsAlofts(winds);
         }
-      }
-      //if the above data doesn't have data up to 24k ft, it is likely Canada data (goes to 18k only)
-      if(start == false)
-      {
-        for (String line in lines) {
-          line = line.trim();
-          print(line);
-          exp2 = RegExp("    *18000");
-          RegExpMatch? match = exp2.firstMatch(line);
-          if(match != null) {
-            start = true;
-            continue;
-          }
-          if(!start) {
-            continue;
-          }
+        else if(p == WindsAloftProduct.canadaLow) {
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(4, 8).trim();
@@ -166,12 +146,50 @@ class WindsCache extends WeatherCache {
             WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, '', '', '', '');
             winds.add(w);
           }
-          catch (e) {
-          }
-          await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+          catch (e) {}
         }
+        await WeatherDatabaseHelper.db.addWindsAlofts(winds);
       }
     }
+  }
+
+
+  static WindsAloftProduct? getWindsAloftProductType(List<String> lines) {
+    //we need to include the issuing organization (KWNO/CWAO) because low/high Canada broadcasts are disambiguated by issuer
+    //(other broadcasts are disambiguated by product number, e.g. FBUS31 (low) FBUS37 (high))
+    RegExp conUsLowKey = RegExp("FBUS31 KWNO.*");
+    RegExp alaskaLowKey = RegExp("FBAK31 KWNO.*");
+    RegExp canadaLowKey = RegExp("FBCN31 CWAO.*");
+    RegExp canadaHighKey = RegExp("FBCN31 KWNO.*");
+    RegExp pacificLowKey = RegExp("FBOC31 KWNO.*");
+    RegExp hawaiiLowKey = RegExp("FBHW31 KWNO.*");
+
+    for (String line in lines) {
+      try {
+        line = line.trim();
+
+        if(conUsLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.conUsLow;
+        }
+        else if(alaskaLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.alaskaLow;
+        }
+        else if(canadaLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.canadaLow;
+        }
+        else if(canadaHighKey.firstMatch(line) != null) {
+          return WindsAloftProduct.canadaHigh;
+        }
+        else if(pacificLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.pacificLow;
+        }
+        else if(hawaiiLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.hawaiiLow;
+        }
+      }
+      catch (e) {}
+    }
+    return null;
   }
 
   static String? locateNearestStation(LatLng location) {
