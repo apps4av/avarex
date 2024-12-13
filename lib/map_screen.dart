@@ -767,21 +767,25 @@ class MapScreenState extends State<MapScreen> {
         );
       }
 
-      lIndex = _layers.indexOf('Nav');
+      lIndex = _layers.indexOf('Obstacles');
       if(_layersState[lIndex]) {
         //obstacles
         layers.add(
-          ValueListenableBuilder<int>(
-            valueListenable: Storage().timeChange,
-            builder: (context, value, _) {
-              return MarkerLayer(markers: [
-                for(LatLng ll in Storage().obstacles)
-                  Marker(point: ll,
-                    child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
-                      child: const Icon(Icons.square, color: Colors.red, size: 20,)))
-              ]);
-            })
+            ValueListenableBuilder<int>(
+                valueListenable: Storage().timeChange,
+                builder: (context, value, _) {
+                  return MarkerLayer(markers: [
+                    for(LatLng ll in Storage().obstacles)
+                      Marker(point: ll,
+                          child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
+                              child: const Icon(Icons.warning_sharp, color: Colors.red, size: 20,)))
+                  ]);
+                })
         );
+      }
+
+      lIndex = _layers.indexOf('Nav');
+      if(_layersState[lIndex]) {
         layers.add( // route layer
         ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,

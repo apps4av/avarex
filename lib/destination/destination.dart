@@ -55,8 +55,27 @@ class Destination {
         type == "VOR";
   }
 
-  static String formatSexagesimal(String input) {
-    return input.replaceAll("'", " ").replaceAll("\"", " ").replaceAll("\u00b0", " ");
+  static String toSexagesimal(LatLng ll) {
+    double lat = ll.latitude;
+    double lon = ll.longitude;
+    // convert lat to sexagesimal
+    String latDir = lat >= 0 ? "N" : "S";
+    String lonDir = lon >= 0 ? "E" : "W";
+    lat = lat.abs();
+    lon = lon.abs();
+    int latDeg = lat.floor();
+    double latMin = (lat - latDeg) * 60;
+    int latMinInt = latMin.floor();
+    double latSec = (latMin - latMinInt) * 60;
+    int latSecInt = latSec.floor();
+    int lonDeg = lon.floor();
+    double lonMin = (lon - lonDeg) * 60;
+    int lonMinInt = lonMin.floor();
+    double lonSec = (lonMin - lonMinInt) * 60;
+    int lonSecInt = lonSec.floor();
+    return "${latDeg.toString().padLeft(3, "0")}${latMinInt.toString().padLeft(2, "0")}${latSecInt.toString().padLeft(2, "0")}$latDir,"
+           "${lonDeg.toString().padLeft(3, "0")}${lonMinInt.toString().padLeft(2, "0")}${lonSecInt.toString().padLeft(2, "0")}$lonDir";
+
   }
 
   static LatLng parseFromSexagesimalFullOrPartial(String input) {
@@ -69,21 +88,19 @@ class Destination {
     double lonSec = 0;
     String lonGeo = "W";
 
-    List<String> inputs = input.trim().split(" ");
+    RegExp exp = RegExp(r"([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([NS]),([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([EW])");
+    Match? match = exp.firstMatch(input);
+    if(null != match) {
+      lat = double.parse(match.group(1)!);
+      latMin = double.parse(match.group(2)!);
+      latSec = double.parse(match.group(3)!);
+      latGeo = match.group(4)!;
+      lon = double.parse(match.group(5)!);
+      lonMin = double.parse(match.group(6)!);
+      lonSec = double.parse(match.group(7)!);
+      lonGeo = match.group(8)!;
+    }
 
-    try {
-      lat = double.parse(inputs[0]);
-      latMin = double.parse(inputs[1]);
-      latSec = double.parse(inputs[2]);
-      latGeo = inputs[3];
-      lon = double.parse(inputs[4]);
-      lonMin = double.parse(inputs[5]);
-      lonSec = double.parse(inputs[6]);
-      lonGeo = inputs[7];
-    }
-    catch (e) {
-      // return partial
-    }
     lat += latMin / 60.0 + latSec / 3600.0;
     lon += lonMin / 60.0 + lonSec / 3600.0;
     if(latGeo == "S") {
@@ -166,8 +183,8 @@ class Destination {
 
   factory Destination.fromLatLng(LatLng ll) {
     return Destination(
-        locationID: ll.toSexagesimal(),
-        facilityName: ll.toSexagesimal(),
+        locationID: toSexagesimal(ll),
+        facilityName: toSexagesimal(ll),
         type: Destination.typeGps,
         coordinate: ll);
   }

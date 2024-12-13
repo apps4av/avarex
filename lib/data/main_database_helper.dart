@@ -61,14 +61,14 @@ class MainDatabaseHelper {
       String address = match.substring(1, match.length - 1);
       LatLng? coordinate = await Destination.findGpsCoordinateFromAddressLookup(address);
       if(coordinate != null) {
-        return [GpsDestination(locationID: Destination.formatSexagesimal(coordinate.toSexagesimal()), type: Destination.typeGps, facilityName: address, coordinate: coordinate)];
+        return [GpsDestination(locationID: Destination.toSexagesimal(coordinate), type: Destination.typeGps, facilityName: address, coordinate: coordinate)];
       }
     }
     if(match.contains("@")) {
       // parse sexagesimal coordinate like my location @ 34 12 34 N 118 12 34 W
       List<String> parts = match.split("@");
       LatLng coordinate = Destination.parseFromSexagesimalFullOrPartial(parts[1]);
-      return [GpsDestination(locationID: Destination.formatSexagesimal(coordinate.toSexagesimal()), type: Destination.typeGps, facilityName: parts[0], coordinate: coordinate)];
+      return [GpsDestination(locationID: Destination.toSexagesimal(coordinate), type: Destination.typeGps, facilityName: parts[0], coordinate: coordinate)];
     }
     final db = await database;
     String eMatch = exact ? " = '$match'" : "like '$match%'";
@@ -161,7 +161,7 @@ class MainDatabaseHelper {
       }
     }
     // always add touch point of GPS, GPS is not a database type so prefix with _
-    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    String gps = Destination.toSexagesimal(point);
     return(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
   }
 
@@ -187,7 +187,7 @@ class MainDatabaseHelper {
       });
     }
     // always add touch point of GPS, GPS is not a database type so prefix with _
-    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    String gps = Destination.toSexagesimal(point);
     ret.add(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
     return(ret);
   }
@@ -273,7 +273,7 @@ class MainDatabaseHelper {
       return Destination.fromMap(maps[0]);
     }
     // always add touch point of GPS, GPS is not a database type so prefix with _
-    String gps = Destination.formatSexagesimal(point.toSexagesimal());
+    String gps = Destination.toSexagesimal(point);
     return Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point);
   }
 

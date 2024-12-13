@@ -90,9 +90,8 @@ class NotamCache extends WeatherCache {
       return;
     }
 
-    //43° 27' 11.75" N, 74° 30' 54.03" W
-    RegExp exp = RegExp(r"([0-9]+). ([0-9]+). ([0-9.]+). ([NS]), ([0-9]+). ([0-9]+). ([0-9.]+). ([EW])");
-    Match? match = exp.firstMatch(airport.coordinate.toSexagesimal());
+    RegExp exp = RegExp(r"([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([NS]),([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([EW])");
+    Match? match = exp.firstMatch(Destination.toSexagesimal(airport.coordinate));
     if(null == match) {
       return;
     }

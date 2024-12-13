@@ -45,8 +45,8 @@ class LongPressFuture {
 
   LongPressFuture(this.destination) : showDestination =
       Destination( // GPS default then others
-          locationID: Destination.formatSexagesimal(
-              destination.coordinate.toSexagesimal()),
+          locationID: Destination.toSexagesimal(
+              destination.coordinate),
               type: Destination.typeGps,
               facilityName: Destination.typeGps,
               coordinate: destination.coordinate);
