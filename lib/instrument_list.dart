@@ -10,8 +10,8 @@ import 'package:avaremp/weather/winds_cache.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -368,47 +368,40 @@ class InstrumentListState extends State<InstrumentList> {
       shrinkWrap: true,
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      header: DropdownButtonHideUnderline(
-        child:DropdownButton2<String>(
-          dropdownStyleData: DropdownStyleData(
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-            width: 96,
-          ),
-          isExpanded: false,
-          customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.arrow_drop_down),),
-            onChanged: (value) {
-              setState(() {
-              });
-            },
-          items: [
-            DropdownMenuItem(
-              value: "0",
-              child: const Text("?", style: TextStyle(fontSize: 12),),
-                // show toast with instructions in ontap
+      header: Column(children:[
+        DropdownButtonHideUnderline(
+          child:DropdownButton2<String>(
+            dropdownStyleData: DropdownStyleData(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+              width: 96,
+            ),
+            isExpanded: false,
+            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.arrow_drop_down),),
+              onChanged: (value) {
+                setState(() {
+                });
+              },
+            items: [
+              DropdownMenuItem(
+                value: "1",
                 onTap:() {
-                  Toastification().show(context: context,
-                    title: const Text(
-                        "You may hold and drag any box in the top sliding bar to rearrange its position."),
-                    autoCloseDuration: const Duration(seconds: 3),
-                    icon: const Icon(Icons.info));
-                  }),
-            DropdownMenuItem(
-              value: "1",
-              onTap:() {
-                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
-              },
-              child: const Text("Expand", style: TextStyle(fontSize: 12),),
-            ),
-            DropdownMenuItem(
-              value: "2",
-              onTap:() {
-                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
-              },
-              child: const Text("Contract", style: TextStyle(fontSize: 12),),
-            ),
-          ],
-        )
-      ),
+                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
+                },
+                child: const Text("Expand", style: TextStyle(fontSize: 12),),
+              ),
+              DropdownMenuItem(
+                value: "2",
+                onTap:() {
+                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+                },
+                child: const Text("Contract", style: TextStyle(fontSize: 12),),
+              ),
+            ],
+          )
+        ),
+        const Padding(padding: EdgeInsets.fromLTRB(0, 5, 0, 0)),
+        JustTheTooltip(triggerMode: TooltipTriggerMode.tap, content: const Text("You may hold and drag any box in the top sliding bar to rearrange its position"), child: CircleAvatar(backgroundColor: Constants.bottomNavBarBackgroundColor, radius: 14, child: const Icon(Icons.info_outline)))
+      ]),
       buildDefaultDragHandles: false,
       children: <Widget>[
         for(int index = 0; index < _items.length; index++)

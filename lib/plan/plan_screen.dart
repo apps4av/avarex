@@ -121,7 +121,7 @@ class PlanScreenState extends State<PlanScreen> {
                     key: Key(Storage().getKey()),
                     leading: GestureDetector(child: const Icon(Icons.summarize_outlined, color: Colors.green,), onTap: () {
                       Clipboard.setData(ClipboardData(text: Storage().route.toString()));
-                      Toastification().show(context: context, title: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                      Toastification().show(context: context, description: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
                     },),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));

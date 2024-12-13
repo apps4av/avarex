@@ -265,7 +265,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
               child: const Text("+Plan"),
               onPressed: () {
                 Storage().route.insertWaypoint(Waypoint(future.showDestination));
-                Toastification().show(context: context, title: Text("Added ${future.showDestination.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                Toastification().show(context: context, description: Text("Added ${future.showDestination.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
