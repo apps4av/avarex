@@ -90,24 +90,22 @@ class NotamCache extends WeatherCache {
       return;
     }
 
-    RegExp exp = RegExp(r"([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([NS]),([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([EW])");
-    Match? match = exp.firstMatch(Destination.toSexagesimal(airport.coordinate));
-    if(null == match) {
-      return;
-    }
+    String ll = Destination.toSexagesimal(airport.coordinate);
 
     Map<String, String> body = {
-      "geoLatDegree": match.group(1)!,
-      "geoLatMinute": match.group(2)!,
-      "geoLatNorthSouth": match.group(4)!,
-      "geoLongDegree": match.group(5)!,
-      "geoLongMinute": match.group(6)!,
-      "geoLongEastWest": match.group(8)!,
+      "geoLatDegree": ll.substring(0, 3),
+      "geoLatMinute": ll.substring(3, 5),
+      "geoLatNorthSouth": ll.substring(7, 8),
+      "geoLongDegree": ll.substring(9, 12),
+      "geoLongMinute": ll.substring(12, 14),
+      "geoLongEastWest": ll.substring(16, 17),
       "reportType": "Raw",
       "geoLatLongRadius": "20",
       "actionType": "latLongSearch",
       "submit": "View+NOTAMs",
     };
+
+    print(body);
 
     try {
       http.Response response = await http.post(
