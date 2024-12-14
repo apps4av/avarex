@@ -5,12 +5,9 @@ on: push
 jobs:
 
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
-      - name: Weird error check
-        run: sudo ln -sf /usr/lib/x86_64-linux-gnu/libunistring.so /usr/lib/x86_64-linux-gnu/libunistring.so.2
-
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
