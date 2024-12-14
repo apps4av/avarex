@@ -116,8 +116,11 @@ class WeatherCache {
           ["https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low", //CONUS Low (3k-39k)
            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=alaska&fcst=06&level=low", //AK Low (3k-39k)
            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=06&level=low", //HI Low (1k-24k)
-           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=06&level=low", //US Pac Territories (1k-24k)
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=06&level=low", //US Pac Territories Low (1k-24k)
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=06&level=high", //HI High (30k-53k)
+           "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=06&level=high", //US Pac Territories High (30k-53k)
            "https://tgftp.nws.noaa.gov/data/raw/fb/fbcn31.cwao..txt", //Canada Low (3-18k)
+           "https://tgftp.nws.noaa.gov/data/raw/fb/fbcn31.kwno.fd1.cn1.txt" //Canada High (24-53k)
            ],
           WeatherDatabaseHelper.db.getAllWindsAloft);
       return cache;
