@@ -664,7 +664,7 @@ class MapScreenState extends State<MapScreen> {
                     for(int index = 0; index < value.$1.length; index++)
                       Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
                         child: Container(width: 32,
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(3)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withOpacity(0.6)),
                             child: SizedBox(width: 32, child: FittedBox(
                               child: Padding(padding: const EdgeInsets.all(3),
                                 child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
