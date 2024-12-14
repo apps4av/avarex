@@ -105,8 +105,6 @@ class NotamCache extends WeatherCache {
       "submit": "View+NOTAMs",
     };
 
-    print(body);
-
     try {
       http.Response response = await http.post(
           Uri.parse(url),

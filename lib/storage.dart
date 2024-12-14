@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 // put all singletons here.
 
+import 'package:avaremp/area.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/download_screen.dart';
@@ -84,7 +85,7 @@ class Storage {
   late AirSigmetCache airSigmet;
   late NotamCache notam;
   final NexradCache nexradCache = NexradCache();
-  List<LatLng> obstacles = [];
+  final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
   int myIcao = 0;
@@ -354,11 +355,8 @@ class Storage {
       }
 
       if(timeChange.value % 15 == 0) {
-        // find obstacles every 15 seconds
-        MainDatabaseHelper.db.findObstacles(Gps.toLatLng(gpsChange.value), gpsChange.value.altitude * units.mToF).then((value) {
-          // do something with obstacles
-          obstacles = value;
-        });
+        // update area every 15 seconds
+        area.update(position);
       }
 
       if(timeChange.value % 5 == 0) {

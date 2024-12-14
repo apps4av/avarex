@@ -19,7 +19,6 @@ import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
-import 'package:avaremp/weather/winds_cache.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -775,7 +774,7 @@ class MapScreenState extends State<MapScreen> {
                 valueListenable: Storage().timeChange,
                 builder: (context, value, _) {
                   return MarkerLayer(markers: [
-                    for(LatLng ll in Storage().obstacles)
+                    for(LatLng ll in Storage().area.obstacles)
                       Marker(point: ll,
                           child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                               child: const Icon(Icons.warning_sharp, color: Colors.red, size: 20,)))
@@ -980,7 +979,7 @@ class MapScreenState extends State<MapScreen> {
             LatLng current = LatLng(value.latitude, value.longitude);
             double? ws;
             double? wd;
-            (wd, ws) = WindsCache.getWindsAt(current, GeoCalculations.convertAltitude(value.altitude));
+            (wd, ws) = Storage().area.getWind(GeoCalculations.convertAltitude(value.altitude));
 
             return MarkerLayer(
               markers: [

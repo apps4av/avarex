@@ -16,9 +16,11 @@ class WindsAloft extends Weather {
   String w34k;
   String w39k;
 
+  static String windZero = "0000";
+
   WindsAloft(super.station, super.expires, this.w0k, this.w3k, this.w6k, this.w9k, this.w12k, this.w18k, this.w24k, this.w30k, this.w34k, this.w39k);
 
-  (int?, int?) decodeWind(String wind) {
+  static (int?, int?) decodeWind(String wind) {
 
     if(wind.length < 4) {
       return (null, null);
