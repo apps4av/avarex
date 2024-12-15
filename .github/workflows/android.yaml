@@ -1,4 +1,4 @@
-name: Android Build
+name: Android
 
 on:
   push:
@@ -7,50 +7,63 @@ on:
   workflow_dispatch: # Allows manual triggering of the workflow
 
 jobs:
+
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          flutter-version: '3.24.4'
 
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        channel: 'stable'
-        flutter-version: '3.24.4'
+      - name: Find and Replace OpenAIP
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '**/*.dart'
+          search-text: '@@___openaip_client_id__@@'
+          replacement-text: ${{ secrets.OPENAIP_CLIENT_ID }}
+          encoding: 'utf8'
+          max-parallelism: 10
 
-    - name: Replace OpenAIP placeholders
-      uses: richardrigutins/replace-in-files@v2
-      with:
-        files: '**/*.dart'
-        search-text: '@@___openaip_client_id__@@'
-        replacement-text: ${{ secrets.OPENAIP_CLIENT_ID }}
-        encoding: 'utf8'
-        max-parallelism: 10
+      - name: Install project dependencies
+        run: flutter pub get
 
-    - name: Install dependencies
-      run: flutter pub get
+      - name: Build APK
+        run: flutter build apk --release
 
-    - name: Build APK
-      run: flutter build apk --release
+      - name: Sign APK with keystore
+        uses: r0adkll/sign-android-release@v1
+        id: sign_apk
+        with:
+          releaseDirectory: build/app/outputs/apk/release
+          signingKeyBase64: ${{ secrets.KEY_STORE }}
+          alias: ${{ secrets.KEY_STORE_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASS }}
+          keyPassword: ${{ secrets.KEY_STORE_PASS }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
 
-    - name: Sign APK with custom keystore
-      env:
-        KEY_STORE: ${{ secrets.KEY_STORE }}
-        KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        echo "$KEY_STORE" | base64 -d > release-key.jks
-        jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
-          -keystore release-key.jks \
-          -storepass "$KEY_STORE_PASSWORD" \
-          -keypass "$KEY_PASSWORD" \
-          build/app/outputs/apk/release/app-release.apk "$KEY_ALIAS"
+      - name: Build AAB
+        run: flutter build appbundle --release
 
-    - name: Upload signed APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: Signed APK
-        path: build/app/outputs/apk/release/app-release.apk
+      - name: Sign AAB with keystore
+        uses: r0adkll/sign-android-release@v1
+        id: sign_aab
+        with:
+          releaseDirectory: build/app/outputs/bundle/release
+          signingKeyBase64: ${{ secrets.KEY_STORE }}
+          alias: ${{ secrets.KEY_STORE_ALIAS }}
+          keyStorePassword: ${{ secrets.KEY_STORE_PASS }}
+          keyPassword: ${{ secrets.KEY_STORE_PASS }}
+        env:
+          BUILD_TOOLS_VERSION: "34.0.0"
+
+      - name: Upload release
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android
+          path: |
+            ${{steps.sign_apk.outputs.signedReleaseFile}} 
+            ${{steps.sign_aab.outputs.signedReleaseFile}} 
