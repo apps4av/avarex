@@ -71,7 +71,7 @@ class WindsCache extends WeatherCache {
       bool start = false;
       // parse winds, first check if a new download is needed
       WindsAloftProduct? p = getWindsAloftProductType(lines);
-      RegExp exp2 = RegExp("FT.*39000|FT.*18000|FT.*24000|.*9000    12000   18000.*");
+      RegExp exp2 = RegExp("FT.*39000|FT.*18000|FT.*24000|.*9000    12000   18000.*"); //CWAO observations do not start with "FT"
       for (String line in lines) {
         line = line.trim();
         RegExpMatch? match = exp2.firstMatch(line);
@@ -85,6 +85,7 @@ class WindsCache extends WeatherCache {
         if(expires == null) {
           continue;
         }
+        //Low altitude winds aloft parsing -- these cases can assume that no previous entry with the same station name exists
         if(p == WindsAloftProduct.conUsLow || p == WindsAloftProduct.alaskaLow) {
           try {
             String station = line.substring(0, 3).trim();
@@ -104,8 +105,7 @@ class WindsCache extends WeatherCache {
             WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
             winds.add(w);
           }
-          catch (e) {
-          }
+          catch (e) {}
         }
         else if(p == WindsAloftProduct.pacificLow || p == WindsAloftProduct.hawaiiLow) {
           try {
@@ -123,8 +123,7 @@ class WindsCache extends WeatherCache {
             WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
             winds.add(w);
           }
-          catch (e) {
-          }
+          catch (e) {}
         }
         else if(p == WindsAloftProduct.canadaLow) {
           try {
@@ -239,28 +238,28 @@ class WindsCache extends WeatherCache {
       try {
         line = line.trim();
 
-        if(conUsLowKey.firstMatch(line) != null) {
+        if (conUsLowKey.firstMatch(line) != null) {
           return WindsAloftProduct.conUsLow;
         }
-        else if(alaskaLowKey.firstMatch(line) != null) {
+        else if (alaskaLowKey.firstMatch(line) != null) {
           return WindsAloftProduct.alaskaLow;
         }
-        else if(canadaLowKey.firstMatch(line) != null) {
+        else if (canadaLowKey.firstMatch(line) != null) {
           return WindsAloftProduct.canadaLow;
         }
-        else if(canadaHighKey.firstMatch(line) != null) {
+        else if (canadaHighKey.firstMatch(line) != null) {
           return WindsAloftProduct.canadaHigh;
         }
-        else if(pacificLowKey.firstMatch(line) != null) {
+        else if (pacificLowKey.firstMatch(line) != null) {
           return WindsAloftProduct.pacificLow;
         }
-        else if(pacificHighKey.firstMatch(line) != null) {
+        else if (pacificHighKey.firstMatch(line) != null) {
           return WindsAloftProduct.pacificHigh;
         }
-        else if(hawaiiLowKey.firstMatch(line) != null) {
+        else if (hawaiiLowKey.firstMatch(line) != null) {
           return WindsAloftProduct.hawaiiLow;
         }
-        else if(hawaiiHighKey.firstMatch(line) != null) {
+        else if (hawaiiHighKey.firstMatch(line) != null) {
           return WindsAloftProduct.hawaiiHigh;
         }
       }
@@ -715,7 +714,7 @@ class WindsCache extends WeatherCache {
     "WZJ": LatLng(81 + 6/60, -70 - 18/60),
     "WKQ": LatLng(85,-70),
     "XDF": LatLng(75,-70), //Greenland, DK
-    "UHA": LatLng(61 + 3/60, -67 - 37/60), //Reported as "UHA" but I believe this to be YHA
+    "UHA": LatLng(61 + 3/60, -67 - 37/60), //Reported as "UHA" but confirmed to be YHA by Environment Canada
     "XCN": LatLng(76 + 30/60, -68 - 50/60),
     "YFB": LatLng(63 + 45/60, -68 - 33/60),
     "YLT": LatLng(82 + 31/60, -62 - 17/60),
