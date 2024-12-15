@@ -25,6 +25,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cache/flutter_map_cache.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -1155,7 +1156,41 @@ class MapScreenState extends State<MapScreen> {
                             // menu
                             TextButton(
                               onPressed: () {
-                                Scaffold.of(context).openDrawer();
+                                if(Storage().settings.shouldShowReview()) {
+                                  showDialog(context: context, builder: (BuildContext context) {
+                                    return AlertDialog(
+                                      title: const Text('Review AvareX?'),
+                                      content: const Text("Hey Aviator! Loved using AvareX? We would love a quick review."),
+                                      actions: <Widget>[
+                                        TextButton(
+                                          child: const Text('Yes'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            final InAppReview inAppReview = InAppReview.instance;
+                                            inAppReview.openStoreListing(microsoftStoreId: Constants.microsoftId, appStoreId: Constants.appleId);
+                                            Storage().settings.doneReview();
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: const Text('Never'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            Storage().settings.doneReview();
+                                          },
+                                        ),
+                                        TextButton(
+                                          child: const Text('Later'),
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                          },
+                                        ),
+                                      ],
+                                    );
+                                  });
+                                }
+                                else {
+                                  Scaffold.of(context).openDrawer();
+                                }
                               },
                               style: TextButton.styleFrom(
                                 backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)

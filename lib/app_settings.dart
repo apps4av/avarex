@@ -229,4 +229,28 @@ class AppSettings {
     provider.setDouble("key-instrument-scale-factor", value);
   }
 
+  bool shouldShowReview() {
+    bool show = false;
+    // show every 20th time if never not set
+    if(provider.getValue("key-review-never", defaultValue: false) as bool) {
+      return show;
+    }
+    int msNow = DateTime.now().millisecondsSinceEpoch;
+    int ms = provider.getValue("key-review-last-ask", defaultValue: msNow) as int;
+    if(ms == msNow) {
+      // first time run
+      provider.setInt("key-review-last-ask", msNow);
+    }
+    // show every 7 days
+    else if((msNow - ms) > 1000 * 60 * 60 * 24 * 7) {
+      provider.setInt("key-review-last-ask", msNow);
+      show = true;
+    }
+    return show;
+  }
+
+  void doneReview() {
+    provider.setBool("key-review-never", true);
+  }
+
 }

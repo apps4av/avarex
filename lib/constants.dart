@@ -54,6 +54,9 @@ class Constants {
   static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
   static const Color tfrColorFuture = Color.fromARGB(150, 255, 103, 2);
 
+  static const String appleId = "6502421523";
+  static const String microsoftId = "9MX4HKL30MWW";
+
   static double dropDownButtonFontSize = 14;
 
   static double carouselAspectRatio(BuildContext context) {
