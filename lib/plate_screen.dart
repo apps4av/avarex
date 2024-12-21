@@ -202,7 +202,7 @@ class PlateScreenState extends State<PlateScreen> {
                         ),
                         dropdownStyleData: DropdownStyleData(
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                          width: Constants.screenWidth(context) / 2,
+                          width: Constants.screenWidth(context) * 0.75,
                         ),
                         isExpanded: false,
                         value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],

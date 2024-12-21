@@ -19,7 +19,6 @@ import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cache/flutter_map_cache.dart';
@@ -1112,7 +1111,7 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 32 + 10), // buttons under have 5 padding and 16 radius
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
@@ -1145,13 +1144,12 @@ class MapScreenState extends State<MapScreen> {
                       )
                   )
               ),
-
               // menus
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomLeft,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          padding: EdgeInsets.fromLTRB(5, 0, 0, Constants.bottomPaddingSize(context) + 32 + 10),
                           child: Row(children:[
                             // menu
                             TextButton(
@@ -1197,27 +1195,6 @@ class MapScreenState extends State<MapScreen> {
                               ),
                               child: const Text("Menu"),
                             ),
-
-                            // north up
-                            IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _northUp = _northUp ? false : true;
-                                  });
-                                  Storage().settings.setNorthUp(_northUp); // save
-                                },
-                                icon: ValueListenableBuilder<Position>(
-                                    valueListenable: Storage().gpsChange,
-                                    builder: (context, value, _) {
-                                      return CircleAvatar(
-                                          backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
-                                          // in track up, rotate icon
-                                          child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
-                                          Transform.rotate(
-                                              angle: value.heading * pi / 180,
-                                              child: Tooltip(message: "Press to enable North up navigation", child: Icon(MdiIcons.arrowUpThinCircleOutline))));
-                                    }
-                                )),
                           ])
                       )
                   )
@@ -1227,7 +1204,7 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomRight,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          padding: EdgeInsets.fromLTRB(0, 0, 5, Constants.bottomPaddingSize(context)),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end, children:[
                               Row(mainAxisAlignment: MainAxisAlignment.end,
@@ -1247,6 +1224,28 @@ class MapScreenState extends State<MapScreen> {
                                     },
                                     icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
+
+                                  // north up
+                                  IconButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          _northUp = _northUp ? false : true;
+                                        });
+                                        Storage().settings.setNorthUp(_northUp); // save
+                                      },
+                                      icon: ValueListenableBuilder<Position>(
+                                          valueListenable: Storage().gpsChange,
+                                          builder: (context, value, _) {
+                                            return CircleAvatar(
+                                                radius: 16,
+                                                backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                                // in track up, rotate icon
+                                                child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
+                                                Transform.rotate(
+                                                    angle: value.heading * pi / 180,
+                                                    child: Tooltip(message: "Press to enable North up navigation", child: Icon(MdiIcons.arrowUpThinCircleOutline))));
+                                          }
+                                      )),
 
                                   IconButton(
                                     tooltip: "Enable rubber banding",
@@ -1317,35 +1316,31 @@ class MapScreenState extends State<MapScreen> {
                                           ),)
                                         ),
                                     ),
-                                  ]
-                                ),
-                                // chart select
-                                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                                  DropdownButtonHideUnderline(
-                                    child:DropdownButton2<String>(
-                                      buttonStyleData: ButtonStyleData(
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)),
-                                      ),
-                                      dropdownStyleData: DropdownStyleData(
-                                        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                                      ),
-                                      isExpanded: false,
-                                      value: _type,
-                                      items: _charts.map((String item) {
-                                        return DropdownMenuItem<String>(
-                                            value: item,
-                                            child: Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
-                                        );
-                                      }).toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          Storage().settings.setChartType(value ?? _charts[0]);
-                                          _type = Storage().settings.getChartType();
-                                        });
-                                      },
-                                    )
-                                )
-                              ]),
+                                  // switch layers on off
+                                  PopupMenuButton( // layer selection
+                                    tooltip: "Select the chart type",
+                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                      child: const Icon(Icons.photo_library_rounded)),
+                                      initialValue: _type,
+                                      itemBuilder: (BuildContext context) =>
+                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
+                                          ListTile(
+                                            onTap: () {
+                                              setState(() {
+                                                Navigator.pop(context);
+                                                _type = _charts[index];
+                                                Storage().settings.setChartType(_charts[index]);
+                                              });
+                                            },
+                                            dense: true,
+                                            title: Text(_charts[index]),
+                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
+                                          ),
+                                        ),
+                                      )
+                                  ),
+                                ]
+                              ),
                           ])
                       )
                   )
