@@ -266,6 +266,7 @@ class AirportDestination extends Destination {
   final List<Map<String, dynamic>> awos;
   final String unicom;
   final String ctaf;
+  final String variation;
 
   AirportDestination({
     required super.locationID,
@@ -277,7 +278,8 @@ class AirportDestination extends Destination {
     required this.awos,
     required this.runways,
     required this.unicom,
-    required this.ctaf
+    required this.ctaf,
+    required this.variation
   });
 
 
@@ -302,6 +304,7 @@ class AirportDestination extends Destination {
         unicom: maps['UNICOMFrequencies'] as String,
         frequencies: mapsFreq,
         awos: mapsAwos,
+        variation: maps['MagneticVariation'] as String,
         runways: mapsRunways
     );
   }

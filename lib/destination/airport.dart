@@ -237,8 +237,41 @@ class RunwayPainter extends CustomPainter {
 
   RunwayPainter(this.airport, this.context);
 
+  // Returns a positive (east variation) or negative (west variation) variation number
+  // based on the string passed. FAA data formats variation as ##E/##W.
+  static double getAirportVariation(String variation)
+  {
+      if(variation.isEmpty) {
+        return 0;
+      }
+
+      //get last char (should be either 'E' or 'W')
+      bool direction; //E = true, W = false;
+      String lastchar = variation.substring(variation.length-1);
+      switch(lastchar) {
+        case 'E':
+          direction = true;
+        case 'W':
+          direction = false;
+        default:
+          return 0.0;
+      }
+      String body = variation.substring(0, variation.length-1);
+      double out;
+      try {
+        out = double.parse(body);
+      }
+      catch (e) {
+        print('Invalid variation value passed: $body');
+        return 0;
+      }
+      return direction ? out : -out;
+  }
+
   //For a given runway identifier (e.g. 16) returns the expected runway heading (e.g. 160)
-  static double getRunwayHeadingFromIdent(String ident)
+  //Rotates this expected runway heading by the runway's reported magnetic variation,
+  //since the display of airport diagrams is always wrt true coordinates
+  static double getRunwayHeadingFromIdent(String ident, String variation)
   {
     if(ident.length > 2) {
       ident = ident.substring(0,2);
@@ -248,7 +281,7 @@ class RunwayPainter extends CustomPainter {
       runwayNumber = double.parse(ident);
     }
     on FormatException {
-    //handle non-numeric runwy identifiers
+    //handle non-numeric runway identifiers
       switch(ident) {
         case 'N':
           runwayNumber = 0;
@@ -268,7 +301,8 @@ class RunwayPainter extends CustomPainter {
           runwayNumber = 31.5;
       }
     }
-    return runwayNumber * 10;
+    double RunwayHeading = runwayNumber * 10 + getAirportVariation(variation);
+    return RunwayHeading;
   }
 
   //Attempts to query the appropriate runway color for the given runway object.
@@ -346,7 +380,16 @@ class RunwayPainter extends CustomPainter {
     try {
       info += '${airport.facilityName} (${airport})\n';
       info += 'ELEV ${airport.elevation}\'\n';
-      info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n\n';
+      info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n';
+      //report magnetic variation if provided, pad end with two line breaks either way (for runway printout)
+      if(airport.variation.isNotEmpty) {
+        String num = airport.variation.substring(0, airport.variation.length-1);
+        String dir = airport.variation.substring(airport.variation.length-1);
+        info += 'MAG VAR ${num}°${dir}\n\n';
+      }
+      else {
+        info += '\n';
+      }
     }
     catch (e) {
     }
@@ -440,7 +483,7 @@ class RunwayPainter extends CustomPainter {
           try {
               String runwayLength = r['Length'];
               String runwayID = r['LEIdent'];
-              double heading = getRunwayHeadingFromIdent(runwayID);
+              double heading = getRunwayHeadingFromIdent(runwayID, airport.variation);
               avg = double.parse(runwayLength) / 6076 / 60; //ft -> minutes of lat/long (rounding up)
               leLon = -sin(heading * pi / 180) * avg/2;
               heLon = apLon - leLon;
