@@ -113,10 +113,6 @@ class MapScreenState extends State<MapScreen> {
       LatLng center = Gps.toLatLng(Storage().gpsChange.value);
       LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + 16));
       String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
-      if(!_northUp) { // horizontal/vertical distances are not correct in track up
-        tapeNotifier.value = ([topCenter], [centralDistance]);
-        return;
-      }
       LatLng topLeft = _controller!.camera.pointToLatLng(const Point(16, 0));
       LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(16, Constants.screenHeight(context)));
       double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
