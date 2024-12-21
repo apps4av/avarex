@@ -980,7 +980,6 @@ class MapScreenState extends State<MapScreen> {
             double? ws;
             double? wd;
             (wd, ws) = Storage().area.getWind(GeoCalculations.convertAltitude(value.altitude));
-
             return MarkerLayer(
               markers: [
                 Marker( // our position and heading to destination

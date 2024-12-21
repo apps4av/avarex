@@ -273,7 +273,7 @@ class WindBarbPainter extends CustomPainter {
     double barbLength = 15;
     double barbSpacing = size.width / 8;
     int fullBarbs = (speed / 10).floor();
-    int halfBarbs = ((speed % 10) / 5).floor();
+    int halfBarbs = ((speed % 10) / 5).round();
 
     for (int i = 0; i < fullBarbs; i++) {
       double barbX = x2 - (i) * barbSpacing * cos(angle);
