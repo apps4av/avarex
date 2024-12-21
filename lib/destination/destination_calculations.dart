@@ -37,8 +37,8 @@ class DestinationCalculations {
       distance = distance + calculations.calculateDistance(points[index], points[index + 1]);
     }
 
-    double variation1 = calculations.getVariation(_to.coordinate);
-    double variation2 = calculations.getVariation(_from.coordinate);
+    double variation1 = _to.geoVariation?? 0;
+    double variation2 = _from.geoVariation?? 0;
 
     double ws = _ws?? 0;
     double wd = _wd?? 0;

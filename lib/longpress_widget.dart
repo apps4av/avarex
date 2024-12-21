@@ -126,7 +126,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
     LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
     double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
-    String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, geo.getVariation(ll))}");
+    String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
     String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}";
     String label = "$facility (${future.showDestination.locationID})$elevation, $direction";

@@ -82,7 +82,7 @@ class InstrumentListState extends State<InstrumentList> {
       double distance = calculations.calculateDistance(
           position, d.coordinate);
       double bearing = GeoCalculations.getMagneticHeading(calculations.calculateBearing(
-          position, d.coordinate), calculations.getVariation(d.coordinate));
+          position, d.coordinate), d.geoVariation?? 0);
       return (distance, bearing);
     }
     return (0, 0);
@@ -91,7 +91,7 @@ class InstrumentListState extends State<InstrumentList> {
 
   void _gpsListener() {
     // connect to GPS
-    double variation = GeoCalculations().getVariation(Gps.toLatLng(Storage().position));
+    double variation = Storage().area.variation;
     setState(() {
       double q = GeoCalculations.convertSpeed(Storage().position.speed);
       _gndSpeed = _truncate(q.round().toString());

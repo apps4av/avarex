@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:avaremp/gdl90/ownship_message.dart';
-import 'package:avaremp/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'message.dart';
@@ -52,11 +51,6 @@ class TrafficReportMessage extends Message {
      *   1       x        x        x    = airborne
      */
     airborne = (message[11].toInt() & 0x08) != 0;
-    if ((message[11].toInt() & 0x03) == 2) {
-      // magnetic heading. Subtract variation, charts are true so show true
-      double variation = GeoCalculations().getVariation(coordinates);
-      heading = GeoCalculations.getMagneticHeading(heading, -variation);
-    }
 
     upper = ((message[13].toInt() & 0xFF)) << 4;
     lower = ((message[14].toInt() & 0xF0)) >> 4;

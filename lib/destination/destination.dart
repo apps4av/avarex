@@ -15,6 +15,8 @@ class Destination {
   final String type;
   final String facilityName;
   final LatLng coordinate;
+  double? geoAltitude;
+  double? geoVariation;
   String? secondaryName; // used for holding other names like airway name
   DestinationCalculations? calculations; // how to get there
 
@@ -23,7 +25,12 @@ class Destination {
     required this.type,
     required this.facilityName,
     required this.coordinate,
-  });
+  }) {
+    MainDatabaseHelper.db.getGeoInfo(coordinate).then((value) {
+      geoAltitude = value.$1;
+      geoVariation = value.$2;
+    });
+  }
 
   @override
   toString() {

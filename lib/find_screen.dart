@@ -142,7 +142,7 @@ class FindScreenState extends State<FindScreen> {
                             Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
                             MainScreenState.gotoMap();
                           },
-                          child: Text("${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), geo.getVariation(item.coordinate)).round()}\u00b0@${geo.calculateDistance(item.coordinate, position).round()}")
+                          child: Text("${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), item.geoVariation?? 0).round()}\u00b0@${geo.calculateDistance(item.coordinate, position).round()}")
                         ),
                         onTap: () {
                           setState(() {

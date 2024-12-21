@@ -1391,7 +1391,7 @@ class ChartTileProvider extends TileProvider {
 // for scale measurement
 class Ruler {
 
-  List<LatLng> _points = [];
+  List<Destination> _points = [];
   bool _measuring = false;
   final change = ValueNotifier<int>(0);
   final GeoCalculations geo = GeoCalculations();
@@ -1407,12 +1407,12 @@ class Ruler {
       return;
     }
 
-    _points.add(position);
+    _points.add(Destination.fromLatLng(position));
     change.value++;
   }
 
   List<LatLng> getPoints() {
-    return _points;
+    return _points.map((e) => e.coordinate).toList();
   }
 
   List<(int, int)> getDistanceBearing() {
@@ -1421,9 +1421,9 @@ class Ruler {
       return ret;
     }
     for(int i = 0; i < _points.length - 1; i++) {
-      double variation = geo.getVariation(_points[i]);
-      double bearing = GeoCalculations.getMagneticHeading(geo.calculateBearing(_points[i], _points[i + 1]), variation);
-      double distance = geo.calculateDistance(_points[i], _points[i + 1]);
+      double variation = _points[i].geoVariation?? 0;
+      double bearing = GeoCalculations.getMagneticHeading(geo.calculateBearing(_points[i].coordinate, _points[i + 1].coordinate), variation);
+      double distance = geo.calculateDistance(_points[i].coordinate, _points[i + 1].coordinate);
       ret.add((distance.round(), bearing.round()));
     }
 
