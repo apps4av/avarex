@@ -10,10 +10,20 @@ import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
 
+enum WindsAloftProduct {
+  conUsLow,
+  alaskaLow,
+  canadaLow,
+  canadaHigh,
+  hawaiiLow,
+  hawaiiHigh,
+  pacificLow,
+  pacificHigh,
+}
 
 class WindsCache extends WeatherCache {
 
-  WindsCache(super.url, super.dbCall);
+  WindsCache(super.urls, super.dbCall);
 
   // metar if winds from ground need to be used
   static (double?, double?) getWindsAt(LatLng coordinate, double altitude) {
@@ -26,73 +36,236 @@ class WindsCache extends WeatherCache {
   }
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
 
     List<WindsAloft> winds = [];
-    String dataString = utf8.decode(data);
 
-    // parse winds, set expire time
-    RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
-    DateTime? expires;
+    for(Uint8List datum in data)
+    {
+      String dataString = utf8.decode(datum);
 
-    List<String> lines = dataString.split('\n');
-    for (String line in lines) {
-      line = line.trim();
-      RegExpMatch? match = exp1.firstMatch(line);
-      if (match != null) {
-        DateTime now = DateTime.now().toUtc();
-        expires = DateTime.utc(
-            now.year,
-            now.month,
-            now.day, //day
-            0,
-            0);
-        int from = int.parse(match[2]!);
-        int to = int.parse(match[3]!);
-        // if from > to then its next day
-        expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
-        break;
-      }
-    }
+      // parse winds, set expire time
+      RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
+      DateTime? expires;
 
-    bool start = false;
-    // parse winds, first check if a new download is needed
-    RegExp exp2 = RegExp("FT.*39000");
-    for (String line in lines) {
-      line = line.trim();
-      RegExpMatch? match = exp2.firstMatch(line);
-      if(match != null) {
-        start = true;
-        continue;
+      List<String> lines = dataString.split('\n');
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp1.firstMatch(line);
+        if (match != null) {
+          DateTime now = DateTime.now().toUtc();
+          expires = DateTime.utc(
+              now.year,
+              now.month,
+              now.day, //day
+              0,
+              0);
+          int from = int.parse(match[2]!);
+          int to = int.parse(match[3]!);
+          // if from > to then its next day
+          expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
+          break;
+        }
       }
-      if(!start) {
-        continue;
-      }
-      try {
-        String station = line.substring(0, 3).trim();
-        String k3 = line.substring(4, 8).trim();
-        String k6 = line.substring(9, 16).trim();
-        String k9 = line.substring(17, 24).trim();
-        String k12 = line.substring(25, 32).trim();
-        String k18 = line.substring(33, 40).trim();
-        String k24 = line.substring(41, 48).trim();
-        String k30 = line.substring(49, 55).trim();
-        String k34 = line.substring(56, 62).trim();
-        String k39 = line.substring(63, 69).trim();
-        LatLng? coordinate = _stationMap[station];
-        if(coordinate == null) {
-          continue; // not recognized need this
+
+      bool start = false;
+      // parse winds, first check if a new download is needed
+      WindsAloftProduct? p = getWindsAloftProductType(lines);
+      RegExp exp2 = RegExp("FT.*39000|FT.*18000|FT.*24000|.*9000    12000   18000.*"); //CWAO observations do not start with "FT"
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp2.firstMatch(line);
+        if(match != null) {
+          start = true;
+          continue;
+        }
+        if(!start) {
+          continue;
         }
         if(expires == null) {
           continue;
         }
+        //Low altitude winds aloft parsing -- these cases can assume that no previous entry with the same station name exists
+        if(p == WindsAloftProduct.conUsLow || p == WindsAloftProduct.alaskaLow) {
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(4, 8).trim();
+            String k6 = line.substring(9, 16).trim();
+            String k9 = line.substring(17, 24).trim();
+            String k12 = line.substring(25, 32).trim();
+            String k18 = line.substring(33, 40).trim();
+            String k24 = line.substring(41, 48).trim();
+            String k30 = line.substring(49, 55).trim();
+            String k34 = line.substring(56, 62).trim();
+            String k39 = line.substring(63, 69).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            winds.add(w);
+          }
+          catch (e) {}
+        }
+        else if(p == WindsAloftProduct.pacificLow || p == WindsAloftProduct.hawaiiLow) {
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(19, 23).trim();
+            String k6 = line.substring(24, 31).trim();
+            String k9 = line.substring(32, 39).trim();
+            String k12 = line.substring(40, 47).trim();
+            String k18 = line.substring(56, 63).trim();
+            String k24 = line.substring(64, 71).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
+            winds.add(w);
+          }
+          catch (e) {}
+        }
+        else if(p == WindsAloftProduct.canadaLow) {
+          try {
+            String station = line.substring(0, 3).trim();
+            String k3 = line.substring(4, 8).trim();
+            String k6 = line.substring(9, 16).trim();
+            String k9 = line.substring(17, 24).trim();
+            String k12 = line.substring(25, 32).trim();
+            String k18 = line.substring(33, 40).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+            if(expires == null) {
+              continue;
+            }
+            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, '', '', '', '');
+            winds.add(w);
+          }
+          catch (e) {}
+        }
+        //High altitude winds aloft parsing -- these cases will attempt to update existing low entries
+        //iff no low entry exists, one will be created
+        else if(p == WindsAloftProduct.pacificHigh || p == WindsAloftProduct.hawaiiHigh) {
+          try {
+            String station = line.substring(0, 3).trim();
+            int index = winds.indexWhere((wa) => wa.station == station);
+            WindsAloft w;
+            if(index >= 0) {
+              w = winds[index];
+            }
+            else {
+              w = WindsAloft(station, expires!, '', '', '', '' , '', '', '', '', '' ,'');
+            }
+            String k3 = w.w3k;
+            String k6 = w.w6k;
+            String k9 = w.w9k;
+            String k12 = w.w12k;
+            String k18 = w.w18k;
+            String k24 = w.w24k;
+            String k30 = line.substring(4, 10).trim();
+            String k34 = line.substring(11, 17).trim();
+            String k39 = line.substring(18, 24).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
 
-        WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
-        winds.add(w);
+            WindsAloft newWA = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            if(index >= 0) {
+              winds[index] = newWA;
+            }
+            else {
+              winds.add(newWA);
+            }
+          }
+          catch (e) {}
+        }
+        else if(p == WindsAloftProduct.canadaHigh) {
+          try {
+            String station = line.substring(1, 4).trim();
+            int index = winds.indexWhere((wa) => wa.station == station);
+            WindsAloft w;
+            if(index >= 0) {
+              w = winds[index];
+            }
+            else {
+              w = WindsAloft(station, expires!, '', '', '', '' , '', '', '', '', '' ,'');
+            }
+            String k3 = w.w3k;
+            String k6 = w.w6k;
+            String k9 = w.w9k;
+            String k12 = w.w12k;
+            String k18 = w.w18k;
+            String k24 = line.substring(5, 12).trim();
+            String k30 = line.substring(13, 19).trim();
+            String k34 = line.substring(20, 26).trim();
+            String k39 = line.substring(27, 33).trim();
+            LatLng? coordinate = _stationMap[station];
+            if(coordinate == null) {
+              continue; // not recognized need this
+            }
+
+            WindsAloft newWA = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            if(index >= 0) {
+              winds[index] = newWA;
+            }
+            else {
+              winds.add(newWA);
+            }
+          }
+          catch (e) {}
+        }
+      }
+    }
+    await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+  }
+
+  static WindsAloftProduct? getWindsAloftProductType(List<String> lines) {
+    //we need to include the issuing organization (KWNO/CWAO) because low/high Canada broadcasts are disambiguated by issuer
+    //(other broadcasts are disambiguated by product number, e.g. FBUS31 (low) FBUS37 (high))
+    RegExp conUsLowKey = RegExp("FBUS31 KWNO.*");
+    RegExp alaskaLowKey = RegExp("FBAK31 KWNO.*");
+    RegExp canadaLowKey = RegExp("FBCN31 CWAO.*");
+    RegExp canadaHighKey = RegExp("FBCN31 KWNO.*");
+    RegExp pacificLowKey = RegExp("FBOC31 KWNO.*");
+    RegExp pacificHighKey = RegExp("FBOC37 KWNO.*");
+    RegExp hawaiiLowKey = RegExp("FBHW31 KWNO.*");
+    RegExp hawaiiHighKey = RegExp("FBHW37 KWNO.*");
+
+    for (String line in lines) {
+      try {
+        line = line.trim();
+
+        if (conUsLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.conUsLow;
+        }
+        else if (alaskaLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.alaskaLow;
+        }
+        else if (canadaLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.canadaLow;
+        }
+        else if (canadaHighKey.firstMatch(line) != null) {
+          return WindsAloftProduct.canadaHigh;
+        }
+        else if (pacificLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.pacificLow;
+        }
+        else if (pacificHighKey.firstMatch(line) != null) {
+          return WindsAloftProduct.pacificHigh;
+        }
+        else if (hawaiiLowKey.firstMatch(line) != null) {
+          return WindsAloftProduct.hawaiiLow;
+        }
+        else if (hawaiiHighKey.firstMatch(line) != null) {
+          return WindsAloftProduct.hawaiiHigh;
+        }
       }
       catch (e) {}
-      await WeatherDatabaseHelper.db.addWindsAlofts(winds);
     }
+    return null;
   }
 
   static String? locateNearestStation(LatLng location) {
@@ -142,6 +315,7 @@ class WindsCache extends WeatherCache {
   }
 
   static const Map<String, LatLng> _stationMap = {
+    // US Stations
     "BHM": LatLng(33.55, -86.73333333333333),
     "HSV": LatLng(34.55, -86.76666666666667),
     "MGM": LatLng(32.21666666666667, -86.31666666666666),
@@ -375,7 +549,184 @@ class WindsCache extends WeatherCache {
     "T11": LatLng(9.5, 138.08333333333334),
     "LNY": LatLng(20 + 47 / 60, -156 - 57 / 60),
     "KOA": LatLng(19 + 44 / 60, -156 - 3 / 60),
-  };
+    // Canadian Stations
+    // Data from Environment & Climate Change Canada MANAIR Appendix B
+    // Airports listed from west to east
 
+    // Southern Canada (at or below  60°N)
+    // BC, AB, SK, MB, ON, QC (most), NB, NS, PE, NL
+    "YZP": LatLng(53 + 15/60, -131 - 49/60),
+    "YDL": LatLng(58 + 25/60, -130 - 2/60),
+    "YZT": LatLng(50 + 41/60, -127 - 22/60),
+    "YYD": LatLng(54 + 50/60, -127 - 11/60),
+    "YPU": LatLng(52 + 7/6 , -124 - 9/60),
+    "YVR": LatLng(49 + 12/60, -123 - 11/60),
+    "YXS": LatLng(53 + 53/60, -122 - 41/60),
+    "YYE": LatLng(58 + 50/60, -122 - 36/60),
+    "YXJ": LatLng(56 + 14/60, -120 - 44/60),
+    "YKA": LatLng(50 + 42/60, -120 - 27/60),
+    "YYF": LatLng(49 + 28/60, -119 - 36/60),
+    "YJA": LatLng(53, -118 - 4/60),
+    "YOJ": LatLng(58 + 37/60, -117 - 10/60),
+    "YXC": LatLng(49 + 37/60, -115 - 47/60),
+    "YZH": LatLng(55 + 18/60, -114 - 47/60),
+    "YYC": LatLng(51 + 7/60, -114 - 1/60),
+    "YEG": LatLng(53 + 19/60, -113 - 35/60),
+    "YQL": LatLng(49 + 38/60, -112 - 48/60),
+    "YMM": LatLng(56 + 39/60, -111 - 13/60),
+    "YOD": LatLng(54 + 24/60, -110 - 17/60),
+    "YEA": LatLng(50 + 56/60, -110 - 1/60),
+    "YFN": LatLng(57 + 22/60, -107 - 8/60),
+    "YXE": LatLng(52 + 10/60, -106 - 42/60),
+    "YVC": LatLng(55 + 9/60, -105 - 16/60),
+    "YQR": LatLng(50 + 26/60, -104 - 40/60),
+    "YQD": LatLng(53 + 58/60, -101 - 5/60),
+    "YYL": LatLng(56 + 52/60, -101 - 4/60),
+    "WUI": LatLng(52, -101),
+    "YBR": LatLng(49 + 54/60, -99 - 57/60),
+    "WUJ": LatLng(53, -96 - 36/60),
+    "YWG": LatLng(49 + 54/60, -97 - 14/60),
+    "WUC": LatLng(55, -95),
+    "YYQ": LatLng(58 + 44/60, -94 - 4/60),
+    "VBI": LatLng(49 + 28/60, -94 - 3/60),
+    "YRL": LatLng(51 + 4/60, -93 - 48/60),
+    "YTL": LatLng(53 + 49/60, -89 - 54/60),
+    "YQT": LatLng(48 + 22/60, -89 - 19/60),
+    "WKZ": LatLng(57, -89),
+    "YYW": LatLng(50 + 17/60, -88 - 55/60),
+    "WUD": LatLng(60, -85),
+    "WUE": LatLng(55, -85),
+    "YAM": LatLng(46 + 29/60, -84 - 31/60),
+    "YQG": LatLng(42 + 17/60, -82 - 57/60),
+    "YYU": LatLng(49 + 25/60, -82 - 28/60),
+    "YVV": LatLng(44 + 45/60, -81 - 6/60),
+    "YMO": LatLng(51 + 17/60, -80 - 36/60),
+    "YYZ": LatLng(43 + 41/60, -79 - 38/60),
+    "YYB": LatLng(46 + 22/60, -79 - 25/60),
+    "YNC": LatLng(53 + 1/60, -78 - 50/60),
+    "YPH": LatLng(58 + 28/60, -78 - 5/60),
+    "YNM": LatLng(49 + 45/60, -77 - 48/60),
+    "YVO": LatLng(48 + 3/60, -77 - 47/60),
+    "YGW": LatLng(55 + 17/60, -77 - 46/60),
+    "YMW": LatLng(46 + 16/60, -75 - 59/60),
+    "YOW": LatLng(45 + 19/60, -75 - 40/60),
+    "WUF": LatLng(51, -75),
+    "XUH": LatLng(48, -75),
+    "YMT": LatLng(49 + 46/60, -74 - 32/60),
+    "YUL": LatLng(45 + 28/60, -73 - 44/60),
+    "YAH": LatLng(53 + 45/60, -73 - 41/60),
+    "WUG": LatLng(57, -73),
+    "YSC": LatLng(45 + 26/60, -71 - 41/60),
+    "YTF": LatLng(48 + 31/60, -71 - 38/60),
+    "YQB": LatLng(46 + 47/60, -71 - 24/60),
+    "YNI": LatLng(53 + 17/60, -70 - 54/60),
+    "YRI": LatLng(47 + 46/60, -69 - 35/60),
+    "YMV": LatLng(50 + 40/60, -68 - 50/60),
+    "YVP": LatLng(58 + 6/60, -68 - 25/60),
+    "YYY": LatLng(48 + 37/60, -68 - 12/60),
+    "YWK": LatLng(52 + 55/60, -66 - 52/60),
+    "YKL": LatLng(54 + 48/60, -66 - 48/60),
+    "YFC": LatLng(45 + 52/60, -66 - 35/60),
+    "YZV": LatLng(50 + 13/60, -66 - 16/60),
+    "YQI": LatLng(43 + 50/60, -66 - 5/60),
+    "YQM": LatLng(46 + 7/60, -64 - 41/60),
+    "YGP": LatLng(48 + 47/60, -64 - 29/60),
+    "YHZ": LatLng(44 + 53/60, -63 - 31/60),
+    "YEO": LatLng(51 + 52/60, -63 - 17/60),
+    "YSV": LatLng(58 + 28/60, -62 - 39/60),
+    "YNA": LatLng(50 + 11/60, -61 - 47/60),
+    "YGR": LatLng(47 + 26/60, -61 - 47/60),
+    "YYR": LatLng(53 + 19/60, -60 - 26/60),
+    "YHO": LatLng(55 + 27/60, -60 - 14/60),
+    "YQY": LatLng(46 + 10/60, -60 - 3/60),
+    "WOM": LatLng(58, -60),
+    "YSA": LatLng(43 + 56/60, -59 + 58/60),
+    "YIF": LatLng(51 + 13/60, -58 - 39/60),
+    "YJT": LatLng(48 + 32/60, -58 - 33/60),
+    "FVP": LatLng(46 + 46/60, -56 - 10/60), //St. Pierre, FR
+    "YAY": LatLng(51 + 24/60, -56 - 5/60),
+    "YQX": LatLng(48 + 56/90, -54 - 34/60),
+    "YYT": LatLng(47 + 37/60, -52 - 45/60),
+    "WOX": LatLng(59, -50),
+    "WPM": LatLng(47, -49),
+    // Northern Canada (above 60°N)
+    // YT, NT, NU, northern QC
+    "XDJ": LatLng(89, -140),
+    "XAA": LatLng(85, -140),
+    "WLL": LatLng(82, -140),
+    "XBA": LatLng(80, -140),
+    "WJQ": LatLng(76, -140),
+    "XDA": LatLng(75, -140),
+    "XEE": LatLng(70, -140),
+    "YOC": LatLng(67 + 34/60, -139 - 50/60),
+    "YDB": LatLng(61 + 22/60, -139 - 2/60),
+    "YMA": LatLng(63 + 37/60, -135 - 52/60),
+    "YXY": LatLng(60 + 43/60, -135 - 4/60),
+    "WCK": LatLng(74, -135),
+    "YEV": LatLng(68 + 18/60, -133 - 29/60),
+    "WRS": LatLng(78, -130),
+    "XCB": LatLng(77 + 30/60, -130),
+    "XDB": LatLng(75, -130),
+    "XEF": LatLng(70, -130),
+    "YQH": LatLng(60 + 7/60, -128 - 49/60),
+    "YVQ": LatLng(65 + 17/60, -126 - 48/60),
+    "YSY": LatLng(72, -125 - 15/60),
+    "YFS": LatLng(61 + 46/60, -121 - 14/60),
+    "XAB": LatLng(85, -120),
+    "XBB": LatLng(80, -120),
+    "XDC": LatLng(75, -120),
+    "XEH": LatLng(70, -120),
+    "YMD": LatLng(76 + 14/60, -119 - 20/60),
+    "YIX": LatLng(66 + 6/60, -117 - 56/60),
+    "YCO": LatLng(67 + 49/60, -115 - 9/60),
+    "WDG": LatLng(80, -115),
+    "WCM": LatLng(70, -115),
+    "YZF": LatLng(62 + 28/60, -114 - 26/60),
+    "YSM": LatLng(60 + 1/60, -111 - 58/60),
+    "XCC": LatLng(77, -110),
+    "XDD": LatLng(75, -110),
+    "WUA": LatLng(73, -110),
+    "WKJ": LatLng(63, 107),
+    "YCB": LatLng(69 + 6/60, - 105 - 8/60),
+    "WUB": LatLng(65, -105),
+    "YIC": LatLng(78 + 47/60, -103 - 33/60),
+    "YEI": LatLng(61 + 8/60, -100 - 55/60),
+    "XBT": LatLng(84, -100),
+    "XBM": LatLng(80, -100),
+    "YBK": LatLng(64 + 18/60, -96 - 5/60),
+    "YRB": LatLng(74 + 43/60, -94 - 58/60),
+    "YYH": LatLng(69 + 33/60, -93 - 35/60),
+    "YRT": LatLng(62 + 49/60, -92 - 7/60),
+    "XAD": LatLng(85, -90),
+    "XCE": LatLng(77 + 30/60, -90),
+    "XEJ": LatLng(70, -90),
+    "YEU": LatLng(80, -85 - 49/60),
+    "YAB": LatLng(73 + 1/60, -85 - 3/60),
+    "YZS": LatLng(64 + 12/60, -83 - 22/60),
+    "XDH": LatLng(74 + 30/60, -82 - 30/60),
+    "YUX": LatLng(68 + 47/60, -81 - 15/60),
+    "WLR": LatLng(61, -80),
+    "YTE": LatLng(64 + 14/60, -76 - 32/60),
+    "YZG": LatLng(62 + 11/60, -75 - 40/60),
+    "WFK": LatLng(89, -75),
+    "XCF": LatLng(77 + 30/60, -75), //Greenland, DK
+    "YUW": LatLng(68 + 39/60, -71 - 10/60),
+    "WZJ": LatLng(81 + 6/60, -70 - 18/60),
+    "WKQ": LatLng(85,-70),
+    "XDF": LatLng(75,-70), //Greenland, DK
+    "UHA": LatLng(61 + 3/60, -67 - 37/60), //Reported as "UHA" but confirmed to be YHA by Environment Canada
+    "XCN": LatLng(76 + 30/60, -68 - 50/60),
+    "YFB": LatLng(63 + 45/60, -68 - 33/60),
+    "YLT": LatLng(82 + 31/60, -62 - 17/60),
+    "WFB": LatLng(72, -62),
+    "YVN": LatLng(66 + 36/60, -61 - 34/60),
+    "XAE": LatLng(85, -60),
+    "XBS": LatLng(80, -60),
+    "XEK": LatLng(70, -60), //Greenland, DK
+    "WPV": LatLng(67, -60),
+    "WFA": LatLng(62, -56), //Greenland, DK
+    "WFC": LatLng(66, -54), //Greenland, DK
+    "WOP": LatLng(67, -50), //Greenland, DK
+  };
 }
 

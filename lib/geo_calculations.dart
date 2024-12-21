@@ -108,7 +108,12 @@ class GeoCalculations {
 
 
   double calculateDistance(LatLng ll1, LatLng ll2) {
-    return Storage().units.mTo * _distance(ll1, ll2);
+    try {
+      return Storage().units.mTo * _distance(ll1, ll2);
+    }
+    catch (e) {
+    }
+    return 12450; //set distance to maximum distance two points can be apart on earth, if calculation failed
   }
 
   /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)

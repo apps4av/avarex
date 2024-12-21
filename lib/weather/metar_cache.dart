@@ -18,8 +18,8 @@ class MetarCache extends WeatherCache {
   MetarCache(super.url, super.dbCall);
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
-    final List<int> decodedData = GZipCodec().decode(data);
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
+    final List<int> decodedData = GZipCodec().decode(data[0]);
     final List<Metar> metars = [];
     String decoded = utf8.decode(decodedData, allowMalformed: true);
     List<List<dynamic>> rows = const CsvToListConverter().convert(decoded, eol: "\n");

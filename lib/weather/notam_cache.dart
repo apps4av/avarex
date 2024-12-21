@@ -16,14 +16,14 @@ class NotamCache extends WeatherCache {
   NotamCache(super.url, super.dbCall);
 
   @override
-  Future<void> parse(Uint8List data, [String? argument]) async {
+  Future<void> parse(List<Uint8List> data, [String? argument]) async {
 
     if(null == argument) {
       return;
     }
 
     // clean up the html file
-    String ret = latin1.decode(data);
+    String ret = latin1.decode(data[0]);
     var document = html_parser.parse(ret);
     final anchors = document.querySelectorAll('TD');
     String retVal = "";
@@ -107,9 +107,9 @@ class NotamCache extends WeatherCache {
 
     try {
       http.Response response = await http.post(
-          Uri.parse(url),
+          Uri.parse(urls[0]),
           body: body);
-      await parse(response.bodyBytes, argument);
+      await parse([response.bodyBytes], argument);
     }
     catch(e) {}
     await initialize();

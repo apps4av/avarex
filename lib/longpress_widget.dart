@@ -177,7 +177,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
           ],
         ));
       }
-      // NOATMS get downloaded on the fly so make this a future.
+      // NOTAMS get downloaded on the fly so make this a future.
       notamPage = future.pages.length;
       future.pages.add(FutureBuilder(future: Storage().notam.getSync(future.showDestination.locationID),
           builder: (context, snapshot) {
