@@ -1,10 +1,7 @@
-import 'dart:io';
-
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
-import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/notam.dart';
@@ -39,7 +36,6 @@ class LongPressFuture {
 
   Destination destination;
   Destination showDestination;
-  Image? airportDiagram;
   int? elevation;
   List<Saa> saa = [];
 
@@ -61,13 +57,6 @@ class LongPressFuture {
     if(showDestination is AirportDestination) {
 
       elevation = (showDestination as AirportDestination).elevation.round();
-
-      // show first plate
-      String? apd = await PathUtils.getAirportDiagram(Storage().dataDir, showDestination.locationID);
-      if(apd != null) {
-        File file = File(PathUtils.getFilePath(Storage().dataDir, PathUtils.getFilePath(showDestination.locationID, apd)));
-        airportDiagram = Image.file(file);
-      }
 
       pages.add(Airport.parseFrequencies(showDestination as AirportDestination));
 
@@ -133,13 +122,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
 
     Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD
 
-    if(future.airportDiagram != null) {
-      airportDiagram = Center(child: Container(
-          child: future.airportDiagram,
-        ),
-      );
-    }
-    else if (future.showDestination is AirportDestination) {
+    if (future.showDestination is AirportDestination) {
       // made up airport dia
       double width = Constants.screenWidth(context);
       double height = Constants.screenHeight(context);
