@@ -331,7 +331,7 @@ class Storage {
       timeChange.value++;
 
       Position positionIn = _gpsStack.pop(); // used for testing and injecting GPS location
-      position = Gps.clone(positionIn);
+      position = Gps.clone(positionIn, area.geoAltitude);
       gpsChange.value = position; // tell everyone
 
       // auto switch to airport diagram on landing

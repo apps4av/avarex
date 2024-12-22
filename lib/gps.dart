@@ -18,8 +18,9 @@ class Gps {
     return(position);
   }
 
-  static Position clone(Position position) {
-    return Position(longitude: position.longitude, latitude: position.latitude, accuracy: position.accuracy, altitude: position.altitude, altitudeAccuracy: position.altitudeAccuracy, heading: position.heading, headingAccuracy: position.headingAccuracy, speed: position.speed, speedAccuracy: position.speedAccuracy, timestamp: position.timestamp);
+  static Position clone(Position position, double geoidHeight) {
+    // apply geoid correction to the non corrected data
+    return Position(longitude: position.longitude, latitude: position.latitude, accuracy: position.accuracy, altitude: position.altitude - geoidHeight, altitudeAccuracy: position.altitudeAccuracy, heading: position.heading, headingAccuracy: position.headingAccuracy, speed: position.speed, speedAccuracy: position.speedAccuracy, timestamp: position.timestamp);
   }
 
   Future<void> requestPermissions() async {
