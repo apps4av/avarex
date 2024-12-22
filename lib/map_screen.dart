@@ -994,6 +994,12 @@ class MapScreenState extends State<MapScreen> {
                       point: current,
                       child: CustomPaint(painter: WindBarbPainter(ws, wd))
                   ),
+                Marker( // variation
+                    width: 48,
+                    height: 48,
+                    point: current,
+                    child: CustomPaint(painter: NorthPainter(Storage().area.variation))
+                ),
               ],
             );
           },

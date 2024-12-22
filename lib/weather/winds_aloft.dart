@@ -298,4 +298,30 @@ class WindBarbPainter extends CustomPainter {
   }
 }
 
+class NorthPainter extends CustomPainter {
+  NorthPainter(this.variation);
+  double variation;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    // Draw the main arrow line
+    double x = size.width / 2;
+    double y = size.height / 2;
+    double length = size.width;
+    double angle = (variation - 90) * pi / 180;
+    double x2 = x + length * cos(angle);
+    double y2 = y + length * sin(angle);
+    canvas.drawLine(Offset(x, y), Offset(x2, y2), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
+}
 
