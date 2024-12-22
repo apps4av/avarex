@@ -677,7 +677,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
             },
             child: const Text("Send to FAA"),),
           const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
-          Visibility(visible: _sending, child: const CircularProgressIndicator(),),
+          SizedBox(width: 16, height: 16, child: Visibility(visible: _sending, child: const CircularProgressIndicator(),)),
           const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
           // Show an error and a question mark with error code when error, otherwise show a check mark
           Tooltip(showDuration: const Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: _error, child: _sending ?
