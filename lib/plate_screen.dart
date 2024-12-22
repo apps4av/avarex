@@ -304,6 +304,7 @@ class _PlatePainter extends CustomPainter {
   List<double>? _matrix;
   ui.Image? _image;
   ui.Image? _imagePlane;
+  double? _variation;
 
   // Define a paint object
   final _paint = Paint();
@@ -322,6 +323,7 @@ class _PlatePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
 
     _image = Storage().imagePlate;
+    _variation = Storage().area.variation;
     _imagePlane = Storage().imagePlane;
     _matrix = Storage().matrixPlate;
     Destination? center = Storage().plateAirportDestination;
@@ -396,6 +398,11 @@ class _PlatePainter extends CustomPainter {
         // draw all based on screen width, height
         _paintLine.shader = ui.Gradient.linear(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), [Colors.red, Colors.white]);
         canvas.drawLine(Offset(0, (size.height + size.width) / 64 - _imagePlane!.height), Offset(0, -(size.height + size.width) / 2), _paintLine);
+        double a = (_variation! - 90) * pi / 180;
+        double x2 = 64 * cos(a);
+        double y2 = 64 * sin(a);
+        _paintLine.color = Colors.red;
+        canvas.drawLine(const Offset(0, 0), Offset(x2, y2), _paintLine);
         _paintLine.shader = null;
       }
       canvas.restore();
