@@ -44,6 +44,8 @@ class MapScreen extends StatefulWidget {
 
 class MapScreenState extends State<MapScreen> {
 
+  static const double iconRadius = 18;
+
   StreamController<void>? mapReset; // to reset the radar map
   void resetRadar() {
     if(mapReset != null) {
@@ -111,10 +113,10 @@ class MapScreenState extends State<MapScreen> {
   void _handleEvent(MapEvent mapEvent) {
     if(_controller != null) {
       LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + 16));
+      LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
       String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
-      LatLng topLeft = _controller!.camera.pointToLatLng(const Point(16, 0));
-      LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(16, Constants.screenHeight(context)));
+      LatLng topLeft = _controller!.camera.pointToLatLng(const Point(iconRadius, 0));
+      LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
       double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
       if(ticksInLatitude < 0.1) {
         ticksInLatitude = 0.1; // avoid busy loop
@@ -1112,7 +1114,7 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 32 + 10), // buttons under have 5 padding and 16 radius
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
@@ -1150,7 +1152,7 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomLeft,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 0, 0, Constants.bottomPaddingSize(context) + 32 + 10),
+                          padding: EdgeInsets.fromLTRB(35, 0, 0, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10),
                           child: Row(children:[
                             // menu
                             TextButton(
@@ -1223,7 +1225,7 @@ class MapScreenState extends State<MapScreen> {
                                         }
                                       });
                                     },
-                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
 
                                   // north up
@@ -1238,7 +1240,7 @@ class MapScreenState extends State<MapScreen> {
                                           valueListenable: Storage().gpsChange,
                                           builder: (context, value, _) {
                                             return CircleAvatar(
-                                                radius: 16,
+                                                radius: iconRadius,
                                                 backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                                 // in track up, rotate icon
                                                 child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
@@ -1255,13 +1257,13 @@ class MapScreenState extends State<MapScreen> {
                                         Storage().settings.isRubberBanding() ? Storage().settings.setRubberBanding(false) : Storage().settings.setRubberBanding(true);
                                       });
                                     },
-                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Colors.white,))),
 
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",
-                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                         child: const Icon(Icons.layers)),
                                     initialValue: _layers[0],
                                     itemBuilder: (BuildContext context) =>
@@ -1320,7 +1322,7 @@ class MapScreenState extends State<MapScreen> {
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: const Icon(Icons.photo_library_rounded)),
                                       initialValue: _type,
                                       itemBuilder: (BuildContext context) =>

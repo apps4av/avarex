@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 // put all singletons here.
 
 import 'package:avaremp/area.dart';
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/flight_status.dart';
@@ -296,6 +295,7 @@ class Storage {
     // ask for GPS permission
     await _gps.isPermissionDenied();
     position = await Gps().getLastPosition();
+    area.update(position);
     _gpsStack.push(position);
 
     // tiles cache
@@ -316,12 +316,6 @@ class Storage {
     airep = WeatherCache.make(AirepCache) as AirepCache;
     airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
     notam = WeatherCache.make(NotamCache) as NotamCache;
-    winds.download();
-    metar.download();
-    taf.download();
-    tfr.download();
-    airep.download();
-    airSigmet.download();
 
     gpsNotPermitted = await Gps().isPermissionDenied();
     if(gpsNotPermitted) {
@@ -336,7 +330,8 @@ class Storage {
       // this provides time to apps
       timeChange.value++;
 
-      position = _gpsStack.pop();
+      Position positionIn = _gpsStack.pop(); // used for testing and injecting GPS location
+      position = Gps.clone(positionIn);
       gpsChange.value = position; // tell everyone
 
       // auto switch to airport diagram on landing
@@ -378,18 +373,22 @@ class Storage {
           warningChange.value = gpsNoLock || dataExpired || chartsMissing;
         }
       }
-
-      if((timeChange.value % (Constants.weatherUpdateTimeMin * 60)) == 0) {
-        winds.download();
-        metar.download();
-        taf.download();
-        tfr.download();
-        airep.download();
-        airSigmet.download();
-        // nexrad update
-      }
-      // check GPS enabled
     });
+
+    // weather download timer
+    downloadWeather();
+    Timer.periodic(const Duration(minutes: 10), (tim) async {
+      await downloadWeather();
+    });
+  }
+
+  Future<void> downloadWeather() async {
+    winds.download();
+    metar.download();
+    taf.download();
+    tfr.download();
+    airep.download();
+    airSigmet.download();
   }
 
   Future<void> checkDataExpiry() async {
