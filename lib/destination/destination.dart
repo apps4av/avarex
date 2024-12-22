@@ -277,7 +277,7 @@ class AirportDestination extends Destination {
     required this.awos,
     required this.runways,
     required this.unicom,
-    required this.ctaf,
+    required this.ctaf
   });
 
 
