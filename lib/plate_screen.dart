@@ -317,6 +317,10 @@ class _PlatePainter extends CustomPainter {
     ..strokeWidth = 6
     ..color = Constants.planeColor;
 
+  final _paintCompass = Paint()
+    ..strokeWidth = 3
+    ..color = Colors.red;
+
   _PlatePainter(ValueNotifier repaint): super(repaint: repaint);
 
   @override
@@ -401,8 +405,10 @@ class _PlatePainter extends CustomPainter {
         double a = (_variation! - 90 - heading - angle) * pi / 180;
         double x2 = 64 * cos(a);
         double y2 = 64 * sin(a);
-        _paintLine.color = Colors.red;
-        canvas.drawLine(const Offset(0, 0), Offset(x2, y2), _paintLine);
+        double x3 = 54 * cos(a - 0.1);
+        double y3 = 54 * sin(a - 0.1);
+        canvas.drawLine(const Offset(0, 0), Offset(x2, y2), _paintCompass);
+        canvas.drawLine(Offset(x2, y2), Offset(x3, y3), _paintCompass);
         _paintLine.shader = null;
       }
       canvas.restore();

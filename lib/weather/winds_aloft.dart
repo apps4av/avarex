@@ -250,15 +250,15 @@ class WindsAloft extends Weather {
 class WindBarbPainter extends CustomPainter {
   final double speed;
   final double direction;
+  final _paint = Paint()
+    ..color = Colors.black
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
 
   WindBarbPainter(this.speed, this.direction);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
 
     // Draw the main arrow line
     double x = size.width / 2;
@@ -267,7 +267,7 @@ class WindBarbPainter extends CustomPainter {
     double angle = (direction - 90) * pi / 180;
     double x2 = x + length * cos(angle);
     double y2 = y + length * sin(angle);
-    canvas.drawLine(Offset(x, y), Offset(x2, y2), paint);
+    canvas.drawLine(Offset(x, y), Offset(x2, y2), _paint);
 
     // Draw barbs for wind speed
     double barbLength = 15;
@@ -280,7 +280,7 @@ class WindBarbPainter extends CustomPainter {
       double barbY = y2 - (i) * barbSpacing * sin(angle);
       double barbX2 = barbX - barbLength * cos(angle + pi / 2);
       double barbY2 = barbY - barbLength * sin(angle + pi / 2);
-      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), paint);
+      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), _paint);
     }
 
     if (halfBarbs > 0) {
@@ -288,7 +288,7 @@ class WindBarbPainter extends CustomPainter {
       double barbY = y2 - (fullBarbs) * barbSpacing * sin(angle);
       double barbX2 = barbX - (barbLength / 2) * cos(angle + pi / 2);
       double barbY2 = barbY - (barbLength / 2) * sin(angle + pi / 2);
-      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), paint);
+      canvas.drawLine(Offset(barbX, barbY), Offset(barbX2, barbY2), _paint);
     }
   }
 
@@ -301,13 +301,13 @@ class WindBarbPainter extends CustomPainter {
 class NorthPainter extends CustomPainter {
   NorthPainter(this.variation);
   double variation;
+  final _paint = Paint()
+    ..color = Colors.red
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.red
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
 
     // Draw the main arrow line
     double x = size.width / 2;
@@ -316,7 +316,10 @@ class NorthPainter extends CustomPainter {
     double angle = (variation - 90) * pi / 180;
     double x2 = x + length * cos(angle);
     double y2 = y + length * sin(angle);
-    canvas.drawLine(Offset(x, y), Offset(x2, y2), paint);
+    double x3 = x + (length - 10) * cos(angle - 0.1);
+    double y3 = y + (length - 10) * sin(angle - 0.1);
+    canvas.drawLine(Offset(x, y), Offset(x2, y2), _paint);
+    canvas.drawLine(Offset(x2, y2), Offset(x3, y3), _paint);
   }
 
   @override
