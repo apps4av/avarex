@@ -1226,7 +1226,7 @@ class MapScreenState extends State<MapScreen> {
                                       });
                                     },
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
-                                      child: Icon(MdiIcons.mathCompass, color: _ruler.color(), ))),
+                                      child: Icon(MdiIcons.mathCompass, color: _ruler.color() == Colors.white ? Theme.of(context).colorScheme.primary : Colors.red, ))),
 
                                   // north up
                                   IconButton(
@@ -1258,7 +1258,7 @@ class MapScreenState extends State<MapScreen> {
                                       });
                                     },
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
-                                      child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Colors.white,))),
+                                      child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Theme.of(context).colorScheme.primary))),
 
                                   IconButton(
                                       tooltip: "Write a note",

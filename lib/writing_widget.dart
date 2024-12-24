@@ -17,8 +17,8 @@ class WritingWidgetState extends State<WritingWidget> {
 
   @override
   void initState() {
-    notifier = ScribbleNotifier();
     super.initState();
+    notifier = ScribbleNotifier();
   }
 
   @override
@@ -30,6 +30,9 @@ class WritingWidgetState extends State<WritingWidget> {
   @override
   Widget build(BuildContext context) {
 
+    notifier.setStrokeWidth(2);
+    notifier.setColor(Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white);
+
     return FutureBuilder(
       future: UserDatabaseHelper.db.getSketch("Default"),
       builder: (context, snapshot) {
@@ -38,20 +41,21 @@ class WritingWidgetState extends State<WritingWidget> {
             notifier.setSketch(sketch: Sketch.fromJson(jsonDecode(snapshot.data!)));
           }
           return Scaffold(
-            backgroundColor: Theme.of(context).colorScheme.surface,
             appBar: AppBar(
+              title: const Text("Notes"),
               actions: _buildActions(context),
             ),
             body: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 5),
               child: Column(
                 children: [
-                  Expanded(
-                      child: Container(color: const Color.fromARGB(255, 90, 90, 90), child: Scribble(
-                        notifier: notifier,
-                        drawPen: true,
+                  Expanded(child:
+                    Stack(children: [
+                      Container(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, child:
+                        Scribble(notifier: notifier, drawPen: true)
                       ),
-                      )),
+                    ])
+                  ),
                   Padding(
                     padding: const EdgeInsets.all(8),
                     child: _buildColorToolbar(context),
@@ -100,8 +104,7 @@ class WritingWidgetState extends State<WritingWidget> {
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        _buildColorButton(context, color: Colors.black),
-        _buildColorButton(context, color: Colors.white),
+        _buildColorButton(context, color: Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white),
         _buildColorButton(context, color: Colors.red),
         _buildColorButton(context, color: Colors.green),
         _buildEraserButton(context),
