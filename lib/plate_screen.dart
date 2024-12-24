@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/flight_status.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -31,21 +30,7 @@ class PlatesFuture {
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
-  Future<void> _getAll(landed) async {
-    if(landed) {
-      // on landing, add to recent the airport we landed at, then set it as current airport
-      List<Destination> airports = await MainDatabaseHelper.db
-          .findNearestAirportsWithRunways(
-          LatLng(Storage().position.latitude, Storage().position.longitude), 0);
-      if (airports.isNotEmpty) {
-        String? plate = await PathUtils.getAirportDiagram(
-            Storage().dataDir, airports[0].locationID);
-        if (plate != null) {
-          _currentPlateAirport = airports[0].locationID;
-          UserDatabaseHelper.db.addRecent(airports[0]);
-        }
-      }
-    }
+  Future<void> _getAll() async {
 
     // get location ID only
     _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
@@ -68,8 +53,8 @@ class PlatesFuture {
         .findAirport(Storage().settings.getCurrentPlateAirport());
   }
 
-  Future<PlatesFuture> getAll(bool landed) async {
-    await _getAll(landed);
+  Future<PlatesFuture> getAll() async {
+    await _getAll();
     return this;
   }
 
@@ -93,9 +78,9 @@ class PlateScreenState extends State<PlateScreen> {
   @override
   Widget build(BuildContext context) {
     // this is to listen for landing event, show airport diagram on landing when this screen shows
-    return ValueListenableBuilder(valueListenable: Storage().flightStateChange, builder: (BuildContext context, int value, Widget? child) {
+    return ValueListenableBuilder(valueListenable: Storage().flightStatus.flightStateChange, builder: (BuildContext context, int value, Widget? child) {
       return FutureBuilder(
-        future: PlatesFuture().getAll(value == FlightStatus.flightStateLanded),
+        future: PlatesFuture().getAll(),
         builder: (context, snapshot) {
           if(snapshot.hasData) {
             return _makeContent(snapshot.data);

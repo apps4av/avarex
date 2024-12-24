@@ -1,3 +1,10 @@
+import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
+import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
+
+import 'data/main_database_helper.dart';
+import 'destination/destination.dart';
 import 'geo_calculations.dart';
 
 class FlightStatus {
@@ -11,11 +18,30 @@ class FlightStatus {
 
   String phase = phaseTaxi;
   String lastPhase = phaseTaxi;
+  final flightStateChange = ValueNotifier<int>(0);
+
 
   // speed moving array
   List<double> _speeds = List.generate(10, (int index) {return 0;});
 
-  int update (double inSpeed) {
+  // landing switches airport diagram to the airport we landed at, if it has an airport diagram
+  Future<void> land() async {
+    // on landing, add to recent the airport we landed at, then set it as current airport
+    List<Destination> airports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(
+        LatLng(Storage().position.latitude, Storage().position.longitude), 0);
+    if (airports.isNotEmpty) {
+      String? plate = await PathUtils.getAirportDiagram(Storage().dataDir, airports[0].locationID);
+      if (null != plate) {
+        Storage().lastPlateAirport = "";
+        Storage().plateAirportDestination = airports[0];
+        Storage().settings.setCurrentPlateAirport(airports[0].locationID);
+        Storage().currentPlate = plate;
+        Storage().loadPlate();
+      }
+    }
+  }
+
+  void update (double inSpeed) {
     double q = GeoCalculations.convertSpeed(inSpeed);
     _speeds = _speeds.sublist(1)..add(q);
     double speed = _speeds.reduce((a, b) {return a + b;}) / _speeds.length;
@@ -29,26 +55,33 @@ class FlightStatus {
       // in air
       lastPhase = phase;
       phase = phaseAirborne;
-      return flightStateNoChange;
+      flightStateChange.value = flightStateNoChange;
+      return;
     }
     if(phase == phaseAirborne && lastPhase == phaseAirborne && speed < transitionSpeed) {
       // on ground
       lastPhase = phase;
       phase = phaseTaxi;
-      return flightStateNoChange;
+      flightStateChange.value = flightStateNoChange;
+      return;
     }
     if(phase == phaseTaxi && lastPhase == phaseAirborne) {
       // landed
       lastPhase = phase;
-      return flightStateLanded;
+
+      land().then((value) {
+        flightStateChange.value = flightStateLanded;
+      });
+      return;
     }
     if(phase == phaseAirborne && lastPhase == phaseTaxi) {
       // takeoff
       lastPhase = phase;
-      return flightStateTakeoff;
+      flightStateChange.value = flightStateTakeoff;
+      return;
     }
     lastPhase = phase;
-    return flightStateNoChange;
+    flightStateChange.value = flightStateNoChange;
 
   }
 

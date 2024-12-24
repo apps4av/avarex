@@ -72,7 +72,6 @@ class Storage {
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
-  final flightStateChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   late WindsCache winds;
@@ -162,7 +161,7 @@ class Storage {
   StreamSubscription<Uint8List>? _udpStream;
 
   void startIO() {
-    
+
     // GPS data receive
     // start both external and internal
     if(!gpsDisabled) {
@@ -171,9 +170,7 @@ class Storage {
       _gpsStream?.onError((obj) {});
       _gpsStream?.onData((data) {
         if (gpsInternal) {
-          _lastMsGpsSignal = DateTime
-              .now()
-              .millisecondsSinceEpoch; // update time when GPS signal was last received
+          _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
           _gpsStack.push(data);
           tracks.add(data);
         } // provide internal GPS when external is not available
@@ -334,8 +331,8 @@ class Storage {
       position = Gps.clone(positionIn, area.geoAltitude);
       gpsChange.value = position; // tell everyone
 
-      // auto switch to airport diagram on landing
-      flightStateChange.value = flightStatus.update(position.speed);
+      // update flight status
+      flightStatus.update(position.speed);
 
       route.update(); // change to route
       int now = DateTime.now().millisecondsSinceEpoch;
