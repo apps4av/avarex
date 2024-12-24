@@ -32,7 +32,6 @@ class WritingWidgetState extends State<WritingWidget> {
 
     notifier.setStrokeWidth(2);
     notifier.setColor(Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white);
-
     return FutureBuilder(
       future: UserDatabaseHelper.db.getSketch("Default"),
       builder: (context, snapshot) {
@@ -52,7 +51,7 @@ class WritingWidgetState extends State<WritingWidget> {
                   Expanded(child:
                     Stack(children: [
                       Container(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, child:
-                        Scribble(notifier: notifier, drawPen: true)
+                        Scribble(notifier: notifier, drawPen: false, drawEraser: false)
                       ),
                     ])
                   ),
@@ -117,9 +116,9 @@ class WritingWidgetState extends State<WritingWidget> {
       valueListenable: notifier.select((value) => value is Erasing),
       builder: (context, value, child) => ColorButton(
         color: Colors.transparent,
-        outlineColor: Colors.black,
+        outlineColor: Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white,
         isActive: value,
-        onPressed: () => notifier.setEraser(),
+        onPressed: ()  {notifier.setEraser(); notifier.setStrokeWidth(10);},
         child: const Icon(Icons.cleaning_services),
       ),
     );
@@ -137,7 +136,7 @@ class WritingWidgetState extends State<WritingWidget> {
         child: ColorButton(
           color: color,
           isActive: value,
-          onPressed: () => notifier.setColor(color),
+          onPressed: () {notifier.setColor(color); notifier.setStrokeWidth(2);},
         ),
       ),
     );
@@ -184,7 +183,7 @@ class ColorButton extends StatelessWidget {
           backgroundColor: color,
           shape: const CircleBorder(),
           side: isActive
-              ? const BorderSide(color: Colors.white, width: 2)
+              ? BorderSide(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, width: 2)
               : const BorderSide(color: Colors.transparent),
         ),
         onPressed: onPressed,
