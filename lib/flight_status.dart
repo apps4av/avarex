@@ -25,7 +25,7 @@ class FlightStatus {
   List<double> _speeds = List.generate(10, (int index) {return 0;});
 
   // landing switches airport diagram to the airport we landed at, if it has an airport diagram
-  Future<void> land() async {
+  static Future<void> _land() async {
     // on landing, add to recent the airport we landed at, then set it as current airport
     List<Destination> airports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(
         LatLng(Storage().position.latitude, Storage().position.longitude), 0);
@@ -69,7 +69,7 @@ class FlightStatus {
       // landed
       lastPhase = phase;
 
-      land().then((value) {
+      _land().then((value) {
         flightStateChange.value = flightStateLanded;
       });
       return;

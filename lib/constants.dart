@@ -42,7 +42,7 @@ class Constants {
   static Color bottomNavBarIconColor = Colors.white;
 
   static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
-  static const Color speedCircleColor = Color.fromARGB(200, 0, 255, 0);
+  static const Color speedCircleColor = Color.fromARGB(200, 0, 0, 180);
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.grey;
   static const Color planPassedColor = Colors.cyanAccent;

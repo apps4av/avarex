@@ -1260,6 +1260,16 @@ class MapScreenState extends State<MapScreen> {
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                       child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Colors.white,))),
 
+                                  IconButton(
+                                      tooltip: "Write a note",
+                                      onPressed: () {
+                                        setState(() {
+                                          Navigator.pushNamed(context, '/notes');
+                                        });
+                                      },
+                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                          child: Icon(MdiIcons.transcribe))),
+
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",

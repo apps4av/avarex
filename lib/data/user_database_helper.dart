@@ -33,8 +33,24 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 1,
+          version: 2,
+          onUpgrade: (Database db, int oldVersion, int newVersion) async {
+            if (oldVersion == 1 && newVersion == 2) {
+              await db.execute("create table sketch("
+                  "id           integer primary key autoincrement, "
+                  "name         text,"
+                  "jsonData     text,"
+                  "unique(name) on conflict replace);");
+            }
+          },
           onCreate: (Database db, int version) async {
+
+            await db.execute("create table sketch("
+                "id           integer primary key autoincrement, "
+                "name         text,"
+                "jsonData     text,"
+                "unique(name) on conflict replace);");
+
             await db.execute("create table recent ("
                 "id           integer primary key autoincrement, "
                 "LocationID   text, "
@@ -323,6 +339,27 @@ class UserDatabaseHelper {
       return maps;
     }
     return [];
+  }
+
+  Future<void> saveSketch(String name, String jsonData) async {
+    final db = await database;
+
+    if(db != null) {
+      await db.rawQuery("insert into sketch (name, jsonData) values ('$name', '$jsonData');");
+    }
+  }
+
+  Future<String> getSketch(String name) async {
+    final db = await database;
+    List<Map<String, dynamic>> maps = [];
+    if(db != null) {
+      // ignore name for now
+      maps = await db.rawQuery("select jsonData from sketch;");
+    }
+    if(maps.isEmpty) {
+      return "";
+    }
+    return maps[0]['jsonData'];
   }
 
 }
