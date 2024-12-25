@@ -4,7 +4,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/vor_nav.dart';
+import 'package:avaremp/destination/nav.dart';
 import 'package:avaremp/weather/notam.dart';
 import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
@@ -21,7 +21,6 @@ import 'destination/airport.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'weather/metar.dart';
-import 'package:avaremp/destination/nav.dart';
 
 class LongPressWidget extends StatefulWidget {
   final List<Destination> destinations;
@@ -69,7 +68,7 @@ class LongPressFuture {
       List<NavDestination> navs = await MainDatabaseHelper.db.findNearestVOR(destination.coordinate);
       String vors = "${showDestination.type}\n\n";
       for(NavDestination nav in navs) {
-        vors += "${VorNav.getVorLine(nav)}\n";
+        vors += "${Nav.getVorLine(nav)}\n";
       }
       pages.add(Text(vors));
     }

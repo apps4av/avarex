@@ -137,9 +137,6 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            if(expires == null) {
-              continue;
-            }
             WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, '', '', '', '');
             winds.add(w);
           }
@@ -156,7 +153,7 @@ class WindsCache extends WeatherCache {
               w = winds[index];
             }
             else {
-              w = WindsAloft(station, expires!, '', '', '', '' , '', '', '', '', '' ,'');
+              w = WindsAloft(station, expires, '', '', '', '' , '', '', '', '', '' ,'');
             }
             String k3 = w.w3k;
             String k6 = w.w6k;
@@ -191,7 +188,7 @@ class WindsCache extends WeatherCache {
               w = winds[index];
             }
             else {
-              w = WindsAloft(station, expires!, '', '', '', '' , '', '', '', '', '' ,'');
+              w = WindsAloft(station, expires, '', '', '', '' , '', '', '', '', '' ,'');
             }
             String k3 = w.w3k;
             String k6 = w.w6k;
