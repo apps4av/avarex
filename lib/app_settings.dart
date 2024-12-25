@@ -98,15 +98,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v37", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Weather,NOAA-Loop,TFR,Plate,Traffic,Obstacles,PFD,Tracks") as String).split(",");
+    return (provider.getValue("key-layers-v38", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Weather,NOAA-Loop,TFR,Plate,Traffic,Obstacles,GeoJSON,PFD,Tracks") as String).split(",");
   }
 
   List<bool> getLayersState() {
-    return (provider.getValue("key-layers-state-v37", defaultValue: "true,true,true,true,false,false,false,false,true,false,true,false,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+    return (provider.getValue("key-layers-state-v38", defaultValue: "true,true,true,true,false,false,false,false,true,false,true,false,false,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
   }
 
   void setLayersState(List<bool> state) {
-    provider.setString("key-layers-state-v37", state.map((bool e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-state-v38", state.map((bool e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {

@@ -80,6 +80,7 @@ dependencies:
   toastification: ^2.0.0
   in_app_review: ^2.0.10
   scribble: ^0.10.0+1
+  flutter_map_geojson: ^1.0.8
   value_notifier_tools: ^0.1.2
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:

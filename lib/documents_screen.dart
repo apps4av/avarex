@@ -7,6 +7,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:toastification/toastification.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
 import 'constants.dart';
@@ -140,13 +141,32 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                Flexible(flex: 4,
                  child:Column(children: [
                    Flexible(flex: 1, child: Row(children: [
-                     TextButton(onPressed: () {
-                       final box = context.findRenderObject() as RenderBox?;
-                       Share.shareXFiles(
-                         [XFile(product.url)],
-                         sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                       );
-                     }, child: const Text("Share")),
+
+                     if(PathUtils.isJSONFile(product.url))
+                       TextButton(onPressed: () {
+                         // read file as string
+                          File(product.url).readAsString().then((String value) {
+                            try {
+                              Storage().geojson.parseGeoJsonAsString(value);
+                              setState(() {
+                                Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                              });
+                            }
+                            catch(e) {
+                              setState(() {
+                                Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                              });
+                            }
+                          });
+                       }, child: const Text("Use")),
+                     if(!PathUtils.isJSONFile(product.url))
+                       TextButton(onPressed: () {
+                         final box = context.findRenderObject() as RenderBox?;
+                         Share.shareXFiles(
+                           [XFile(product.url)],
+                           sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                         );
+                       }, child: const Text("Share")),
                    ])),
                    Flexible(flex: 1, child: Row(children: [
                    if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
@@ -248,7 +268,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
-              child: const Tooltip(message: "Import text, PDF documents, user data", child: Text("Import")),
+              child: const Tooltip(message: "Import text (.txt), GeoJSON (.geojson), PDF documents (.pdf), user data (user.db)", child: Text("Import")),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:

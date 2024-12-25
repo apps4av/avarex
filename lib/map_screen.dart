@@ -172,8 +172,7 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    if(mapReset != null) {
+    if (mapReset != null) {
       mapReset!.close();
     }
     mapReset = StreamController();
@@ -188,9 +187,9 @@ class MapScreenState extends State<MapScreen> {
     );
 
     TileLayer openaipLayer = TileLayer(
-      maxNativeZoom: 16,
-      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
-      tileProvider: CachedTileProvider(store: Storage().openaipCache));
+        maxNativeZoom: 16,
+        urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
+        tileProvider: CachedTileProvider(store: Storage().openaipCache));
 
     TileLayer topoLayer = TileLayer(
       maxNativeZoom: 16,
@@ -237,11 +236,17 @@ class MapScreenState extends State<MapScreen> {
 
     // start from known location
     MapOptions opts = MapOptions(
-      initialCenter: LatLng(Storage().settings.getCenterLatitude(), Storage().settings.getCenterLongitude()),
+      initialCenter: LatLng(Storage().settings.getCenterLatitude(),
+          Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
-      minZoom: 2, // this is less crazy
-      maxZoom: 20, // max for USGS
-      interactionOptions: InteractionOptions(flags: _northUp ? InteractiveFlag.all & ~InteractiveFlag.rotate : InteractiveFlag.all),  // no rotation in track up
+      minZoom: 2,
+      // this is less crazy
+      maxZoom: 20,
+      // max for USGS
+      interactionOptions: InteractionOptions(flags: _northUp
+          ? InteractiveFlag.all & ~InteractiveFlag.rotate
+          : InteractiveFlag.all),
+      // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: (tap, point) async {
@@ -250,7 +255,8 @@ class MapScreenState extends State<MapScreen> {
           showDestination(this.context, items);
         });
       },
-      onPointerDown: (PointerDownEvent event, position) { // calculate down pointers here
+      onPointerDown: (PointerDownEvent event,
+          position) { // calculate down pointers here
         _ruler.setPointer(event.pointer, position);
       },
       onMapEvent: (MapEvent mapEvent) {
@@ -267,30 +273,46 @@ class MapScreenState extends State<MapScreen> {
     );
 
     int lIndex = _layers.indexOf('OSM');
-    if(_layersState[lIndex]) {
+    if (_layersState[lIndex]) {
       layers.add(osmLayer);
       layers.add( // OSM attribution
-          Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenStreetMap contributors',),],
+          Container(padding: EdgeInsets.fromLTRB(
+              0, 0, 0, Constants.screenHeight(context) / 2),
+            child: const RichAttributionWidget(
+              alignment: AttributionAlignment.bottomRight,
+              attributions: [
+                TextSourceAttribution('OpenStreetMap contributors',),
+              ],
             ),
           ));
     }
     lIndex = _layers.indexOf('Topo');
-    if(_layersState[lIndex]) {
+    if (_layersState[lIndex]) {
       layers.add(topoLayer);
     }
     lIndex = _layers.indexOf('OpenAIP');
-    if(_layersState[lIndex]) {
+    if (_layersState[lIndex]) {
       layers.add(openaipLayer);
       layers.add(
-          Container(padding: EdgeInsets.fromLTRB(0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(alignment: AttributionAlignment.bottomRight, attributions: [TextSourceAttribution('OpenAIP contributors',),],
+          Container(padding: EdgeInsets.fromLTRB(
+              0, 0, 0, Constants.screenHeight(context) / 2),
+            child: const RichAttributionWidget(
+              alignment: AttributionAlignment.bottomRight,
+              attributions: [TextSourceAttribution('OpenAIP contributors',),],
             ),
           ));
     }
     lIndex = _layers.indexOf('Chart');
-    if(_layersState[lIndex]) {
+    if (_layersState[lIndex]) {
       layers.add(chartLayer);
+    }
+
+    // Custom shapes
+    lIndex = _layers.indexOf('GeoJSON');
+    if(_layersState[lIndex]) {
+      layers.add(PolygonLayer(polygons: Storage().geojson.polygons));
+      layers.add(PolylineLayer(polylines: Storage().geojson.polylines));
+      layers.add(MarkerLayer(markers: Storage().geojson.markers));
     }
 
     int nexradLength = nexradLayer.length;
