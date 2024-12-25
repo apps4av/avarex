@@ -292,7 +292,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                 setState(() {
                   if(length > 0) {
                     Destination departure = route.getWaypointAt(0).destination;
-                    if (departure is AirportDestination) {
+                    if (Destination.isAirport(departure.type)) {
                       _departure = departure.locationID;
                     }
                   }
@@ -447,7 +447,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                 setState(() {
                   if(length > 1) {
                     Destination destination = route.getWaypointAt(length - 1).destination;
-                    if (destination is AirportDestination) {
+                    if (Destination.isAirport(destination.type)) {
                       _destination = destination.locationID;
                     }
                   }

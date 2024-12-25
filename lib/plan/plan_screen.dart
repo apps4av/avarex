@@ -1,15 +1,10 @@
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/plan/plan_create_widget.dart';
 import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
-import 'plan_file_widget.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
-import 'plan_load_save_widget.dart';
-import 'plan_manage_widget.dart';
 import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
 
@@ -21,85 +16,6 @@ class PlanScreen extends StatefulWidget {
 
 class PlanScreenState extends State<PlanScreen> {
 
-
-  final CarouselSliderController _controller = CarouselSliderController();
-
-  Widget _makeContent() {
-
-    Widget loadSavePage = const PlanLoadSaveWidget();
-
-    Widget createPage = const PlanCreateWidget();
-
-    Widget filePage = const PlanFileWidget();
-
-    Widget managePage = const PlanManageWidget();
-
-    List<Widget> pages = [];
-    pages.add(loadSavePage);
-    pages.add(createPage);
-    pages.add(filePage);
-    pages.add(managePage);
-
-    // carousel
-    List<Card> cards = [];
-    for (Widget page in pages) {
-      cards.add(Card(
-          child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox.expand(
-                  child: page
-              )
-          )
-      ));
-    }
-
-    return Container(
-        padding: const EdgeInsets.all(5),
-        decoration: const BoxDecoration(
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(10),
-            topRight: Radius.circular(10),
-          ),
-        ),
-        child:
-          Column(children: [
-            // various info
-            Expanded(flex: 8, child: CarouselSlider(
-              carouselController: _controller,
-              items: cards,
-              options: CarouselOptions(
-                viewportFraction: 1,
-                enlargeFactor: 0.5,
-                enableInfiniteScroll: false,
-                enlargeCenterPage: true,
-                aspectRatio: Constants.carouselAspectRatio(context),
-              ),
-            )),
-          // add various buttons that expand to diagram
-          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-              TextButton(
-                  child: const Text("Load & Save"),
-                  onPressed: () => _controller.animateToPage(0)
-              ),
-              TextButton(
-                  child: const Text("Create"),
-                  onPressed: () => _controller.animateToPage(1)
-              ),
-              TextButton(
-                  child: const Text("Brief & File"),
-                  onPressed: () => _controller.animateToPage(2)
-              ),
-              TextButton(
-                  child: const Text("Manage"),
-                  onPressed: () => _controller.animateToPage(3)
-              ),
-            ])),
-          ),
-        ],
-          )
-    );
-
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -175,16 +91,9 @@ class PlanScreenState extends State<PlanScreen> {
               Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(
                 children:[ // header
                   TextButton(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        useSafeArea: true,
-                        showDragHandle: true,
-                        isScrollControlled: true,
-                        builder: (BuildContext context) {
-                          return _makeContent();
-                        },
-                      ).then((value) => setState(() {})); // this is important so if modal changes plan then we update it here
+                    onPressed: () async {
+                      await Navigator.pushNamed(context, "/plan_actions");
+                      setState(() {}); // to update this screen
                     },
                     child: const Text("Actions"),),
                   Padding(padding: const EdgeInsets.all(5), child:SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(

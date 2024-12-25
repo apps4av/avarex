@@ -30,14 +30,10 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
 
   Widget _makeContent(LmfsPlanList? plans) {
 
-    if(null == plans) {
-      return const Column(
-          children: [
-            Flexible(flex: 1, child: Text("Manage (FAA)", style: TextStyle(fontWeight: FontWeight.w800),)),
-            Padding(padding: EdgeInsets.all(10)),
-            CircularProgressIndicator()
-          ]
-      );
+    bool getting = false;
+    if(plans == null) {
+      getting = true;
+      plans = LmfsPlanList("{}");
     }
 
     List<LmfsPlanListPlan> items = plans.getPlans();
@@ -49,6 +45,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
         children: [
           const Flexible(flex: 1, child: Text("Manage (FAA)", style: TextStyle(fontWeight: FontWeight.w800),)),
           const Padding(padding: EdgeInsets.all(10)),
+          Visibility(visible: getting, child: const CircularProgressIndicator()),
           Flexible(flex: 5, child: ListView.separated(
             itemCount: items.length,
             padding: const EdgeInsets.all(5),
@@ -157,7 +154,6 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
   @override
   Widget build(BuildContext context) {
 
-    // get all aircraft since it is important to be able to change them quickly
     return FutureBuilder(
         future: getPlans(),
         builder: (context, snapshot) {

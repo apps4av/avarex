@@ -1,6 +1,7 @@
+import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb_screen.dart';
-import 'package:avaremp/writing_widget.dart';
+import 'package:avaremp/writing_screen.dart';
 import 'package:flutter/material.dart';
 import 'aircraft_screen.dart';
 import 'checklist_screen.dart';
@@ -38,7 +39,8 @@ class MainApp extends StatelessWidget {
               '/aircraft': (context) => const AircraftScreen(),
               '/checklists': (context) => const ChecklistScreen(),
               '/wnb': (context) => const WnbScreen(),
-              '/notes': (context) => const WritingWidget(),
+              '/notes': (context) => const WritingScreen(),
+              '/plan_actions': (context) => const PlanActionScreen(),
             },
             theme: value,
           );

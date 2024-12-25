@@ -6,13 +6,13 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:scribble/scribble.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
 
-class WritingWidget extends StatefulWidget {
-  const WritingWidget({super.key});
+class WritingScreen extends StatefulWidget {
+  const WritingScreen({super.key});
   @override
-  State<StatefulWidget> createState() => WritingWidgetState();
+  State<StatefulWidget> createState() => WritingScreenState();
 }
 
-class WritingWidgetState extends State<WritingWidget> {
+class WritingScreenState extends State<WritingScreen> {
   late ScribbleNotifier notifier;
 
   @override
@@ -67,7 +67,6 @@ class WritingWidgetState extends State<WritingWidget> {
         return Container();
       },
     );
-
   }
 
   List<Widget> _buildActions(context) {
