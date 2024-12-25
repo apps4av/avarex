@@ -38,7 +38,7 @@ class Area {
     // get surface wind from nearest airport
     String wind = WindsCache.getWind0kFromMetar(Gps.toLatLng(position));
     // get aloft wind from nearest station
-    String? station = WindsCache.locateNearestStation(Gps.toLatLng(position));
+    var (station, dist, bearing) = WindsCache.locateNearestStation(Gps.toLatLng(position));
     WindsAloft? wa = Storage().winds.get("${station}06H") as WindsAloft?;
     if(null != wa) {
       // combine surface and aloft wind

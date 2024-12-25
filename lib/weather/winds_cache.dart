@@ -34,7 +34,7 @@ class WindsCache extends WeatherCache {
     double? ws;
     double? wd;
     String foreString = fore.toString().padLeft(2, "0"); // stations has fore in the name
-    String? station = WindsCache.locateNearestStation(coordinate);
+    var (station, dist, bearing) = WindsCache.locateNearestStation(coordinate);
     var ww = Storage().winds.get("$station${foreString}H");
     (wd, ws) = WindsCache.getWindAtAltitude(altitude, ww == null ? null : ww as WindsAloft);
     return (wd, ws);
@@ -184,19 +184,27 @@ class WindsCache extends WeatherCache {
     return null;
   }
 
-  static String? locateNearestStation(LatLng location) {
+  //returns station name, distance, bearing
+  static (String?, double, double) locateNearestStation(LatLng location) {
     // find distance
     GeoCalculations geo = GeoCalculations();
     double distanceMin = double.maxFinite;
     String? station;
+    LatLng? stationLocation;
     for(MapEntry<String, LatLng> map in _stationMap.entries) {
       double distance = geo.calculateDistance(map.value, location);
       if(distance < distanceMin) {
         distanceMin = distance;
         station = map.key;
+        stationLocation = map.value;
       }
     }
-    return station;
+    double? bearing;
+    if(stationLocation != null)
+    {
+      bearing = geo.calculateBearing(stationLocation, location);
+    }
+    return (station, distanceMin, bearing ?? 0);
   }
 
   // dir, speed

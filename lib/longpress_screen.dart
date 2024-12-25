@@ -123,7 +123,7 @@ class LongPressScreenState extends State<LongPressScreen> {
         ]);
       }
       pages[labels.indexOf("NOTAM")] = FutureBuilder(future: Storage().notam.getSync(showDestination.locationID),
-        builder: (context, snapshot) { // notmas are downloaded when not in cache and can be slow to download so do async
+        builder: (context, snapshot) { // notams are downloaded when not in cache and can be slow to download so do async
           if (snapshot.hasData) {
             return snapshot.data != null ?
               SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).text)))
@@ -159,13 +159,13 @@ class LongPressScreenState extends State<LongPressScreen> {
     }
 
     Weather? winds;
-    String? station = WindsCache.locateNearestStation(showDestination.coordinate);
+    var (station, dist, stationBearing) = WindsCache.locateNearestStation(showDestination.coordinate);
     if(station != null) {
       winds = Storage().winds.get("${station}06H"); // 6HR wind
       if(winds != null) {
         WindsAloft wa = winds as WindsAloft;
         pages[labels.indexOf("Wind")] = ListView(children: [
-          ListTile(title: Text(winds.toString())),
+          ListTile(title: Text('${dist.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(stationBearing, 0)} @ ${winds.toString()}')),
           for((String, String) wl in wa.toList())
             ListTile(leading: Text(wl.$1), title: Text(wl.$2)),
         ]);

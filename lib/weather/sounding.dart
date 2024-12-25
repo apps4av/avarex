@@ -7,20 +7,27 @@ import '../geo_calculations.dart';
 
 class Sounding {
 
-  static String? _locateNearestStation(LatLng location) {
+  static (String?, double, double) _locateNearestStation(LatLng location) {
 
     // find distance
     GeoCalculations geo = GeoCalculations();
     double distanceMin = double.maxFinite;
     String? station;
+    LatLng? stationLocation;
     for(MapEntry<String, LatLng> map in _stationMap.entries) {
       double distance = geo.calculateDistance(map.value, location);
       if(distance < distanceMin) {
         distanceMin = distance;
         station = map.key;
+        stationLocation = map.value;
       }
     }
-    return station;
+    double? bearing;
+    if(stationLocation != null)
+    {
+      bearing = geo.calculateBearing(stationLocation, location);
+    }
+    return (station, distanceMin, bearing ?? 0);
   }
 
   static Widget? getSoundingImage(LatLng coordinate, BuildContext context) {
@@ -29,20 +36,29 @@ class Sounding {
       return const Center(child: Text('Error downloading the Sounding Analysis for this area.'));
     }
 
-    String? station = _locateNearestStation(coordinate);
+    var (station, dist, bearing) = _locateNearestStation(coordinate);
     if(null == station) {
       return null;
     }
-    DateTime now = DateTime.now().toUtc();
+    DateTime now = DateTime.timestamp();
+    print(now);
     now = now.subtract(const Duration(hours: 1)); // 1 hour delayed on website
-    String hour = ((now.hour / 12).floor() * 12).toString().padLeft(2, '0');
-    String year = now.year.toString().substring(2);
-    String day = now.day.toString().padLeft(2, '0');
-    String month = now.month.toString().padLeft(2, '0');
+    DateTime obsTime = DateTime.utc(now.year, now.month, now.day,  (now.hour/ 12).floor() * 12);
+    String hour = obsTime.hour.toString().padLeft(2, '0');
+    String year = obsTime.year.toString().substring(2);
+    String day = obsTime.day.toString().padLeft(2, '0');
+    String month = obsTime.month.toString().padLeft(2, '0');
     String url = "https://www.spc.noaa.gov/exper/soundings/$year$month$day${hour}_OBS/$station.gif";
+    Duration timeSinceObs = DateTime.timestamp().difference(obsTime);
     CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager, errorWidget: errorImage,);
     return Container(padding: const EdgeInsets.all(10), child:
-      InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image)));
+      Column(
+        children: <Widget>[
+          Text("${dist.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(bearing, 0)} @ ${station} (${timeSinceObs.inHours}:${(timeSinceObs.inMinutes % 60).toString().padLeft(2, '0')} ago)"),
+          InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image))
+        ]
+      )
+    );
   }
 
   // List of station codes from the HTML area elements
