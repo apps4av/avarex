@@ -292,7 +292,6 @@ class Storage {
     // ask for GPS permission
     await _gps.isPermissionDenied();
     position = await Gps().getLastPosition();
-    area.update(position);
     _gpsStack.push(position);
 
     // tiles cache
@@ -313,6 +312,8 @@ class Storage {
     airep = WeatherCache.make(AirepCache) as AirepCache;
     airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
     notam = WeatherCache.make(NotamCache) as NotamCache;
+
+    area.update(position);
 
     gpsNotPermitted = await Gps().isPermissionDenied();
     if(gpsNotPermitted) {
