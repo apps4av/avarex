@@ -88,16 +88,19 @@ class MainDatabaseHelper {
       List<String> segments = match.split(".");
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
-        String iMatch = "";
-        if(segments.length > 1) {
-          iMatch = exact ? " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'" : " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'";
+        String match = "";
+        if(segments.length == 2) {
+          match = exact ?
+            " and trim(sid_star_approach_identifier) =    '${segments[1].toUpperCase()}'  and trim(transition_identifier) = ''" :
+            " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'";
         }
-        String tMatch = "";
-        if(segments.length > 2) {
-          tMatch = exact ? " and trim(transition_identifier) = '${segments[2].toUpperCase()}'" : " and trim(transition_identifier) like '${segments[2].toUpperCase()}%'";
+        else if(segments.length >= 3) {
+          match = exact ?
+            " and trim(sid_star_approach_identifier) =    '${segments[1].toUpperCase()}'  and trim(transition_identifier) = '${segments[2].toUpperCase()}'" :
+            " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%' and trim(transition_identifier) like '${segments[2].toUpperCase()}%'";
         }
         String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
-          " trim(airport_identifier) = '$airport' $iMatch $tMatch";
+          " trim(airport_identifier) = '$airport' $match";
         mapsProcedures = await db.rawQuery(qry);
       }
     }
