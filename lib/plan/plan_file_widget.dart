@@ -48,7 +48,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _remarks = "";
 
   bool _sending = false;
-  String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
+  String _error = Storage().settings.getEmail().isEmpty ? "Set 1800wxbrief.com account in the app introduction screen." : "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
   Color? _errorColor;
   List<Aircraft>? _aircraft;
 

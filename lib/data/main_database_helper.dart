@@ -257,6 +257,27 @@ class MainDatabaseHelper {
     return(ret);
   }
 
+  Future<List<NavDestination>> findNearestVOR(LatLng point) async {
+    final db = await database;
+    List<NavDestination> ret = [];
+    if (db != null) {
+      num corrFactor = pow(cos(point.latitude * pi / 180.0), 2);
+      String asDistance = "((ARPLongitude - ${point
+          .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
+          .toDouble()} + (ARPLatitude - ${point
+          .latitude}) * (ARPLatitude - ${point.latitude}))";
+
+      String qry = "select * from nav where (Type = 'VOR' or Type = 'VORTAC' or Type = 'VOR/DME') order by $asDistance asc limit 4";
+      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+
+      // get rid of duplicates
+      for(Map<String, dynamic> map in maps) {
+        ret.add(NavDestination.fromMap(map));
+      }
+    }
+    return(ret);
+  }
+
   Future<Destination> findNearNavOrFixElseGps(LatLng point, {double factor = 0.001}) async {
     final db = await database;
     if (db != null) {

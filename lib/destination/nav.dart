@@ -1,10 +1,11 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/vor_nav.dart';
 import 'package:flutter/material.dart';
 
 class Nav {
   static String parse(NavDestination nav) {
-    return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\n";
+    return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\n${VorNav.getMorseCodeFromString(nav.locationID)}\n";
   }
 
   static Widget mainWidget(String data) {

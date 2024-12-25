@@ -4,6 +4,7 @@ import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/vor_nav.dart';
 import 'package:avaremp/weather/notam.dart';
 import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
@@ -64,8 +65,13 @@ class LongPressFuture {
     else if(showDestination is NavDestination) {
       pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));
     }
-    else if(showDestination is FixDestination) {
-      pages.add(const Text("Fix"));
+    else if(showDestination is FixDestination || showDestination is GpsDestination) {
+      List<NavDestination> navs = await MainDatabaseHelper.db.findNearestVOR(destination.coordinate);
+      String vors = "${showDestination.type}\n\n";
+      for(NavDestination nav in navs) {
+        vors += "${VorNav.getVorLine(nav)}\n";
+      }
+      pages.add(Text(vors));
     }
     else if(showDestination is AirwayDestination) {
       pages.add(const Text(Destination.typeAirway));
