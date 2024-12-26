@@ -246,7 +246,7 @@ class WindsAloft extends Weather {
   toString() {
     DateTime zulu = expires.toUtc(); // winds in Zulu time
     // boilerplate
-    String wind = "$station\nValid till ${expires.hour}:${expires.minute.toString().padLeft(2, '0')} (${zulu.day.toString().padLeft(2, '0')}${zulu.hour.toString().padLeft(2, '0')}00Z)";
+    String wind = "$station\nValid till ${expires.hour.toString().padLeft(2, '0')}:${expires.minute.toString().padLeft(2, '0')} (${zulu.day.toString().padLeft(2, '0')}${zulu.hour.toString().padLeft(2, '0')}00Z)";
     return wind;
   }
 }
