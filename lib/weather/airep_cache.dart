@@ -15,6 +15,9 @@ class AirepCache extends WeatherCache {
 
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
+    if(data.isEmpty) {
+      return;
+    }
     final List<int> decodedData = GZipCodec().decode(data[0]);
 
     List<Airep> aireps = [];

@@ -1,13 +1,10 @@
 
-import 'dart:io';
-
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'constants.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
@@ -68,8 +65,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   @override
   Widget build(BuildContext context) {
-
-    bool apple = (Platform.isIOS || Platform.isMacOS);
 
     return PopScope(
       canPop: false,
@@ -139,15 +134,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                   },
                 ),
                 leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
-              if(!apple)
-                ListTile(
-                  // this is apple issue. They do not allow donation links in the app
-                  title: const Text("Donate", style: TextStyle(decoration: TextDecoration.underline),),
-                  // this is apple issue. They do not allow donation links in the app
-                  onTap: () {
-                    launchUrl(Uri.parse("https://www.apps4av.com/donate.html"));
-                  },
-                ),
               ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/download');}, dense: true,),
               ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/documents');}, dense: true,),
               ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/aircraft');}, dense: true,),

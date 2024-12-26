@@ -40,7 +40,6 @@ import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter_map_geojson/flutter_map_geojson.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
@@ -51,6 +50,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'download_manager.dart';
 import 'flight_timer.dart';
 import 'gdl90/message.dart';
+import 'geojson_parser.dart';
 import 'gps.dart';
 import 'image_utils.dart';
 import 'nmea/nmea_buffer.dart';
@@ -95,7 +95,7 @@ class Storage {
   Destination? plateAirportDestination;
   late UnitConversion units;
   DownloadManager downloadManager = DownloadManager();
-  GeoJsonParser geojson = GeoJsonParser();
+  GeoJsonParser geoParser = GeoJsonParser();
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";

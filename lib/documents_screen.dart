@@ -141,13 +141,12 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                Flexible(flex: 4,
                  child:Column(children: [
                    Flexible(flex: 1, child: Row(children: [
-
                      if(PathUtils.isJSONFile(product.url))
                        TextButton(onPressed: () {
                          // read file as string
                           File(product.url).readAsString().then((String value) {
                             try {
-                              Storage().geojson.parseGeoJsonAsString(value);
+                              Storage().geoParser.parse(value);
                               setState(() {
                                 Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
                               });

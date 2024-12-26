@@ -10,42 +10,42 @@ import '../storage.dart';
 class Nav {
   static final GeoCalculations _geo = GeoCalculations();
   static final Map<String, String> _morseMap = {
-    "A": "o-",
-    "B": "-ooo",
-    "C": "-o-o",
-    "D": "-oo",
-    "E": "o",
-    "F": "oo-o",
-    "G": "--o",
-    "H": "oooo",
-    "I": "oo",
-    "J": "o---",
-    "K": "-o-",
-    "L": "o-oo",
+    "A": ".-",
+    "B": "-...",
+    "C": "-.-.",
+    "D": "-..",
+    "E": ".",
+    "F": "..-.",
+    "G": "--.",
+    "H": "....",
+    "I": "..",
+    "J": ".---",
+    "K": "-.-",
+    "L": ".-..",
     "M": "--",
-    "N": "-o",
+    "N": "-.",
     "O": "---",
-    "P": "o--o",
-    "Q": "--o-",
-    "R": "o-o",
-    "S": "ooo",
+    "P": ".--.",
+    "Q": "--.-",
+    "R": ".-.",
+    "S": "...",
     "T": "-",
-    "U": "oo-",
-    "V": "ooo-",
-    "W": "o--",
-    "X": "-oo-",
-    "Y": "-o--",
-    "Z": "--oo",
+    "U": "..-",
+    "V": "...-",
+    "W": ".--",
+    "X": "-..-",
+    "Y": "-.--",
+    "Z": "--..",
     "0": "-----",
-    "1": "o----",
-    "2": "oo---",
-    "3": "ooo--",
-    "4": "oooo-",
-    "5": "ooooo",
-    "6": "-oooo",
-    "7": "--ooo",
-    "8": "---oo",
-    "9": "----o"
+    "1": ".----",
+    "2": "..---",
+    "3": "...--",
+    "4": "....-",
+    "5": ".....",
+    "6": "-....",
+    "7": "--...",
+    "8": "---..",
+    "9": "----."
   };
 
   static String? _getMorseCode(String character) {
@@ -57,7 +57,7 @@ class Nav {
     for (int i = 0; i < text.length; i++) {
       result += _getMorseCode(text[i]) ?? "";
     }
-    return result;
+    return result.replaceAll(".", "\u00B0");
   }
 
   // From VOR map from database, get the VOR parameters and combine to make a string

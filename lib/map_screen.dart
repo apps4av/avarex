@@ -310,9 +310,42 @@ class MapScreenState extends State<MapScreen> {
     // Custom shapes
     lIndex = _layers.indexOf('GeoJSON');
     if(_layersState[lIndex]) {
-      layers.add(PolygonLayer(polygons: Storage().geojson.polygons));
-      layers.add(PolylineLayer(polylines: Storage().geojson.polylines));
-      layers.add(MarkerLayer(markers: Storage().geojson.markers));
+      layers.add(ValueListenableBuilder<int>(
+        valueListenable: Storage().geoParser.change,
+        builder: (context, value, _) {
+          return PolygonLayer(polygons: Storage().geoParser.polygons);
+        })
+      );
+
+      layers.add(ValueListenableBuilder<int>(
+          valueListenable: Storage().geoParser.change,
+          builder: (context, value, _) {
+            return MarkerClusterLayerWidget( //cluster them transparent
+                options: MarkerClusterLayerOptions(
+                  markers: Storage().geoParser.markers,
+                  maxClusterRadius: 45,
+                  disableClusteringAtZoom: 15,
+                  size: const Size(40, 40),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(50),
+                  maxZoom: 20,
+                  builder: (context, markers) {
+                    return Container(
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.blue.withAlpha(128)),
+                      child: Center(
+                        child: Text(
+                          markers.length.toString(),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    );
+                  },
+                )
+            );
+          })
+      );
     }
 
     int nexradLength = nexradLayer.length;

@@ -19,6 +19,9 @@ class MetarCache extends WeatherCache {
 
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
+    if(data.isEmpty) {
+      return;
+    }
     final List<int> decodedData = GZipCodec().decode(data[0]);
     final List<Metar> metars = [];
     String decoded = utf8.decode(decodedData, allowMalformed: true);
