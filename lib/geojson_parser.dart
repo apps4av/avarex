@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geojson_vi/geojson_vi.dart';
+import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 
 class GeoJsonParser {
@@ -10,25 +11,31 @@ class GeoJsonParser {
 
   ValueNotifier<int> change = ValueNotifier<int>(0);
 
-  void parse(String json) {
+  Future<void> parse(String json) async {
     var gj = GeoJSON.fromJSON(json);
     polygons.clear();
     markers.clear();
 
-    void addMarker(GeoJSONPoint mp) {
+    void addMarker(GeoJSONPoint mp, String label) {
       if (mp.coordinates.length > 1) {
         markers.add(Marker(
             point: LatLng(mp.coordinates[1], mp.coordinates[0]),
-            child: const Icon(Icons.location_pin, color: Colors.black,)));
+            child: JustTheTooltip(
+                content: Container(padding: const EdgeInsets.all(5), child:Text(label)),
+                triggerMode: TooltipTriggerMode.tap,
+                waitDuration: const Duration(seconds: 1),
+                child: const Icon(Icons.location_pin, color: Colors.black,))));
       }
     }
 
-    void addPolygon(List<List<List<double>>> coordinates) {
+    void addPolygon(List<List<List<double>>> coordinates, String label) {
       for (var ring in coordinates) {
         if (ring.isNotEmpty) {
           List<LatLng> ll = ring.map((point) => LatLng(point[1], point[0])).toList();
           polygons.add(Polygon(
             points: ll,
+            label: label,
+            labelStyle: const TextStyle(color: Colors.black, fontSize: 12),
             isFilled: false,
             borderStrokeWidth: 2,
             borderColor: Colors.black,
@@ -37,36 +44,35 @@ class GeoJsonParser {
       }
     }
 
-    void processGeometry(GeoJSONGeometry geometry) {
+    void processGeometry(GeoJSONGeometry geometry, String label) {
       if (geometry.type == GeoJSONType.point) {
-        addMarker(geometry as GeoJSONPoint);
+        addMarker(geometry as GeoJSONPoint, label);
       }
       if (geometry.type == GeoJSONType.multiPoint) {
         for (var point in (geometry as GeoJSONMultiPoint).coordinates) {
-          addMarker(point as GeoJSONPoint);
+          addMarker(point as GeoJSONPoint, label);
         }
       }
       else if (geometry.type == GeoJSONType.polygon) {
-        addPolygon((geometry as GeoJSONPolygon).coordinates);
+        addPolygon((geometry as GeoJSONPolygon).coordinates, label);
       }
       else if (geometry.type == GeoJSONType.multiPolygon) {
         for (var polygon in (geometry as GeoJSONMultiPolygon).coordinates) {
-          addPolygon(polygon);
+          addPolygon(polygon, label);
         }
       }
     }
-
     if (gj.type == GeoJSONType.feature) {
       var feature = gj as GeoJSONFeature;
       if (feature.geometry != null) {
-        processGeometry(feature.geometry!);
+        processGeometry(feature.geometry!, feature.properties == null ? "" : feature.properties.toString());
       }
     } else if (gj.type == GeoJSONType.featureCollection) {
       var fc = gj as GeoJSONFeatureCollection;
       for (var feature in fc.features) {
         if(feature != null) {
           if (feature.geometry != null) {
-            processGeometry(feature.geometry!);
+            processGeometry(feature.geometry!, feature.properties == null ? "" : feature.properties.toString());
           }
         }
       }

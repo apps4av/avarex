@@ -146,9 +146,10 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                          // read file as string
                           File(product.url).readAsString().then((String value) {
                             try {
-                              Storage().geoParser.parse(value);
-                              setState(() {
-                                Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                              Storage().geoParser.parse(value).then((value) {
+                                setState(() {
+                                  Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                                });
                               });
                             }
                             catch(e) {
