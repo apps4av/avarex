@@ -129,6 +129,37 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                  )
              );
            }
+           else if(PathUtils.isJSONFile(product.url)) {
+              // read file as string
+              File(product.url).readAsString().then((String value) {
+                try {
+                  Storage().geoParser.parse(value).then((value) {
+                    setState(() {
+                      Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    });
+                  });
+                }
+                catch(e) {
+                  setState(() {
+                    Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  });
+                }
+              });
+           }
+           else if(PathUtils.isPictureFile(product.url)) {
+             showDialog(context: context, builder: (context) {
+               return AlertDialog(
+                 title: Text(product.name),
+                 actions: [
+                   TextButton(onPressed: () {
+                     Navigator.of(context).pop();
+                   }, child: const Text("Close"))
+                 ],
+                 content: InteractiveViewer(child: Image.file(File(product.url))
+                 ),
+               );
+             });
+           }
          },
          child: Container(
            margin: const EdgeInsets.all(10.0),
@@ -148,40 +179,6 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                          sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
                        );
                      }, child: const Text("Share")),
-                     if(PathUtils.isJSONFile(product.url))
-                       TextButton(onPressed: () {
-                         // read file as string
-                          File(product.url).readAsString().then((String value) {
-                            try {
-                              Storage().geoParser.parse(value).then((value) {
-                                setState(() {
-                                  Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
-                                });
-                              });
-                            }
-                            catch(e) {
-                              setState(() {
-                                Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
-                              });
-                            }
-                          });
-                       }, child: const Text("Use")),
-                       if(PathUtils.isPictureFile(product.url))
-                         TextButton(onPressed: () {
-                           showDialog(context: context, builder: (context) {
-                             return AlertDialog(
-                               title: Text(product.name),
-                               actions: [
-                                 TextButton(onPressed: () {
-                                   Navigator.of(context).pop();
-                                 }, child: const Text("Close"))
-                               ],
-                               content: InteractiveViewer(child: Image.file(File(product.url))
-                               ),
-                             );
-                           });
-                           // read file as string
-                         }, child: const Text("Show")),
                    ])),
                    Flexible(flex: 1, child: Row(children: [
                    if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
