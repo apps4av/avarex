@@ -6,7 +6,6 @@ import 'package:async_zip/async_zip.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
-import 'package:dio/dio.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'chart.dart';
@@ -111,7 +110,6 @@ class Download {
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
     callback!(chart, 0); // download start signal
-    CancelToken cancelToken = CancelToken(); // this is to cancel the dio download
 
 
     try {
@@ -130,9 +128,6 @@ class Download {
 
     // this generate shows progress event to UI
     void showDownloadProgress(received, total) {
-      if(_cancelDownloadAndDelete) {
-        cancelToken.cancel();
-      }
       if (total != -1) {
         double progress = received / total * 0.5; // 0 to 0.5 for download
         if (progress - lastProgress >= 0.1) { // 10% change min
@@ -152,13 +147,21 @@ class Download {
       await streamedResponse.stream.map((e) {
         downloaded += e.length;
         showDownloadProgress(downloaded, total);
-        return (e);}
-      ).pipe(out);
+        if(_cancelDownloadAndDelete) {
+          throw (Exception("Cancelled"));
+        }
+        return (e);
+      }).pipe(out);
       out.close();
       callback(chart, 50); // unzip start
     }
     catch(e) {
       callback(chart, -1);
+    }
+
+    if(_cancelDownloadAndDelete) {
+      callback(chart, -1);
+      return;
     }
 
     try {
@@ -180,6 +183,8 @@ class Download {
                   PathUtils.getUnzipFilePath(Storage().dataDir, entry.name)));
               if (_cancelDownloadAndDelete) {
                 callback(chart, -1);
+                reader.close();
+                return;
               }
             }
             double fraction = num++ / entries.length.toDouble();
@@ -210,6 +215,8 @@ class Download {
             outputStream.close();
             if (_cancelDownloadAndDelete) {
               callback(chart, -1);
+              inputStream.close();
+              return;
             }
           }
           double fraction = num++ / archive.length.toDouble();
