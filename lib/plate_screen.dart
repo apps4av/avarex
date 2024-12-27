@@ -10,6 +10,7 @@ import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
@@ -154,23 +155,25 @@ class PlateScreenState extends State<PlateScreen> {
       ),
 
       Positioned(
-          child: Align(
-              alignment: Alignment.topLeft,
-              child: Stack(children:[
-                if (Storage().settings.isInstrumentsVisiblePlate())
-                  SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList()),
-                // allow to hide instruments on plate
-                CircleAvatar(
-                  backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
-                  child: IconButton(onPressed: () {
-                    setState(() {
-                      Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
-                    });
-                  }, icon: Icon(Storage().settings.isInstrumentsVisiblePlate() ? Icons.open_in_new_off_rounded : Icons.open_in_new_rounded),),)
-              ]),
-          )
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: (Storage().settings.isInstrumentsVisiblePlate()) ?
+            SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList()) : Container(),
+        )
       ),
 
+      // allow user to toggle instruments
+      Positioned(
+      child: Align(
+        alignment: Alignment.topRight,
+        child: CircleAvatar(
+        backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+        child: IconButton(onPressed: () {
+          setState(() {
+            Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
+          });
+        }, icon: Icon(Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft),),),
+      )),
       plates.isEmpty ? Container() : // nothing to show here if plates is empty
       Positioned(
           child: Align(
