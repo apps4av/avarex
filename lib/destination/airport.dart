@@ -357,14 +357,14 @@ class RunwayPainter extends CustomPainter {
     String hemisphereLon = apLon > 0 ? 'E' : 'W';
 
     try {
-      info += '${airport.facilityName} (${airport})\n';
+      info += '${airport.facilityName} ($airport)\n';
       info += 'ELEV ${airport.elevation}\'\n';
-      info += '${apLat.abs().toStringAsPrecision(5)}°${hemisphereLat} ${apLon.abs().toStringAsPrecision(5)}°${hemisphereLon}\n';
+      info += '${apLat.abs().toStringAsPrecision(5)}°$hemisphereLat ${apLon.abs().toStringAsPrecision(5)}°$hemisphereLon\n';
       //report magnetic variation if provided, pad end with two line breaks either way (for runway printout)
       if(airport.geoVariation != null) {
         int mag = (airport.geoVariation ?? 0).abs().toInt();
         String dir = getAirportVariationDirection(airport.geoVariation);
-        info += 'VAR ${mag}° ${dir}\n\n';
+        info += 'VAR $mag° $dir\n\n';
       }
       else {
         info += '\n';
@@ -403,10 +403,10 @@ class RunwayPainter extends CustomPainter {
             {
               continue;
             }
-            double dividend_t = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4);
-            double dividend_u = (x1 - x2)*(y1 - y3) - (y1 - y2)*(x1 - x3);
-            double t = dividend_t / denominator;
-            double u = -dividend_u / denominator;
+            double dividendT = (x1 - x3)*(y3 - y4) - (y1 - y3)*(x3 - x4);
+            double dividendU = (x1 - x2)*(y1 - y3) - (y1 - y2)*(x1 - x3);
+            double t = dividendT / denominator;
+            double u = -dividendU / denominator;
 
             if((t >= 0 && t <= 1) && (u >=0 && u <= 1))
             {

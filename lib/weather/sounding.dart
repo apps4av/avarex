@@ -47,7 +47,7 @@ class Sounding {
           showDialog(context: context,
             builder: (BuildContext context) => Dialog.fullscreen(
               child: Stack(children:[
-                InteractiveViewer(child: Container(color: Colors.white ,child: image, alignment: Alignment.center)),
+                InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image)),
                 Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.grey)))
               ])
             ));

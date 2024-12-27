@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:scribble/scribble.dart';
+import 'package:toastification/toastification.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
 
 class WritingScreen extends StatefulWidget {
@@ -94,6 +98,16 @@ class WritingScreenState extends State<WritingScreen> {
         tooltip: "Clear",
         onPressed: notifier.clear,
       ),
+      IconButton(
+          icon: const Icon(Icons.save),
+          tooltip: "Save to Documents",
+          onPressed: () {
+            notifier.renderImage().then((image) {
+              String now = DateTime.now().toIso8601String();
+              File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.jpg')).writeAsBytes(image.buffer.asUint8List());
+              Toastification().show(context: context, description: Text('Saved to Documents as notes_$now.jpg'), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+            });
+          }),
     ];
   }
 

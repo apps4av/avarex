@@ -36,7 +36,7 @@ class PathUtils {
       final d = Directory(base);
       final List<FileSystemEntity> entities = await d.list().toList();
       for (FileSystemEntity en in entities) {
-        if(isTextFile(en.path) || isPdfFile(en.path) || isKmlFile(en.path) || isJSONFile(en.path)) {
+        if(isTextFile(en.path) || isPdfFile(en.path) || isKmlFile(en.path) || isJSONFile(en.path) || isPictureFile(en.path)) {
           ret.add(en.path);
         }
       }
@@ -48,19 +48,28 @@ class PathUtils {
   }
 
   static bool isJSONFile(String url) {
-    return path.extension(url) == ".geojson";
+    return path.extension(url).toLowerCase() == ".geojson";
   }
 
   static bool isTextFile(String url) {
-    return path.extension(url) == ".txt";
+    return path.extension(url).toLowerCase() == ".txt";
+  }
+
+  static isPictureFile(String url) {
+    return path.extension(url).toLowerCase() == ".gif" ||
+        path.extension(url).toLowerCase() == ".webp" ||
+        path.extension(url).toLowerCase() == ".bmp" ||
+        path.extension(url).toLowerCase() == ".png" ||
+        path.extension(url).toLowerCase() == ".jpg" ||
+        path.extension(url).toLowerCase() == ".jpeg";
   }
 
   static bool isPdfFile(String url) {
-    return path.extension(url) == ".pdf";
+    return path.extension(url).toLowerCase() == ".pdf";
   }
 
   static bool isKmlFile(String url) {
-    return path.extension(url) == ".kml";
+    return path.extension(url).toLowerCase() == ".kml";
   }
 
   static Future<void> writeTrack(String base, String data) async {

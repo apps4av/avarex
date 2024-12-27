@@ -141,6 +141,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                Flexible(flex: 4,
                  child:Column(children: [
                    Flexible(flex: 1, child: Row(children: [
+                     TextButton(onPressed: () {
+                       final box = context.findRenderObject() as RenderBox?;
+                       Share.shareXFiles(
+                         [XFile(product.url)],
+                         sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                       );
+                     }, child: const Text("Share")),
                      if(PathUtils.isJSONFile(product.url))
                        TextButton(onPressed: () {
                          // read file as string
@@ -159,14 +166,22 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                             }
                           });
                        }, child: const Text("Use")),
-                     if(!PathUtils.isJSONFile(product.url))
-                       TextButton(onPressed: () {
-                         final box = context.findRenderObject() as RenderBox?;
-                         Share.shareXFiles(
-                           [XFile(product.url)],
-                           sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                         );
-                       }, child: const Text("Share")),
+                       if(PathUtils.isPictureFile(product.url))
+                         TextButton(onPressed: () {
+                           showDialog(context: context, builder: (context) {
+                             return AlertDialog(
+                               title: Text(product.name),
+                               actions: [
+                                 TextButton(onPressed: () {
+                                   Navigator.of(context).pop();
+                                 }, child: const Text("Close"))
+                               ],
+                               content: InteractiveViewer(child: Image.file(File(product.url))
+                               ),
+                             );
+                           });
+                           // read file as string
+                         }, child: const Text("Show")),
                    ])),
                    Flexible(flex: 1, child: Row(children: [
                    if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
