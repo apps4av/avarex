@@ -61,11 +61,13 @@ class Nav {
   }
 
   // From VOR map from database, get the VOR parameters and combine to make a string
-  static String getVorLine(NavDestination vor) {
+  static const int columns = 4;
+  static List<String> getVorLine(NavDestination vor) {
     LatLng current = Gps.toLatLng(Storage().position);
+    String morse = _getMorseCodeFromString(vor.locationID) ?? "";
     String location = "${_geo.calculateDistance(current, vor.coordinate).round().toString().padLeft(3, "0")}"
         "/${GeoCalculations.getMagneticHeading(_geo.calculateBearing(current, vor.coordinate), Storage().area.variation).round().toString().padLeft(3, "0")}";
-    return "${vor.locationID} $location ${vor.class_} ${vor.facilityName} ${_getMorseCodeFromString(vor.locationID)}";
+    return ["${vor.locationID}(${vor.class_})", vor.facilityName, location, morse];
   }
 
   static String parse(NavDestination nav) {

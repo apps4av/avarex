@@ -1,3 +1,4 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -12,7 +13,6 @@ import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:toastification/toastification.dart';
@@ -22,13 +22,13 @@ import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'weather/metar.dart';
 
-class LongPressWidget extends StatefulWidget {
+class LongPressScreen extends StatefulWidget {
   final List<Destination> destinations;
 
-  const LongPressWidget({super.key, required this.destinations});
+  const LongPressScreen({super.key, required this.destinations});
 
   @override
-  State<StatefulWidget> createState() => LongPressWidgetState();
+  State<StatefulWidget> createState() => LongPressScreenState();
 
 }
 
@@ -62,21 +62,29 @@ class LongPressFuture {
 
     }
     else if(showDestination is NavDestination) {
-      pages.add(Nav.mainWidget(Nav.parse(showDestination as NavDestination)));
+      pages.add(Padding(padding: const EdgeInsets.all(10), child: Nav.mainWidget(Nav.parse(showDestination as NavDestination))));
     }
-    else if(showDestination is FixDestination || showDestination is GpsDestination) {
+    else if(showDestination is FixDestination || showDestination is GpsDestination || showDestination is AirwayDestination || showDestination is ProcedureDestination) {
       List<NavDestination> navs = await MainDatabaseHelper.db.findNearestVOR(destination.coordinate);
-      String vors = "${showDestination.type}\n\n";
+      String type = "${showDestination.type}\n\n";
+      int gridColumns = Nav.columns;
+      List<Widget> values = [];
       for(NavDestination nav in navs) {
-        vors += "${Nav.getVorLine(nav)}\n";
+        values.addAll(Nav.getVorLine(nav).map((String s) => Padding(padding: const EdgeInsets.all(3), child: Text(s))));
       }
-      pages.add(Text(vors));
-    }
-    else if(showDestination is AirwayDestination) {
-      pages.add(const Text(Destination.typeAirway));
-    }
-    else if(showDestination is ProcedureDestination) {
-      pages.add(const Text(Destination.typeProcedure));
+      Widget grid = GridView.count(
+        crossAxisCount: gridColumns,
+        scrollDirection: Axis.horizontal,
+        children: values,
+      );
+      pages.add(
+        Padding(padding: const EdgeInsets.all(10), child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(flex: 1, child: Text(type),),
+            Expanded(flex: 4, child: grid,)
+        ])
+        )
+      );
     }
     // SUA for every press
     saa = await MainDatabaseHelper.db.getSaa(destination.coordinate);
@@ -88,9 +96,9 @@ class LongPressFuture {
   }
 }
 
-class LongPressWidgetState extends State<LongPressWidget> {
+class LongPressScreenState extends State<LongPressScreen> {
 
-  final CarouselSliderController _controller = CarouselSliderController();
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +132,8 @@ class LongPressWidgetState extends State<LongPressWidget> {
     String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
     String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}";
     String label = "$facility (${future.showDestination.locationID})$elevation, $direction";
+    Widget? aDiagram;
 
-    Widget? airportDiagram; // if FAA AD is available show that, otherwise show self made AD
 
     if (future.showDestination is AirportDestination) {
       // made up airport dia
@@ -133,13 +141,14 @@ class LongPressWidgetState extends State<LongPressWidget> {
       double height = Constants.screenHeight(context);
       double dimensions = width > height ? height : width;
       Widget ad = Airport.runwaysWidget(future.showDestination as AirportDestination, dimensions, context);
-      airportDiagram = Center(child: ad);
+      aDiagram = InteractiveViewer(constrained: false, child: ad);
     }
 
     int? metarPage;
     int? notamPage;
     int? saaPage;
     int? windsPage;
+    int? adPage;
     Weather? winds;
     String? station = WindsCache.locateNearestStation(widget.destinations[0].coordinate);
     if(station != null) {
@@ -172,7 +181,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
             if (snapshot.hasData) {
               Weather? w2 = snapshot.data;
               if (w2 != null) {
-                return SingleChildScrollView(child:Text("NOTAMs - ${(w2 as Notam).text}"));
+                return SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text("NOTAMs - ${(w2 as Notam).text}")));
               }
               else {
                 return Container();
@@ -212,30 +221,16 @@ class LongPressWidgetState extends State<LongPressWidget> {
       );
     }
 
-    // carousel
-    List<Card> cards = [];
-    for (Widget page in future.pages) {
-      cards.add(Card(
-          child: Align(
-              alignment: Alignment.topLeft,
-              child: SizedBox.expand(
-                  child: page
-              )
-          )
-      ));
+    if(aDiagram != null) {
+      adPage = future.pages.length;
+      future.pages.add(aDiagram);
     }
 
-    return Container(
-      padding: const EdgeInsets.all(5),
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(10),
-          topRight: Radius.circular(10),
+    return Scaffold(
+        appBar: AppBar(
+          title: AutoSizeText(label, maxLines: 2, minFontSize: 10, maxFontSize: 16, style: const TextStyle(fontWeight: FontWeight.w700),),
         ),
-      ),
-      child: Stack(children:[
-        Column(children: [
-          Expanded(flex: 1, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+        body: Column(children: [
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
@@ -257,6 +252,7 @@ class LongPressWidgetState extends State<LongPressWidget> {
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
+
             if(future.showDestination is AirportDestination)
               TextButton(
                 child: const Text("Plates"),
@@ -269,68 +265,44 @@ class LongPressWidgetState extends State<LongPressWidget> {
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
-
           ]))),
           // various info
-          Expanded(flex: 7, child: CarouselSlider(
-            carouselController: _controller,
-            items: cards,
-            options: CarouselOptions(
-              viewportFraction: 1,
-              enlargeFactor: 0.5,
-              enableInfiniteScroll: false,
-              enlargeCenterPage: true,
-              aspectRatio: Constants.carouselAspectRatio(context),
-            ),
-          )),
-
+          Expanded(flex: 8, child:
+          SizedBox(width: 100000, child: future.pages[_index])),
           // add various buttons that expand to diagram
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end, children:[
             if (future.pages.length > 1)
               TextButton(
                   child: const Text("Main"),
-                  onPressed: () => _controller.animateToPage(0)
+                  onPressed: () => setState(() => _index = 0)
+              ),
+            if(adPage != null)
+              TextButton(
+                  child: const Text("AD"),
+                  onPressed: () => setState(() => _index = adPage!)
               ),
             if (metarPage != null)
               TextButton(
                   child: const Text("METAR"),
-                  onPressed: () => _controller.animateToPage(metarPage!)
+                  onPressed: () => setState(() => _index = metarPage!)
               ),
             if(notamPage != null)
               TextButton(
                 child: const Text("NOTAM"),
-                onPressed: () => _controller.animateToPage(notamPage!)
+                  onPressed: () => setState(() => _index = notamPage!)
               ),
             if(saaPage != null)
               TextButton(
                   child: const Text("SUA"),
-                  onPressed: () => _controller.animateToPage(saaPage!)
+                  onPressed: () => setState(() => _index = saaPage!)
               ),
             if(windsPage != null)
               TextButton(
                   child: const Text("Wind"),
-                  onPressed: () => _controller.animateToPage(windsPage!)
+                  onPressed: () => setState(() => _index = windsPage!)
             ),
-
-            if(airportDiagram != null)
-              TextButton(
-                  child: const Text("AD"),
-                  onPressed: () => {
-                    showDialog(context: context,
-                      builder: (BuildContext context) => Dialog.fullscreen(
-                        child: Stack(children:[
-                          InteractiveViewer(child: airportDiagram!),
-                          Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36)))
-                        ]
-                      )
-                    )),
-                  }
-              ),
-            ]
-            )),
-          ),
-      ],
-      )]),
-    );
+          ])
+      ))
+    ]));
   }
 }

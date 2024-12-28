@@ -1,3 +1,4 @@
+import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb_screen.dart';
@@ -5,6 +6,7 @@ import 'package:avaremp/writing_screen.dart';
 import 'package:flutter/material.dart';
 import 'aircraft_screen.dart';
 import 'checklist_screen.dart';
+import 'destination/destination.dart';
 import 'documents_screen.dart';
 import 'download_screen.dart';
 import 'main_screen.dart';
@@ -41,6 +43,10 @@ class MainApp extends StatelessWidget {
               '/wnb': (context) => const WnbScreen(),
               '/notes': (context) => const WritingScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
+              '/popup': (context) {
+                  final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;
+                  return LongPressScreen(destinations: args);
+                }
             },
             theme: value,
           );

@@ -33,7 +33,6 @@ import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'download_screen.dart';
 import 'gps.dart';
-import 'longpress_widget.dart';
 import 'weather/metar.dart';
 
 class MapScreen extends StatefulWidget {
@@ -73,17 +72,8 @@ class MapScreenState extends State<MapScreen> {
   final GeoCalculations calculations = GeoCalculations();
   final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
 
-  Future<bool> showDestination(BuildContext context, List<Destination> destinations) async {
-    bool? exitResult = await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return LongPressWidget(destinations: destinations);
-      },
-    );
-    return exitResult ?? false;
+  static Future<void> showDestination(BuildContext context, List<Destination> destinations) async {
+    await Navigator.pushNamed(context, "/popup", arguments: destinations);
   }
 
   @override
@@ -1325,6 +1315,28 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
+                                  PopupMenuButton( // layer selection
+                                    tooltip: "Select the chart type",
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+                                        child: const Icon(Icons.photo_library_rounded)),
+                                    initialValue: _type,
+                                    itemBuilder: (BuildContext context) =>
+                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
+                                          ListTile(
+                                            onTap: () {
+                                              setState(() {
+                                                Navigator.pop(context);
+                                                _type = _charts[index];
+                                                Storage().settings.setChartType(_charts[index]);
+                                              });
+                                            },
+                                            dense: true,
+                                            title: Text(_charts[index]),
+                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
+                                          ),
+                                        ),)
+                                  ),
+
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",
@@ -1385,28 +1397,6 @@ class MapScreenState extends State<MapScreen> {
                                         ),
                                     ),
                                   // switch layers on off
-                                  PopupMenuButton( // layer selection
-                                    tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
-                                      child: const Icon(Icons.photo_library_rounded)),
-                                      initialValue: _type,
-                                      itemBuilder: (BuildContext context) =>
-                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
-                                          ListTile(
-                                            onTap: () {
-                                              setState(() {
-                                                Navigator.pop(context);
-                                                _type = _charts[index];
-                                                Storage().settings.setChartType(_charts[index]);
-                                              });
-                                            },
-                                            dense: true,
-                                            title: Text(_charts[index]),
-                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
-                                          ),
-                                        ),
-                                      )
-                                  ),
                                 ]
                               ),
                           ])

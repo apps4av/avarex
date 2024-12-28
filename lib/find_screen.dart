@@ -1,6 +1,6 @@
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/longpress_widget.dart';
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -25,19 +25,6 @@ class FindScreenState extends State<FindScreen> {
   String _searchText = "";
   bool _recent = true;
   int _runwayLength = 0;
-
-  Future<bool> showDestination(BuildContext context, Destination destination) async {
-    bool? exitResult = await showModalBottomSheet(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (BuildContext context) {
-        return LongPressWidget(destinations: [destination]);
-      },
-    );
-    return exitResult ?? false;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +133,7 @@ class FindScreenState extends State<FindScreen> {
                         ),
                         onTap: () {
                           setState(() {
-                            showDestination(context, item);
+                            MapScreenState.showDestination(context, [item]);
                           });
                         },
                         leading: DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary)
