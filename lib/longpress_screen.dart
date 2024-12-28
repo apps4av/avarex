@@ -236,7 +236,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                 List.generate(widget.destinations.length, (index) {
                   return TextButton(
                     onPressed: () {
-                      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LongPressScreen(destinations: [widget.destinations[index]])));
+                      Navigator.of(context).pushReplacementNamed("/popup", arguments: [widget.destinations[index]]);
                     },
                     child: Text(widget.destinations[index].locationID),
                   );
