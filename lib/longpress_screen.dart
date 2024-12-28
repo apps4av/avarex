@@ -231,6 +231,19 @@ class LongPressScreenState extends State<LongPressScreen> {
           title: AutoSizeText(label, maxLines: 2, minFontSize: 10, maxFontSize: 16, style: const TextStyle(fontWeight: FontWeight.w700),),
         ),
         body: Column(children: [
+            if(widget.destinations.length > 1)
+              Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children:
+                List.generate(widget.destinations.length, (index) {
+                  return TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (context) => LongPressScreen(destinations: [widget.destinations[index]])));
+                    },
+                    child: Text(widget.destinations[index].locationID),
+                  );
+                }),
+              )
+              )),
+
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
