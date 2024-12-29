@@ -1,7 +1,5 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../gps.dart';
@@ -72,10 +70,6 @@ class Nav {
 
   static String parse(NavDestination nav) {
     return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\n${_getMorseCodeFromString(nav.locationID)}\n";
-  }
-
-  static Widget mainWidget(String data) {
-    return AutoSizeText(data, minFontSize: 4, maxFontSize: 15, overflow: TextOverflow.visible);
   }
 
 }

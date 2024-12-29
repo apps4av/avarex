@@ -35,7 +35,7 @@ class GeoJsonParser {
           polygons.add(Polygon(
             points: ll,
             label: label,
-            labelStyle: const TextStyle(color: Colors.black, fontSize: 12),
+            labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 12),
             isFilled: false,
             borderStrokeWidth: 2,
             borderColor: Colors.black,
@@ -45,6 +45,9 @@ class GeoJsonParser {
     }
 
     void processGeometry(GeoJSONGeometry geometry, String label) {
+      label = label.replaceAll(",", "\n");
+      label = label.substring(1, label.length - 2); // remove { and }
+
       if (geometry.type == GeoJSONType.point) {
         addMarker(geometry as GeoJSONPoint, label);
       }

@@ -37,7 +37,6 @@ class LongPressFuture {
   final Destination _destination;
   Destination show;
   List<Saa> saa = [];
-  Weather? notam;
   List<NavDestination>? navs;
 
   LongPressFuture(this._destination) : show =
@@ -99,13 +98,17 @@ class LongPressScreenState extends State<LongPressScreen> {
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
-    String label = "$facility (${showDestination.locationID}), $direction";
-
     List<Widget?> pages = List.generate(labels.length, (index) => null);
 
+    String label = "$facility (${showDestination.locationID}) $direction";
     if(showDestination is AirportDestination) {
-      label = "$facility (${showDestination.locationID})@${showDestination.elevation.round()}, $direction";
+      label += "; EL ${showDestination.elevation.round()}";
+    }
+    if (showDestination is NavDestination) {
+      label += "; EL ${showDestination.elevation.round()}";
+    }
 
+    if(showDestination is AirportDestination) {
       pages[labels.indexOf("Main")] = Airport.parseFrequencies(showDestination);
 
       // made up airport dia
@@ -128,7 +131,7 @@ class LongPressScreenState extends State<LongPressScreen> {
         ]);
       }
       pages[labels.indexOf("NOTAM")] = FutureBuilder(future: Storage().notam.getSync(showDestination.locationID),
-        builder: (context, snapshot) {
+        builder: (context, snapshot) { // notmas are downloaded when not in cache and can be slow to download so do async
           if (snapshot.hasData) {
             return snapshot.data != null ?
               SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).text)))
@@ -139,10 +142,7 @@ class LongPressScreenState extends State<LongPressScreen> {
           }
         });
     }
-    else if(showDestination is NavDestination) {
-      pages[labels.indexOf("Main")] = Padding(padding: const EdgeInsets.all(10), child: Nav.mainWidget(Nav.parse(showDestination)));
-    }
-    else if(showDestination is FixDestination || showDestination is GpsDestination || showDestination is AirwayDestination || showDestination is ProcedureDestination) {
+    else {
       String type = "${showDestination.type}\n\n";
       int gridColumns = Nav.columns;
       List<Widget> values = [];
