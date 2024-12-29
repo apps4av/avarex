@@ -40,20 +40,9 @@ class Sounding {
     String day = now.day.toString().padLeft(2, '0');
     String month = now.month.toString().padLeft(2, '0');
     String url = "https://www.spc.noaa.gov/exper/soundings/$year$month$day${hour}_OBS/$station.gif";
-    return TextButton(
-        child: const Text("Skew-T"),
-        onPressed: () {
-          CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager, errorWidget: errorImage,);
-          showDialog(context: context,
-            builder: (BuildContext context) => Dialog.fullscreen(
-              child: Stack(children:[
-                InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image)),
-                Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36, color: Colors.grey)))
-              ])
-            ));
-        }
-    );
-
+    CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager, errorWidget: errorImage,);
+    return
+      InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image));
   }
 
   // List of station codes from the HTML area elements

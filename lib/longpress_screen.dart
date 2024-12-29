@@ -34,60 +34,25 @@ class LongPressScreen extends StatefulWidget {
 
 class LongPressFuture {
 
-  Destination destination;
-  Destination showDestination;
-  int? elevation;
+  final Destination _destination;
+  Destination show;
   List<Saa> saa = [];
+  Weather? notam;
+  List<NavDestination>? navs;
 
-  LongPressFuture(this.destination) : showDestination =
+  LongPressFuture(this._destination) : show =
       Destination( // GPS default then others
           locationID: Destination.toSexagesimal(
-              destination.coordinate),
+              _destination.coordinate),
               type: Destination.typeGps,
               facilityName: Destination.typeGps,
-              coordinate: destination.coordinate);
-  List<Widget> pages = [];
+              coordinate: _destination.coordinate);
 
   // get everything from database about this destination
   Future<void> _getAll() async {
-    // make airport cards
-
-    showDestination = await DestinationFactory.make(destination);
-
-    if(showDestination is AirportDestination) {
-
-      elevation = (showDestination as AirportDestination).elevation.round();
-
-      pages.add(Airport.parseFrequencies(showDestination as AirportDestination));
-
-    }
-    else if(showDestination is NavDestination) {
-      pages.add(Padding(padding: const EdgeInsets.all(10), child: Nav.mainWidget(Nav.parse(showDestination as NavDestination))));
-    }
-    else if(showDestination is FixDestination || showDestination is GpsDestination || showDestination is AirwayDestination || showDestination is ProcedureDestination) {
-      List<NavDestination> navs = await MainDatabaseHelper.db.findNearestVOR(destination.coordinate);
-      String type = "${showDestination.type}\n\n";
-      int gridColumns = Nav.columns;
-      List<Widget> values = [];
-      for(NavDestination nav in navs) {
-        values.addAll(Nav.getVorLine(nav).map((String s) => Padding(padding: const EdgeInsets.all(3), child: Text(s))));
-      }
-      Widget grid = GridView.count(
-        crossAxisCount: gridColumns,
-        scrollDirection: Axis.horizontal,
-        children: values,
-      );
-      pages.add(
-        Padding(padding: const EdgeInsets.all(10), child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(flex: 1, child: Text(type),),
-            Expanded(flex: 4, child: grid,)
-        ])
-        )
-      );
-    }
-    // SUA for every press
-    saa = await MainDatabaseHelper.db.getSaa(destination.coordinate);
+    show = await DestinationFactory.make(_destination);
+    navs = await MainDatabaseHelper.db.findNearestVOR(_destination.coordinate);
+    saa = await MainDatabaseHelper.db.getSaa(_destination.coordinate);
   }
 
   Future<LongPressFuture> getAll() async {
@@ -99,6 +64,7 @@ class LongPressFuture {
 class LongPressScreenState extends State<LongPressScreen> {
 
   int _index = 0;
+  static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "ST"];
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +88,9 @@ class LongPressScreenState extends State<LongPressScreen> {
       return Container();
     }
 
+    double width = Constants.screenWidth(context);
+    double height = Constants.screenHeight(context);
+    Destination showDestination = future.show;
 
     // general direction from where we are
     GeoCalculations geo = GeoCalculations();
@@ -129,101 +98,98 @@ class LongPressScreenState extends State<LongPressScreen> {
     double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
-    String facility = future.showDestination.facilityName.length > 16 ? future.showDestination.facilityName.substring(0, 16) : future.showDestination.facilityName;
-    String elevation = future.elevation == null ? "" : " @${future.elevation.toString()}";
-    String label = "$facility (${future.showDestination.locationID})$elevation, $direction";
-    Widget? aDiagram;
+    String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
+    String label = "$facility (${showDestination.locationID}), $direction";
 
+    List<Widget?> pages = List.generate(labels.length, (index) => null);
 
-    if (future.showDestination is AirportDestination) {
+    if(showDestination is AirportDestination) {
+      label = "$facility (${showDestination.locationID})@${showDestination.elevation.round()}, $direction";
+
+      pages[labels.indexOf("Main")] = Airport.parseFrequencies(showDestination);
+
       // made up airport dia
-      double width = Constants.screenWidth(context);
-      double height = Constants.screenHeight(context);
       double dimensions = width > height ? height : width;
-      Widget ad = Airport.runwaysWidget(future.showDestination as AirportDestination, dimensions, context);
-      aDiagram = InteractiveViewer(constrained: false, child: ad);
+      Widget ad = Airport.runwaysWidget(showDestination, dimensions, context);
+      pages[labels.indexOf("AD")] = InteractiveViewer(minScale: 0.1, child: ad);
+
+      Weather? w = Storage().metar.get(showDestination.locationID);
+      Weather? w1 = Storage().taf.get(showDestination.locationID);
+      if(w != null || w1 != null) {
+        pages[labels.indexOf("METAR")] = ListView(children: [
+          w != null ? ListTile(title: const Text("METAR"),
+            subtitle: Text((w as Metar).text),
+            leading: Icon(Icons.circle_outlined, color: w.getColor(), size: 32),)
+              : Container(),
+          w1 != null ? ListTile(title: const Text("TAF"),
+              subtitle: Text((w1 as Taf).text),
+              leading: w1.getIcon())
+              : Container(),
+        ]);
+      }
+      pages[labels.indexOf("NOTAM")] = FutureBuilder(future: Storage().notam.getSync(showDestination.locationID),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return snapshot.data != null ?
+              SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).text)))
+              : Container();
+          }
+          else {
+            return const ListTile(leading: CircularProgressIndicator());
+          }
+        });
+    }
+    else if(showDestination is NavDestination) {
+      pages[labels.indexOf("Main")] = Padding(padding: const EdgeInsets.all(10), child: Nav.mainWidget(Nav.parse(showDestination)));
+    }
+    else if(showDestination is FixDestination || showDestination is GpsDestination || showDestination is AirwayDestination || showDestination is ProcedureDestination) {
+      String type = "${showDestination.type}\n\n";
+      int gridColumns = Nav.columns;
+      List<Widget> values = [];
+      if(future.navs != null) {
+        for (NavDestination nav in future.navs!) {
+          values.addAll(Nav.getVorLine(nav).map((String s) =>
+              Padding(padding: const EdgeInsets.all(3), child: Text(s))));
+        }
+        Widget grid = GridView.count(
+          crossAxisCount: gridColumns,
+          scrollDirection: Axis.horizontal,
+          children: values,
+        );
+        pages[labels.indexOf("Main")] =
+            Padding(padding: const EdgeInsets.all(10), child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(flex: 1, child: Text(type),),
+              Expanded(flex: 4, child: grid,)
+            ])
+            );
+      }
     }
 
-    int? metarPage;
-    int? notamPage;
-    int? saaPage;
-    int? windsPage;
-    int? adPage;
     Weather? winds;
-    String? station = WindsCache.locateNearestStation(widget.destinations[0].coordinate);
+    String? station = WindsCache.locateNearestStation(showDestination.coordinate);
     if(station != null) {
       winds = Storage().winds.get(station);
-    }
-    Widget? sounding = Sounding.getSoundingImage(widget.destinations[0].coordinate, context);
-
-    if(future.showDestination is AirportDestination) {
-      Weather? w = Storage().metar.get(future.showDestination.locationID);
-      Weather? w1 = Storage().taf.get(future.showDestination.locationID);
-      if(w != null || w1 != null) {
-        metarPage = future.pages.length;
-        future.pages.add(ListView(
-          children: [
-            w != null
-                ? ListTile(title: const Text("METAR"),
-              subtitle: Text((w as Metar).text),
-              leading: Icon(Icons.circle_outlined, color: w.getColor(), size:32),)
-                : Container(),
-            w1 != null ? ListTile(title: const Text("TAF"),
-                subtitle: Text((w1 as Taf).text),
-                leading: w1.getIcon()) : Container(),
-          ],
-        ));
-      }
-      // NOTAMS get downloaded on the fly so make this a future.
-      notamPage = future.pages.length;
-      future.pages.add(FutureBuilder(future: Storage().notam.getSync(future.showDestination.locationID),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              Weather? w2 = snapshot.data;
-              if (w2 != null) {
-                return SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text("NOTAMs - ${(w2 as Notam).text}")));
-              }
-              else {
-                return Container();
-              }
-            }
-            else {
-              return const ListTile(leading: CircularProgressIndicator());
-            }
-          }
-      ));
-    }
-
-    if(future.saa.isNotEmpty) {
-      saaPage = future.pages.length;
-      future.pages.add(ListView(
-        children: [
-          const ListTile(title: Text("SUA")),
-          for(Saa s in future.saa)
-            ListTile(title: Text(s.designator),
-                subtitle: Text(s.toString())),
-        ],
-      ));
-    }
-
-    if(winds != null) {
-      windsPage = future.pages.length;
-      WindsAloft wa = winds as WindsAloft;
-      future.pages.add(
-        ListView(children: [
+      if(winds != null) {
+        WindsAloft wa = winds as WindsAloft;
+        pages[labels.indexOf("Wind")] = ListView(children: [
           ListTile(title: Text(winds.toString())),
-          if(sounding != null) ListTile(leading: sounding),
-          for((String, String) wl in wa.toList()) ListTile(
-            leading: Text(wl.$1),
-            title: Text(wl.$2),
-          ),
-        ])
-      );
+          for((String, String) wl in wa.toList())
+            ListTile(leading: Text(wl.$1), title: Text(wl.$2)),
+        ]);
+      }
     }
 
-    if(aDiagram != null) {
-      adPage = future.pages.length;
-      future.pages.add(aDiagram);
+    pages[labels.indexOf("ST")] = Sounding.getSoundingImage(showDestination.coordinate, context);
+
+    // SUA for every press
+    if(future.saa.isNotEmpty) {
+      pages[labels.indexOf("SUA")] = ListView(
+        children: [
+          for(Saa s in future.saa)
+            ListTile(title: Text(s.designator), subtitle: Text(s.toString())),
+        ],
+      );
     }
 
     return Scaffold(
@@ -231,27 +197,14 @@ class LongPressScreenState extends State<LongPressScreen> {
           title: AutoSizeText(label, maxLines: 2, minFontSize: 10, maxFontSize: 16, style: const TextStyle(fontWeight: FontWeight.w700),),
         ),
         body: Column(children: [
-            if(widget.destinations.length > 1)
-              Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children:
-                List.generate(widget.destinations.length, (index) {
-                  return TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacementNamed("/popup", arguments: [widget.destinations[index]]);
-                    },
-                    child: Text(widget.destinations[index].locationID),
-                  );
-                }),
-              )
-              )),
-
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
               child: const Text("->D"),
               onPressed: () {
-                Storage().setDestination(future.showDestination);
-                if(future.showDestination is AirportDestination) {
-                  Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
+                Storage().setDestination(showDestination);
+                if(showDestination is AirportDestination) {
+                  Storage().settings.setCurrentPlateAirport(showDestination.locationID);
                 }
                 MainScreenState.gotoMap();
                 Navigator.of(context).pop(); // hide bottom sheet
@@ -260,62 +213,63 @@ class LongPressScreenState extends State<LongPressScreen> {
             TextButton(
               child: const Text("+Plan"),
               onPressed: () {
-                Storage().route.insertWaypoint(Waypoint(future.showDestination));
-                Toastification().show(context: context, description: Text("Added ${future.showDestination.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                Storage().route.insertWaypoint(Waypoint(showDestination));
+                Toastification().show(context: context, description: Text("Added ${showDestination.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
 
-            if(future.showDestination is AirportDestination)
+            if(showDestination is AirportDestination)
               TextButton(
                 child: const Text("Plates"),
                 onPressed: () { // go to plate
-                  if(future.showDestination is AirportDestination) {
-                    Storage().settings.setCurrentPlateAirport(future.showDestination.locationID);
-                    UserDatabaseHelper.db.addRecent(future.showDestination);
-                  }
+                  Storage().settings.setCurrentPlateAirport(showDestination.locationID);
+                  UserDatabaseHelper.db.addRecent(showDestination);
                   MainScreenState.gotoPlate();
                   Navigator.of(context).pop(); // hide bottom sheet
                 },
               ),
           ]))),
           // various info
-          Expanded(flex: 8, child:
-          SizedBox(width: 100000, child: future.pages[_index])),
-          // add various buttons that expand to diagram
-          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-            if (future.pages.length > 1)
-              TextButton(
-                  child: const Text("Main"),
-                  onPressed: () => setState(() => _index = 0)
-              ),
-            if(adPage != null)
-              TextButton(
-                  child: const Text("AD"),
-                  onPressed: () => setState(() => _index = adPage!)
-              ),
-            if (metarPage != null)
-              TextButton(
-                  child: const Text("METAR"),
-                  onPressed: () => setState(() => _index = metarPage!)
-              ),
-            if(notamPage != null)
-              TextButton(
-                child: const Text("NOTAM"),
-                  onPressed: () => setState(() => _index = notamPage!)
-              ),
-            if(saaPage != null)
-              TextButton(
-                  child: const Text("SUA"),
-                  onPressed: () => setState(() => _index = saaPage!)
-              ),
-            if(windsPage != null)
-              TextButton(
-                  child: const Text("Wind"),
-                  onPressed: () => setState(() => _index = windsPage!)
+          if(widget.destinations.length > 1)
+            const Row( // nearby destinations
+                children: <Widget>[
+                  Expanded(flex: 1, child: Divider()),
+                  Text(" Nearby ", style: TextStyle(fontSize: 10)),
+                  Expanded(flex: 16, child: Divider()),
+                ]
             ),
-          ])
-      ))
+          if(widget.destinations.length > 1)
+            Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
+            Row(children: [
+              for (int index = 1; index < widget.destinations.length; index++)
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacementNamed("/popup", arguments: [widget.destinations[index]]);
+                  },
+                  child: Text(widget.destinations[index].locationID),
+                ),
+            ])
+            )),
+          Row( // nearby destinations
+              children: <Widget>[
+                const Expanded(flex: 1, child: Divider()),
+                Text(" ${labels[_index]} ", style: const TextStyle(fontSize: 10)),
+                const Expanded(flex: 16, child: Divider()),
+              ]
+          ),
+          Expanded(flex: 10, child: pages[_index] == null ? Container() : pages[_index]!),
+          // add various buttons that expand to diagram
+          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              for (int i = 0; i < labels.length; i++)
+                if (pages[i] != null)
+                  TextButton(
+                    child: Text(labels[i]),
+                    onPressed: () => setState(() => _index = i)
+                  ),
+            ])
+        ))
     ]));
   }
 }
