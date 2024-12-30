@@ -15,6 +15,7 @@ class Destination {
   final String type;
   final String facilityName;
   final LatLng coordinate;
+  double? elevation;
   double? geoAltitude;
   double? geoVariation;
   String? secondaryName; // used for holding other names like airway name
@@ -199,7 +200,6 @@ class Destination {
 
 class NavDestination extends Destination {
 
-  double elevation;
   String class_;
   String hiwas;
 
@@ -208,7 +208,6 @@ class NavDestination extends Destination {
     required super.type,
     required super.facilityName,
     required super.coordinate,
-    required this.elevation,
     required this.class_,
     required this.hiwas,});
 
@@ -220,16 +219,17 @@ class NavDestination extends Destination {
     }
     catch(e) {}
 
-    return NavDestination(
+    NavDestination d = NavDestination(
       locationID: maps['LocationID'] as String,
       type: maps['Type'] as String,
       facilityName: maps['FacilityName'] as String,
       coordinate: LatLng(
           maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
-      elevation: elevation,
       hiwas: maps['Hiwas'] as String,
       class_: maps['Class'] as String,
     );
+    d.elevation = elevation;
+    return d;
   }
 }
 
@@ -260,7 +260,6 @@ class GpsDestination extends Destination {
 
 class AirportDestination extends Destination {
 
-  final double elevation;
   final List<Map<String, dynamic>> frequencies;
   final List<Map<String, dynamic>> runways;
   final List<Map<String, dynamic>> awos;
@@ -272,14 +271,12 @@ class AirportDestination extends Destination {
     required super.type,
     required super.facilityName,
     required super.coordinate,
-    required this.elevation,
     required this.frequencies,
     required this.awos,
     required this.runways,
     required this.unicom,
     required this.ctaf
   });
-
 
   factory AirportDestination.fromMap(Map<String, dynamic> maps,
       List<Map<String, dynamic>> mapsFreq,
@@ -292,9 +289,8 @@ class AirportDestination extends Destination {
     }
     catch(e) {}
 
-    return AirportDestination(
+    AirportDestination d = AirportDestination(
         locationID: maps['LocationID'] as String,
-        elevation: elevation,
         facilityName: maps['FacilityName'] as String,
         coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
         type: maps['Type'] as String,
@@ -304,6 +300,8 @@ class AirportDestination extends Destination {
         awos: mapsAwos,
         runways: mapsRunways
     );
+    d.elevation = elevation;
+    return d;
   }
 
 }

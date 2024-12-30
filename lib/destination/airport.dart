@@ -87,14 +87,21 @@ class Airport {
       catch(e) {}
     }
 
+    String format(List<String> input) {
+      if(input.length > 1) {
+        return input.join("\n");
+      }
+      return input[0];
+    }
+
     ListView view = ListView(children: [
-      if(tower.isNotEmpty) ListTile(leading: const Icon(Icons.cell_tower), title: const Text("Tower"), subtitle: Text(tower.join("\n"))),
-      if(ground.isNotEmpty) ListTile(leading: const Icon(Icons.airport_shuttle), title: const Text("Ground"), subtitle: Text(ground.join("\n"))),
-      if(atis.isNotEmpty) ListTile(leading: const Icon(Icons.thermostat), title: const Text("ATIS"), subtitle: Text(atis.join("\n"))),
-      if(clearance.isNotEmpty) ListTile(leading: const Icon(Icons.perm_identity), title: const Text("Clearance"), subtitle: Text(clearance.join("\n"))),
-      if(airport.ctaf.isNotEmpty) ListTile(leading: const Icon(Icons.radio), title: const Text("CTAF"), subtitle: Text(airport.ctaf)),
-      if(airport.unicom.isNotEmpty) ListTile(leading: const Icon(Icons.radio), title: const Text("UNICOM"), subtitle: Text(airport.unicom)),
-      if(automated.isNotEmpty) ListTile(leading: const Icon(Icons.air), title: const Text("Automated"), subtitle: Text(automated.join("\n"))),
+      if(atis.isNotEmpty) ListTile(leading:           const SizedBox(width: 64, child: Text("ATIS")), title: Text(format(atis))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("TWR")), title: Text(format(tower))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND")),   title: Text(format(ground))),
+      if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC")), title: Text(format(clearance))),
+      if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF")), title: Text(format([airport.ctaf]))),
+      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("COMN")), title: Text(format([airport.unicom]))),
+      if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO")), title: Text(format(automated))),
     ]);
     return view;
   }

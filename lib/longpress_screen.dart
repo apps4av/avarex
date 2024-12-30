@@ -99,14 +99,7 @@ class LongPressScreenState extends State<LongPressScreen> {
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
     List<Widget?> pages = List.generate(labels.length, (index) => null);
-
-    String label = "$facility (${showDestination.locationID}) $direction";
-    if(showDestination is AirportDestination) {
-      label += "; EL ${showDestination.elevation.round()}";
-    }
-    if (showDestination is NavDestination) {
-      label += "; EL ${showDestination.elevation.round()}";
-    }
+    String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
 
     if(showDestination is AirportDestination) {
       pages[labels.indexOf("Main")] = Airport.parseFrequencies(showDestination);

@@ -130,21 +130,22 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              );
            }
            else if(PathUtils.isJSONFile(product.url)) {
-              // read file as string
-              File(product.url).readAsString().then((String value) {
-                try {
-                  Storage().geoParser.parse(value).then((value) {
-                    setState(() {
-                      Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
-                    });
-                  });
-                }
-                catch(e) {
-                  setState(() {
-                    Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
-                  });
-                }
-              });
+             // read file as string
+             Toastification().show(context: context, description: const Text("Parsing GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+             File(product.url).readAsString().then((String value) {
+               try {
+                 Storage().geoParser.parse(value).then((value) {
+                   setState(() {
+                     Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                   });
+                 });
+               }
+               catch(e) {
+                 setState(() {
+                   Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                 });
+               }
+             });
            }
            else if(PathUtils.isPictureFile(product.url)) {
              showDialog(context: context, builder: (context) {

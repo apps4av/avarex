@@ -67,9 +67,4 @@ class Nav {
         "/${GeoCalculations.getMagneticHeading(_geo.calculateBearing(current, vor.coordinate), Storage().area.variation).round().toString().padLeft(3, "0")}";
     return ["${vor.locationID}(${vor.class_})", vor.facilityName, location, morse];
   }
-
-  static String parse(NavDestination nav) {
-    return "Type ${nav.type}\nClass ${nav.class_}\nElevation ${nav.elevation.round()}\n${_getMorseCodeFromString(nav.locationID)}\n";
-  }
-
 }
