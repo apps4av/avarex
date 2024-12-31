@@ -101,6 +101,50 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 
+  Widget _makeActions(Widget main, Document product) {
+    return Column(children:[
+      Expanded(flex:2, child: main),
+        Row(children:[
+          if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
+            Padding(padding: const EdgeInsets.fromLTRB(30, 5, 15, 5), child: Dismissible(key: GlobalKey(),
+                background: const Icon(Icons.delete_forever),
+                direction: DismissDirection.endToStart,
+                onDismissed: (direction) {
+                  setState(() {
+                    PathUtils.deleteFile(product.url);
+                    products.remove(product);
+                  });
+                },
+                child: const Column(children:[
+                  Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))
+                ])
+            )),
+            TextButton(onPressed: () {
+              final box = context.findRenderObject() as RenderBox?;
+              Share.shareXFiles(
+                [XFile(product.url)],
+                sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+              );
+            }, child: const Text("Share")),
+        ])
+    ]);
+  }
+
+  Icon getIcon(Document product) {
+    if(PathUtils.isTextFile(product.url)) {
+      return const Icon(Icons.text_snippet);
+    }
+    else if(PathUtils.isPdfFile(product.url)) {
+      return const Icon(Icons.picture_as_pdf);
+    }
+    else if(PathUtils.isJSONFile(product.url)) {
+      return const Icon(Icons.map);
+    }
+    else {
+      return const Icon(Icons.file_copy);
+    }
+  }
+
   //if you don't want widget full screen then use center widget
   Widget smallImage(Document product) {
      Widget widget;
@@ -147,59 +191,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                }
              });
            }
-           else if(PathUtils.isPictureFile(product.url)) {
-             showDialog(context: context, builder: (context) {
-               return AlertDialog(
-                 title: Text(product.name),
-                 actions: [
-                   TextButton(onPressed: () {
-                     Navigator.of(context).pop();
-                   }, child: const Text("Close"))
-                 ],
-                 content: InteractiveViewer(child: Image.file(File(product.url))
-                 ),
-               );
-             });
-           }
          },
-         child: Container(
+         child: _makeActions(Container(
            margin: const EdgeInsets.all(10.0),
            decoration: BoxDecoration(
              border: Border.all(color: Theme.of(context).colorScheme.primary),
-             borderRadius: const BorderRadius.all(Radius.circular(10))
-           ),
-           child:
-             Row(children:[
-               Flexible(flex: 4,
-                 child:Column(children: [
-                   Flexible(flex: 1, child: Row(children: [
-                     TextButton(onPressed: () {
-                       final box = context.findRenderObject() as RenderBox?;
-                       Share.shareXFiles(
-                         [XFile(product.url)],
-                         sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
-                       );
-                     }, child: const Text("Share")),
-                   ])),
-                   Flexible(flex: 1, child: Row(children: [
-                   if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
-                     Padding(padding: const EdgeInsets.fromLTRB(15, 5, 0, 0), child: Dismissible(key: GlobalKey(),
-                       background: const Icon(Icons.delete_forever),
-                       direction: DismissDirection.endToStart,
-                       onDismissed: (direction) {
-                         setState(() {
-                           PathUtils.deleteFile(product.url);
-                           products.remove(product);
-                         });
-                       },
-                       child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])))
-                  ]))
-                 ])
-               ),
-               const Flexible(flex: 1, child: Icon(Icons.folder_open)),
-             ])
-         )
-       );
+             borderRadius: const BorderRadius.all(Radius.circular(10)),),
+           child: SizedBox(width: Constants.screenWidth(context) / 5, child: getIcon(product))), product));
      }
      else {
        // pictures
@@ -209,7 +207,14 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              imageUrl: product.url,
              cacheManager: FileCacheManager().networkCacheManager,));
      }
-    return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
+
+     // local picture files. deal with zoom widget
+     if(PathUtils.isPictureFile(product.url) && product.type == DocumentsScreen.userDocuments) {
+       // pictures
+       widget = _makeActions(WidgetZoom(heroAnimationTag: product.name, zoomWidget: Image.file(File(product.url))), product);
+     }
+
+     return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
       child: Center(
           child: Column(
               children: [

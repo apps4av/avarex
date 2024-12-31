@@ -59,22 +59,23 @@ class DestinationCalculations {
     fuel = _fuelBurn * time / 3600; // gallon per hour use
   }
 
-  static const List<String> labels = ["FROM", "TO", "ALT", "TC", "VAR", "MC", "WND", "WCA", "MH", "DIST", "GS", "TIME", "FUEL"];
+  static const List<String> labels = ["FM", "TO", "AL", "TC", "VR", "MC", "WD", "CA", "MH", "DT", "GS", "TM", "FC"];
   static int columns = labels.length;
   List<String> getLog() {
+    Duration d = Duration(seconds: time.round());
     List<String> log = [];
     log.add(_from.locationID);
     log.add(_to.locationID);
     log.add(altitude.round().toString());
-    log.add(trueCourse.toStringAsFixed(1));
-    log.add(variation.toStringAsFixed(1));
-    log.add(magneticCourse.toStringAsFixed(1));
+    log.add(trueCourse.round().toString());
+    log.add(variation.round().toString());
+    log.add(magneticCourse.round().toString());
     log.add(wind);
-    log.add(windCorrectionAngle.toStringAsFixed(1));
-    log.add(course.toStringAsFixed(1));
-    log.add(distance.toStringAsFixed(1));
+    log.add(windCorrectionAngle.round().toString());
+    log.add(course.round().toString());
+    log.add(distance.round().toString());
     log.add(groundSpeed.round().toString());
-    log.add(Duration(seconds: time.round()).toString().split(".")[0]);
+    log.add("${d.inHours.toString().padLeft(1, "0")}:${(d.inMinutes % 60).toString().padLeft(2, "0")}");
     log.add(fuel.toStringAsFixed(1));
     return log;
   }

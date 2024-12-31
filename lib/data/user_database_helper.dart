@@ -6,6 +6,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -33,7 +34,7 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 2,
+          version: 3,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion == 1 && newVersion == 2) {
               await db.execute("create table sketch("
@@ -41,6 +42,14 @@ class UserDatabaseHelper {
                   "name         text,"
                   "jsonData     text,"
                   "unique(name) on conflict replace);");
+            }
+            if (oldVersion <= 2 && newVersion == 3) {
+              await db.execute("create table elevation("
+                  "id           integer primary key autoincrement, "
+                  "latitude     float,"
+                  "longitude    float,"
+                  "elevation    float,"
+                  "unique(latitude, longitude) on conflict replace);");
             }
           },
           onCreate: (Database db, int version) async {
@@ -50,6 +59,13 @@ class UserDatabaseHelper {
                 "name         text,"
                 "jsonData     text,"
                 "unique(name) on conflict replace);");
+
+            await db.execute("create table elevation("
+                "id           integer primary key autoincrement, "
+                "latitude     float,"
+                "longitude    float,"
+                "elevation    float,"
+                "unique(latitude, longitude) on conflict replace);");
 
             await db.execute("create table recent ("
                 "id           integer primary key autoincrement, "
@@ -360,6 +376,34 @@ class UserDatabaseHelper {
       return "";
     }
     return maps[0]['jsonData'];
+  }
+
+  Future<void> insertElevations(List<LatLng>points, List<double> elevation) async {
+    final db = await database;
+    if(db != null) {
+      await db.transaction((txn) async {
+        for(int i = 0; i < points.length; i++) {
+          await txn.rawQuery("insert into elevation (latitude, longitude, elevation) values (${points[i].latitude}, ${points[i].longitude}, ${elevation[i]});");
+        }
+      });
+    }
+  }
+
+  Future<List<double?>> getElevations(List<LatLng>points) async {
+    List<double?> ret = List.generate(points.length, (index) => null);
+    final db = await database;
+    if(db != null) {
+      await db.transaction((txn) async {
+        for (int i = 0; i < points.length; i++) {
+          List<Map<String, dynamic>> maps = await txn.rawQuery(
+              "select elevation from elevation where latitude=${points[i].latitude} and longitude=${points[i].longitude};");
+          if (maps.isNotEmpty) {
+            ret[i] = (maps[0]['elevation']);
+          }
+        }
+      });
+    }
+    return ret;
   }
 
 }

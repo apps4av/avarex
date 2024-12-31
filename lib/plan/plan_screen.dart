@@ -38,7 +38,7 @@ class PlanScreenState extends State<PlanScreen> {
                 builder: (context, value, _) {
                   return ListTile( // header
                     key: Key(Storage().getKey()),
-                    leading: const Icon(Icons.title),
+                    leading: const Icon(Icons.add),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
                 }
@@ -125,13 +125,9 @@ class PlanScreenState extends State<PlanScreen> {
                       decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
                   ))),
 
-                  IconButton(icon: const Icon(Icons.show_chart), onPressed:() {
-                    showDialog(context: context,
-                      builder: (BuildContext context) => Dialog.fullscreen(
-                        child: _makeNavLog()
-                      ));
-                  }),
-                  const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To delete a waypoint, swipe it left.\nTo move a waypoint up/down, long press to grab and move it.", child: Icon(Icons.info)),
+                  IconButton(icon: const Icon(Icons.local_gas_station_rounded), onPressed: () => showDialog(context: context, builder: (BuildContext context) => Dialog.fullscreen(
+                      child: _makeNavLog()
+                  ))),
                 ]
               )
             ))
@@ -143,18 +139,16 @@ class PlanScreenState extends State<PlanScreen> {
   }
 
   Widget _makeNavLog() {
-    double square = Constants.isPortrait(context) ? Constants.screenWidth(context) : Constants.screenHeight(context);
-
-    Widget w = SizedBox(width: square, height: square / 4, child: FutureBuilder(
+    Widget w = FutureBuilder(
       future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
       builder: (BuildContext context, var snapshot) {
         if(snapshot.hasData) {
           // draw the altitude profile
-          return AltitudeProfile.makeChart(snapshot.data!);
+          return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child:AltitudeProfile.makeChart(context, snapshot.data!)));
         }
         return const Center(child: CircularProgressIndicator());
       }
-    ));
+    );
 
     List<Widget> values = [];
     values.addAll(DestinationCalculations.labels.map((String s) =>
@@ -171,14 +165,14 @@ class PlanScreenState extends State<PlanScreen> {
     if(Storage().route.totalCalculations != null) {
       List<String> total = Storage().route.totalCalculations!.getLog();
       // blank out total fields that do not make sense
-      total[DestinationCalculations.labels.indexOf("FROM")] =
+      total[DestinationCalculations.labels.indexOf("FM")] =
         total[DestinationCalculations.labels.indexOf("TO")] =
-        total[DestinationCalculations.labels.indexOf("ALT")] =
+        total[DestinationCalculations.labels.indexOf("AL")] =
         total[DestinationCalculations.labels.indexOf("TC")] =
-        total[DestinationCalculations.labels.indexOf("VAR")] =
+        total[DestinationCalculations.labels.indexOf("VR")] =
         total[DestinationCalculations.labels.indexOf("MC")] =
-        total[DestinationCalculations.labels.indexOf("WND")] =
-        total[DestinationCalculations.labels.indexOf("WCA")] =
+        total[DestinationCalculations.labels.indexOf("WD")] =
+        total[DestinationCalculations.labels.indexOf("CA")] =
         total[DestinationCalculations.labels.indexOf("MH")] =
         total[DestinationCalculations.labels.indexOf("GS")] = "";
       values.addAll(total.map((String s) =>
@@ -191,7 +185,7 @@ class PlanScreenState extends State<PlanScreen> {
     );
 
     return Scaffold(body:
-      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children: [Expanded(flex: 2, child:grid), const Divider(), Expanded(flex: 1, child: SingleChildScrollView(child:w))])),
+      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[Expanded(flex: 4, child:grid), Expanded(flex:1, child: w)])),
       appBar: AppBar(title: const Text("Nav Log"),
         actions: <Widget>[
           Padding(padding: const EdgeInsets.all(5), child: TextButton(child: const Text("Copy"), onPressed: () {
