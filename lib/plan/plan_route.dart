@@ -34,6 +34,7 @@ class PlanRoute {
   String altitude = "3000";
   Passage? _passage;
   List<Destination> _allDestinations = [];
+  List<Destination> _nextDestinations = [];
 
   DestinationCalculations? totalCalculations;
 
@@ -147,6 +148,7 @@ class PlanRoute {
       _pointsNextHighResolution = [];
       _pointsNext = [];
       _allDestinations = [];
+      _nextDestinations = [];
       totalCalculations = null;
       change.value++;
       return;
@@ -188,9 +190,11 @@ class PlanRoute {
 
     // everything in plan needs to be calculated in plan
     _allDestinations = [];
+    _nextDestinations = [];
     _allDestinations.addAll(destinationsPassed);
     _allDestinations.addAll(destinationsCurrent);
     _allDestinations.addAll(destinationsNext);
+    _nextDestinations.addAll(destinationsNext);
 
     // calculate plan
     for(int index = 0; index < _allDestinations.length - 1; index++) {
@@ -368,6 +372,10 @@ class PlanRoute {
 
   List<LatLng> getPathNextHighResolution() {
     return _pointsNextHighResolution;
+  }
+
+  List<Destination> getNextDestinations() {
+    return _nextDestinations;
   }
 
   List<Destination> getAllDestinations() {

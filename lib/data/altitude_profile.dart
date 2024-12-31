@@ -70,7 +70,7 @@ class AltitudePainter extends CustomPainter {
   double maxAltitude = 0;
   double minAltitude = 0;
   final double altitudeOfPlan = double.parse(Storage().route.altitude);
-  List<Destination> destinations = Storage().route.getAllDestinations();
+  List<Destination> destinations = Storage().route.getNextDestinations();
   int length = 0;
   final _paint = Paint()
     ..style = PaintingStyle.stroke
