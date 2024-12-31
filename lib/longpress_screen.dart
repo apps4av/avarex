@@ -107,7 +107,7 @@ class LongPressScreenState extends State<LongPressScreen> {
       // made up airport dia
       double dimensions = width > height ? height : width;
       Widget ad = Airport.runwaysWidget(showDestination, dimensions, context);
-      pages[labels.indexOf("AD")] = InteractiveViewer(minScale: 0.1, child: ad);
+      pages[labels.indexOf("AD")] = InteractiveViewer(constrained: false, minScale: 0.1, maxScale: 3, child: ad);
 
       Weather? w = Storage().metar.get(showDestination.locationID);
       Weather? w1 = Storage().taf.get(showDestination.locationID);

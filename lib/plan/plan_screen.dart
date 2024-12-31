@@ -1,4 +1,7 @@
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 import 'plan_item_widget.dart';
@@ -35,10 +38,7 @@ class PlanScreenState extends State<PlanScreen> {
                 builder: (context, value, _) {
                   return ListTile( // header
                     key: Key(Storage().getKey()),
-                    leading: GestureDetector(child: const Icon(Icons.summarize_outlined, color: Colors.green,), onTap: () {
-                      Clipboard.setData(ClipboardData(text: Storage().route.toString()));
-                      Toastification().show(context: context, description: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
-                    },),
+                    leading: const Icon(Icons.title),
                     title: PlanLineWidgetState.getHeading(),
                     subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
                 }
@@ -128,12 +128,8 @@ class PlanScreenState extends State<PlanScreen> {
                   IconButton(icon: const Icon(Icons.show_chart), onPressed:() {
                     showDialog(context: context,
                       builder: (BuildContext context) => Dialog.fullscreen(
-                        child: FutureBuilder(
-                          future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
-                          builder: (context, snapshot) {
-                            return _makeAltitudeDiagram(snapshot.data);
-                          }
-                      )));
+                        child: _makeNavLog()
+                      ));
                   }),
                   const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "To delete a waypoint, swipe it left.\nTo move a waypoint up/down, long press to grab and move it.", child: Icon(Icons.info)),
                 ]
@@ -146,21 +142,64 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
-
-  Widget _makeAltitudeDiagram(List<double>? data) {
-    if(null == data) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
+  Widget _makeNavLog() {
     double square = Constants.isPortrait(context) ? Constants.screenWidth(context) : Constants.screenHeight(context);
 
-    return Stack(children:[
-      const Align(alignment: Alignment.topLeft, child: Padding(padding: EdgeInsets.all(10), child:Text("Plan Altitude Profile altitude/distance"))),
-      Padding(padding: const EdgeInsets.all(20), child: SizedBox(width : square, height : square, child: AltitudeProfile.makeChart(data))),
-      Align(alignment: Alignment.topRight, child: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, size: 36))),
-    ]
+    Widget w = SizedBox(width: square, height: square / 4, child: FutureBuilder(
+      future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
+      builder: (BuildContext context, var snapshot) {
+        if(snapshot.hasData) {
+          // draw the altitude profile
+          return AltitudeProfile.makeChart(snapshot.data!);
+        }
+        return const Center(child: CircularProgressIndicator());
+      }
+    ));
+
+    List<Widget> values = [];
+    values.addAll(DestinationCalculations.labels.map((String s) =>
+        Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, style: const TextStyle(fontWeight: FontWeight.bold)))));
+
+    for (Destination d in Storage().route.getAllDestinations()) {
+      if(d.calculations == null) {
+        continue;
+      }
+      values.addAll(d.calculations!.getLog().map((String s) =>
+          Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, ))));
+    }
+
+    if(Storage().route.totalCalculations != null) {
+      List<String> total = Storage().route.totalCalculations!.getLog();
+      // blank out total fields that do not make sense
+      total[DestinationCalculations.labels.indexOf("FROM")] =
+        total[DestinationCalculations.labels.indexOf("TO")] =
+        total[DestinationCalculations.labels.indexOf("ALT")] =
+        total[DestinationCalculations.labels.indexOf("TC")] =
+        total[DestinationCalculations.labels.indexOf("VAR")] =
+        total[DestinationCalculations.labels.indexOf("MC")] =
+        total[DestinationCalculations.labels.indexOf("WND")] =
+        total[DestinationCalculations.labels.indexOf("WCA")] =
+        total[DestinationCalculations.labels.indexOf("MH")] =
+        total[DestinationCalculations.labels.indexOf("GS")] = "";
+      values.addAll(total.map((String s) =>
+          Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, style: const TextStyle(fontWeight: FontWeight.bold)))));
+    }
+
+    Widget grid = GridView.count(
+      crossAxisCount: DestinationCalculations.columns,
+      children: values,
+    );
+
+    return Scaffold(body:
+      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children: [Expanded(flex: 2, child:grid), const Divider(), Expanded(flex: 1, child: SingleChildScrollView(child:w))])),
+      appBar: AppBar(title: const Text("Nav Log"),
+        actions: <Widget>[
+          Padding(padding: const EdgeInsets.all(5), child: TextButton(child: const Text("Copy"), onPressed: () {
+            Clipboard.setData(ClipboardData(text: Storage().route.toString()));
+            Toastification().show(context: context, description: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+          },),)
+        ])
     );
   }
-
 }
 

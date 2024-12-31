@@ -171,7 +171,7 @@ class InstrumentListState extends State<InstrumentList> {
 
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,
-            GeoCalculations.convertSpeed(Storage().position.speed), 0, wd, ws);
+            GeoCalculations.convertSpeed(Storage().position.speed), 0, wd, ws, GeoCalculations.convertAltitude(Storage().position.altitude));
         calc.calculateTo();
         if(calc.time.isFinite) {
           Duration time = Duration(seconds: calc.time.round());
