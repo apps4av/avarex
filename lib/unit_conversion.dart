@@ -8,6 +8,7 @@ class UnitConversion {
       mpsTo = 2.23694;
       toMps = 0.44704;
       knotsTo = 1.15078;
+      distanceName = 'mi';
     }
   }
 
@@ -27,5 +28,8 @@ class UnitConversion {
 
   // knots for wind.
   double knotsTo = 1;
+
+  //name of distance unit
+  String distanceName = 'nm';
 
 }

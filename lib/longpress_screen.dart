@@ -96,7 +96,7 @@ class LongPressScreenState extends State<LongPressScreen> {
     LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
     double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
-    String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
+    String direction = ("${distance.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
     List<Widget?> pages = List.generate(labels.length, (index) => null);
     String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
@@ -124,7 +124,7 @@ class LongPressScreenState extends State<LongPressScreen> {
         ]);
       }
       pages[labels.indexOf("NOTAM")] = FutureBuilder(future: Storage().notam.getSync(showDestination.locationID),
-        builder: (context, snapshot) { // notmas are downloaded when not in cache and can be slow to download so do async
+        builder: (context, snapshot) { // notams are downloaded when not in cache and can be slow to download so do async
           if (snapshot.hasData) {
             return snapshot.data != null ?
               SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).text)))
@@ -160,13 +160,13 @@ class LongPressScreenState extends State<LongPressScreen> {
     }
 
     Weather? winds;
-    String? station = WindsCache.locateNearestStation(showDestination.coordinate);
+    var (station, dist, stationBearing) = WindsCache.locateNearestStation(showDestination.coordinate);
     if(station != null) {
       winds = Storage().winds.get(station);
       if(winds != null) {
         WindsAloft wa = winds as WindsAloft;
         pages[labels.indexOf("Wind")] = ListView(children: [
-          ListTile(title: Text(winds.toString())),
+          ListTile(title: Text('${dist.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(stationBearing, 0)} @ ${winds.toString()}')),
           for((String, String) wl in wa.toList())
             ListTile(leading: Text(wl.$1), title: Text(wl.$2)),
         ]);
