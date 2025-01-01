@@ -51,13 +51,20 @@ class Sounding {
     String url = "https://www.spc.noaa.gov/exper/soundings/$year$month$day${hour}_OBS/$station.gif";
     Duration timeSinceObs = DateTime.timestamp().difference(obsTime);
     CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().networkCacheManager, errorWidget: errorImage,);
-    return Container(padding: const EdgeInsets.all(10), child:
-      Column(
-        children: <Widget>[
-          Text("${dist.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(bearing, 0)} @ ${station} (${timeSinceObs.inHours}:${(timeSinceObs.inMinutes % 60).toString().padLeft(2, '0')} ago)"),
-          InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image))
-        ]
-      )
+    return ListView(
+      children: <Widget>[
+        ListTile(title: Text("${dist.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(bearing, 0)} @ ${station} (${timeSinceObs.inHours}:${(timeSinceObs.inMinutes % 60).toString().padLeft(2, '0')} ago)")),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: InteractiveViewer(
+            child: Container(
+              color: Colors.white,
+              alignment: Alignment.center,
+              child: image
+            )
+          )
+        )
+      ]
     );
   }
 
