@@ -96,7 +96,7 @@ class LongPressScreenState extends State<LongPressScreen> {
     LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
     double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
-    String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
+    String direction = ("${distance.round()} ${Storage().units.distanceName} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
     List<Widget?> pages = List.generate(labels.length, (index) => null);
     String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
