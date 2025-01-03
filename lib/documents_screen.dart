@@ -120,10 +120,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 ])
             )),
             TextButton(onPressed: () {
-              final box = context.findRenderObject() as RenderBox?;
               Share.shareXFiles(
                 [XFile(product.url)],
-                sharePositionOrigin: box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size,
+                sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
               );
             }, child: const Text("Share")),
         ])

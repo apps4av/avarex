@@ -43,32 +43,31 @@ class WritingScreenState extends State<WritingScreen> {
           if(snapshot.data!.isNotEmpty) {
             notifier.setSketch(sketch: Sketch.fromJson(jsonDecode(snapshot.data!)));
           }
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text("Notes"),
-              actions: _buildActions(context),
-            ),
-            body: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 5),
-              child: Column(
-                children: [
-                  Expanded(child:
-                    Stack(children: [
-                      Container(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, child:
-                        Scribble(notifier: notifier, drawPen: false, drawEraser: false)
-                      ),
-                    ])
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: _buildColorToolbar(context),
-                  )
-                ],
-              ),
-            ),
-          );
         }
-        return Container();
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text("Notes"),
+            actions: _buildActions(context),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 5),
+            child: Column(
+              children: [
+                Expanded(child:
+                Stack(children: [
+                  Container(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, child:
+                  Scribble(notifier: notifier, drawPen: false, drawEraser: false)
+                  ),
+                ])
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: _buildColorToolbar(context),
+                )
+              ],
+            ),
+          ),
+        );
       },
     );
   }
