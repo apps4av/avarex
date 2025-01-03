@@ -390,7 +390,7 @@ class _PlatePainter extends CustomPainter {
         // draw all based on screen width, height
         _paintLine.shader = ui.Gradient.linear(Offset(0, 2 * (size.height + size.width) / 64), Offset(0, -(size.height + size.width) / 2), [Colors.red, Colors.white]);
         canvas.drawLine(Offset(0, (size.height + size.width) / 64 - _imagePlane!.height), Offset(0, -(size.height + size.width) / 2), _paintLine);
-        double a = (_variation! - 90 - heading - angle) * pi / 180;
+        double a = (_variation! - 90 - heading) * pi / 180;
         double x2 = 64 * cos(a);
         double y2 = 64 * sin(a);
         double x3 = 54 * cos(a - 0.1);
