@@ -507,9 +507,8 @@ class MapScreenState extends State<MapScreen> {
                           child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
                             content: Container(
                               padding: const EdgeInsets.all(5),
-                              child: Text("${a.toString()}\n** Long press to see the covered area **")
+                              child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
                             ),
-
                             waitDuration: const Duration(seconds: 1),
                             triggerMode: TooltipTriggerMode.tap,
                             child: GestureDetector(
@@ -936,78 +935,100 @@ class MapScreenState extends State<MapScreen> {
                   Marker(alignment: Alignment.center, point: destinations[index].coordinate,
                     child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
                       child: CircleAvatar(backgroundColor: Constants.waypointBackgroundColor,
-                        child: GestureDetector(
-                            onLongPressMoveUpdate: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              if(null != _controller && _rubberBanding) { // start rubber banding
-                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                Storage().route.replaceDestination(index, l);
-                              }
-                           },
-                            onLongPressCancel: () {
-                              _rubberBanding = false;
-                            },
-                            onLongPressStart: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              _rubberBanding = true;
-                            },
-                            onLongPressEnd: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              _rubberBanding = false;
-                              if(null != _controller) { // end rubber banding
-                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                Storage().route.replaceDestinationFromDb(index, l);
-                              }
-                            },
-                            child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white))))),
+                        child: (Storage().settings.isRubberBanding()) ? // when rubber banding, show red/white
+                          GestureDetector(
+                              onLongPressMoveUpdate: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                if(null != _controller && _rubberBanding) { // start rubber banding
+                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  Storage().route.replaceDestination(index, l);
+                                }
+                             },
+                              onLongPressCancel: () {
+                                _rubberBanding = false;
+                              },
+                              onLongPressStart: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                _rubberBanding = true;
+                              },
+                              onLongPressEnd: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                _rubberBanding = false;
+                                if(null != _controller) { // end rubber banding
+                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  Storage().route.replaceDestinationFromDb(index, l);
+                                }
+                              },
+                              child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white)) :
+                          GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  Storage().route.setCurrentWaypointFromDestinationIndex(index);
+                                });
+                              },
+                              child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white))
+                      )
+                    )
+                  ),
                 for(int index = 0; index < destinations.length; index++) // plan route
                   Marker(alignment: Alignment.bottomRight, point: destinations[index].coordinate, width: 64,
                       child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
-                        child: GestureDetector(
-                            onLongPressMoveUpdate: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              if(null != _controller && _rubberBanding) { // start rubber banding
-                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                Storage().route.replaceDestination(index, l);
-                              }
+                        child: (Storage().settings.isRubberBanding()) ? // when rubber banding, show red/white
+                          GestureDetector(
+                              onLongPressMoveUpdate: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                if(null != _controller && _rubberBanding) { // start rubber banding
+                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  Storage().route.replaceDestination(index, l);
+                                }
+                              },
+                              onLongPressCancel: () {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                _rubberBanding = false;
+                              },
+                              onLongPressStart: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                _rubberBanding = true;
+                              },
+                              onLongPressEnd: (details) {
+                                if(!Storage().settings.isRubberBanding()) {
+                                  return;
+                                }
+                                _rubberBanding = false;
+                                if(null != _controller) { // end rubber banding
+                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  Storage().route.replaceDestinationFromDb(index, l);
+                                }
+                              },
+                              onTap: () {
+                                setState(() {
+                                  Storage().route.setCurrentWaypointFromDestinationIndex(index);
+                                });
                             },
-                            onLongPressCancel: () {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              _rubberBanding = false;
-                            },
-                            onLongPressStart: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              _rubberBanding = true;
-                            },
-                            onLongPressEnd: (details) {
-                              if(!Storage().settings.isRubberBanding()) {
-                                return;
-                              }
-                              _rubberBanding = false;
-                              if(null != _controller) { // end rubber banding
-                                LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                Storage().route.replaceDestinationFromDb(index, l);
-                              }
-                            },
+                            // do not clobber screen with sexagesimal
+                            child: AutoSizeText(destinations[index].type != Destination.typeGps ? destinations[index].locationID : destinations[index].facilityName, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,)) :
+                        GestureDetector(
                             onTap: () {
                               setState(() {
                                 Storage().route.setCurrentWaypointFromDestinationIndex(index);
                               });
-                          },
-                          // do not clobber screen with sexagesimal
-                          child: AutoSizeText(destinations[index].type != Destination.typeGps ? destinations[index].locationID : destinations[index].facilityName, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))))
+                            },
+                            // do not clobber screen with sexagesimal
+                            child: AutoSizeText(destinations[index].type != Destination.typeGps ? destinations[index].locationID : destinations[index].facilityName, style: TextStyle(color: Colors.white, backgroundColor: _rubberBanding ? Colors.red : Constants.planCurrentColor.withAlpha(160)), minFontSize: 1,))
+                      )
+                  )
               ],
             );
           },

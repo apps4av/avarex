@@ -193,7 +193,7 @@ class LongPressScreenState extends State<LongPressScreen> {
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
-              child: const Text("->D"),
+              child: const Text("\u2192D"),
               onPressed: () {
                 Storage().setDestination(showDestination);
                 if(showDestination is AirportDestination) {

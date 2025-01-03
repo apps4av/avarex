@@ -125,7 +125,7 @@ class PlanScreenState extends State<PlanScreen> {
                       decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
                   ))),
 
-                  IconButton(icon: const Icon(Icons.local_gas_station_rounded), onPressed: () => showDialog(context: context, builder: (BuildContext context) => Dialog.fullscreen(
+                  IconButton(icon: const Icon(Icons.local_gas_station_rounded), tooltip: "See navigation log and terrain en route", onPressed: () => showDialog(context: context, builder: (BuildContext context) => Dialog.fullscreen(
                       child: _makeNavLog()
                   ))),
                 ]
@@ -144,7 +144,7 @@ class PlanScreenState extends State<PlanScreen> {
       builder: (BuildContext context, var snapshot) {
         if(snapshot.hasData) {
           // draw the altitude profile
-          return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child:AltitudeProfile.makeChart(context, snapshot.data!)));
+          return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child: makeChart(context, snapshot.data!)));
         }
         return const Center(child: CircularProgressIndicator());
       }
@@ -185,15 +185,127 @@ class PlanScreenState extends State<PlanScreen> {
     );
 
     return Scaffold(body:
-      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[Expanded(flex: 4, child:grid), Expanded(flex:1, child: w)])),
-      appBar: AppBar(title: const Text("Nav Log"),
+      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[Expanded(flex: 4, child:grid),             const Row( // nearby destinations
+          children: <Widget>[
+            Expanded(flex: 1, child: Divider()),
+            Text("Terrain en route", style: TextStyle(fontSize: 10)),
+            Expanded(flex: 16, child: Divider()),
+          ]
+      ),
+           Expanded(flex:1, child: w)])),
+      appBar: AppBar(title: const Text("Navigation Log"),
         actions: <Widget>[
-          Padding(padding: const EdgeInsets.all(5), child: TextButton(child: const Text("Copy"), onPressed: () {
+          Padding(padding: const EdgeInsets.all(5), child: IconButton(icon: const Icon(Icons.copy), tooltip: "Copy plan to clipboard", onPressed: () {
             Clipboard.setData(ClipboardData(text: Storage().route.toString()));
             Toastification().show(context: context, description: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
           },),)
         ])
     );
   }
+
+  Widget makeChart(BuildContext context, List<double> data) {
+    return CustomPaint(painter: AltitudePainter(context, data),);
+  }
+
+}
+
+
+class AltitudePainter extends CustomPainter {
+
+  final BuildContext context;
+  final List<double> data;
+  double maxAltitude = 0;
+  double minAltitude = 0;
+  final double altitudeOfPlan = double.parse(Storage().route.altitude);
+  List<Destination> destinations = Storage().route.getNextDestinations();
+  int length = 0;
+  final _paint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 3
+    ..strokeCap = StrokeCap.round
+    ..color = Colors.green;
+
+  AltitudePainter(this.context, this.data) {
+    if(data.isEmpty) {
+      return;
+    }
+    maxAltitude = data.reduce((value, element) => value > element ? value : element);
+    minAltitude = data.reduce((value, element) => value < element ? value : element);
+    // make minimum altitude in increments of 100
+    minAltitude = (minAltitude / 100).floor() * 100;
+    // make maximum altitude in increments of 100
+    maxAltitude = (maxAltitude / 100).ceil() * 100;
+    length = data.length;
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    Color textColor = Colors.white;
+    Color textBackColor = Colors.black;
+    if(length == 0) {
+      return;
+    }
+
+    // find width needed to display max altitude
+    TextSpan span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: "88888");
+    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+    tp.layout();
+    double margin = tp.width;
+
+    double width = size.width - margin;
+    double height = size.height;
+    double step = width / (length - 1);
+    double stepY = height / (maxAltitude - minAltitude);
+
+    List<Offset> points = [];
+    for (int i = 0; i < length; i++) {
+      double x = i * step;
+      double y = height - (data[i] - minAltitude) * stepY;
+      points.add(Offset(x, y));
+    }
+
+    double topAltitude = height - (altitudeOfPlan - minAltitude) * stepY;
+    for (int i = 0; i < length - 1; i++) {
+      // all areas into terrain mark red
+      _paint.color = topAltitude < points[i].dy || topAltitude < points[i + 1].dy ? Colors.blue : Colors.orange;
+      canvas.drawLine(points[i], points[i + 1], _paint);
+    }
+
+    // label text
+    span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: maxAltitude.round().toString().padLeft(5, " "));
+    tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+    tp.layout();
+    tp.paint(canvas, Offset(width, 0));
+
+    span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: minAltitude.round().toString().padLeft(5, " "));
+    tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+    tp.layout();
+    tp.paint(canvas, Offset(width, height - tp.height));
+
+    // choose destinations based on width with one destination per 1/5 screen pixels
+    double xx = 0;
+    // draw no more than 5 points on screen
+    double last = -width / 5;
+    for(int index = 0; index < destinations.length; index++) {
+      if(destinations[index].calculations == null) {
+        continue;
+      }
+      double inc = destinations[index].calculations!.distance * step;
+      xx += inc;
+      if((xx - last) > (width / 5)) {
+        last = xx;
+        span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor),
+            text: destinations[index].locationID);
+        tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+        tp.layout();
+        tp.paint(canvas, Offset(xx, height - tp.height));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(oldDelegate) => false;
+
+
 }
 
