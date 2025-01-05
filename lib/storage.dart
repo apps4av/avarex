@@ -292,9 +292,19 @@ class Storage {
     }
     catch(e) {}
     // ask for GPS permission
-    await _gps.isPermissionDenied();
+
+    gpsNotPermitted = await Gps().isPermissionDenied();
+    if(gpsNotPermitted) {
+      Gps().requestPermissions();
+    }
+    gpsDisabled = await Gps().isDisabled();
+
     position = await Gps().getLastPosition();
+    area.update(position);
     _gpsStack.push(position);
+    settings.setZoom(10);
+    settings.setCenterLatitude(position.latitude);
+    settings.setCenterLongitude(position.longitude);
 
     // tiles cache
     osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
@@ -314,14 +324,6 @@ class Storage {
     airep = WeatherCache.make(AirepCache) as AirepCache;
     airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
     notam = WeatherCache.make(NotamCache) as NotamCache;
-
-    area.update(position);
-
-    gpsNotPermitted = await Gps().isPermissionDenied();
-    if(gpsNotPermitted) {
-      Gps().requestPermissions();
-    }
-    gpsDisabled = await Gps().isDisabled();
 
     // plane image
     imagePlane = await ImageUtils.loadImageFromAssets('plane.png');
