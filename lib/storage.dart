@@ -300,7 +300,6 @@ class Storage {
     gpsDisabled = await Gps().isDisabled();
 
     position = await Gps().getLastPosition();
-    area.update(position);
     _gpsStack.push(position);
     settings.setZoom(10);
     settings.setCenterLatitude(position.latitude);
@@ -327,6 +326,9 @@ class Storage {
 
     // plane image
     imagePlane = await ImageUtils.loadImageFromAssets('plane.png');
+
+    // set area
+    area.update(position);
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
