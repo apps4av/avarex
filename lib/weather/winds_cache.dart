@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/time_zone.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
@@ -50,11 +51,21 @@ class WindsCache extends WeatherCache {
 
     for(Uint8List datum in data)
     {
+      RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
       String dataString = utf8.decode(datum);
 
       // parse winds, set expire time 6 hrs in future
-      DateTime expires = DateTime.now().add(const Duration(hours: 6));
+      DateTime? expires;
       List<String> lines = dataString.split('\n');
+
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp1.firstMatch(line);
+        if (match != null) {
+          expires = TimeZone.parseZuluTime(match.toString());
+          break;
+        }
+      }
 
       bool start = false;
       // parse winds, first check if a new download is needed
@@ -68,6 +79,9 @@ class WindsCache extends WeatherCache {
           continue;
         }
         if(!start) {
+          continue;
+        }
+        if(expires == null) {
           continue;
         }
 
