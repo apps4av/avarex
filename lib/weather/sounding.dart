@@ -41,7 +41,6 @@ class Sounding {
       return null;
     }
     DateTime now = DateTime.timestamp();
-    print(now);
     now = now.subtract(const Duration(hours: 1)); // 1 hour delayed on website
     DateTime obsTime = DateTime.utc(now.year, now.month, now.day,  (now.hour/ 12).floor() * 12);
     String hour = obsTime.hour.toString().padLeft(2, '0');
