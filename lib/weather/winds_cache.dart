@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/time_zone.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
@@ -56,17 +57,7 @@ class WindsCache extends WeatherCache {
         line = line.trim();
         RegExpMatch? match = exp1.firstMatch(line);
         if (match != null) {
-          DateTime now = DateTime.now().toUtc();
-          expires = DateTime.utc(
-              now.year,
-              now.month,
-              now.day, //day
-              0,
-              0);
-          int from = int.parse(match[2]!);
-          int to = int.parse(match[3]!);
-          // if from > to then its next day
-          expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
+          expires = TimeZone.parseZuluTime(match.toString());
           break;
         }
       }
