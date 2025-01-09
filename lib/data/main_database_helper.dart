@@ -204,7 +204,7 @@ class MainDatabaseHelper {
           .toDouble()} + (lat - ${point
           .latitude}) * (lat - ${point.latitude}))";
 
-      String qry = "select designator, name, FreqTx, FreqRx, day, lat, lon, $asDistance as distance from saa where distance < 1 order by distance asc limit $_limit";
+      String qry = "select *, $asDistance as distance from saa where distance < 1 order by distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await db.rawQuery(qry);
 
       ret = List.generate(maps.length, (i) {

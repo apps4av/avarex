@@ -180,7 +180,7 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("SUA")] = ListView(
         children: [
           for(Saa s in future.saa)
-            ListTile(title: Text(s.designator), subtitle: Text(s.toString())),
+            Padding(padding: const EdgeInsets.fromLTRB(0, 10, 0, 10), child: s.toWidget())
         ],
       );
     }
