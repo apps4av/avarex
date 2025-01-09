@@ -100,7 +100,7 @@ class Airport {
       if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND")),   title: Text(format(ground))),
       if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC")), title: Text(format(clearance))),
       if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF")), title: Text(format([airport.ctaf]))),
-      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("COMN")), title: Text(format([airport.unicom]))),
+      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM")), title: Text(format([airport.unicom]))),
       if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO")), title: Text(format(automated))),
     ]);
     return view;
