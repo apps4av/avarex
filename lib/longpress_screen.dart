@@ -105,9 +105,8 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("Main")] = Airport.parseFrequencies(showDestination);
 
       // made up airport dia
-      double dimensions = width > height ? height : width;
-      Widget ad = Airport.runwaysWidget(showDestination, dimensions, context);
-      pages[labels.indexOf("AD")] = InteractiveViewer(constrained: false, minScale: 0.1, maxScale: 3, child: ad);
+      Widget ad = Airport.runwaysWidget(showDestination, width, height, context);
+      pages[labels.indexOf("AD")] = InteractiveViewer(maxScale: 5, child: ad);
 
       Weather? w = Storage().metar.get(showDestination.locationID);
       Weather? w1 = Storage().taf.get(showDestination.locationID);
@@ -180,7 +179,7 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("SUA")] = ListView(
         children: [
           for(Saa s in future.saa)
-            Padding(padding: const EdgeInsets.fromLTRB(0, 10, 0, 10), child: s.toWidget())
+            Padding(padding: const EdgeInsets.fromLTRB(10, 10, 10, 10), child: s.toWidget())
         ],
       );
     }

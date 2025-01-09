@@ -106,8 +106,8 @@ class Airport {
     return view;
   }
 
-  static Widget runwaysWidget(AirportDestination airport, double dimensions, BuildContext context) {
-    return CustomPaint(size: Size(dimensions, dimensions), painter: RunwayPainter(airport, context));
+  static Widget runwaysWidget(AirportDestination airport, double width, double height, BuildContext context) {
+    return CustomPaint(size: Size(width, height), painter: RunwayPainter(airport, context));
   }
 
   static List<MapRunway> getRunwaysForMap(AirportDestination destination) {
@@ -360,13 +360,8 @@ class RunwayPainter extends CustomPainter {
     double apLat = airport.coordinate.latitude;
     double apLon = airport.coordinate.longitude;
 
-    String hemisphereLat = apLat > 0 ? 'N' : 'S';
-    String hemisphereLon = apLon > 0 ? 'E' : 'W';
-
     try {
-      info += '${airport.facilityName} ($airport)\n';
-      info += 'ELEV ${airport.elevation}\'\n';
-      info += '${apLat.abs().toStringAsPrecision(5)}°$hemisphereLat ${apLon.abs().toStringAsPrecision(5)}°$hemisphereLon\n';
+      info = '${Destination.toSexagesimal(airport.coordinate)}\n'; // lat,lon uniformity with all other areas of the app.
       //report magnetic variation if provided, pad end with two line breaks either way (for runway printout)
       if(airport.geoVariation != null) {
         int mag = (airport.geoVariation ?? 0).abs().toInt();
@@ -486,26 +481,26 @@ class RunwayPainter extends CustomPainter {
           continue;
         }
 
-          // adding this factor should cover all airport in US from center of the airport.
-          double left = apLon - avg;
-          double right = apLon + avg;
-          double top = apLat + avg;
-          double bottom = apLat - avg;
+        // adding this factor should cover all airport in US from center of the airport.
+        double left = apLon - avg;
+        double right = apLon + avg;
+        double top = apLat + avg;
+        double bottom = apLat - avg;
 
-          // move down and to the side
+        // move down and to the side
 
-          double px = scale / (left - right);
-          double py = scale / (top - bottom);
+        double px = scale / (left - right);
+        double py = scale / (top - bottom);
 
-          double lx = (left - leLon) * px;
-          double ly = (top - leLat) * py;
-          double hx = (left - heLon) * px;
-          double hy = (top - heLat) * py;
+        double lx = (left - leLon) * px;
+        double ly = (top - leLat) * py;
+        double hx = (left - heLon) * px;
+        double hy = (top - heLat) * py;
 
-          double offsetX = 0;
-          double offsetY = 0;
+        double offsetX = 0;
+        double offsetY = 0;
 
-          canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
+        canvas.drawLine(Offset(lx + offsetX, ly + offsetY), Offset(hx + offsetX, hy + offsetY), paintLine);
 
 
         //calculate actual runway identifier headings
@@ -528,7 +523,7 @@ class RunwayPainter extends CustomPainter {
         String lights = r['LELights'].isEmpty ? "" : "${r['LELights']} ";
         String ils = r['LEILS'].isEmpty ? "" : "${r['LEILS']} ";
         String vgsi = r['LEVGSI'].isEmpty ? "" : "${r['LEVGSI']} ";
-        info += "$ident$pattern$lights$ils$vgsi\n";
+        info += "\u25cf$ident$pattern$lights$ils$vgsi\n";
 
         //create info string for high end runway identifier (18...36)
         ident = "${r['HEIdent']} ";
@@ -558,7 +553,7 @@ class RunwayPainter extends CustomPainter {
         ils = r['HEILS'].isEmpty ? "" : "${r['HEILS']} ";
         vgsi = r['HEVGSI'].isEmpty ? "" : "${r['HEVGSI']} ";
 
-        info += "$ident$pattern$lights$ils$vgsi\n";
+        info += "\u25cf$ident$pattern$lights$ils$vgsi\n";
         info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
       }
       catch(e) {}
