@@ -64,6 +64,10 @@ class DownloadManager {
     }
   }
 
+  void deleteSilent(Chart chart) {
+    chart.download.delete(chart, null);
+  }
+
   void delete(Chart chart) {
     if (null != _findChart(chart)) {
       // already deleting

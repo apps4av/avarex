@@ -58,7 +58,9 @@ class Download {
 
   Future<void> delete(Chart chart, Function(Chart, int)? callback) async {
     _cancelDownloadAndDelete = false;
-    callback!(chart, 0); // start
+    if(null != callback) {
+      callback(chart, 0); // start
+    }
 
     String dir = Storage().dataDir;
     String file = path.join(dir, chart.filename);
@@ -68,7 +70,9 @@ class Download {
       s = await File(file).readAsLines(); // list of files to delete from manifest
     }
     catch(e) {
-      callback(chart, -1);
+      if(null != callback) {
+        callback(chart, -1);
+      }
       return;
     }
 
@@ -88,12 +92,16 @@ class Download {
         continue; // try all
       }
       if(_cancelDownloadAndDelete) {
-        callback(chart, -1);
+        if(null != callback) {
+          callback(chart, -1);
+        }
         return;
       }
       progress = index / s.length;
       if (progress - lastProgress >= 0.01) { // 1% change min
-        callback(chart, (progress * 100).toInt());
+        if(null != callback) {
+          callback(chart, (progress * 100).toInt());
+        }
         lastProgress = progress;
       }
     }
@@ -102,7 +110,9 @@ class Download {
     await Storage().checkChartsExist();
     await Storage().checkDataExpiry();
 
-    callback(chart, 100); // done
+    if(null != callback) {
+      callback(chart, 100); // done
+    }
   }
 
   Future<void> download(Chart chart, bool nextCycle, Function(Chart, int)? callback) async {

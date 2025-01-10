@@ -330,10 +330,13 @@ class DownloadScreenState extends State<DownloadScreen> {
         }
         // download expired or to-download item
         if (ct.state == _stateAbsentDownload ||
-            ct.state == _stateCurrentDownload ||
-            ct.state == _stateExpiredNone ||
-            ct.state == _stateExpiredDownload) {
+            ct.state == _stateCurrentDownload) {
           // download this chart
+          Storage().downloadManager.download(ct, _nextCycle);
+        }
+        if (ct.state == _stateExpiredNone ||
+            ct.state == _stateExpiredDownload) {
+          Storage().downloadManager.deleteSilent(ct);
           Storage().downloadManager.download(ct, _nextCycle);
         }
         if (ct.state == _stateCurrentDelete ||
