@@ -328,7 +328,7 @@ class Storage {
     imagePlane = await ImageUtils.loadImageFromAssets('plane.png');
 
     // set area
-    area.update(position);
+    await area.update(position);
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps

@@ -16,7 +16,7 @@ class Area {
   List<LatLng> obstacles = [];
   double variation = 0;
 
-  void update(Position position) async {
+  Future<void> update(Position position) async {
     double geo = 0;
     double declination = 0;
     (geo, declination) = await MainDatabaseHelper.db.getGeoInfo(Gps.toLatLng(position));
