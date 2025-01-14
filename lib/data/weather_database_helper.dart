@@ -11,6 +11,8 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'db_general.dart';
+
 class WeatherDatabaseHelper {
   WeatherDatabaseHelper._();
 
@@ -109,7 +111,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("windsAloft", wa.toMap());
+      await DbGeneral.insert(db, "windsAloft", wa.toMap());
     }
   }
 
@@ -121,7 +123,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("windsAloft");
         for(WindsAloft w in wa) {
-          batch.insert("windsAloft", w.toMap());
+          DbGeneral.insert(db, "windsAloft", w.toMap());
         }
         await batch.commit();
       });
@@ -159,7 +161,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("metar", metar.toMap());
+      await DbGeneral.insert(db, "metar", metar.toMap());
     }
   }
 
@@ -171,7 +173,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("metar");
         for(Metar m in metar) {
-          batch.insert("metar", m.toMap());
+          DbGeneral.insert(db, "metar", m.toMap());
         }
         await batch.commit();
       });
@@ -211,7 +213,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("taf", taf.toMap());
+      await DbGeneral.insert(db, "taf", taf.toMap());
     }
   }
 
@@ -223,7 +225,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("taf");
         for(Taf t in taf) {
-          batch.insert("taf", t.toMap());
+          DbGeneral.insert(db, "taf", t.toMap());
         }
         await batch.commit();
       });
@@ -262,7 +264,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("tfr", tfr.toMap());
+      await DbGeneral.insert(db, "tfr", tfr.toMap());
     }
   }
 
@@ -274,7 +276,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("tfr");
         for(Tfr t in tfr) {
-          batch.insert("tfr", t.toMap());
+          DbGeneral.insert(db, "tfr", t.toMap());
         }
         await batch.commit();
       });
@@ -326,7 +328,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("airep");
         for(Airep a in aireps) {
-          batch.insert("airep", a.toMap());
+          DbGeneral.insert(db, "airep", a.toMap());
         }
         await batch.commit();
       });
@@ -351,7 +353,7 @@ class WeatherDatabaseHelper {
         Batch batch = txn.batch();
         batch.delete("airsigmet");
         for(AirSigmet a in airSigmet) {
-          batch.insert("airsigmet", a.toMap());
+          DbGeneral.insert(db, "airsigmet", a.toMap());
         }
         await batch.commit();
       });
@@ -382,7 +384,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("notam", notam.toMap());
+      await DbGeneral.insert(db, "notam", notam.toMap());
     }
   }
 

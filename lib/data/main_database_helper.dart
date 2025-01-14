@@ -10,6 +10,8 @@ import 'package:sqflite/sqflite.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/saa.dart';
 
+import 'db_general.dart';
+
 class MainDatabaseHelper {
   MainDatabaseHelper._();
 
@@ -39,7 +41,7 @@ class MainDatabaseHelper {
     final db = await database;
     if (db != null) {
       String qry = "select ARPLatitude, ARPLongitude, Height from obs where (Height > ${altitude - 200}) and (ARPLatitude > ${point.latitude - 0.4}) and (ARPLatitude < ${point.latitude + 0.4}) and (ARPLongitude > ${point.longitude - 0.4}) and (ARPLongitude < ${point.longitude + 0.4})";
-      List<Map<String, Object?>> maps = await db.rawQuery(qry);
+      List<Map<String, Object?>> maps = await DbGeneral.query(db, qry);
       return List.generate(maps.length, (i) {
         return LatLng(maps[i]['ARPLatitude'] as double, maps[i]['ARPLongitude'] as double);
       });
@@ -70,14 +72,14 @@ class MainDatabaseHelper {
     final db = await database;
     String eMatch = exact ? " = '$match'" : "like '$match%'";
     if (db != null) {
-      maps = await db.rawQuery(
+      maps = await DbGeneral.query(db,
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
           "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID $eMatch) "
           "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID $eMatch) "
           "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID $eMatch) "
           "order by Type asc limit $_limit"
       );
-      mapsAirways = await db.rawQuery(
+      mapsAirways = await DbGeneral.query(db,
           "select name, sequence, Longitude, Latitude from airways where name = '$match' COLLATE NOCASE "
               "order by cast(sequence as integer) asc limit 1"
       );
@@ -99,7 +101,7 @@ class MainDatabaseHelper {
         }
         String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
           " trim(airport_identifier) = '$airport' $match";
-        mapsProcedures = await db.rawQuery(qry);
+        mapsProcedures = await DbGeneral.query(db, qry);
       }
     }
 
@@ -155,7 +157,7 @@ class MainDatabaseHelper {
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by distance asc limit 1";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
       if(maps.isNotEmpty) {
         return Destination.fromMap(maps[0]);
       }
@@ -180,7 +182,7 @@ class MainDatabaseHelper {
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor and (Type != 'VOT') "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by Type asc, distance asc limit $_limit";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       ret = List.generate(maps.length, (i) {
         return Destination.fromMap(maps[i]);
@@ -203,7 +205,7 @@ class MainDatabaseHelper {
           .latitude}) * (lat - ${point.latitude}))";
 
       String qry = "select *, $asDistance as distance from saa where distance < 1 order by distance asc limit $_limit";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       ret = List.generate(maps.length, (i) {
         return Saa.fromMap(maps[i]);
@@ -216,7 +218,7 @@ class MainDatabaseHelper {
     final db = await database;
     if (db != null) {
       String qry = "select FaaID from airports where LocationID = '$icao'";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
       if(maps.isNotEmpty) {
         return maps[0]['FaaID'] as String;
       }
@@ -239,7 +241,7 @@ class MainDatabaseHelper {
           "left join airportrunways where "
           "airports.DLID = airportrunways.DLID and airports.Type='AIRPORT' and cast (airportrunways.Length as INTEGER) >= $runwayLength "
           "order by distance asc limit $_limit";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       List<String> duplicates = [];
       // get rid of duplicates
@@ -266,7 +268,7 @@ class MainDatabaseHelper {
           .latitude}) * (ARPLatitude - ${point.latitude}))";
 
       String qry = "select * from nav where (Type = 'VOR' or Type = 'VORTAC' or Type = 'VOR/DME') order by $asDistance asc limit 4";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       // get rid of duplicates
       for(Map<String, dynamic> map in maps) {
@@ -289,7 +291,7 @@ class MainDatabaseHelper {
           "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor "
           "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
           "order by distance asc limit 1";
-      List<Map<String, dynamic>> maps = await db.rawQuery(qry);
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       return Destination.fromMap(maps[0]);
     }
@@ -305,14 +307,14 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAwos = [];
     final db = await database;
     if (db != null) {
-      mapsAirports = await db.rawQuery("select * from airports       where LocationID = '$airport'");
+      mapsAirports = await DbGeneral.query(db, "select * from airports       where LocationID = '$airport'");
       if(mapsAirports.isEmpty) {
         return null;
       }
       String dlid = mapsAirports[0]['DLID'] as String;
-      mapsFreq = await db.rawQuery(    "select * from airportfreq    where DLID = '$dlid'");
-      mapsRunways = await db.rawQuery( "select * from airportrunways where DLID = '$dlid'");
-      mapsAwos = await db.rawQuery(    "select * from awos           where DLID = '$dlid'");
+      mapsFreq = await DbGeneral.query(db,     "select * from airportfreq    where DLID = '$dlid'");
+      mapsRunways = await DbGeneral.query(db,  "select * from airportrunways where DLID = '$dlid'");
+      mapsAwos = await DbGeneral.query(db,     "select * from awos           where DLID = '$dlid'");
       return AirportDestination.fromMap(mapsAirports[0], mapsFreq, mapsAwos, mapsRunways);
     }
 
@@ -323,7 +325,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from nav where LocationID = '$nav' limit 1");
+      maps = await DbGeneral.query(db, "select * from nav where LocationID = '$nav' limit 1");
     }
     if(maps.isEmpty) {
       return null;
@@ -336,7 +338,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from fix where LocationID = '$fix' limit 1");
+      maps = await DbGeneral.query(db, "select * from fix where LocationID = '$fix' limit 1");
     }
     if(maps.isEmpty) {
       return null;
@@ -349,7 +351,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select name, sequence, Longitude, Latitude from airways where name = '$airway' COLLATE NOCASE "
+      maps = await DbGeneral.query(db, "select name, sequence, Longitude, Latitude from airways where name = '$airway' COLLATE NOCASE "
           "order by cast(sequence as integer) asc");
     }
     if(maps.isEmpty) {
@@ -379,7 +381,7 @@ class MainDatabaseHelper {
         " order by trim(sequence_number) asc";
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery(qry);
+      maps = await DbGeneral.query(db, qry);
     }
     if(maps.isEmpty) {
       return null;
@@ -426,7 +428,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from geo where Longitude = '${ll.longitude.round()}' and Latitude = '${ll.latitude.round()}' limit 1");
+      maps = await DbGeneral.query(db, "select * from geo where Longitude = '${ll.longitude.round()}' and Latitude = '${ll.latitude.round()}' limit 1");
     }
     if(maps.isEmpty) {
       return (0.0, 0.0);

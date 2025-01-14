@@ -10,6 +10,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
+import 'db_general.dart';
+
 
 
 class UserDatabaseHelper {
@@ -132,7 +134,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("recent", recent.toMap());
+      await DbGeneral.insert(db, "recent", recent.toMap());
     }
   }
 
@@ -140,7 +142,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from recent where "
+      maps = await DbGeneral.query(db, "select * from recent where "
           "Type='AIRPORT' or "
           "Type='HELIPORT' or "
           "Type='ULTRALIGHT' or "
@@ -156,7 +158,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from recent order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select * from recent order by id desc"); // most recent first
       return List.generate(maps.length, (i) {
         return Destination.fromMap(maps[i]);
       });
@@ -167,7 +169,7 @@ class UserDatabaseHelper {
   Future<void> deleteRecent(Destination destination) async {
     final db = await database;
     if (db != null) {
-      await db.rawQuery("delete from recent where LocationID="
+      await DbGeneral.query(db, "delete from recent where LocationID="
           "'${destination.locationID}' and Type='${destination.type}'");
     }
   }
@@ -176,7 +178,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) { // do not add empty plans
-      await db.insert("plan", route.toMap(name));
+      await DbGeneral.insert(db, "plan", route.toMap(name));
     }
   }
 
@@ -184,7 +186,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.rawQuery("delete from plan where name='$name'");
+      await DbGeneral.query(db, "delete from plan where name='$name'");
     }
   }
 
@@ -193,7 +195,7 @@ class UserDatabaseHelper {
     List<String> ret = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select name from plan order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select name from plan order by id desc"); // most recent first
     }
 
     for(Map<String, dynamic> map in maps) {
@@ -206,7 +208,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from plan where name='$name'"); // most recent first
+      maps = await DbGeneral.query(db, "select * from plan where name='$name'"); // most recent first
     }
 
     PlanRoute route = await PlanRoute.fromMap(maps[0], reverse);
@@ -218,7 +220,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await db.rawQuery("select * from wnb where name='$name'"); // most recent first
+      maps = await DbGeneral.query(db, "select * from wnb where name='$name'"); // most recent first
     }
 
     return Wnb.fromMap(maps[0]);
@@ -228,7 +230,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("wnb", wnb.toMap());
+      await DbGeneral.insert(db, "wnb", wnb.toMap());
     }
   }
 
@@ -236,7 +238,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.rawQuery("delete from wnb where name='$name'");
+      await DbGeneral.query(db, "delete from wnb where name='$name'");
     }
   }
 
@@ -245,7 +247,7 @@ class UserDatabaseHelper {
     List<Wnb> ret = [];
     if(db != null) {
       List<Map<String, dynamic>> maps = [];
-      maps = await db.rawQuery("select * from wnb order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select * from wnb order by id desc"); // most recent first
       for(Map<String, dynamic> map in maps) {
         ret.add(Wnb.fromMap(map));
       }
@@ -257,7 +259,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("checklist", checklist.toMap());
+      await DbGeneral.insert(db, "checklist", checklist.toMap());
     }
   }
 
@@ -265,7 +267,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.rawQuery("delete from checklist where name='$name'");
+      await DbGeneral.query(db, "delete from checklist where name='$name'");
     }
   }
 
@@ -274,7 +276,7 @@ class UserDatabaseHelper {
     List<Checklist> ret = [];
     if(db != null) {
       List<Map<String, dynamic>> maps = [];
-      maps = await db.rawQuery("select * from checklist order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select * from checklist order by id desc"); // most recent first
 
       for(Map<String, dynamic> map in maps) {
         ret.add(Checklist.fromMap(map));
@@ -287,7 +289,7 @@ class UserDatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> maps = [];
     if(db != null) {
-      maps = await db.rawQuery("select * from checklist order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select * from checklist order by id desc"); // most recent first
     }
     return Checklist.fromMap(maps[0]);
   }
@@ -296,7 +298,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if(db != null) {
-      maps = await db.rawQuery("select * from aircraft where tail='$name'"); // most recent first
+      maps = await DbGeneral.query(db, "select * from aircraft where tail='$name'"); // most recent first
     }
     return Aircraft.fromMap(maps[0]);
   }
@@ -305,7 +307,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.insert("aircraft", aircraft.toMap());
+      await DbGeneral.insert(db, "aircraft", aircraft.toMap());
     }
   }
 
@@ -313,7 +315,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await db.rawQuery("delete from aircraft where tail='$name'");
+      await DbGeneral.query(db, "delete from aircraft where tail='$name'");
     }
   }
 
@@ -322,7 +324,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     List<Aircraft> ret = [];
     if (db != null) {
-      maps = await db.rawQuery("select * from aircraft order by id desc"); // most recent first
+      maps = await DbGeneral.query(db, "select * from aircraft order by id desc"); // most recent first
     }
 
     for (Map<String, dynamic> map in maps) {
@@ -335,7 +337,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
-      db.rawQuery("insert into settings (key, value) values ('$key', '$value')");
+      DbGeneral.query(db, "insert into settings (key, value) values ('$key', '$value')");
     }
   }
 
@@ -343,7 +345,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
-      await db.rawQuery("delete from settings where key=$key;");
+      await DbGeneral.query(db, "delete from settings where key=$key;");
     }
   }
 
@@ -351,7 +353,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
-      List<Map<String, dynamic>> maps = await db.rawQuery("select * from settings;");
+      List<Map<String, dynamic>> maps = await DbGeneral.query(db, "select * from settings;");
       return maps;
     }
     return [];
@@ -361,7 +363,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
-      await db.rawQuery("insert into sketch (name, jsonData) values ('$name', '$jsonData');");
+      await DbGeneral.query(db, "insert into sketch (name, jsonData) values ('$name', '$jsonData');");
     }
   }
 
@@ -370,7 +372,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     if(db != null) {
       // ignore name for now
-      maps = await db.rawQuery("select jsonData from sketch;");
+      maps = await DbGeneral.query(db, "select jsonData from sketch;");
     }
     if(maps.isEmpty) {
       return "";
