@@ -293,13 +293,13 @@ class Storage {
     catch(e) {}
     // ask for GPS permission
 
-    gpsNotPermitted = await Gps().isPermissionDenied();
+    gpsNotPermitted = await Gps().isPermissionDenied().onError((error, stackTrace) => true);
     if(gpsNotPermitted) {
-      Gps().requestPermissions();
+      Gps().requestPermissions().onError((error, stackTrace) => {});
     }
-    gpsDisabled = await Gps().isDisabled();
+    gpsDisabled = await Gps().isDisabled().onError((error, stackTrace) => true);
 
-    position = await Gps().getLastPosition();
+    position = await Gps().getLastPosition().onError((error, stackTrace) => Gps.centerUSAPosition());
     _gpsStack.push(position);
     settings.setZoom(10);
     settings.setCenterLatitude(position.latitude);
@@ -361,14 +361,14 @@ class Storage {
       if(timeChange.value % 5 == 0) {
         if(gpsInternal) {
           // check system for any issues
-          bool permissionDenied = await Gps().isPermissionDenied();
+          bool permissionDenied = await Gps().isPermissionDenied().onError((error, stackTrace) => true);
           if(permissionDenied == false && gpsNotPermitted == true) {
             // restart GPS since permission was denied, and now its allowed
             stopIO();
             startIO();
           }
           gpsNotPermitted = permissionDenied;
-          gpsDisabled = await Gps().isDisabled();
+          gpsDisabled = await Gps().isDisabled().onError((error, stackTrace) => true);
           warningChange.value =
               gpsNotPermitted || gpsDisabled || gpsNoLock || dataExpired || chartsMissing;
         }

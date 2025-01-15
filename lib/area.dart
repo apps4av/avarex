@@ -26,7 +26,13 @@ class Area {
     if(d.isNotEmpty) {
       closestAirport = d[0];
     }
-    obstacles = await MainDatabaseHelper.db.findObstacles(Gps.toLatLng(position), GeoCalculations.convertAltitude(position.altitude));
+
+    final List<String> layers = Storage().settings.getLayers();
+    final List<bool> layersState = Storage().settings.getLayersState();
+    int lIndex = layers.indexOf('Obstacles');
+    if(layersState[lIndex]) {
+      obstacles = await MainDatabaseHelper.db.findObstacles(Gps.toLatLng(position), GeoCalculations.convertAltitude(position.altitude));
+    }
     // get surface wind from nearest airport
     String wind = WindsCache.getWind0kFromMetar(Gps.toLatLng(position));
     // get aloft wind from nearest station

@@ -124,6 +124,8 @@ dev_dependencies:
     git:
       url: https://github.com/insertjokehere/msix.git
       ref: msvc_redist 
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
