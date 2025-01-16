@@ -119,14 +119,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && wa.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("windsAloft");
-        for(WindsAloft w in wa) {
-          DbGeneral.insert(db, "windsAloft", w.toMap());
-        }
-        await batch.commit();
-      });
+      await DbGeneral.deleteAndInsertBatch(db, "windsAloft", wa);
     }
   }
 
@@ -169,14 +162,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && metar.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("metar");
-        for(Metar m in metar) {
-          DbGeneral.insert(db, "metar", m.toMap());
-        }
-        await batch.commit();
-      });
+      await DbGeneral.deleteAndInsertBatch(db, "metar", metar);
     }
   }
 
@@ -221,14 +207,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && taf.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("taf");
-        for(Taf t in taf) {
-          DbGeneral.insert(db, "taf", t.toMap());
-        }
-        await batch.commit();
-      });
+      await DbGeneral.deleteAndInsertBatch(db, "taf", taf);
     }
   }
 
@@ -271,15 +250,8 @@ class WeatherDatabaseHelper {
   Future<void> addTfrs(List<Tfr> tfr) async {
     final db = await database;
 
-    if (db != null && tfr.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("tfr");
-        for(Tfr t in tfr) {
-          DbGeneral.insert(db, "tfr", t.toMap());
-        }
-        await batch.commit();
-      });
+    if(db != null && tfr.isNotEmpty) {
+      await DbGeneral.deleteAndInsertBatch(db, "tfr", tfr);
     }
   }
 
@@ -324,14 +296,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && aireps.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("airep");
-        for(Airep a in aireps) {
-          DbGeneral.insert(db, "airep", a.toMap());
-        }
-        await batch.commit();
-      });
+      await DbGeneral.deleteAndInsertBatch(db, "airep", aireps);
     }
   }
 
@@ -349,14 +314,7 @@ class WeatherDatabaseHelper {
     final db = await database;
 
     if (db != null && airSigmet.isNotEmpty) {
-      await db.transaction((txn) async {
-        Batch batch = txn.batch();
-        batch.delete("airsigmet");
-        for(AirSigmet a in airSigmet) {
-          DbGeneral.insert(db, "airsigmet", a.toMap());
-        }
-        await batch.commit();
-      });
+      await DbGeneral.deleteAndInsertBatch(db, "airsigmet", airSigmet);
     }
   }
 

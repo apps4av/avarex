@@ -32,4 +32,16 @@ class DbGeneral {
     return ret;
   }
 
+  static Future<void> deleteAndInsertBatch(Database db, String table, List<dynamic> values) async {
+    await db.transaction((txn) async {
+      Batch batch = txn.batch();
+      batch.delete(table);
+      for(dynamic v in values) {
+        batch.insert(table, v.toMap());
+      }
+      await batch.commit().onError((error, stackTrace) {
+        return [];
+      });
+    });
+  }
 }

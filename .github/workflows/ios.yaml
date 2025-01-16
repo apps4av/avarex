@@ -10,6 +10,10 @@ jobs:
     steps:
 
       - uses: actions/checkout@v4
+      - uses: futureware-tech/simulator-action@v4
+        with:
+          model: 'iPhone 13'
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -46,6 +50,10 @@ jobs:
 
       - name: Install project dependencies
         run: flutter pub get
+
+      - name: Integration Test
+        run: |
+          flutter test integration_test/app_test.dart -d ABCD-EFGH
 
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
