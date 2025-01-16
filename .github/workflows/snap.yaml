@@ -35,6 +35,9 @@ jobs:
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
 
+      - name: Integration Test
+        run: xvfb-run flutter test integration_test/app_test.dart -d linux
+
       - name: Build Snap Image
         run: sudo snapcraft --destructive-mode
           
