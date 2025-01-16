@@ -168,9 +168,9 @@ class PathUtils {
     return _expNoDelete.hasMatch(name);
   }
 
-  static void deleteFile(String url) {
+  static Future<void> deleteFile(String url) async {
     File f = File(url);
-    f.delete();
+    await f.delete();
   }
 
 

@@ -31,6 +31,7 @@ jobs:
       - name: Build artifacts and sign
         run: |
           flutter build macos --release
+          flutter test integration_test/app_test.dart
           echo -n ${{ secrets.MACOS_DIST_CERTIFICATE }} | base64 --decode --output certificate.p12
           # create temporary keychain
           security create-keychain -p test_password sign.keychain

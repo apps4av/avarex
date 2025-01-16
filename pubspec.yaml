@@ -123,7 +123,8 @@ dev_dependencies:
   msix:
     git:
       url: https://github.com/insertjokehere/msix.git
-      ref: msvc_redist 
+      ref: msvc_redist
+
   integration_test:
     sdk: flutter
 

@@ -324,7 +324,7 @@ class DownloadScreenState extends State<DownloadScreen> {
         if(!ct.enabled) {
           continue;
         }
-        if(ct.name == "Databases" && ct.state == _stateAbsentNone) {
+        if(ct.name == "DatabasesX" && ct.state == _stateAbsentNone) {
           // if database is missing, download, there is no need to operate with db
           ct.state = _stateAbsentDownload;
         }
@@ -374,7 +374,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       ChartCategory.databases,
       _absentColor,
       [
-        Chart('Databases', _absentColor, _absentIcon, 'databasesx', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('DatabasesX', _absentColor, _absentIcon, 'databasesx', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ],
       false,
     ),
