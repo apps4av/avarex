@@ -287,10 +287,11 @@ class Storage {
     units = UnitConversion(settings.getUnits());
     flightTimer = FlightTimer(true, 0, timeChange);
     flightDownTimer = FlightTimer(false, 30 * 60, timeChange); // 30 minute down timer
-    try {
-      WakelockPlus.enable(); // keep screen on
-    }
-    catch(e) {}
+    WakelockPlus.enable().onError(
+      (error, stackTrace) => {
+        // wakelock is optional
+      }
+    ); // keep screen on
     // ask for GPS permission
 
     gpsNotPermitted = await Gps().isPermissionDenied().onError((error, stackTrace) => true);

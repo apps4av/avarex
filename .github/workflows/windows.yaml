@@ -26,6 +26,9 @@ jobs:
       - name: Install project dependencies
         run: flutter pub get
 
+      - name: Integration Test
+        run: flutter test integration_test/app_test.dart -d windows
+
       - name: Build artifacts
         run: flutter build windows --release
       - name: Build artifacts MSIX
