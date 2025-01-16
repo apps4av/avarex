@@ -59,6 +59,7 @@ void main() {
 
           // go to download
           fab = find.widgetWithText(TextButton, "Download");
+          await tester.dragUntilVisible(fab, find.byType(IntroductionScreen), const Offset(0, -250));
           await tester.tap(fab);
           await tester.pumpAndSettle();
 
