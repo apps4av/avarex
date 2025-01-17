@@ -34,8 +34,7 @@ void main() {
           await tester.pumpWidget(const MainApp());
           Future.delayed(const Duration(seconds: 1));
 
-          // dummy
-          Finder fab = find.backButton();
+          late Finder fab;
 
           Future<void> signTest() async {
                 // sign
