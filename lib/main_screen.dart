@@ -157,18 +157,22 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               BottomNavigationBarItem(
                 icon: Icon(Icons.map, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
                 label: 'MAP',
+                tooltip: "View the maps and overlays",
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
                 label: 'PLATE',
+                tooltip: "Look at approach plates, airport diagrams, CSUP, Minimums, etc.",
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.route, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
                 label: 'PLAN',
+                tooltip: "Create a flight plan",
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.search, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))],),
                 label: 'FIND',
+                tooltip: "Search for Airports, NavAids, etc.",
               ),
             ],
             currentIndex: _selectedIndex,
