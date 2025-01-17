@@ -47,6 +47,10 @@ class WindsAloft extends Weather {
     return(dir, (speed.toDouble() * Storage().units.knotsTo).round());
   }
 
+  static String invertTemperature(String wind) {
+    return wind.replaceRange(4,4,'-');
+  }
+
   (double?, double?) getWindAtAltitude(double altitude) { // dir, speed
     String wHigher;
     String wLower;
@@ -176,13 +180,13 @@ class WindsAloft extends Weather {
       return w24k;
     }
     else if (altitude == 30000) {
-      return w30k;
+      return invertTemperature(w30k);
     }
     else if (altitude == 34000) {
-      return w34k;
+      return invertTemperature(w34k);
     }
     else if (altitude == 39000) {
-      return w39k;
+      return invertTemperature(w39k);
     }
     return "N/A";
   }
@@ -242,7 +246,7 @@ class WindsAloft extends Weather {
   toString() {
     DateTime zulu = expires.toUtc(); // winds in Zulu time
     // boilerplate
-    String wind = "$station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z";
+    String wind = "$station\nValid till ${expires.hour.toString().padLeft(2, '0')}:${expires.minute.toString().padLeft(2, '0')} (${zulu.day.toString().padLeft(2, '0')}${zulu.hour.toString().padLeft(2, '0')}00Z)";
     return wind;
   }
 }
