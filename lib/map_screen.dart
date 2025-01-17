@@ -353,7 +353,7 @@ class MapScreenState extends State<MapScreen> {
                 if(index > nexradLength - 1) {
                   index = nexradLength - 1; // give 2 times the time for latest to stay on
                 }
-                return nexradLayer[index]; // animate every 3 seconds
+                return Opacity(opacity: 0.5, child: nexradLayer[index]); // animate every 3 seconds
           })
       );
 
