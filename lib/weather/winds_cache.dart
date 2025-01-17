@@ -10,15 +10,19 @@ import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
 
-enum WindsAloftProduct {
-  conUsLow,
-  alaskaLow,
-  canadaLow,
-  canadaHigh,
-  hawaiiLow,
-  hawaiiHigh,
-  pacificLow,
-  pacificHigh,
+enum _WindsAloftProduct {
+  conUsLow06H,
+  alaskaLow06H,
+  hawaiiLow06H,
+  pacificLow06H,
+  conUsLow12H,
+  alaskaLow12H,
+  hawaiiLow12H,
+  pacificLow12H,
+  conUsLow24H,
+  alaskaLow24H,
+  hawaiiLow24H,
+  pacificLow24H,
 }
 
 class WindsCache extends WeatherCache {
@@ -26,12 +30,13 @@ class WindsCache extends WeatherCache {
   WindsCache(super.urls, super.dbCall);
 
   // metar if winds from ground need to be used
-  static (double?, double?) getWindsAt(LatLng coordinate, double altitude) {
+  static (double?, double?) getWindsAt(LatLng coordinate, double altitude, int fore) {
     double? ws;
     double? wd;
+    String foreString = fore.toString().padLeft(2, "0"); // stations has fore in the name
     String? station = WindsCache.locateNearestStation(coordinate);
-    WindsAloft? wa = Storage().winds.get(station) != null ? Storage().winds.get(station) as WindsAloft : null;
-    (wd, ws) = WindsCache.getWindAtAltitude(altitude, wa);
+    var ww = Storage().winds.get("$station${foreString}H");
+    (wd, ws) = WindsCache.getWindAtAltitude(altitude, ww == null ? null : ww as WindsAloft);
     return (wd, ws);
   }
 
@@ -73,7 +78,7 @@ class WindsCache extends WeatherCache {
 
       bool start = false;
       // parse winds, first check if a new download is needed
-      WindsAloftProduct? p = getWindsAloftProductType(lines);
+      _WindsAloftProduct? p = _getWindsAloftProductType(lines);
       RegExp exp2 = RegExp("FT.*39000|FT.*18000|FT.*24000|.*9000    12000   18000.*"); //CWAO observations do not start with "FT"
       for (String line in lines) {
         line = line.trim();
@@ -88,8 +93,12 @@ class WindsCache extends WeatherCache {
         if(expires == null) {
           continue;
         }
+
+        // find fore in winds. Stations are suffixes with 06H 12H or 24H for 6 12 and 24 hour forecasts
+        String fore = p.toString().substring(p.toString().length - 3);
+
         //Low altitude winds aloft parsing -- these cases can assume that no previous entry with the same station name exists
-        if(p == WindsAloftProduct.conUsLow || p == WindsAloftProduct.alaskaLow) {
+        if(p == _WindsAloftProduct.conUsLow06H || p == _WindsAloftProduct.alaskaLow06H || p == _WindsAloftProduct.conUsLow12H || p == _WindsAloftProduct.alaskaLow12H || p == _WindsAloftProduct.conUsLow24H || p == _WindsAloftProduct.alaskaLow24H) {
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(4, 8).trim();
@@ -105,12 +114,12 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            WindsAloft w = WindsAloft("$station$fore", expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
             winds.add(w);
           }
           catch (e) {}
         }
-        else if(p == WindsAloftProduct.pacificLow || p == WindsAloftProduct.hawaiiLow) {
+        else if(p == _WindsAloftProduct.pacificLow06H || p == _WindsAloftProduct.hawaiiLow06H || p == _WindsAloftProduct.pacificLow12H || p == _WindsAloftProduct.hawaiiLow12H || p == _WindsAloftProduct.pacificLow24H || p == _WindsAloftProduct.hawaiiLow24H) {
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(19, 23).trim();
@@ -123,97 +132,8 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
+            WindsAloft w = WindsAloft("$station$fore", expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
             winds.add(w);
-          }
-          catch (e) {}
-        }
-        else if(p == WindsAloftProduct.canadaLow) {
-          try {
-            String station = line.substring(0, 3).trim();
-            String k3 = line.substring(4, 8).trim();
-            String k6 = line.substring(9, 16).trim();
-            String k9 = line.substring(17, 24).trim();
-            String k12 = line.substring(25, 32).trim();
-            String k18 = line.substring(33, 40).trim();
-            LatLng? coordinate = _stationMap[station];
-            if(coordinate == null) {
-              continue; // not recognized need this
-            }
-            WindsAloft w = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, '', '', '', '');
-            winds.add(w);
-          }
-          catch (e) {}
-        }
-        //High altitude winds aloft parsing -- these cases will attempt to update existing low entries
-        //iff no low entry exists, one will be created
-        else if(p == WindsAloftProduct.pacificHigh || p == WindsAloftProduct.hawaiiHigh) {
-          try {
-            String station = line.substring(0, 3).trim();
-            int index = winds.indexWhere((wa) => wa.station == station);
-            WindsAloft w;
-            if(index >= 0) {
-              w = winds[index];
-            }
-            else {
-              w = WindsAloft(station, expires, '', '', '', '' , '', '', '', '', '' ,'');
-            }
-            String k3 = w.w3k;
-            String k6 = w.w6k;
-            String k9 = w.w9k;
-            String k12 = w.w12k;
-            String k18 = w.w18k;
-            String k24 = w.w24k;
-            String k30 = line.substring(4, 10).trim();
-            String k34 = line.substring(11, 17).trim();
-            String k39 = line.substring(18, 24).trim();
-            LatLng? coordinate = _stationMap[station];
-            if(coordinate == null) {
-              continue; // not recognized need this
-            }
-
-            WindsAloft newWA = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
-            if(index >= 0) {
-              winds[index] = newWA;
-            }
-            else {
-              winds.add(newWA);
-            }
-          }
-          catch (e) {}
-        }
-        else if(p == WindsAloftProduct.canadaHigh) {
-          try {
-            String station = line.substring(1, 4).trim();
-            int index = winds.indexWhere((wa) => wa.station == station);
-            WindsAloft w;
-            if(index >= 0) {
-              w = winds[index];
-            }
-            else {
-              w = WindsAloft(station, expires, '', '', '', '' , '', '', '', '', '' ,'');
-            }
-            String k3 = w.w3k;
-            String k6 = w.w6k;
-            String k9 = w.w9k;
-            String k12 = w.w12k;
-            String k18 = w.w18k;
-            String k24 = line.substring(5, 12).trim();
-            String k30 = line.substring(13, 19).trim();
-            String k34 = line.substring(20, 26).trim();
-            String k39 = line.substring(27, 33).trim();
-            LatLng? coordinate = _stationMap[station];
-            if(coordinate == null) {
-              continue; // not recognized need this
-            }
-
-            WindsAloft newWA = WindsAloft(station, expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
-            if(index >= 0) {
-              winds[index] = newWA;
-            }
-            else {
-              winds.add(newWA);
-            }
           }
           catch (e) {}
         }
@@ -222,46 +142,65 @@ class WindsCache extends WeatherCache {
     await WeatherDatabaseHelper.db.addWindsAlofts(winds);
   }
 
-  static WindsAloftProduct? getWindsAloftProductType(List<String> lines) {
+  static _WindsAloftProduct? _getWindsAloftProductType(List<String> lines) {
     //we need to include the issuing organization (KWNO/CWAO) because low/high Canada broadcasts are disambiguated by issuer
     //(other broadcasts are disambiguated by product number, e.g. FBUS31 (low) FBUS37 (high))
-    RegExp conUsLowKey = RegExp("FBUS31 KWNO.*");
-    RegExp alaskaLowKey = RegExp("FBAK31 KWNO.*");
-    RegExp canadaLowKey = RegExp("FBCN31 CWAO.*");
-    RegExp canadaHighKey = RegExp("FBCN31 KWNO.*");
-    RegExp pacificLowKey = RegExp("FBOC31 KWNO.*");
-    RegExp pacificHighKey = RegExp("FBOC37 KWNO.*");
-    RegExp hawaiiLowKey = RegExp("FBHW31 KWNO.*");
-    RegExp hawaiiHighKey = RegExp("FBHW37 KWNO.*");
+    RegExp conUsLowKey06H    = RegExp("FBUS31 KWNO.*");
+    RegExp alaskaLowKey06H   = RegExp("FBAK31 KWNO.*");
+    RegExp pacificLowKey06H  = RegExp("FBOC31 KWNO.*");
+    RegExp hawaiiLowKey06H   = RegExp("FBHW31 KWNO.*");
+    RegExp conUsLowKey12H    = RegExp("FBUS33 KWNO.*");
+    RegExp alaskaLowKey12H   = RegExp("FBAK33 KWNO.*");
+    RegExp pacificLowKey12H  = RegExp("FBOC33 KWNO.*");
+    RegExp hawaiiLowKey12H   = RegExp("FBHW33 KWNO.*");
+    RegExp conUsLowKey24H    = RegExp("FBUS35 KWNO.*");
+    RegExp alaskaLowKey24H   = RegExp("FBAK35 KWNO.*");
+    RegExp pacificLowKey24H  = RegExp("FBOC35 KWNO.*");
+    RegExp hawaiiLowKey24H   = RegExp("FBHW35 KWNO.*");
 
     for (String line in lines) {
       try {
         line = line.trim();
 
-        if (conUsLowKey.firstMatch(line) != null) {
-          return WindsAloftProduct.conUsLow;
+        if (conUsLowKey06H.firstMatch(line) != null) {
+          return _WindsAloftProduct.conUsLow06H;
         }
-        else if (alaskaLowKey.firstMatch(line) != null) {
-          return WindsAloftProduct.alaskaLow;
+        else if (alaskaLowKey06H.firstMatch(line) != null) {
+          return _WindsAloftProduct.alaskaLow06H;
         }
-        else if (canadaLowKey.firstMatch(line) != null) {
-          return WindsAloftProduct.canadaLow;
+        else if (pacificLowKey06H.firstMatch(line) != null) {
+          return _WindsAloftProduct.pacificLow06H;
         }
-        else if (canadaHighKey.firstMatch(line) != null) {
-          return WindsAloftProduct.canadaHigh;
+        else if (hawaiiLowKey06H.firstMatch(line) != null) {
+          return _WindsAloftProduct.hawaiiLow06H;
         }
-        else if (pacificLowKey.firstMatch(line) != null) {
-          return WindsAloftProduct.pacificLow;
+
+        else if (conUsLowKey12H.firstMatch(line) != null) {
+          return _WindsAloftProduct.conUsLow12H;
         }
-        else if (pacificHighKey.firstMatch(line) != null) {
-          return WindsAloftProduct.pacificHigh;
+        else if (alaskaLowKey12H.firstMatch(line) != null) {
+          return _WindsAloftProduct.alaskaLow12H;
         }
-        else if (hawaiiLowKey.firstMatch(line) != null) {
-          return WindsAloftProduct.hawaiiLow;
+        else if (pacificLowKey12H.firstMatch(line) != null) {
+          return _WindsAloftProduct.pacificLow12H;
         }
-        else if (hawaiiHighKey.firstMatch(line) != null) {
-          return WindsAloftProduct.hawaiiHigh;
+        else if (hawaiiLowKey12H.firstMatch(line) != null) {
+          return _WindsAloftProduct.hawaiiLow12H;
         }
+
+        else if (conUsLowKey24H.firstMatch(line) != null) {
+          return _WindsAloftProduct.conUsLow24H;
+        }
+        else if (alaskaLowKey24H.firstMatch(line) != null) {
+          return _WindsAloftProduct.alaskaLow24H;
+        }
+        else if (pacificLowKey24H.firstMatch(line) != null) {
+          return _WindsAloftProduct.pacificLow24H;
+        }
+        else if (hawaiiLowKey24H.firstMatch(line) != null) {
+          return _WindsAloftProduct.hawaiiLow24H;
+        }
+
       }
       catch (e) {}
     }

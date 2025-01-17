@@ -167,7 +167,7 @@ class InstrumentListState extends State<InstrumentList> {
         // find time to next, not interested in fuel
         double? ws;
         double? wd;
-        (wd, ws) = WindsCache.getWindsAt(next.destination.coordinate, GeoCalculations.convertAltitude(Storage().position.altitude));
+        (wd, ws) = WindsCache.getWindsAt(next.destination.coordinate, GeoCalculations.convertAltitude(Storage().position.altitude), 6); // 6HR wind
 
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,

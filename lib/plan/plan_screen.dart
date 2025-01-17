@@ -2,6 +2,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 import 'plan_item_widget.dart';
@@ -119,12 +120,37 @@ class PlanScreenState extends State<PlanScreen> {
                       onChanged: (value) {
                         int? pValue = int.tryParse(value);
                         pValue ??= 3000;
-                        Storage().route.altitude = pValue.toString();
+                        Storage().route.altitude = pValue;
                       },
-                      controller: TextEditingController()..text = Storage().route.altitude,
+                      controller: TextEditingController()..text = Storage().route.altitude.toString(),
                       decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
                   ))),
 
+                  DropdownButtonHideUnderline(
+                      child:DropdownButton2<String>(
+                        isDense: true,// plate selection
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        isExpanded: false,
+                        value: "${Storage().route.fore.toString().padLeft(2, "0")}H",
+                        items: ["06H", "12H", "24H"].map((String item) {
+                          return DropdownMenuItem<String>(
+                              value: item,
+                              child: Text(item)
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          value ??= ["06H", "12H", "24H"][0];
+                          setState(() {
+                            Storage().route.fore = int.parse(value!.substring(0, 2));
+                          });
+                        },
+                      )
+                  ),
                   IconButton(icon: const Icon(Icons.local_gas_station_rounded), tooltip: "See navigation log and terrain en route", onPressed: () => showDialog(context: context, builder: (BuildContext context) => Dialog.fullscreen(
                       child: _makeNavLog()
                   ))),
@@ -216,7 +242,7 @@ class AltitudePainter extends CustomPainter {
   final List<double> data;
   double maxAltitude = 0;
   double minAltitude = 0;
-  final double altitudeOfPlan = double.parse(Storage().route.altitude);
+  final double altitudeOfPlan = Storage().route.altitude.toDouble();
   List<Destination> destinations = Storage().route.getNextDestinations();
   int length = 0;
   final _paint = Paint()

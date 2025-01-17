@@ -80,7 +80,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                   }
                   Storage().settings.setLastRouteEntry(input);
                   setState(() {_getting = true;});
-                  PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude, Storage().route.altitude).then((value) {
+                  PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude.toString(), Storage().route.altitude.toString()).then((value) {
                     Storage().route.copyFrom(value);
                     Storage().route.setCurrentWaypoint(0);
                     setState(() {_getting = false; Navigator.pop(context);});

@@ -380,10 +380,10 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
               ),
 
               Row(children:[
-                TextButton(child: Text((int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0")),
+                TextButton(child: Text((route.altitude ~/ 100).toString().padLeft(3, "0")),
                   onPressed: () {
                     setState(() {
-                      _altitude = (int.parse(route.altitude) ~/ 100).toString().padLeft(3, "0");
+                      _altitude = (route.altitude ~/ 100).toString().padLeft(3, "0");
                     });
                 },)
               ]),

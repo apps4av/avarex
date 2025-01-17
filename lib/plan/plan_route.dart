@@ -31,7 +31,8 @@ class PlanRoute {
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
-  String altitude = "3000";
+  int altitude = 3000;
+  int fore = 6;
   Passage? _passage;
   List<Destination> _allDestinations = [];
   List<Destination> _nextDestinations = [];
@@ -201,7 +202,7 @@ class PlanRoute {
       _allDestinations[0].calculations = null;
       double? ws;
       double? wd;
-      (wd, ws) = WindsCache.getWindsAt(_allDestinations[index].coordinate, double.parse(altitude));
+      (wd, ws) = WindsCache.getWindsAt(_allDestinations[index].coordinate, altitude.toDouble(), fore);
       DestinationCalculations calc;
       // calculate total from current position to active route
       if(current.destination == _allDestinations[index + 1]) {
@@ -209,14 +210,15 @@ class PlanRoute {
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
           _allDestinations[index + 1],
           Storage().settings.getTas(),
-          Storage().settings.getFuelBurn(), wd, ws, double.parse(altitude));
+          Storage().settings.getFuelBurn(), wd, ws, altitude.toDouble());
       }
       else {
         calc = DestinationCalculations(
             _allDestinations[index], _allDestinations[index + 1],
             Storage().settings.getTas(),
             Storage().settings.getFuelBurn(), wd, ws,
-            double.parse(altitude));
+            altitude.toDouble()
+        );
       }
       calc.calculateTo();
       _allDestinations[index + 1].calculations = calc;
