@@ -52,29 +52,9 @@ class WindsCache extends WeatherCache {
     {
       String dataString = utf8.decode(datum);
 
-      // parse winds, set expire time
-      RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
-      DateTime? expires;
-
+      // parse winds, set expire time 6 hrs in future
+      DateTime expires = DateTime.now().add(const Duration(hours: 6));
       List<String> lines = dataString.split('\n');
-      for (String line in lines) {
-        line = line.trim();
-        RegExpMatch? match = exp1.firstMatch(line);
-        if (match != null) {
-          DateTime now = DateTime.now().toUtc();
-          expires = DateTime.utc(
-              now.year,
-              now.month,
-              now.day, //day
-              0,
-              0);
-          int from = int.parse(match[2]!);
-          int to = int.parse(match[3]!);
-          // if from > to then its next day
-          expires = expires.add(Duration(days: to < from ? 1 : 0, hours: int.parse(match[3]!.substring(0, 2))));
-          break;
-        }
-      }
 
       bool start = false;
       // parse winds, first check if a new download is needed
@@ -88,9 +68,6 @@ class WindsCache extends WeatherCache {
           continue;
         }
         if(!start) {
-          continue;
-        }
-        if(expires == null) {
           continue;
         }
 

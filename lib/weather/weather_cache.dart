@@ -1,20 +1,24 @@
 import 'dart:async';
 import 'dart:typed_data';
-
 import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:avaremp/weather/metar_cache.dart';
 import 'package:avaremp/weather/taf_cache.dart';
 import 'package:avaremp/weather/tfr_cache.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:http/http.dart' as http;
-
 import 'airep_cache.dart';
 import 'airsigmet_cache.dart';
 import 'notam_cache.dart';
 
+
 class WeatherCache {
+
+  // stop from downloading weather continuously by storing when last time the weather was downloaded otherwise can get in download loop
+  final Map<Type, DateTime> _lastDownload = {};
+  final int _maxAge = 1 * 60 * 1000; // in ms
 
   final change = ValueNotifier<int>(0);
 
@@ -50,6 +54,7 @@ class WeatherCache {
   }
 
   Weather? get(String? station) {
+
     if(station == null) {
       return null; // something wrong
     }
@@ -60,6 +65,12 @@ class WeatherCache {
       return(null);
     }
     if(w.isExpired()) {
+      if(_lastDownload.containsKey(w.runtimeType)) {
+        if((DateTime.now().millisecondsSinceEpoch - _lastDownload[w.runtimeType]!.millisecondsSinceEpoch) < _maxAge) {
+          return null;
+        }
+      }
+      _lastDownload[w.runtimeType] = DateTime.now();
       download(station);
     }
     return w;
