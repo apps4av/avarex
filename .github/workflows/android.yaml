@@ -6,6 +6,10 @@ jobs:
 
   build-and-release:
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        api-level: [ 29 ]
+        target: [ playstore ]
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +39,10 @@ jobs:
       - name: Integration Test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          target: ${{ matrix.target }}
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          profile: Nexus 6
           script: flutter test integration_test/app_test.dart
 
       - name: Build APK
