@@ -78,7 +78,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // give time to download
-          await Future.delayed(const Duration(seconds: 10));
+          await Future.delayed(const Duration(seconds: 30));
           await tester.pumpAndSettle();
 
           String cycle = FaaDates.getCurrentCycle();
