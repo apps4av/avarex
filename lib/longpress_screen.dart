@@ -161,7 +161,7 @@ class LongPressScreenState extends State<LongPressScreen> {
     Weather? winds;
     String? station = WindsCache.locateNearestStation(showDestination.coordinate);
     if(station != null) {
-      winds = Storage().winds.get(station);
+      winds = Storage().winds.get("${station}06H"); // 6HR wind
       if(winds != null) {
         WindsAloft wa = winds as WindsAloft;
         pages[labels.indexOf("Wind")] = ListView(children: [
