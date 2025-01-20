@@ -22,11 +22,12 @@ jobs:
       - name: Build Flutter
         run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter build linux --release
 
-      - name: Integration Test
-        run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter test integration_test/app_test.dart -d linux
-        
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: RaspberryPi
           path: build/linux/arm64/release/bundle/*
+
+      - name: Integration Test
+        run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter clean && flutter test integration_test/app_test.dart -d linux
+        
