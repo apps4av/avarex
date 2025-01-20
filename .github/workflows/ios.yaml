@@ -13,7 +13,6 @@ jobs:
       - uses: futureware-tech/simulator-action@v4
         with:
           model: 'iPhone 15'
-          udid: '11111111-2222-3333-4444-555555555555'
 
       - uses: subosito/flutter-action@v2
         with:
@@ -54,7 +53,7 @@ jobs:
 
       - name: Integration Test
         run: |
-          flutter test integration_test/app_test.dart -d 11111111-2222-3333-4444-555555555555
+          flutter test integration_test/app_test.dart -d ios
 
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
