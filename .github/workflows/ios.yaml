@@ -53,7 +53,7 @@ jobs:
 
       - name: Integration Test
         run: |
-          flutter test integration_test/app_test.dart -d CDE2A752-ABC1-4D01-992E-496FC6CBA94E
+          flutter test integration_test/app_test.dart -d 'iPhone 15'
 
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist

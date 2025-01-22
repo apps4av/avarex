@@ -1,6 +1,8 @@
 # AvareX
 
-Avare, written in Flutter. Runs on Linux, Windows, MacOS, iOS, Android.
+Avare, written in Flutter. Runs on Linux, Windows, MacOS, iOS, Android, and Raspberry Pi.
+
+AvareX is a pilot's all in one electronic flight bag solution.
 
 By Apps4Av.
 
@@ -30,6 +32,10 @@ Download on Apple App Store from your iPhone or iPad.
 ** Android
 
 Download on Google Play Store from your Android device.
+
+** Raspberry Pi
+
+Download at https://github.com/apps4av/avarex/actions/workflows/arm64.yaml from your Pi. Tested on Pi 5 with 8 GB memory, and a 1080P monitor.
 
 ## Store Consoles
 

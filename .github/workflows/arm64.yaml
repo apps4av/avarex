@@ -9,10 +9,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          flutter-version: '3.24.4'
 
       - name: Find and Replace OpenAIP
         uses: richardrigutins/replace-in-files@v2
@@ -23,12 +19,14 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
-      - name: Update source repo
-        run: sudo apt-get update
-      - name: Pre-empt libunwind issue for gstreamer
-        run: sudo apt-get install -y libunwind-dev
-      - name: Install audioplayers dependencies
-        run: sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-      - name: Install dependencies
-        run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - name: Build Flutter
+        run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter build linux --release
 
+      - name: Integration Test
+        run: export PATH=${PATH}:/home/zkhan/flutter/bin && xvfb-run flutter test integration_test/app_test.dart -d linux
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaspberryPi
+          path: build/linux/arm64/release/bundle/*
