@@ -252,5 +252,13 @@ class AppSettings {
   void doneReview() {
     provider.setBool("key-review-never", true);
   }
-
+  
+  // Support no-UI config via user.db (set key/value via external SQLite methods)
+  // Respect SQLite flexible typing: store as TEXT (String)
+  String getStealthSetting(String key, String defVal) {
+    return provider.getString(key, defaultValue: defVal) as String;
+  }
+  void setStealthSetting(String key, String val) {
+    provider.setString(key, val);
+  }
 }
