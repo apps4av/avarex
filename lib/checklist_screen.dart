@@ -50,7 +50,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           if(lines.isEmpty) {
             return;
           }
-          String name = lines.removeAt(0);
+          String name = lines.removeAt(0).substring(0, 24);
           // remove empty lines
           lines = List<String>.from(lines).where((value) => value.isNotEmpty).toList();
           Checklist list = Checklist(name, "", lines);
@@ -108,8 +108,9 @@ class ChecklistScreenState extends State<ChecklistScreen> {
       Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
     }
 
-    return SingleChildScrollView(
-        child: Padding(
+    return StatefulBuilder(
+      builder: (BuildContext context, StateSetter setState1) {
+        return SingleChildScrollView(child: Padding(
           padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,7 +119,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
               for(int index = 0; index < active.steps.length; index++)
                 Column(children:[
                   CheckboxListTile(title: Text(active.steps[index]), value: Storage().activeChecklistSteps[index], onChanged: (value) {
-                    setState(() {
+                    setState1(() {
                       Storage().activeChecklistSteps[index] = value!;
                     });
                   }),
@@ -143,7 +144,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           )
         )
     );
-  }
+  });}
 
   @override
   Widget build(BuildContext context) {
