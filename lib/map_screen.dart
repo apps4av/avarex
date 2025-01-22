@@ -71,7 +71,8 @@ class MapScreenState extends State<MapScreen> {
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations calculations = GeoCalculations();
   final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
-
+  double _nexrad_opacity = double.parse(Storage().settings.getStealthSetting("key-nexrad-opacity", "0.8"));  // respect ZK 0.8
+  
   static Future<void> showDestination(BuildContext context, List<Destination> destinations) async {
     await Navigator.pushNamed(context, "/popup", arguments: destinations);
   }
@@ -353,7 +354,7 @@ class MapScreenState extends State<MapScreen> {
                 if(index > nexradLength - 1) {
                   index = nexradLength - 1; // give 2 times the time for latest to stay on
                 }
-                return Opacity(opacity: 0.8, child: nexradLayer[index]); // animate every 3 seconds
+                return Opacity(opacity: _nexrad_opacity, child: nexradLayer[index]); // animate every 3 seconds
           })
       );
 
@@ -1371,7 +1372,26 @@ class MapScreenState extends State<MapScreen> {
                                                 ListTile(
                                                   dense: true,
                                                   title: Text(_layers[index]),
-                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
+                                                  //subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
+                                                  subtitle: _layersState[index] ?
+                                                      _layers[index] == "NOAA-Loop" ?
+													                            // ZK can tweak slider layout, add tooltip; but functional POC for now
+                                                      StatefulBuilder(builder: (BuildContext context, StateSetter setState) => 
+                                                            Container(height: 20, width: 1, padding: EdgeInsets.fromLTRB(0,0,0,0), child:
+                                                            SliderTheme(data: SliderThemeData(thumbShape: RoundSliderThumbShape(enabledThumbRadius: 8)), child:
+                                                              Slider(
+                                                                value: _nexrad_opacity,
+                                                                min: 0.1, max: 0.9, divisions: 9,
+                                                                label: "opacity: ${_nexrad_opacity.toStringAsPrecision(1)}",
+                                                                onChanged: (double value) { 
+                                                                  setState(() => _nexrad_opacity = value);
+                                                                  Storage().settings.setStealthSetting('key-nexrad-opacity', _nexrad_opacity.toStringAsPrecision(1));
+                                                                }
+                                                              ) 
+                                                            )
+                                                          ))
+                                                      : const Text("Layer is On")
+                                                    : const Text("Layer is Off"),
                                                   leading: Switch(
                                                     value: _layersState[index],
                                                     onChanged: (bool value) {
