@@ -286,7 +286,7 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('OpenAIP');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(openaipLayer);
+      layers.add(Opacity(opacity: opacity, child: openaipLayer));
       layers.add(
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
