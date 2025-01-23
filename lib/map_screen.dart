@@ -65,7 +65,7 @@ class MapScreenState extends State<MapScreen> {
   MapController? _controller;
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
-  final List<bool> _layersState = Storage().settings.getLayersState();
+  final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
   final int disableClusteringAtZoom = 10;
   final int maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
@@ -162,6 +162,7 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double opacity = 1.0;
     if (mapReset != null) {
       mapReset!.close();
     }
@@ -263,8 +264,9 @@ class MapScreenState extends State<MapScreen> {
     );
 
     int lIndex = _layers.indexOf('OSM');
-    if (_layersState[lIndex]) {
-      layers.add(osmLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: osmLayer));
       layers.add( // OSM attribution
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
@@ -277,11 +279,13 @@ class MapScreenState extends State<MapScreen> {
           ));
     }
     lIndex = _layers.indexOf('Topo');
-    if (_layersState[lIndex]) {
-      layers.add(topoLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: topoLayer));
     }
     lIndex = _layers.indexOf('OpenAIP');
-    if (_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add(openaipLayer);
       layers.add(
           Container(padding: EdgeInsets.fromLTRB(
@@ -293,21 +297,23 @@ class MapScreenState extends State<MapScreen> {
           ));
     }
     lIndex = _layers.indexOf('Chart');
-    if (_layersState[lIndex]) {
-      layers.add(chartLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: chartLayer));
     }
 
     // Custom shapes
     lIndex = _layers.indexOf('GeoJSON');
-    if(_layersState[lIndex]) {
-      layers.add(ValueListenableBuilder<int>(
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
         valueListenable: Storage().geoParser.change,
         builder: (context, value, _) {
           return PolygonLayer(polygons: Storage().geoParser.polygons);
         })
-      );
+      ));
 
-      layers.add(ValueListenableBuilder<int>(
+      layers.add(Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().geoParser.change,
           builder: (context, value, _) {
             return MarkerClusterLayerWidget( //cluster them transparent
@@ -335,14 +341,15 @@ class MapScreenState extends State<MapScreen> {
                 )
             );
           })
-      );
+      ));
     }
 
     int nexradLength = nexradLayer.length;
-    lIndex = _layers.indexOf('NOAA-Loop');
-    if(_layersState[lIndex]) {
+    lIndex = _layers.indexOf('Radar');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
                 if(value % 300 == 0) {
@@ -353,13 +360,13 @@ class MapScreenState extends State<MapScreen> {
                 if(index > nexradLength - 1) {
                   index = nexradLength - 1; // give 2 times the time for latest to stay on
                 }
-                return Opacity(opacity: 0.8, child: nexradLayer[index]); // animate every 3 seconds
+                return nexradLayer[index]; // animate every 3 seconds
           })
-      );
+      ));
 
       // nexrad
       layers.add(// nexrad slider
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
                 int index = value % (nexradLength * 2);
@@ -370,13 +377,14 @@ class MapScreenState extends State<MapScreen> {
                   child: Slider(value: index / (nexradLength - 1), onChanged: (double value) {  },),
               );
           })
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Weather');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().metar.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().metar.getAll();
@@ -402,10 +410,10 @@ class MapScreenState extends State<MapScreen> {
                 );
               }
           )
-      );
+      ));
 
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().taf.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().taf.getAll();
@@ -433,10 +441,10 @@ class MapScreenState extends State<MapScreen> {
                 );
               }
           )
-      );
+      ));
 
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().airep.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().airep.getAll();
@@ -462,10 +470,10 @@ class MapScreenState extends State<MapScreen> {
                 );
               }
           )
-      );
+      ));
 
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().airSigmet.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().airSigmet.getAll();
@@ -486,10 +494,10 @@ class MapScreenState extends State<MapScreen> {
                 );
              }
           )
-      );
+      ));
 
       layers.add(
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
               valueListenable: Storage().airSigmet.change,
               builder: (context, value, _) {
                 List<Weather> weather = Storage().airSigmet.getAll();
@@ -530,11 +538,11 @@ class MapScreenState extends State<MapScreen> {
                 );
               }
           )
-      );
+      ));
 
       layers.add(
         // nexrad layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             bool conus = true;
@@ -552,14 +560,14 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
-
+      ));
     }
 
     lIndex = _layers.indexOf('TFR');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add( // route layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().tfr.change,
           builder: (context, value, _) {
             List<Weather> weather = Storage().tfr.getAll();
@@ -578,10 +586,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // route layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().tfr.change,
           builder: (context, value, _) {
             List<Weather> weather = Storage().tfr.getAll();
@@ -609,14 +617,14 @@ class MapScreenState extends State<MapScreen> {
             ));
           },
         ),
-      );
-
+      ));
     }
 
     lIndex = _layers.indexOf('Plate');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add( // circle layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
             valueListenable: Storage().plateChange,
             builder: (context, value, _) {
               return OverlayImageLayer(
@@ -636,14 +644,15 @@ class MapScreenState extends State<MapScreen> {
               );
             }
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Traffic');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add(
         // traffic layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             return MarkerLayer(
@@ -669,13 +678,14 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Tracks');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add( // tracks layer
-        ValueListenableBuilder<Position>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             List<LatLng> path = Storage().tracks.getPoints();
@@ -692,13 +702,14 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Circles');
-      if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if(opacity > 0) {
         layers.add( // tape
-          ValueListenableBuilder<(List<LatLng>, List<String>)>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
             valueListenable: tapeNotifier,
             builder: (context, value, _) {
               return MarkerLayer(
@@ -716,10 +727,10 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-        );
+        ));
 
         layers.add( // circle layer
-          ValueListenableBuilder<Position>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
               return CircleLayer(
@@ -766,10 +777,10 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-        );
+        ));
 
         layers.add( // circle layer labels
-          ValueListenableBuilder<Position>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
               return MarkerLayer(
@@ -805,14 +816,15 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-        );
+        ));
       }
 
       lIndex = _layers.indexOf('Obstacles');
-      if(_layersState[lIndex]) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
         //obstacles
         layers.add(
-            ValueListenableBuilder<int>(
+            Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
                 valueListenable: Storage().timeChange,
                 builder: (context, value, _) {
                   return MarkerLayer(markers: [
@@ -822,13 +834,15 @@ class MapScreenState extends State<MapScreen> {
                           child: const Icon(Icons.square, color: Colors.red, size: 20,)))
                   ]);
                 })
+            )
         );
       }
 
-      lIndex = _layers.indexOf('Nav');
-      if(_layersState[lIndex]) {
+    lIndex = _layers.indexOf('Nav');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
         layers.add( // route layer
-        ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -876,10 +890,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // route layer for runway numbers
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -900,10 +914,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // track layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             // this place
@@ -922,10 +936,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // route layer for waypoints
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             List<Destination> destinations = Storage().route.getAllDestinations();
@@ -1033,11 +1047,11 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add(
         // aircraft layer
-        ValueListenableBuilder<Position>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             LatLng current = LatLng(value.latitude, value.longitude);
@@ -1072,13 +1086,13 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
     } // all nav layers
 
     // ruler, always present
     layers.add(
-      ValueListenableBuilder<int>(
+      Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
         valueListenable: _ruler.change,
         builder: (context, value, _) {
           List<(int, int)> calculations = _ruler.getDistanceBearing();
@@ -1093,7 +1107,7 @@ class MapScreenState extends State<MapScreen> {
           );
         },
       ),
-    );
+    ));
 
     FlutterMap map = FlutterMap(
       mapController: _controller,
@@ -1124,7 +1138,7 @@ class MapScreenState extends State<MapScreen> {
               height: height,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
-                child:Opacity(opacity: 0.8,
+                child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
                 child:CustomPaint(
                   painter: PfdPainter(
                   height: height,
@@ -1153,7 +1167,7 @@ class MapScreenState extends State<MapScreen> {
         body: Stack(
             children: [
               map, // map
-              if(_layersState[_layers.indexOf('PFD')])
+              if(_layersOpacity[_layers.indexOf('PFD')] > 0)
                 pfd,
               Positioned(
                 child: Align(
@@ -1370,21 +1384,22 @@ class MapScreenState extends State<MapScreen> {
                                             builder: (context1, setState1) =>
                                                 ListTile(
                                                   dense: true,
-                                                  title: Text(_layers[index]),
-                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
-                                                  leading: Switch(
-                                                    value: _layersState[index],
-                                                    onChanged: (bool value) {
+                                                  title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                    Expanded(flex: 1, child:Text(_layers[index])),
+                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 3, // 3 levels of opacity, 0 is off
+                                                    value: _layersOpacity[index],
+                                                    onChanged: (double value) {
                                                       setState1(() {
-                                                        _layersState[index] = value;
+                                                        _layersOpacity[index] = value;
                                                       });
                                                       if(_layers[index] == "Tracks") {
-                                                        if(value == false) {
+                                                        if(value == 0) {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                                                           Storage().tracks.saveKml().then((value) {
-                                                            setState(() {
-                                                              Navigator.pushNamed(context, '/documents');
+                                                            setState1(() {
+                                                              Navigator.pop(context1);
+                                                              Navigator.pushNamed(context1, '/documents');
                                                             });
                                                           });
                                                         }
@@ -1392,28 +1407,28 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.reset(); //on turning on, start fresh
                                                         }
                                                       }
-                                                      if(_layers[index] == "OSM" && value == true) {
-                                                        _layersState[_layers.indexOf("Topo")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "OSM" && value > 0) {
+                                                          _layersOpacity[_layers.indexOf("Topo")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "Topo" && value == true) {
-                                                        _layersState[_layers.indexOf("OSM")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "Topo" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("OSM")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "Chart" && value == true) {
-                                                        _layersState[_layers.indexOf("OpenAIP")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "Chart" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("OpenAIP")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "OpenAIP" && value == true) {
-                                                        _layersState[_layers.indexOf("Chart")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "OpenAIP" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("Chart")] = 0; // save memory by keeping layers to minimum
                                                       }
                                                       // now save to settings
-                                                      Storage().settings.setLayersState(_layersState);
+                                                      Storage().settings.setLayersOpacity(_layersOpacity);
                                                       setState(() {
-                                                        _layersState[index] = value; // this is the state for the map
+                                                        _layersOpacity[index] = value; // this is the state for the map
                                                       });
                                                       // Turn audible alerts off and on depending on traffic layer
-                                                      Storage().settings.setAudibleAlertsEnabled(_layersState[Storage().settings.getLayers().indexOf("Traffic")]);                                                
+                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[Storage().settings.getLayers().indexOf("Traffic")] > 0);
                                                     },
-                                                  ),
-                                                ),
+                                                  )),
+                                                ])),
                                           ),)
                                         ),
                                     ),
