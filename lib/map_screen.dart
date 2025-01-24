@@ -633,7 +633,6 @@ class MapScreenState extends State<MapScreen> {
                       Storage().bottomRightPlate != null &&
                       Storage().topLeftPlate != null)
                     OverlayImage(
-                      opacity: 0.9,
                       bounds: LatLngBounds(
                           Storage().topLeftPlate!,
                           Storage().bottomRightPlate!
@@ -1386,7 +1385,7 @@ class MapScreenState extends State<MapScreen> {
                                                   dense: true,
                                                   title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                                                     Expanded(flex: 1, child:Text(_layers[index])),
-                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 3, // 3 levels of opacity, 0 is off
+                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
                                                     value: _layersOpacity[index],
                                                     onChanged: (double value) {
                                                       setState1(() {

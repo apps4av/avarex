@@ -35,7 +35,12 @@ Download on Google Play Store from your Android device.
 
 ** Raspberry Pi
 
-Download at https://github.com/apps4av/avarex/actions/workflows/arm64.yaml from your Pi. Tested on Pi 5 with 8 GB memory, Pi 4 with 1 GB of memory, on a 64 bit Linux OS. You must install libsqlite3-dev library.
+Download at https://github.com/apps4av/avarex/actions/workflows/arm64.yaml from your Pi. 
+
+Tested on 64-bit Raspberry Pi OS (may run on other configurations).
+ - Pi 5 with 8 GB memory
+ - Pi 4 with 1 GB memory
+ - Prerequisites: sudo apt-get install libgtk-3-0 libblkid1 liblzma5 libsqlite3-dev
 
 ## Store Consoles
 
