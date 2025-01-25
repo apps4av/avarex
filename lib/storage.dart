@@ -180,7 +180,7 @@ class Storage {
     }
 
     // GPS data receive
-    _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
+    _udpStream = _udpReceiver.getStream([4000, 43211, 49002, 5557], [false, false, false, false]); // 5557 is app to app comm
     _udpStream?.onDone(() {
     });
     _udpStream?.onError((obj){
