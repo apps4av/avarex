@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:core';
+
+import 'package:latlong2/latlong.dart';
 
 class PlanLmfs {
   String aircraftId = "";
@@ -39,6 +42,24 @@ class PlanLmfs {
     }
   }
 
+  String? formatRoute(String? route) {
+    if(null == route) {
+      return null;
+    }
+    String ret = "";
+    List<String> values = route.split(" ");
+    for(String value in values) {
+      // replace GPS format of Avare to LMFS format
+      RegExp exp = RegExp(r"([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([NS]),([0-9][0-9][0-9])([0-9][0-9])([0-9][0-9])([EW])");
+      if(exp.hasMatch(value)) {
+        LatLng ll = Destination.parseFromSexagesimalFullOrPartial(value);
+        value = Destination.toSexagesimalLmfs(ll);
+      }
+      ret += "$value ";
+    }
+    return ret;
+  }
+
   Map<String, String> _makeMap() {
     Map<String, String> params = {};
     _put(params, "type", "ICAO");
@@ -48,7 +69,7 @@ class PlanLmfs {
     _put(params, "destination", destination);
     _put(params, "departureInstant", _getTimeFromInput(departureDate));
     _put(params, "flightDuration", _getDurationFromInput(totalElapsedTime));
-    _put(params, "route", route);
+    _put(params, "route", formatRoute(route));
     _put(params, "altDestination1", alternate1);
     _put(params, "altDestination2", alternate2);
     _put(params, "aircraftType", aircraftType);
