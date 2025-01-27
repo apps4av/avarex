@@ -50,7 +50,14 @@ class ChecklistScreenState extends State<ChecklistScreen> {
           if(lines.isEmpty) {
             return;
           }
-          String name = lines.removeAt(0).substring(0, 24);
+          String name = lines.removeAt(0);
+          int len = name.length;
+          if(len == 0) {
+            name = DateTime.now().toIso8601String();
+          }
+          else if(len > 24) {
+            name = name.substring(0, 24);
+          }
           // remove empty lines
           lines = List<String>.from(lines).where((value) => value.isNotEmpty).toList();
           Checklist list = Checklist(name, "", lines);

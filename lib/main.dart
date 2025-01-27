@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/storage.dart';
@@ -8,6 +6,7 @@ import 'package:avaremp/writing_screen.dart';
 import 'package:flutter/material.dart';
 import 'aircraft_screen.dart';
 import 'checklist_screen.dart';
+import 'constants.dart';
 import 'destination/destination.dart';
 import 'documents_screen.dart';
 import 'download_screen.dart';
@@ -44,7 +43,7 @@ class MainApp extends StatelessWidget {
               '/aircraft': (context) => const AircraftScreen(),
               '/checklists': (context) => const ChecklistScreen(),
               '/wnb': (context) => const WnbScreen(),
-              if(Platform.isAndroid) '/io': (context) => const IoScreen(),
+              if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
               '/popup': (context) {
