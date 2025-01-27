@@ -3,6 +3,7 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'main_screen.dart';
 
 import 'package:introduction_screen/introduction_screen.dart';
@@ -241,7 +242,14 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         ),
         PageViewModel(
           title: "Join the Forum",
-          bodyWidget: const SelectableText("For 24/7 help, join our forum\n\nhttps://groups.google.com/g/apps4av-forum"),
+          bodyWidget: Column(children: [const SelectableText("For 24/7 help, join our forum\n\nhttps://groups.google.com/g/apps4av-forum\n"),
+            TextButton(
+              onPressed: () {
+                launchUrl(Uri.parse("https://groups.google.com/g/apps4av-forum"));
+              },
+              child: const Text("Join")
+            ),
+          ]),
           image: _buildImage('forum.png'),
           decoration: pageDecoration,
         ),
