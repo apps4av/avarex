@@ -1236,7 +1236,7 @@ class MapScreenState extends State<MapScreen> {
                             // menu
                             TextButton(
                               onPressed: () {
-                                if(Storage().settings.shouldShowReview()) {
+                                if(Storage().settings.shouldShowReview() && Constants.shouldShouldReview) {
                                   showDialog(context: context, builder: (BuildContext context) {
                                     return AlertDialog(
                                       title: const Text('Review AvareX?'),
