@@ -45,16 +45,6 @@ class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
 
-  StreamController<void>? mapReset; // to reset the radar map
-  void resetRadar() {
-    if(mapReset != null) {
-      mapReset!.add(null);
-    }
-    for(int i = 0; i < Storage().mesonetCache.length; i++) {
-      Storage().mesonetCache[i].clean(); // clean mesonet cache
-    }
-  }
-
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
@@ -62,7 +52,7 @@ class MapScreenState extends State<MapScreen> {
   final Ruler _ruler = Ruler();
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
-  MapController? _controller;
+  final MapController _controller = MapController();
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
@@ -71,6 +61,48 @@ class MapScreenState extends State<MapScreen> {
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations calculations = GeoCalculations();
   final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
+  double _nexradOpacity = 0;
+
+  // 5 images for animation
+  final List<TileLayer> nexradLayer = List.generate(5, (int index) {
+    List<String> mesonets = [
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
+    ];
+    return TileLayer(
+      maxNativeZoom: 5,
+      urlTemplate: mesonets[index],
+      tileProvider: CachedTileProvider(
+          store: Storage().mesonetCache[index]),
+    );
+  });
+
+  final TileLayer osmLayer = TileLayer(
+    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    tileProvider: CachedTileProvider(
+      // maxStale keeps the tile cached for the given Duration and
+      // tries to revalidate the next time it gets requested
+        maxStale: const Duration(days: 30),
+        store: Storage().osmCache),
+  );
+
+  final TileLayer openaipLayer = TileLayer(
+      maxNativeZoom: 16,
+      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
+      tileProvider: CachedTileProvider(store: Storage().openaipCache));
+
+  final TileLayer topoLayer = TileLayer(
+    maxNativeZoom: 16,
+    urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
+    tileProvider: CachedTileProvider(
+      // maxStale keeps the tile cached for the given Duration and
+      // tries to revalidate the next time it gets requested
+        maxStale: const Duration(days: 30),
+        store: Storage().topoCache),
+  );
 
   static Future<void> showDestination(BuildContext context, List<Destination> destinations) async {
     await Navigator.pushNamed(context, "/popup", arguments: destinations);
@@ -78,7 +110,10 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   void initState() {
-    _controller = MapController();
+    // move with airplane but do not hold the map
+    Storage().gpsChange.addListener(_gpsListen);
+    Storage().timeChange.addListener(_timeListen);
+
     super.initState();
   }
 
@@ -86,76 +121,81 @@ class MapScreenState extends State<MapScreen> {
   void dispose() {
     super.dispose();
     // save ptz when we switch out
-    if(_controller != null) {
-      Storage().settings.setZoom(_controller!.camera.zoom);
-      Storage().settings.setCenterLatitude(_controller!.camera.center.latitude);
-      Storage().settings.setCenterLongitude(
-          _controller!.camera.center.longitude);
-      Storage().settings.setRotation(_controller!.camera.rotation);
-      Storage().gpsChange.removeListener(_listen);
-      _previousPosition = null;
-      _controller!.dispose();
-      _controller = null;
-    }
+    Storage().settings.setZoom(_controller.camera.zoom);
+    Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
+    Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
+    Storage().settings.setRotation(_controller.camera.rotation);
+    Storage().gpsChange.removeListener(_gpsListen);
+    Storage().timeChange.removeListener(_timeListen);
+    _previousPosition = null;
   }
 
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
-    if(_controller != null) {
-      LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
-      String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
-      LatLng topLeft = _controller!.camera.pointToLatLng(const Point(iconRadius, 0));
-      LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
-      double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
-      if(ticksInLatitude < 0.1) {
-        ticksInLatitude = 0.1; // avoid busy loop
-      }
-      // run a loop to find markers
-      List<LatLng> llVertical = [];
-      List<String> distanceVertical = [];
-      for (double latitude = center.latitude; latitude < topLeft.latitude; latitude += ticksInLatitude) {
-        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
-          continue; // outside of view area
-        }
-        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
-        LatLng ll = LatLng(latitude, avgLon);
-        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
-        distanceVertical.add(d.round().toString());
-        llVertical.add(ll);
-      }
-      for (double latitude = center.latitude; latitude > bottomLeft.latitude; latitude -= ticksInLatitude) {
-        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
-          continue; // outside of view area
-        }
-        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
-        LatLng ll = LatLng(latitude, avgLon);
-        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
-        distanceVertical.add(d.round().toString());
-        llVertical.add(ll);
-      }
-      tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
+    LatLng center = Gps.toLatLng(Storage().gpsChange.value);
+    LatLng topCenter = _controller.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
+    String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
+    LatLng topLeft = _controller.camera.pointToLatLng(const Point(iconRadius, 0));
+    LatLng bottomLeft = _controller.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
+    double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
+    if(ticksInLatitude < 0.1) {
+      ticksInLatitude = 0.1; // avoid busy loop
     }
+    // run a loop to find markers
+    List<LatLng> llVertical = [];
+    List<String> distanceVertical = [];
+    for (double latitude = center.latitude; latitude < topLeft.latitude; latitude += ticksInLatitude) {
+      if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+        continue; // outside of view area
+      }
+      double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+      LatLng ll = LatLng(latitude, avgLon);
+      double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      distanceVertical.add(d.round().toString());
+      llVertical.add(ll);
+    }
+    for (double latitude = center.latitude; latitude > bottomLeft.latitude; latitude -= ticksInLatitude) {
+      if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+        continue; // outside of view area
+      }
+      double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+      LatLng ll = LatLng(latitude, avgLon);
+      double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      distanceVertical.add(d.round().toString());
+      llVertical.add(ll);
+    }
+    tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
+  }
+
+  void _timeListen() {
+    setState(() {
+      for(int i = 0; i < nexradLayer.length; i++) {
+        Storage().mesonetOpacity[i] = 0;
+      }
+      int index = Storage().timeChange.value % (nexradLayer.length * 2);
+      if(index > nexradLayer.length - 1) {
+        index = nexradLayer.length - 1; // give 2 times the time for latest to stay on
+      }
+      Storage().mesonetOpacity[index] = _nexradOpacity;
+    });
   }
 
   // this pans camera on move
-  void _listen() {
+  void _gpsListen() {
     final LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
-    if(null != _controller) {
-      try {
-        LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
-            cur.longitude - _previousPosition!.longitude);
-        LatLng now = _controller!.camera.center;
-        LatLng next = LatLng(
-            now.latitude + diff.latitude, now.longitude + diff.longitude);
-        if (!_interacting) { // do not move when user is moving map
-          _controller!.moveAndRotate(next, _controller!.camera.zoom,
-              _northUp ? 0 : -Storage().position.heading);
-        }
+    try {
+      LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
+          cur.longitude - _previousPosition!.longitude);
+      LatLng now = _controller.camera.center;
+      LatLng next = LatLng(
+          now.latitude + diff.latitude, now.longitude + diff.longitude);
+      if (!_interacting) { // do not move when user is moving map
+        _controller.moveAndRotate(next, _controller.camera.zoom,
+            _northUp ? 0 : -Storage().position.heading);
       }
-      catch (e) {} // adding to lat lon is dangerous
     }
+    catch (e) {} // adding to lat lon is dangerous
 
     _previousPosition = Gps.toLatLng(Storage().position);
   }
@@ -163,70 +203,21 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     double opacity = 1.0;
-    if (mapReset != null) {
-      mapReset!.close();
-    }
-    mapReset = StreamController();
 
-    TileLayer osmLayer = TileLayer(
-      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-          maxStale: const Duration(days: 30),
-          store: Storage().osmCache),
-    );
-
-    TileLayer openaipLayer = TileLayer(
-        maxNativeZoom: 16,
-        urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
-        tileProvider: CachedTileProvider(store: Storage().openaipCache));
-
-    TileLayer topoLayer = TileLayer(
-      maxNativeZoom: 16,
-      urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-          maxStale: const Duration(days: 30),
-          store: Storage().topoCache),
-    );
-
-    String index = ChartCategory.chartTypeToIndex(_type);
+    final String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
-    // 5 images for animation
-    List<TileLayer> nexradLayer = List.generate(5, (int index) {
-      List<String> mesonets = [
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
-      ];
-      return TileLayer(
-        maxNativeZoom: 5,
-        reset: mapReset!.stream,
-        urlTemplate: mesonets[index],
-        tileProvider: CachedTileProvider(
-          // maxStale keeps the tile cached for the given Duration and
-          // tries to revalidate the next time it gets requested
-            maxStale: const Duration(minutes: 1),
-            store: Storage().mesonetCache[index]),
-      );
-    });
-
     //add layers
-    List<Widget> layers = [];
+    final List<Widget> layers = [];
 
-    TileLayer chartLayer = TileLayer(
+    final TileLayer chartLayer = TileLayer(
         tms: true,
         maxNativeZoom: _maxZoom,
         tileProvider: ChartTileProvider(),
         urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
 
     // start from known location
-    MapOptions opts = MapOptions(
+    final MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(),
           Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
@@ -344,40 +335,28 @@ class MapScreenState extends State<MapScreen> {
       ));
     }
 
-    int nexradLength = nexradLayer.length;
     lIndex = _layers.indexOf('Radar');
     opacity = _layersOpacity[lIndex];
+    _nexradOpacity = opacity;
     if (opacity > 0) {
-      layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().timeChange,
-              builder: (context, value, _) {
-                if(value % 300 == 0) {
-                  // download new nexrad every 5 minutes
-                  resetRadar();
-                }
-                int index = value % (nexradLength * 2);
-                if(index > nexradLength - 1) {
-                  index = nexradLength - 1; // give 2 times the time for latest to stay on
-                }
-                return nexradLayer[index]; // animate every 3 seconds
-          })
-      ));
 
       // nexrad
+      for(int i = 0; i < nexradLayer.length; i++) {
+        layers.add(Opacity(opacity: Storage().mesonetOpacity[i], child: nexradLayer[i]));
+      }
+
       layers.add(// nexrad slider
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+            child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                int index = value % (nexradLength * 2);
-                if(index > nexradLength - 1) {
-                  index = nexradLength - 1; // give 2 times the time for latest to stay on
+                int index = value % (nexradLayer.length * 2);
+                if(index > nexradLayer.length - 1) {
+                  index = nexradLayer.length - 1; // give 2 times the time for latest to stay on
                 }
-                return Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
-                  child: Slider(value: index / (nexradLength - 1), onChanged: (double value) {  },),
-              );
-          })
-      ));
+                return Slider(value: index / (nexradLayer.length - 1), onChanged: (double value) {  });
+          }),
+      )));
     }
 
     lIndex = _layers.indexOf('Weather');
@@ -546,10 +525,8 @@ class MapScreenState extends State<MapScreen> {
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             bool conus = true;
-            if(_controller != null) {
-              // show conus above zoom level 7
-              conus = _controller!.camera.zoom < 7 ? true : false;
-            }
+            // show conus above zoom level 7
+            conus = _controller.camera.zoom < 7 ? true : false;
             List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
             return OverlayImageLayer(
               overlayImages:
@@ -954,8 +931,8 @@ class MapScreenState extends State<MapScreen> {
                                 if(!Storage().settings.isRubberBanding()) {
                                   return;
                                 }
-                                if(null != _controller && _rubberBanding) { // start rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                if(_rubberBanding) { // start rubber banding
+                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                              },
@@ -973,10 +950,8 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                if(null != _controller) { // end rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                  Storage().route.replaceDestinationFromDb(index, l);
-                                }
+                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestinationFromDb(index, l);
                               },
                               child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white)) :
                           GestureDetector(
@@ -998,8 +973,8 @@ class MapScreenState extends State<MapScreen> {
                                 if(!Storage().settings.isRubberBanding()) {
                                   return;
                                 }
-                                if(null != _controller && _rubberBanding) { // start rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                if(_rubberBanding) { // start rubber banding
+                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                               },
@@ -1020,10 +995,8 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                if(null != _controller) { // end rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                  Storage().route.replaceDestinationFromDb(index, l);
-                                }
+                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestinationFromDb(index, l);
                               },
                               onTap: () {
                                 setState(() {
@@ -1108,14 +1081,11 @@ class MapScreenState extends State<MapScreen> {
       ),
     ));
 
-    FlutterMap map = FlutterMap(
+    final FlutterMap map = FlutterMap(
       mapController: _controller,
       options: opts,
       children: layers,
     );
-
-    // move with airplane but do not hold the map
-    Storage().gpsChange.addListener(_listen);
 
     // for PFD, calculate heights
     double width;
@@ -1128,7 +1098,7 @@ class MapScreenState extends State<MapScreen> {
       height = Constants.screenHeight(context) * 3 / 5;
       width = height * 0.7;
     }
-    Widget pfd = Positioned(
+    final Widget pfd = Positioned(
         top: Constants.screenHeightForInstruments(context),
         child:Align(
             alignment: Alignment.topLeft,
@@ -1204,10 +1174,10 @@ class MapScreenState extends State<MapScreen> {
                               LatLng l = LatLng(p.latitude, p.longitude);
                               if(_northUp) {
                                 // do not change zoom on center
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, 0);// rotate to heading on center on track up
+                                _controller.moveAndRotate(l, _controller.camera.zoom, 0);// rotate to heading on center on track up
                               }
                               else {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, -p.heading);
+                                _controller.moveAndRotate(l, _controller.camera.zoom, -p.heading);
                               }
                             },
                             onLongPress: () {
@@ -1215,10 +1185,10 @@ class MapScreenState extends State<MapScreen> {
                               LatLng l = LatLng(p.latitude, p.longitude);
                               if(_northUp) {
                                 // do not change zoom on center
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                                _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
                               }
                               else {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                                _controller.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
                               }
                             },
                             child: const Text("Center"),

@@ -94,8 +94,8 @@ class Storage {
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
   late UnitConversion units;
-  DownloadManager downloadManager = DownloadManager();
-  GeoJsonParser geoParser = GeoJsonParser();
+  final DownloadManager downloadManager = DownloadManager();
+  final GeoJsonParser geoParser = GeoJsonParser();
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -145,10 +145,11 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  late FileCacheStore osmCache;
-  late List<FileCacheStore> mesonetCache;
-  late FileCacheStore openaipCache;
-  late FileCacheStore topoCache;
+  late final FileCacheStore osmCache;
+  late final List<FileCacheStore> mesonetCache;
+  late final List<double> mesonetOpacity;
+  late final FileCacheStore openaipCache;
+  late final FileCacheStore topoCache;
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -311,6 +312,7 @@ class Storage {
     openaipCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "openaip"));
     topoCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "topo"));
     mesonetCache = List.generate(5 , (index) => FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "radar$index")));
+    mesonetOpacity = List.generate(mesonetCache.length , (index) => 0);
 
     // this is a long login process, do not await here
 
@@ -354,12 +356,12 @@ class Storage {
         gpsNoLock = false;
       }
 
-      if(timeChange.value % 15 == 0) {
+      if((timeChange.value % 15) == 0) {
         // update area every 15 seconds
         area.update(position);
       }
 
-      if(timeChange.value % 5 == 0) {
+      if((timeChange.value % 5) == 0) {
         if(gpsInternal) {
           // check system for any issues
           bool permissionDenied = await Gps().isPermissionDenied().onError((error, stackTrace) => true);
@@ -378,13 +380,21 @@ class Storage {
           warningChange.value = gpsNoLock || dataExpired || chartsMissing;
         }
       }
+
+      if((timeChange.value % (5 * 60)) == 0) {
+        // mesonet cache clean every 5 minutes
+        for(var cache in mesonetCache) {
+          cache.clean();
+        }
+      }
+
+      if((timeChange.value % (10 * 60)) == 0) {
+        downloadWeather();
+      }
+
     });
 
-    // weather download timer
     downloadWeather();
-    Timer.periodic(const Duration(minutes: 10), (tim) async {
-      await downloadWeather();
-    });
   }
 
   Future<void> downloadWeather() async {
