@@ -129,18 +129,21 @@ class MapScreenState extends State<MapScreen> {
   void _airSigmetListen() {
     setState(() {
       _airSigmetCluster = null;
+      _airSigmetLayer = null;
     });
   }
 
   void _tfrListen() {
     setState(() {
       _tfrCluster = null;
+      _tfrLayer = null;
     });
   }
 
   void _geoJsonListen() {
     setState(() {
       _geojsonCluster = null;
+      _geoJsonLayer = null;
     });
   }
 
@@ -247,6 +250,54 @@ class MapScreenState extends State<MapScreen> {
     catch (e) {} // adding to lat lon is dangerous
 
     _previousPosition = Gps.toLatLng(Storage().position);
+  }
+
+  PolylineLayer? _tfrLayer;
+  PolylineLayer _makeTfrLayer() {
+    List<Weather> weather = Storage().tfr.getAll();
+    List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+    _tfrLayer ??= PolylineLayer(
+      polylines: [
+        for (Tfr tfr in tfrs)
+          if(tfr.isRelevant())
+          // route
+            Polyline(
+              strokeWidth: 4,
+              points: tfr.coordinates, // red if in effect, orange if in future
+              color: tfr.isInEffect() ? Constants.tfrColor : Constants.tfrColorFuture,
+            ),
+      ],
+    );
+
+    return _tfrLayer!;
+  }
+
+  PolylineLayer? _airSigmetLayer;
+  PolylineLayer _makeAirSigmetLayer() {
+    List<Weather> weather = Storage().airSigmet.getAll();
+    List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+    _airSigmetLayer ??= PolylineLayer(
+      polylines: [
+        // route
+        for(AirSigmet a in airSigmet)
+          if(a.showShape)
+            Polyline(
+              borderStrokeWidth: 1,
+              borderColor: Colors.white,
+              strokeWidth: 2,
+              points: a.coordinates,
+              color: a.getColor(),
+            ),
+      ],
+    );
+
+    return _airSigmetLayer!;
+  }
+
+  PolygonLayer? _geoJsonLayer;
+  PolygonLayer _makeGeoJsonLayer() {
+    _geoJsonLayer ??= PolygonLayer(polygons: Storage().geoParser.polygons);
+    return _geoJsonLayer!;
   }
 
   // this should not rebuild till weather is updated
@@ -531,12 +582,7 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('GeoJSON');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-        valueListenable: Storage().geoParser.change,
-        builder: (context, value, _) {
-          return PolygonLayer(polygons: Storage().geoParser.polygons);
-        })
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeGeoJsonLayer()));
 
       layers.add(Opacity(opacity: opacity, child: _makeGeoJsonCluster()));
     }
@@ -576,29 +622,7 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
-      layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().airSigmet.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airSigmet.getAll();
-                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-                return PolylineLayer(
-                  polylines: [
-                    // route
-                    for(AirSigmet a in airSigmet)
-                      if(a.showShape)
-                        Polyline(
-                            borderStrokeWidth: 1,
-                            borderColor: Colors.white,
-                            strokeWidth: 2,
-                            points: a.coordinates,
-                            color: a.getColor(),
-                      ),
-                  ],
-                );
-             }
-          )
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetLayer()));
 
       layers.add(
         // nexrad layer
@@ -623,27 +647,7 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('TFR');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add( // route layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().tfr.change,
-          builder: (context, value, _) {
-            List<Weather> weather = Storage().tfr.getAll();
-            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
-            return PolylineLayer(
-              polylines: [
-                for (Tfr tfr in tfrs)
-                  if(tfr.isRelevant())
-                  // route
-                    Polyline(
-                      strokeWidth: 4,
-                      points: tfr.coordinates, // red if in effect, orange if in future
-                      color: tfr.isInEffect() ? Constants.tfrColor : Constants.tfrColorFuture,
-                    ),
-              ],
-            );
-          },
-        ),
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeTfrLayer()));
 
       layers.add(Opacity(opacity: opacity, child: _makeTfrCluster()));
     }
@@ -852,7 +856,7 @@ class MapScreenState extends State<MapScreen> {
         //obstacles
         layers.add(
             Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-                valueListenable: Storage().timeChange,
+                valueListenable: Storage().area.change,
                 builder: (context, value, _) {
                   return MarkerLayer(markers: [
                     for(LatLng ll in Storage().area.obstacles)

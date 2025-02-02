@@ -26,7 +26,13 @@ class GeoJsonParser {
   void _addPolygon(List<List<List<double>>> coordinates, String label) {
     for (var ring in coordinates) {
       if (ring.isNotEmpty) {
-        List<LatLng> ll = ring.map((point) => LatLng(point[1], point[0])).toList();
+        List<LatLng> ll = [];
+        try {
+          ll = ring.map((point) => LatLng(point[1], point[0])).toList();
+        }
+        catch (e) {
+          continue;
+        }
         polygons.add(Polygon(
           points: ll,
           label: label,
