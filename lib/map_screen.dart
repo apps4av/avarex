@@ -22,7 +22,7 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cache/flutter_map_cache.dart';
-import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
+import 'package:flutter_map_supercluster/flutter_map_supercluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
@@ -149,7 +149,6 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   void initState() {
-    super.initState();
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
     Storage().timeChange.addListener(_timeListen);
@@ -159,6 +158,7 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.addListener(_airSigmetListen);
     Storage().tfr.change.addListener(_tfrListen);
     Storage().geoParser.change.addListener(_geoJsonListen);
+    super.initState();
   }
 
   @override
@@ -300,16 +300,27 @@ class MapScreenState extends State<MapScreen> {
     return _geoJsonLayer!;
   }
 
+  SuperclusterLayer makeCluster(List<Marker> markers) {
+    return SuperclusterLayer.immutable(  // too many tafs, cluster them transparent
+          maxClusterZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          loadingOverlayBuilder: (context) {
+            return const SizedBox();
+          },
+          initialMarkers: markers,
+          indexBuilder: IndexBuilders.computeWithOriginalMarkers,
+          builder: (context, markers, a, b) {
+            return Container(color: Colors.transparent,);
+          },
+        );
+  }
+
   // this should not rebuild till weather is updated
-  MarkerClusterLayerWidget? _metarCluster;
-  MarkerClusterLayerWidget _makeMetarCluster() {
+  SuperclusterLayer? _metarCluster;
+  SuperclusterLayer _makeMetarCluster() {
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
-    _metarCluster ??= MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-        options: MarkerClusterLayerOptions(
-          disableClusteringAtZoom: _disableClusteringAtZoom,
-          maxClusterRadius: _maxClusterRadius,
-          markers: [
+    _metarCluster ??= makeCluster([
             for(Metar m in metars)
               Marker(point: m.coordinate,
                   alignment: Alignment.topRight,
@@ -319,55 +330,37 @@ class MapScreenState extends State<MapScreen> {
                     waitDuration: const Duration(seconds: 1),
                     child: m.getIcon(),))
           ],
-          builder: (context, markers) {
-            return Container(color: Colors.transparent,);
-          },
-        )
-    );
-
+        );
     return _metarCluster!;
   }
 
   // this should not rebuild till weather is updated
-  MarkerClusterLayerWidget? _tafCluster;
-  MarkerClusterLayerWidget _makeTafCluster() {
+  SuperclusterLayer? _tafCluster;
+  SuperclusterLayer _makeTafCluster() {
     List<Weather> weather = Storage().taf.getAll();
     List<Taf> tafs = weather.map((e) => e as Taf).toList();
-    _tafCluster ??= MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
-        options: MarkerClusterLayerOptions(
-          disableClusteringAtZoom: _disableClusteringAtZoom,
-          maxClusterRadius: _maxClusterRadius,
-          markers: [
-            for(Taf t in tafs)
-              Marker(point: t.coordinate,
-                  width: 32,
-                  height: 32,
-                  alignment: Alignment.bottomRight,
-                  child: JustTheTooltip(
-                    content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
-                    triggerMode: TooltipTriggerMode.tap,
-                    waitDuration: const Duration(seconds: 1),
-                    child: t.getIcon(),))
-          ],
-          builder: (context, markers) {
-            return Container(color: Colors.transparent,);
-          },
-        )
-    );
-
+    _tafCluster ??= makeCluster([
+      for(Taf t in tafs)
+        Marker(point: t.coordinate,
+            width: 32,
+            height: 32,
+            alignment: Alignment.bottomRight,
+            child: JustTheTooltip(
+              content: Container(
+                  padding: const EdgeInsets.all(5), child: Text(t.toString())),
+              triggerMode: TooltipTriggerMode.tap,
+              waitDuration: const Duration(seconds: 1),
+              child: t.getIcon(),))
+    ]);
     return _tafCluster!;
   }
 
   // this should not rebuild till weather is updated
-  MarkerClusterLayerWidget? _airepCluster;
-  MarkerClusterLayerWidget _makeAirepCluster() {
+  SuperclusterLayer? _airepCluster;
+  SuperclusterLayer _makeAirepCluster() {
     List<Weather> weather = Storage().airep.getAll();
     List<Airep> aireps = weather.map((e) => e as Airep).toList();
-    _airepCluster ??= MarkerClusterLayerWidget(
-        options: MarkerClusterLayerOptions(
-          disableClusteringAtZoom: _disableClusteringAtZoom,
-          maxClusterRadius: _maxClusterRadius,
-          markers: [
+    _airepCluster ??= makeCluster([
             for(Airep a in aireps)
               Marker(point: a.coordinates,
                   alignment: Alignment.bottomLeft,
@@ -377,26 +370,17 @@ class MapScreenState extends State<MapScreen> {
                       waitDuration: const Duration(seconds: 1),
                       child: const Icon(Icons.person, color: Colors.black,)))
           ],
-          builder: (context, markers) {
-            return Container(color: Colors.transparent,);
-          },
-        )
     );
 
     return _airepCluster!;
   }
 
   // this should not rebuild till weather is updated
-  MarkerClusterLayerWidget? _airSigmetCluster;
-  MarkerClusterLayerWidget _makeAirSigmetCluster() {
+  SuperclusterLayer? _airSigmetCluster;
+  SuperclusterLayer _makeAirSigmetCluster() {
     List<Weather> weather = Storage().airSigmet.getAll();
     List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-    _airSigmetCluster ??= MarkerClusterLayerWidget(
-        options: MarkerClusterLayerOptions(
-          disableClusteringAtZoom: _disableClusteringAtZoom,
-          maxClusterRadius: _maxClusterRadius,
-          markers: [
-            // route
+    _airSigmetCluster ??= makeCluster([
             for(AirSigmet a in airSigmet)
               Marker(
                   point: a.coordinates[0],
@@ -419,24 +403,16 @@ class MapScreenState extends State<MapScreen> {
                   )
               )
           ],
-          builder: (context, markers) {
-            return Container(color: Colors.transparent,);
-          },
-        )
-    );
+        );
 
     return _airSigmetCluster!;
   }
 
-  MarkerClusterLayerWidget? _tfrCluster;
-  MarkerClusterLayerWidget _makeTfrCluster() {
+  SuperclusterLayer? _tfrCluster;
+  SuperclusterLayer _makeTfrCluster() {
     List<Weather> weather = Storage().tfr.getAll();
     List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
-    _tfrCluster ??= MarkerClusterLayerWidget(  // too many tfrs, cluster them transparent
-        options: MarkerClusterLayerOptions(
-          disableClusteringAtZoom: _disableClusteringAtZoom,
-          maxClusterRadius: _maxClusterRadius,
-          markers: [
+    _tfrCluster ??= makeCluster([
             for(Tfr t in tfrs)
               Marker(point: t.coordinates[t.getLabelCoordinate()],
                   child: JustTheTooltip(
@@ -445,41 +421,13 @@ class MapScreenState extends State<MapScreen> {
                         waitDuration: const Duration(seconds: 1),
                         child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
           ],
-          builder: (context, markers) {
-            return Container(color: Colors.transparent,);
-          },
-        )
-    );
-
+        );
     return _tfrCluster!;
   }
 
-  MarkerClusterLayerWidget? _geojsonCluster;
-  MarkerClusterLayerWidget _makeGeoJsonCluster() {
-    _geojsonCluster ??= MarkerClusterLayerWidget( //cluster them transparent
-        options: MarkerClusterLayerOptions(
-          markers: Storage().geoParser.markers,
-          maxClusterRadius: 45,
-          disableClusteringAtZoom: 15,
-          size: const Size(40, 40),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.all(50),
-          maxZoom: 20,
-          builder: (context, markers) {
-            return Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Colors.blue.withAlpha(128)),
-              child: Center(
-                child: Text(
-                  markers.length.toString(),
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ),
-            );
-          },
-        )
-    );
+  SuperclusterLayer? _geojsonCluster;
+  SuperclusterLayer _makeGeoJsonCluster() {
+    _geojsonCluster ??= makeCluster(Storage().geoParser.markers);
 
     return _geojsonCluster!;
   }
