@@ -56,15 +56,15 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
-  final int disableClusteringAtZoom = 10;
-  final int maxClusterRadius = 160;
+  final int _disableClusteringAtZoom = 10;
+  final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
-  final GeoCalculations calculations = GeoCalculations();
-  final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
+  final GeoCalculations _calculations = GeoCalculations();
+  final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
 
   // 5 images for animation
-  final List<TileLayer> nexradLayer = List.generate(5, (int index) {
+  final List<TileLayer> _nexradLayer = List.generate(5, (int index) {
     List<String> mesonets = [
       "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
       "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
@@ -80,7 +80,7 @@ class MapScreenState extends State<MapScreen> {
     );
   });
 
-  final TileLayer osmLayer = TileLayer(
+  final TileLayer _osmLayer = TileLayer(
     urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     tileProvider: CachedTileProvider(
       // maxStale keeps the tile cached for the given Duration and
@@ -89,12 +89,12 @@ class MapScreenState extends State<MapScreen> {
         store: Storage().osmCache),
   );
 
-  final TileLayer openaipLayer = TileLayer(
+  final TileLayer _openaipLayer = TileLayer(
       maxNativeZoom: 16,
       urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
       tileProvider: CachedTileProvider(store: Storage().openaipCache));
 
-  final TileLayer topoLayer = TileLayer(
+  final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
     urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
     tileProvider: CachedTileProvider(
@@ -108,18 +108,58 @@ class MapScreenState extends State<MapScreen> {
     await Navigator.pushNamed(context, "/popup", arguments: destinations);
   }
 
+  void _metarListen() {
+    setState(() {
+      _metarCluster = null;
+    });
+  }
+
+  void _tafListen() {
+    setState(() {
+      _tafCluster = null;
+    });
+  }
+
+  void _airepListen() {
+    setState(() {
+      _airepCluster = null;
+    });
+  }
+
+  void _airSigmetListen() {
+    setState(() {
+      _airSigmetCluster = null;
+    });
+  }
+
+  void _tfrListen() {
+    setState(() {
+      _tfrCluster = null;
+    });
+  }
+
+  void _geoJsonListen() {
+    setState(() {
+      _geojsonCluster = null;
+    });
+  }
+
   @override
   void initState() {
+    super.initState();
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
     Storage().timeChange.addListener(_timeListen);
-
-    super.initState();
+    Storage().metar.change.addListener(_metarListen);
+    Storage().taf.change.addListener(_tafListen);
+    Storage().airep.change.addListener(_airepListen);
+    Storage().airSigmet.change.addListener(_airSigmetListen);
+    Storage().tfr.change.addListener(_tfrListen);
+    Storage().geoParser.change.addListener(_geoJsonListen);
   }
 
   @override
   void dispose() {
-    super.dispose();
     // save ptz when we switch out
     Storage().settings.setZoom(_controller.camera.zoom);
     Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
@@ -127,14 +167,21 @@ class MapScreenState extends State<MapScreen> {
     Storage().settings.setRotation(_controller.camera.rotation);
     Storage().gpsChange.removeListener(_gpsListen);
     Storage().timeChange.removeListener(_timeListen);
+    Storage().metar.change.removeListener(_metarListen);
+    Storage().taf.change.removeListener(_tafListen);
+    Storage().airep.change.removeListener(_airepListen);
+    Storage().airSigmet.change.removeListener(_airSigmetListen);
+    Storage().tfr.change.removeListener(_tfrListen);
+    Storage().geoParser.change.removeListener(_geoJsonListen);
     _previousPosition = null;
+    super.dispose();
   }
 
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     LatLng center = Gps.toLatLng(Storage().gpsChange.value);
     LatLng topCenter = _controller.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
-    String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
+    String centralDistance = _calculations.calculateDistance(center, topCenter).round().toString();
     LatLng topLeft = _controller.camera.pointToLatLng(const Point(iconRadius, 0));
     LatLng bottomLeft = _controller.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
     double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
@@ -150,7 +197,7 @@ class MapScreenState extends State<MapScreen> {
       }
       double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
       LatLng ll = LatLng(latitude, avgLon);
-      double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      double d = _calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
       distanceVertical.add(d.round().toString());
       llVertical.add(ll);
     }
@@ -160,24 +207,26 @@ class MapScreenState extends State<MapScreen> {
       }
       double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
       LatLng ll = LatLng(latitude, avgLon);
-      double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      double d = _calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
       distanceVertical.add(d.round().toString());
       llVertical.add(ll);
     }
-    tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
+    _tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
   }
 
   void _timeListen() {
-    setState(() {
-      for(int i = 0; i < nexradLayer.length; i++) {
-        Storage().mesonetOpacity[i] = 0;
-      }
-      int index = Storage().timeChange.value % (nexradLayer.length * 2);
-      if(index > nexradLayer.length - 1) {
-        index = nexradLayer.length - 1; // give 2 times the time for latest to stay on
-      }
-      Storage().mesonetOpacity[index] = _nexradOpacity;
-    });
+    if(_nexradOpacity > 0) { // update nexrad animation
+      setState(() {
+        for (int i = 0; i < _nexradLayer.length; i++) {
+          Storage().mesonetOpacity[i] = 0;
+        }
+        int index = Storage().timeChange.value % (_nexradLayer.length * 2);
+        if (index > _nexradLayer.length - 1) {
+          index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
+        }
+        Storage().mesonetOpacity[index] = _nexradOpacity;
+      });
+    }
   }
 
   // this pans camera on move
@@ -199,6 +248,191 @@ class MapScreenState extends State<MapScreen> {
 
     _previousPosition = Gps.toLatLng(Storage().position);
   }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _metarCluster;
+  MarkerClusterLayerWidget _makeMetarCluster() {
+    List<Weather> weather = Storage().metar.getAll();
+    List<Metar> metars = weather.map((e) => e as Metar).toList();
+    _metarCluster ??= MarkerClusterLayerWidget(  // too many metars, cluster them transparent
+        options: MarkerClusterLayerOptions(
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          markers: [
+            for(Metar m in metars)
+              Marker(point: m.coordinate,
+                  alignment: Alignment.topRight,
+                  child: JustTheTooltip(
+                    content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
+                    triggerMode: TooltipTriggerMode.tap,
+                    waitDuration: const Duration(seconds: 1),
+                    child: m.getIcon(),))
+          ],
+          builder: (context, markers) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+
+    return _metarCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _tafCluster;
+  MarkerClusterLayerWidget _makeTafCluster() {
+    List<Weather> weather = Storage().taf.getAll();
+    List<Taf> tafs = weather.map((e) => e as Taf).toList();
+    _tafCluster ??= MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
+        options: MarkerClusterLayerOptions(
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          markers: [
+            for(Taf t in tafs)
+              Marker(point: t.coordinate,
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.bottomRight,
+                  child: JustTheTooltip(
+                    content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
+                    triggerMode: TooltipTriggerMode.tap,
+                    waitDuration: const Duration(seconds: 1),
+                    child: t.getIcon(),))
+          ],
+          builder: (context, markers) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+
+    return _tafCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _airepCluster;
+  MarkerClusterLayerWidget _makeAirepCluster() {
+    List<Weather> weather = Storage().airep.getAll();
+    List<Airep> aireps = weather.map((e) => e as Airep).toList();
+    _airepCluster ??= MarkerClusterLayerWidget(
+        options: MarkerClusterLayerOptions(
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          markers: [
+            for(Airep a in aireps)
+              Marker(point: a.coordinates,
+                  alignment: Alignment.bottomLeft,
+                  child: JustTheTooltip(
+                      content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
+                      triggerMode: TooltipTriggerMode.tap,
+                      waitDuration: const Duration(seconds: 1),
+                      child: const Icon(Icons.person, color: Colors.black,)))
+          ],
+          builder: (context, markers) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+
+    return _airepCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _airSigmetCluster;
+  MarkerClusterLayerWidget _makeAirSigmetCluster() {
+    List<Weather> weather = Storage().airSigmet.getAll();
+    List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+    _airSigmetCluster ??= MarkerClusterLayerWidget(
+        options: MarkerClusterLayerOptions(
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          markers: [
+            // route
+            for(AirSigmet a in airSigmet)
+              Marker(
+                  point: a.coordinates[0],
+                  child: JustTheTooltip(
+                      content: Container(
+                          padding: const EdgeInsets.all(5),
+                          child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
+                      ),
+                      waitDuration: const Duration(seconds: 1),
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: GestureDetector(
+                          onLongPress: () {
+                            a.showShape = !a.showShape;
+                            Storage().airSigmet.change.value++;
+                          },
+                          child:Icon(Icons.ac_unit_rounded,
+                              color: a.getColor()
+                          )
+                      )
+                  )
+              )
+          ],
+          builder: (context, markers) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+
+    return _airSigmetCluster!;
+  }
+
+  MarkerClusterLayerWidget? _tfrCluster;
+  MarkerClusterLayerWidget _makeTfrCluster() {
+    List<Weather> weather = Storage().tfr.getAll();
+    List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+    _tfrCluster ??= MarkerClusterLayerWidget(  // too many tfrs, cluster them transparent
+        options: MarkerClusterLayerOptions(
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          maxClusterRadius: _maxClusterRadius,
+          markers: [
+            for(Tfr t in tfrs)
+              Marker(point: t.coordinates[t.getLabelCoordinate()],
+                  child: JustTheTooltip(
+                        content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
+                        triggerMode: TooltipTriggerMode.tap,
+                        waitDuration: const Duration(seconds: 1),
+                        child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
+          ],
+          builder: (context, markers) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+
+    return _tfrCluster!;
+  }
+
+  MarkerClusterLayerWidget? _geojsonCluster;
+  MarkerClusterLayerWidget _makeGeoJsonCluster() {
+    _geojsonCluster ??= MarkerClusterLayerWidget( //cluster them transparent
+        options: MarkerClusterLayerOptions(
+          markers: Storage().geoParser.markers,
+          maxClusterRadius: 45,
+          disableClusteringAtZoom: 15,
+          size: const Size(40, 40),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.all(50),
+          maxZoom: 20,
+          builder: (context, markers) {
+            return Container(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.blue.withAlpha(128)),
+              child: Center(
+                child: Text(
+                  markers.length.toString(),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            );
+          },
+        )
+    );
+
+    return _geojsonCluster!;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +491,7 @@ class MapScreenState extends State<MapScreen> {
     int lIndex = _layers.indexOf('OSM');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: osmLayer));
+      layers.add(Opacity(opacity: opacity, child: _osmLayer));
       layers.add( // OSM attribution
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
@@ -272,12 +506,12 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Topo');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: topoLayer));
+      layers.add(Opacity(opacity: opacity, child: _topoLayer));
     }
     lIndex = _layers.indexOf('OpenAIP');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: openaipLayer));
+      layers.add(Opacity(opacity: opacity, child: _openaipLayer));
       layers.add(
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
@@ -304,35 +538,7 @@ class MapScreenState extends State<MapScreen> {
         })
       ));
 
-      layers.add(Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().geoParser.change,
-          builder: (context, value, _) {
-            return MarkerClusterLayerWidget( //cluster them transparent
-                options: MarkerClusterLayerOptions(
-                  markers: Storage().geoParser.markers,
-                  maxClusterRadius: 45,
-                  disableClusteringAtZoom: 15,
-                  size: const Size(40, 40),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(50),
-                  maxZoom: 20,
-                  builder: (context, markers) {
-                    return Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: Colors.blue.withAlpha(128)),
-                      child: Center(
-                        child: Text(
-                          markers.length.toString(),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    );
-                  },
-                )
-            );
-          })
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeGeoJsonCluster()));
     }
 
     lIndex = _layers.indexOf('Radar');
@@ -341,8 +547,8 @@ class MapScreenState extends State<MapScreen> {
     if (opacity > 0) {
 
       // nexrad
-      for(int i = 0; i < nexradLayer.length; i++) {
-        layers.add(Opacity(opacity: Storage().mesonetOpacity[i], child: nexradLayer[i]));
+      for(int i = 0; i < _nexradLayer.length; i++) {
+        layers.add(Opacity(opacity: Storage().mesonetOpacity[i], child: _nexradLayer[i]));
       }
 
       layers.add(// nexrad slider
@@ -350,11 +556,11 @@ class MapScreenState extends State<MapScreen> {
             child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                int index = value % (nexradLayer.length * 2);
-                if(index > nexradLayer.length - 1) {
-                  index = nexradLayer.length - 1; // give 2 times the time for latest to stay on
+                int index = value % (_nexradLayer.length * 2);
+                if(index > _nexradLayer.length - 1) {
+                  index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
                 }
-                return Slider(value: index / (nexradLayer.length - 1), onChanged: (double value) {  });
+                return Slider(value: index / (_nexradLayer.length - 1), onChanged: (double value) {  });
           }),
       )));
     }
@@ -362,94 +568,13 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().metar.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().metar.getAll();
-                List<Metar> metars = weather.map((e) => e as Metar).toList();
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Metar m in metars)
-                          Marker(point: m.coordinate,
-                              alignment: Alignment.topRight,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: m.getIcon(),)))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeMetarCluster()));
 
-      layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().taf.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().taf.getAll();
-                List<Taf> tafs = weather.map((e) => e as Taf).toList();
-                return MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Taf t in tafs)
-                          Marker(point: t.coordinate,
-                              width: 32,
-                              height: 32,
-                              alignment: Alignment.bottomRight,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: t.getIcon(),)))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeTafCluster()));
 
-      layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().airep.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airep.getAll();
-                List<Airep> airep = weather.map((e) => e as Airep).toList();
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Airep a in airep)
-                          Marker(point: a.coordinates,
-                              alignment: Alignment.bottomLeft,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: const Icon(Icons.person, color: Colors.black,))))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeAirepCluster()));
+
+      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
       layers.add(
           Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
@@ -476,50 +601,6 @@ class MapScreenState extends State<MapScreen> {
       ));
 
       layers.add(
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-              valueListenable: Storage().airSigmet.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airSigmet.getAll();
-                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                  options: MarkerClusterLayerOptions(
-                    disableClusteringAtZoom: disableClusteringAtZoom,
-                    maxClusterRadius: maxClusterRadius,
-                    markers: [
-                      // route
-                      for(AirSigmet a in airSigmet)
-                        Marker(
-                          point: a.coordinates[0],
-                          child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                            content: Container(
-                              padding: const EdgeInsets.all(5),
-                              child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
-                            ),
-                            waitDuration: const Duration(seconds: 1),
-                            triggerMode: TooltipTriggerMode.tap,
-                            child: GestureDetector(
-                              onLongPress: () {
-                                a.showShape = !a.showShape;
-                                Storage().airSigmet.change.value++;
-                              },
-                              child:Icon(Icons.ac_unit_rounded,
-                              color: a.getColor()
-                            )
-                            )
-                          )
-                        ))
-                    ],
-                    builder: (context, markers) {
-                      return Container(color: Colors.transparent,);
-                    },
-                  )
-                );
-              }
-          )
-      ));
-
-      layers.add(
         // nexrad layer
         Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
@@ -529,8 +610,7 @@ class MapScreenState extends State<MapScreen> {
             conus = _controller.camera.zoom < 7 ? true : false;
             List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
             return OverlayImageLayer(
-              overlayImages:
-              images.map((e) {
+              overlayImages: images.map((e) {
                 return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
                     bounds: e.getBounds());
               }).toList(),
@@ -565,36 +645,7 @@ class MapScreenState extends State<MapScreen> {
         ),
       ));
 
-      layers.add( // route layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().tfr.change,
-          builder: (context, value, _) {
-            List<Weather> weather = Storage().tfr.getAll();
-            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
-
-            return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                options: MarkerClusterLayerOptions(
-                  disableClusteringAtZoom: disableClusteringAtZoom,
-                  maxClusterRadius: maxClusterRadius,
-                  markers: [
-                    for (Tfr tfr in tfrs)
-                      if(tfr.isRelevant())
-                        Marker(
-                            point: tfr.coordinates[tfr.getLabelCoordinate()],
-                            child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                              content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
-                              triggerMode: TooltipTriggerMode.tap,
-                              waitDuration: const Duration(seconds: 1),
-                              child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
-                        ),
-                  ],
-              builder: (context, markers) {
-                return Container(color: Colors.transparent,);
-              },
-            ));
-          },
-        ),
-      ));
+      layers.add(Opacity(opacity: opacity, child: _makeTfrCluster()));
     }
 
     lIndex = _layers.indexOf('Plate');
@@ -686,7 +737,7 @@ class MapScreenState extends State<MapScreen> {
     if(opacity > 0) {
         layers.add( // tape
           Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
-            valueListenable: tapeNotifier,
+            valueListenable: _tapeNotifier,
             builder: (context, value, _) {
               return MarkerLayer(
                   markers: [
