@@ -58,7 +58,7 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsProcedures = [];
     String? airport;
 
-    RegExp radial = RegExp(r"([A-Za-z]{2,4})([0-9]{6})");
+    RegExp radial = RegExp(r"([A-Za-z0-9]{2,4})([0-9]{6})");
     if(radial.hasMatch(match)) {
       // radial
       RegExpMatch? m = radial.firstMatch(match);
