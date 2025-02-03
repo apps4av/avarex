@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/time_zone.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
@@ -34,7 +35,7 @@ class WindsCache extends WeatherCache {
     double? ws;
     double? wd;
     String foreString = fore.toString().padLeft(2, "0"); // stations has fore in the name
-    String? station = WindsCache.locateNearestStation(coordinate);
+    var (station, dist, bearing) = WindsCache.locateNearestStation(coordinate);
     var ww = Storage().winds.get("$station${foreString}H");
     (wd, ws) = WindsCache.getWindAtAltitude(altitude, ww == null ? null : ww as WindsAloft);
     return (wd, ws);
@@ -50,11 +51,21 @@ class WindsCache extends WeatherCache {
 
     for(Uint8List datum in data)
     {
+      RegExp exp1 = RegExp("VALID\\s*([0-9]*)Z\\s*FOR USE\\s*([0-9]*)-([0-9]*)Z");
       String dataString = utf8.decode(datum);
 
       // parse winds, set expire time 6 hrs in future
-      DateTime expires = DateTime.now().add(const Duration(hours: 6));
+      DateTime? expires;
       List<String> lines = dataString.split('\n');
+
+      for (String line in lines) {
+        line = line.trim();
+        RegExpMatch? match = exp1.firstMatch(line);
+        if (match != null) {
+          expires = TimeZone.parseZuluTime(match.toString());
+          break;
+        }
+      }
 
       bool start = false;
       // parse winds, first check if a new download is needed
@@ -68,6 +79,9 @@ class WindsCache extends WeatherCache {
           continue;
         }
         if(!start) {
+          continue;
+        }
+        if(expires == null) {
           continue;
         }
 
@@ -184,19 +198,27 @@ class WindsCache extends WeatherCache {
     return null;
   }
 
-  static String? locateNearestStation(LatLng location) {
+  //returns station name, distance, bearing
+  static (String?, double, double) locateNearestStation(LatLng location) {
     // find distance
     GeoCalculations geo = GeoCalculations();
     double distanceMin = double.maxFinite;
     String? station;
+    LatLng? stationLocation;
     for(MapEntry<String, LatLng> map in _stationMap.entries) {
       double distance = geo.calculateDistance(map.value, location);
       if(distance < distanceMin) {
         distanceMin = distance;
         station = map.key;
+        stationLocation = map.value;
       }
     }
-    return station;
+    double? bearing;
+    if(stationLocation != null)
+    {
+      bearing = geo.calculateBearing(stationLocation, location);
+    }
+    return (station, distanceMin, bearing ?? 0);
   }
 
   // dir, speed
