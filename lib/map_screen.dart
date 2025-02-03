@@ -303,6 +303,8 @@ class MapScreenState extends State<MapScreen> {
   MarkerClusterLayerWidget makeCluster(List<Marker> markers) {
     return MarkerClusterLayerWidget(
       options: MarkerClusterLayerOptions(
+          showPolygon: false,
+          spiderfyCluster: false,
           maxClusterRadius: _maxClusterRadius,
           disableClusteringAtZoom: _disableClusteringAtZoom,
           markers: markers,
@@ -391,8 +393,10 @@ class MapScreenState extends State<MapScreen> {
                       triggerMode: TooltipTriggerMode.tap,
                       child: GestureDetector(
                           onLongPress: () {
-                            a.showShape = !a.showShape;
-                            Storage().airSigmet.change.value++;
+                            setState(() {
+                              _airSigmetLayer = null; // rebuild layer with visible shapes
+                              a.showShape = !a.showShape;
+                            });
                           },
                           child:Icon(Icons.ac_unit_rounded,
                               color: a.getColor()
@@ -566,9 +570,9 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirepCluster()));
 
-      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
-
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetLayer()));
+
+      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
       layers.add(
         // nexrad layer
