@@ -135,5 +135,14 @@ class GeoCalculations {
     return (gpsAltitude * Storage().units.mToF);
   }
 
+  // make a circle to given distance
+  List<LatLng> calculateCircle(LatLng ll, double distance) {
+    List<LatLng> circle = [];
+    for (double angle = 0; angle <= 360; angle += 15) {
+      circle.add(calculateOffset(ll, distance, angle));
+    }
+    return circle;
+  }
+
 }
 

@@ -28,4 +28,12 @@ class UnitConversion {
   // knots for wind.
   double knotsTo = 1;
 
+  static bool isLatitudeValid(double lat) {
+    return lat >= -90 && lat <= 90;
+  }
+
+  static bool isLongitudeValid(double lon) {
+    return lon >= -180 && lon <= 180;
+  }
+
 }

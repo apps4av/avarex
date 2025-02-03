@@ -394,6 +394,9 @@ class Storage {
 
     });
 
+    for(var cache in mesonetCache) {
+      cache.clean();
+    }
     downloadWeather();
   }
 

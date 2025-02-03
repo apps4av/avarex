@@ -5,6 +5,7 @@ import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
@@ -35,11 +36,10 @@ class MetarCache extends WeatherCache {
       try {
         double lat = row[3];
         double lon = row[4];
-        if(lat > 90 || lat < -90 || lon > 180 || lon < -180) {
-          continue;
+        if(UnitConversion.isLatitudeValid(lat) && UnitConversion.isLongitudeValid(lon)) {
+          m = Metar(row[1], time, row[0], row[30], LatLng(lat, lon));
+          metars.add(m);
         }
-        m = Metar(row[1], time, row[0], row[30], LatLng(lat, lon));
-        metars.add(m);
       }
       catch(e) {
         continue;

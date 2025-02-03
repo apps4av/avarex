@@ -689,78 +689,45 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Circles');
     opacity = _layersOpacity[lIndex];
     if(opacity > 0) {
-        layers.add( // tape
-          Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
-            valueListenable: _tapeNotifier,
-            builder: (context, value, _) {
-              return MarkerLayer(
-                  markers: [
-                    for(int index = 0; index < value.$1.length; index++)
-                      Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
-                        child: Container(width: 32,
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withOpacity(0.6)),
-                            child: SizedBox(width: 32, child: FittedBox(
-                              child: Padding(padding: const EdgeInsets.all(3),
-                                child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
-                        ))
-                      ),
-                  ]
-              );
-            },
-          ),
-        ));
 
-        layers.add( // circle layer
+      layers.add( // circle layer
           Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
-              return CircleLayer(
-                circles: [
+              return PolylineLayer(
+                polylines: [
                   // 10 nm circle
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 10,
-                    // 10 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 10),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 5,
-                    // 15 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  // 5 nm circle
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 5),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 2,
-                    // 10 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  // 2 nm circle
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 2),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
                   // speed marker
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.speedCircleColor,
-                    color: Colors.transparent,
-                    radius: value.speed * 60,
-                    // 1 minute speed
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), value.speed * 60),
+                    color: Constants.speedCircleColor,
+                    strokeWidth: 3,
                   ),
                 ],
               );
             },
           ),
-        ));
+          )
+      );
 
-        layers.add( // circle layer labels
+      layers.add( // circle layer labels
           Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
@@ -797,8 +764,34 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-        ));
+          ));
+    }
+
+    lIndex = _layers.indexOf('Tape');
+    opacity = _layersOpacity[lIndex];
+    if(opacity > 0) {
+      layers.add( // tape
+          Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
+            valueListenable: _tapeNotifier,
+            builder: (context, value, _) {
+              return MarkerLayer(
+                  markers: [
+                    for(int index = 0; index < value.$1.length; index++)
+                      Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
+                          child: Container(width: 32,
+                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                              child: SizedBox(width: 32, child: FittedBox(
+                                  child: Padding(padding: const EdgeInsets.all(3),
+                                      child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
+                              ))
+                      ),
+                  ]
+              );
+            },
+          ),
+          ));
       }
+
 
       lIndex = _layers.indexOf('Obstacles');
       opacity = _layersOpacity[lIndex];
@@ -817,7 +810,7 @@ class MapScreenState extends State<MapScreen> {
                 })
             )
         );
-      }
+    }
 
     lIndex = _layers.indexOf('Nav');
     opacity = _layersOpacity[lIndex];
