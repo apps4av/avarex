@@ -29,10 +29,13 @@ class TafCache extends WeatherCache {
 
       Taf t;
       try {
-        double? latitude = double.tryParse(row[7].toString());
-        double? longitude = double.tryParse(row[8].toString());
-        if(latitude != null && longitude != null) {
-          t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), LatLng(latitude, longitude));
+        double? lat = double.tryParse(row[7].toString());
+        double? lon = double.tryParse(row[8].toString());
+        if(lat != null && lon != null) {
+          if(lat > 90 || lat < -90 || lon > 180 || lon < -180) {
+            continue;
+          }
+          t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), LatLng(lat, lon));
           tafs.add(t);
         }
       }

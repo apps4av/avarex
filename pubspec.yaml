@@ -49,9 +49,9 @@ dependencies:
   archive: ^3.6.1
   http: any
   exif: ^3.3.0
-  flutter_map: ^6.2.1
+  flutter_map: ^7.0.2
   flutter_map_cache: ^1.5.1
-  flutter_map_marker_cluster: ^1.3.6
+  flutter_map_marker_cluster: ^1.4.0
   dropdown_button2: ^2.3.9
   latlong2: ^0.9.0
   auto_size_text: ^3.0.0

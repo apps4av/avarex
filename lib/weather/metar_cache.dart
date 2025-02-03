@@ -33,7 +33,12 @@ class MetarCache extends WeatherCache {
 
       Metar m;
       try {
-        m = Metar(row[1], time, row[0], row[30], LatLng(row[3], row[4]));
+        double lat = row[3];
+        double lon = row[4];
+        if(lat > 90 || lat < -90 || lon > 180 || lon < -180) {
+          continue;
+        }
+        m = Metar(row[1], time, row[0], row[30], LatLng(lat, lon));
         metars.add(m);
       }
       catch(e) {
