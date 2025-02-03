@@ -22,7 +22,7 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cache/flutter_map_cache.dart';
-import 'package:flutter_map_supercluster/flutter_map_supercluster.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
@@ -300,24 +300,22 @@ class MapScreenState extends State<MapScreen> {
     return _geoJsonLayer!;
   }
 
-  SuperclusterLayer makeCluster(List<Marker> markers) {
-    return SuperclusterLayer.immutable(  // too many tafs, cluster them transparent
-          maxClusterZoom: _disableClusteringAtZoom,
+  MarkerClusterLayerWidget makeCluster(List<Marker> markers) {
+    return MarkerClusterLayerWidget(
+      options: MarkerClusterLayerOptions(
           maxClusterRadius: _maxClusterRadius,
-          loadingOverlayBuilder: (context) {
-            return const SizedBox();
-          },
-          initialMarkers: markers,
-          indexBuilder: IndexBuilders.computeWithOriginalMarkers,
-          builder: (context, markers, a, b) {
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          markers: markers,
+          builder: (context, m) {
             return Container(color: Colors.transparent,);
           },
-        );
+        )
+    );
   }
 
   // this should not rebuild till weather is updated
-  SuperclusterLayer? _metarCluster;
-  SuperclusterLayer _makeMetarCluster() {
+  MarkerClusterLayerWidget? _metarCluster;
+  MarkerClusterLayerWidget _makeMetarCluster() {
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
     _metarCluster ??= makeCluster([
@@ -335,8 +333,8 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // this should not rebuild till weather is updated
-  SuperclusterLayer? _tafCluster;
-  SuperclusterLayer _makeTafCluster() {
+  MarkerClusterLayerWidget? _tafCluster;
+  MarkerClusterLayerWidget _makeTafCluster() {
     List<Weather> weather = Storage().taf.getAll();
     List<Taf> tafs = weather.map((e) => e as Taf).toList();
     _tafCluster ??= makeCluster([
@@ -356,8 +354,8 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // this should not rebuild till weather is updated
-  SuperclusterLayer? _airepCluster;
-  SuperclusterLayer _makeAirepCluster() {
+  MarkerClusterLayerWidget? _airepCluster;
+  MarkerClusterLayerWidget _makeAirepCluster() {
     List<Weather> weather = Storage().airep.getAll();
     List<Airep> aireps = weather.map((e) => e as Airep).toList();
     _airepCluster ??= makeCluster([
@@ -376,8 +374,8 @@ class MapScreenState extends State<MapScreen> {
   }
 
   // this should not rebuild till weather is updated
-  SuperclusterLayer? _airSigmetCluster;
-  SuperclusterLayer _makeAirSigmetCluster() {
+  MarkerClusterLayerWidget? _airSigmetCluster;
+  MarkerClusterLayerWidget _makeAirSigmetCluster() {
     List<Weather> weather = Storage().airSigmet.getAll();
     List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
     _airSigmetCluster ??= makeCluster([
@@ -408,8 +406,8 @@ class MapScreenState extends State<MapScreen> {
     return _airSigmetCluster!;
   }
 
-  SuperclusterLayer? _tfrCluster;
-  SuperclusterLayer _makeTfrCluster() {
+  MarkerClusterLayerWidget? _tfrCluster;
+  MarkerClusterLayerWidget _makeTfrCluster() {
     List<Weather> weather = Storage().tfr.getAll();
     List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
     _tfrCluster ??= makeCluster([
@@ -425,8 +423,8 @@ class MapScreenState extends State<MapScreen> {
     return _tfrCluster!;
   }
 
-  SuperclusterLayer? _geojsonCluster;
-  SuperclusterLayer _makeGeoJsonCluster() {
+  MarkerClusterLayerWidget? _geojsonCluster;
+  MarkerClusterLayerWidget _makeGeoJsonCluster() {
     _geojsonCluster ??= makeCluster(Storage().geoParser.markers);
 
     return _geojsonCluster!;
