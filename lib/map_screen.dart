@@ -716,7 +716,7 @@ class MapScreenState extends State<MapScreen> {
                   ),
                   // speed marker
                   Polyline(
-                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), value.speed * 60),
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), GeoCalculations.convertSpeed(value.speed) / 60),
                     color: Constants.speedCircleColor,
                     strokeWidth: 3,
                   ),
