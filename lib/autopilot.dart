@@ -38,73 +38,69 @@ class AutoPilot {
 
     List<Destination> destinations = Storage().route.getAllDestinations();
     Waypoint? wp = Storage().route.getCurrentWaypoint();
-    Destination? dest = wp?.destination;
-    // If we have a destination set, then we need to add some more sentences
-    // to tell the autopilot how to steer
-    if (dest != null) {
-      int indexCurrent = destinations.indexWhere((element) => element == dest);
-      String startID = "";
 
-      double distance = GeoCalculations().calculateDistance(
-        Gps.toLatLng(Storage().position),
-        dest.coordinate);
-
-      double bearing = GeoCalculations().calculateBearing(
-          Gps.toLatLng(Storage().position),
-          dest.coordinate);
-
-      double brgOrig = bearing; // XXX check
-
-      // If we have a flight plan active, then we may need to re-calc the
-      // original bearing based upon the most recently passed waypoint in the plan.
+    // there is no concept of destination without plan in X.
+    if (wp != null) {
+      int indexCurrent = destinations.indexWhere((element) => element == wp.destination);
       if (indexCurrent > 0) {
-        startID = destinations[indexCurrent - 1].locationID;
-        brgOrig = GeoCalculations().calculateBearing(
-            destinations[indexCurrent - 1].coordinate,
-            destinations[indexCurrent].coordinate);
+        Destination next = destinations[indexCurrent];
+        Destination prev = destinations[indexCurrent - 1];
+        String startID = prev.locationID;
+        String endID = next.locationID;
+
+        // Limit our station IDs to 5 chars max so we don't exceed the 80 char
+        // sentence limit. A "GPS" fix has a temp name that is quite long
+        if (startID.length > 5) {
+          startID = "gSRC";
+        }
+
+        if (endID.length > 5) {
+          endID = "gDST";
+        }
+
+        double brgOrig = GeoCalculations().calculateBearing(
+            prev.coordinate,
+            next.coordinate);
+
+        double bearing = GeoCalculations().calculateBearing(
+            Gps.toLatLng(Storage().position),
+            next.coordinate);
+
+        double distance = GeoCalculations().calculateDistance(
+            Gps.toLatLng(Storage().position),
+            next.coordinate);
+
+        // Calculate how many miles we are to the side of the course line
+        double deviation = distance * sin(_angularDifference(brgOrig, bearing));
+
+        // If we are to the left of the course line, then make our deviation negative.
+        if (_leftOfCourseLine(bearing, brgOrig)) {
+          deviation = -deviation;
+        }
+
+        // We now have all the info to create NMEA packet #3
+        RMBPacket rmbPacket = RMBPacket(
+          distance,
+          bearing,
+          next.coordinate.longitude,
+          next.coordinate.latitude,
+          endID,
+          startID,
+          deviation,
+          GeoCalculations.convertSpeed(Storage().position.speed),
+          destinations.length == indexCurrent + 1,
+        );
+        apText += rmbPacket.packet;
+
+        // Now for the final NMEA packet
+        BODPacket bodPacket = BODPacket(
+          endID,
+          startID,
+          brgOrig,
+          GeoCalculations.getMagneticHeading(brgOrig, (next.geoVariation == null ? Storage().area.variation : next.geoVariation!)),
+        );
+        apText += bodPacket.packet;
       }
-
-      // Calculate how many miles we are to the side of the course line
-      double deviation = distance * sin(_angularDifference(brgOrig, bearing));
-
-      // If we are to the left of the course line, then make our deviation negative.
-      if (_leftOfCourseLine(bearing, brgOrig)) {
-        deviation = -deviation;
-      }
-
-      // Limit our station IDs to 5 chars max so we don't exceed the 80 char
-      // sentence limit. A "GPS" fix has a temp name that is quite long
-      if (startID.length > 5) {
-        startID = "gSRC";
-      }
-
-      String endID = dest.locationID;
-      if (endID.length > 5) {
-        endID = "gDST";
-      }
-
-      // We now have all the info to create NMEA packet #3
-      RMBPacket rmbPacket = RMBPacket(
-        distance,
-        bearing,
-        dest.coordinate.longitude,
-        dest.coordinate.latitude,
-        endID,
-        startID,
-        deviation,
-        GeoCalculations.convertSpeed(Storage().position.speed),
-        destinations.length == indexCurrent + 1,
-      );
-      apText += rmbPacket.packet;
-
-      // Now for the final NMEA packet
-      BODPacket bodPacket = BODPacket(
-        endID,
-        startID,
-        brgOrig,
-        brgOrig + Storage().area.variation,
-      );
-      apText += bodPacket.packet;
     }
     return apText;
   }
