@@ -37,7 +37,7 @@ class AirSigmetCache extends WeatherCache {
           LatLng aPoint = LatLng(double.parse(cc[1]), double.parse(cc[0]));
           ll.add(aPoint);
         }
-        a = AirSigmet(row[3], time, row[0], ll, row[8], row[9], row[10]);
+        a = AirSigmet(row[3].toString(), time, row[0].toString(), ll, row[8].toString(), row[9].toString(), row[10].toString());
         airSigmet.add(a);
       }
       catch(e) {
