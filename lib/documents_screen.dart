@@ -205,7 +205,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
            heroAnimationTag: product.name,
            zoomWidget: CachedNetworkImage(
              imageUrl: product.url,
-             cacheManager: FileCacheManager().networkCacheManager,));
+             cacheManager: FileCacheManager().documentsCacheManager,));
      }
 
      // local picture files. deal with zoom widget

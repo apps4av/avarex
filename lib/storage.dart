@@ -35,7 +35,6 @@ import 'package:avaremp/udp_receiver.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:dio_cache_interceptor_file_store/dio_cache_interceptor_file_store.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -145,11 +144,7 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  late final FileCacheStore osmCache;
-  late final List<FileCacheStore> mesonetCache;
-  late final List<double> mesonetOpacity;
-  late final FileCacheStore openaipCache;
-  late final FileCacheStore topoCache;
+  final List<double> mesonetOpacity = List.generate(5 , (index) => 0);
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -307,13 +302,6 @@ class Storage {
     settings.setCenterLatitude(position.latitude);
     settings.setCenterLongitude(position.longitude);
 
-    // tiles cache
-    osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
-    openaipCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "openaip"));
-    topoCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "topo"));
-    mesonetCache = List.generate(5 , (index) => FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "radar$index")));
-    mesonetOpacity = List.generate(mesonetCache.length , (index) => 0);
-
     // this is a long login process, do not await here
 
     await checkChartsExist();
@@ -381,22 +369,12 @@ class Storage {
         }
       }
 
-      if((timeChange.value % (5 * 60)) == 0) {
-        // mesonet cache clean every 5 minutes
-        for(var cache in mesonetCache) {
-          cache.clean();
-        }
-      }
-
       if((timeChange.value % (10 * 60)) == 0) {
         downloadWeather();
       }
 
     });
 
-    for(var cache in mesonetCache) {
-      cache.clean();
-    }
     downloadWeather();
   }
 
@@ -495,6 +473,6 @@ class FileCacheManager {
   FileCacheManager._internal();
 
   // this must be in a singleton class.
-  final CacheManager networkCacheManager = CacheManager(Config("customCache", stalePeriod: const Duration(minutes: 1)));
-
+  final CacheManager documentsCacheManager = CacheManager(Config("customDocumentsCache", stalePeriod: const Duration(minutes: 1)));
+  final CacheManager mapCacheManager = CacheManager(Config("customMapCache", stalePeriod: const Duration(days: 60)));
 }

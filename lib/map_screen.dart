@@ -19,9 +19,9 @@ import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_cache/flutter_map_cache.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -75,33 +75,23 @@ class MapScreenState extends State<MapScreen> {
     return TileLayer(
       maxNativeZoom: 5,
       urlTemplate: mesonets[index],
-      tileProvider: CachedTileProvider(
-          store: Storage().mesonetCache[index]),
+      tileProvider: NetworkTileProvider(),
     );
   });
 
   final TileLayer _osmLayer = TileLayer(
     urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    tileProvider: CachedTileProvider(
-      // maxStale keeps the tile cached for the given Duration and
-      // tries to revalidate the next time it gets requested
-        maxStale: const Duration(days: 30),
-        store: Storage().osmCache),
-  );
+    tileProvider: MapNetworkTileProvider());
 
   final TileLayer _openaipLayer = TileLayer(
       maxNativeZoom: 16,
       urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
-      tileProvider: CachedTileProvider(store: Storage().openaipCache));
+      tileProvider: MapNetworkTileProvider());
 
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
     urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
-    tileProvider: CachedTileProvider(
-      // maxStale keeps the tile cached for the given Duration and
-      // tries to revalidate the next time it gets requested
-        maxStale: const Duration(days: 30),
-        store: Storage().topoCache),
+    tileProvider: MapNetworkTileProvider()
   );
 
   static Future<void> showDestination(BuildContext context, List<Destination> destinations) async {
@@ -437,6 +427,7 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     double opacity = 1.0;
 
     final String index = ChartCategory.chartTypeToIndex(_type);
@@ -1511,4 +1502,12 @@ class Ruler {
     return _measuring;
   }
 
+}
+
+class MapNetworkTileProvider extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    String url = getTileUrl(coordinates, options);
+    return CachedNetworkImageProvider(url, cacheManager: FileCacheManager().mapCacheManager);
+  }
 }
