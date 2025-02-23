@@ -5,7 +5,7 @@ on: push
 jobs:
 
   build-and-release:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +31,6 @@ jobs:
         run: sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
       - name: Install dependencies
         run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
-      - name: Missing lib
-        run: sudo ln -sf /lib/x86_64-linux-gnu/libunistring.so /lib/x86_64-linux-gnu/libunistring.so.2
 
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
