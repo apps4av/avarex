@@ -35,7 +35,6 @@ import 'package:avaremp/udp_receiver.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:dio_cache_interceptor_file_store/dio_cache_interceptor_file_store.dart';
 import 'package:exif/exif.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -94,8 +93,8 @@ class Storage {
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
   late UnitConversion units;
-  DownloadManager downloadManager = DownloadManager();
-  GeoJsonParser geoParser = GeoJsonParser();
+  final DownloadManager downloadManager = DownloadManager();
+  final GeoJsonParser geoParser = GeoJsonParser();
 
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
@@ -145,10 +144,7 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  late FileCacheStore osmCache;
-  late List<FileCacheStore> mesonetCache;
-  late FileCacheStore openaipCache;
-  late FileCacheStore topoCache;
+  final List<double> mesonetOpacity = List.generate(5 , (index) => 0);
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -180,7 +176,7 @@ class Storage {
     }
 
     // GPS data receive
-    _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
+    _udpStream = _udpReceiver.getStream([4000, 43211, 49002, 5557], [false, false, false, false]); // 5557 is app to app comm
     _udpStream?.onDone(() {
     });
     _udpStream?.onError((obj){
@@ -306,12 +302,6 @@ class Storage {
     settings.setCenterLatitude(position.latitude);
     settings.setCenterLongitude(position.longitude);
 
-    // tiles cache
-    osmCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "osm"));
-    openaipCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "openaip"));
-    topoCache = FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "topo"));
-    mesonetCache = List.generate(5 , (index) => FileCacheStore(PathUtils.getFilePath(Storage().cacheDir, "radar$index")));
-
     // this is a long login process, do not await here
 
     await checkChartsExist();
@@ -354,12 +344,12 @@ class Storage {
         gpsNoLock = false;
       }
 
-      if(timeChange.value % 15 == 0) {
+      if((timeChange.value % 15) == 0) {
         // update area every 15 seconds
         area.update(position);
       }
 
-      if(timeChange.value % 5 == 0) {
+      if((timeChange.value % 5) == 0) {
         if(gpsInternal) {
           // check system for any issues
           bool permissionDenied = await Gps().isPermissionDenied().onError((error, stackTrace) => true);
@@ -378,13 +368,14 @@ class Storage {
           warningChange.value = gpsNoLock || dataExpired || chartsMissing;
         }
       }
+
+      if((timeChange.value % (10 * 60)) == 0) {
+        downloadWeather();
+      }
+
     });
 
-    // weather download timer
     downloadWeather();
-    Timer.periodic(const Duration(minutes: 10), (tim) async {
-      await downloadWeather();
-    });
   }
 
   Future<void> downloadWeather() async {
@@ -482,6 +473,6 @@ class FileCacheManager {
   FileCacheManager._internal();
 
   // this must be in a singleton class.
-  final CacheManager networkCacheManager = CacheManager(Config("customCache", stalePeriod: const Duration(minutes: 1)));
-
+  final CacheManager documentsCacheManager = CacheManager(Config("customDocumentsCache", stalePeriod: const Duration(minutes: 1)));
+  final CacheManager mapCacheManager = CacheManager(Config("customMapCache", stalePeriod: const Duration(days: 60)));
 }

@@ -145,7 +145,7 @@ class Airport {
       catch (e) {
         try {
           headingL =
-              double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCRW]'), '')) * 10 - (destination.geoVariation?? 0); // remove L, R, C, W from it
+              double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCRW]'), '')) * 10 + (destination.geoVariation?? 0); // remove L, R, C, W from it
         }
         catch (e) {
           continue; // give up, as we tried everything possible to find a runway

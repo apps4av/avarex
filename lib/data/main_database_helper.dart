@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 import 'package:avaremp/destination/airport.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
@@ -56,7 +57,37 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> mapsAirways = [];
     List<Map<String, dynamic>> mapsProcedures = [];
     String? airport;
-    if(match.startsWith("!") && match.endsWith("!")) {
+
+    RegExp radial = RegExp(r"([A-Za-z0-9]{2,4})([0-9]{6})");
+    if(radial.hasMatch(match)) {
+      // radial
+      RegExpMatch? m = radial.firstMatch(match);
+      if(m != null) {
+        String matchD = (m.group(1) as String).toUpperCase();
+        String radial = m.group(2) as String;
+        String angle = radial.substring(0, 3);
+        String distance = radial.substring(3);
+        final db = await database;
+        if (db != null) {
+          maps = await DbGeneral.query(db,
+                  "      select Type, ARPLongitude, ARPLatitude from airports where LocationID='$matchD' "
+                  "union select Type, ARPLongitude, ARPLatitude from nav      where LocationID='$matchD' and (Type != 'VOT')"
+                  "union select Type, ARPLongitude, ARPLatitude from fix      where LocationID='$matchD' "
+                  "limit 1"
+          );
+        }
+        if(maps.isNotEmpty) {
+          LatLng coordinate = LatLng(maps[0]['ARPLatitude'] as double, maps[0]['ARPLongitude'] as double);
+          double variation = 0.0;
+          (_, variation) = await getGeoInfo(coordinate);
+          double angleD = double.parse(angle);
+          double distanceD = double.parse(distance);
+          LatLng nll = GeoCalculations().calculateOffset(coordinate, distanceD, GeoCalculations.getMagneticHeading(angleD, -variation));
+          return [GpsDestination(locationID: Destination.toSexagesimal(nll), type: Destination.typeGps, facilityName: match, coordinate: nll)];
+        }
+      }
+    }
+    else if(match.startsWith("!") && match.endsWith("!")) {
       //address between ! and !
       String address = match.substring(1, match.length - 1);
       LatLng? coordinate = await Destination.findGpsCoordinateFromAddressLookup(address);

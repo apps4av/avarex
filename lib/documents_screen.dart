@@ -119,12 +119,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                   Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))
                 ])
             )),
-            TextButton(onPressed: () {
-              Share.shareXFiles(
-                [XFile(product.url)],
-                sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
-              );
-            }, child: const Text("Share")),
+            if(Constants.shouldShare)
+              TextButton(onPressed: () {
+                Share.shareXFiles(
+                  [XFile(product.url)],
+                  sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
+                );
+              }, child: const Text("Share")),
         ])
     ]);
   }
@@ -133,7 +134,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     if(PathUtils.isTextFile(product.url)) {
       return const Icon(Icons.text_snippet);
     }
-    else if(PathUtils.isPdfFile(product.url)) {
+    else if(PathUtils.isPdfFile(product.url) && Constants.shouldShowPdf) {
       return const Icon(Icons.picture_as_pdf);
     }
     else if(PathUtils.isJSONFile(product.url)) {
@@ -164,7 +165,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                  )
               );
            }
-           else if(PathUtils.isPdfFile(product.url)) {
+           else if(PathUtils.isPdfFile(product.url) && Constants.shouldShowPdf) {
              Navigator.of(context).push(
                  PageRouteBuilder(
                      opaque: false,
@@ -204,7 +205,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
            heroAnimationTag: product.name,
            zoomWidget: CachedNetworkImage(
              imageUrl: product.url,
-             cacheManager: FileCacheManager().networkCacheManager,));
+             cacheManager: FileCacheManager().documentsCacheManager,));
      }
 
      // local picture files. deal with zoom widget
@@ -285,7 +286,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
-              child: const Tooltip(message: "Import text (.txt), GeoJSON (.geojson), PDF documents (.pdf), user data (user.db)", child: Text("Import")),
+              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: Text("Import")),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:

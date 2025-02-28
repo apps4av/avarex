@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.46+46
+version: 0.0.51+51
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -49,7 +49,8 @@ dependencies:
   archive: ^3.6.1
   http: any
   exif: ^3.3.0
-  flutter_map: ^6.1.0
+  flutter_map: ^7.0.2
+  flutter_map_marker_cluster: ^1.4.0
   dropdown_button2: ^2.3.9
   latlong2: ^0.9.0
   auto_size_text: ^3.0.0
@@ -57,7 +58,6 @@ dependencies:
   csv: ^5.1.1
   flutter_launcher_icons: ^0.13.1
   introduction_screen: ^3.1.12
-  flutter_map_marker_cluster: ^1.3.4
   cached_network_image: ^3.3.1
   flutter_cache_manager: ^3.3.1
   widget_zoom: ^0.0.3
@@ -72,15 +72,15 @@ dependencies:
   syncfusion_flutter_pdfviewer: any
   day_night_time_picker: ^1.3.0+1
   async_zip: ^0.1.0
-  flutter_map_cache: ^1.5.0
   fl_chart: ^0.68.0
-  dio_cache_interceptor_file_store: ^1.2.3
   point_in_polygon: ^1.0.0
   toastification: ^2.0.0
   in_app_review: ^2.0.10
   scribble: ^0.10.0+1
   value_notifier_tools: ^0.1.2
   geojson_vi: ^2.2.5
+  flutter_bluetooth_serial_ble: ^0.5.0
+  url_launcher: ^6.3.1
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:
     git:
@@ -176,7 +176,7 @@ msix_config:
   publisher_display_name: Apps4Av Inc.
   identity_name: Apps4AvInc.AvareX
   publisher: CN=97AA5BF2-3109-4884-8224-A2AB9E6DB29A
-  msix_version: 1.0.46.0
+  msix_version: 1.0.51.0
   logo_path: assets/images/logo.png
   capabilities: internetClient, location
   store: true

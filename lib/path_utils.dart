@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
@@ -36,7 +37,7 @@ class PathUtils {
       final d = Directory(base);
       final List<FileSystemEntity> entities = await d.list().toList();
       for (FileSystemEntity en in entities) {
-        if(isTextFile(en.path) || isPdfFile(en.path) || isKmlFile(en.path) || isJSONFile(en.path) || isPictureFile(en.path)) {
+        if(isTextFile(en.path) || (isPdfFile(en.path) && Constants.shouldShowPdf) || isKmlFile(en.path) || isJSONFile(en.path) || isPictureFile(en.path)) {
           ret.add(en.path);
         }
       }

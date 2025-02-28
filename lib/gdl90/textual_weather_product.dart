@@ -68,7 +68,7 @@ class TextualWeatherProduct extends Product {
     }
   }
 
-  // This is a lot of ugly code because market cluster has issues with changing coordinates
+  // This is a lot of ugly code because marker cluster has issues with changing coordinates
   void _parseMetarSpeci(String place, String report) {
     Metar? metar;
     Weather? inCacheWeather = Storage().metar.getQuick(place);

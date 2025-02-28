@@ -19,9 +19,9 @@ import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_cache/flutter_map_cache.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:in_app_review/in_app_review.dart';
@@ -45,16 +45,6 @@ class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
 
-  StreamController<void>? mapReset; // to reset the radar map
-  void resetRadar() {
-    if(mapReset != null) {
-      mapReset!.add(null);
-    }
-    for(int i = 0; i < Storage().mesonetCache.length; i++) {
-      Storage().mesonetCache[i].clean(); // clean mesonet cache
-    }
-  }
-
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
@@ -62,170 +52,398 @@ class MapScreenState extends State<MapScreen> {
   final Ruler _ruler = Ruler();
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
-  MapController? _controller;
+  final MapController _controller = MapController();
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
-  final List<bool> _layersState = Storage().settings.getLayersState();
-  final int disableClusteringAtZoom = 10;
-  final int maxClusterRadius = 160;
+  final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
+  final int _disableClusteringAtZoom = 10;
+  final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
-  final GeoCalculations calculations = GeoCalculations();
-  final ValueNotifier<(List<LatLng>, List<String>)> tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
+  final GeoCalculations _calculations = GeoCalculations();
+  final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
+  double _nexradOpacity = 0;
+
+  // 5 images for animation
+  final List<TileLayer> _nexradLayer = List.generate(5, (int index) {
+    List<String> mesonets = [
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
+    ];
+    return TileLayer(
+      maxNativeZoom: 5,
+      urlTemplate: mesonets[index],
+      tileProvider: NetworkTileProvider(),
+    );
+  });
+
+  final TileLayer _osmLayer = TileLayer(
+    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    tileProvider: MapNetworkTileProvider());
+
+  final TileLayer _openaipLayer = TileLayer(
+      maxNativeZoom: 16,
+      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
+      tileProvider: MapNetworkTileProvider());
+
+  final TileLayer _topoLayer = TileLayer(
+    maxNativeZoom: 16,
+    urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
+    tileProvider: MapNetworkTileProvider()
+  );
 
   static Future<void> showDestination(BuildContext context, List<Destination> destinations) async {
     await Navigator.pushNamed(context, "/popup", arguments: destinations);
   }
 
+  void _metarListen() {
+    setState(() {
+      _metarCluster = null;
+    });
+  }
+
+  void _tafListen() {
+    setState(() {
+      _tafCluster = null;
+    });
+  }
+
+  void _airepListen() {
+    setState(() {
+      _airepCluster = null;
+    });
+  }
+
+  void _airSigmetListen() {
+    setState(() {
+      _airSigmetCluster = null;
+      _airSigmetLayer = null;
+    });
+  }
+
+  void _tfrListen() {
+    setState(() {
+      _tfrCluster = null;
+      _tfrLayer = null;
+    });
+  }
+
+  void _geoJsonListen() {
+    setState(() {
+      _geojsonCluster = null;
+      _geoJsonLayer = null;
+    });
+  }
+
   @override
   void initState() {
-    _controller = MapController();
+    // move with airplane but do not hold the map
+    Storage().gpsChange.addListener(_gpsListen);
+    Storage().timeChange.addListener(_timeListen);
+    Storage().metar.change.addListener(_metarListen);
+    Storage().taf.change.addListener(_tafListen);
+    Storage().airep.change.addListener(_airepListen);
+    Storage().airSigmet.change.addListener(_airSigmetListen);
+    Storage().tfr.change.addListener(_tfrListen);
+    Storage().geoParser.change.addListener(_geoJsonListen);
     super.initState();
   }
 
   @override
   void dispose() {
-    super.dispose();
     // save ptz when we switch out
-    if(_controller != null) {
-      Storage().settings.setZoom(_controller!.camera.zoom);
-      Storage().settings.setCenterLatitude(_controller!.camera.center.latitude);
-      Storage().settings.setCenterLongitude(
-          _controller!.camera.center.longitude);
-      Storage().settings.setRotation(_controller!.camera.rotation);
-      Storage().gpsChange.removeListener(_listen);
-      _previousPosition = null;
-      _controller!.dispose();
-      _controller = null;
-    }
+    Storage().settings.setZoom(_controller.camera.zoom);
+    Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
+    Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
+    Storage().settings.setRotation(_controller.camera.rotation);
+    Storage().gpsChange.removeListener(_gpsListen);
+    Storage().timeChange.removeListener(_timeListen);
+    Storage().metar.change.removeListener(_metarListen);
+    Storage().taf.change.removeListener(_tafListen);
+    Storage().airep.change.removeListener(_airepListen);
+    Storage().airSigmet.change.removeListener(_airSigmetListen);
+    Storage().tfr.change.removeListener(_tfrListen);
+    Storage().geoParser.change.removeListener(_geoJsonListen);
+    _previousPosition = null;
+    super.dispose();
   }
 
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
-    if(_controller != null) {
-      LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-      LatLng topCenter = _controller!.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
-      String centralDistance = calculations.calculateDistance(center, topCenter).round().toString();
-      LatLng topLeft = _controller!.camera.pointToLatLng(const Point(iconRadius, 0));
-      LatLng bottomLeft = _controller!.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
-      double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
-      if(ticksInLatitude < 0.1) {
-        ticksInLatitude = 0.1; // avoid busy loop
+    LatLng center = Gps.toLatLng(Storage().gpsChange.value);
+    LatLng topCenter = _controller.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
+    String centralDistance = _calculations.calculateDistance(center, topCenter).round().toString();
+    LatLng topLeft = _controller.camera.pointToLatLng(const Point(iconRadius, 0));
+    LatLng bottomLeft = _controller.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
+    double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
+    if(ticksInLatitude < 0.1) {
+      ticksInLatitude = 0.1; // avoid busy loop
+    }
+    // run a loop to find markers
+    List<LatLng> llVertical = [];
+    List<String> distanceVertical = [];
+    for (double latitude = center.latitude; latitude < topLeft.latitude; latitude += ticksInLatitude) {
+      if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+        continue; // outside of view area
       }
-      // run a loop to find markers
-      List<LatLng> llVertical = [];
-      List<String> distanceVertical = [];
-      for (double latitude = center.latitude; latitude < topLeft.latitude; latitude += ticksInLatitude) {
-        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
-          continue; // outside of view area
+      double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+      LatLng ll = LatLng(latitude, avgLon);
+      double d = _calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      distanceVertical.add(d.round().toString());
+      llVertical.add(ll);
+    }
+    for (double latitude = center.latitude; latitude > bottomLeft.latitude; latitude -= ticksInLatitude) {
+      if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
+        continue; // outside of view area
+      }
+      double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
+      LatLng ll = LatLng(latitude, avgLon);
+      double d = _calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
+      distanceVertical.add(d.round().toString());
+      llVertical.add(ll);
+    }
+    _tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
+  }
+
+  void _timeListen() {
+    if(_nexradOpacity > 0) { // update nexrad animation
+      setState(() {
+        for (int i = 0; i < _nexradLayer.length; i++) {
+          Storage().mesonetOpacity[i] = 0;
         }
-        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
-        LatLng ll = LatLng(latitude, avgLon);
-        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
-        distanceVertical.add(d.round().toString());
-        llVertical.add(ll);
-      }
-      for (double latitude = center.latitude; latitude > bottomLeft.latitude; latitude -= ticksInLatitude) {
-        if (latitude > topLeft.latitude || latitude < bottomLeft.latitude) {
-          continue; // outside of view area
+        int index = Storage().timeChange.value % (_nexradLayer.length * 2);
+        if (index > _nexradLayer.length - 1) {
+          index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
         }
-        double avgLon = (bottomLeft.longitude + topLeft.longitude) / 2;
-        LatLng ll = LatLng(latitude, avgLon);
-        double d = calculations.calculateDistance(LatLng(center.latitude, avgLon), ll);
-        distanceVertical.add(d.round().toString());
-        llVertical.add(ll);
-      }
-      tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
+        Storage().mesonetOpacity[index] = _nexradOpacity;
+      });
     }
   }
 
   // this pans camera on move
-  void _listen() {
+  void _gpsListen() {
     final LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
-    if(null != _controller) {
-      try {
-        LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
-            cur.longitude - _previousPosition!.longitude);
-        LatLng now = _controller!.camera.center;
-        LatLng next = LatLng(
-            now.latitude + diff.latitude, now.longitude + diff.longitude);
-        if (!_interacting) { // do not move when user is moving map
-          _controller!.moveAndRotate(next, _controller!.camera.zoom,
-              _northUp ? 0 : -Storage().position.heading);
-        }
+    try {
+      LatLng diff = LatLng(cur.latitude - _previousPosition!.latitude,
+          cur.longitude - _previousPosition!.longitude);
+      LatLng now = _controller.camera.center;
+      LatLng next = LatLng(
+          now.latitude + diff.latitude, now.longitude + diff.longitude);
+      if (!_interacting) { // do not move when user is moving map
+        _controller.moveAndRotate(next, _controller.camera.zoom,
+            _northUp ? 0 : -Storage().position.heading);
       }
-      catch (e) {} // adding to lat lon is dangerous
     }
+    catch (e) {} // adding to lat lon is dangerous
 
     _previousPosition = Gps.toLatLng(Storage().position);
   }
 
+  PolylineLayer? _tfrLayer;
+  PolylineLayer _makeTfrLayer() {
+    List<Weather> weather = Storage().tfr.getAll();
+    List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+    _tfrLayer ??= PolylineLayer(
+      polylines: [
+        for (Tfr tfr in tfrs)
+          if(tfr.isRelevant())
+          // route
+            Polyline(
+              strokeWidth: 4,
+              points: tfr.coordinates, // red if in effect, orange if in future
+              color: tfr.isInEffect() ? Constants.tfrColor : Constants.tfrColorFuture,
+            ),
+      ],
+    );
+
+    return _tfrLayer!;
+  }
+
+  PolylineLayer? _airSigmetLayer;
+  PolylineLayer _makeAirSigmetLayer() {
+    List<Weather> weather = Storage().airSigmet.getAll();
+    List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+    _airSigmetLayer ??= PolylineLayer(
+      polylines: [
+        // route
+        for(AirSigmet a in airSigmet)
+          if(a.showShape)
+            Polyline(
+              borderStrokeWidth: 1,
+              borderColor: Colors.white,
+              strokeWidth: 2,
+              points: a.coordinates,
+              color: a.getColor(),
+            ),
+      ],
+    );
+
+    return _airSigmetLayer!;
+  }
+
+  PolygonLayer? _geoJsonLayer;
+  PolygonLayer _makeGeoJsonLayer() {
+    _geoJsonLayer ??= PolygonLayer(polygons: Storage().geoParser.polygons);
+    return _geoJsonLayer!;
+  }
+
+  MarkerClusterLayerWidget makeCluster(List<Marker> markers) {
+    return MarkerClusterLayerWidget(
+      options: MarkerClusterLayerOptions(
+          showPolygon: false,
+          spiderfyCluster: false,
+          maxClusterRadius: _maxClusterRadius,
+          disableClusteringAtZoom: _disableClusteringAtZoom,
+          markers: markers,
+          builder: (context, m) {
+            return Container(color: Colors.transparent,);
+          },
+        )
+    );
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _metarCluster;
+  MarkerClusterLayerWidget _makeMetarCluster() {
+    List<Weather> weather = Storage().metar.getAll();
+    List<Metar> metars = weather.map((e) => e as Metar).toList();
+    _metarCluster ??= makeCluster([
+            for(Metar m in metars)
+              Marker(point: m.coordinate,
+                  alignment: Alignment.topRight,
+                  child: JustTheTooltip(
+                    content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
+                    triggerMode: TooltipTriggerMode.tap,
+                    waitDuration: const Duration(seconds: 1),
+                    child: m.getIcon(),))
+          ],
+        );
+    return _metarCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _tafCluster;
+  MarkerClusterLayerWidget _makeTafCluster() {
+    List<Weather> weather = Storage().taf.getAll();
+    List<Taf> tafs = weather.map((e) => e as Taf).toList();
+    _tafCluster ??= makeCluster([
+      for(Taf t in tafs)
+        Marker(point: t.coordinate,
+            width: 32,
+            height: 32,
+            alignment: Alignment.bottomRight,
+            child: JustTheTooltip(
+              content: Container(
+                  padding: const EdgeInsets.all(5), child: Text(t.toString())),
+              triggerMode: TooltipTriggerMode.tap,
+              waitDuration: const Duration(seconds: 1),
+              child: t.getIcon(),))
+    ]);
+    return _tafCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _airepCluster;
+  MarkerClusterLayerWidget _makeAirepCluster() {
+    List<Weather> weather = Storage().airep.getAll();
+    List<Airep> aireps = weather.map((e) => e as Airep).toList();
+    _airepCluster ??= makeCluster([
+            for(Airep a in aireps)
+              Marker(point: a.coordinates,
+                  alignment: Alignment.bottomLeft,
+                  child: JustTheTooltip(
+                      content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
+                      triggerMode: TooltipTriggerMode.tap,
+                      waitDuration: const Duration(seconds: 1),
+                      child: const Icon(Icons.person, color: Colors.black,)))
+          ],
+    );
+
+    return _airepCluster!;
+  }
+
+  // this should not rebuild till weather is updated
+  MarkerClusterLayerWidget? _airSigmetCluster;
+  MarkerClusterLayerWidget _makeAirSigmetCluster() {
+    List<Weather> weather = Storage().airSigmet.getAll();
+    List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
+    _airSigmetCluster ??= makeCluster([
+            for(AirSigmet a in airSigmet)
+              Marker(
+                  point: a.coordinates[0],
+                  child: JustTheTooltip(
+                      content: Container(
+                          padding: const EdgeInsets.all(5),
+                          child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
+                      ),
+                      waitDuration: const Duration(seconds: 1),
+                      triggerMode: TooltipTriggerMode.tap,
+                      child: GestureDetector(
+                          onLongPress: () {
+                            setState(() {
+                              _airSigmetLayer = null; // rebuild layer with visible shapes
+                              a.showShape = !a.showShape;
+                            });
+                          },
+                          child:Icon(Icons.ac_unit_rounded,
+                              color: a.getColor()
+                          )
+                      )
+                  )
+              )
+          ],
+        );
+
+    return _airSigmetCluster!;
+  }
+
+  MarkerClusterLayerWidget? _tfrCluster;
+  MarkerClusterLayerWidget _makeTfrCluster() {
+    List<Weather> weather = Storage().tfr.getAll();
+    List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
+    _tfrCluster ??= makeCluster([
+            for(Tfr t in tfrs)
+              Marker(point: t.coordinates[t.getLabelCoordinate()],
+                  child: JustTheTooltip(
+                        content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
+                        triggerMode: TooltipTriggerMode.tap,
+                        waitDuration: const Duration(seconds: 1),
+                        child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
+          ],
+        );
+    return _tfrCluster!;
+  }
+
+  MarkerClusterLayerWidget? _geojsonCluster;
+  MarkerClusterLayerWidget _makeGeoJsonCluster() {
+    _geojsonCluster ??= makeCluster(Storage().geoParser.markers);
+
+    return _geojsonCluster!;
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    if (mapReset != null) {
-      mapReset!.close();
-    }
-    mapReset = StreamController();
 
-    TileLayer osmLayer = TileLayer(
-      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-          maxStale: const Duration(days: 30),
-          store: Storage().osmCache),
-    );
+    double opacity = 1.0;
 
-    TileLayer openaipLayer = TileLayer(
-        maxNativeZoom: 16,
-        urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
-        tileProvider: CachedTileProvider(store: Storage().openaipCache));
-
-    TileLayer topoLayer = TileLayer(
-      maxNativeZoom: 16,
-      urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
-      tileProvider: CachedTileProvider(
-        // maxStale keeps the tile cached for the given Duration and
-        // tries to revalidate the next time it gets requested
-          maxStale: const Duration(days: 30),
-          store: Storage().topoCache),
-    );
-
-    String index = ChartCategory.chartTypeToIndex(_type);
+    final String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
-    // 5 images for animation
-    List<TileLayer> nexradLayer = List.generate(5, (int index) {
-      List<String> mesonets = [
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-        "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
-      ];
-      return TileLayer(
-        maxNativeZoom: 5,
-        reset: mapReset!.stream,
-        urlTemplate: mesonets[index],
-        tileProvider: CachedTileProvider(
-          // maxStale keeps the tile cached for the given Duration and
-          // tries to revalidate the next time it gets requested
-            maxStale: const Duration(minutes: 1),
-            store: Storage().mesonetCache[index]),
-      );
-    });
-
     //add layers
-    List<Widget> layers = [];
+    final List<Widget> layers = [];
 
-    TileLayer chartLayer = TileLayer(
+    final TileLayer chartLayer = TileLayer(
         tms: true,
         maxNativeZoom: _maxZoom,
         tileProvider: ChartTileProvider(),
         urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
 
     // start from known location
-    MapOptions opts = MapOptions(
+    final MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(),
           Storage().settings.getCenterLongitude()),
       initialZoom: Storage().settings.getZoom(),
@@ -263,8 +481,9 @@ class MapScreenState extends State<MapScreen> {
     );
 
     int lIndex = _layers.indexOf('OSM');
-    if (_layersState[lIndex]) {
-      layers.add(osmLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _osmLayer));
       layers.add( // OSM attribution
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
@@ -277,12 +496,14 @@ class MapScreenState extends State<MapScreen> {
           ));
     }
     lIndex = _layers.indexOf('Topo');
-    if (_layersState[lIndex]) {
-      layers.add(topoLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _topoLayer));
     }
     lIndex = _layers.indexOf('OpenAIP');
-    if (_layersState[lIndex]) {
-      layers.add(openaipLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _openaipLayer));
       layers.add(
           Container(padding: EdgeInsets.fromLTRB(
               0, 0, 0, Constants.screenHeight(context) / 2),
@@ -293,330 +514,90 @@ class MapScreenState extends State<MapScreen> {
           ));
     }
     lIndex = _layers.indexOf('Chart');
-    if (_layersState[lIndex]) {
-      layers.add(chartLayer);
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: chartLayer));
     }
 
     // Custom shapes
     lIndex = _layers.indexOf('GeoJSON');
-    if(_layersState[lIndex]) {
-      layers.add(ValueListenableBuilder<int>(
-        valueListenable: Storage().geoParser.change,
-        builder: (context, value, _) {
-          return PolygonLayer(polygons: Storage().geoParser.polygons);
-        })
-      );
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _makeGeoJsonLayer()));
 
-      layers.add(ValueListenableBuilder<int>(
-          valueListenable: Storage().geoParser.change,
-          builder: (context, value, _) {
-            return MarkerClusterLayerWidget( //cluster them transparent
-                options: MarkerClusterLayerOptions(
-                  markers: Storage().geoParser.markers,
-                  maxClusterRadius: 45,
-                  disableClusteringAtZoom: 15,
-                  size: const Size(40, 40),
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(50),
-                  maxZoom: 20,
-                  builder: (context, markers) {
-                    return Container(
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          color: Colors.blue.withAlpha(128)),
-                      child: Center(
-                        child: Text(
-                          markers.length.toString(),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    );
-                  },
-                )
-            );
-          })
-      );
+      layers.add(Opacity(opacity: opacity, child: _makeGeoJsonCluster()));
     }
 
-    int nexradLength = nexradLayer.length;
-    lIndex = _layers.indexOf('NOAA-Loop');
-    if(_layersState[lIndex]) {
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().timeChange,
-              builder: (context, value, _) {
-                if(value % 300 == 0) {
-                  // download new nexrad every 5 minutes
-                  resetRadar();
-                }
-                int index = value % (nexradLength * 2);
-                if(index > nexradLength - 1) {
-                  index = nexradLength - 1; // give 2 times the time for latest to stay on
-                }
-                return Opacity(opacity: 0.8, child: nexradLayer[index]); // animate every 3 seconds
-          })
-      );
+    lIndex = _layers.indexOf('Radar');
+    opacity = _layersOpacity[lIndex];
+    _nexradOpacity = opacity;
+    if (opacity > 0) {
 
       // nexrad
+      for(int i = 0; i < _nexradLayer.length; i++) {
+        layers.add(Opacity(opacity: Storage().mesonetOpacity[i], child: _nexradLayer[i]));
+      }
+
       layers.add(// nexrad slider
-          ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+            child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                int index = value % (nexradLength * 2);
-                if(index > nexradLength - 1) {
-                  index = nexradLength - 1; // give 2 times the time for latest to stay on
+                int index = value % (_nexradLayer.length * 2);
+                if(index > _nexradLayer.length - 1) {
+                  index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
                 }
-                return Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
-                  child: Slider(value: index / (nexradLength - 1), onChanged: (double value) {  },),
-              );
-          })
-      );
+                return Slider(value: index / (_nexradLayer.length - 1), onChanged: (double value) {  });
+          }),
+      )));
     }
 
     lIndex = _layers.indexOf('Weather');
-    if(_layersState[lIndex]) {
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().metar.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().metar.getAll();
-                List<Metar> metars = weather.map((e) => e as Metar).toList();
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Metar m in metars)
-                          Marker(point: m.coordinate,
-                              alignment: Alignment.topRight,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: m.getIcon(),)))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      );
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _makeMetarCluster()));
 
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().taf.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().taf.getAll();
-                List<Taf> tafs = weather.map((e) => e as Taf).toList();
-                return MarkerClusterLayerWidget(  // too many tafs, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Taf t in tafs)
-                          Marker(point: t.coordinate,
-                              width: 32,
-                              height: 32,
-                              alignment: Alignment.bottomRight,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: t.getIcon(),)))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      );
+      layers.add(Opacity(opacity: opacity, child: _makeTafCluster()));
 
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().airep.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airep.getAll();
-                List<Airep> airep = weather.map((e) => e as Airep).toList();
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                    options: MarkerClusterLayerOptions(
-                      disableClusteringAtZoom: disableClusteringAtZoom,
-                      maxClusterRadius: maxClusterRadius,
-                      markers: [
-                        for(Airep a in airep)
-                          Marker(point: a.coordinates,
-                              alignment: Alignment.bottomLeft,
-                              child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                                content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
-                                triggerMode: TooltipTriggerMode.tap,
-                                waitDuration: const Duration(seconds: 1),
-                                child: const Icon(Icons.person, color: Colors.black,))))
-                      ],
-                      builder: (context, markers) {
-                        return Container(color: Colors.transparent,);
-                      },
-                    )
-                );
-              }
-          )
-      );
+      layers.add(Opacity(opacity: opacity, child: _makeAirepCluster()));
 
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().airSigmet.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airSigmet.getAll();
-                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-                return PolylineLayer(
-                  polylines: [
-                    // route
-                    for(AirSigmet a in airSigmet)
-                      if(a.showShape)
-                        Polyline(
-                            borderStrokeWidth: 1,
-                            borderColor: Colors.white,
-                            strokeWidth: 2,
-                            points: a.coordinates,
-                            color: a.getColor(),
-                      ),
-                  ],
-                );
-             }
-          )
-      );
+      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetLayer()));
 
-      layers.add(
-          ValueListenableBuilder<int>(
-              valueListenable: Storage().airSigmet.change,
-              builder: (context, value, _) {
-                List<Weather> weather = Storage().airSigmet.getAll();
-                List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
-
-                return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                  options: MarkerClusterLayerOptions(
-                    disableClusteringAtZoom: disableClusteringAtZoom,
-                    maxClusterRadius: maxClusterRadius,
-                    markers: [
-                      // route
-                      for(AirSigmet a in airSigmet)
-                        Marker(
-                          point: a.coordinates[0],
-                          child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                            content: Container(
-                              padding: const EdgeInsets.all(5),
-                              child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
-                            ),
-                            waitDuration: const Duration(seconds: 1),
-                            triggerMode: TooltipTriggerMode.tap,
-                            child: GestureDetector(
-                              onLongPress: () {
-                                a.showShape = !a.showShape;
-                                Storage().airSigmet.change.value++;
-                              },
-                              child:Icon(Icons.ac_unit_rounded,
-                              color: a.getColor()
-                            )
-                            )
-                          )
-                        ))
-                    ],
-                    builder: (context, markers) {
-                      return Container(color: Colors.transparent,);
-                    },
-                  )
-                );
-              }
-          )
-      );
+      layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
       layers.add(
         // nexrad layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             bool conus = true;
-            if(_controller != null) {
-              // show conus above zoom level 7
-              conus = _controller!.camera.zoom < 7 ? true : false;
-            }
+            // show conus above zoom level 7
+            conus = _controller.camera.zoom < 7 ? true : false;
             List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
             return OverlayImageLayer(
-              overlayImages:
-              images.map((e) {
+              overlayImages: images.map((e) {
                 return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
                     bounds: e.getBounds());
               }).toList(),
             );
           },
         ),
-      );
-
+      ));
     }
 
     lIndex = _layers.indexOf('TFR');
-    if(_layersState[lIndex]) {
-      layers.add( // route layer
-        ValueListenableBuilder<int>(
-          valueListenable: Storage().tfr.change,
-          builder: (context, value, _) {
-            List<Weather> weather = Storage().tfr.getAll();
-            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
-            return PolylineLayer(
-              polylines: [
-                for (Tfr tfr in tfrs)
-                  if(tfr.isRelevant())
-                  // route
-                    Polyline(
-                      strokeWidth: 4,
-                      points: tfr.coordinates, // red if in effect, orange if in future
-                      color: tfr.isInEffect() ? Constants.tfrColor : Constants.tfrColorFuture,
-                    ),
-              ],
-            );
-          },
-        ),
-      );
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: _makeTfrLayer()));
 
-      layers.add( // route layer
-        ValueListenableBuilder<int>(
-          valueListenable: Storage().tfr.change,
-          builder: (context, value, _) {
-            List<Weather> weather = Storage().tfr.getAll();
-            List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
-
-            return MarkerClusterLayerWidget(  // too many metars, cluster them transparent
-                options: MarkerClusterLayerOptions(
-                  disableClusteringAtZoom: disableClusteringAtZoom,
-                  maxClusterRadius: maxClusterRadius,
-                  markers: [
-                    for (Tfr tfr in tfrs)
-                      if(tfr.isRelevant())
-                        Marker(
-                            point: tfr.coordinates[tfr.getLabelCoordinate()],
-                            child: Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180, child: JustTheTooltip(
-                              content: Container(padding: const EdgeInsets.all(5), child:Text(tfr.toString())),
-                              triggerMode: TooltipTriggerMode.tap,
-                              waitDuration: const Duration(seconds: 1),
-                              child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
-                        ),
-                  ],
-              builder: (context, markers) {
-                return Container(color: Colors.transparent,);
-              },
-            ));
-          },
-        ),
-      );
-
+      layers.add(Opacity(opacity: opacity, child: _makeTfrCluster()));
     }
 
     lIndex = _layers.indexOf('Plate');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add( // circle layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
             valueListenable: Storage().plateChange,
             builder: (context, value, _) {
               return OverlayImageLayer(
@@ -625,7 +606,6 @@ class MapScreenState extends State<MapScreen> {
                       Storage().bottomRightPlate != null &&
                       Storage().topLeftPlate != null)
                     OverlayImage(
-                      opacity: 0.9,
                       bounds: LatLngBounds(
                           Storage().topLeftPlate!,
                           Storage().bottomRightPlate!
@@ -636,14 +616,15 @@ class MapScreenState extends State<MapScreen> {
               );
             }
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Traffic');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add(
         // traffic layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             return MarkerLayer(
@@ -669,13 +650,14 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Tracks');
-    if(_layersState[lIndex]) {
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
       layers.add( // tracks layer
-        ValueListenableBuilder<Position>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             List<LatLng> path = Storage().tracks.getPoints();
@@ -692,84 +674,52 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
     }
 
     lIndex = _layers.indexOf('Circles');
-      if(_layersState[lIndex]) {
-        layers.add( // tape
-          ValueListenableBuilder<(List<LatLng>, List<String>)>(
-            valueListenable: tapeNotifier,
-            builder: (context, value, _) {
-              return MarkerLayer(
-                  markers: [
-                    for(int index = 0; index < value.$1.length; index++)
-                      Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
-                        child: Container(width: 32,
-                          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withOpacity(0.6)),
-                            child: SizedBox(width: 32, child: FittedBox(
-                              child: Padding(padding: const EdgeInsets.all(3),
-                                child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
-                        ))
-                      ),
-                  ]
-              );
-            },
-          ),
-        );
+    opacity = _layersOpacity[lIndex];
+    if(opacity > 0) {
 
-        layers.add( // circle layer
-          ValueListenableBuilder<Position>(
+      layers.add( // circle layer
+          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
-              return CircleLayer(
-                circles: [
+              return PolylineLayer(
+                polylines: [
                   // 10 nm circle
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 10,
-                    // 10 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 10),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 5,
-                    // 15 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  // 5 nm circle
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 5),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.distanceCircleColor,
-                    color: Colors.transparent,
-                    radius: Storage().units.toM * 2,
-                    // 10 nm circle
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  // 2 nm circle
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 2),
+                    color: Constants.distanceCircleColor,
+                    strokeWidth: 3,
                   ),
                   // speed marker
-                  CircleMarker(
-                    borderStrokeWidth: 3,
-                    borderColor: Constants.speedCircleColor,
-                    color: Colors.transparent,
-                    radius: value.speed * 60,
-                    // 1 minute speed
-                    useRadiusInMeter: true,
-                    point: Gps.toLatLng(value),
+                  Polyline(
+                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), GeoCalculations.convertSpeed(value.speed) / 60),
+                    color: Constants.speedCircleColor,
+                    strokeWidth: 3,
                   ),
                 ],
               );
             },
           ),
-        );
+          )
+      );
 
-        layers.add( // circle layer labels
-          ValueListenableBuilder<Position>(
+      layers.add( // circle layer labels
+          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
               return MarkerLayer(
@@ -805,15 +755,42 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-        );
+          ));
+    }
+
+    lIndex = _layers.indexOf('Tape');
+    opacity = _layersOpacity[lIndex];
+    if(opacity > 0) {
+      layers.add( // tape
+          Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
+            valueListenable: _tapeNotifier,
+            builder: (context, value, _) {
+              return MarkerLayer(
+                  markers: [
+                    for(int index = 0; index < value.$1.length; index++)
+                      Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
+                          child: Container(width: 32,
+                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withOpacity(0.6)),
+                              child: SizedBox(width: 32, child: FittedBox(
+                                  child: Padding(padding: const EdgeInsets.all(3),
+                                      child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
+                              ))
+                      ),
+                  ]
+              );
+            },
+          ),
+          ));
       }
 
+
       lIndex = _layers.indexOf('Obstacles');
-      if(_layersState[lIndex]) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
         //obstacles
         layers.add(
-            ValueListenableBuilder<int>(
-                valueListenable: Storage().timeChange,
+            Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+                valueListenable: Storage().area.change,
                 builder: (context, value, _) {
                   return MarkerLayer(markers: [
                     for(LatLng ll in Storage().area.obstacles)
@@ -822,13 +799,15 @@ class MapScreenState extends State<MapScreen> {
                           child: const Icon(Icons.square, color: Colors.red, size: 20,)))
                   ]);
                 })
+            )
         );
-      }
+    }
 
-      lIndex = _layers.indexOf('Nav');
-      if(_layersState[lIndex]) {
+    lIndex = _layers.indexOf('Nav');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
         layers.add( // route layer
-        ValueListenableBuilder<int>(
+          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -876,10 +855,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // route layer for runway numbers
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -900,10 +879,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // track layer
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             // this place
@@ -922,10 +901,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add( // route layer for waypoints
-        ValueListenableBuilder<int>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             List<Destination> destinations = Storage().route.getAllDestinations();
@@ -941,8 +920,8 @@ class MapScreenState extends State<MapScreen> {
                                 if(!Storage().settings.isRubberBanding()) {
                                   return;
                                 }
-                                if(null != _controller && _rubberBanding) { // start rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                if(_rubberBanding) { // start rubber banding
+                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                              },
@@ -960,10 +939,8 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                if(null != _controller) { // end rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                  Storage().route.replaceDestinationFromDb(index, l);
-                                }
+                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestinationFromDb(index, l);
                               },
                               child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white)) :
                           GestureDetector(
@@ -985,8 +962,8 @@ class MapScreenState extends State<MapScreen> {
                                 if(!Storage().settings.isRubberBanding()) {
                                   return;
                                 }
-                                if(null != _controller && _rubberBanding) { // start rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                if(_rubberBanding) { // start rubber banding
+                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                               },
@@ -1007,10 +984,8 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                if(null != _controller) { // end rubber banding
-                                  LatLng l = _controller!.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
-                                  Storage().route.replaceDestinationFromDb(index, l);
-                                }
+                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                Storage().route.replaceDestinationFromDb(index, l);
                               },
                               onTap: () {
                                 setState(() {
@@ -1033,11 +1008,11 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
       layers.add(
         // aircraft layer
-        ValueListenableBuilder<Position>(
+        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             LatLng current = LatLng(value.latitude, value.longitude);
@@ -1072,13 +1047,13 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      );
+      ));
 
     } // all nav layers
 
     // ruler, always present
     layers.add(
-      ValueListenableBuilder<int>(
+      Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
         valueListenable: _ruler.change,
         builder: (context, value, _) {
           List<(int, int)> calculations = _ruler.getDistanceBearing();
@@ -1093,16 +1068,13 @@ class MapScreenState extends State<MapScreen> {
           );
         },
       ),
-    );
+    ));
 
-    FlutterMap map = FlutterMap(
+    final FlutterMap map = FlutterMap(
       mapController: _controller,
       options: opts,
       children: layers,
     );
-
-    // move with airplane but do not hold the map
-    Storage().gpsChange.addListener(_listen);
 
     // for PFD, calculate heights
     double width;
@@ -1115,7 +1087,7 @@ class MapScreenState extends State<MapScreen> {
       height = Constants.screenHeight(context) * 3 / 5;
       width = height * 0.7;
     }
-    Widget pfd = Positioned(
+    final Widget pfd = Positioned(
         top: Constants.screenHeightForInstruments(context),
         child:Align(
             alignment: Alignment.topLeft,
@@ -1124,7 +1096,7 @@ class MapScreenState extends State<MapScreen> {
               height: height,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
-                child:Opacity(opacity: 0.8,
+                child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
                 child:CustomPaint(
                   painter: PfdPainter(
                   height: height,
@@ -1153,7 +1125,7 @@ class MapScreenState extends State<MapScreen> {
         body: Stack(
             children: [
               map, // map
-              if(_layersState[_layers.indexOf('PFD')])
+              if(_layersOpacity[_layers.indexOf('PFD')] > 0)
                 pfd,
               Positioned(
                 child: Align(
@@ -1191,10 +1163,10 @@ class MapScreenState extends State<MapScreen> {
                               LatLng l = LatLng(p.latitude, p.longitude);
                               if(_northUp) {
                                 // do not change zoom on center
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, 0);// rotate to heading on center on track up
+                                _controller.moveAndRotate(l, _controller.camera.zoom, 0);// rotate to heading on center on track up
                               }
                               else {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _controller!.camera.zoom, -p.heading);
+                                _controller.moveAndRotate(l, _controller.camera.zoom, -p.heading);
                               }
                             },
                             onLongPress: () {
@@ -1202,10 +1174,10 @@ class MapScreenState extends State<MapScreen> {
                               LatLng l = LatLng(p.latitude, p.longitude);
                               if(_northUp) {
                                 // do not change zoom on center
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
+                                _controller.moveAndRotate(l, _maxZoom.toDouble(), 0);// rotate to heading on center on track up
                               }
                               else {
-                                _controller == null ? {} : _controller!.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
+                                _controller.moveAndRotate(l, _maxZoom.toDouble(), -p.heading);
                               }
                             },
                             child: const Text("Center"),
@@ -1223,7 +1195,7 @@ class MapScreenState extends State<MapScreen> {
                             // menu
                             TextButton(
                               onPressed: () {
-                                if(Storage().settings.shouldShowReview()) {
+                                if(Storage().settings.shouldShowReview() && Constants.shouldShouldReview) {
                                   showDialog(context: context, builder: (BuildContext context) {
                                     return AlertDialog(
                                       title: const Text('Review AvareX?'),
@@ -1370,21 +1342,22 @@ class MapScreenState extends State<MapScreen> {
                                             builder: (context1, setState1) =>
                                                 ListTile(
                                                   dense: true,
-                                                  title: Text(_layers[index]),
-                                                  subtitle: _layersState[index] ? const Text("Layer is On") : const Text("Layer is Off"),
-                                                  leading: Switch(
-                                                    value: _layersState[index],
-                                                    onChanged: (bool value) {
+                                                  title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                    Expanded(flex: 1, child:Text(_layers[index])),
+                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
+                                                    value: _layersOpacity[index],
+                                                    onChanged: (double value) {
                                                       setState1(() {
-                                                        _layersState[index] = value;
+                                                        _layersOpacity[index] = value;
                                                       });
                                                       if(_layers[index] == "Tracks") {
-                                                        if(value == false) {
+                                                        if(value == 0) {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                                                           Storage().tracks.saveKml().then((value) {
-                                                            setState(() {
-                                                              Navigator.pushNamed(context, '/documents');
+                                                            setState1(() {
+                                                              Navigator.pop(context1);
+                                                              Navigator.pushNamed(context1, '/documents');
                                                             });
                                                           });
                                                         }
@@ -1392,28 +1365,28 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.reset(); //on turning on, start fresh
                                                         }
                                                       }
-                                                      if(_layers[index] == "OSM" && value == true) {
-                                                        _layersState[_layers.indexOf("Topo")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "OSM" && value > 0) {
+                                                          _layersOpacity[_layers.indexOf("Topo")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "Topo" && value == true) {
-                                                        _layersState[_layers.indexOf("OSM")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "Topo" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("OSM")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "Chart" && value == true) {
-                                                        _layersState[_layers.indexOf("OpenAIP")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "Chart" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("OpenAIP")] = 0; // save memory by keeping layers to minimum
                                                       }
-                                                      if(_layers[index] == "OpenAIP" && value == true) {
-                                                        _layersState[_layers.indexOf("Chart")] = false; // save memory by keeping layers to minimum
+                                                      if(_layers[index] == "OpenAIP" && value > 0) {
+                                                        _layersOpacity[_layers.indexOf("Chart")] = 0; // save memory by keeping layers to minimum
                                                       }
                                                       // now save to settings
-                                                      Storage().settings.setLayersState(_layersState);
+                                                      Storage().settings.setLayersOpacity(_layersOpacity);
                                                       setState(() {
-                                                        _layersState[index] = value; // this is the state for the map
+                                                        _layersOpacity[index] = value; // this is the state for the map
                                                       });
                                                       // Turn audible alerts off and on depending on traffic layer
-                                                      Storage().settings.setAudibleAlertsEnabled(_layersState[Storage().settings.getLayers().indexOf("Traffic")]);                                                
+                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[Storage().settings.getLayers().indexOf("Traffic")] > 0);
                                                     },
-                                                  ),
-                                                ),
+                                                  )),
+                                                ])),
                                           ),)
                                         ),
                                     ),
@@ -1529,4 +1502,12 @@ class Ruler {
     return _measuring;
   }
 
+}
+
+class MapNetworkTileProvider extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    String url = getTileUrl(coordinates, options);
+    return CachedNetworkImageProvider(url, cacheManager: FileCacheManager().mapCacheManager);
+  }
 }

@@ -98,15 +98,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v38", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Weather,NOAA-Loop,TFR,Plate,Traffic,Obstacles,GeoJSON,PFD,Tracks") as String).split(",");
+    return (provider.getValue("key-layers-v40", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Weather,Radar,TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
   }
 
-  List<bool> getLayersState() {
-    return (provider.getValue("key-layers-state-v38", defaultValue: "true,true,true,true,false,false,false,false,true,false,true,false,false,false,false") as String).split(",").map((String e) => e == 'true' ? true : false).toList();
+  List<double> getLayersOpacity() {
+    return (provider.getValue("key-layers-opacity-v40", defaultValue: "1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
   }
 
-  void setLayersState(List<bool> state) {
-    provider.setString("key-layers-state-v38", state.map((bool e) => e.toString()).toList().join(","));
+  void setLayersOpacity(List<double> opacity) {
+    provider.setString("key-layers-opacity-v40", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {

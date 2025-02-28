@@ -69,7 +69,7 @@ class Metar extends Weather {
         return const Icon(Icons.circle, color: Color(0xFF673AB7), );
     }
 
-    return const Icon(Icons.circle, color: Color(0x80FFFFFF), );
+    return const Icon(Icons.circle, color: Color(0xFFFFFFFF), );
   }
 
   @override

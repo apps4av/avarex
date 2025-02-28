@@ -16,6 +16,8 @@ import 'notam_cache.dart';
 
 class WeatherCache {
 
+  static const int minUpdateTime = 20000; // 20 seconds
+
   // stop from downloading weather continuously by storing when last time the weather was downloaded otherwise can get in download loop
   final Map<Type, DateTime> _lastDownload = {};
   final int _maxAge = 1 * 60 * 1000; // in ms
@@ -86,7 +88,7 @@ class WeatherCache {
 
   void put(Weather w) {
     _map[w.station] = w;
-    if((DateTime.now().millisecondsSinceEpoch - lastInsertTime) > 5000) {
+    if((DateTime.now().millisecondsSinceEpoch - lastInsertTime) > minUpdateTime) {
       change.value++;
       lastInsertTime = DateTime.now().millisecondsSinceEpoch;
     }

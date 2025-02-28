@@ -86,6 +86,31 @@ class Destination {
 
   }
 
+  // This is 1800wxbrief format
+  static String toSexagesimalLmfs(LatLng ll) {
+    double lat = ll.latitude;
+    double lon = ll.longitude;
+    // convert lat to sexagesimal
+    String latDir = lat >= 0 ? "N" : "S";
+    String lonDir = lon >= 0 ? "E" : "W";
+    lat = lat.abs();
+    lon = lon.abs();
+    int latDeg = lat.floor();
+    double latMin = (lat - latDeg) * 60;
+    int latMinInt = latMin.floor();
+    double latSec = (latMin - latMinInt) * 60;
+    int latSecInt = latSec.floor();
+    int lonDeg = lon.floor();
+    double lonMin = (lon - lonDeg) * 60;
+    int lonMinInt = lonMin.floor();
+    double lonSec = (lonMin - lonMinInt) * 60;
+    int lonSecInt = lonSec.floor();
+    return "${latDeg.toString()}${latMinInt.toString().padLeft(2, "0")}${latSecInt.toString().padLeft(2, "0")}$latDir/"
+        "${lonDeg.toString()}${lonMinInt.toString().padLeft(2, "0")}${lonSecInt.toString().padLeft(2, "0")}$lonDir";
+
+  }
+
+
   static LatLng parseFromSexagesimalFullOrPartial(String input) {
     double lat = 0;
     double latMin = 0;

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class Constants {
@@ -80,5 +82,12 @@ class Constants {
   static bool isPortrait(BuildContext context) {
     return MediaQuery.of(context).orientation == Orientation.portrait;
   }
+
+
+  static final bool shouldShare = !(Platform.isLinux);
+  static final bool shouldShowPdf = !(Platform.isLinux);
+  static final bool shouldShowBluetoothSpp = (Platform.isAndroid);
+  static final bool shouldShowDonation = !(Platform.isIOS || Platform.isMacOS);
+  static final bool shouldShouldReview = (Platform.isMacOS || Platform.isIOS | Platform.isAndroid || Platform.isWindows);
 
 }
