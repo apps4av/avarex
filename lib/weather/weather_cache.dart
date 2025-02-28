@@ -146,7 +146,8 @@ class WeatherCache {
     else if(type == TfrCache) {
       // default
       WeatherCache cache = TfrCache(
-          ["https://tfr.faa.gov/tfr2/list.html"],
+          //["https://tfr.faa.gov/tfr2/list.html"],
+          ["https://tfr.faa.gov/tfrapi/getTfrList"], // noticed/changed 2025-02-27
           WeatherDatabaseHelper.db.getAllTfr);
       return cache;
     }
