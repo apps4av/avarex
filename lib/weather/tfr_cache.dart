@@ -22,18 +22,22 @@ class TfrCache extends WeatherCache {
     String decoded = utf8.decode(data[0]);
 
     // parse for https://tfr.faa.gov/save_pages/detail_4_6599.html
-    RegExp exp = RegExp("save_pages/detail_[0-9]*_[0-9]*.html");
+    // RegExp exp = RegExp("save_pages/detail_[0-9]*_[0-9]*.html");
+    // 2025-02-27, bspatz: now JSON "notam_id" : "5/7572"
+    RegExp exp = RegExp('"notam_id" : "[0-9]*/[0-9]*"');
 
     Iterable<RegExpMatch> matches = exp.allMatches(decoded);
     List<String?> unique = matches.map((e) => e[0]).toSet().toList();
     for(String? match in unique) {
       if(null != match) {
-        match = match.replaceAll(".html", ".xml");
+        //match = match.replaceAll(".html", ".xml");
+        match = match.split(':')[1].trim().replaceAll("/", "_").replaceAll('"','');
       }
       else {
         continue;
       }
-      String url = "https://tfr.faa.gov/$match";
+      // String url = "https://tfr.faa.gov/$match";
+      String url = "https://tfr.faa.gov/download/detail_$match.xml";
       // now download each TFR
       http.Response response = await http.get(Uri.parse(url));
       decoded = utf8.decode(response.bodyBytes);
