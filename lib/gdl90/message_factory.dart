@@ -28,6 +28,7 @@ class MessageFactory
         break;
       case MessageType.uplink:
         m = UplinkMessage(type);
+        break;
       case MessageType.ownShip:
         m = OwnShipMessage(type);
         break;
