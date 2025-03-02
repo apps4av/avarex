@@ -26,6 +26,9 @@ class MessageFactory
     switch (type) {
       case MessageType.heartBeat:
         break;
+      case MessageType.heartBeatStratux:
+        isStratux = true;
+        break;
       case MessageType.uplink:
         m = UplinkMessage(type);
       case MessageType.ownShip:
@@ -96,6 +99,7 @@ class MessageFactory
 
 class MessageType {
   static const int heartBeat = 0x00;
+  static const int heartBeatStratux = 0xCC;  // per https://github.com/cyoung/stratux/blob/master/notes/app-vendor-integration.md
   static const int uplink = 0x07;
   static const int ownShip = 0x0A;
   static const int ownShipGeometricAltitude = 0x0B;
