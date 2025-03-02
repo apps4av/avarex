@@ -38,7 +38,8 @@ dependencies:
   sqflite: ^2.3.0
   win32: ^5.5.3
   path: ^1.8.3
-  path_provider: ^2.1.1
+  path_provider: ^2.1.5
+  path_provider_android: ^2.2.15
   sqflite_common_ffi: ^2.3.0+4
   sqflite_common_ffi_web: ^0.4.1
   material_design_icons_flutter: ^7.0.7296
@@ -62,6 +63,7 @@ dependencies:
   flutter_cache_manager: ^3.3.1
   widget_zoom: ^0.0.3
   xml: ^6.5.0
+  flutter_keyboard_visibility: ^6.0.0
   html: ^0.15.4
   image: ^4.1.7
   just_the_tooltip: ^0.0.12
