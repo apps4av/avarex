@@ -53,16 +53,16 @@ class AirSigmet extends Weather {
   }
 
   Color getColor() {
-    if(hazard == "TURB") {
+    if(hazard == "TURB" || type == "TANGO") {
       return Colors.deepOrangeAccent;
     }
-    if(hazard == "IFR") {
+    if(hazard == "IFR" || type == "SIERRA") {
       return Colors.purpleAccent;
     }
-    if(hazard == "ICE") {
+    if(hazard == "ICE" || type == "ZULU") {
       return Colors.blueAccent;
     }
-    if(hazard == "MTN OBSCN") {
+    if(hazard == "MTN OBSCN" || type == "SIERRA") {
       return Colors.greenAccent;
     }
     return Colors.black;

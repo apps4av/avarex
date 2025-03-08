@@ -163,7 +163,10 @@ class WeatherCache {
     else if(type == AirSigmetCache) {
       // default
       WeatherCache cache = AirSigmetCache(
-          ["https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz"],
+          [
+            "https://aviationweather.gov/data/cache/gairmets.cache.xml.gz",
+            "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
+          ],
           WeatherDatabaseHelper.db.getAllAirSigmet);
       return cache;
     }
