@@ -93,18 +93,28 @@ class NotamCache extends WeatherCache {
       return;
     }
 
-    String ll = Destination.toSexagesimal(airport.coordinate);
-
+    // 2025-03-13, bspatz: use airport-ID based search instead of lat/long; same DINS source
+    //                     yields same NOTAM set, but longpress airport at top
+    String _icaoID = airport.locationID;
+    if (_icaoID[0] != "K") { _icaoID = "K" + _icaoID; }  // naive for US only?
+    
+    //String ll = Destination.toSexagesimal(airport.coordinate);
     Map<String, String> body = {
-      "geoLatDegree": ll.substring(0, 3),
-      "geoLatMinute": ll.substring(3, 5),
-      "geoLatNorthSouth": ll.substring(7, 8),
-      "geoLongDegree": ll.substring(9, 12),
-      "geoLongMinute": ll.substring(12, 14),
-      "geoLongEastWest": ll.substring(16, 17),
-      "reportType": "Raw",
-      "geoLatLongRadius": "20",
-      "actionType": "latLongSearch",
+      //"geoLatDegree": ll.substring(0, 3),
+      //"geoLatMinute": ll.substring(3, 5),
+      //"geoLatNorthSouth": ll.substring(7, 8),
+      //"geoLongDegree": ll.substring(9, 12),
+      //"geoLongMinute": ll.substring(12, 14),
+      //"geoLongEastWest": ll.substring(16, 17),
+      //"reportType": "Raw",
+      //"geoLatLongRadius": "20",
+      //"actionType": "latLongSearch",
+      
+      "geoIcaoLocId": _icaoID,
+      "reportType": "Raw",        // unused?  from top DINS page FORM; keeping for ZK
+      "geoIcaoRadius": "20",      // could be Storage().settings.getStealthSetting("key-notam-radius", "20"),
+      "actionType": "radiusSearch",
+      
       "submit": "View+NOTAMs",
     };
 
