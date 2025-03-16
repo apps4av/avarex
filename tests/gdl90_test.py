@@ -1,7 +1,12 @@
 import socket
 import time
+import sys
 
-infile = input("Enter file name:")
+if len(sys.argv) > 1:
+    infile = sys.argv[1]
+else:
+    infile = input("Enter file name:")
+print("Reading ADSB data from file: " + infile)
 while True:
     file = open(infile, "rb")
 
