@@ -4,8 +4,10 @@ import 'dart:ui' as ui;
 
 // put all singletons here.
 
+import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/area.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/flight_status.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
@@ -86,7 +88,9 @@ class Storage {
   final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
-  int myIcao = 0;
+  int myAircraftIcao = 0;
+  String myAircraftCallsign = "";
+  int ownshipMessageIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
   late final FlightTimer flightTimer;
@@ -190,7 +194,7 @@ class Storage {
         if (null != message) {
           Message? m = MessageFactory.buildMessage(message);
           if(m != null && m is OwnShipMessage) {
-            myIcao = m.icao;
+            ownshipMessageIcao = m.icao;
             Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
@@ -229,7 +233,7 @@ class Storage {
           NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
           if(m != null && m is NmeaOwnShipMessage) {
             NmeaOwnShipMessage m0 = m;
-            myIcao = m0.icao;
+            ownshipMessageIcao = m0.icao;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
@@ -301,6 +305,9 @@ class Storage {
     settings.setZoom(10);
     settings.setCenterLatitude(position.latitude);
     settings.setCenterLongitude(position.longitude);
+
+    // don't await on this, but set when available, as DB access could take a few ms
+    loadAircraftIds();
 
     // this is a long login process, do not await here
 
@@ -376,6 +383,32 @@ class Storage {
     });
 
     downloadWeather();
+  }
+
+  Future<void> loadAircraftIds() async {
+    final String acName = settings.getAircraft();
+    if (acName.isEmpty) {
+      // Reset, if there is no longer any aircraft selected (say all were deleted)
+      myAircraftCallsign = "";
+      myAircraftIcao = 0;
+      return;
+    }
+    try {
+      final Aircraft ac = await UserDatabaseHelper.db.getAircraft(acName);
+      if (ac.icao.isNotEmpty) {
+        try {
+          myAircraftIcao = ac.icao.trim().length > 6 ? int.parse(ac.icao) : int.parse(ac.icao, radix: 16);
+        } catch (e) {
+          // ignore
+        }
+      }
+      if (ac.tail.isNotEmpty) {
+        myAircraftCallsign = ac.tail.trim().toUpperCase();
+      }
+    } catch (e) {
+      myAircraftCallsign = "";
+      myAircraftIcao = 0;
+    }
   }
 
   Future<void> downloadWeather() async {
