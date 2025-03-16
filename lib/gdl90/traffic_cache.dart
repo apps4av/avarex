@@ -110,8 +110,8 @@ class TrafficCache {
 
     // filter own report
     if(message.icao == Storage().ownshipMessageIcao 
-      || Storage().myAircraftIcaos.contains(message.icao)
-      || Storage().myAircraftCallsigns.contains(message.callSign)) 
+      || Storage().myAircraftIcao == message.icao
+      || Storage().myAircraftCallsign == message.callSign) 
     {
       // do not add ourselves
       return;

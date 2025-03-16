@@ -88,8 +88,8 @@ class Storage {
   final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
-  List<int> myAircraftIcaos = [];
-  List<String> myAircraftCallsigns = [];
+  int myAircraftIcao = -1;
+  String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
@@ -386,23 +386,28 @@ class Storage {
   }
 
   Future<void> loadAircraftIds() async {
-    myAircraftIcaos = [];
-    myAircraftCallsigns = [];
-    for (Aircraft a in await UserDatabaseHelper.db.getAllAircraft()) {
-      if (a.icao.isNotEmpty) {
+    final String acName = settings.getAircraft();
+    if (acName.isEmpty) {
+      // Reset, if there is no longer any aircraft selected (say all were deleted)
+      myAircraftCallsign = "";
+      myAircraftIcao = -1;
+      return;
+    }
+    try {
+      final Aircraft ac = await UserDatabaseHelper.db.getAircraft(acName);
+      if (ac.icao.isNotEmpty) {
         try {
-          myAircraftIcaos.add(a.icao.trim().length > 6 ? int.parse(a.icao) : int.parse(a.icao, radix: 16));
+          myAircraftIcao = ac.icao.trim().length > 6 ? int.parse(ac.icao) : int.parse(ac.icao, radix: 16);
         } catch (e) {
           // ignore
         }
       }
-      if (a.tail.isNotEmpty) {
-        try {
-          myAircraftCallsigns.add(a.tail.trim().toUpperCase());
-        } catch (e) {
-          // ignore
-        }
+      if (ac.tail.isNotEmpty) {
+        myAircraftCallsign = ac.tail.trim().toUpperCase();
       }
+    } catch (e) {
+      myAircraftCallsign = "";
+      myAircraftIcao = -1;
     }
   }
 

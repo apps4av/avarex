@@ -59,6 +59,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                 setState(() {
                   _selected = value;
                   Storage().settings.setAircraft(value!);
+                  Storage().loadAircraftIds();
                 });
               },
             )
@@ -122,6 +123,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                           String? entry = _selected;
                           if(null != entry) {
                             UserDatabaseHelper.db.deleteAircraft(entry);
+                            Storage().loadAircraftIds();
                           }
                           Storage().settings.setChecklist("");
                           setState(() {
@@ -139,6 +141,7 @@ class AircraftScreenState extends State<AircraftScreen> {
                         UserDatabaseHelper.db.addAircraft(a).then((value) {
                           setState(() {
                             Storage().settings.setAircraft(a.tail);
+                            Storage().loadAircraftIds();
                           });
                         });
                       },
