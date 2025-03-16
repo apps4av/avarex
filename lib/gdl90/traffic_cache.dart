@@ -579,7 +579,7 @@ class TrafficIdPainter extends AbstractCachedCustomPainter {
   static final _boundingBoxPaint = Paint()..color = const Color.fromRGBO(0, 0, 0, .2);
   static const _trafficIdTextStyle = TextStyle(shadows: [Shadow(offset: Offset(2, 2))], color: Colors.white, fontWeight: FontWeight.w600, fontSize: _trafficIdFontSize);
   static const double _offsetX = 24, _offsetY = 24;
-  static const double _charPixeslWidth = 11;
+  static const double _charPixeslWidth = 12;
 
   final String _trafficId;
   final bool _isAirborne;
