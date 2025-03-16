@@ -309,6 +309,7 @@ class UserDatabaseHelper {
     if (db != null) {
       await DbGeneral.insert(db, "aircraft", aircraft.toMap());
     }
+    Storage().loadAircraftIds();
   }
 
   Future<void> deleteAircraft(String name) async {
@@ -317,6 +318,7 @@ class UserDatabaseHelper {
     if (db != null) {
       await DbGeneral.query(db, "delete from aircraft where tail='$name'");
     }
+    Storage().loadAircraftIds();
   }
 
   Future<List<Aircraft>> getAllAircraft() async {

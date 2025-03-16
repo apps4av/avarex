@@ -109,7 +109,10 @@ class TrafficCache {
   void putTraffic(TrafficReportMessage message) {
 
     // filter own report
-    if(message.icao == Storage().myIcao) {
+    if(message.icao == Storage().ownshipMessageIcao 
+      || Storage().myAircraftIcaos.contains(message.icao)
+      || Storage().myAircraftCallsigns.contains(message.callSign)) 
+    {
       // do not add ourselves
       return;
     }
