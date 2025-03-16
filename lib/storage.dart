@@ -88,7 +88,7 @@ class Storage {
   final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
-  int myAircraftIcao = -1;
+  int myAircraftIcao = 0;
   String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
   PfdData pfdData = PfdData(); // a place to drive PFD
@@ -390,7 +390,7 @@ class Storage {
     if (acName.isEmpty) {
       // Reset, if there is no longer any aircraft selected (say all were deleted)
       myAircraftCallsign = "";
-      myAircraftIcao = -1;
+      myAircraftIcao = 0;
       return;
     }
     try {
@@ -407,7 +407,7 @@ class Storage {
       }
     } catch (e) {
       myAircraftCallsign = "";
-      myAircraftIcao = -1;
+      myAircraftIcao = 0;
     }
   }
 
