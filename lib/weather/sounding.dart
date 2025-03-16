@@ -42,7 +42,7 @@ class Sounding {
     String url = "https://www.spc.noaa.gov/exper/soundings/$year$month$day${hour}_OBS/$station.gif";
     CachedNetworkImage image = CachedNetworkImage(imageUrl: url, cacheManager: FileCacheManager().documentsCacheManager, errorWidget: errorImage,);
     return Container(padding: const EdgeInsets.all(10), child:
-      InteractiveViewer(child: Container(color: Colors.white , alignment: Alignment.center, child: image)));
+      InteractiveViewer(maxScale: 5, child: Container(color: Colors.white , alignment: Alignment.center, child: image)));
   }
 
   // List of station codes from the HTML area elements
