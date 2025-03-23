@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 
 import 'airsigmet.dart';
+import 'weather.dart';
 
 class AirSigmetCache extends WeatherCache {
 
@@ -87,6 +88,8 @@ class AirSigmetCache extends WeatherCache {
           AirSigmet a = AirSigmet(
             (count++).toString(),
             expires,
+            DateTime.now(),
+            Weather.sourceInternet,
             "AIRMET $product $hazard\nValid $valid\n$altitude",
             points,
             hazard,
@@ -116,6 +119,8 @@ class AirSigmetCache extends WeatherCache {
             a = AirSigmet(
                 row[3].toString(),
                 time,
+                DateTime.now().toUtc(),
+                Weather.sourceInternet,
                 row[0].toString(),
                 ll,
                 row[8].toString(),

@@ -9,6 +9,7 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
+import 'weather.dart';
 
 enum _WindsAloftProduct {
   conUsLow06H,
@@ -91,7 +92,7 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft("$station$fore", expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            WindsAloft w = WindsAloft("$station$fore", expires, DateTime.now(), Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
             winds.add(w);
           }
           catch (e) {}
@@ -109,7 +110,7 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft("$station$fore", expires, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
+            WindsAloft w = WindsAloft("$station$fore", expires, DateTime.now().toUtc(), Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
             winds.add(w);
           }
           catch (e) {}

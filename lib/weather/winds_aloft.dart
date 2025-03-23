@@ -18,7 +18,7 @@ class WindsAloft extends Weather {
 
   static String windZero = "0000";
 
-  WindsAloft(super.station, super.expires, this.w0k, this.w3k, this.w6k, this.w9k, this.w12k, this.w18k, this.w24k, this.w30k, this.w34k, this.w39k);
+  WindsAloft(super.station, super.expires, super.recieved, super.source, this.w0k, this.w3k, this.w6k, this.w9k, this.w12k, this.w18k, this.w24k, this.w30k, this.w34k, this.w39k);
 
   static (int?, int?) decodeWind(String wind) {
 
@@ -192,6 +192,8 @@ class WindsAloft extends Weather {
     Map<String, Object?> map  = {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
+      "receivedMs": received.millisecondsSinceEpoch,
+      "source": source,
       "w0k": w0k,
       "w3k": w3k,
       "w6k": w6k,
@@ -211,6 +213,8 @@ class WindsAloft extends Weather {
     return WindsAloft(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
+      DateTime.fromMillisecondsSinceEpoch(maps['receivedMs'] as int),
+      maps['source'] as String,
       maps['w0k'] as String,
       maps['w3k'] as String,
       maps['w6k'] as String,
@@ -242,7 +246,7 @@ class WindsAloft extends Weather {
   toString() {
     DateTime zulu = expires.toUtc(); // winds in Zulu time
     // boilerplate
-    String wind = "$station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z";
+    String wind = "${super.toString()}$station (Temps negative above 24000)\nValid till ${zulu.day .toString().padLeft(2, "0")}${zulu.hour.toString().padLeft(2, "0")}00Z";
     return wind;
   }
 }

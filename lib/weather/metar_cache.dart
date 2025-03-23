@@ -10,6 +10,7 @@ import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 import 'metar.dart';
+import 'weather.dart';
 
 
 class MetarCache extends WeatherCache {
@@ -37,7 +38,7 @@ class MetarCache extends WeatherCache {
         double lat = row[3];
         double lon = row[4];
         if(UnitConversion.isLatitudeValid(lat) && UnitConversion.isLongitudeValid(lon)) {
-          m = Metar(row[1], time, row[0], row[30], LatLng(lat, lon));
+          m = Metar(row[1], time, DateTime.now().toUtc(), Weather.sourceInternet, row[0], row[30], LatLng(lat, lon));
           metars.add(m);
         }
       }

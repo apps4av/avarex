@@ -126,7 +126,7 @@ class LongPressScreenState extends State<LongPressScreen> {
         builder: (context, snapshot) { // notmas are downloaded when not in cache and can be slow to download so do async
           if (snapshot.hasData) {
             return snapshot.data != null ?
-              SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).text)))
+              SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).toString())))
               : Container();
           }
           else {

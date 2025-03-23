@@ -35,7 +35,7 @@ class WeatherDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 1,
+          version: 2,
           onCreate: (Database db, int version) async {
             await db.execute("create table windsAloft ("
                 "id            integer primary key autoincrement, "
@@ -104,8 +104,26 @@ class WeatherDatabaseHelper {
                 "raw           text, "
                 "unique(station) on conflict replace);");
           },
-          onOpen: (db) {});
-  }
+          onOpen: (db) {},
+          onUpgrade: (Database db, int oldVersion, int newVersion) async {
+            if (oldVersion == 1 && newVersion == 2) {
+              await db.execute("alter table windsAloft add column receivedMs    int default 0;");
+              await db.execute("alter table metar      add column receivedMs    int default 0;");
+              await db.execute("alter table taf        add column receivedMs    int default 0;");
+              await db.execute("alter table tfr        add column receivedMs    int default 0;");
+              await db.execute("alter table airep      add column receivedMs    int default 0;");
+              await db.execute("alter table airsigmet  add column receivedMs    int default 0;");
+              await db.execute("alter table notam      add column receivedMs    int default 0;");
+              await db.execute("alter table windsAloft add column source        text default '';");
+              await db.execute("alter table metar      add column source        text default '';");
+              await db.execute("alter table taf        add column source        text default '';");
+              await db.execute("alter table tfr        add column source        text default '';");
+              await db.execute("alter table airep      add column source        text default '';");
+              await db.execute("alter table airsigmet  add column source        text default '';");
+              await db.execute("alter table notam      add column source        text default '';");
+            }
+          });
+    }
 
   Future<void> addWindsAloft(WindsAloft wa) async {
     final db = await database;

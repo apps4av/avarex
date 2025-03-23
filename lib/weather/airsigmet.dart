@@ -12,7 +12,7 @@ class AirSigmet extends Weather {
   String type;
   bool showShape = false; // reduce clutter on screen
 
-  AirSigmet(super.station, super.expires, this.text, this.coordinates, this.hazard, this.severity, this.type);
+  AirSigmet(super.station, super.expires, super.recieved, super.source, this.text, this.coordinates, this.hazard, this.severity, this.type);
 
 
   Map<String, Object?> toMap() {
@@ -25,6 +25,8 @@ class AirSigmet extends Weather {
     Map<String, Object?> map  = {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
+      "receivedMs": received.millisecondsSinceEpoch,
+      "source": source,
       "raw": text,
       "coordinates" : jsonEncode(ll),
       "hazard": hazard,
@@ -44,6 +46,8 @@ class AirSigmet extends Weather {
     return AirSigmet(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
+      DateTime.fromMillisecondsSinceEpoch(maps['receivedMs'] as int),
+      maps['source'] as String,
       maps['raw'] as String,
       ll,
       maps['hazard'] as String,
@@ -70,7 +74,8 @@ class AirSigmet extends Weather {
   }
   @override
   String toString() {
-    return text.replaceAll(RegExp(r'[^\w\s]+'),' ');
+    String t = text.replaceAll(RegExp(r'[^\w\s]+'),' ');
+    return "${super.toString()}$t";
   }
 
 }

@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
 import 'airep.dart';
+import 'weather.dart';
 
 class AirepCache extends WeatherCache {
 
@@ -30,7 +31,7 @@ class AirepCache extends WeatherCache {
       Airep a;
       try {
         // Tail number @lat, lon
-        a = Airep("${row[8]}@${row[9]},${row[10]}", time, row[43], LatLng(double.parse(row[9].toString()), double.parse(row[10].toString())));
+        a = Airep("${row[8]}@${row[9]},${row[10]}", time, DateTime.now().toUtc(), Weather.sourceInternet, row[43], LatLng(double.parse(row[9].toString()), double.parse(row[10].toString())));
         aireps.add(a);
       }
       catch(e) {

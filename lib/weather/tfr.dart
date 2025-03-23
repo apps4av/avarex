@@ -11,15 +11,12 @@ class Tfr extends Weather {
   final int msExpires;
   final int labelCoordinate;
 
-  Tfr(super.station, super.expires, this.coordinates, this.upperAltitude, this.lowerAltitude, this.msEffective, this.msExpires, this.labelCoordinate);
+  Tfr(super.station, super.expires, super.recieved, super.source, this.coordinates, this.upperAltitude, this.lowerAltitude, this.msEffective, this.msExpires, this.labelCoordinate);
 
   @override
   String toString() {
     return
-      "Top $upperAltitude\n"
-      "Low $lowerAltitude\n"
-      "${DateTime.fromMillisecondsSinceEpoch(msEffective).toString().replaceAll(":00.000", "Z")} to\n"
-      "${DateTime.fromMillisecondsSinceEpoch(msExpires).toString().replaceAll(":00.000", "Z")}";
+      "${super.toString()}Top $upperAltitude\nLow $lowerAltitude\n${DateTime.fromMillisecondsSinceEpoch(msEffective).toString().replaceAll(":00.000", "Z")} to\n${DateTime.fromMillisecondsSinceEpoch(msExpires).toString().replaceAll(":00.000", "Z")}";
   }
 
   bool isInEffect() {
@@ -47,6 +44,8 @@ class Tfr extends Weather {
     Map<String, Object?> map  = {
       "station": station,
       "utcMs": expires.millisecondsSinceEpoch,
+      "receivedMs": received.millisecondsSinceEpoch,
+      "source": source,
       "coordinates": jsonEncode(ll),
       "upperAltitude": upperAltitude,
       "lowerAltitude": lowerAltitude,
@@ -68,6 +67,8 @@ class Tfr extends Weather {
     return Tfr(
       maps['station'] as String,
       DateTime.fromMillisecondsSinceEpoch(maps['utcMs'] as int),
+      DateTime.fromMillisecondsSinceEpoch(maps['receivedMs'] as int),
+      maps['source'] as String,
       ll,
       maps['upperAltitude'] as String,
       maps['lowerAltitude'] as String,

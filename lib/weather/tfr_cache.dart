@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
 
+import 'weather.dart';
+
 class TfrCache extends WeatherCache {
 
   TfrCache(super.url, super.dbCall);
@@ -118,6 +120,8 @@ class TfrCache extends WeatherCache {
             Tfr tfr = Tfr(
                 "$url@$code$gCount",
                 time,
+                DateTime.now().toUtc(),
+                Weather.sourceInternet,
                 ll,
                 upper.toString(),
                 lower.toString(),

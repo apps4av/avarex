@@ -42,7 +42,7 @@ class Area {
     WindsAloft? wa = Storage().winds.get("${station}06H") as WindsAloft?;
     if(null != wa) {
       // combine surface and aloft wind
-      _windsAloft = WindsAloft(wa.station, wa.expires, wind, wa.w3k, wa.w6k, wa.w9k, wa.w12k, wa.w18k, wa.w24k, wa.w30k, wa.w34k, wa.w39k);
+      _windsAloft = WindsAloft(wa.station, wa.expires, wa.received, wa.source, wind, wa.w3k, wa.w6k, wa.w9k, wa.w12k, wa.w18k, wa.w24k, wa.w30k, wa.w34k, wa.w39k);
     }
     change.value++;
   }

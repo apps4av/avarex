@@ -9,6 +9,8 @@ import 'package:avaremp/weather/weather_cache.dart';
 import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'weather.dart';
+
 class TafCache extends WeatherCache {
 
   TafCache(super.url, super.dbCall);
@@ -34,7 +36,7 @@ class TafCache extends WeatherCache {
         double? lon = double.tryParse(row[8].toString());
         if(lat != null && lon != null) {
           if(UnitConversion.isLatitudeValid(lat) && UnitConversion.isLongitudeValid(lon)) {
-            t = Taf(row[1], time, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), LatLng(lat, lon));
+            t = Taf(row[1], time, DateTime.now().toUtc(), Weather.sourceInternet, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), LatLng(lat, lon));
             tafs.add(t);
           }
         }

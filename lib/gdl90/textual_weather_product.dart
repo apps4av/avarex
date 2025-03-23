@@ -56,11 +56,12 @@ class TextualWeatherProduct extends Product {
     Taf? taf;
     Weather? inCacheWeather = Storage().taf.getQuick(place);
     if(null != inCacheWeather) {
-      taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, (inCacheWeather as Taf).coordinate);
+      taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, (inCacheWeather as Taf).coordinate);
     }
     else if (null != coordinate) {
       taf = Taf(place,
           time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          DateTime.now(), Weather.sourceADSB,
           report, coordinate!);
     }
     if(null != taf) {
@@ -73,11 +74,11 @@ class TextualWeatherProduct extends Product {
     Metar? metar;
     Weather? inCacheWeather = Storage().metar.getQuick(place);
     if(null != inCacheWeather) {
-      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
           _text, Metar.getCategory(report), (inCacheWeather as Metar).coordinate);
     }
     else if(null != coordinate) {
-      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
           _text, Metar.getCategory(report), coordinate!);
     }
     if(null != metar) {
@@ -90,10 +91,10 @@ class TextualWeatherProduct extends Product {
     Weather? inCacheWeather = Storage().airep.getQuick(place);
 
     if(null != inCacheWeather) {
-      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, (inCacheWeather as Airep).coordinates);
+      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, (inCacheWeather as Airep).coordinates);
     }
     else if(null != coordinate) {
-      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), report, coordinate!);
+      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, coordinate!);
     }
 
     if(null != airep) {
@@ -181,7 +182,7 @@ class TextualWeatherProduct extends Product {
       if(coordinate != null) {
         w0k = WindsCache.getWind0kFromMetar(coordinate!);
       }
-      WindsAloft wa = WindsAloft(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+      WindsAloft wa = WindsAloft(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
           w0k, w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
       Storage().winds.put(wa);
     }
