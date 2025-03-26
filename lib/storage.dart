@@ -132,6 +132,13 @@ class Storage {
     return (_key++).toString();
   }
 
+  bool isLatLngCloseToZero(LatLng ll) {
+    const int roundingFactor = 10000;
+    int roundedLongitude = (ll.longitude * roundingFactor).round();
+    int roundedLatitude = (ll.latitude * roundingFactor).round();
+    return roundedLongitude == 0 && roundedLatitude == 0;
+ }
+
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
   ui.Image? imagePlane;
@@ -194,6 +201,9 @@ class Storage {
         if (null != message) {
           Message? m = MessageFactory.buildMessage(message);
           if(m != null && m is OwnShipMessage) {
+            if(isLatLngCloseToZero(m.coordinate) {
+              continue; // skip 0, 0 when GPS is not locked
+            }
             ownshipMessageIcao = m.icao;
             Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
@@ -233,6 +243,9 @@ class Storage {
           NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
           if(m != null && m is NmeaOwnShipMessage) {
             NmeaOwnShipMessage m0 = m;
+            if(isLatLngCloseToZero(m.coordinate) {
+              continue; // skip 0, 0 when GPS is not locked
+            }
             ownshipMessageIcao = m0.icao;
             Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
@@ -334,6 +347,10 @@ class Storage {
 
       Position positionIn = _gpsStack.pop(); // used for testing and injecting GPS location
       position = Gps.clone(positionIn, area.geoAltitude);
+      if(isLatLngCloseToZero(Gps.toLatLng(position)) {
+          return; // skip 0, 0 when GPS is not locked
+      }
+
       gpsChange.value = position; // tell everyone
 
       // update flight status
