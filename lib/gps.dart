@@ -116,5 +116,13 @@ class Gps {
     return LatLng(position.latitude, position.longitude);
   }
 
+  static bool isPositionCloseToZero(Position p) {
+    const int roundingFactor = 100000;
+    int roundedLongitude = (p.longitude * roundingFactor).round();
+    int roundedLatitude = (p.latitude * roundingFactor).round();
+    return roundedLongitude == 0 && roundedLatitude == 0;
+  }
+
+
 }
 
