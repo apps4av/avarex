@@ -48,7 +48,10 @@ class PlatesFuture {
     }
     _airports = _airports.toSet().toList();
 
-    _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
+    _plates = [];
+    if(_currentPlateAirport.isNotEmpty) {
+      _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
+    }
 
     _airportDestination = await MainDatabaseHelper.db
         .findAirport(Storage().settings.getCurrentPlateAirport());
