@@ -51,6 +51,22 @@ class MainDatabaseHelper {
 
   }
 
+  Future<List<String>> findProcedures(String airportIdentifier) async {
+    final db = await database;
+    if (db != null) {
+      String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
+          " trim(airport_identifier) = '$airportIdentifier'";
+      return DbGeneral.query(db, qry).then((maps) {
+        return List.generate(maps.length, (i) {
+          String id = (maps[i]['sid_star_approach_identifier'] as String).trim();
+          String transition = (maps[i]['transition_identifier'] as String).trim();
+          return "$airportIdentifier.$id${transition.isEmpty ? '' : '.'}$transition"; // transition is optional
+        });
+      });
+    }
+    return Future.value([]);
+  }
+
   // Use exact = true for exact match, otherwise for search use exact = false
   Future<List<Destination>> findDestinations(String match, {bool exact = false}) async {
     List<Map<String, dynamic>> maps = [];

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -6,11 +7,13 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
@@ -28,6 +31,7 @@ class PlateScreen extends StatefulWidget {
 class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
+  List<String> _procedures = [];
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
@@ -51,6 +55,7 @@ class PlatesFuture {
     _plates = [];
     if(_currentPlateAirport.isNotEmpty) {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
+      _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
     }
 
     _airportDestination = await MainDatabaseHelper.db
@@ -65,6 +70,7 @@ class PlatesFuture {
   AirportDestination? get airportDestination => _airportDestination;
   List<String> get airports => _airports;
   List<String> get plates => _plates;
+  List<String> get procedures => _procedures;
   String get currentPlateAirport => _currentPlateAirport;
 }
 
@@ -113,25 +119,16 @@ class PlateScreenState extends State<PlateScreen> {
 
     double height = 0;
 
-    if(future == null) {
-      return makePlateView([], [], height, _notifier);
+    if(future == null || future.airports.isEmpty) {
+      return makePlateView([], [], [], height, _notifier);
     }
 
     List<String> plates = future.plates;
     List<String> airports = future.airports;
+    List<String> procedures = future.procedures;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
 
-    if(airports.isEmpty) {
-      _loadPlate();
-      return makePlateView([], plates, height, _notifier);
-    }
-
-    if(plates.isEmpty) {
-      _loadPlate();
-      return makePlateView(airports, [], height, _notifier);
-    }
-
-    if((Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
+    if(plates.isNotEmpty && (Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
       Storage().currentPlate = plates[0]; // new airport, change to plate 0
     }
 
@@ -141,10 +138,10 @@ class PlateScreenState extends State<PlateScreen> {
     Storage().plateChange.addListener(_notifyPaint);
     Storage().gpsChange.addListener(_notifyPaint);
 
-    return makePlateView(airports, plates, height, _notifier);
+    return makePlateView(airports, plates, procedures, height, _notifier);
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, double height, ValueNotifier notifier) {
+  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, double height, ValueNotifier notifier) {
 
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
@@ -229,9 +226,62 @@ class PlateScreenState extends State<PlateScreen> {
       Positioned(
           child: Align(
               alignment: Alignment.bottomRight,
-              child: airports[0].isEmpty ? Container() : Container(
-                  padding: EdgeInsets.fromLTRB(5, 5, 15, Constants.bottomPaddingSize(context) + 5),
-                  child:DropdownButtonHideUnderline(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
+                  Container(
+                    padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
+                    child:DropdownButtonHideUnderline(
+                        child:DropdownButton2<String>(
+                          isDense: true,// plate selection
+                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),child: const Icon(Icons.route)),
+                            buttonStyleData: ButtonStyleData(
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                            width: Constants.screenWidth(context) * 0.75,
+                          ),
+                          isExpanded: false,
+                          value: procedures[0],
+                          items: procedures.map((String item) {
+                            return DropdownMenuItem<String>(
+                                value: item,
+                                child: Row(children:[
+                                  Expanded(child:
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),),
+                                    child: Padding(padding: const EdgeInsets.all(5), child:
+                                    AutoSizeText(item, minFontSize: 2, maxLines: 1,)),
+                                  ))
+                                ])
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if(value == null) {
+                              return;
+                            }
+                            MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
+                              if(procedure != null) {
+                                Storage().route.addWaypoint(Waypoint(procedure));
+                                setState(() {
+                                  Toastification().show(context: context, description: Text("Added ${procedure.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                                  // show toast message that the procedure is added to the plan
+                                });
+                              }
+                            });
+                          },
+                        )
+                    )
+                  ),
+
+                  airports[0].isEmpty ? Container() :
+                  Container(
+                    padding: EdgeInsets.fromLTRB(5, 5, 15, Constants.bottomPaddingSize(context) + 5),
+                    child:DropdownButtonHideUnderline(
                       child:DropdownButton2<String>( // airport selection
                         buttonStyleData: ButtonStyleData(
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)),
@@ -255,11 +305,12 @@ class PlateScreenState extends State<PlateScreen> {
                       )
                   )
               )
+            ]
           )
       ),
-
-    ]
-    ));
+    )
+    ])
+    );
   }
   
   Color _getPlateColor(String name) {
