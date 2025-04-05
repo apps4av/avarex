@@ -122,10 +122,12 @@ class PlateScreenState extends State<PlateScreen> {
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
 
     if(airports.isEmpty) {
+      _loadPlate();
       return makePlateView([], plates, height, _notifier);
     }
 
     if(plates.isEmpty) {
+      _loadPlate();
       return makePlateView(airports, [], height, _notifier);
     }
 
