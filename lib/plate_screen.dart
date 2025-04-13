@@ -27,6 +27,69 @@ class PlateScreen extends StatefulWidget {
   State<StatefulWidget> createState() => PlateScreenState();
 }
 
+// give plate name like "RNAV RWY 27" find if the procedure name like "R27.AYBEE" applies to this plate and return false if not
+bool doesProcedureBelongsToThisPlate(String plateName, String procedureName) {
+
+  if(plateName.isEmpty || procedureName.isEmpty) {
+    return false;
+  }
+
+  // of the form "IAP-MA-ILS RWY 27"
+  RegExp exp = RegExp(r"([A-Z0-9]+)-[A-Z][A-Z]-(.*)");
+  Match? match = exp.firstMatch(plateName);
+  if(match == null) {
+    return false;
+  }
+  String plate = match.group(2) ?? "";
+  String plateType = match.group(1) ?? "";
+
+  List<String> procedureParts = procedureName.split(".");
+  if(procedureParts.length < 2) {
+    return false;
+  }
+
+  // there could be a better way to do it but there is no mapping from d-tpp to cifp. For now less than perfect is fine
+  if(plateType == "IAP") {
+    if((procedureParts[1] == plate)) {
+      return true; // simple straight match
+    }
+    if(
+        (plate.startsWith("LOC") && procedureParts[1].startsWith("L")) ||
+        (plate.startsWith("COPTER") && procedureParts[1].startsWith("H")) ||
+        (plate.startsWith("VOR AND DME") && procedureParts[1].startsWith("D")) ||
+        (plate.startsWith("LOC AND DME BC") && procedureParts[1].startsWith("LBC")) ||
+        (plate.startsWith("LOC BC") && procedureParts[1].startsWith("B")) ||
+        (plate.startsWith("ILS") && procedureParts[1].startsWith("I")) ||
+        (plate.startsWith("RNAV") && procedureParts[1].startsWith("R")) ||
+        (plate.startsWith("NDB") && procedureParts[1].startsWith("N")) ||
+        (plate.startsWith("VOR") && procedureParts[1].startsWith("S")) ||
+        (plate.startsWith("VOR") && procedureParts[1].startsWith("V")) ||
+        (plate.startsWith("LDA") && procedureParts[1].startsWith("X")) ||
+        false
+    ) {
+      String runway = procedureParts[1].substring(1);
+      // just keep the number of the runway, for example "27" from "27-Y"
+      runway = runway.replaceAll(RegExp(r'[^0-9LRC]'), '');
+      if(plate.contains(runway)) {
+        return true;
+      }
+    }
+    return false;
+  }
+  else if(plateType == "DP") {
+    if(procedureParts[1].length > 4) {
+      String proc = procedureParts[1].substring(0, 5);
+      if(plate.startsWith(proc)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  return true;
+
+}
+
 // get plates and airports
 class PlatesFuture {
   List<String> _plates = [];
@@ -138,7 +201,14 @@ class PlateScreenState extends State<PlateScreen> {
     Storage().plateChange.addListener(_notifyPaint);
     Storage().gpsChange.addListener(_notifyPaint);
 
-    return makePlateView(airports, plates, procedures, height, _notifier);
+    List<String> procedureNames = [];
+    for(String prec in procedures) {
+      if(doesProcedureBelongsToThisPlate(Storage().currentPlate, prec)) {
+        procedureNames.add(prec);
+      }
+    }
+
+    return makePlateView(airports, plates, procedureNames, height, _notifier);
   }
 
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, double height, ValueNotifier notifier) {
