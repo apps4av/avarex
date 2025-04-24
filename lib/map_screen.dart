@@ -458,14 +458,15 @@ class MapScreenState extends State<MapScreen> {
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
       onLongPress: (tap, point) async {
-        List<Destination> items = await MainDatabaseHelper.db.findNear(point);
-        setState(() {
-          showDestination(this.context, items);
-        });
-      },
-      onPointerDown: (PointerDownEvent event,
-          position) { // calculate down pointers here
-        _ruler.setPointer(event.pointer, position);
+        if(_ruler.isMeasuring()) {
+          _ruler.setPoint(point); // on long press when measuring, set ruler point
+        }
+        else { // otherwise show destination screen
+          List<Destination> items = await MainDatabaseHelper.db.findNear(point);
+          setState(() {
+            showDestination(this.context, items);
+          });
+        }
       },
       onMapEvent: (MapEvent mapEvent) {
         if (mapEvent is MapEventMoveStart) {
@@ -1459,7 +1460,7 @@ class Ruler {
     change.value++;
   }
 
-  void setPointer(int id, LatLng position) {
+  void setPoint(LatLng position) {
     if(!_measuring) {
       return;
     }
