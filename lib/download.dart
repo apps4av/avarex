@@ -14,7 +14,6 @@ import 'package:archive/archive_io.dart';
 class Download {
 
   String _currentCycle = "";
-  static const String _server = "http://www.apps4av.org/regions/";
   bool _cancelDownloadAndDelete = false;
 
   Future<void> _deleteZipFile(File file) async {
@@ -29,8 +28,8 @@ class Download {
     _cancelDownloadAndDelete = true;
   }
   
-  String _getUrlOfRemoteFile(String filename) {
-    return "$_server/$_currentCycle/$filename.zip";
+  String _getUrlOfRemoteFile(String filename, String server) {
+    return "$server/$_currentCycle/$filename.zip";
   }
 
   Future<String> getChartCycleLocal(Chart chart) async {
@@ -115,7 +114,9 @@ class Download {
     }
   }
 
-  Future<void> download(Chart chart, bool nextCycle, Function(Chart, int)? callback) async {
+  Future<void> download(Chart chart, bool nextCycle, bool backupServer, Function(Chart, int)? callback) async {
+
+    String server = backupServer ? "https://avare.bubble.org/" : "http://www.apps4av.org/regions/";
     _cancelDownloadAndDelete = false;
     double lastProgress = 0;
     File localFile = File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
@@ -123,7 +124,7 @@ class Download {
 
 
     try {
-      _currentCycle = await http.read(Uri.parse("$_server/version.php"));
+      _currentCycle = await http.read(Uri.parse("$server/version.php"));
       if(nextCycle) {
         _currentCycle = FaaDates.getNextCycle(_currentCycle);
       }
@@ -148,10 +149,10 @@ class Download {
     }
 
     try {
-      http.Response r = await http.head(Uri.parse(_getUrlOfRemoteFile(chart.filename)));
+      http.Response r = await http.head(Uri.parse(_getUrlOfRemoteFile(chart.filename, server)));
       int total = int.parse(r.headers["content-length"] ?? "0");
       int downloaded = 0;
-      final request = http.Request('GET', Uri.parse(_getUrlOfRemoteFile(chart.filename)));
+      final request = http.Request('GET', Uri.parse(_getUrlOfRemoteFile(chart.filename, server)));
       final streamedResponse = await request.send();
       var out = localFile.openWrite();
       await streamedResponse.stream.map((e) {

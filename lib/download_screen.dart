@@ -35,6 +35,7 @@ class DownloadScreen extends StatefulWidget {
 class DownloadScreenState extends State<DownloadScreen> {
 
   bool _nextCycle = false;
+  bool _backupServer = false;
 
   @override
   void initState() {
@@ -93,7 +94,8 @@ class DownloadScreenState extends State<DownloadScreen> {
         ],
       ),
 
-      body: Stack(children:[ListView.builder(
+      body: Column(children:[
+        Expanded(flex: 8, child: ListView.builder(
           itemCount: _allCharts.length,
           itemBuilder: (context, index) {
             return ExpansionTile(
@@ -105,14 +107,24 @@ class DownloadScreenState extends State<DownloadScreen> {
               ],
             );
           },
-        ),
-        Positioned(child: Align(alignment: Alignment.bottomRight, child: Padding(padding: const EdgeInsets.all(10), child:TextButton(
+        )),
+
+        Expanded(flex: 1, child: Row(children:[
+
+        Padding(padding: const EdgeInsets.all(10), child:TextButton(
             onPressed: () {
               setState(() {
                 _nextCycle = !_nextCycle;
               });
             },
-            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle"))))),
+            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle"))),
+        Padding(padding: const EdgeInsets.all(10), child:TextButton(
+            onPressed: () {
+              setState(() {
+                _backupServer = !_backupServer;
+              });
+            },
+            child: _backupServer ? const Text("Backup Server") : const Text("Main Server")))])),
       ]),
     );
   }
@@ -332,12 +344,12 @@ class DownloadScreenState extends State<DownloadScreen> {
         if (ct.state == _stateAbsentDownload ||
             ct.state == _stateCurrentDownload) {
           // download this chart
-          Storage().downloadManager.download(ct, _nextCycle);
+          Storage().downloadManager.download(ct, _nextCycle, _backupServer);
         }
         if (ct.state == _stateExpiredNone ||
             ct.state == _stateExpiredDownload) {
           Storage().downloadManager.deleteSilent(ct);
-          Storage().downloadManager.download(ct, _nextCycle);
+          Storage().downloadManager.download(ct, _nextCycle, _backupServer);
         }
         if (ct.state == _stateCurrentDelete ||
             ct.state == _stateExpiredDelete) {
