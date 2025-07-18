@@ -456,7 +456,7 @@ class MapScreenState extends State<MapScreen> {
           : InteractiveFlag.all),
       // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
-      backgroundColor: Constants.mapBackgroundColor,
+      backgroundColor: Theme.of(context).brightness == Brightness.light ? Constants.mapBackgroundColorLight: Constants.mapBackgroundColorDark,
       onLongPress: (tap, point) async {
         if(_ruler.isMeasuring()) {
           _ruler.setPoint(point); // on long press when measuring, set ruler point
