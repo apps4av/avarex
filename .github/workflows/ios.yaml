@@ -53,7 +53,7 @@ jobs:
 
       - name: Integration Test
         run: |
-          flutter test integration_test/app_test.dart -d 'iPhone 15'
+          flutter test integration_test/app_test.dart -d 'iPhone 16'
 
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
