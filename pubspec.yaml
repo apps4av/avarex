@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.56+56
+version: 0.0.57+57
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -83,6 +83,7 @@ dependencies:
   geojson_vi: ^2.2.5
   flutter_bluetooth_serial_ble: ^0.5.0
   url_launcher: ^6.3.1
+  url_launcher_ios: ^6.3.3
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:
     git:
@@ -178,7 +179,7 @@ msix_config:
   publisher_display_name: Apps4Av Inc.
   identity_name: Apps4AvInc.AvareX
   publisher: CN=97AA5BF2-3109-4884-8224-A2AB9E6DB29A
-  msix_version: 1.0.56.0
+  msix_version: 1.0.57.0
   logo_path: assets/images/logo.png
   capabilities: internetClient, location
   store: true
