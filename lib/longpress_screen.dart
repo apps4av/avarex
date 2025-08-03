@@ -102,7 +102,8 @@ class LongPressScreenState extends State<LongPressScreen> {
     String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
 
     if(showDestination is AirportDestination) {
-      pages[labels.indexOf("Main")] = Airport.parseFrequencies(showDestination);
+
+      pages[labels.indexOf("Main")] = Airport.parse(showDestination);
 
       // made up airport dia
       Widget ad = Airport.runwaysWidget(showDestination, width, height, context);

@@ -307,6 +307,42 @@ class PlanRoute {
     }
   }
 
+  void back() {
+    if(_current != null) {
+      if(Destination.isAirway(_current!.destination.type) || Destination.isProcedure(_current!.destination.type)) {
+        if(_current!.currentDestinationIndex > 0) {
+          // flying on airway and not first point
+          _current!.currentDestinationIndex--;
+          update();
+          return;
+        }
+      }
+      int index = _waypoints.indexOf(_current!);
+      index--;
+      if (index > -1) {
+        _setCurrent(_waypoints[index]);
+      }
+      update();
+    }
+  }
+
+  Destination? getPreviousDestination() {
+    if(_current != null) {
+      if(Destination.isAirway(_current!.destination.type) || Destination.isProcedure(_current!.destination.type)) {
+        if(_current!.currentDestinationIndex > 0) {
+          // flying on airway and not first point
+          return _current!.destinationsOnRoute[_current!.currentDestinationIndex - 1];
+        }
+      }
+      int index = _waypoints.indexOf(_current!);
+      index--;
+      if (index > -1) {
+        return _waypoints[index].destination;
+      }
+    }
+    return null;
+  }
+
   void update() {
     _update(false);
   }

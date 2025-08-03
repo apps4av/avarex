@@ -44,10 +44,11 @@ class Airport {
     return ll;
   }
 
-  static ListView parseFrequencies(AirportDestination airport) {
+  static ListView parse(AirportDestination airport) {
 
     List<Map<String, dynamic>> frequencies = airport.frequencies;
     List<Map<String, dynamic>> awos = airport.awos;
+    List<Map<String, dynamic>> runways = airport.runways;
 
     List<String> atis = [];
     List<String> clearance = [];
@@ -87,6 +88,8 @@ class Airport {
       catch(e) {}
     }
 
+    // runways
+
     String format(List<String> input) {
       if(input.length > 1) {
         return input.join("\n");
@@ -94,14 +97,60 @@ class Airport {
       return input[0];
     }
 
+    String getRunwayInfo(Map<String, dynamic> r, String side) {
+      // process both ends of the runway separately, add pattern, ils, vgsi, lights, displaced threshold, length, and surface type
+      String pattern = r['${side}Pattern'] == 'Y' ? 'Pattern: Right\n' : 'Pattern: Left\n';
+      String elevation = r['${side}Elevation'].isEmpty ? "" : "Elevation: ${r['${side}Elevation']}\n";
+      String ils = r['${side}ILS'].isEmpty ? "" : "ILS: ${r['${side}ILS']}\n";
+      String vgsi = r['${side}VGSI'].isEmpty ? "" : "VGSI: ${r['${side}VGSI']}\n";
+      String lights = r['${side}Lights'].isEmpty ? "" : "Lights:${r['${side}Lights']}\n";
+      String dt = r['${side}DT'].isEmpty ? "" : "Threshold: ${r['${side}DT']}";
+      String info = "$pattern$elevation$ils$vgsi$lights$dt";
+      return info;
+
+    }
+
+    String getRunwayInfoCommon(Map<String, dynamic> r) {
+      // process both ends of the runway separately, add pattern, ils, vgsi, lights, displaced threshold, length, and surface type
+      String length = r['Length'].isEmpty ? "" : "${r['Length']}x${r['Width']}";
+      String surface = r['Surface'].isEmpty ? "" : "${r['Surface']}";
+      String info = "$length $surface";
+      return info;
+    }
+
+    String getRunwayIdent(Map<String, dynamic> r, String side) {
+      String ident = r['${side}Ident'].isEmpty ? "" : "${r['${side}Ident']} ";
+      return ident;
+    }
+
+    List<ListTile> rs = [];
+    for(Map<String, dynamic> r in runways) {
+      rs.add(ListTile(
+        leading: SizedBox(width: 64,
+            child: Text(getRunwayIdent(r, 'LE'), style: const TextStyle(
+                fontSize: 16, backgroundColor: Colors.purple))),
+        title: Text(getRunwayInfoCommon(r)),
+        subtitle: Text(getRunwayInfo(r, 'LE')),
+      ));
+      rs.add(ListTile(
+        leading: SizedBox(width: 64,
+            child: Text(getRunwayIdent(r, 'HE'), style: const TextStyle(
+                fontSize: 16, backgroundColor: Colors.purple))),
+        title: Text(getRunwayInfoCommon(r)),
+        subtitle: Text(getRunwayInfo(r, 'HE')),
+      ));
+    }
+
     ListView view = ListView(children: [
-      if(atis.isNotEmpty) ListTile(leading:           const SizedBox(width: 64, child: Text("ATIS")), title: Text(format(atis))),
-      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("TWR")), title: Text(format(tower))),
-      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND")),   title: Text(format(ground))),
-      if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC")), title: Text(format(clearance))),
-      if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF")), title: Text(format([airport.ctaf]))),
-      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM")), title: Text(format([airport.unicom]))),
-      if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO")), title: Text(format(automated))),
+      if(atis.isNotEmpty) ListTile(leading:           const SizedBox(width: 64, child: Text("ATIS", style: TextStyle(fontSize: 16))), title: Text(format(atis))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("TWR", style: TextStyle(fontSize: 16))), title: Text(format(tower))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND", style: TextStyle(fontSize: 16))),   title: Text(format(ground))),
+      if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC", style: TextStyle(fontSize: 16))), title: Text(format(clearance))),
+      if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF", style: TextStyle(fontSize: 16))), title: Text(format([airport.ctaf]))),
+      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM", style: TextStyle(fontSize: 16))), title: Text(format([airport.unicom]))),
+      if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO", style: TextStyle(fontSize: 16))), title: Text(format(automated))),
+      for(ListTile t in rs) t
+
     ]);
     return view;
   }

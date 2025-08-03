@@ -52,6 +52,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _timerUp = "00:00";
   String _timerDown = "30:00";
   String _destination = "";
+  String _previousDestination = "";
   String _bearing = "0\u00b0";
   String _distance = "";
   String _utc = "00:00";
@@ -196,6 +197,21 @@ class InstrumentListState extends State<InstrumentList> {
     });
   }
 
+  String _formatDestination(Destination? d) {
+    if(d == null) {
+      return "";
+    }
+    if(Destination.typeGps == d.type) {
+      return _truncate(d.facilityName);
+    }
+    else if((Destination.isAirway(d.type) || (Destination.isProcedure(d.type))) && d.secondaryName != null) {
+      return _truncate(d.secondaryName!);
+    }
+    else {
+      return _truncate(d.locationID);
+    }
+  }
+
   void _routeListener() {
     setState(() {
       PlanRoute? route = Storage().route;
@@ -206,20 +222,23 @@ class InstrumentListState extends State<InstrumentList> {
         _destination = "";
       }
       else {
-        if(Destination.typeGps == d.type) {
-          _destination = _truncate(d.facilityName);
-        }
-        else if((Destination.isAirway(d.type) || (Destination.isProcedure(d.type))) && d.secondaryName != null) {
-          _destination = _truncate(d.secondaryName!);
-        }
-        else {
-          _destination = _truncate(d.locationID);
-        }
+        _destination = _formatDestination(d);
       }
       var (distance, bearing) = _getDistanceBearing();
       _distance = _truncate(distance.round().toString());
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
+
+      // previous destination
+      d = Storage().route.getPreviousDestination();
+      if(d == null) {
+        _previousDestination = "";
+      }
+      else {
+        _previousDestination = _formatDestination(d);
+      }
     });
+
+
   }
 
   void _timeListener() {
@@ -255,6 +274,16 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
     });
+  }
+
+  // skip waypoint
+  void _planNextWaypoint() {
+    Storage().route.advance();
+  }
+
+  // skip waypoint
+  void _planPreviousWaypoint() {
+    Storage().route.back();
   }
 
   // down timer
@@ -300,8 +329,13 @@ class InstrumentListState extends State<InstrumentList> {
       case "MT":
         value = _magneticHeading;
         break;
+      case "PRV":
+        value = _previousDestination;
+        cb = _planPreviousWaypoint;
+        break;
       case "NXT":
         value = _destination;
+        cb = _planNextWaypoint;
         break;
       case "BRG":
         value = _bearing;
