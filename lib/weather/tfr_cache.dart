@@ -25,9 +25,9 @@ class TfrCache extends WeatherCache {
 
     // As of 2025-02-28 we fetch a JSON list of TFRs, so simply parse notam_id as "3/9568"
     // to fetch https://tfr.faa.gov/download/detail_3_9568.xml and process as before
-    var tfr_Array = jsonDecode(decoded);
-    for(final tfr_Obj in tfr_Array) {
-      String nid = tfr_Obj["notam_id"].toString().replaceAll('/','_');
+    var tfrArray = jsonDecode(decoded);
+    for(final tfrObj in tfrArray) {
+      String nid = tfrObj["notam_id"].toString().replaceAll('/','_');
       String url = "https://tfr.faa.gov/download/detail_$nid.xml";
 
       // now download each TFR

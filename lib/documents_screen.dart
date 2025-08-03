@@ -286,7 +286,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},
-              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: Text("Import")),
+              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: const Text("Import")),
             ),
             Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
               DropdownButtonHideUnderline(child:
