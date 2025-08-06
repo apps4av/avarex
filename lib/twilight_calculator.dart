@@ -16,8 +16,6 @@ class TwilightCalculator {
     int sunset;
     int sunrise;
 
-    final DateTime dateLocal = DateTime.now().toLocal();
-    final int offset = dateLocal.timeZoneOffset.inMilliseconds;
 
     final int time = DateTime.now().millisecondsSinceEpoch;
     final double daysSince2000 = (time - _utc2000ms) / Duration.millisecondsPerDay;
@@ -38,8 +36,8 @@ class TwilightCalculator {
       return (null, null);
     }
     double hourAngle = acos(cosHourAngle) / (2 * pi);
-    sunset = ((solarTransitJ2000 + hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms + offset;
-    sunrise = ((solarTransitJ2000 - hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms + offset;
+    sunset = ((solarTransitJ2000 + hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms;
+    sunrise = ((solarTransitJ2000 - hourAngle) * Duration.millisecondsPerDay).round() + _utc2000ms;
     // this returns local time, since offset was added
     return (DateTime.fromMillisecondsSinceEpoch(sunrise, isUtc: true),
       DateTime.fromMillisecondsSinceEpoch(sunset, isUtc: true));

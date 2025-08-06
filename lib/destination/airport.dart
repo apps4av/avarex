@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:avaremp/twilight_calculator.dart';
+
 import 'destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
@@ -123,6 +125,10 @@ class Airport {
       return ident;
     }
 
+    DateTime? sunset;
+    DateTime? sunrise;
+    (sunrise, sunset) = TwilightCalculator.calculateTwilight(airport.coordinate.latitude, airport.coordinate.longitude);
+
     List<ListTile> rs = [];
     for(Map<String, dynamic> r in runways) {
       rs.add(ListTile(
@@ -149,7 +155,9 @@ class Airport {
       if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF", style: TextStyle(fontSize: 16))), title: Text(format([airport.ctaf]))),
       if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM", style: TextStyle(fontSize: 16))), title: Text(format([airport.unicom]))),
       if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO", style: TextStyle(fontSize: 16))), title: Text(format(automated))),
-      for(ListTile t in rs) t
+      for(ListTile t in rs) t,
+      if(sunrise != null) ListTile(leading:           const SizedBox(width: 64, child: Text("SRISE", style: TextStyle(fontSize: 16))), title: Text("${sunrise.hour.toString().padLeft(2, '0')}:${sunrise.minute.toString().padLeft(2, '0')}Z")),
+      if(sunset != null) ListTile(leading:            const SizedBox(width: 64, child: Text("SSET", style: TextStyle(fontSize: 16))), title: Text("${sunset.hour.toString().padLeft(2, '0')}:${sunset.minute.toString().padLeft(2, '0')}Z")),
 
     ]);
     return view;
