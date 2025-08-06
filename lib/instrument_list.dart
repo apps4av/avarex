@@ -59,6 +59,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _eta = "";
   String _ete = "";
   String _source = "";
+  String _vsr = "";
   String _flightTime = "00:00";
 
   @override
@@ -141,6 +142,8 @@ class InstrumentListState extends State<InstrumentList> {
       // VDI
 
       double vdi = 0;
+      double relativeAGL = 0;
+
       if(next != null) {
         // Fetch the elevation of our destination. If we can't find it
         // then we don't want to display any vertical information
@@ -149,7 +152,7 @@ class InstrumentListState extends State<InstrumentList> {
         if(destElev != null) {
           // Calculate our relative AGL compared to destination. If we are
           // lower then no display info
-          double relativeAGL = Storage().units.mToF * Storage().position.altitude - destElev;
+          relativeAGL = Storage().units.mToF * Storage().position.altitude - destElev;
 
           // Convert the destination distance to feet.
           double destDist = distance;
@@ -179,6 +182,7 @@ class InstrumentListState extends State<InstrumentList> {
           if(time > const Duration(hours: 23)) { // no flight more than this long and saves overflow in instrument
             _eta = "XX:XX";
             _ete = "XX:XX";
+            _vsr = "0";
           }
           else {
             _eta =
@@ -186,11 +190,13 @@ class InstrumentListState extends State<InstrumentList> {
                     _hourMinuteFormatter.format(DateTime.now().add(time)));
             _ete = _truncate(
                 "${time.inHours.toString().padLeft(2, '0')}:${time.inMinutes.remainder(60).toString().padLeft(2, '0')}");
+            _vsr = _truncate(((relativeAGL - 1000) / time.inMinutes.toDouble()).round().toStringAsFixed(0));
           }
         }
         else {
           _eta = "-";
           _ete = "-";
+          _vsr = "-";
         }
       }
       Storage().pfdData.vdi = vdi;
@@ -253,8 +259,6 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
   InstrumentListState() {
-
-
     Storage().gpsChange.addListener(_gpsListener);
     // connect to dest change
     Storage().route.change.addListener(_routeListener);
@@ -348,6 +352,9 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "ETE":
         value = _ete;
+        break;
+      case "VSR":
+        value = _vsr;
         break;
       case "UTC":
         value = _utc;
