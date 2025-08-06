@@ -452,8 +452,8 @@ class MapScreenState extends State<MapScreen> {
       maxZoom: 20,
       // max for USGS
       interactionOptions: InteractionOptions(flags: _northUp
-          ? InteractiveFlag.all & ~InteractiveFlag.rotate
-          : InteractiveFlag.all),
+          ? InteractiveFlag.all & (~InteractiveFlag.doubleTapDragZoom) & (~InteractiveFlag.rotate)
+          : InteractiveFlag.all & (~InteractiveFlag.doubleTapDragZoom)),
       // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Constants.mapBackgroundColor,
