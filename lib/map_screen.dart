@@ -63,21 +63,20 @@ class MapScreenState extends State<MapScreen> {
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
 
-  // 5 images for animation
-  final List<TileLayer> _nexradLayer = List.generate(5, (int index) {
-    List<String> mesonets = [
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
-      "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
-    ];
-    return TileLayer(
-      maxNativeZoom: 5,
-      urlTemplate: mesonets[index],
-      tileProvider: NetworkTileProvider(),
-    );
-  });
+  static final List<String> _mesonets = [
+    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
+    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m30m/{z}/{x}/{y}.png",
+    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m20m/{z}/{x}/{y}.png",
+    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m10m/{z}/{x}/{y}.png",
+    "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png"
+  ];
+
+  TileLayer _nexradLayer = TileLayer(
+    maxNativeZoom: 5,
+    urlTemplate: _mesonets[0],
+    fallbackUrl: _mesonets[0], // to prevent caching - from docs
+    tileProvider: NetworkTileProvider(),
+  );
 
   final TileLayer _osmLayer = TileLayer(
     urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -141,7 +140,6 @@ class MapScreenState extends State<MapScreen> {
   void initState() {
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
-    Storage().timeChange.addListener(_timeListen);
     Storage().metar.change.addListener(_metarListen);
     Storage().taf.change.addListener(_tafListen);
     Storage().airep.change.addListener(_airepListen);
@@ -159,7 +157,6 @@ class MapScreenState extends State<MapScreen> {
     Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
     Storage().settings.setRotation(_controller.camera.rotation);
     Storage().gpsChange.removeListener(_gpsListen);
-    Storage().timeChange.removeListener(_timeListen);
     Storage().metar.change.removeListener(_metarListen);
     Storage().taf.change.removeListener(_tafListen);
     Storage().airep.change.removeListener(_airepListen);
@@ -205,21 +202,6 @@ class MapScreenState extends State<MapScreen> {
       llVertical.add(ll);
     }
     _tapeNotifier.value = (llVertical + [topCenter], distanceVertical + [centralDistance]);
-  }
-
-  void _timeListen() {
-    if(_nexradOpacity > 0) { // update nexrad animation
-      setState(() {
-        for (int i = 0; i < _nexradLayer.length; i++) {
-          Storage().mesonetOpacity[i] = 0;
-        }
-        int index = Storage().timeChange.value % (_nexradLayer.length * 2);
-        if (index > _nexradLayer.length - 1) {
-          index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
-        }
-        Storage().mesonetOpacity[index] = _nexradOpacity;
-      });
-    }
   }
 
   // this pans camera on move
@@ -533,22 +515,34 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     _nexradOpacity = opacity;
     if (opacity > 0) {
-
-      // nexrad
-      for(int i = 0; i < _nexradLayer.length; i++) {
-        layers.add(Opacity(opacity: Storage().mesonetOpacity[i], child: _nexradLayer[i]));
-      }
+      layers.add(Opacity(opacity: _nexradOpacity,
+        child: ValueListenableBuilder<int>(
+          valueListenable: Storage().timeChange,
+          builder: (context, value, _) {
+            int index = value % (_mesonets.length * 2);
+            if(index > _mesonets.length - 1) {
+              index = _mesonets.length - 1; // give 2 times the time for latest to stay on
+            }
+            _nexradLayer = TileLayer(
+              maxNativeZoom: 5,
+              urlTemplate: _mesonets[index],
+              fallbackUrl: _mesonets[index], // to prevent caching - from docs
+              tileProvider: NetworkTileProvider(),
+            );
+            return _nexradLayer;
+          },
+        )));
 
       layers.add(// nexrad slider
           Opacity(opacity: opacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
             child: ValueListenableBuilder<int>(
               valueListenable: Storage().timeChange,
               builder: (context, value, _) {
-                int index = value % (_nexradLayer.length * 2);
-                if(index > _nexradLayer.length - 1) {
-                  index = _nexradLayer.length - 1; // give 2 times the time for latest to stay on
+                int index = value % (_mesonets.length * 2);
+                if(index > _mesonets.length - 1) {
+                  index = _mesonets.length - 1; // give 2 times the time for latest to stay on
                 }
-                return Slider(value: index / (_nexradLayer.length - 1), onChanged: (double value) {  });
+                return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
           }),
       )));
     }

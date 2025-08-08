@@ -148,7 +148,6 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
-  final List<double> mesonetOpacity = List.generate(5 , (index) => 0);
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
