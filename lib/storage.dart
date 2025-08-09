@@ -88,6 +88,7 @@ class Storage {
   final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
+  ImageCache imageCache = ImageCache();
   int myAircraftIcao = 0;
   String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
@@ -385,6 +386,8 @@ class Storage {
       }
 
       if((timeChange.value % (10 * 60)) == 0) {
+        // clear system image cache
+        imageCache.clear();
         downloadWeather();
       }
 

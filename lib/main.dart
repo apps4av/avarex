@@ -14,7 +14,14 @@ import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
 
+class CustomWidgetsBinding extends WidgetsFlutterBinding {
+  @override
+  ImageCache createImageCache() => Storage().imageCache;
+}
+
 void main()  {
+  // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
+  CustomWidgetsBinding();
 
   Storage().init().then((accentColor) {
     runApp(const MainApp());

@@ -74,7 +74,6 @@ class MapScreenState extends State<MapScreen> {
   TileLayer _nexradLayer = TileLayer(
     maxNativeZoom: 5,
     urlTemplate: _mesonets[0],
-    fallbackUrl: _mesonets[0], // to prevent caching - from docs
     tileProvider: NetworkTileProvider(),
   );
 
@@ -526,7 +525,6 @@ class MapScreenState extends State<MapScreen> {
             _nexradLayer = TileLayer(
               maxNativeZoom: 5,
               urlTemplate: _mesonets[index],
-              fallbackUrl: _mesonets[index], // to prevent caching - from docs
               tileProvider: NetworkTileProvider(),
             );
             return _nexradLayer;
