@@ -105,8 +105,8 @@ class Destination {
     int lonMinInt = lonMin.floor();
     double lonSec = (lonMin - lonMinInt) * 60;
     int lonSecInt = lonSec.floor();
-    return "${latDeg.toString()}${latMinInt.toString().padLeft(2, "0")}${latSecInt.toString().padLeft(2, "0")}$latDir/"
-        "${lonDeg.toString()}${lonMinInt.toString().padLeft(2, "0")}${lonSecInt.toString().padLeft(2, "0")}$lonDir";
+    return "${latDeg.toString().padLeft(2, "0")}${latMinInt.toString().padLeft(2, "0")}${latSecInt.toString().padLeft(2, "0")}$latDir/"
+        "${lonDeg.toString().padLeft(3, "0")}${lonMinInt.toString().padLeft(2, "0")}${lonSecInt.toString().padLeft(2, "0")}$lonDir";
 
   }
 
