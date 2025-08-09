@@ -63,17 +63,17 @@ class Airport {
         // Type, Freq
         String type = f['Type'];
         String freq = f['Freq'];
-        if (type == 'LCL/P') {
-          tower.add(freq);
+        if (type.startsWith('LCL')) {
+          tower.add("$freq $type");
         }
-        else if (type == 'GND/P') {
-          ground.add(freq);
+        else if (type.startsWith('GND')) {
+          ground.add("$freq $type");
         }
         else if (type.contains('ATIS')) {
           atis.add(freq);
         }
-        else if (type == 'CD/P' || type.contains('CLNC')) {
-          clearance.add(freq);
+        else if (type.startsWith('CD') || type.contains('CLNC')) {
+          clearance.add("$freq $type");
         }
         else {
           continue;
@@ -93,6 +93,9 @@ class Airport {
     // runways
 
     String format(List<String> input) {
+      if(input.isEmpty) {
+        return "\n";
+      }
       if(input.length > 1) {
         return input.join("\n");
       }
