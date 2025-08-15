@@ -74,6 +74,7 @@ class Storage {
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
+  final timeRadarChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   late WindsCache winds;
@@ -336,6 +337,11 @@ class Storage {
 
     // set area
     await area.update(position);
+
+    Timer.periodic(const Duration(milliseconds: 250), (tim) async {
+      // this provides time to apps
+      timeRadarChange.value++;
+    });
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps

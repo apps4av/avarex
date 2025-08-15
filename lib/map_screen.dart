@@ -516,7 +516,7 @@ class MapScreenState extends State<MapScreen> {
     if (opacity > 0) {
       layers.add(Opacity(opacity: _nexradOpacity,
         child: ValueListenableBuilder<int>(
-          valueListenable: Storage().timeChange,
+          valueListenable: Storage().timeRadarChange,
           builder: (context, value, _) {
             int index = value % (_mesonets.length * 2);
             if(index > _mesonets.length - 1) {
@@ -534,7 +534,7 @@ class MapScreenState extends State<MapScreen> {
       layers.add(// nexrad slider
           Opacity(opacity: opacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
             child: ValueListenableBuilder<int>(
-              valueListenable: Storage().timeChange,
+              valueListenable: Storage().timeRadarChange,
               builder: (context, value, _) {
                 int index = value % (_mesonets.length * 2);
                 if(index > _mesonets.length - 1) {
