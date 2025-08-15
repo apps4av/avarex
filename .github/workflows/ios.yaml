@@ -47,6 +47,7 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
+          xcodebuild -downloadPlatform iOS -buildVersion 18.0 
 
       - name: Install project dependencies
         run: flutter pub get
