@@ -7,7 +7,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   geolocator_windows
   msvcredist
   share_plus
-  syncfusion_pdfviewer_windows
   url_launcher_windows
 )
 

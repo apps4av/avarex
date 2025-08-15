@@ -215,7 +215,7 @@ class Download {
       else {
         final inputStream = InputFileStream(
             PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
-        final archive = ZipDecoder().decodeBuffer(inputStream);
+        final archive = ZipDecoder().decodeStream(inputStream);
 
         double num = 1; // file number being decoded
         for (var file in archive) {
