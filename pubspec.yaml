@@ -71,7 +71,7 @@ dependencies:
   share_plus: ^10.1.3
   file_picker: ^8.1.6
   audioplayers: ^5.2.1
-  syncfusion_flutter_pdfviewer: any
+  syncfusion_flutter_pdfviewer: ^29.2.11
   day_night_time_picker: ^1.3.0+1
   async_zip: ^0.1.0
   fl_chart: ^0.68.0
