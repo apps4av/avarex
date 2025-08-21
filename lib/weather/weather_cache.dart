@@ -173,7 +173,8 @@ class WeatherCache {
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
-          ["https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do"],
+          // ["https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do"],
+          ["https://www.notams.faa.gov/dinsQueryWeb/icaoRadiusSearchMapAction.do"],
           WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }
