@@ -6,7 +6,6 @@ import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gpx/gpx.dart';
 import 'package:latlong2/latlong.dart';
-ß
 import 'gps.dart';
 
 class GpsRecorder {
