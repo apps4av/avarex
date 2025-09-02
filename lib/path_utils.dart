@@ -73,15 +73,18 @@ class PathUtils {
     return path.extension(url).toLowerCase() == ".kml";
   }
 
-  static Future<void> writeTrack(String base, String data) async {
+  static Future<String?> writeTrack(String base, String data) async {
     DateTime now = DateTime.now();
     try {
       final format = DateFormat('yyyy_MMMM_dd@kk_mm_ss').format(now);
       final String file = path.join(base, "track_$format.kml");
       final File f = File(file);
       await f.writeAsString(data);
+      return("track_$format.kml");
     }
-    catch(e) {}
+    catch(e) {
+      return(null);
+    }
   }
 
   static String _getPlateFilePath(String base, String airport, String plate) {

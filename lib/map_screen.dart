@@ -8,6 +8,7 @@ import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/gps_recorder.dart';
 import 'package:avaremp/instrument_list.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
@@ -28,6 +29,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:toastification/toastification.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -1349,13 +1351,17 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                                                           Storage().tracks.saveKml().then((value) {
                                                             setState1(() {
-                                                              Navigator.pop(context1);
-                                                              Navigator.pushNamed(context1, '/documents');
+                                                              if(value != null) {
+                                                                Toastification().show(context: context, description: Text("Track saved to Documents as $value."), autoCloseDuration: const Duration(seconds: 15), icon: const Icon(Icons.info));
+                                                              }
+                                                              else {
+                                                                Toastification().show(context: context, description: Text("Unable to save tracks due to error."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                                                              }
                                                             });
                                                           });
                                                         }
                                                         else {
-                                                          Storage().tracks.reset(); //on turning on, start fresh
+                                                          Storage().tracks = GpsRecorder(); //on turning on, start fresh
                                                         }
                                                       }
                                                       if(_layers[index] == "OSM" && value > 0) {
