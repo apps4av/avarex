@@ -136,15 +136,13 @@ class Airport {
     for(Map<String, dynamic> r in runways) {
       rs.add(ListTile(
         leading: SizedBox(width: 64,
-            child: Text(getRunwayIdent(r, 'LE'), style: const TextStyle(
-                fontSize: 16, backgroundColor: Colors.purple))),
+            child: CircleAvatar(backgroundColor: Colors.purple, child:Text(getRunwayIdent(r, 'LE'), style: TextStyle(color: Colors.white), textAlign: TextAlign.center,))),
         title: Text(getRunwayInfoCommon(r)),
         subtitle: Text(getRunwayInfo(r, 'LE')),
       ));
       rs.add(ListTile(
         leading: SizedBox(width: 64,
-            child: Text(getRunwayIdent(r, 'HE'), style: const TextStyle(
-                fontSize: 16, backgroundColor: Colors.purple))),
+            child: CircleAvatar(backgroundColor: Colors.purple, child:Text(getRunwayIdent(r, 'HE'), style: TextStyle(color: Colors.white), textAlign: TextAlign.center,))),
         title: Text(getRunwayInfoCommon(r)),
         subtitle: Text(getRunwayInfo(r, 'HE')),
       ));
