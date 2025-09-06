@@ -98,6 +98,21 @@ class ChecklistScreenState extends State<ChecklistScreen> {
     return ret;
   }
 
+  Color _checkRemaining() {
+    Color color = Colors.transparent;
+    int remaining = 0;
+    for(int i = 0; i < Storage().activeChecklistSteps.length; i++) {
+      if(!Storage().activeChecklistSteps[i]) {
+        remaining++;
+      }
+    }
+    if(remaining == 0) {
+      // all done
+      color = Colors.green.withAlpha(100);
+    }
+    return color;
+  }
+
   Widget _makeBody(List<Checklist>? items) {
 
     Checklist active = Checklist.empty();
@@ -115,6 +130,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
       Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
     }
 
+    Color bg = _checkRemaining();
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setState1) {
         return SingleChildScrollView(child: Padding(
@@ -125,9 +141,10 @@ class ChecklistScreenState extends State<ChecklistScreen> {
               // add list here
               for(int index = 0; index < active.steps.length; index++)
                 Column(children:[
-                  CheckboxListTile(title: Text(active.steps[index]), value: Storage().activeChecklistSteps[index], onChanged: (value) {
+                  CheckboxListTile(tileColor: bg, title: Text(active.steps[index]), value: Storage().activeChecklistSteps[index], onChanged: (value) {
                     setState1(() {
                       Storage().activeChecklistSteps[index] = value!;
+                      bg = _checkRemaining();
                     });
                   }),
                   const Divider()
