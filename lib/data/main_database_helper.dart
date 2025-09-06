@@ -121,7 +121,7 @@ class MainDatabaseHelper {
     if (db != null) {
       maps = await DbGeneral.query(db,
         // combine airports, fix, nav that matches match word and return 3 columns to show in the find result
-          "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where (LocationID $eMatch) "
+          "      select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from airports where ((LocationID $eMatch) or (City $eMatch)) "
           "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from nav      where (LocationID $eMatch) "
           "union select LocationID, FacilityName, Type, ARPLongitude, ARPLatitude from fix      where (LocationID $eMatch) "
           "order by Type asc limit $_limit"
