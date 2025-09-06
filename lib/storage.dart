@@ -69,7 +69,7 @@ class Storage {
   Storage._internal();
 
   // on gps update
-  final gpsChange = ValueNotifier<Position>(Gps.centerUSAPosition());
+  final gpsChange = ValueNotifier<Position>(Gps.fromLatLng(LatLng(0, 0)));
   // when plate changes
   final plateChange = ValueNotifier<int>(0);
   // when destination changes
@@ -88,7 +88,7 @@ class Storage {
   final NexradCache nexradCache = NexradCache();
   final Area area = Area();
   final TrafficCache trafficCache = TrafficCache();
-  final StackWithOne<Position> _gpsStack = StackWithOne(Gps.centerUSAPosition());
+  final StackWithOne<Position> _gpsStack = StackWithOne(Gps.fromLatLng(LatLng(0, 0)));
   ImageCache imageCache = ImageCache();
   int myAircraftIcao = 0;
   String myAircraftCallsign = "";
@@ -120,7 +120,7 @@ class Storage {
   // where all data is place. This is set on init in main
   late String dataDir;
   late String cacheDir;
-  Position position = Gps.centerUSAPosition();
+  late Position position;
   double vspeed = 0;
   bool airborne = true;  
   final AppSettings settings = AppSettings();
@@ -310,11 +310,9 @@ class Storage {
     }
     gpsDisabled = await Gps().isDisabled().onError((error, stackTrace) => true);
 
-    position = await Gps().getLastPosition().onError((error, stackTrace) => Gps.centerUSAPosition());
+    LatLng last = LatLng(settings.getCenterLatitude(), settings.getCenterLongitude());
+    position = Gps.fromLatLng(last);
     _gpsStack.push(position);
-    settings.setZoom(10);
-    settings.setCenterLatitude(position.latitude);
-    settings.setCenterLongitude(position.longitude);
 
     // don't await on this, but set when available, as DB access could take a few ms
     loadAircraftIds();

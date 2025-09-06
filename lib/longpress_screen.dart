@@ -3,6 +3,7 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/destination/nav.dart';
@@ -199,6 +200,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                 if(showDestination is AirportDestination) {
                   Storage().settings.setCurrentPlateAirport(showDestination.locationID);
                 }
+                MapScreenState.showOnMap(showDestination.coordinate);
                 MainScreenState.gotoMap();
                 Navigator.of(context).pop(); // hide bottom sheet
               },

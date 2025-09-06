@@ -153,10 +153,6 @@ class MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     // save ptz when we switch out
-    Storage().settings.setZoom(_controller.camera.zoom);
-    Storage().settings.setCenterLatitude(_controller.camera.center.latitude);
-    Storage().settings.setCenterLongitude(_controller.camera.center.longitude);
-    Storage().settings.setRotation(_controller.camera.rotation);
     Storage().gpsChange.removeListener(_gpsListen);
     Storage().metar.change.removeListener(_metarListen);
     Storage().taf.change.removeListener(_tafListen);
@@ -457,7 +453,10 @@ class MapScreenState extends State<MapScreen> {
           _interacting = true;
         }
         if (mapEvent is MapEventMoveEnd) {
-          // do something
+          // save location for next start
+          showOnMap(_controller.camera.center);
+          Storage().settings.setZoom(_controller.camera.zoom);
+          Storage().settings.setRotation(_controller.camera.rotation);
           _interacting = false;
         }
         _handleEvent(mapEvent);
@@ -1400,7 +1399,13 @@ class MapScreenState extends State<MapScreen> {
         )
     );
   }
-// implements a drawing screen with a center reset button.
+
+  // set it in settings so map can show it
+  static void showOnMap(LatLng coordinate) {
+    Storage().settings.setCenterLongitude(coordinate.longitude);
+    Storage().settings.setCenterLatitude(coordinate.latitude);
+    Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
+  }
 }
 
 class Plane extends CustomPainter {

@@ -12,7 +12,7 @@ import 'package:introduction_screen/introduction_screen.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('end-to-end test', () {
     testWidgets('Onboarding',

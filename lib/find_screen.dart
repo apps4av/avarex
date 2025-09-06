@@ -4,7 +4,6 @@ import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'chart.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'gps.dart';
@@ -124,9 +123,7 @@ class FindScreenState extends State<FindScreen> {
                         trailing: TextButton(
                           onPressed: () {
                             UserDatabaseHelper.db.addRecent(item);
-                            Storage().settings.setCenterLongitude(item.coordinate.longitude);
-                            Storage().settings.setCenterLatitude(item.coordinate.latitude);
-                            Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
+                            MapScreenState.showOnMap(item.coordinate);
                             MainScreenState.gotoMap();
                           },
                           child: Text("${GeoCalculations.getMagneticHeading(geo.calculateBearing(position, item.coordinate), item.geoVariation?? 0).round()}\u00b0@${geo.calculateDistance(item.coordinate, position).round()}")

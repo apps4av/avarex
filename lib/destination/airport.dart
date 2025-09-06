@@ -134,18 +134,28 @@ class Airport {
 
     List<ListTile> rs = [];
     for(Map<String, dynamic> r in runways) {
-      rs.add(ListTile(
-        leading: SizedBox(width: 64,
-            child: CircleAvatar(backgroundColor: Colors.purple, child:Text(getRunwayIdent(r, 'LE'), style: TextStyle(color: Colors.white), textAlign: TextAlign.center,))),
-        title: Text(getRunwayInfoCommon(r)),
-        subtitle: Text(getRunwayInfo(r, 'LE')),
-      ));
-      rs.add(ListTile(
-        leading: SizedBox(width: 64,
-            child: CircleAvatar(backgroundColor: Colors.purple, child:Text(getRunwayIdent(r, 'HE'), style: TextStyle(color: Colors.white), textAlign: TextAlign.center,))),
-        title: Text(getRunwayInfoCommon(r)),
-        subtitle: Text(getRunwayInfo(r, 'HE')),
-      ));
+      if(getRunwayIdent(r, 'LE').isNotEmpty) {
+        rs.add(ListTile(
+          leading: SizedBox(width: 64,
+              child: CircleAvatar(backgroundColor: Colors.purple,
+                  child: Text(getRunwayIdent(r, 'LE'),
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,))),
+          title: Text(getRunwayInfoCommon(r)),
+          subtitle: Text(getRunwayInfo(r, 'LE')),
+        ));
+      }
+      if(getRunwayIdent(r, 'HE').isNotEmpty) {
+        rs.add(ListTile(
+          leading: SizedBox(width: 64,
+              child: CircleAvatar(backgroundColor: Colors.purple,
+                  child: Text(getRunwayIdent(r, 'HE'),
+                    style: TextStyle(color: Colors.white),
+                    textAlign: TextAlign.center,))),
+          title: Text(getRunwayInfoCommon(r)),
+          subtitle: Text(getRunwayInfo(r, 'HE')),
+        ));
+      }
     }
 
     ListView view = ListView(children: [
