@@ -12,6 +12,8 @@ import 'notam_product.dart';
 
 class ProductFactory {
 
+  static Map<int, List<Product>> segmentedProducts = {};
+
   static Product? buildProduct(Uint8List fis, LatLng? coordinate) {
     BitInputStream s = BitInputStream(fis);
 
@@ -48,9 +50,13 @@ class ProductFactory {
       secs = s.getBits(6);
     }
 
+    int productFileId = 0;
+    int productFileLength = 0;
+    int apduNumber = 0;
     if (segFlag) {
-      // uncommon
-      return null;
+      productFileId = s.getBits(10);
+      productFileLength = s.getBits(9);
+      apduNumber = s.getBits(9);
     }
 
     int totalRead = s.totalRead();
@@ -66,38 +72,76 @@ class ProductFactory {
 
     switch (productID) {
       case 8:
-        p = NotamProduct(time, data, coordinate);  // NOTAM graphics
+        p = NotamProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);  // NOTAM graphics
         break;
       case 9:
         break;
       case 10:
         break;
       case 11:
-        p = AirmetProduct(time, data, coordinate);  // AIRMET graphics
+        p = AirmetProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);  // AIRMET graphics
         break;
       case 12:
-        p = SigmetProduct(time, data, coordinate);  // SIGMET graphics
+        p = SigmetProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);  // SIGMET graphics
         break;
       case 13:
-        p = SuaProduct(time, data, coordinate); // SUA graphics
+        p = SuaProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag); // SUA graphics
         break;
       case 63:
-        p = NexradHighProduct(time, data, coordinate);
+        p = NexradHighProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
         break;
       case 64:
-        p = NexradMediumProduct(time, data, coordinate);
+        p = NexradMediumProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
         break;
       case 413:
-        p = TextualWeatherProduct(time, data, coordinate); // MEATR, TAF, SPECI, WINDS, PIREP
+        p = TextualWeatherProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag); // MEATR, TAF, SPECI, WINDS, PIREP
         break;
       default:
         break;
     }
 
     if (null != p) {
-      p.parse();
+      if(p.segFlag && p.apduNumber != 0 && p.apduNumber <= p.productFileLength && p.productFileLength != 0) {
+        // based on productFieldId, collect all segments in segmented products, where location in the list of a particular productFieldId is apduNumber-1
+        int index = p.apduNumber - 1;
+        List<Product>? list = segmentedProducts[productFileId];
+        if(list != null) {
+          // already have it
+          list[index] = p;
+        }
+        else {
+          // do not have it
+          list = List<Product>.filled(p.productFileLength, p, growable: false);
+          segmentedProducts[productFileId] = list;
+        }
+        // if we have all segments, combine them, return the combined product and remove from segmented products
+        bool complete = true;
+        for(int count = 0; count <= p.productFileLength - 1; count++) {
+          if(list[count].apduNumber != count + 1) {
+            // not all segments in yet
+            complete = false;
+            break;
+          }
+        }
+        if(complete) {
+          // segment complete, combine it
+          segmentedProducts.remove(productFileId);
+          // combine all data segments of each product segment
+          p = list[0];
+          for(int count = 1; count < p.productFileLength; count++) {
+            Uint8List data = list[count].data.sublist(6);
+            p.data = Uint8List.fromList(p.data + data);
+          }
+        }
+        else {
+          p = null;
+        }
+      }
     }
 
+    if(p != null) {
+      p.parse();
+    }
     return (p);
   }
 }

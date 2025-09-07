@@ -11,7 +11,7 @@ import '../weather/weather.dart';
 import 'dlac.dart';
 
 class TextualWeatherProduct extends Product {
-  TextualWeatherProduct(super.time, super.data, super.coordinate);
+  TextualWeatherProduct(super.time, super.data, super.coordinate, super.productFileId, super.productFileLength, super.apduNumber, super.segFlag);
 
   String _text = "";
 

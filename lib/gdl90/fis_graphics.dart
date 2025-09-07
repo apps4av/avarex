@@ -62,179 +62,195 @@ class FisGraphics {
 
     int format;
     int count;
-    int length;
 
     format = ((data[0]).toInt() & 0xF0) >> 4;
     count = ((data[1]).toInt() & 0xF0) >> 4;
-    // Only support 1 record
-    if (count != 1) {
-      return;
-    }
 
     location = Dlac.decode(data[2], data[3], data[4]);
     location = Dlac.format(location);
 
-    /*
-      0 - No data
-      1 - Unformatted ASCII Text
-      2 - Unformatted DLAC Text
-      3 - Unformatted DLAC Text w/ dictionary
-      4 - Formatted Text using ASN.1/PER
-      5-7 - Future Use
-      8 - Graphical Overlay
-      9-15 - Future Use
-    */
-    switch (format) {
-      case 0:
-        return;
-      case 2:
-        length = ((data[6].toInt() & 0xFF) << 8) + (data[7].toInt() & 0xFF);
-        if (data.length - length < 6) {
+    data = data.sublist(6);
+
+    // run count loop
+    for(int cc = 0; cc < count; cc++) {
+
+      /*
+        0 - No data
+        1 - Unformatted ASCII Text
+        2 - Unformatted DLAC Text
+        3 - Unformatted DLAC Text w/ dictionary
+        4 - Formatted Text using ASN.1/PER
+        5-7 - Future Use
+        8 - Graphical Overlay
+        9-15 - Future Use
+      */
+      if (format == 2) {
+        int length = ((data[0].toInt() & 0xFF) << 8) + (data[1].toInt() & 0xFF);
+        if (data.length < length) {
           return;
         }
-
-        reportNumber = ((data[8].toInt() & 0xFF) << 6) + ((data[9].toInt() & 0xFC) >> 2);
+        reportNumber =
+            ((data[2].toInt() & 0xFF) << 6) + ((data[3].toInt() & 0xFC) >> 2);
 
         int len = length - 5;
 
         text = "";
+        data = data.sublist(5);
         for (int i = 0; i < (len - 3); i += 3) {
-          text += Dlac.decode(data[i + 11], data[i + 12], data[i + 13]);
+          text += Dlac.decode(data[0], data[1], data[2]);
+          data = data.sublist(3);
         }
         text = Dlac.format(text);
-        break;
-
-      case 8:
-
-        Uint8List recordData = data.sublist(6);
-
-        reportNumber = ((recordData[1].toInt() & 0x3F) << 8) + (recordData[2].toInt() & 0xFF);
+      }
+      else if (format == 8) {
+        reportNumber =
+            ((data[1].toInt() & 0x3F) << 8) + (data[2].toInt() & 0xFF);
 
         // (6-1). (6.22 - Graphical Overlay Record Format).
-        int flag = recordData[4] & 0x01;
+        int flag = data[4] & 0x01;
 
         if (0 == flag) { // Numeric index.
-          label = ((( recordData[5].toInt() & 0xFF) << 8) + (recordData[6].toInt() & 0xFF)).toString();
-          recordData = recordData.sublist(7);
-        } else {
-          label = Dlac.decode(recordData[5], recordData[6], recordData[7]) +
-              Dlac.decode(recordData[8], recordData[9], recordData[10]) +
-              Dlac.decode(recordData[11], recordData[12], recordData[13]);
+          label = (((data[5].toInt() & 0xFF) << 8) + (data[6].toInt() & 0xFF))
+              .toString();
+          data = data.sublist(7);
+        }
+        else {
+          label = Dlac.decode(data[5], data[6], data[7]) +
+              Dlac.decode(data[8], data[9], data[10]) +
+              Dlac.decode(data[11], data[12], data[13]);
           label = Dlac.format(label);
-          recordData = recordData.sublist(14);
+          data = data.sublist(14);
         }
 
-        flag = (recordData[0].toInt() & 0x40) >> 6;
+        flag = (data[0].toInt() & 0x40) >> 6;
 
         if (0 == flag) { //TODO: Check.
-          recordData = recordData.sublist(2);
+          data = data.sublist(2);
         } else {
-          recordData = recordData.sublist(5);
+          data = data.sublist(5);
         }
 
-        int applicabilityOptions = (recordData[0].toInt() & 0xC0) >> 6;
-        int dtFormat = (recordData[0].toInt() & 0x30) >> 4;
-        geometryOverlayOptions = recordData[0].toInt() & 0x0F;
-        int overlayVerticesCount = (recordData[1].toInt() & 0x3F) + 1; // Document instructs to add 1. (6.20).
+        int applicabilityOptions = (data[0].toInt() & 0xC0) >> 6;
+        int dtFormat = (data[0].toInt() & 0x30) >> 4;
+        geometryOverlayOptions = data[0].toInt() & 0x0F;
+        int overlayVerticesCount = (data[1].toInt() & 0x3F) +
+            1; // Document instructs to add 1. (6.20).
 
         // Parse all of the dates.
         switch (applicabilityOptions) {
           case 0: // No times given. UFN.
-            recordData = recordData.sublist(2);
+            data = data.sublist(2);
             break;
           case 1: // Start time only. WEF.
-            startTime = _parseDate(recordData[2].toInt(), recordData[3].toInt(), recordData[4].toInt(), recordData[5].toInt(), dtFormat);
+            startTime = _parseDate(
+                data[2].toInt(), data[3].toInt(), data[4].toInt(),
+                data[5].toInt(), dtFormat);
             endTime = "";
-            recordData = recordData.sublist(6);
+            data = data.sublist(6);
             break;
           case 2: // End time only. TIL.
-            endTime = _parseDate(recordData[2].toInt(), recordData[3].toInt(), recordData[4].toInt(), recordData[5].toInt(), dtFormat);
+            endTime = _parseDate(
+                data[2].toInt(), data[3].toInt(), data[4].toInt(),
+                data[5].toInt(), dtFormat);
             startTime = "";
-            recordData = recordData.sublist(6);
+            data = data.sublist(6);
             break;
           case 3: // Both start and end times. WEF.
-            startTime = _parseDate(recordData[2].toInt(), recordData[3].toInt(), recordData[4].toInt(), recordData[5].toInt(), dtFormat);
-            endTime = _parseDate(recordData[6].toInt(), recordData[7].toInt(), recordData[8].toInt(), recordData[9].toInt(), dtFormat);
-            recordData = recordData.sublist(10);
+            startTime = _parseDate(
+                data[2].toInt(), data[3].toInt(), data[4].toInt(),
+                data[5].toInt(), dtFormat);
+            endTime = _parseDate(
+                data[6].toInt(), data[7].toInt(), data[8].toInt(),
+                data[9].toInt(), dtFormat);
+            data = data.sublist(10);
             break;
-
         }
 
         // Now we have the vertices.
         switch (geometryOverlayOptions) {
           case shapePolygonMSL: // Extended Range 3D Polygon (MSL).
             for (int i = 0; i < overlayVerticesCount; i++) {
-              int lon = ((recordData[6 * i].toInt() & 0xFF) << 11) +
-                  ((recordData[6 * i + 1].toInt() & 0xFF) << 3) +
-                  ((recordData[6 * i + 2].toInt() & 0xE0) >> 5);
+              int lon = ((data[0].toInt() & 0xFF) << 11) +
+                  ((data[1].toInt() & 0xFF) << 3) +
+                  ((data[2].toInt() & 0xE0) >> 5);
 
-              int lat = ((recordData[6 * i + 2].toInt() & 0x1F) << 14) +
-                  ((recordData[6 * i + 3].toInt() & 0xFF) << 6) +
-                  ((recordData[6 * i + 4].toInt() & 0xFC) >> 2);
+              int lat = ((data[2].toInt() & 0x1F) << 14) +
+                  ((data[3].toInt() & 0xFF) << 6) +
+                  ((data[4].toInt() & 0xFC) >> 2);
 
               // do not need altitude for shapes
-              // int alt = (((recordData[6 * i + 4].toInt() & 0x03) << 8) + (recordData[6 * i + 5].toInt() & 0xFF)) * 100;
+              int alt = (((data[4].toInt() & 0x03) << 8) +
+                  (data[5].toInt() & 0xFF)) * 100;
 
               LatLng c = _parseLatLon(lat, lon, false);
               coordinates.add(c);
+              data = data.sublist(6);
             }
             break;
 
           case shapePoint3DAgl: // Extended Range 3D Point (AGL). p.47.
-            if (recordData.length >= 6) {
-              int lon = ((recordData[0].toInt() & 0xFF) << 11) +
-                  ((recordData[1] & 0xFF).toInt() << 3) +
-                  ((recordData[2].toInt() & 0xE0) >> 5);
+            if (data.length >= 6) {
+              int lon = ((data[0].toInt() & 0xFF) << 11) +
+                  ((data[1] & 0xFF).toInt() << 3) +
+                  ((data[2].toInt() & 0xE0) >> 5);
 
-              int lat = ((recordData[2].toInt() & 0x1F) << 14) +
-                  ((recordData[3].toInt() & 0xFF) << 6) +
-                  ((recordData[4].toInt() & 0xFC) >> 2);
+              int lat = ((data[2].toInt() & 0x1F) << 14) +
+                  ((data[3].toInt() & 0xFF) << 6) +
+                  ((data[4].toInt() & 0xFC) >> 2);
 
               // int alt = (((recordData[4].toInt() & 0x03) << 8) + (recordData[5].toInt() & 0xFF)) * 100;
 
               LatLng c = _parseLatLon(lat, lon, false);
               coordinates.add(c);
+              data = data.sublist(6);
             }
             else {
               return;
             }
             break;
           case shapePrismAgl:
-          case shapePrisonMsl:// Extended Range Circular Prism (7 = MSL, 8 = AGL)
-            if (recordData.length >= 14) {
+          case shapePrisonMsl: // Extended Range Circular Prism (7 = MSL, 8 = AGL)
+            if (data.length >= 14) {
+              int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
+                  ((data[1].toInt() & 0xFF) << 2) +
+                  ((data[2].toInt() & 0xC0) >> 6);
+              int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
+                  ((data[3].toInt() & 0xFF) << 4) +
+                  ((data[4].toInt() & 0xF0) >> 4);
 
-              //int bottomLon = ((recordData[0].toInt() & 0xFF) << 10) + ((recordData[1].toInt() & 0xFF) << 2) + ((recordData[2].toInt() & 0xC0) >> 6);
-              //int bottomLat = ((recordData[2].toInt() & 0x3F) << 10) + ((recordData[3].toInt() & 0xFF) << 4) + ((recordData[4].toInt() & 0xF0) >> 4);
-
-              int topLon = ((recordData[4].toInt() & 0x0F) << 14) + ((recordData[5].toInt() & 0xFF) << 6) + ((recordData[6].toInt() & 0xFC) >> 2);
-              int topLat = ((recordData[6].toInt() & 0x03) << 16) + ((recordData[7].toInt() & 0xFF) << 8) + ((recordData[8].toInt() & 0xFF));
+              int topLon = ((data[4].toInt() & 0x0F) << 14) +
+                  ((data[5].toInt() & 0xFF) << 6) +
+                  ((data[6].toInt() & 0xFC) >> 2);
+              int topLat = ((data[6].toInt() & 0x03) << 16) +
+                  ((data[7].toInt() & 0xFF) << 8) + ((data[8].toInt() & 0xFF));
 
               //int bottomAlt = ((recordData[9].toInt() & 0xFE) >> 1) * 5;
               //int topAlt = (((recordData[9].toInt() & 0x01) << 6) + (recordData[10].toInt() & 0xFC) >> 2) * 100;
 
-
               // only 2D
-              //LatLng b = _parseLatLon(bottomLat, bottomLon, true);
+              LatLng b = _parseLatLon(bottomLat, bottomLon, true);
               LatLng t = _parseLatLon(topLat, topLon, true);
 
               coordinates.add(t);
 
-              // This is not a coordinate
-              //double rLon = (((recordData[10].toInt() & 0x03) << 7) + ((recordData[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
-              //double rLat = (((recordData[11].toInt() & 0x01) << 8) + (recordData[12].toInt() & 0xFF)).toDouble() * 0.2;
-              // int alpha = recordData[13].toInt() & 0xFF;
-              //LatLng r = LatLng(rLat, rLon);
+              double rLon = (((data[10].toInt() & 0x03) << 7) +
+                  ((data[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
+              double rLat = (((data[11].toInt() & 0x01) << 8) +
+                  (data[12].toInt() & 0xFF)).toDouble() * 0.2;
+              //int alpha = recordData[13].toInt() & 0xFF;
+              LatLng r = LatLng(rLat, rLon);
+              // make a circle with top, bottom and radius
+              data = data.sublist(14);
             }
             else {
               return;
             }
             break;
-          default:
-            return;
         }
-        break;
-      default:
+      }
+      else {
         return;
+      }
     }
 
     valid = true;
