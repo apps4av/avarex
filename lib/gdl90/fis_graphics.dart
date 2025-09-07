@@ -40,10 +40,10 @@ class FisGraphics {
   }
 
   LatLng _parseLatLon(int lat, int lon, bool alt) {
-    double factor = 0.000687;
+    double factor = 0.00068665;
 
     if (alt) {
-      factor = 0.001373;
+      factor = 0.00137329;
     }
     double latC = factor * lat.toDouble();
     double lonC = factor * lon.toDouble();
@@ -170,11 +170,13 @@ class FisGraphics {
         switch (geometryOverlayOptions) {
           case shapePolygonMSL: // Extended Range 3D Polygon (MSL).
             for (int i = 0; i < overlayVerticesCount; i++) {
-              int lon = ((data[0].toInt() & 0xFF) << 11) +
+              int lon =
+                  ((data[0].toInt() & 0xFF) << 11) +
                   ((data[1].toInt() & 0xFF) << 3) +
                   ((data[2].toInt() & 0xE0) >> 5);
 
-              int lat = ((data[2].toInt() & 0x1F) << 14) +
+              int lat =
+                  ((data[2].toInt() & 0x1F) << 14) +
                   ((data[3].toInt() & 0xFF) << 6) +
                   ((data[4].toInt() & 0xFC) >> 2);
 
