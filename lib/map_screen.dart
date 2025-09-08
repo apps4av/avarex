@@ -1081,26 +1081,6 @@ class MapScreenState extends State<MapScreen> {
       height = Constants.screenHeight(context) * 3 / 5;
       width = height * 0.7;
     }
-    final Widget pfd = Positioned(
-        top: Constants.screenHeightForInstruments(context),
-        child:Align(
-            alignment: Alignment.topLeft,
-            child: SizedBox(
-              width:width,
-              height: height,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
-                child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
-                child:CustomPaint(
-                  painter: PfdPainter(
-                  height: height,
-                  width: width,
-                  repaint: Storage().timeChange) // repaint every second
-                ))
-              )
-            )
-        )
-    );
 
     return Scaffold(
         endDrawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 10),
@@ -1123,7 +1103,26 @@ class MapScreenState extends State<MapScreen> {
                 ValueListenableBuilder<int>(
                   valueListenable: Storage().pfdChange,
                   builder: (context, value, _) {
-                    return pfd;
+                    return Positioned(
+                        top: Constants.screenHeightForInstruments(context),
+                        child:Align(
+                            alignment: Alignment.topLeft,
+                            child: SizedBox(
+                                width:width,
+                                height: height,
+                                child: ClipRRect(
+                                    borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
+                                    child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
+                                        child:CustomPaint(
+                                            painter: PfdPainter(
+                                                height: height,
+                                                width: width,
+                                                repaint: Storage().timeChange) // repaint every second
+                                        ))
+                                )
+                            )
+                        )
+                    );
                   }
                 ),
               Positioned(

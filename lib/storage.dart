@@ -111,7 +111,7 @@ class Storage {
   PlanRoute get route => _route;
   bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
-  get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
+  int get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
   int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
   bool gpsInternal = true;
 
@@ -122,7 +122,7 @@ class Storage {
   late String dataDir;
   late String cacheDir;
   late Position position;
-  double vspeed = 0;
+  double vSpeed = 0;
   bool airborne = true;  
   final AppSettings settings = AppSettings();
 
@@ -155,7 +155,7 @@ class Storage {
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
 
-  setDestination(Destination? destination) {
+  void setDestination(Destination? destination) {
     if(destination != null) {
       route.addDirectTo(Waypoint(destination));
     }
@@ -208,7 +208,7 @@ class Storage {
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
             // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
-            vspeed = m.verticalSpeed;
+            vSpeed = m.verticalSpeed;
             airborne = m.airborne;
             // record waypoints for tracks.
             tracks.add(p);
@@ -249,7 +249,7 @@ class Storage {
             ownshipMessageIcao = m0.icao;
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
-            vspeed = m0.verticalSpeed;
+            vSpeed = m0.verticalSpeed;
             airborne = m0.altitude > 100;
             _gpsStack.push(p);
             tracks.add(p);

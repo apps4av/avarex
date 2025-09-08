@@ -46,7 +46,7 @@ class Traffic {
     //   print("Haversine is $horizontalOwnshipDistanceNmi and Vicenty is $vicentyDist, for a diff of ${horizontalOwnshipDistanceNmi-vicentyDist} or ${(horizontalOwnshipDistanceNmi-vicentyDist)/vicentyDist*100}%");
     // }    
     verticalOwnshipDistanceFt = Storage().units.mToF * Storage().position.altitude - message.altitude;
-    TrafficAlerts.setTrafficAlertFields(this, Storage().position, Storage().airborne, Storage().vspeed);
+    TrafficAlerts.setTrafficAlertFields(this, Storage().position, Storage().airborne, Storage().vSpeed);
   }
 
   bool isOld() {
@@ -202,7 +202,7 @@ class TrafficCache {
       _audibleAlertsHandling = true;   
       TrafficAlerts.getAndStartTrafficAlerts().then((alerts) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)
-        alerts?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vspeed, 
+        alerts?.processTrafficForAudibleAlerts(_traffic, Storage().position, Storage().lastMsGpsSignal, Storage().vSpeed,
           Storage().airborne);
         _audibleAlertsRequested = false;
         Future.delayed(const Duration(milliseconds: _kAudibleAlertCallMinDelayMs), () {
