@@ -68,6 +68,7 @@ class Storage {
 
   Storage._internal();
 
+  final pfdChange = ValueNotifier<int>(0);
   // on gps update
   final gpsChange = ValueNotifier<Position>(Gps.fromLatLng(LatLng(0, 0)));
   // when plate changes
@@ -93,7 +94,7 @@ class Storage {
   int myAircraftIcao = 0;
   String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
-  PfdData pfdData = PfdData(); // a place to drive PFD
+  final PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
@@ -217,6 +218,7 @@ class Storage {
           }
           if(m != null && m is AhrsMessage) {
             m.setPfd(pfdData);
+            pfdChange.value++;
           }
           if(m != null && m is UplinkMessage) {
             FisBuffer? fis = m.fis;

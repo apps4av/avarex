@@ -1120,7 +1120,12 @@ class MapScreenState extends State<MapScreen> {
             children: [
               map, // map
               if(_layersOpacity[_layers.indexOf('PFD')] > 0)
-                pfd,
+                ValueListenableBuilder<int>(
+                  valueListenable: Storage().pfdChange,
+                  builder: (context, value, _) {
+                    return pfd;
+                  }
+                ),
               Positioned(
                 child: Align(
                   alignment: Alignment.topLeft,
