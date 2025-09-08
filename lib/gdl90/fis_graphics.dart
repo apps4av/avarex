@@ -10,6 +10,8 @@ class FisGraphics {
   String text = "";
   String startTime = "";
   String endTime = "";
+  String altitudeBottom = "0";
+  String altitudeTop = "0";
   List<LatLng> coordinates = [];
   int geometryOverlayOptions = shapeNone;
   String location = "";
@@ -183,6 +185,7 @@ class FisGraphics {
               // do not need altitude for shapes
               int alt = (((data[4].toInt() & 0x03) << 8) +
                   (data[5].toInt() & 0xFF)) * 100;
+              altitudeTop = alt.toString();
 
               LatLng c = _parseLatLon(lat, lon, false);
               coordinates.add(c);
@@ -200,7 +203,8 @@ class FisGraphics {
                   ((data[3].toInt() & 0xFF) << 6) +
                   ((data[4].toInt() & 0xFC) >> 2);
 
-              // int alt = (((recordData[4].toInt() & 0x03) << 8) + (recordData[5].toInt() & 0xFF)) * 100;
+              int alt = (((data[4].toInt() & 0x03) << 8) + (data[5].toInt() & 0xFF)) * 100;
+              altitudeTop = alt.toString();
 
               LatLng c = _parseLatLon(lat, lon, false);
               coordinates.add(c);
@@ -226,14 +230,14 @@ class FisGraphics {
               int topLat = ((data[6].toInt() & 0x03) << 16) +
                   ((data[7].toInt() & 0xFF) << 8) + ((data[8].toInt() & 0xFF));
 
-              //int bottomAlt = ((recordData[9].toInt() & 0xFE) >> 1) * 5;
-              //int topAlt = (((recordData[9].toInt() & 0x01) << 6) + (recordData[10].toInt() & 0xFC) >> 2) * 100;
+              int bottomAlt = ((data[9].toInt() & 0xFE) >> 1) * 5;
+              int topAlt = (((data[9].toInt() & 0x01) << 6) + (data[10].toInt() & 0xFC) >> 2) * 100;
+              altitudeBottom = bottomAlt.toString();
+              altitudeTop = topAlt.toString();
 
               // only 2D
               LatLng b = _parseLatLon(bottomLat, bottomLon, true);
               LatLng t = _parseLatLon(topLat, topLon, true);
-
-              coordinates.add(t);
 
               double rLon = (((data[10].toInt() & 0x03) << 7) +
                   ((data[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
@@ -242,6 +246,7 @@ class FisGraphics {
               //int alpha = recordData[13].toInt() & 0xFF;
               LatLng r = LatLng(rLat, rLon);
               // make a circle with top, bottom and radius
+              // TODO : Implement this
               data = data.sublist(14);
             }
             else {
