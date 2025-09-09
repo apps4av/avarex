@@ -351,28 +351,29 @@ class MapScreenState extends State<MapScreen> {
     List<AirSigmet> airSigmet = weather.map((e) => e as AirSigmet).toList();
     _airSigmetCluster ??= makeCluster([
             for(AirSigmet a in airSigmet)
-              Marker(
-                  point: a.coordinates[0],
-                  child: JustTheTooltip(
-                      content: Container(
-                          padding: const EdgeInsets.all(5),
-                          child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
-                      ),
-                      waitDuration: const Duration(seconds: 1),
-                      triggerMode: TooltipTriggerMode.tap,
-                      child: GestureDetector(
-                          onLongPress: () {
-                            setState(() {
-                              _airSigmetLayer = null; // rebuild layer with visible shapes
-                              a.showShape = !a.showShape;
-                            });
-                          },
-                          child:Icon(Icons.ac_unit_rounded,
-                              color: a.getColor()
-                          )
-                      )
-                  )
-              )
+              if(a.coordinates.isNotEmpty)
+                Marker(
+                    point: a.coordinates[0],
+                    child: JustTheTooltip(
+                        content: Container(
+                            padding: const EdgeInsets.all(5),
+                            child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
+                        ),
+                        waitDuration: const Duration(seconds: 1),
+                        triggerMode: TooltipTriggerMode.tap,
+                        child: GestureDetector(
+                            onLongPress: () {
+                              setState(() {
+                                _airSigmetLayer = null; // rebuild layer with visible shapes
+                                a.showShape = !a.showShape;
+                              });
+                            },
+                            child:Icon(Icons.ac_unit_rounded,
+                                color: a.getColor()
+                            )
+                        )
+                    )
+                )
           ],
         );
 
@@ -385,12 +386,13 @@ class MapScreenState extends State<MapScreen> {
     List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
     _tfrCluster ??= makeCluster([
             for(Tfr t in tfrs)
-              Marker(point: t.coordinates[t.getLabelCoordinate()],
-                  child: JustTheTooltip(
-                        content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
-                        triggerMode: TooltipTriggerMode.tap,
-                        waitDuration: const Duration(seconds: 1),
-                        child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
+              if(t.coordinates.isNotEmpty)
+                Marker(point: t.coordinates[t.getLabelCoordinate()],
+                    child: JustTheTooltip(
+                          content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
+                          triggerMode: TooltipTriggerMode.tap,
+                          waitDuration: const Duration(seconds: 1),
+                          child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
           ],
         );
     return _tfrCluster!;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 
@@ -9,6 +10,7 @@ import 'package:avaremp/weather/taf_cache.dart';
 import 'package:avaremp/weather/tfr_cache.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_cache.dart';
+import 'package:latlong2/latlong.dart' show LatLng;
 import 'airep_cache.dart';
 import 'airsigmet_cache.dart';
 import 'notam_cache.dart';
@@ -32,6 +34,19 @@ class WeatherCache {
 
   WeatherCache(this.urls, this._dbCall) {
     initialize();
+  }
+
+  static LatLng? parseAndValidateCoordinate(String latitude, String longitude) {
+    try {
+      double lat = double.parse(latitude);
+      double lon = double.parse(longitude);
+      if(UnitConversion.isLatitudeValid(lat) && UnitConversion.isLongitudeValid(lon)) {
+        return LatLng(lat, lon);
+      }
+    }
+    catch(e) {
+    }
+    return null;
   }
 
   // Download and parse

@@ -101,7 +101,10 @@ class TfrCache extends WeatherCache {
             if(longitude.endsWith("W")) {
               longitude = "-${longitude.replaceAll('W', '')}";
             }
-            ll.add(LatLng(double.parse(latitude), double.parse(longitude)));
+            LatLng? pv = WeatherCache.parseAndValidateCoordinate(latitude, longitude);
+            if(pv != null) {
+              ll.add(pv);
+            }
           }
 
           // cannot draw this TFR

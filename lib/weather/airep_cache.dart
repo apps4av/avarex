@@ -30,8 +30,11 @@ class AirepCache extends WeatherCache {
 
       Airep a;
       try {
-        // Tail number @lat, lon
-        a = Airep("${row[8]}@${row[9]},${row[10]}", time, DateTime.now().toUtc(), Weather.sourceInternet, row[43], LatLng(double.parse(row[9].toString()), double.parse(row[10].toString())));
+        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[9], row[10]);
+        if(pv == null) {
+          continue;
+        }
+        a = Airep("${row[8]}@${row[9]},${row[10]}", time, DateTime.now().toUtc(), Weather.sourceInternet, row[43], pv);
         aireps.add(a);
       }
       catch(e) {
