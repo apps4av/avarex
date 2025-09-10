@@ -38,7 +38,7 @@ class MainApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeData>(
         valueListenable: Storage().themeNotifier,
         builder: (context, value, child) {
-          return MaterialApp(
+          return SafeArea(child: MaterialApp(
             debugShowCheckedModeBanner: false,
             initialRoute: '/',
             routes: {
@@ -61,7 +61,7 @@ class MainApp extends StatelessWidget {
                 }
             },
             theme: value,
-          );
+          )); // Safe Area so things from OS do not get in the way
         });
     }
   }
