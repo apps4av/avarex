@@ -114,7 +114,7 @@ class AirSigmetCache extends WeatherCache {
             for (String point in points) {
               List<String> cc = point.split(":");
               // Tail number @lat, lon
-              LatLng? pv = WeatherCache.parseAndValidateCoordinate(cc[1], cc[0]);
+              LatLng? pv = WeatherCache.parseAndValidateCoordinate(cc[1].toString(), cc[0].toString());
               if(pv != null) {
                 ll.add(pv);
               }

@@ -30,7 +30,7 @@ class AirepCache extends WeatherCache {
 
       Airep a;
       try {
-        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[9], row[10]);
+        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[9].toString(), row[10].toString());
         if(pv == null) {
           continue;
         }

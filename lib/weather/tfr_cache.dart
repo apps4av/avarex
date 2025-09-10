@@ -101,7 +101,7 @@ class TfrCache extends WeatherCache {
             if(longitude.endsWith("W")) {
               longitude = "-${longitude.replaceAll('W', '')}";
             }
-            LatLng? pv = WeatherCache.parseAndValidateCoordinate(latitude, longitude);
+            LatLng? pv = WeatherCache.parseAndValidateCoordinate(latitude.toString(), longitude.toString());
             if(pv != null) {
               ll.add(pv);
             }

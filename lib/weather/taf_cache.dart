@@ -31,7 +31,7 @@ class TafCache extends WeatherCache {
 
       Taf t;
       try {
-        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[7], row[8]);
+        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[7].toString(), row[8].toString());
         if(pv == null) {
           continue;
         }

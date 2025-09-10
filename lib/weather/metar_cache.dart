@@ -34,7 +34,7 @@ class MetarCache extends WeatherCache {
 
       Metar m;
       try {
-        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[3], row[4]);
+        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[3].toString(), row[4].toString());
         if(pv == null) {
           continue;
         }
