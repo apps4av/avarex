@@ -1,11 +1,11 @@
 // destination base class
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'destination_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 
@@ -151,11 +151,21 @@ class Destination {
     String query =  Uri.encodeFull("https://nominatim.openstreetmap.org/search?addressdetails=1&format=jsonv2&limit=1&q=$address");
     // now do http get on the query
     try {
-      final response = await http.get(Uri.parse(query));
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      return LatLng(double.parse(decoded[0]["lat"]), double.parse(decoded[0]["lon"]));
+      HttpClient client = HttpClient();
+      client.userAgent = "AvareX";
+      HttpClientRequest request = await client.getUrl(Uri.parse(query));
+      HttpClientResponse response = await request.close();
+
+      if (response.statusCode == HttpStatus.ok) {
+        String responseBody = await response.transform(utf8.decoder).join();
+        final decoded = json.decode(responseBody);
+        return LatLng(double.parse(decoded[0]["lat"]), double.parse(decoded[0]["lon"]));
+      } else {
+        return null;
+      }
     }
-    catch(e) {}
+    catch(e) {
+    }
     return null;
   }
 
