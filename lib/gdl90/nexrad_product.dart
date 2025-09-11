@@ -1,4 +1,5 @@
 import 'package:avaremp/gdl90/product.dart';
+import 'package:avaremp/storage.dart';
 
 class NexradProduct extends Product {
   NexradProduct(super.time, super.data, super.coordinate, super.productFileId, super.productFileLength, super.apduNumber, super.segFlag);
@@ -113,6 +114,7 @@ class NexradProduct extends Product {
         }
       }
     }
+    Storage().nexradCache.putImg(this);
   }
 
 }

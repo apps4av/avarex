@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:avaremp/gdl90/ownship_message.dart';
+import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'message.dart';
@@ -82,6 +83,7 @@ class TrafficReportMessage extends Message {
     Uint8List call = message.sublist(18, 26);
     callSign = String.fromCharCodes(call).replaceAll(RegExp("[^a-zA-Z0-9]"), "");
 
+    Storage().trafficCache.putTraffic(this);
   }
 
 }

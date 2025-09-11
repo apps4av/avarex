@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:avaremp/pfd_painter.dart';
+import 'package:avaremp/storage.dart';
 
 import 'message.dart';
 
@@ -155,5 +156,7 @@ class AhrsMessage extends Message {
         }
       }
     }
+    setPfd(Storage().pfdData);
+    Storage().pfdChange.value++;
   }
 }

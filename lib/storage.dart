@@ -10,18 +10,12 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/download_screen.dart';
 import 'package:avaremp/flight_status.dart';
-import 'package:avaremp/gdl90/ahrs_message.dart';
-import 'package:avaremp/gdl90/fis_buffer.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/gps_recorder.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
-import 'package:avaremp/gdl90/nexrad_product.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
-import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
-import 'package:avaremp/gdl90/traffic_report_message.dart';
-import 'package:avaremp/gdl90/uplink_message.dart';
 import 'package:avaremp/nmea/nmea_ownship_message.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pfd_painter.dart';
@@ -212,23 +206,6 @@ class Storage {
             airborne = m.airborne;
             // record waypoints for tracks.
             tracks.add(p);
-          }
-          if(m != null && m is TrafficReportMessage) {
-            trafficCache.putTraffic(m);
-          }
-          if(m != null && m is AhrsMessage) {
-            m.setPfd(pfdData);
-            pfdChange.value++;
-          }
-          if(m != null && m is UplinkMessage) {
-            FisBuffer? fis = m.fis;
-            if(fis != null) {
-              for(Product p in fis.products) {
-                if(p is NexradProduct) {
-                  nexradCache.putImg(p);
-                }
-              }
-            }
           }
         }
         else {
