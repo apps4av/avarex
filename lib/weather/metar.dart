@@ -113,6 +113,17 @@ class Metar extends Weather {
     }
   }
 
+  double? getWindSpeed() {
+    String? ws;
+    (_, ws) = getWind(text);
+    try {
+      return double.parse(ws!);
+    }
+    catch (e) {
+      return null;
+    }
+  }
+
   static String getCategory(String report) {
     List<String> tokens = report.split(" ");
     String? integer;

@@ -243,7 +243,7 @@ class Storage {
     } catch (e) { }
   }
 
-  stopIO() {
+  void stopIO() {
     try {
       _udpStream?.cancel();
       _udpReceiver.finish();

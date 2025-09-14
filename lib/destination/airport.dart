@@ -102,17 +102,23 @@ class Airport {
       return input[0];
     }
 
-    String getRunwayInfo(Map<String, dynamic> r, String side) {
+    String getRunwayInfo(Map<String, dynamic> r, String side, [MapRunway? mr]) {
       // process both ends of the runway separately, add pattern, ils, vgsi, lights, displaced threshold, length, and surface type
       String pattern = r['${side}Pattern'] == 'Y' ? 'Pattern: Right\n' : 'Pattern: Left\n';
       String elevation = r['${side}Elevation'].isEmpty ? "" : "Elevation: ${r['${side}Elevation']}\n";
       String ils = r['${side}ILS'].isEmpty ? "" : "ILS: ${r['${side}ILS']}\n";
       String vgsi = r['${side}VGSI'].isEmpty ? "" : "VGSI: ${r['${side}VGSI']}\n";
-      String lights = r['${side}Lights'].isEmpty ? "" : "Lights:${r['${side}Lights']}\n";
-      String dt = r['${side}DT'].isEmpty ? "" : "Threshold: ${r['${side}DT']}";
+      String lights = r['${side}Lights'].isEmpty ? "" : "Lights: ${r['${side}Lights']}\n";
+      String dt = r['${side}DT'].isEmpty ? "" : "Threshold: ${r['${side}DT']}\n";
       String info = "$pattern$elevation$ils$vgsi$lights$dt";
-      return info;
+      if(mr != null) {
+        // add head and cross wind components
+        if(mr.headWind != null && mr.crossWind != null) {
+          info += "Head Wind: ${mr.headWind!.toStringAsFixed(0)}\nCross Wind: ${mr.crossWind!.toStringAsFixed(0)}";
+        }
+      }
 
+      return info;
     }
 
     String getRunwayInfoCommon(Map<String, dynamic> r) {
@@ -124,7 +130,7 @@ class Airport {
     }
 
     String getRunwayIdent(Map<String, dynamic> r, String side) {
-      String ident = r['${side}Ident'].isEmpty ? "" : "${r['${side}Ident']} ";
+      String ident = r['${side}Ident'].isEmpty ? "" : "${r['${side}Ident']}";
       return ident;
     }
 
@@ -133,27 +139,33 @@ class Airport {
     (sunrise, sunset) = TwilightCalculator.calculateTwilight(airport.coordinate.latitude, airport.coordinate.longitude);
 
     List<ListTile> rs = [];
+    List<MapRunway> mr = Airport.getRunwaysForMap(airport);
+
     for(Map<String, dynamic> r in runways) {
-      if(getRunwayIdent(r, 'LE').isNotEmpty) {
+      String identLE = getRunwayIdent(r, 'LE');
+      String identHE = getRunwayIdent(r, 'HE');
+      MapRunway le = mr.reduce((value, element) => value.name == identLE ? value : element);
+      MapRunway he = mr.reduce((value, element) => value.name == identHE ? value : element);
+      if(identLE.isNotEmpty) {
         rs.add(ListTile(
           leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: Colors.purple,
-                  child: Text(getRunwayIdent(r, 'LE'),
+              child: CircleAvatar(backgroundColor: le.best ? Colors.green : Colors.purple,
+                  child: Text(identLE,
                     style: TextStyle(color: Colors.white),
                     textAlign: TextAlign.center,))),
           title: Text(getRunwayInfoCommon(r)),
-          subtitle: Text(getRunwayInfo(r, 'LE')),
+          subtitle: Text(getRunwayInfo(r, 'LE', le)),
         ));
       }
-      if(getRunwayIdent(r, 'HE').isNotEmpty) {
+      if(identHE.isNotEmpty) {
         rs.add(ListTile(
           leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: Colors.purple,
-                  child: Text(getRunwayIdent(r, 'HE'),
+              child: CircleAvatar(backgroundColor: he.best ? Colors.green : Colors.purple,
+                  child: Text(identHE,
                     style: TextStyle(color: Colors.white),
                     textAlign: TextAlign.center,))),
           title: Text(getRunwayInfoCommon(r)),
-          subtitle: Text(getRunwayInfo(r, 'HE')),
+          subtitle: Text(getRunwayInfo(r, 'HE', he)),
         ));
       }
     }
@@ -219,7 +231,7 @@ class Airport {
           continue; // give up, as we tried everything possible to find a runway
         }
       }
-      headingH = headingL + 180;
+      headingH = (headingL + 180) % 360;
 
       LatLng start = geo.calculateOffset(LatLng(lat, lon), MapRunway.lengthStart, headingL);
       LatLng end = geo.calculateOffset(start, MapRunway.lengthStart + length / 2000, headingL);
@@ -266,21 +278,26 @@ class Airport {
 
     }
 
-    // calculate best runways based on wind direction
+    // calculate best runways based on wind direction, also add speed components
     double? windDirection;
+    double? windSpeed;
     Metar? metar = Storage().metar.get(destination.locationID) as Metar?;
     double minWind = 0;
     int index = -1;
     if(metar != null) {
       windDirection = metar.getWindDirection();
-      if(windDirection != null) {
+      windSpeed = metar.getWindSpeed();
+      if(windDirection != null && windSpeed != null) {
         for(MapRunway runway in runways) {
-          // wind component
-          double speedComponent = sqrt(1 - cos((runway.heading - windDirection) * pi / 180.0));
-          if(speedComponent > minWind) {
-            minWind = speedComponent;
+          double angle = ((runway.heading + 180) % 360 - windDirection) * pi / 180;
+          double headWind = cos(angle) * windSpeed;
+          double crossWind = sin(angle) * windSpeed;
+          if(headWind > minWind) {
+            minWind = headWind;
             index = runways.indexOf(runway);
           }
+          runway.headWind = headWind.roundToDouble();
+          runway.crossWind = crossWind.roundToDouble();
         }
       }
     }
@@ -302,6 +319,8 @@ class MapRunway {
   final LatLng endNotch;
   final double heading;
   bool best = false;
+  double? crossWind;
+  double? headWind;
   MapRunway(this.start, this.end, this.endNotch, this.name, this.heading);
 }
 
