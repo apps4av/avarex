@@ -31,7 +31,13 @@ class TfrCache extends WeatherCache {
       String url = "https://tfr.faa.gov/download/detail_$nid.xml";
 
       // now download each TFR
-      http.Response response = await http.get(Uri.parse(url));
+      http.Response response;
+      try {
+        response = await http.get(Uri.parse(url));
+      }
+      catch(e) {
+        continue; // cannot download this TFR
+      }
       decoded = utf8.decode(response.bodyBytes);
       // parse XML XML
 

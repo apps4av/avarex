@@ -63,7 +63,9 @@ class WeatherCache {
           http.Response response = await http.get(Uri.parse(url));
           responses.add(response.bodyBytes);
         }
-        catch(e) {}
+        catch(e) {
+          continue;
+        }
     }
     await parse(responses);
     await initialize();

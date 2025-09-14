@@ -11,6 +11,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -190,7 +191,15 @@ class InstrumentListState extends State<InstrumentList> {
                     _hourMinuteFormatter.format(DateTime.now().add(time)));
             _ete = _truncate(
                 "${time.inHours.toString().padLeft(2, '0')}:${time.inMinutes.remainder(60).toString().padLeft(2, '0')}");
-            _vsr = _truncate(((relativeAGL - 1000) / time.inMinutes.toDouble()).round().toStringAsFixed(0));
+            if(destElev == null) {
+              _vsr = "-";
+            }
+            else {
+              _vsr = _truncate(
+                  ((relativeAGL - 1000) / time.inMinutes.toDouble())
+                      .round()
+                      .toStringAsFixed(0));
+            }
           }
         }
         else {
@@ -225,6 +234,7 @@ class InstrumentListState extends State<InstrumentList> {
       if(d == null) {
         _eta = "";
         _ete = "";
+        _vsr = "";
         _destination = "";
       }
       else {
@@ -435,6 +445,37 @@ class InstrumentListState extends State<InstrumentList> {
                   Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
                 },
                 child: const Text("Contract", style: TextStyle(fontSize: 12),),
+              ),
+              DropdownMenuItem(
+                value: "3",
+                onTap:() {
+                  // Make a toast and show
+                  Toastification().show(context: context, description: Text(
+                      "You may adjust the size of the tiles using Expand/Contract.\n"
+                      "You may drag a tile to adjust its position.\n\n"
+                      "GS  - Ground speed.\n"
+                      "ALT - GPS altitude.\n"
+                      "MT  - Magnetic track.\n"
+                      "PRV - Previous waypoint.\n"
+                      "NXT - Next waypoint.\n"
+                      "DIS - Distance to the next waypoint.\n"
+                      "BRG - Bearing to the next waypoint.\n"
+                      "ETA - Estimated time of arrival at the next waypoint.\n"
+                      "ETE - Estimated time en-route to the next waypoint.\n"
+                      "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
+                      "UPT - Up count timer.\n"
+                      "DNT - Down count timer.\n"
+                      "UTC - Coordinated Universal Time.\n"
+                      "SRC - Source of GPS data.\n"
+                      "FLT - Total flight time in hours.\n\n"
+                      "Tap PRV/NXT to skip to previous/next waypoint.\n"
+                      "Tap UPT to start/stop the up timer.\n"
+                      "Tap DNT to start/stop the down timer.\n"
+                      "Tap FLT to reset the flight timer.\n"
+                      ),
+                      autoCloseDuration: const Duration(seconds: 60), icon: const Icon(Icons.info, size: 0,));
+                },
+                child: const Text("Help", style: TextStyle(fontSize: 12),),
               ),
             ],
           )
