@@ -426,7 +426,7 @@ class InstrumentListState extends State<InstrumentList> {
               width: 96,
             ),
             isExpanded: false,
-            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
+            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
               onChanged: (value) {
                 setState(() {
                 });

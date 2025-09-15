@@ -1156,7 +1156,7 @@ class MapScreenState extends State<MapScreen> {
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
-                              backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                              backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                             ),
                             onPressed: () {
                               Position p = Storage().position;
@@ -1232,7 +1232,7 @@ class MapScreenState extends State<MapScreen> {
                                 }
                               },
                               style: TextButton.styleFrom(
-                                backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7)
+                                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)
                               ),
                               child: const Text("Menu"),
                             ),
@@ -1263,7 +1263,7 @@ class MapScreenState extends State<MapScreen> {
                                         }
                                       });
                                     },
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                       child: Icon(MdiIcons.mathCompass, color: _ruler.color() == Colors.white ? Theme.of(context).colorScheme.primary : Colors.red, ))),
 
                                   // north up
@@ -1279,7 +1279,7 @@ class MapScreenState extends State<MapScreen> {
                                           builder: (context, value, _) {
                                             return CircleAvatar(
                                                 radius: iconRadius,
-                                                backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                                 // in track up, rotate icon
                                                 child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
                                                 Transform.rotate(
@@ -1295,7 +1295,7 @@ class MapScreenState extends State<MapScreen> {
                                         Storage().settings.isRubberBanding() ? Storage().settings.setRubberBanding(false) : Storage().settings.setRubberBanding(true);
                                       });
                                     },
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                       child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Theme.of(context).colorScheme.primary))),
 
                                   IconButton(
@@ -1305,12 +1305,12 @@ class MapScreenState extends State<MapScreen> {
                                           Navigator.pushNamed(context, '/notes');
                                         });
                                       },
-                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.photo_library_rounded)),
                                     initialValue: _type,
                                     itemBuilder: (BuildContext context) =>
@@ -1333,7 +1333,7 @@ class MapScreenState extends State<MapScreen> {
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the layers to show on the Map screen",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.layers)),
                                     initialValue: _layers[0],
                                     itemBuilder: (BuildContext context) =>

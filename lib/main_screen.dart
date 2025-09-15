@@ -67,7 +67,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
     return PopScope(
       canPop: false,
-      onPopInvoked: (didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if(didPop) {
           return;
         }
