@@ -121,10 +121,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
             )),
             if(Constants.shouldShare)
               TextButton(onPressed: () {
-                Share.shareXFiles(
-                  [XFile(product.url)],
+                final params = ShareParams(
+                  files: [XFile(product.url)],
                   sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
                 );
+                SharePlus.instance.share(params);
               }, child: const Text("Share")),
         ])
     ]);

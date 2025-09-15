@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/unit_conversion.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
@@ -64,7 +65,7 @@ class WeatherCache {
           responses.add(response.bodyBytes);
         }
         catch(e) {
-          continue;
+          Storage().setException("Failed to download weather from Internet.");
         }
     }
     await parse(responses);

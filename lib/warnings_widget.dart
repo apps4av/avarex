@@ -35,7 +35,7 @@ class WarningsButtonWidgetState extends State<WarningsButtonWidget> {
 
 class WarningsWidget extends StatefulWidget {
   const WarningsWidget({super.key, required this.gpsNotPermitted,
-    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired, required this.signed, required this.gpsNoLock});
+    required this.gpsDisabled, required this.chartsMissing, required this.dataExpired, required this.signed, required this.gpsNoLock, required this.exceptions});
 
   final bool gpsNotPermitted;
   final bool gpsDisabled;
@@ -43,6 +43,7 @@ class WarningsWidget extends StatefulWidget {
   final bool dataExpired;
   final bool signed;
   final bool gpsNoLock;
+  final List<String> exceptions;
 
   @override
   State<StatefulWidget> createState() => WarningsWidgetState();
@@ -56,7 +57,7 @@ class WarningsWidgetState extends State<WarningsWidget> {
     List<ListTile> list = [
       ListTile(
         title: const Text("Issues", style: TextStyle(fontWeight: FontWeight.w900)),
-        subtitle: const Text("Tapping on the issue will help you resolve it."),
+        subtitle: const Text("Tapping on the issue may help you resolve it."),
         leading: Icon(MdiIcons.alertCircle, color: Colors.red,), dense: false,)];
 
     String gpsPermissionMessage = !widget.gpsNotPermitted ? "" :
@@ -117,6 +118,14 @@ class WarningsWidgetState extends State<WarningsWidget> {
           subtitle: Text(signMessage),
           dense: true,
           onTap: () {Navigator.pushNamed(context, '/terms'); Scaffold.of(context).closeEndDrawer();}));
+    }
+
+    for(String exception in widget.exceptions) {
+      list.add(ListTile(title: const Text("Notice"),
+          leading: const Icon(Icons.message),
+          subtitle: Text(exception),
+          dense: true,
+          onTap: () {widget.exceptions.remove(exception); Navigator.pop(context);}));
     }
 
     return Drawer(

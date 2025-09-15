@@ -21,6 +21,7 @@ class Download {
       await file.delete();
     }
     catch (e) {
+      Storage().setException("Unable to delete file ${file.path}");
     }
   }
 

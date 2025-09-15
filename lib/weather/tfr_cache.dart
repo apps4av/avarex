@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:http/http.dart' as http;
@@ -36,6 +37,7 @@ class TfrCache extends WeatherCache {
         response = await http.get(Uri.parse(url));
       }
       catch(e) {
+        Storage().setException("Failed to download TFR from Internet.");
         continue; // cannot download this TFR
       }
       decoded = utf8.decode(response.bodyBytes);

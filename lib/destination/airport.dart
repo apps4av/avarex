@@ -79,7 +79,9 @@ class Airport {
           continue;
         }
       }
-      catch(e) {}
+      catch(e) {
+        continue;
+      }
     }
 
     for(Map<String, dynamic> f in awos) {
@@ -87,7 +89,9 @@ class Airport {
         // Type, Freq
         automated.add("${f['Type']} ${f['Frequency1']} ${f['Telephone1']}");
       }
-      catch(e) {}
+      catch(e) {
+        continue;
+      }
     }
 
     // runways
@@ -374,8 +378,8 @@ class RunwayPainter extends CustomPainter {
           runwayNumber = 31.5;
       }
     }
-    double RunwayHeading = runwayNumber * 10 + (variation ?? 0);
-    return RunwayHeading;
+    double runwayHeading = runwayNumber * 10 + (variation ?? 0);
+    return runwayHeading;
   }
 
   //Attempts to query the appropriate runway color for the given runway object.
@@ -539,10 +543,10 @@ class RunwayPainter extends CustomPainter {
           continue;
         }
 
-        Color surfcolor = runwayColorFromSurface(r);
+        Color surfColor = runwayColorFromSurface(r);
         final paintLine = Paint()
           ..strokeWidth = width
-          ..color = surfcolor.withOpacity(0.8);
+          ..color = surfColor.withOpacity(0.8);
 
         //runways with no runway position information and only one runway (can't guess the position of multiple runways)
         // (most private or small airports don't provide this information)

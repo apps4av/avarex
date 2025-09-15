@@ -145,6 +145,7 @@ class Storage {
   bool chartsMissing = false;
   bool gpsNotPermitted = false;
   bool gpsDisabled = false;
+  final List<String> _exceptions = [];
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
@@ -153,6 +154,20 @@ class Storage {
     if(destination != null) {
       route.addDirectTo(Waypoint(destination));
     }
+  }
+
+  /*
+   * Ability to show warning messages to user when exceptions occur
+   */
+  List<String> getExceptions() {
+    return _exceptions;
+  }
+
+  void setException(String value) {
+    if(_exceptions.contains(value)) {
+      return;
+    }
+    _exceptions.add(value.split('\n').first); // only first line
   }
 
   StreamSubscription<Position>? _gpsStream;
@@ -360,11 +375,11 @@ class Storage {
           gpsNotPermitted = permissionDenied;
           gpsDisabled = await Gps().isDisabled().onError((error, stackTrace) => true);
           warningChange.value =
-              gpsNotPermitted || gpsDisabled || gpsNoLock || dataExpired || chartsMissing;
+              gpsNotPermitted || gpsDisabled || gpsNoLock || dataExpired || chartsMissing || _exceptions.isNotEmpty;
         }
         else {
           // remove GPS warnings as its external now
-          warningChange.value = gpsNoLock || dataExpired || chartsMissing;
+          warningChange.value = gpsNoLock || dataExpired || chartsMissing || _exceptions.isNotEmpty;
         }
       }
 

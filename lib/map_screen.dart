@@ -1093,7 +1093,7 @@ class MapScreenState extends State<MapScreen> {
                     gpsDisabled: Storage().gpsDisabled, chartsMissing: Storage().chartsMissing,
                     dataExpired: Storage().dataExpired,
                     signed: Storage().settings.isSigned(),
-                    gpsNoLock: Storage().gpsNoLock,);
+                    gpsNoLock: Storage().gpsNoLock, exceptions: Storage().getExceptions());
                 }
             )
         ),

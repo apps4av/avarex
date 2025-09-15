@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/gdl90/product_factory.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -40,7 +41,9 @@ class FisBuffer {
           products.add(p);
         }
       }
-      catch(e) {}
+      catch(e) {
+        Storage().setException("Unable to parse ADS-B product: ${e.toString()}");
+      }
 
       count += iFrameLength + 2;
     }

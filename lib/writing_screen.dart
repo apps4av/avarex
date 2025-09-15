@@ -72,7 +72,7 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
-  List<Widget> _buildActions(context) {
+  List<Widget> _buildActions(BuildContext context) {
     return [
       ValueListenableBuilder(
         valueListenable: notifier,
