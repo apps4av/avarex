@@ -261,7 +261,7 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
-      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Colors.red : Theme.of(context).cardColor.withOpacity(0.6);
+      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Colors.red : Theme.of(context).cardColor.withValues(alpha: 0.6);
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().gpsInternal ? "Internal" : "External";
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
@@ -311,7 +311,7 @@ class InstrumentListState extends State<InstrumentList> {
       Storage().flightDownTimer.start();
     }
     setState(() {
-      _itemsColors[_items.indexOf("DNT")] = Theme.of(context).cardColor.withOpacity(0.6);
+      _itemsColors[_items.indexOf("DNT")] = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
     });
   }
@@ -406,7 +406,7 @@ class InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
-    _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Theme.of(context).cardColor.withOpacity(0.6));
+    _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Theme.of(context).cardColor.withValues(alpha: 0.6));
 
     // init everything
     _gpsListener();
@@ -426,7 +426,7 @@ class InstrumentListState extends State<InstrumentList> {
               width: 96,
             ),
             isExpanded: false,
-            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7), child: const Icon(Icons.arrow_drop_down),),
+            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
               onChanged: (value) {
                 setState(() {
                 });

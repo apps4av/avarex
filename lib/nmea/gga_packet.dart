@@ -2,14 +2,10 @@ import 'package:avaremp/nmea/packet.dart';
 import 'package:intl/intl.dart';
 
 class GGAPacket extends Packet {
-  static const String TAG = '\$GPGGA';
-  static const String TAGN = '\$GNGGA';
-  static const int HD = 8;
-  static const int ALT = 9;
-  static const int GEOID = 11;
+  static const String _tag = '\$GPGGA';
 
   GGAPacket(int time, double latitude, double longitude, double altitude, int satCount, double geoid, double horDil) {
-    packet = '$TAG,';
+    packet = '$_tag,';
 
     // Convert to UTC system time, and format to hhmmss as in NMEA
     DateTime date = DateTime.fromMillisecondsSinceEpoch(time, isUtc: true);

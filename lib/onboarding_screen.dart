@@ -19,7 +19,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
   final _introKey = GlobalKey<IntroductionScreenState>();
   bool _visibleRegister = false;
 
-  void _onIntroEnd(context) {
+  void _onIntroEnd(BuildContext context) {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainScreen()),
     );

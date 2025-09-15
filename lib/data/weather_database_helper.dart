@@ -29,7 +29,7 @@ class WeatherDatabaseHelper {
     return _database;
   }
 
-  _initDB() async {
+  Future<Database> _initDB() async {
     Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "weather.db"); // this is cache and can be versioned without fear of losing data
     return

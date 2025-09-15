@@ -239,7 +239,7 @@ class PlateScreenState extends State<PlateScreen> {
       child: Align(
         alignment: Alignment.topRight,
         child: CircleAvatar(
-        backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),
+        backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),
         child: IconButton(onPressed: () {
           setState(() {
             Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
@@ -255,7 +255,7 @@ class PlateScreenState extends State<PlateScreen> {
                   child:DropdownButtonHideUnderline(
                       child:DropdownButton2<String>(
                         isDense: true,// plate selection
-                        customButton: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),child: const Icon(Icons.more_horiz),
+                        customButton: CircleAvatar(backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.more_horiz),
                         ),
                         buttonStyleData: ButtonStyleData(
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
@@ -306,7 +306,7 @@ class PlateScreenState extends State<PlateScreen> {
                     child:DropdownButtonHideUnderline(
                         child:DropdownButton2<String>(
                           isDense: true,// plate selection
-                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).dialogBackgroundColor.withOpacity(0.7),child: const Icon(Icons.route)),
+                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.route)),
                             buttonStyleData: ButtonStyleData(
                             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
                           ),
@@ -354,7 +354,7 @@ class PlateScreenState extends State<PlateScreen> {
                     child:DropdownButtonHideUnderline(
                       child:DropdownButton2<String>( // airport selection
                         buttonStyleData: ButtonStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).dialogBackgroundColor.withOpacity(0.7)),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).dialogBackgroundColor.withValues(alpha: 0.7)),
                         ),
                         dropdownStyleData: DropdownStyleData(
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),

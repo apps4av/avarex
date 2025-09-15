@@ -217,18 +217,18 @@ class FisGraphics {
           case shapePrismAgl:
           case shapePrisonMsl: // Extended Range Circular Prism (7 = MSL, 8 = AGL)
             if (data.length >= 14) {
-              int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
-                  ((data[1].toInt() & 0xFF) << 2) +
-                  ((data[2].toInt() & 0xC0) >> 6);
-              int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
-                  ((data[3].toInt() & 0xFF) << 4) +
-                  ((data[4].toInt() & 0xF0) >> 4);
+              //int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
+              //    ((data[1].toInt() & 0xFF) << 2) +
+              //    ((data[2].toInt() & 0xC0) >> 6);
+              //int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
+              //    ((data[3].toInt() & 0xFF) << 4) +
+              //    ((data[4].toInt() & 0xF0) >> 4);
 
-              int topLon = ((data[4].toInt() & 0x0F) << 14) +
-                  ((data[5].toInt() & 0xFF) << 6) +
-                  ((data[6].toInt() & 0xFC) >> 2);
-              int topLat = ((data[6].toInt() & 0x03) << 16) +
-                  ((data[7].toInt() & 0xFF) << 8) + ((data[8].toInt() & 0xFF));
+              //int topLon = ((data[4].toInt() & 0x0F) << 14) +
+              //    ((data[5].toInt() & 0xFF) << 6) +
+              //    ((data[6].toInt() & 0xFC) >> 2);
+              //int topLat = ((data[6].toInt() & 0x03) << 16) +
+              //    ((data[7].toInt() & 0xFF) << 8) + ((data[8].toInt() & 0xFF));
 
               int bottomAlt = ((data[9].toInt() & 0xFE) >> 1) * 5;
               int topAlt = (((data[9].toInt() & 0x01) << 6) + (data[10].toInt() & 0xFC) >> 2) * 100;
@@ -236,15 +236,15 @@ class FisGraphics {
               altitudeTop = topAlt.toString();
 
               // only 2D
-              LatLng b = _parseLatLon(bottomLat, bottomLon, true);
-              LatLng t = _parseLatLon(topLat, topLon, true);
+              //LatLng b = _parseLatLon(bottomLat, bottomLon, true);
+              //LatLng t = _parseLatLon(topLat, topLon, true);
 
-              double rLon = (((data[10].toInt() & 0x03) << 7) +
-                  ((data[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
-              double rLat = (((data[11].toInt() & 0x01) << 8) +
-                  (data[12].toInt() & 0xFF)).toDouble() * 0.2;
+              //double rLon = (((data[10].toInt() & 0x03) << 7) +
+              //    ((data[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
+              //double rLat = (((data[11].toInt() & 0x01) << 8) +
+              //    (data[12].toInt() & 0xFF)).toDouble() * 0.2;
               //int alpha = recordData[13].toInt() & 0xFF;
-              LatLng r = LatLng(rLat, rLon);
+              //LatLng r = LatLng(rLat, rLon);
               // make a circle with top, bottom and radius
               // TODO : Implement this
               data = data.sublist(14);

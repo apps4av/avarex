@@ -83,7 +83,9 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                               UserDatabaseHelper.db.getPlan(_currentItems[index], false).then((value) {
                                 Storage().route.copyFrom(value);
                                 Storage().route.setCurrentWaypoint(0);
-                                Navigator.pop(context);
+                                if(context.mounted) {
+                                  Navigator.pop(context);
+                                }
                               });
                             },
                           ),
@@ -91,7 +93,9 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                             child: const Text('Load Reversed'),
                             onTap: () {
                               UserDatabaseHelper.db.getPlan(_currentItems[index], true).then((value) {
-                                Navigator.pop(context);
+                                if(context.mounted) {
+                                  Navigator.pop(context);
+                                }
                                 Storage().route.copyFrom(value);
                                 Storage().route.setCurrentWaypoint(0);
                               });

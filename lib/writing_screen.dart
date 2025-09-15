@@ -104,7 +104,12 @@ class WritingScreenState extends State<WritingScreen> {
             notifier.renderImage().then((image) {
               String now = DateTime.now().toIso8601String();
               File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.jpg')).writeAsBytes(image.buffer.asUint8List());
-              Toastification().show(context: context, description: Text('Saved to Documents as notes_$now.jpg'), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+              if(context.mounted) {
+                Toastification().show(context: context,
+                    description: Text('Saved to Documents as notes_$now.jpg'),
+                    autoCloseDuration: const Duration(seconds: 3),
+                    icon: const Icon(Icons.info));
+              }
             });
           }),
     ];
@@ -142,7 +147,7 @@ class WritingScreenState extends State<WritingScreen> {
       }) {
     return ValueListenableBuilder(
       valueListenable: notifier.select(
-              (value) => value is Drawing && value.selectedColor == color.value),
+              (value) => value is Drawing && value.selectedColor == color.intValue),
       builder: (context, value, child) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: ColorButton(

@@ -381,23 +381,23 @@ class TrafficPainter extends AbstractCachedCustomPainter {
     // Define aircraft, barb, accent/overlay colors and paint using above opacity
     final Paint aircraftPaint;
     if (!_isAirborne) {
-      aircraftPaint = Paint()..color = Color.fromRGBO(_kGroundColor.red, _kGroundColor.green, _kGroundColor.blue, opacity);
+      aircraftPaint = Paint()..color = _kGroundColor.withValues(alpha: opacity);
     } else if (TrafficCache.ac20_172Mode) {
       if (_alertLevel == TrafficAlertLevel.advisory) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(kAdvisoryColor.red, kAdvisoryColor.green, kAdvisoryColor.blue, opacity);
+        aircraftPaint = Paint()..color = kAdvisoryColor.withValues(alpha: opacity);
       } else if (_alertLevel == TrafficAlertLevel.resolution) {
-        aircraftPaint = Paint()..color = Color.fromRGBO(kResolutionColor.red, kResolutionColor.green, kResolutionColor.blue, opacity);          
+        aircraftPaint = Paint()..color = kResolutionColor.withValues(alpha: opacity);
       } else {
-        aircraftPaint = Paint()..color = Color.fromRGBO(kProximateColor.red, kProximateColor.green, kProximateColor.blue, opacity);
+        aircraftPaint = Paint()..color = kProximateColor.withValues(alpha: opacity);
       }
     } else if (_flightLevelDiff < 0) {
-      aircraftPaint = Paint()..color = Color.fromRGBO(_kHighColor.red, _kHighColor.green, _kHighColor.blue, opacity);
+      aircraftPaint = Paint()..color = _kHighColor.withValues(alpha: opacity);
     } else if (_flightLevelDiff > 0) {
-      aircraftPaint = Paint()..color = Color.fromRGBO(_kLowColor.red, _kLowColor.green, _kLowColor.blue, opacity);
+      aircraftPaint = Paint()..color = _kLowColor.withValues(alpha: opacity);
     } else {
-      aircraftPaint = Paint()..color = Color.fromRGBO(_kLevelColor.red, _kLevelColor.green, _kLevelColor.blue, opacity);
+      aircraftPaint = Paint()..color = _kLevelColor.withValues(alpha: opacity);
     }
-    final Color darkAccentColor = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue, opacity);
+    final Color darkAccentColor = _kDarkForegroundColor.withValues(alpha: opacity);
 
     // Set aircraft shape
     final ui.Path baseIconShape;
@@ -422,9 +422,9 @@ class TrafficPainter extends AbstractCachedCustomPainter {
     }
 
     if (prefShowBoundingBox) {
-      // Draw transluscent bounding box for greater visibility (especially sectionals)
+      // Draw translucent bounding box for greater visibility (especially sectionals)
       canvas.drawPath(_boundingBox, 
-        Paint()..color = Color.fromRGBO(_kDarkForegroundColor.red, _kDarkForegroundColor.green, _kDarkForegroundColor.blue,
+        Paint()..color = _kDarkForegroundColor.withValues(alpha:
           // Have box fill opacity be a certain % less, but track main icon, with a floor of the traffic opacity min
           max(opacity - _kBoundingBoxOpacityReduction, _kBoundingBoxOpacityMin)));                 
     }

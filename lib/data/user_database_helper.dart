@@ -30,7 +30,7 @@ class UserDatabaseHelper {
     return _database;
   }
 
-  _initDB() async {
+  Future<Database> _initDB() async {
     Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "user.db");
     return

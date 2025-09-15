@@ -546,7 +546,7 @@ class RunwayPainter extends CustomPainter {
         Color surfColor = runwayColorFromSurface(r);
         final paintLine = Paint()
           ..strokeWidth = width
-          ..color = surfColor.withOpacity(0.8);
+          ..color = surfColor.withValues(alpha: 0.8);
 
         //runways with no runway position information and only one runway (can't guess the position of multiple runways)
         // (most private or small airports don't provide this information)

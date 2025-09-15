@@ -694,7 +694,7 @@ class _AudioSequencePlayer {
     _audioPlayerAlt.setReleaseMode(ReleaseMode.stop);
   }
 
-  void _handleNextSeqAudio(event) async {
+  void _handleNextSeqAudio(void event) async {
     if (_seqNum < _audios.length) {
       _playFlip();
     } else {

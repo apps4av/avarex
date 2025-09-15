@@ -37,7 +37,7 @@ class GeoJsonParser {
           points: ll,
           label: label,
           labelStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 12),
-          isFilled: false,
+          color: null,
           borderStrokeWidth: 2,
           borderColor: Colors.black,
         ));

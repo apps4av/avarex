@@ -56,7 +56,7 @@ class PathUtils {
     return path.extension(url).toLowerCase() == ".txt";
   }
 
-  static isPictureFile(String url) {
+  static bool isPictureFile(String url) {
     return path.extension(url).toLowerCase() == ".gif" ||
         path.extension(url).toLowerCase() == ".webp" ||
         path.extension(url).toLowerCase() == ".bmp" ||
