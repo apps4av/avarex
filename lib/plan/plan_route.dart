@@ -551,7 +551,9 @@ class PlanRoute {
       try {
         cookie = responseHttp.headers['set-cookie'];
       }
-      catch(e) {}
+      catch(e) {
+        debugPrint("ASA plan cookie error $e");
+      }
     }
 
     Map<String, String> params = {};
@@ -617,7 +619,9 @@ class PlanRoute {
         }
       }
 
-      catch (e) {}
+      catch (e) {
+        debugPrint("ASA plan parse error $e");
+      }
     }
 
     return route;

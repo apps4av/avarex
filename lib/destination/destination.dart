@@ -165,6 +165,7 @@ class Destination {
       }
     }
     catch(e) {
+      debugPrint("Error in findGpsCoordinateFromAddressLookup: $e");
     }
     return null;
   }
@@ -252,7 +253,9 @@ class NavDestination extends Destination {
     try {
       elevation = double.parse(maps['Elevation'] as String);
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error parsing elevation for nav: $e");
+    }
 
     NavDestination d = NavDestination(
       locationID: maps['LocationID'] as String,
@@ -322,7 +325,9 @@ class AirportDestination extends Destination {
     try {
       elevation = double.parse(maps['ARPElevation'] as String);
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error parsing elevation for airport: $e");
+    }
 
     AirportDestination d = AirportDestination(
         locationID: maps['LocationID'] as String,

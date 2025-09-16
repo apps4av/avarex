@@ -46,6 +46,7 @@ class WeatherCache {
       }
     }
     catch(e) {
+      debugPrint("WeatherCache: invalid coordinate $latitude,$longitude");
     }
     return null;
   }

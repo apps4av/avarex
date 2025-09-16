@@ -1,5 +1,6 @@
 
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:toastification/toastification.dart';
 
 import 'plan_lmfs.dart';
 import 'plan_route.dart';
@@ -304,7 +305,9 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                     try {
                       _departureDateTime = DateTime.parse(value);
                     }
-                    catch(e) {}
+                    catch(e) {
+                      Toastification().show(context: context, description: Text("Invalid departure time"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    }
                   },
                   controller: TextEditingController()..text = stringTime(_departureDateTime),
                   decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Departure Date/Time Zulu')
@@ -464,7 +467,9 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                             hours: int.parse(match.group(1)!),
                             minutes: int.parse(match.group(2)!));
                       }
-                      catch(e) {}
+                      catch(e) {
+                        Toastification().show(context: context, description: Text("Invalid elapsed time"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                      }
                     }
                   },
                   controller: TextEditingController()..text = "${_elapsedTime.inHours}H${_elapsedTime.inMinutes % 60}M",
@@ -530,7 +535,9 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                             hours: int.parse(match.group(1)!),
                             minutes: int.parse(match.group(2)!));
                       }
-                      catch(e) {}
+                      catch(e) {
+                        Toastification().show(context: context, description: Text("Invalid fuel endurance"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                      }
                     }
                   },
                   controller: TextEditingController()..text = "${_fuelEndurance.inHours}H${_fuelEndurance.inMinutes % 60}M",

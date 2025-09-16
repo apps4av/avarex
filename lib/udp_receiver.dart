@@ -25,7 +25,9 @@ class UdpReceiver {
       });
       _sockets.add(socket);
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("UDP listen error: $e");
+    }
   }
 
   StreamSubscription<Uint8List> getStream(List<int> ports, List<bool> isBroadcast) {

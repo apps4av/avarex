@@ -1,5 +1,6 @@
 import 'package:avaremp/nmea/nmea_message.dart';
 import 'package:avaremp/storage.dart';
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class RMCMessage extends NmeaMessage {
@@ -40,7 +41,9 @@ class RMCMessage extends NmeaMessage {
       track = double.parse(tokens[8]).round();
 
     }
-    catch (e) {}
+    catch (e) {
+      debugPrint("RMCMessage: invalid data $data");
+    }
 
   }
 

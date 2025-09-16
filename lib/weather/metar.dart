@@ -29,7 +29,9 @@ class Metar extends Weather {
     try {
       ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error parsing METAR coordinate: $e");
+    }
 
     return Metar(
       maps["station"] as String,
@@ -159,7 +161,9 @@ class Metar extends Weather {
           try {
             visSM = double.parse(integer);
           }
-          catch(e) {}
+          catch(e) {
+            debugPrint("Metar.getCategory: error parsing visibility integer $integer");
+          }
         }
         else if(null != fraction) {
           visSM = 0.5; // less than 1
@@ -168,7 +172,9 @@ class Metar extends Weather {
           try {
             visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
           }
-          catch (e) {}
+          catch (e) {
+            debugPrint("Metar.getCategory: error parsing visibility meters $visibilityMeters");
+          }
         }
       }
       var cld = cloud.firstMatch(token);
@@ -180,7 +186,9 @@ class Metar extends Weather {
             try {
               cloudFt = double.parse(height) * 100;
             }
-            catch (e){}
+            catch (e) {
+              debugPrint("Metar.getCategory: error parsing cloud height $height" );
+            }
           }
         }
       }

@@ -40,7 +40,7 @@ class Airport {
         }
       }
       catch(e) {
-        continue;
+        debugPrint("Error parsing runway data for $name: $e");
       }
     }
     return ll;
@@ -80,7 +80,7 @@ class Airport {
         }
       }
       catch(e) {
-        continue;
+        debugPrint("Error parsing frequency data: $e");
       }
     }
 
@@ -90,7 +90,7 @@ class Airport {
         automated.add("${f['Type']} ${f['Frequency1']} ${f['Telephone1']}");
       }
       catch(e) {
-        continue;
+        debugPrint("Error parsing AWOS data: $e");
       }
     }
 
@@ -232,6 +232,7 @@ class Airport {
               double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCRW]'), '')) * 10 + (destination.geoVariation?? 0); // remove L, R, C, W from it
         }
         catch (e) {
+          debugPrint("Tried everything to find a runway heading: $e"); // give up, as we tried everything possible to find a runway
           continue; // give up, as we tried everything possible to find a runway
         }
       }
@@ -409,6 +410,7 @@ class RunwayPainter extends CustomPainter {
       }
     }
     catch (e) {
+      debugPrint("Error parsing runway surface color: $e");
     }
     return surfcolor;
   }
@@ -440,7 +442,9 @@ class RunwayPainter extends CustomPainter {
         minLon = leLon < minLon ? leLon : minLon;
         minLon = heLon < minLon ? heLon : minLon;
       }
-      catch (e) {}
+      catch (e) {
+        debugPrint("Error parsing runway data for diagram (lat, lon): $e");
+      }
     }
 
     Rect bounds = Rect.fromLTRB(minLon, maxLat, maxLon, minLat);
@@ -464,12 +468,13 @@ class RunwayPainter extends CustomPainter {
       }
     }
     catch (e) {
+      debugPrint("Error parsing airport data for diagram (var): $e");
     }
 
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
     for(Map<String, dynamic> r in runways) {
 
-      double labelpos = 0.5;
+      double labelPosition = 0.5;
       final intersections = <double>[0];
       double leLat = 0;
       double heLat = 0;
@@ -507,10 +512,12 @@ class RunwayPainter extends CustomPainter {
             }
           }
           catch (e) {
+            debugPrint("Error parsing runway data for diagram (intersection): $e");
           }
         }
       }
       catch (e) {
+        debugPrint("Error parsing runway data for diagram (lat, lon): $e");
       }
 
       intersections.add(1);
@@ -526,7 +533,7 @@ class RunwayPainter extends CustomPainter {
           l2 = intersections[i+1];
         }
       }
-      labelpos = 1 - (l1 + l2)/2;
+      labelPosition = 1 - (l1 + l2)/2;
 
       double width = 0; // draw runways to width
       try {
@@ -565,6 +572,7 @@ class RunwayPainter extends CustomPainter {
               leLat = apLat + leLat;
           }
           catch (e) {
+            debugPrint("Error parsing runway data for diagram (runway length): $e");
           }
         }
         else if(leLat == 0 && heLat == 0 && leLon == 0 && heLon == 0 && runways.length > 1)
@@ -629,7 +637,7 @@ class RunwayPainter extends CustomPainter {
 
         //runway length text
         canvas.rotate(pi/2); //rotate 90 degrees for runway length text
-        canvas.translate(-sqrt(pow((ly-hy)*labelpos, 2) + pow((lx-hx)*labelpos, 2)), 0); //move canvas to center of runway
+        canvas.translate(-sqrt(pow((ly-hy)*labelPosition, 2) + pow((lx-hx)*labelPosition, 2)), 0); //move canvas to center of runway
 
         String dimensions = "${r['Length']}x${r['Width']}\n";
 
@@ -647,7 +655,9 @@ class RunwayPainter extends CustomPainter {
         info += "\u25cf$ident$pattern$lights$ils$vgsi\n";
         info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
       }
-      catch(e) {}
+      catch(e) {
+        debugPrint("Error parsing runway data for diagram (draw): $e");
+      }
     }
     TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: info);
     TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);

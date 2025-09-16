@@ -5,6 +5,7 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:point_in_polygon/point_in_polygon.dart';
+import 'package:toastification/toastification.dart';
 import 'constants.dart';
 
 class WnbScreen extends StatefulWidget {
@@ -132,7 +133,9 @@ class WnbScreenState extends State<WnbScreen> {
                     _wnb.maxX = val;
                   }
                 }
-                catch (e) {}
+                catch (e) {
+                  Toastification().show(context: context, description: Text("Error reading Arm Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                }
               },
               onFieldSubmitted: (value) { // pressing Enter will change the chart to new coordinates, duplicate code except setState()
                 try {
@@ -143,7 +146,9 @@ class WnbScreenState extends State<WnbScreen> {
                     });
                   }
                 }
-                catch (e) {}
+                catch (e) {
+                  Toastification().show(context: context, description: Text("Error reading Arm Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                }
               },
             ))),
             Align(alignment: Alignment.bottomLeft, child:SizedBox(width: 100, child:TextFormField(
@@ -158,7 +163,9 @@ class WnbScreenState extends State<WnbScreen> {
                       _wnb.minX = val;
                     }
                   }
-                  catch (e) {}
+                  catch (e) {
+                    Toastification().show(context: context, description: Text("Error reading Arm Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  }
                 },
                 onFieldSubmitted: (value) {
                   try {
@@ -170,7 +177,9 @@ class WnbScreenState extends State<WnbScreen> {
                       _wnb.minX = val;
                     }
                   }
-                  catch (e) {}
+                  catch (e) {
+                    Toastification().show(context: context, description: Text("Error reading Arm Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  }
                 }
             ))),
             Align(alignment: Alignment.topCenter, child:SizedBox(width: 100, child:TextFormField(
@@ -185,7 +194,9 @@ class WnbScreenState extends State<WnbScreen> {
                       _wnb.maxY = val;
                     }
                   }
-                  catch (e) {}
+                  catch (e) {
+                    Toastification().show(context: context, description: Text("Error reading Weight Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  }
                 },
                 onFieldSubmitted: (value) {
                   try {
@@ -196,7 +207,9 @@ class WnbScreenState extends State<WnbScreen> {
                       });
                     }
                   }
-                  catch (e) {}
+                  catch (e) {
+                    Toastification().show(context: context, description: Text("Error reading Weight Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  }
                 }
             ))),
             Align(alignment: Alignment.bottomCenter, child:SizedBox(width: 100, child:TextFormField(
@@ -211,7 +224,9 @@ class WnbScreenState extends State<WnbScreen> {
                         _wnb.minY = val;
                       }
                   }
-                  catch (e) {}
+                  catch (e) {
+                    Toastification().show(context: context, description: Text("Error reading Weight Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  }
                 },
                 onFieldSubmitted: (value) {
                 try {
@@ -222,7 +237,9 @@ class WnbScreenState extends State<WnbScreen> {
                     });
                   }
                 }
-                catch (e) {}
+                catch (e) {
+                  Toastification().show(context: context, description: Text("Error reading Weight Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                }
               },
             ))),
 
@@ -390,7 +407,9 @@ class WnbScreenState extends State<WnbScreen> {
                   wnbItem.weight = double.parse(value);
                   _wnb.items[index] = wnbItem.toJson();
                 }
-                catch (e) {}
+                catch (e) {
+                  Toastification().show(context: context, description: Text("Error reading Weight."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                }
               },
             ))),
         Flexible(flex: 1,
@@ -405,7 +424,9 @@ class WnbScreenState extends State<WnbScreen> {
                   wnbItem.arm = double.parse(value);
                   _wnb.items[index] = wnbItem.toJson();
                 }
-                catch (e) {}
+                catch (e) {
+                  Toastification().show(context: context, description: Text("Error reading Arm."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                }
               },
             ))),
         Flexible(flex: 1,

@@ -1,5 +1,6 @@
 import 'package:avaremp/nmea/nmea_message.dart';
 import 'package:avaremp/storage.dart';
+import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class RTMMessage extends NmeaMessage {
@@ -47,7 +48,9 @@ class RTMMessage extends NmeaMessage {
       speed = (double.parse(tokens[9]) * Storage().units.toMps).round();
 
     }
-    catch (e) {}
+    catch (e) {
+      debugPrint("RTMMessage: invalid data $data");
+    }
 
   }
 

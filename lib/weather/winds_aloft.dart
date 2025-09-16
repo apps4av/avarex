@@ -147,7 +147,9 @@ class WindsAloft extends Weather {
 
       return (dir, speed);
     }
-    catch (e) {}
+    catch (e) {
+      debugPrint("WindsAloft.getWindAtAltitude failed: $e");
+    }
 
     return (null, null);
   }

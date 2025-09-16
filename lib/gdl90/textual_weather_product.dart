@@ -2,6 +2,7 @@ import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
+import 'package:flutter/material.dart';
 
 import '../constants.dart';
 import '../storage.dart';
@@ -186,7 +187,9 @@ class TextualWeatherProduct extends Product {
           w0k, w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
       Storage().winds.put(wa);
     }
-    catch (e) {}
+    catch (e) {
+      debugPrint("Exception parsing winds aloft ADS-B: $e");
+    }
   }
 
 }

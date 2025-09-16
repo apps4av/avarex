@@ -255,7 +255,9 @@ class Storage {
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
       Storage().gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
-    } catch (e) { }
+    } catch (e) {
+      debugPrint("Error adding GPS traffic cache listener: $e");
+    }
   }
 
   void stopIO() {
@@ -263,15 +265,21 @@ class Storage {
       _udpStream?.cancel();
       _udpReceiver.finish();
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error stopping UDP: $e");
+    }
     try {
       _gpsStream?.cancel();
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error stopping GPS: $e");
+    }
     try {
       // Have audible alerts stop listening for GPS changes
       Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Error removing GPS traffic cache listener: $e");
+    }
   }
 
   Future<void> init() async {
@@ -408,6 +416,7 @@ class Storage {
         try {
           myAircraftIcao = ac.icao.trim().length > 6 ? int.parse(ac.icao) : int.parse(ac.icao, radix: 16);
         } catch (e) {
+          debugPrint("Invalid ICAO in database: ${ac.icao}");
           // ignore
         }
       }

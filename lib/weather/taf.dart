@@ -31,7 +31,9 @@ class Taf extends Weather {
     try {
       ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
     }
-    catch(e) {}
+    catch(e) {
+      debugPrint("Error parsing TAF coordinate: $e");
+    }
 
     return Taf(
       maps['station'] as String,
@@ -163,7 +165,9 @@ class Taf extends Weather {
             try {
               visSM = double.parse(integer);
             }
-            catch (e) {}
+            catch (e) {
+              debugPrint("Error parsing visibility: $e");
+            }
           }
           else if (null != fraction) {
             visSM = 0.5; // less than 1
@@ -172,7 +176,9 @@ class Taf extends Weather {
             try {
               visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
             }
-            catch (e) {}
+            catch (e) {
+              debugPrint("Error parsing visibility: $e");
+            }
           }
         }
         var cld = cloud.firstMatch(token);
@@ -185,7 +191,9 @@ class Taf extends Weather {
                 try {
                   cloudFt = double.parse(height) * 100;
                 }
-                catch (e) {}
+                catch (e) {
+                  debugPrint("Error parsing cloud height: $e" );
+                }
               }
             }
             else {

@@ -5,6 +5,7 @@ import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/weather/weather_cache.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import 'package:xml/xml.dart';
@@ -69,11 +70,15 @@ class TfrCache extends WeatherCache {
         try {
           upper = tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString();
         }
-        catch(e) {}
+        catch(e) {
+          debugPrint("Error parsing TFR upper altitude: $e");
+        }
         try {
           lower = tfrGroup.findAllElements("valDistVerLower").first.innerText.toString();
         }
-        catch(e) {}
+        catch(e) {
+          debugPrint("Error parsing TFR lower altitude: $e");
+        }
         try {
           scheduledGroups = tfrGroup.findAllElements("ScheduleGroup");
           for(var scheduledGroup in scheduledGroups) {
@@ -81,7 +86,9 @@ class TfrCache extends WeatherCache {
             expireGroup.add(scheduledGroup.findAllElements("dateExpire").first.innerText.toString());
           }
         }
-        catch(e) {}
+        catch(e) {
+          debugPrint("Error parsing TFR effective/expire times: $e");
+        }
         if(effectiveGroup.isEmpty || expireGroup.isEmpty) {
           effectiveGroup = ["2000-01-01T00:00:00"];
           expireGroup = ["2100-01-01T00:00:00"];

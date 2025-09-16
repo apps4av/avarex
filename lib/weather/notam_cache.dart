@@ -4,6 +4,7 @@ import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:html/parser.dart' as html_parser;
@@ -114,7 +115,9 @@ class NotamCache extends WeatherCache {
           body: body);
       await parse([response.bodyBytes], argument);
     }
-    catch(e) {}
+    catch(e) {
+      Storage().setException("Unable to download NOTAM: $e");
+    }
     await initialize();
   }
 

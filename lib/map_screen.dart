@@ -216,7 +216,9 @@ class MapScreenState extends State<MapScreen> {
             _northUp ? 0 : -Storage().position.heading);
       }
     }
-    catch (e) {} // adding to lat lon is dangerous
+    catch (e) {
+      debugPrint("MapScreen: GPS listen error $e");
+    } // adding to lat lon is dangerous
 
     _previousPosition = Gps.toLatLng(Storage().position);
   }
