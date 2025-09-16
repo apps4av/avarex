@@ -1,6 +1,6 @@
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/nmea/nmea_message.dart';
 import 'package:avaremp/storage.dart';
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 class GGAMessage extends NmeaMessage {
@@ -45,7 +45,7 @@ class GGAMessage extends NmeaMessage {
       }
     }
     catch (e) {
-      debugPrint("GGAMessage: invalid data $data");
+      AppLog.logMessage("GGAMessage: invalid data $data");
     }
   }
 

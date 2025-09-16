@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'metar.dart';
@@ -97,7 +97,7 @@ class WindsCache extends WeatherCache {
             winds.add(w);
           }
           catch (e) {
-            debugPrint("Error parsing low altitude winds aloft line: $line");
+            AppLog.logMessage("Error parsing low altitude winds aloft line: $line");
           }
         }
         else if(p == _WindsAloftProduct.pacificLow06H || p == _WindsAloftProduct.hawaiiLow06H || p == _WindsAloftProduct.pacificLow12H || p == _WindsAloftProduct.hawaiiLow12H || p == _WindsAloftProduct.pacificLow24H || p == _WindsAloftProduct.hawaiiLow24H) {
@@ -117,7 +117,7 @@ class WindsCache extends WeatherCache {
             winds.add(w);
           }
           catch (e) {
-            debugPrint("Error parsing low altitude winds aloft line: $line");
+            AppLog.logMessage("Error parsing low altitude winds aloft line: $line");
           }
         }
       }
@@ -186,7 +186,7 @@ class WindsCache extends WeatherCache {
 
       }
       catch (e) {
-        debugPrint("Error determining winds aloft product type from line: $line");
+        AppLog.logMessage("Error determining winds aloft product type from line: $line");
       }
     }
     return null;
@@ -233,7 +233,7 @@ class WindsCache extends WeatherCache {
           k0 = wdInt.toString().padLeft(2, "0") + wsInt.toString().padLeft(2, "0");
         }
         catch (e) {
-          debugPrint("Error parsing wind from metar: ${m.text}" );
+          AppLog.logMessage("Error parsing wind from metar: ${m.text}" );
         }
       }
     }

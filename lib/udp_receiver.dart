@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:avaremp/app_log.dart';
 import 'package:flutter/foundation.dart';
 
 // Get UDP from receivers, handle GDL90
@@ -26,7 +27,7 @@ class UdpReceiver {
       _sockets.add(socket);
     }
     catch(e) {
-      debugPrint("UDP listen error: $e");
+      AppLog.logMessage("UDP listen error: $e");
     }
   }
 

@@ -1,8 +1,8 @@
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:flutter/material.dart';
 
 import '../constants.dart';
 import '../storage.dart';
@@ -188,7 +188,7 @@ class TextualWeatherProduct extends Product {
       Storage().winds.put(wa);
     }
     catch (e) {
-      debugPrint("Exception parsing winds aloft ADS-B: $e");
+      AppLog.logMessage("Exception parsing winds aloft ADS-B: $e");
     }
   }
 

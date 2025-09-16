@@ -1,3 +1,4 @@
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/weather/time_segment_pie_chart.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,7 @@ class Taf extends Weather {
       ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
     }
     catch(e) {
-      debugPrint("Error parsing TAF coordinate: $e");
+      AppLog.logMessage("Error parsing TAF coordinate: $e");
     }
 
     return Taf(
@@ -166,7 +167,7 @@ class Taf extends Weather {
               visSM = double.parse(integer);
             }
             catch (e) {
-              debugPrint("Error parsing visibility: $e");
+              AppLog.logMessage("Error parsing visibility: $e");
             }
           }
           else if (null != fraction) {
@@ -177,7 +178,7 @@ class Taf extends Weather {
               visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
             }
             catch (e) {
-              debugPrint("Error parsing visibility: $e");
+              AppLog.logMessage("Error parsing visibility: $e");
             }
           }
         }
@@ -192,7 +193,7 @@ class Taf extends Weather {
                   cloudFt = double.parse(height) * 100;
                 }
                 catch (e) {
-                  debugPrint("Error parsing cloud height: $e" );
+                  AppLog.logMessage("Error parsing cloud height: $e" );
                 }
               }
             }

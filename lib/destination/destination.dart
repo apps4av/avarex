@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avaremp/app_log.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -165,7 +166,7 @@ class Destination {
       }
     }
     catch(e) {
-      debugPrint("Error in findGpsCoordinateFromAddressLookup: $e");
+      AppLog.logMessage("Error in findGpsCoordinateFromAddressLookup: $e");
     }
     return null;
   }
@@ -254,7 +255,7 @@ class NavDestination extends Destination {
       elevation = double.parse(maps['Elevation'] as String);
     }
     catch(e) {
-      debugPrint("Error parsing elevation for nav: $e");
+      AppLog.logMessage("Error parsing elevation for nav: $e");
     }
 
     NavDestination d = NavDestination(
@@ -326,7 +327,7 @@ class AirportDestination extends Destination {
       elevation = double.parse(maps['ARPElevation'] as String);
     }
     catch(e) {
-      debugPrint("Error parsing elevation for airport: $e");
+      AppLog.logMessage("Error parsing elevation for airport: $e");
     }
 
     AirportDestination d = AirportDestination(

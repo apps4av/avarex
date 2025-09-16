@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/twilight_calculator.dart';
 
 import 'destination.dart';
@@ -40,7 +41,7 @@ class Airport {
         }
       }
       catch(e) {
-        debugPrint("Error parsing runway data for $name: $e");
+        AppLog.logMessage("Error parsing runway data for $name: $e");
       }
     }
     return ll;
@@ -80,7 +81,7 @@ class Airport {
         }
       }
       catch(e) {
-        debugPrint("Error parsing frequency data: $e");
+        AppLog.logMessage("Error parsing frequency data: $e");
       }
     }
 
@@ -90,7 +91,7 @@ class Airport {
         automated.add("${f['Type']} ${f['Frequency1']} ${f['Telephone1']}");
       }
       catch(e) {
-        debugPrint("Error parsing AWOS data: $e");
+        AppLog.logMessage("Error parsing AWOS data: $e");
       }
     }
 
@@ -232,7 +233,7 @@ class Airport {
               double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCRW]'), '')) * 10 + (destination.geoVariation?? 0); // remove L, R, C, W from it
         }
         catch (e) {
-          debugPrint("Tried everything to find a runway heading: $e"); // give up, as we tried everything possible to find a runway
+          AppLog.logMessage("Tried everything to find a runway heading: $e"); // give up, as we tried everything possible to find a runway
           continue; // give up, as we tried everything possible to find a runway
         }
       }
@@ -410,7 +411,7 @@ class RunwayPainter extends CustomPainter {
       }
     }
     catch (e) {
-      debugPrint("Error parsing runway surface color: $e");
+      AppLog.logMessage("Error parsing runway surface color: $e");
     }
     return surfcolor;
   }
@@ -443,7 +444,7 @@ class RunwayPainter extends CustomPainter {
         minLon = heLon < minLon ? heLon : minLon;
       }
       catch (e) {
-        debugPrint("Error parsing runway data for diagram (lat, lon): $e");
+        AppLog.logMessage("Error parsing runway data for diagram (lat, lon): $e");
       }
     }
 
@@ -468,7 +469,7 @@ class RunwayPainter extends CustomPainter {
       }
     }
     catch (e) {
-      debugPrint("Error parsing airport data for diagram (var): $e");
+      AppLog.logMessage("Error parsing airport data for diagram (var): $e");
     }
 
     //for each runway at this airport, draw the physical shape and then the data for each runway identifier
@@ -512,12 +513,12 @@ class RunwayPainter extends CustomPainter {
             }
           }
           catch (e) {
-            debugPrint("Error parsing runway data for diagram (intersection): $e");
+            AppLog.logMessage("Error parsing runway data for diagram (intersection): $e");
           }
         }
       }
       catch (e) {
-        debugPrint("Error parsing runway data for diagram (lat, lon): $e");
+        AppLog.logMessage("Error parsing runway data for diagram (lat, lon): $e");
       }
 
       intersections.add(1);
@@ -572,7 +573,7 @@ class RunwayPainter extends CustomPainter {
               leLat = apLat + leLat;
           }
           catch (e) {
-            debugPrint("Error parsing runway data for diagram (runway length): $e");
+            AppLog.logMessage("Error parsing runway data for diagram (runway length): $e");
           }
         }
         else if(leLat == 0 && heLat == 0 && leLon == 0 && heLon == 0 && runways.length > 1)
@@ -656,7 +657,7 @@ class RunwayPainter extends CustomPainter {
         info += "  ${r['Length']}x${r['Width']} ${r['Surface']}\n\n";
       }
       catch(e) {
-        debugPrint("Error parsing runway data for diagram (draw): $e");
+        AppLog.logMessage("Error parsing runway data for diagram (draw): $e");
       }
     }
     TextSpan span = TextSpan(style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: scale / 64), text: info);

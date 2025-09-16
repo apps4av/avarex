@@ -1,6 +1,6 @@
 import 'dart:math';
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/storage.dart';
-import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 
@@ -110,7 +110,7 @@ class GeoCalculations {
       return Storage().units.mTo * _distance(ll1, ll2);
     }
     catch (e) {
-      debugPrint("GeoCalculations.calculateDistance failed: $e");
+      AppLog.logMessage("GeoCalculations.calculateDistance failed: $e");
     }
     return 12450; //set distance to maximum distance two points can be apart on earth, if calculation failed
   }

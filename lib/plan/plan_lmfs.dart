@@ -1,7 +1,7 @@
 import 'dart:convert';
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:core';
 
@@ -133,7 +133,7 @@ class LmfsPlanList {
         _plans.add(pl);
       }
     } catch (e) {
-      debugPrint("LMFS parse error: $e");
+      AppLog.logMessage("LMFS parse error: $e");
       // Handle exception
     }
   }
@@ -240,7 +240,7 @@ class LmfsInterface {
       }
     }
     catch(e) {
-      debugPrint("LMFS route parse error: $e");
+      AppLog.logMessage("LMFS route parse error: $e");
     }
     return routes;
   }

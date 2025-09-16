@@ -475,7 +475,7 @@ class InstrumentListState extends State<InstrumentList> {
                       ),
                       autoCloseDuration: const Duration(seconds: 60), icon: const Icon(Icons.info, size: 0,));
                 },
-                child: const Text("Help", style: TextStyle(fontSize: 12),),
+                child: const Text("?", style: TextStyle(fontSize: 12),),
               ),
             ],
           )

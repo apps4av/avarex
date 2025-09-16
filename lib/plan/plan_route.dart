@@ -1,6 +1,7 @@
 
 import 'dart:convert';
 
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
@@ -552,7 +553,7 @@ class PlanRoute {
         cookie = responseHttp.headers['set-cookie'];
       }
       catch(e) {
-        debugPrint("ASA plan cookie error $e");
+        AppLog.logMessage("ASA plan cookie error $e");
       }
     }
 
@@ -620,7 +621,7 @@ class PlanRoute {
       }
 
       catch (e) {
-        debugPrint("ASA plan parse error $e");
+        AppLog.logMessage("ASA plan parse error $e");
       }
     }
 

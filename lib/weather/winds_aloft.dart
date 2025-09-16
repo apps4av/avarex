@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
@@ -148,7 +149,7 @@ class WindsAloft extends Weather {
       return (dir, speed);
     }
     catch (e) {
-      debugPrint("WindsAloft.getWindAtAltitude failed: $e");
+      AppLog.logMessage("WindsAloft.getWindAtAltitude failed: $e");
     }
 
     return (null, null);

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/unit_conversion.dart';
@@ -46,7 +47,7 @@ class WeatherCache {
       }
     }
     catch(e) {
-      debugPrint("WeatherCache: invalid coordinate $latitude,$longitude");
+      AppLog.logMessage("WeatherCache: invalid coordinate $latitude,$longitude");
     }
     return null;
   }

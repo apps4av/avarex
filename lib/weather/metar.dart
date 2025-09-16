@@ -1,3 +1,4 @@
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -30,7 +31,7 @@ class Metar extends Weather {
       ll = LatLng(maps["ARPLatitude"] as double, maps["ARPLongitude"] as double);
     }
     catch(e) {
-      debugPrint("Error parsing METAR coordinate: $e");
+      AppLog.logMessage("Error parsing METAR coordinate: $e");
     }
 
     return Metar(
@@ -97,6 +98,9 @@ class Metar extends Weather {
         String? dir = windSpeedDir.namedGroup("dir");
         String? speed = windSpeedDir.namedGroup("speed");
         if(dir != null && speed != null) {
+          if(dir == 'VRB') {
+            dir = '0'; // variable wind, return 0
+          }
           return (dir, speed);
         }
       }
@@ -162,7 +166,7 @@ class Metar extends Weather {
             visSM = double.parse(integer);
           }
           catch(e) {
-            debugPrint("Metar.getCategory: error parsing visibility integer $integer");
+            AppLog.logMessage("Metar.getCategory: error parsing visibility integer $integer");
           }
         }
         else if(null != fraction) {
@@ -173,7 +177,7 @@ class Metar extends Weather {
             visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
           }
           catch (e) {
-            debugPrint("Metar.getCategory: error parsing visibility meters $visibilityMeters");
+            AppLog.logMessage("Metar.getCategory: error parsing visibility meters $visibilityMeters");
           }
         }
       }
@@ -187,7 +191,7 @@ class Metar extends Weather {
               cloudFt = double.parse(height) * 100;
             }
             catch (e) {
-              debugPrint("Metar.getCategory: error parsing cloud height $height" );
+              AppLog.logMessage("Metar.getCategory: error parsing cloud height $height" );
             }
           }
         }

@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 // put all singletons here.
 
 import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/area.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -256,7 +257,7 @@ class Storage {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
       Storage().gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
     } catch (e) {
-      debugPrint("Error adding GPS traffic cache listener: $e");
+      AppLog.logMessage("Error adding GPS traffic cache listener: $e");
     }
   }
 
@@ -266,19 +267,19 @@ class Storage {
       _udpReceiver.finish();
     }
     catch(e) {
-      debugPrint("Error stopping UDP: $e");
+      AppLog.logMessage("Error stopping UDP: $e");
     }
     try {
       _gpsStream?.cancel();
     }
     catch(e) {
-      debugPrint("Error stopping GPS: $e");
+      AppLog.logMessage("Error stopping GPS: $e");
     }
     try {
       // Have audible alerts stop listening for GPS changes
       Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
     } catch (e) {
-      debugPrint("Error removing GPS traffic cache listener: $e");
+      AppLog.logMessage("Error removing GPS traffic cache listener: $e");
     }
   }
 
@@ -416,7 +417,7 @@ class Storage {
         try {
           myAircraftIcao = ac.icao.trim().length > 6 ? int.parse(ac.icao) : int.parse(ac.icao, radix: 16);
         } catch (e) {
-          debugPrint("Invalid ICAO in database: ${ac.icao}");
+          AppLog.logMessage("Invalid ICAO in database: ${ac.icao}");
           // ignore
         }
       }
