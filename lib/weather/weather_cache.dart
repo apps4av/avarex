@@ -133,12 +133,12 @@ class WeatherCache {
   static WeatherCache make(Type type) {
 
     if(type == MetarCache) {
-      MetarCache cache = MetarCache(["https://aviationweather.gov/data/cache/metars.cache.csv.gz"],
+      MetarCache cache = MetarCache(["https://aviationweather.gov/data/cache/metars.cache.xml.gz"],
           WeatherDatabaseHelper.db.getAllMetar);
       return cache;
     }
     else if(type == TafCache) {
-      TafCache cache = TafCache(["https://aviationweather.gov/data/cache/tafs.cache.csv.gz"],
+      TafCache cache = TafCache(["https://aviationweather.gov/data/cache/tafs.cache.xml.gz"],
           WeatherDatabaseHelper.db.getAllTaf);
       return cache;
     }
@@ -176,7 +176,7 @@ class WeatherCache {
     else if(type == AirepCache) {
       // default
       WeatherCache cache = AirepCache(
-          ["https://aviationweather.gov/data/cache/aircraftreports.cache.csv.gz"],
+          ["https://aviationweather.gov/data/cache/aircraftreports.cache.xml.gz"],
           WeatherDatabaseHelper.db.getAllAirep);
       return cache;
     }
@@ -185,7 +185,7 @@ class WeatherCache {
       WeatherCache cache = AirSigmetCache(
           [
             "https://aviationweather.gov/data/cache/gairmets.cache.xml.gz",
-            "https://aviationweather.gov/data/cache/airsigmets.cache.csv.gz",
+            "https://aviationweather.gov/data/cache/airsigmets.cache.xml.gz",
           ],
           WeatherDatabaseHelper.db.getAllAirSigmet);
       return cache;

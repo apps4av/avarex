@@ -6,8 +6,8 @@ import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:xml/xml.dart';
 import 'metar.dart';
 import 'weather.dart';
 
@@ -23,26 +23,45 @@ class MetarCache extends WeatherCache {
     if(data.isEmpty) {
       return;
     }
-    final List<int> decodedData = GZipCodec().decode(data[0]);
-    final List<Metar> metars = [];
-    String decoded = utf8.decode(decodedData, allowMalformed: true);
-    List<List<dynamic>> rows = const CsvToListConverter().convert(decoded, eol: "\n");
-    for (List<dynamic> row in rows) {
-      DateTime time = DateTime.now().toUtc();
-      // observation time like 2024-01-27T18:26:00Z in row[2]
-      time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
+    final List<int> decodedData;
+    String decoded;
+    try {
+      decodedData = GZipCodec().decode(data[0]);
+      decoded = utf8.decode(decodedData, allowMalformed: true);
+    }
+    catch(e) {
+      // not gzipped
+      Storage().setException("METAR: unable to decode data.");
+      return;
+    }
 
-      Metar m;
-      try {
-        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[3].toString(), row[4].toString());
-        if(pv == null) {
+    final List<Metar> metars = [];
+
+    DateTime time = DateTime.now().toUtc();
+    time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
+
+    if(decoded.startsWith("<?xml")) {
+      final document = XmlDocument.parse(decoded);
+
+      final textual = document.findAllElements("METAR");
+      for (var metar in textual) {
+
+        try {
+          String rt = metar.getElement("raw_text")!.innerText;
+          double latitude = double.parse(metar.getElement("latitude")!.innerText);
+          double longitude = double.parse(metar.getElement("longitude")!.innerText);
+          String station = metar.getElement("station_id")!.innerText;
+          String category = metar.getElement("flight_category")!.innerText;
+          LatLng? pv = WeatherCache.parseAndValidateCoordinate(latitude.toString(), longitude.toString());
+          if(pv == null) {
+            continue;
+          }
+          Metar m = Metar(station, time, DateTime.now().toUtc(), Weather.sourceInternet, rt, category, pv);
+          metars.add(m);
+        }
+        catch(e) {
           continue;
         }
-        m = Metar(row[1], time, DateTime.now().toUtc(), Weather.sourceInternet, row[0], row[30], pv);
-        metars.add(m);
-      }
-      catch(e) {
-        continue;
       }
     }
     await WeatherDatabaseHelper.db.addMetars(metars);

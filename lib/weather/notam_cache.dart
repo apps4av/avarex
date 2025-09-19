@@ -7,6 +7,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/weather_cache.dart';
+import 'package:html/dom.dart' show Element;
 import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 
@@ -27,9 +28,16 @@ class NotamCache extends WeatherCache {
     }
 
     // clean up the html file
-    String ret = latin1.decode(data[0]);
-    var document = html_parser.parse(ret);
-    final anchors = document.querySelectorAll('TD');
+    final List<Element> anchors;
+    try {
+      String ret = latin1.decode(data[0], allowInvalid: true);
+      var document = html_parser.parse(ret);
+      anchors = document.querySelectorAll('TD');
+    }
+    catch(e) {
+      Storage().setException("NOTAM: unable to decode data.");
+      return;
+    }
     String retVal = "";
 
     bool start = false;

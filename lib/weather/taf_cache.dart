@@ -3,10 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:csv/csv.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:xml/xml.dart';
 
 import 'weather.dart';
 
@@ -19,27 +20,43 @@ class TafCache extends WeatherCache {
     if(data.isEmpty) {
       return;
     }
-    final List<int> decodedData = GZipCodec().decode(data[0]);
+    final List<int> decodedData;
+    String decoded;
+    try {
+      decodedData = GZipCodec().decode(data[0]);
+      decoded = utf8.decode(decodedData, allowMalformed: true);
+    }
+    catch(e) {
+      // not gzipped
+      Storage().setException("TAF: unable to decode data.");
+      return;
+    }
     final List<Taf> tafs = [];
-    String decoded = utf8.decode(decodedData, allowMalformed: true);
-    List<List<dynamic>> rows = const CsvToListConverter().convert(decoded, eol: "\n");
 
     DateTime time = DateTime.now().toUtc();
     time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
 
-    for (List<dynamic> row in rows) {
+    if(decoded.startsWith("<?xml")) {
+      final document = XmlDocument.parse(decoded);
 
-      Taf t;
-      try {
-        LatLng? pv = WeatherCache.parseAndValidateCoordinate(row[7].toString(), row[8].toString());
-        if(pv == null) {
+      final textual = document.findAllElements("TAF");
+      for (var taf in textual) {
+
+        try {
+          String rt = taf.getElement("raw_text")!.innerText;
+          double latitude = double.parse(taf.getElement("latitude")!.innerText);
+          double longitude = double.parse(taf.getElement("longitude")!.innerText);
+          String station = taf.getElement("station_id")!.innerText;
+          LatLng? pv = WeatherCache.parseAndValidateCoordinate(latitude.toString(), longitude.toString());
+          if(pv == null) {
+            continue;
+          }
+          Taf t = Taf(station, time, DateTime.now().toUtc(), Weather.sourceInternet, rt.toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), pv);
+          tafs.add(t);
+        }
+        catch(e) {
           continue;
         }
-        t = Taf(row[1], time, DateTime.now().toUtc(), Weather.sourceInternet, row[0].toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), pv);
-        tafs.add(t);
-      }
-      catch(e) {
-        continue;
       }
     }
 

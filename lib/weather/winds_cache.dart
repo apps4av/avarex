@@ -52,7 +52,14 @@ class WindsCache extends WeatherCache {
 
     for(Uint8List datum in data)
     {
-      String dataString = utf8.decode(datum);
+      String dataString;
+      try {
+        dataString = utf8.decode(datum);
+      }
+      catch(e) {
+        Storage().setException("WINDS: unable to decode data.");
+        continue;
+      }
 
       // parse winds, set expire time 6 hrs in future
       DateTime expires = DateTime.now().add(const Duration(hours: 6));

@@ -23,7 +23,14 @@ class TfrCache extends WeatherCache {
     }
 
     final List<Tfr> tfrs = [];
-    String decoded = utf8.decode(data[0]);
+    String decoded;
+    try {
+      decoded = utf8.decode(data[0]);
+    }
+    catch(e) {
+      Storage().setException("TFR: unable to decode data.");
+      return;
+    }
 
     // As of 2025-02-28 we fetch a JSON list of TFRs, so simply parse notam_id as "3/9568"
     // to fetch https://tfr.faa.gov/download/detail_3_9568.xml and process as before
