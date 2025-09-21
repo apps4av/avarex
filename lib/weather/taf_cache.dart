@@ -22,26 +22,24 @@ class TafCache extends WeatherCache {
     }
     final List<int> decodedData;
     String decoded;
+    final XmlDocument document;
+    final Iterable<XmlElement> textual;
+    final List<Taf> tafs = [];
+
     try {
       decodedData = GZipCodec().decode(data[0]);
       decoded = utf8.decode(decodedData, allowMalformed: true);
+      document = XmlDocument.parse(decoded);
+      textual = document.findAllElements("TAF");
     }
     catch(e) {
       // not gzipped
       Storage().setException("TAF: unable to decode data.");
       return;
     }
-    final List<Taf> tafs = [];
-
-    DateTime time = DateTime.now().toUtc();
-    time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
 
     if(decoded.startsWith("<?xml")) {
-      final document = XmlDocument.parse(decoded);
-
-      final textual = document.findAllElements("TAF");
       for (var taf in textual) {
-
         try {
           String rt = taf.getElement("raw_text")!.innerText;
           double latitude = double.parse(taf.getElement("latitude")!.innerText);
@@ -51,7 +49,10 @@ class TafCache extends WeatherCache {
           if(pv == null) {
             continue;
           }
-          Taf t = Taf(station, time, DateTime.now().toUtc(), Weather.sourceInternet, rt.toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), pv);
+          Taf t = Taf(station,
+              DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+              DateTime.now().toUtc(),
+              Weather.sourceInternet, rt.toString().replaceAll(" FM", "\nFM").replaceAll(" BECMG", "\nBECMG").replaceAll(" TEMPO", "\nTEMPO"), pv);
           tafs.add(t);
         }
         catch(e) {

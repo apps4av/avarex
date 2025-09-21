@@ -48,14 +48,10 @@ class TfrCache extends WeatherCache {
         Storage().setException("Failed to download TFR from Internet.");
         continue; // cannot download this TFR
       }
-      decoded = utf8.decode(response.bodyBytes);
-      // parse XML XML
-
-      DateTime time = DateTime.now().toUtc();
-      time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
-
+      // parse XML
       final Iterable<XmlElement> tfrGroups;
       try {
+        decoded = utf8.decode(response.bodyBytes);
         final document = XmlDocument.parse(decoded);
         tfrGroups = document.findAllElements("TFRAreaGroup");
       }
@@ -144,7 +140,7 @@ class TfrCache extends WeatherCache {
 
             Tfr tfr = Tfr(
                 "$url@$code$gCount",
-                time,
+                DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
                 DateTime.now().toUtc(),
                 Weather.sourceInternet,
                 ll,

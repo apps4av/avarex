@@ -79,12 +79,10 @@ class NotamCache extends WeatherCache {
       }
     }
 
-
-
-    DateTime time = DateTime.now().toUtc();
-    // observation time like 2024-01-27T18:26:00Z in row[2]
-    time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
-    Notam notam = Notam(argument, time, DateTime.now().toUtc(), Weather.sourceInternet, retVal);
+    Notam notam = Notam(argument,
+        DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+        DateTime.now().toUtc(),
+        Weather.sourceInternet, retVal);
 
     await WeatherDatabaseHelper.db.addNotam(notam);
   }

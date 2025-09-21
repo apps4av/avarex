@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:avaremp/app_log.dart';
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
@@ -61,8 +62,6 @@ class WindsCache extends WeatherCache {
         continue;
       }
 
-      // parse winds, set expire time 6 hrs in future
-      DateTime expires = DateTime.now().add(const Duration(hours: 6));
       List<String> lines = dataString.split('\n');
 
       bool start = false;
@@ -100,7 +99,10 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft("$station$fore", expires, DateTime.now(), Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
+            WindsAloft w = WindsAloft("$station$fore",
+                DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+                DateTime.now().toUtc(),
+                Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
             winds.add(w);
           }
           catch (e) {
@@ -120,7 +122,10 @@ class WindsCache extends WeatherCache {
             if(coordinate == null) {
               continue; // not recognized need this
             }
-            WindsAloft w = WindsAloft("$station$fore", expires, DateTime.now().toUtc(), Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
+            WindsAloft w = WindsAloft("$station$fore",
+                DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+                DateTime.now().toUtc(),
+                Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
             winds.add(w);
           }
           catch (e) {

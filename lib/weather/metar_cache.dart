@@ -25,9 +25,15 @@ class MetarCache extends WeatherCache {
     }
     final List<int> decodedData;
     String decoded;
+    final XmlDocument document;
+    final Iterable<XmlElement> textual;
+    final List<Metar> metars = [];
+
     try {
       decodedData = GZipCodec().decode(data[0]);
       decoded = utf8.decode(decodedData, allowMalformed: true);
+      document = XmlDocument.parse(decoded);
+      textual = document.findAllElements("METAR");
     }
     catch(e) {
       // not gzipped
@@ -35,17 +41,8 @@ class MetarCache extends WeatherCache {
       return;
     }
 
-    final List<Metar> metars = [];
-
-    DateTime time = DateTime.now().toUtc();
-    time = time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)); // they update every minute but that's too fast
-
     if(decoded.startsWith("<?xml")) {
-      final document = XmlDocument.parse(decoded);
-
-      final textual = document.findAllElements("METAR");
       for (var metar in textual) {
-
         try {
           String rt = metar.getElement("raw_text")!.innerText;
           double latitude = double.parse(metar.getElement("latitude")!.innerText);
@@ -56,7 +53,10 @@ class MetarCache extends WeatherCache {
           if(pv == null) {
             continue;
           }
-          Metar m = Metar(station, time, DateTime.now().toUtc(), Weather.sourceInternet, rt, category, pv);
+          Metar m = Metar(station,
+              DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+              DateTime.now().toUtc(),
+              Weather.sourceInternet, rt, category, pv);
           metars.add(m);
         }
         catch(e) {
