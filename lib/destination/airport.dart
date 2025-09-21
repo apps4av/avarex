@@ -149,12 +149,25 @@ class Airport {
     for(Map<String, dynamic> r in runways) {
       String identLE = getRunwayIdent(r, 'LE');
       String identHE = getRunwayIdent(r, 'HE');
-      MapRunway le = mr.reduce((value, element) => value.name == identLE ? value : element);
-      MapRunway he = mr.reduce((value, element) => value.name == identHE ? value : element);
+      MapRunway? le;
+      MapRunway? he;
+      try {
+        le = mr.reduce((value, element) =>
+        value.name == identLE
+            ? value
+            : element);
+        he = mr.reduce((value, element) =>
+        value.name == identHE
+            ? value
+            : element);
+      }
+      catch(e) {
+        AppLog.logMessage("No runway map for $identLE or $identHE: $e");
+      }
       if(identLE.isNotEmpty) {
         rs.add(ListTile(
           leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: le.best ? Colors.green : Colors.purple,
+              child: CircleAvatar(backgroundColor: le != null && le.best ? Colors.green : Colors.purple,
                   child: Text(identLE,
                     style: TextStyle(color: Colors.white),
                     textAlign: TextAlign.center,))),
@@ -165,7 +178,7 @@ class Airport {
       if(identHE.isNotEmpty) {
         rs.add(ListTile(
           leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: he.best ? Colors.green : Colors.purple,
+              child: CircleAvatar(backgroundColor: he != null && he.best ? Colors.green : Colors.purple,
                   child: Text(identHE,
                     style: TextStyle(color: Colors.white),
                     textAlign: TextAlign.center,))),

@@ -48,7 +48,7 @@ class NexradCache {
 
   void putImg(NexradProduct product) {
 
-    Map<int, NexradImage> map = (product is NexradMediumProduct ? _cacheNexrad : _cacheNexradConus);
+    Map<int, NexradImage> map = (product is NexradMediumProduct ? _cacheNexradConus : _cacheNexrad);
 
     if (product.empty.isNotEmpty) {
       // Empty, make dummy bitmaps of all.
