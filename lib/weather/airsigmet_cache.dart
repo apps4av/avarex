@@ -70,8 +70,6 @@ class AirSigmetCache extends WeatherCache {
 
           String? product;
           String? hazard;
-          DateTime? expires;
-          String? valid;
           String? minAltitude;
           String? maxAltitude;
           String? altitude;
@@ -83,8 +81,6 @@ class AirSigmetCache extends WeatherCache {
                 .attributes
                 .first
                 .value;
-            expires = DateTime.parse(text.getElement("expire_time")!.innerText);
-            valid = text.getElement("valid_time")!.innerText;
           }
           catch (e) { // must have
             continue;
@@ -105,7 +101,7 @@ class AirSigmetCache extends WeatherCache {
             DateTime.now().toUtc().add(const Duration(minutes : Constants.weatherUpdateTimeMin)),
             DateTime.now().toUtc(),
             Weather.sourceInternet,
-            "AIRMET $product $hazard\nValid $valid, Expires $expires\n$altitude",
+            "AIRMET $product $hazard\n$altitude",
             points,
             hazard,
             "",
@@ -137,8 +133,6 @@ class AirSigmetCache extends WeatherCache {
 
           String? product;
           String? hazard;
-          DateTime? expires;
-          String? valid;
           String? minAltitude;
           String? maxAltitude;
           String? altitude;
@@ -150,8 +144,6 @@ class AirSigmetCache extends WeatherCache {
                 .attributes
                 .first
                 .value;
-            expires = DateTime.parse(text.getElement("valid_time_to")!.innerText);
-            valid = text.getElement("valid_time_from")!.innerText;
           }
           catch (e) { // must have
             continue;
@@ -172,7 +164,7 @@ class AirSigmetCache extends WeatherCache {
               DateTime.now().toUtc().add(const Duration(minutes : Constants.weatherUpdateTimeMin)),
               DateTime.now().toUtc(),
               Weather.sourceInternet,
-              "AIRMET $product $hazard\nValid $valid, Expires $expires\n$altitude",
+              "AIRMET $product $hazard\n$altitude",
               points,
               hazard,
               "",

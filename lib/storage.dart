@@ -71,6 +71,7 @@ class Storage {
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
   final timeRadarChange = ValueNotifier<int>(0);
+  final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   late WindsCache winds;
@@ -255,7 +256,7 @@ class Storage {
     });
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
-      Storage().gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
+      gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
     } catch (e) {
       AppLog.logMessage("Error adding GPS traffic cache listener: $e");
     }

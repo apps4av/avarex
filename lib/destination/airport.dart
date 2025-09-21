@@ -246,7 +246,6 @@ class Airport {
               double.parse(r['LEIdent'].replaceAll(RegExp(r'[LCRW]'), '')) * 10 + (destination.geoVariation?? 0); // remove L, R, C, W from it
         }
         catch (e) {
-          AppLog.logMessage("Tried everything to find a runway heading: $e"); // give up, as we tried everything possible to find a runway
           continue; // give up, as we tried everything possible to find a runway
         }
       }

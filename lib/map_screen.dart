@@ -940,6 +940,7 @@ class MapScreenState extends State<MapScreen> {
                                 _rubberBanding = false;
                                 LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestinationFromDb(index, l);
+                                Storage().rubberBandChange.value++;
                               },
                               child: DestinationFactory.getIcon(destinations[index].type, _rubberBanding ? Colors.red : Colors.white)) :
                           GestureDetector(
@@ -985,6 +986,7 @@ class MapScreenState extends State<MapScreen> {
                                 _rubberBanding = false;
                                 LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestinationFromDb(index, l);
+                                Storage().rubberBandChange.value++;
                               },
                               onTap: () {
                                 setState(() {

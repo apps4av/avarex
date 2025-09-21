@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -65,6 +66,49 @@ class Gps {
         altitude: altitude,
         altitudeAccuracy: 0,
         heading: _countTest % 90,
+        headingAccuracy: 0,
+        speed: speed,
+        speedAccuracy: 0,
+        timestamp: DateTime.now(),
+      );
+    }).listen((Position position) {});
+  }
+
+  StreamSubscription<Position> getStreamMockFlyPath() {
+    // listen for Storage().route.change changes
+    List<LatLng> mockPositions = [];
+
+    Storage().rubberBandChange.addListener(() {
+      mockPositions = Storage().route.getPathNextHighResolution();
+      _countTest = 0;
+    });
+
+    return Stream.periodic(const Duration(seconds: 1), (_) {
+      _countTest++;
+
+      if(mockPositions.length < 2) {
+        return Storage().position;
+      }
+      if(_countTest.toInt() == mockPositions.length - 2) {
+        _countTest = mockPositions.length - 2;
+      }
+      double longitude0 = mockPositions[_countTest.toInt()].longitude;
+      double latitude0  =  mockPositions[_countTest.toInt()].latitude;
+      double longitude1 = mockPositions[_countTest.toInt() + 1].longitude;
+      double latitude1  =  mockPositions[_countTest.toInt() + 1].latitude;
+
+      double d = GeoCalculations().calculateDistance(LatLng(latitude0, longitude0), LatLng(latitude1, longitude1));
+      double speed = Storage().units.toM * d; //to meters
+      double heading = GeoCalculations().calculateBearing(LatLng(latitude0, longitude0), LatLng(latitude1, longitude1));
+
+      // Code returning a value every 1 seconds.
+      return Position(
+        longitude: mockPositions[_countTest.toInt() == mockPositions.length ? mockPositions.length - 1 : _countTest.toInt()].longitude,
+        latitude: mockPositions[_countTest.toInt() == mockPositions.length ? mockPositions.length - 1 : _countTest.toInt()].latitude,
+        accuracy: 0,
+        altitude: 0,
+        altitudeAccuracy: 0,
+        heading: heading,
         headingAccuracy: 0,
         speed: speed,
         speedAccuracy: 0,

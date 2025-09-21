@@ -195,10 +195,15 @@ class InstrumentListState extends State<InstrumentList> {
               _vsr = "-";
             }
             else {
-              _vsr = _truncate(
-                  ((relativeAGL - 1000) / time.inMinutes.toDouble())
-                      .round()
-                      .toStringAsFixed(0));
+              if(time.inMinutes.toDouble() == 0) {
+                _vsr = "-";
+              }
+              else {
+                _vsr = _truncate(
+                    ((relativeAGL - 1000) / time.inMinutes.toDouble())
+                        .round()
+                        .toStringAsFixed(0));
+              }
             }
           }
         }
