@@ -32,7 +32,7 @@ class WeatherCache {
   bool _isDownloading = false;
   final List<String> urls;
   final Future<List<Weather>>Function() _dbCall;
-  int lastInsertTime = DateTime.now().millisecondsSinceEpoch;
+  int lastInsertTime = DateTime.now().toUtc().millisecondsSinceEpoch;
 
   WeatherCache(this.urls, this._dbCall) {
     initialize();
@@ -88,11 +88,11 @@ class WeatherCache {
     }
     if(w.isExpired()) {
       if(_lastDownload.containsKey(w.runtimeType)) {
-        if((DateTime.now().millisecondsSinceEpoch - _lastDownload[w.runtimeType]!.millisecondsSinceEpoch) < _maxAge) {
+        if((DateTime.now().toUtc().millisecondsSinceEpoch - _lastDownload[w.runtimeType]!.millisecondsSinceEpoch) < _maxAge) {
           return null;
         }
       }
-      _lastDownload[w.runtimeType] = DateTime.now();
+      _lastDownload[w.runtimeType] = DateTime.now().toUtc();
       download(station);
     }
     return w;
@@ -108,9 +108,9 @@ class WeatherCache {
 
   void put(Weather w) {
     _map[w.station] = w;
-    if((DateTime.now().millisecondsSinceEpoch - lastInsertTime) > minUpdateTime) {
+    if((DateTime.now().toUtc().millisecondsSinceEpoch - lastInsertTime) > minUpdateTime) {
       change.value++;
-      lastInsertTime = DateTime.now().millisecondsSinceEpoch;
+      lastInsertTime = DateTime.now().toUtc().millisecondsSinceEpoch;
     }
   }
 
@@ -146,20 +146,20 @@ class WeatherCache {
       // default
       WeatherCache cache = WindsCache(
           [
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=06&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=alaska&fcst=06&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=06&level=low", //HI Low (1k-24k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=06&level=low", //US Pac Territories Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=06&level=low", //CONUS Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=06&level=low", //AK Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=06&level=low", //HI Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=06&level=low", //US Pac Territories Low (1k-24k)
 
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=12&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=alaska&fcst=12&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=12&level=low", //HI Low (1k-24k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=12&level=low", //US Pac Territories Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=12&level=low", //CONUS Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=12&level=low", //AK Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=12&level=low", //HI Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=12&level=low", //US Pac Territories Low (1k-24k)
 
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=all&fcst=24&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=alaska&fcst=24&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=hawaii&fcst=24&level=low", //HI Low (1k-24k)
-            "https://aviationweather.gov/cgi-bin/data/windtemp.php?region=other_pac&fcst=24&level=low", //US Pac Territories Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=24&level=low", //CONUS Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=24&level=low", //AK Low (3k-39k)
+            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=24&level=low", //HI Low (1k-24k)
+            "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=24&level=low", //US Pac Territories Low (1k-24k)
 
           ],
           WeatherDatabaseHelper.db.getAllWindsAloft);
