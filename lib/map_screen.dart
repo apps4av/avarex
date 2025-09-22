@@ -140,10 +140,13 @@ class MapScreenState extends State<MapScreen> {
   void _showToast(String text, Widget icon) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    Toastification().dismissAll();
     Toastification().show(
         alignment: Alignment.bottomRight,
         context: context,
-        description: Text(text),
+        closeOnClick: true,
+        closeButton: ToastCloseButton(showType: CloseButtonShowType.none),
+        description: Text(text, style: TextStyle(fontWeight: FontWeight.w500),),
         autoCloseDuration: const Duration(seconds: 15),
         icon: CircleAvatar(radius: 16, backgroundColor: Colors.white, child: icon),
       backgroundColor: colorScheme.surfaceDim, // Using a theme color
