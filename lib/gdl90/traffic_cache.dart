@@ -66,8 +66,6 @@ class Traffic {
               child: CustomPaint(painter: TrafficPainter(this))
             ),
           ]),
-          if(!isAudibleAlertsEnabled) // show muted symbol
-            const CircleAvatar(radius: 8, backgroundColor: Colors.white, child:Icon(Icons.volume_off, color: Colors.black, size: 16)),
           CustomPaint(painter: TrafficVerticalStatusPainter(this)),
           CustomPaint(painter: TrafficIdPainter(this))  // TODO: Maybe make this switchable config item down the line?
     ]);

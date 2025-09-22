@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
@@ -11,7 +12,6 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -453,21 +453,12 @@ class InstrumentListState extends State<InstrumentList> {
               ),
 
               DropdownMenuItem(
-                value: "3",
-                onTap:() {
-                  Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
-                },
-                child: Text(Storage().settings.isAudibleAlertsEnabled() ? "Mute" : "Un-mute", style: TextStyle(fontSize: 12),),
-              ),
-
-              DropdownMenuItem(
                 value: "4",
                 onTap:() {
                   // Make a toast and show
-                  Toastification().show(context: context, description: Text(
+                  MapScreenState.showToast(context,
                       "You may adjust the size of the tiles using Expand/Contract.\n"
-                      "You may drag a tile to adjust its position.\n"
-                      "You may mute / un-mute notifications.\n\n"
+                      "You may drag a tile to adjust its position.\n\n"
                       "Available Tiles:\n"
                       "GS  - Ground speed.\n"
                       "ALT - GPS altitude.\n"
@@ -487,9 +478,8 @@ class InstrumentListState extends State<InstrumentList> {
                       "Tap PRV/NXT to skip to previous/next waypoint.\n"
                       "Tap UPT to start/stop the up timer.\n"
                       "Tap DNT to start/stop the down timer.\n"
-                      "Tap FLT to reset the flight timer.\n"
-                      ),
-                      autoCloseDuration: const Duration(seconds: 60), icon: const Icon(Icons.info, size: 0,));
+                      "Tap FLT to reset the flight timer.\n",
+                      null);
                   },
                   child: const Text("?", style: TextStyle(fontSize: 12),),
                 ),

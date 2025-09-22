@@ -137,7 +137,7 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
-  void _showToast(String text, Widget icon) {
+  static void showToast(BuildContext context, String text, Widget? icon) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     Toastification().dismissAll();
@@ -147,10 +147,11 @@ class MapScreenState extends State<MapScreen> {
         closeOnClick: true,
         closeButton: ToastCloseButton(showType: CloseButtonShowType.none),
         description: Text(text, style: TextStyle(fontWeight: FontWeight.w500),),
-        autoCloseDuration: const Duration(seconds: 15),
+        autoCloseDuration: const Duration(seconds: 30),
         icon: CircleAvatar(radius: 16, backgroundColor: Colors.white, child: icon),
-      backgroundColor: colorScheme.surfaceDim, // Using a theme color
-      foregroundColor: colorScheme.onSurface, // Using a theme c
+        showIcon: icon == null ? false : true,
+        backgroundColor: colorScheme.surfaceDim, // Using a theme color
+        foregroundColor: colorScheme.onSurface, // Using a theme c
     );
   }
 
@@ -315,7 +316,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        _showToast(m.toString(), m.getIcon());
+                        showToast(context, m.toString(), m.getIcon());
                       });
                     },
                     child: m.getIcon(),
@@ -340,7 +341,7 @@ class MapScreenState extends State<MapScreen> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  _showToast(t.toString(), t.getIcon());
+                  showToast(context, t.toString(), t.getIcon());
                 });
               },
               child: t.getIcon(),))
@@ -360,7 +361,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        _showToast(a.toString(), const Icon(Icons.person, color: Colors.black,));
+                        showToast(context, a.toString(), const Icon(Icons.person, color: Colors.black,));
                       });
                     },
                     child: const Icon(Icons.person, color: Colors.black,),))
@@ -383,7 +384,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          _showToast("${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()));
+                          showToast(context, "${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()));
                         });
                       },
                       onLongPress: () {
@@ -416,7 +417,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          _showToast(t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,),);
+                          showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,),);
                         });
                       },
                       child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
@@ -464,7 +465,7 @@ class MapScreenState extends State<MapScreen> {
           : InteractiveFlag.all & (~InteractiveFlag.doubleTapDragZoom)),
       // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
-      backgroundColor: Theme.of(context).brightness == Brightness.light ? Constants.mapBackgroundColorLight: Constants.mapBackgroundColorDark,
+      backgroundColor: Storage().settings.isLightMode() ? Constants.mapBackgroundColorLight: Constants.mapBackgroundColorDark,
       onLongPress: (tap, point) async {
         if(_ruler.isMeasuring()) {
           _ruler.setPoint(point); // on long press when measuring, set ruler point
@@ -1263,8 +1264,7 @@ class MapScreenState extends State<MapScreen> {
                       alignment: Alignment.bottomRight,
                       child: Padding(
                           padding: EdgeInsets.fromLTRB(0, 0, 5, Constants.bottomPaddingSize(context)),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end, children:[
+                          child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
                                   IconButton(
@@ -1325,6 +1325,17 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
+                                  // switch audio on off
+                                  IconButton(
+                                      tooltip: "Mute audible alerts",
+                                      onPressed: () {
+                                        setState(() {
+                                          Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
+                                        });
+                                      },
+                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                          child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
+
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the chart type",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
@@ -1374,10 +1385,10 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.saveKml().then((value) {
                                                             setState1(() {
                                                               if(value != null) {
-                                                                _showToast("Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,));
+                                                                showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,));
                                                               }
                                                               else {
-                                                                _showToast("Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,));
+                                                                showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,));
                                                               }
                                                             });
                                                           });
@@ -1411,10 +1422,9 @@ class MapScreenState extends State<MapScreen> {
                                           ),)
                                         ),
                                     ),
-                                  // switch layers on off
                                 ]
                               ),
-                          ])
+                          )
                       )
                   )
               )

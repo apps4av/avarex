@@ -1,5 +1,6 @@
 
 import 'dart:core';
+import 'package:avaremp/storage.dart' show Storage;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -67,7 +68,15 @@ class WarningsWidgetState extends State<WarningsWidget> {
           leading: const Icon(Icons.gpp_good_sharp),
           subtitle: Text(gpsPermissionMessage),
           dense: true,
-          onTap: () { Geolocator.openAppSettings(); Scaffold.of(context).closeEndDrawer();}));
+          onTap: () {
+            try {
+              Geolocator.openAppSettings();
+            }
+            catch(e) {
+              Storage().setException("Error opening app settings: $e");
+            }
+            Scaffold.of(context).closeEndDrawer();
+          }));
     }
 
     String gpsEnabledMessage = !widget.gpsDisabled ? "" :
