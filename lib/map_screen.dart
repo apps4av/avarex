@@ -27,7 +27,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:in_app_review/in_app_review.dart';
-import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:toastification/toastification.dart';
@@ -136,6 +135,20 @@ class MapScreenState extends State<MapScreen> {
       _geojsonCluster = null;
       _geoJsonLayer = null;
     });
+  }
+
+  void _showToast(String text, Widget icon) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    Toastification().show(
+        alignment: Alignment.bottomRight,
+        context: context,
+        description: Text(text),
+        autoCloseDuration: const Duration(seconds: 15),
+        icon: CircleAvatar(radius: 16, backgroundColor: Colors.white, child: icon),
+      backgroundColor: colorScheme.surfaceDim, // Using a theme color
+      foregroundColor: colorScheme.onSurface, // Using a theme c
+    );
   }
 
   @override
@@ -296,11 +309,15 @@ class MapScreenState extends State<MapScreen> {
             for(Metar m in metars)
               Marker(point: m.coordinate,
                   alignment: Alignment.topRight,
-                  child: JustTheTooltip(
-                    content: Container(padding: const EdgeInsets.all(5), child:Text(m.toString())),
-                    triggerMode: TooltipTriggerMode.tap,
-                    waitDuration: const Duration(seconds: 1),
-                    child: m.getIcon(),))
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showToast(m.toString(), m.getIcon());
+                      });
+                    },
+                    child: m.getIcon(),
+                  )
+              )
           ],
         );
     return _metarCluster!;
@@ -317,11 +334,12 @@ class MapScreenState extends State<MapScreen> {
             width: 32,
             height: 32,
             alignment: Alignment.bottomRight,
-            child: JustTheTooltip(
-              content: Container(
-                  padding: const EdgeInsets.all(5), child: Text(t.toString())),
-              triggerMode: TooltipTriggerMode.tap,
-              waitDuration: const Duration(seconds: 1),
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showToast(t.toString(), t.getIcon());
+                });
+              },
               child: t.getIcon(),))
     ]);
     return _tafCluster!;
@@ -336,11 +354,13 @@ class MapScreenState extends State<MapScreen> {
             for(Airep a in aireps)
               Marker(point: a.coordinates,
                   alignment: Alignment.bottomLeft,
-                  child: JustTheTooltip(
-                      content: Container(padding: const EdgeInsets.all(5), child:Text(a.toString())),
-                      triggerMode: TooltipTriggerMode.tap,
-                      waitDuration: const Duration(seconds: 1),
-                      child: const Icon(Icons.person, color: Colors.black,)))
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showToast(a.toString(), const Icon(Icons.person, color: Colors.black,));
+                      });
+                    },
+                    child: const Icon(Icons.person, color: Colors.black,),))
           ],
     );
 
@@ -357,25 +377,24 @@ class MapScreenState extends State<MapScreen> {
               if(a.coordinates.isNotEmpty)
                 Marker(
                     point: a.coordinates[0],
-                    child: JustTheTooltip(
-                        content: Container(
-                            padding: const EdgeInsets.all(5),
-                            child: Text("${a.toString()}\n** Long press to show/hide the covered area **")
-                        ),
-                        waitDuration: const Duration(seconds: 1),
-                        triggerMode: TooltipTriggerMode.tap,
-                        child: GestureDetector(
-                            onLongPress: () {
-                              setState(() {
-                                _airSigmetLayer = null; // rebuild layer with visible shapes
-                                a.showShape = !a.showShape;
-                              });
-                            },
-                            child:Icon(Icons.ac_unit_rounded,
-                                color: a.getColor()
-                            )
-                        )
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showToast("${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()));
+                        });
+                      },
+                      onLongPress: () {
+                        setState(() {
+                          _airSigmetLayer = null; // rebuild layer with visible shapes
+                          a.showShape = !a.showShape;
+                        });
+                      },
+                      child: Icon(Icons.ac_unit_rounded,
+                          color: a.getColor()
+                      )
+
                     )
+
                 )
           ],
         );
@@ -391,11 +410,13 @@ class MapScreenState extends State<MapScreen> {
             for(Tfr t in tfrs)
               if(t.coordinates.isNotEmpty)
                 Marker(point: t.coordinates[t.getLabelCoordinate()],
-                    child: JustTheTooltip(
-                          content: Container(padding: const EdgeInsets.all(5), child:Text(t.toString())),
-                          triggerMode: TooltipTriggerMode.tap,
-                          waitDuration: const Duration(seconds: 1),
-                          child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _showToast(t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,),);
+                        });
+                      },
+                      child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
           ],
         );
     return _tfrCluster!;
@@ -631,20 +652,8 @@ class MapScreenState extends State<MapScreen> {
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                   point: e.getCoordinates(),
-                  child: GestureDetector(child:Transform.rotate(angle: _northUp ? 0 : Storage().position.heading * pi / 180,
-                    child: JustTheTooltip(
-                      content: Container(padding: const EdgeInsets.all(5), child:Text(e.toString())),
-                      triggerMode: TooltipTriggerMode.tap,
-                      waitDuration: const Duration(seconds: 1),
-                      child: e.getIcon(_northUp, Storage().settings.isAudibleAlertsEnabled())
-                    )
-                  ),
-                  onLongPress: () {
-                    setState(() { // disable/enable audible alerts
-                      Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
-                    });
-                  },
-                )); // undo the above rotation
+                  child: e.getIcon(_northUp, Storage().settings.isAudibleAlertsEnabled()),
+                );
               }).toList(),
             );
           },
@@ -1362,10 +1371,10 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.saveKml().then((value) {
                                                             setState1(() {
                                                               if(value != null) {
-                                                                Toastification().show(context: context, description: Text("Track saved to Documents as $value."), autoCloseDuration: const Duration(seconds: 15), icon: const Icon(Icons.info));
+                                                                _showToast("Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,));
                                                               }
                                                               else {
-                                                                Toastification().show(context: context, description: Text("Unable to save tracks due to error."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                                                                _showToast("Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,));
                                                               }
                                                             });
                                                           });

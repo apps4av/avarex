@@ -1,8 +1,9 @@
+import 'package:avaremp/weather/weather_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geojson_vi/geojson_vi.dart';
-import 'package:just_the_tooltip/just_the_tooltip.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:toastification/toastification.dart';
 
 class GeoJsonParser {
 
@@ -13,13 +14,19 @@ class GeoJsonParser {
 
   void _addMarker(GeoJSONPoint mp, String label) {
     if (mp.coordinates.length > 1) {
+      // check if ll is invalid
+      LatLng? ll = WeatherCache.parseAndValidateCoordinate(mp.coordinates[1].toString(), mp.coordinates[0].toString());
+      if(ll == null) {
+        return;
+      }
       markers.add(Marker(
-          point: LatLng(mp.coordinates[1], mp.coordinates[0]),
-          child: JustTheTooltip(
-              content: Container(padding: const EdgeInsets.all(5), child:Text(label)),
-              triggerMode: TooltipTriggerMode.tap,
-              waitDuration: const Duration(seconds: 1),
-              child: const Icon(Icons.location_pin, color: Colors.black,))));
+          point: ll,
+          child: GestureDetector(
+            onTap: () {
+              Toastification().show(alignment: Alignment.bottomRight,  description: Text(label), autoCloseDuration: const Duration(seconds: 15), icon:  const Icon(Icons.location_pin, color: Colors.black,));
+            },
+            child: const Icon(Icons.location_pin, color: Colors.black,)
+      )));
     }
   }
 
@@ -33,6 +40,13 @@ class GeoJsonParser {
         catch (e) {
           continue;
         }
+
+        // check if any of ll is invalid
+        List<LatLng?> check = ll.map((ll) => WeatherCache.parseAndValidateCoordinate(ll.latitude.toString(), ll.longitude.toString())).toList();
+        if(check.where((ll) => ll == null).toList().isNotEmpty) {
+          continue;
+        }
+
         polygons.add(Polygon(
           points: ll,
           label: label,

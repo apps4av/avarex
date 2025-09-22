@@ -451,13 +451,24 @@ class InstrumentListState extends State<InstrumentList> {
                 },
                 child: const Text("Contract", style: TextStyle(fontSize: 12),),
               ),
+
               DropdownMenuItem(
                 value: "3",
+                onTap:() {
+                  Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
+                },
+                child: Text(Storage().settings.isAudibleAlertsEnabled() ? "Mute" : "Un-mute", style: TextStyle(fontSize: 12),),
+              ),
+
+              DropdownMenuItem(
+                value: "4",
                 onTap:() {
                   // Make a toast and show
                   Toastification().show(context: context, description: Text(
                       "You may adjust the size of the tiles using Expand/Contract.\n"
-                      "You may drag a tile to adjust its position.\n\n"
+                      "You may drag a tile to adjust its position.\n"
+                      "You may mute / un-mute notifications.\n\n"
+                      "Available Tiles:\n"
                       "GS  - Ground speed.\n"
                       "ALT - GPS altitude.\n"
                       "MT  - Magnetic track.\n"
@@ -479,9 +490,9 @@ class InstrumentListState extends State<InstrumentList> {
                       "Tap FLT to reset the flight timer.\n"
                       ),
                       autoCloseDuration: const Duration(seconds: 60), icon: const Icon(Icons.info, size: 0,));
-                },
-                child: const Text("?", style: TextStyle(fontSize: 12),),
-              ),
+                  },
+                  child: const Text("?", style: TextStyle(fontSize: 12),),
+                ),
             ],
           )
         ),
