@@ -137,7 +137,7 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
-  static void showToast(BuildContext context, String text, Widget? icon) {
+  static void showToast(BuildContext context, String text, Widget? icon, int duration) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     Toastification().dismissAll();
@@ -147,7 +147,7 @@ class MapScreenState extends State<MapScreen> {
         closeOnClick: true,
         closeButton: ToastCloseButton(showType: CloseButtonShowType.none),
         description: Text(text, style: TextStyle(fontWeight: FontWeight.w500),),
-        autoCloseDuration: const Duration(seconds: 30),
+        autoCloseDuration: Duration(seconds: duration),
         icon: CircleAvatar(radius: 16, backgroundColor: Colors.white, child: icon),
         showIcon: icon == null ? false : true,
         backgroundColor: colorScheme.surfaceDim, // Using a theme color
@@ -316,7 +316,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        showToast(context, m.toString(), m.getIcon());
+                        showToast(context, m.toString(), m.getIcon(), 30);
                       });
                     },
                     child: m.getIcon(),
@@ -341,7 +341,7 @@ class MapScreenState extends State<MapScreen> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  showToast(context, t.toString(), t.getIcon());
+                  showToast(context, t.toString(), t.getIcon(), 30);
                 });
               },
               child: t.getIcon(),))
@@ -361,7 +361,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        showToast(context, a.toString(), const Icon(Icons.person, color: Colors.black,));
+                        showToast(context, a.toString(), const Icon(Icons.person, color: Colors.black,), 30);
                       });
                     },
                     child: const Icon(Icons.person, color: Colors.black,),))
@@ -384,7 +384,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          showToast(context, "${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()));
+                          showToast(context, "${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()), 30);
                         });
                       },
                       onLongPress: () {
@@ -417,7 +417,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,),);
+                          showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,), 30);
                         });
                       },
                       child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
@@ -1385,10 +1385,10 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.saveKml().then((value) {
                                                             setState1(() {
                                                               if(value != null) {
-                                                                showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,));
+                                                                showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                               else {
-                                                                showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,));
+                                                                showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                             });
                                                           });

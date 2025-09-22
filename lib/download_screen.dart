@@ -1,8 +1,8 @@
 
 import 'package:avaremp/faa_dates.dart';
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
-import 'package:toastification/toastification.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'download.dart';
@@ -326,7 +326,7 @@ class DownloadScreenState extends State<DownloadScreen> {
   // Do actions on all charts
   void _start() async {
     if(Storage().downloadManager.total() != 0) {
-      Toastification().show(context: context, description: Text("Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+      MapScreenState.showToast(context, "Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish", null, 3);
       return; // let DL finish
     }
     for (int category = 0; category < _allCharts.length; category++) {
@@ -359,10 +359,10 @@ class DownloadScreenState extends State<DownloadScreen> {
       }
     }
     if(0 == Storage().downloadManager.total()) {
-      Toastification().show(context: context, description: const Text("Please select items to Download/Update/Install"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+      MapScreenState.showToast(context, "Please select items to Download/Update/Install", null, 3);
     }
     else {
-      Toastification().show(context: context, description: Text("Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+      MapScreenState.showToast(context, "Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items", null, 3);
     }
   }
 

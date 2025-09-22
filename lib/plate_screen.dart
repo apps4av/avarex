@@ -13,11 +13,11 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:toastification/toastification.dart';
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
 import 'instrument_list.dart';
+import 'map_screen.dart';
 
 // implements a drawing screen with a center reset button.
 
@@ -338,7 +338,7 @@ class PlateScreenState extends State<PlateScreen> {
                               if(procedure != null) {
                                 Storage().route.addWaypoint(Waypoint(procedure));
                                 setState(() {
-                                  Toastification().show(context: context, description: Text("Added ${procedure.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                                  MapScreenState.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
                                   // show toast message that the procedure is added to the plan
                                 });
                               }

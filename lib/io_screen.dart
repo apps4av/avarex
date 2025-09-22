@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-
+import 'dart:isolate';
+import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
-import 'package:toastification/toastification.dart';
+import 'autopilot.dart';
 
 
 class IoScreen extends StatefulWidget {
@@ -119,6 +122,19 @@ class IoScreenState extends State<IoScreen> {
 
                                   connectionIn = value;
                                   connectedDeviceIn = result.device;
+                                  // send AP data
+                                  Isolate.spawn((void args) async {
+                                    String data = AutoPilot.apCreateSentences();
+                                    try {
+                                      value.output.add(utf8.encode(data));
+                                      await value.output.allSent;
+                                    }
+                                    catch(e) {
+                                      Storage().setException("Failed to drive the autopilot.");
+                                      return;
+                                    }
+                                  }, null);
+                                  // receive data
                                   if(connectionIn!.input != null) {
                                     // send udp packet to localhost
                                     RawDatagramSocket? udpSocket;
@@ -140,18 +156,18 @@ class IoScreenState extends State<IoScreen> {
                                   }
                                 }
                                 else {
-                                  Toastification().show(context: context, description: Text("Failed to connect to ${result.device.name ?? result.device.address}"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.error));
+                                  MapScreenState.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                                 }
                               });
                             }
                           }).onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                Toastification().show(context: context, description: Text("Failed to connect to ${result.device.name ?? result.device.address}"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.error));
+                                MapScreenState.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
                               });
                             }
                           });
-                          Toastification().show(context: context, description: Text("Connecting to ${result.device.name ?? result.device.address}"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.error));
+                          MapScreenState.showToast(context, "Connecting to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -169,11 +185,11 @@ class IoScreenState extends State<IoScreen> {
                           .onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                Toastification().show(context: context, description: Text("Failed to unpair with ${result.device.name ?? result.device.address}"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.error));
+                                MapScreenState.showToast(context, "Failed to unpair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                               });
                             }
                           });
-                          Toastification().show(context: context, description: Text("Unpairing with ${result.device.name ?? result.device.address} ..."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                          MapScreenState.showToast(context, "Unpairing with ${result.device.name ?? result.device.address} ...", null, 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -195,11 +211,11 @@ class IoScreenState extends State<IoScreen> {
                           .onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                Toastification().show(context: context, description: Text("Failed to pair with ${result.device.name ?? result.device.address}"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.error));
+                                MapScreenState.showToast(context, "Failed to pair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                               });
                             }
                           });
-                          Toastification().show(context: context, description: Text("Pairing with ${result.device.name ?? result.device.address} ..."), autoCloseDuration: const Duration(seconds: 10), icon: const Icon(Icons.info));
+                          MapScreenState.showToast(context, "Pairing with ${result.device.name ?? result.device.address} ...", null, 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -222,7 +238,7 @@ class IoScreenState extends State<IoScreen> {
         child: const Text("Disconnect"),
         onPressed: () {
           disconnect();
-          Toastification().show(context: context, description: const Text("Disconnecting ..."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+          MapScreenState.showToast(context, "Disconnecting ...", null, 3);
         },
       ),
       ])),

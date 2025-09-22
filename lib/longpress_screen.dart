@@ -16,7 +16,6 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:toastification/toastification.dart';
 
 import 'destination/airport.dart';
 import 'constants.dart';
@@ -209,7 +208,7 @@ class LongPressScreenState extends State<LongPressScreen> {
               child: const Text("+Plan"),
               onPressed: () {
                 Storage().route.insertWaypoint(Waypoint(showDestination));
-                Toastification().show(context: context, description: Text("Added ${showDestination.facilityName} to Plan"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                MapScreenState.showToast(context, "Added ${showDestination.facilityName} to Plan", null, 3);
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),

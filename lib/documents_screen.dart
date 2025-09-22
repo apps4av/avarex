@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pdf_viewer.dart';
 import 'package:avaremp/storage.dart';
@@ -7,7 +8,6 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:toastification/toastification.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
 import 'constants.dart';
@@ -176,18 +176,18 @@ class DocumentsScreenState extends State<DocumentsScreen> {
            }
            else if(PathUtils.isJSONFile(product.url)) {
              // read file as string
-             Toastification().show(context: context, description: const Text("Parsing GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+             MapScreenState.showToast(context, "Parsing GeoJSON file.", null, 3);
              File(product.url).readAsString().then((String value) {
                try {
                  Storage().geoParser.parse(value).then((value) {
                    setState(() {
-                     Toastification().show(context: context, description: const Text("GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                     MapScreenState.showToast(context, "GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On.", null, 3);
                    });
                  });
                }
                catch(e) {
                  setState(() {
-                   Toastification().show(context: context, description: const Text("Error reading the GeoJSON file."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                   MapScreenState.showToast(context, "Error reading the GeoJSON file.", null, 3);
                  });
                }
              });

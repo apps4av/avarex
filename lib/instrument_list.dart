@@ -479,7 +479,7 @@ class InstrumentListState extends State<InstrumentList> {
                       "Tap UPT to start/stop the up timer.\n"
                       "Tap DNT to start/stop the down timer.\n"
                       "Tap FLT to reset the flight timer.\n",
-                      null);
+                      null, 30);
                   },
                   child: const Text("?", style: TextStyle(fontSize: 12),),
                 ),

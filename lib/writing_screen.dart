@@ -10,6 +10,8 @@ import 'package:scribble/scribble.dart';
 import 'package:toastification/toastification.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
 
+import 'map_screen.dart';
+
 class WritingScreen extends StatefulWidget {
   const WritingScreen({super.key});
   @override
@@ -105,10 +107,7 @@ class WritingScreenState extends State<WritingScreen> {
               String now = DateTime.now().toIso8601String();
               File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.jpg')).writeAsBytes(image.buffer.asUint8List());
               if(context.mounted) {
-                Toastification().show(context: context,
-                    description: Text('Saved to Documents as notes_$now.jpg'),
-                    autoCloseDuration: const Duration(seconds: 3),
-                    icon: const Icon(Icons.info));
+                MapScreenState.showToast(context, "Saved to Documents as notes_$now.jpg", null, 3);
               }
             });
           }),

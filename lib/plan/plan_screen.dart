@@ -2,9 +2,9 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
+import 'package:avaremp/map_screen.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/services.dart';
-import 'package:toastification/toastification.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
 import 'plan_route.dart';
@@ -223,7 +223,7 @@ class PlanScreenState extends State<PlanScreen> {
         actions: <Widget>[
           Padding(padding: const EdgeInsets.all(5), child: IconButton(icon: const Icon(Icons.copy), tooltip: "Copy plan to clipboard", onPressed: () {
             Clipboard.setData(ClipboardData(text: Storage().route.toString()));
-            Toastification().show(context: context, description: const Text("Copied plan to Clipboard"), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+            MapScreenState.showToast(context, "Copied plan to Clipboard", null, 3);
           },),)
         ])
     );

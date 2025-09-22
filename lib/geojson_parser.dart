@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geojson_vi/geojson_vi.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:toastification/toastification.dart';
 
 class GeoJsonParser {
 
@@ -23,7 +22,6 @@ class GeoJsonParser {
           point: ll,
           child: GestureDetector(
             onTap: () {
-              Toastification().show(alignment: Alignment.bottomRight,  description: Text(label), autoCloseDuration: const Duration(seconds: 15), icon:  const Icon(Icons.location_pin, color: Colors.black,));
             },
             child: const Icon(Icons.location_pin, color: Colors.black,)
       )));

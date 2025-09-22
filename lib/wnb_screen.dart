@@ -5,8 +5,8 @@ import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:point_in_polygon/point_in_polygon.dart';
-import 'package:toastification/toastification.dart';
 import 'constants.dart';
+import 'map_screen.dart';
 
 class WnbScreen extends StatefulWidget {
   const WnbScreen({super.key});
@@ -134,7 +134,7 @@ class WnbScreenState extends State<WnbScreen> {
                   }
                 }
                 catch (e) {
-                  Toastification().show(context: context, description: Text("Error reading Arm Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  MapScreenState.showToast(context, "Error reading Arm Max.", const Icon(Icons.error, color: Colors.red), 3);
                 }
               },
               onFieldSubmitted: (value) { // pressing Enter will change the chart to new coordinates, duplicate code except setState()
@@ -147,7 +147,7 @@ class WnbScreenState extends State<WnbScreen> {
                   }
                 }
                 catch (e) {
-                  Toastification().show(context: context, description: Text("Error reading Arm Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  MapScreenState.showToast(context, "Error reading Arm Max.", const Icon(Icons.error, color: Colors.red), 3);
                 }
               },
             ))),
@@ -164,7 +164,7 @@ class WnbScreenState extends State<WnbScreen> {
                     }
                   }
                   catch (e) {
-                    Toastification().show(context: context, description: Text("Error reading Arm Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    MapScreenState.showToast(context, "Error reading Arm Min.", const Icon(Icons.error, color: Colors.red), 3);
                   }
                 },
                 onFieldSubmitted: (value) {
@@ -178,7 +178,7 @@ class WnbScreenState extends State<WnbScreen> {
                     }
                   }
                   catch (e) {
-                    Toastification().show(context: context, description: Text("Error reading Arm Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    MapScreenState.showToast(context, "Error reading Arm Min.", const Icon(Icons.error, color: Colors.red), 3);
                   }
                 }
             ))),
@@ -195,7 +195,7 @@ class WnbScreenState extends State<WnbScreen> {
                     }
                   }
                   catch (e) {
-                    Toastification().show(context: context, description: Text("Error reading Weight Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    MapScreenState.showToast(context, "Error reading Weight Max.", const Icon(Icons.error, color: Colors.red), 3);
                   }
                 },
                 onFieldSubmitted: (value) {
@@ -208,7 +208,7 @@ class WnbScreenState extends State<WnbScreen> {
                     }
                   }
                   catch (e) {
-                    Toastification().show(context: context, description: Text("Error reading Weight Max."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    MapScreenState.showToast(context, "Error reading Weight Max.", const Icon(Icons.error, color: Colors.red), 3);
                   }
                 }
             ))),
@@ -225,7 +225,7 @@ class WnbScreenState extends State<WnbScreen> {
                       }
                   }
                   catch (e) {
-                    Toastification().show(context: context, description: Text("Error reading Weight Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                    MapScreenState.showToast(context, "Error reading Weight Min.", const Icon(Icons.error, color: Colors.red), 3);;
                   }
                 },
                 onFieldSubmitted: (value) {
@@ -238,7 +238,7 @@ class WnbScreenState extends State<WnbScreen> {
                   }
                 }
                 catch (e) {
-                  Toastification().show(context: context, description: Text("Error reading Weight Min."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  MapScreenState.showToast(context, "Error reading Weight Min.", const Icon(Icons.error, color: Colors.red), 3);
                 }
               },
             ))),
@@ -408,7 +408,7 @@ class WnbScreenState extends State<WnbScreen> {
                   _wnb.items[index] = wnbItem.toJson();
                 }
                 catch (e) {
-                  Toastification().show(context: context, description: Text("Error reading Weight."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  MapScreenState.showToast(context, "Error reading Weight.", const Icon(Icons.error, color: Colors.red), 3);
                 }
               },
             ))),
@@ -425,7 +425,7 @@ class WnbScreenState extends State<WnbScreen> {
                   _wnb.items[index] = wnbItem.toJson();
                 }
                 catch (e) {
-                  Toastification().show(context: context, description: Text("Error reading Arm."), autoCloseDuration: const Duration(seconds: 3), icon: const Icon(Icons.info));
+                  MapScreenState.showToast(context, "Error reading Arm.", const Icon(Icons.error, color: Colors.red), 3);
                 }
               },
             ))),
