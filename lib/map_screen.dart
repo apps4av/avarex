@@ -478,9 +478,18 @@ class MapScreenState extends State<MapScreen> {
         }
       },
       onMapEvent: (MapEvent mapEvent) {
+        if(mapEvent is MapEventLongPress) {
+          // dismiss all dialogs
+          Toastification().dismissAll();
+        }
+        if(mapEvent is MapEventTap) {
+          // dismiss all dialogs
+          Toastification().dismissAll();
+        }
         if (mapEvent is MapEventMoveStart) {
           // do something
           _interacting = true;
+          Toastification().dismissAll();
         }
         if (mapEvent is MapEventMoveEnd) {
           // save location for next start
@@ -612,7 +621,7 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('TFR');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: _makeTfrLayer()));
+      layers.add(IgnorePointer(child: Opacity(opacity: opacity, child: _makeTfrLayer())));
 
       layers.add(Opacity(opacity: opacity, child: _makeTfrCluster()));
     }
@@ -648,7 +657,7 @@ class MapScreenState extends State<MapScreen> {
     if (opacity > 0) {
       layers.add(
         // traffic layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             return MarkerLayer(
@@ -662,14 +671,14 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
     }
 
     lIndex = _layers.indexOf('Tracks');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add( // tracks layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             List<LatLng> path = Storage().tracks.getPoints();
@@ -686,7 +695,7 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
     }
 
     lIndex = _layers.indexOf('Circles');
@@ -694,7 +703,7 @@ class MapScreenState extends State<MapScreen> {
     if(opacity > 0) {
 
       layers.add( // circle layer
-          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
               return PolylineLayer(
@@ -728,10 +737,10 @@ class MapScreenState extends State<MapScreen> {
             },
           ),
           )
-      );
+      ));
 
       layers.add( // circle layer labels
-          Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
               return MarkerLayer(
@@ -767,14 +776,14 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-          ));
+          )));
     }
 
     lIndex = _layers.indexOf('Tape');
     opacity = _layersOpacity[lIndex];
     if(opacity > 0) {
       layers.add( // tape
-          Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
             valueListenable: _tapeNotifier,
             builder: (context, value, _) {
               return MarkerLayer(
@@ -792,7 +801,7 @@ class MapScreenState extends State<MapScreen> {
               );
             },
           ),
-          ));
+          )));
       }
 
 
@@ -819,7 +828,7 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
         layers.add( // route layer
-          Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -867,10 +876,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
 
       layers.add( // route layer for runway numbers
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().route.change,
           builder: (context, value, _) {
             // we draw runways here.
@@ -891,10 +900,10 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
 
-      layers.add( // track layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+      layers.add( // brown track layer for airplane to waypoint
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
             // this place
@@ -913,7 +922,7 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
 
       layers.add( // route layer for waypoints
         Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
@@ -1026,7 +1035,8 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(
         // aircraft layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
+        // dont want this layer to be touchable so we ignore pointer so it does not get in the way of map interaction
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
           valueListenable: Storage().gpsChange,
           builder: (context, value, _) {
             LatLng current = LatLng(value.latitude, value.longitude);
@@ -1061,13 +1071,13 @@ class MapScreenState extends State<MapScreen> {
             );
           },
         ),
-      ));
+      )));
 
     } // all nav layers
 
     // ruler, always present
     layers.add(
-      Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+      IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
         valueListenable: _ruler.change,
         builder: (context, value, _) {
           List<(int, int)> calculations = _ruler.getDistanceBearing();
@@ -1082,7 +1092,7 @@ class MapScreenState extends State<MapScreen> {
           );
         },
       ),
-    ));
+    )));
 
     final FlutterMap map = FlutterMap(
       mapController: _controller,
