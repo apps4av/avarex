@@ -126,9 +126,23 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("NOTAM")] = FutureBuilder(future: Storage().notam.getSync(showDestination.locationID),
         builder: (context, snapshot) { // notmas are downloaded when not in cache and can be slow to download so do async
           if (snapshot.hasData) {
-            return snapshot.data != null ?
-              SingleChildScrollView(child: Padding(padding: const EdgeInsets.all(10), child:Text((snapshot.data as Notam).toString())))
-              : Container();
+            if(snapshot.data != null) {
+              Notam n = snapshot.data as Notam;
+
+              List<String> lines = n.toString().split("\n");
+              // remove empty lines
+              lines = lines.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+              String title = lines.removeAt(0); // first line is title
+              return ListView(
+                children: [
+                  ListTile(title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700),)),
+                  for(String v in lines)
+                    ListTile(leading: const Icon(Icons.warning_amber), title: Text(v)),
+                ]);
+            }
+            else {
+              return Container();
+            }
           }
           else {
             return const ListTile(leading: CircularProgressIndicator());

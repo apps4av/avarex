@@ -52,7 +52,7 @@ class NotamProduct extends Product {
           // we have a non ADSB notam, or no notam overwrite
           notam = Notam(fisGraphics.location, DateTime.now().add(
               const Duration(minutes: Constants.weatherUpdateTimeMin)),
-              DateTime.now(), Weather.sourceADSB, fisGraphics.text);
+              DateTime.now(), Weather.sourceADSB, fisGraphics.text.replaceAll("\n", " "));
           Storage().notam.put(notam);
           return;
         }
@@ -62,7 +62,7 @@ class NotamProduct extends Product {
           // throw away we already have it
         }
         else {
-          notam.text += "\n\n${fisGraphics.text}";
+          notam.text += "\n${fisGraphics.text.replaceAll("\n", " ")}";
           Storage().notam.put(notam);
         }
       }

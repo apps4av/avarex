@@ -55,7 +55,7 @@ class Constants {
   static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
   static const Color plateMarkColor = Color.fromARGB(150, 0, 255, 0);
   static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
-  static const Color tfrColorFuture = Color.fromARGB(150, 255, 103, 2);
+  static const Color tfrColorFuture = Color.fromARGB(150, 150, 103, 0);
 
   static const String appleId = "6502421523";
   static const String microsoftId = "9MX4HKL30MWW";
