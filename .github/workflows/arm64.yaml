@@ -19,6 +19,15 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
+      - name: Find and Replace ASA
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '**/*.dart'
+          search-text: '@@___asa_password__@@'
+          replacement-text: ${{ secrets.ASA_PASSWORD }}
+          encoding: 'utf8'
+          max-parallelism: 10
+
       - name: Build Flutter
         run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter build linux --release
 

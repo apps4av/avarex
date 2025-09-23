@@ -548,7 +548,7 @@ class PlanRoute {
     String? cookie;
 
     //@@___asa_password___@@
-    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=@@___asa_password___@@"));
+    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=@@___asa_password__@@"));
     if (responseHttp.statusCode == 200) {
       try {
         cookie = responseHttp.headers['set-cookie'];
