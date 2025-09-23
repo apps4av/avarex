@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'dart:typed_data';
+import 'package:avaremp/app_log.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
@@ -7,8 +7,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:html/dom.dart' show Element;
-import 'package:html/parser.dart' as html_parser;
+import 'package:html/parser.dart' as html show parse;
 import 'package:http/http.dart' as http;
 
 import 'notam.dart';
@@ -19,72 +18,72 @@ class NotamCache extends WeatherCache {
 
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
-    if(data.isEmpty) {
-      return;
-    }
 
     if(null == argument) {
       return;
     }
 
-    // clean up the html file
-    final List<Element> anchors;
-    try {
-      String ret = latin1.decode(data[0], allowInvalid: true);
-      var document = html_parser.parse(ret);
-      anchors = document.querySelectorAll('TD');
-    }
-    catch(e) {
-      Storage().setException("NOTAM: unable to decode data.");
-      return;
-    }
-    String retVal = "";
-
-    bool start = false;
-    for (var anchor in anchors) {
-
-      String text = anchor.text.trim().replaceAll("\n"," ").replaceAll("\r"," ");
-
-      if(text.startsWith("Data Current as of:")) {
-        start = true;
+    String? cookie;
+    //@@___asa_password___@@
+    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=@@___asa_password___@@"));
+    if (responseHttp.statusCode == 200) {
+      try {
+        cookie = responseHttp.headers['set-cookie'];
       }
-
-      if(!start) {
-        continue;
-      }
-
-      if(text.contains("End of Report")) {
-        break;
-      }
-
-      if(text.startsWith("No active NOTAMs")) {
-        continue;
-      }
-
-      if(text.startsWith("Surrounding Airports")) {
-        continue;
-      }
-
-      if(text.contains("Back to Top")) {
-        continue;
-      }
-      if(text.isEmpty) {
-        continue;
-      }
-      if(anchor.className == "textBlack12Bu") { // FAA puts notams in this class
-        retVal = "$retVal **** $text ****\n\n";
-      }
-      else {
-        retVal = "$retVal$text\n\n";
+      catch(e) {
+        AppLog.logMessage("ASA NOTAM cookie error $e");
       }
     }
 
-    Notam notam = Notam(argument,
-        DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
-        DateTime.now().toUtc(),
-        Weather.sourceInternet, retVal);
+    Map<String, String> headers = {};
+    headers['Cookie'] = cookie ?? "";
+    final response = await http.get(Uri.parse("https://rfinder.asalink.net/avionet_run.php?form_id=notam_inquiry&apt_icao_id=$argument"), headers: headers);
+    if (response.statusCode == 200) {
+      String data = response.body;
 
-    await WeatherDatabaseHelper.db.addNotam(notam);
+      // Parse HTML
+      final document = html.parse(data);
+
+      // Find all <tt> elements
+      final ttElements = document.getElementsByTagName('tt');
+
+      // Store results
+      List<List<String>> allNotams = [];
+
+      for (var tt in ttElements) {
+        // Get raw HTML text of this <tt>
+        final ttHtml = tt.innerHtml;
+
+        // Regex to capture content between <b>E)</b> and <br>
+        final regex = RegExp(r'<b>E\)</b>\s*(.*?)<br>', dotAll: true);
+        final match = regex.firstMatch(ttHtml);
+
+        if (match != null) {
+          // Extracted text
+          String content = match.group(1) ?? '';
+
+          // Clean HTML tags if any remain
+          content = content.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+
+          // Split into lines
+          List<String> lines = content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+          allNotams.add(lines);
+        }
+      }
+
+      String all = "";
+      if(allNotams.isNotEmpty) {
+        all = allNotams.join("\n\n");
+      }
+      Notam notam = Notam(argument,
+          DateTime.now().toUtc().add(
+              const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          DateTime.now().toUtc(),
+          Weather.sourceInternet, all);
+
+      await WeatherDatabaseHelper.db.addNotam(notam);
+    }
   }
 
   // Download and parse, override because this is a POST

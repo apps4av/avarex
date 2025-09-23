@@ -168,7 +168,6 @@ class WeatherCache {
     else if(type == TfrCache) {
       // default
       WeatherCache cache = TfrCache(
-          //["https://tfr.faa.gov/tfr2/list.html"],
           ["https://tfr.faa.gov/tfrapi/getTfrList"], // noticed/changed 2025-02-27
           WeatherDatabaseHelper.db.getAllTfr);
       return cache;
@@ -193,7 +192,7 @@ class WeatherCache {
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
-          ["https://www.notams.faa.gov/dinsQueryWeb/latLongRadiusSearchMapAction.do"],
+          ["https://rfinder.asalink.net/avionet_run.php"], // dummy link
           WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }
