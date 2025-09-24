@@ -72,7 +72,7 @@ class NotamCache extends WeatherCache {
         }
       }
 
-      String all = "";
+      String all = "Unable to get NOTAMs.";
       if(allNotams.isNotEmpty) {
         all = allNotams.join("\n\n");
       }

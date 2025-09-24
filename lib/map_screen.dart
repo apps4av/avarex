@@ -746,7 +746,7 @@ class MapScreenState extends State<MapScreen> {
               return MarkerLayer(
                 markers: [
                   Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 10, 330),
+                      Gps.toLatLng(value), 10, -30),
                       child: Transform.rotate(
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:
@@ -755,7 +755,7 @@ class MapScreenState extends State<MapScreen> {
                           child: const Text("10", style: TextStyle(fontSize: 14,
                             color: Colors.white,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 5, 330),
+                      Gps.toLatLng(value), 5, -30),
                       child: Transform.rotate(
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:
@@ -764,7 +764,7 @@ class MapScreenState extends State<MapScreen> {
                           child: const Text("5", style: TextStyle(fontSize: 14,
                             color: Colors.white,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 2, 330),
+                      Gps.toLatLng(value), 2, -30),
                       child: Transform.rotate(
                           angle: _northUp ? 0 : Storage().position.heading * pi /
                               180, child:

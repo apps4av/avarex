@@ -84,6 +84,9 @@ class WindsCache extends WeatherCache {
 
         //Low altitude winds aloft parsing -- these cases can assume that no previous entry with the same station name exists
         if(p == _WindsAloftProduct.conUsLow06H || p == _WindsAloftProduct.alaskaLow06H || p == _WindsAloftProduct.conUsLow12H || p == _WindsAloftProduct.alaskaLow12H || p == _WindsAloftProduct.conUsLow24H || p == _WindsAloftProduct.alaskaLow24H) {
+          if(line.length < 69) {
+            continue; // too short to be valid
+          }
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(4, 8).trim();
@@ -110,6 +113,9 @@ class WindsCache extends WeatherCache {
           }
         }
         else if(p == _WindsAloftProduct.pacificLow06H || p == _WindsAloftProduct.hawaiiLow06H || p == _WindsAloftProduct.pacificLow12H || p == _WindsAloftProduct.hawaiiLow12H || p == _WindsAloftProduct.pacificLow24H || p == _WindsAloftProduct.hawaiiLow24H) {
+          if(line.length < 71) {
+            continue; // too short to be valid
+          }
           try {
             String station = line.substring(0, 3).trim();
             String k3 = line.substring(19, 23).trim();

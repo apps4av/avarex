@@ -12,8 +12,8 @@ class GeoCalculations {
   }  
   GeoCalculations._internal();
 
-  final Distance _distance = const Distance();
-  final Distance _haversineDistance = const Distance(calculator: Haversine());
+  /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)
+  final Distance _distance = const Distance(calculator: Haversine());
 
   static const double segmentLength = 100; // nm
   static const double earthRadiusConversion = 3440.069; // nm
@@ -115,11 +115,6 @@ class GeoCalculations {
     return 12450; //set distance to maximum distance two points can be apart on earth, if calculation failed
   }
 
-  /// Fast distance calculation using Haversine formula (slightly < accurate, but fine for small distances, and crazy fast)
-  double calculateFastDistance(LatLng ll1, LatLng ll2) {
-    return Storage().units.mTo * _haversineDistance(ll1, ll2);
-  }  
-
   double calculateBearing(LatLng ll1, LatLng ll2) {
     double bearing = _distance.bearing(ll1, ll2);
     bearing = bearing < 0 ? bearing + 360 : bearing;
@@ -140,7 +135,7 @@ class GeoCalculations {
   // make a circle to given distance
   List<LatLng> calculateCircle(LatLng ll, double distance) {
     List<LatLng> circle = [];
-    for (double angle = 0; angle <= 360; angle += 15) {
+    for (double angle = -180; angle <= 180; angle += 15) {
       circle.add(calculateOffset(ll, distance, angle));
     }
     return circle;

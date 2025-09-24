@@ -90,7 +90,8 @@ class TfrCache extends WeatherCache {
           }
         }
         catch(e) {
-          AppLog.logMessage("Error parsing TFR effective/expire times: $e");
+          effectiveGroup = [];
+          expireGroup = [];
         }
         if(effectiveGroup.isEmpty || expireGroup.isEmpty) {
           effectiveGroup = ["2000-01-01T00:00:00"];

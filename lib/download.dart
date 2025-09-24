@@ -17,11 +17,14 @@ class Download {
   bool _cancelDownloadAndDelete = false;
 
   Future<void> _deleteZipFile(File file) async {
-    try {
-      await file.delete();
-    }
-    catch (e) {
-      Storage().setException("Unable to delete file ${file.path}");
+    bool exists = await file.exists();
+    if(exists) {
+      try {
+        await file.delete();
+      }
+      catch (e) {
+        Storage().setException("Unable to delete file ${file.path}");
+      }
     }
   }
 
