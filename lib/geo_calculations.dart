@@ -122,6 +122,10 @@ class GeoCalculations {
   }
 
   LatLng calculateOffset(LatLng from, double distance, double heading) {
+    // distance takes in -180 to 180 only
+    heading = heading % 360;
+    heading = heading < -180 ? heading + 360 : heading;
+    heading = heading >  180 ? heading - 360 : heading;
     return _distance.offset(from, Storage().units.toM * distance, heading);
   }
 

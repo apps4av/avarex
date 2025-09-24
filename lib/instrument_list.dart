@@ -71,6 +71,11 @@ class InstrumentListState extends State<InstrumentList> {
     super.dispose();
   }
 
+  String _distanceFormat(double distance) {
+    // if distance is less than 10 then show 1 decimal place, otherwise round it
+    return distance < 10 ? distance.toStringAsFixed(1) : distance.round().toString();
+  }
+
   String _truncate(String value) {
     int maxLength = 10;
     return value.length > maxLength ? value.substring(0, maxLength) : value;
@@ -103,7 +108,7 @@ class InstrumentListState extends State<InstrumentList> {
       q = GeoCalculations.getMagneticHeading(Storage().position.heading, variation);
       _magneticHeading = _truncate("${q.round()}\u00b0");
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance.round().toString());
+      _distance = _truncate(_distanceFormat(distance));
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
       Storage().pfdData.to = bearing;
 
@@ -246,7 +251,7 @@ class InstrumentListState extends State<InstrumentList> {
         _destination = _formatDestination(d);
       }
       var (distance, bearing) = _getDistanceBearing();
-      _distance = _truncate(distance.round().toString());
+      _distance = _truncate(_distanceFormat(distance));
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
 
       // previous destination
