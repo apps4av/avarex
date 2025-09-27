@@ -1,3 +1,4 @@
+import 'package:avaremp/filterable_logbook_dashboard.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -89,7 +90,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
         }
       }
 
-      final entry = LogEntry.fromJson(map);
+      final entry = LogEntry.fromMap(map);
       await UserDatabaseHelper.db.insertLogbook(entry);
     }
 
@@ -106,10 +107,10 @@ class _LogbookScreenState extends State<LogbookScreen> {
     if (entries.isEmpty) return;
 
     // use keys from toJson() for consistency
-    final headers = entries.first.toJson().keys.toList();
+    final headers = entries.first.toMap().keys.toList();
     final rows = [
       headers,
-      ...entries.map((e) => headers.map((h) => e.toJson()[h]).toList()),
+      ...entries.map((e) => headers.map((h) => e.toMap()[h]).toList()),
     ];
 
     final csv = const ListToCsvConverter().convert(rows);
@@ -124,6 +125,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
     );
     SharePlus.instance.share(params);
   }
+
 
   void _openForm({LogEntry? entry}) {
     Navigator.of(context).push(MaterialPageRoute(
@@ -145,6 +147,18 @@ class _LogbookScreenState extends State<LogbookScreen> {
     ));
   }
 
+  void _openStats() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          appBar: AppBar(title: Text('Log Book Dashboard')),
+          body: FilterableLogbookDashboard(logEntries: entries),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,12 +173,10 @@ class _LogbookScreenState extends State<LogbookScreen> {
       body: Column(
         children: [
           ListTile(
-            title: const Text("Total Hours"),
-            trailing: Text(totalHours.toStringAsFixed(1), style: const TextStyle(fontSize: 16)),
+            title: Row(children: [Padding(padding: EdgeInsets.all(10), child:Text("Total Hours")), Text(totalHours.toStringAsFixed(1), style: const TextStyle(fontSize: 16)), TextButton(onPressed: _openStats, child: const Text("Details"))]),
           ),
           const Divider(),
-          Expanded(
-            child: ListView.builder(
+            Expanded(child: ListView.builder(
               itemCount: entries.length,
               itemBuilder: (context, i) {
                 final e = entries[i];
@@ -448,12 +460,12 @@ class LogbookCsv {
   static String exportCsv(List<LogEntry> entries) {
     if (entries.isEmpty) return "";
 
-    final header = entries.first.toJson().keys.toList();
+    final header = entries.first.toMap().keys.toList();
 
     final rows = [
       header,
       ...entries.map((e) {
-        final map = e.toJson();
+        final map = e.toMap();
         return header.map((h) => map[h] ?? "").toList();
       }),
     ];
@@ -470,7 +482,7 @@ class LogbookCsv {
 
     return data.map((r) {
       final row = Map<String, dynamic>.fromIterables(header, r);
-      return LogEntry.fromJson(row); // use fromJson
+      return LogEntry.fromMap(row); // use fromJson
     }).toList();
   }
 }

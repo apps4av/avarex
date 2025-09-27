@@ -470,7 +470,7 @@ class UserDatabaseHelper {
     if(db != null) {
       await db.insert(
         'logbook',
-        entry.toJson(), // use toJson
+        entry.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -480,7 +480,7 @@ class UserDatabaseHelper {
     final db = await database;
     if(db != null) {
       final maps = await db.query('logbook', orderBy: 'date DESC');
-      return maps.map((e) => LogEntry.fromJson(e)).toList(); // use fromJson
+      return maps.map((e) => LogEntry.fromMap(e)).toList();
     }
     return [];
   }
@@ -490,7 +490,7 @@ class UserDatabaseHelper {
     if(db != null) {
       await db.update(
         'logbook',
-        entry.toJson(),
+        entry.toMap(),
         where: 'id = ?',
         whereArgs: [entry.id],
       );
