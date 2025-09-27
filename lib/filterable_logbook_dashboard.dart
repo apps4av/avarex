@@ -7,14 +7,14 @@ import 'log_entry.dart';
 class FilterableLogbookDashboard extends StatefulWidget {
   final List<LogEntry> logEntries;
 
-  FilterableLogbookDashboard({required this.logEntries});
+  const FilterableLogbookDashboard({super.key, required this.logEntries});
 
   @override
-  _FilterableLogbookDashboardState createState() =>
-      _FilterableLogbookDashboardState();
+  FilterableLogbookDashboardState createState() =>
+      FilterableLogbookDashboardState();
 }
 
-class _FilterableLogbookDashboardState
+class FilterableLogbookDashboardState
     extends State<FilterableLogbookDashboard> {
   Set<String> selectedYears = {};
   Set<String> selectedMakeModels = {};
@@ -84,9 +84,9 @@ class _FilterableLogbookDashboardState
       approaches += entry.instrumentApproaches;
     }
     return {
-      'Day Land': day,
-      'Night Land': night,
-      'Approaches': approaches,
+      'Day Landg.': day,
+      'Night Landg.': night,
+      'Apprch.': approaches,
     };
   }
 
@@ -141,7 +141,7 @@ class _FilterableLogbookDashboardState
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: entries.length * 80.0,
+              width: entries.length * 96.0,
               child: BarChart(
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
@@ -187,9 +187,11 @@ class _FilterableLogbookDashboardState
       children: entries
           .map((e) => ListTile(
         title: Text('${e.aircraftMakeModel} (${e.aircraftIdentification})'),
-        subtitle: Text(
-            '${e.date.toLocal().toIso8601String().split("T")[0]} - ${e.totalFlightTime.toStringAsFixed(2)} hrs'),
-      ))
+        subtitle: Text(e.route),
+        trailing: Text("D:${e.dayLandings}\nN:${e.nightLandings}\nIAP:${e.instrumentApproaches}"),
+        leading: SizedBox(width: 96, child:Text(
+            '${e.date.toLocal().toIso8601String().split("T")[0]}\n${e.totalFlightTime.toStringAsFixed(2)} hrs'),
+      )))
           .toList(),
     );
   }
@@ -217,21 +219,21 @@ class _FilterableLogbookDashboardState
         children: [
           _buildMultiSelectFilter('Filter by Year', selectedYears, allYears),
           _buildMultiSelectFilter(
-              'Filter by Aircraft Make & Model', selectedMakeModels, allMakeModels),
-          _buildMultiSelectFilter(
               'Filter by Tail Number', selectedTails, allTails),
+          _buildMultiSelectFilter(
+              'Filter by Aircraft Type', selectedMakeModels, allMakeModels),
           _buildMultiSelectFilter(
               'Filter by Remark', selectedRemarks, ["Check Ride", "IPC", "Flight Review"]),
           SizedBox(height: 48),
           _buildBarChart(hoursByYear, 'Flight Hours by Year'),
           SizedBox(height: 48),
-          _buildBarChart(hoursByMakeModel, 'Hours by Aircraft Make & Model'),
-          SizedBox(height: 48),
           _buildBarChart(hoursByTail, 'Hours by Tail Number'),
+          SizedBox(height: 48),
+          _buildBarChart(hoursByMakeModel, 'Hours by Aircraft Type'),
           SizedBox(height: 48),
           _buildBarChart(hoursByType, 'Hours by Type'),
           SizedBox(height: 48),
-          _buildBarChart(byProcedure, 'By Procedure'),
+          _buildBarChart(byProcedure, 'Number of Procedures'),
           SizedBox(height: 48),
           Text('Flights Matching Filters',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
