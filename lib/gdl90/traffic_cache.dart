@@ -55,13 +55,12 @@ class Traffic {
     return (DateTime.now().millisecondsSinceEpoch - message.time.millisecondsSinceEpoch) * _kMinutesPerMillisecond > 1; // CPU flameshart => optimization
   }
 
-  Widget getIcon(bool northUp, bool isAudibleAlertsEnabled) {
+  Widget getIcon(bool isAudibleAlertsEnabled, double angle) {
     return Row(children:[
           Stack(children: [
             CustomPaint(painter: AlertBoxPainter(this)),
             Transform.rotate(
-              angle: (message.heading + 180.0 /* Image painted down on coordinate plane */ 
-                - (northUp ? 0 : Storage().position.heading)) * pi  * _kDivBy180,
+              angle: (message.heading + 180 - angle) * pi  * _kDivBy180,
               origin: const Offset(15, 15),
               child: CustomPaint(painter: TrafficPainter(this))
             ),

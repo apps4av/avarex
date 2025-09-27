@@ -225,7 +225,7 @@ class WnbScreenState extends State<WnbScreen> {
                       }
                   }
                   catch (e) {
-                    MapScreenState.showToast(context, "Error reading Weight Min.", const Icon(Icons.error, color: Colors.red), 3);;
+                    MapScreenState.showToast(context, "Error reading Weight Min.", const Icon(Icons.error, color: Colors.red), 3);
                   }
                 },
                 onFieldSubmitted: (value) {

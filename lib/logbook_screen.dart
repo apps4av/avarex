@@ -56,6 +56,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
     final headers = rows.first.cast<String>();
     final dataRows = rows.skip(1);
 
+    bool error = false;
     for (final row in dataRows) {
       final map = <String, dynamic>{};
       for (int i = 0; i < headers.length; i++) {
@@ -76,6 +77,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
           "copilot",
           "instructor",
           "examiner",
+          "groundTime",
           "flightSimulator",
           "holdingProcedures"
         ].contains(key)) {
@@ -91,14 +93,28 @@ class _LogbookScreenState extends State<LogbookScreen> {
         }
       }
 
-      final entry = LogEntry.fromMap(map);
+      final LogEntry entry;
+      try {
+        entry = LogEntry.fromMap(map);
+      }
+      catch(e) {
+        error = true;
+        continue;
+      }
       await UserDatabaseHelper.db.insertLogbook(entry);
     }
 
     _loadEntries();
     if(mounted) {
-      MapScreenState.showToast(
-          context, "CSV imported successfully", Icon(Icons.info, color: Colors.blue,), 3);
+      if(error) {
+        MapScreenState.showToast(context, "Unable to import all or some of the CSV file",
+            Icon(Icons.info, color: Colors.red,), 3); //
+      }
+      else {
+        MapScreenState.showToast(
+            context, "CSV imported successfully",
+            Icon(Icons.info, color: Colors.blue,), 3);
+      }
     }
   }
 
@@ -243,6 +259,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
   late TextEditingController _dayLandingsController;
   late TextEditingController _nightLandingsController;
   late TextEditingController _holdingController;
+  late TextEditingController _groundTimeController;
   late TextEditingController _approachesController;
   late TextEditingController _instructorNameController;
   late TextEditingController _instructorCertController;
@@ -276,6 +293,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
     _dayLandingsController = TextEditingController(text: e?.dayLandings.toString() ?? "0");
     _nightLandingsController = TextEditingController(text: e?.nightLandings.toString() ?? "0");
     _holdingController = TextEditingController(text: e?.holdingProcedures.toString() ?? "0.0");
+    _groundTimeController = TextEditingController(text: e?.groundTime.toString() ?? "0.0");
     _approachesController = TextEditingController(text: e?.instrumentApproaches.toString() ?? "0");
     _instructorNameController = TextEditingController(text: e?.instructorName ?? "");
     _instructorCertController = TextEditingController(text: e?.instructorCertificate ?? "");
@@ -307,6 +325,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
     _approachesController.dispose();
     _instructorNameController.dispose();
     _instructorCertController.dispose();
+    _groundTimeController.dispose();
     _remarksController.dispose();
     super.dispose();
   }
@@ -350,6 +369,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
       dayLandings: int.tryParse(_dayLandingsController.text) ?? 0,
       nightLandings: int.tryParse(_nightLandingsController.text) ?? 0,
       holdingProcedures: double.tryParse(_holdingController.text) ?? 0.0,
+      groundTime: double.tryParse(_groundTimeController.text) ?? 0.0,
       instrumentApproaches: int.tryParse(_approachesController.text) ?? 0,
       instructorName: _instructorNameController.text,
       instructorCertificate: _instructorCertController.text,
@@ -419,6 +439,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
               _buildNumberField("Simulated Instruments (hrs)", _simInstrumentController),
               _buildNumberField("Cross Country (hrs)", _crossCountryController),
               _buildNumberField("Holding Procedures (hrs)", _holdingController),
+              _buildNumberField("Ground Time (hrs)", _groundTimeController),
               _buildNumberField("Flight Simulator (hrs)", _simulatorController),
               _buildNumberField("Day Landings", _dayLandingsController, isInteger: true),
               _buildNumberField("Night Landings", _nightLandingsController, isInteger: true),

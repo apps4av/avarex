@@ -20,6 +20,7 @@ class LogEntry {
   double copilot;             // SIC time
   double instructor;          // CFI time given
   double examiner;            // check airman time
+  double groundTime;          // ground instruction time
   double flightSimulator;     // FTD/Simulator
 
   // Landings
@@ -59,6 +60,7 @@ class LogEntry {
     this.dayLandings = 0,
     this.nightLandings = 0,
     this.holdingProcedures = 0.0,
+    this.groundTime = 0,
     this.instrumentApproaches = 0,
     this.instructorName = '',
     this.instructorCertificate = '',
@@ -87,6 +89,7 @@ class LogEntry {
     dayLandings: map['dayLandings'] as int,
     nightLandings: map['nightLandings'] as int,
     holdingProcedures: (map['holdingProcedures'] as num).toDouble(),
+    groundTime: (map['groundTime'] as num).toDouble(),
     instrumentApproaches: map['instrumentApproaches'] as int,
     instructorName: map['instructorName'] as String,
     instructorCertificate: map['instructorCertificate'] as String,
@@ -115,6 +118,7 @@ class LogEntry {
     'dayLandings': dayLandings,
     'nightLandings': nightLandings,
     'holdingProcedures': holdingProcedures,
+    'groundTime': groundTime,
     'instrumentApproaches': instrumentApproaches,
     'instructorName': instructorName,
     'instructorCertificate': instructorCertificate,

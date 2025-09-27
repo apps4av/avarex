@@ -43,7 +43,7 @@ class FilterableLogbookDashboardState
   }
 
   Map<String, double> _aggregateByType(List<LogEntry> entries) {
-    double night = 0, day = 0, instrument = 0, instructor = 0, cross = 0, solo = 0, dual = 0, pic = 0, sic = 0, examiner = 0, sim = 0, simI = 0, holds = 0;
+    double night = 0, day = 0, instrument = 0, instructor = 0, cross = 0, solo = 0, dual = 0, pic = 0, sic = 0, examiner = 0, sim = 0, simI = 0, holds = 0, ground = 0;
     for (var entry in entries) {
       night += entry.nightTime;
       day += entry.dayTime;
@@ -57,6 +57,7 @@ class FilterableLogbookDashboardState
       simI = entry.simulatedInstruments;
       examiner = entry.examiner;
       sim = entry.flightSimulator;
+      ground += entry.groundTime;
       holds += entry.holdingProcedures;
     }
     return {
@@ -73,6 +74,7 @@ class FilterableLogbookDashboardState
       'XC': cross,
       'Hold': holds,
       'Flt. Sim.': sim,
+      'Ground': ground,
     };
   }
 
@@ -223,7 +225,7 @@ class FilterableLogbookDashboardState
           _buildMultiSelectFilter(
               'Filter by Aircraft Type', selectedMakeModels, allMakeModels),
           _buildMultiSelectFilter(
-              'Filter by Remark', selectedRemarks, ["Check Ride", "IPC", "Flight Review"]),
+              'Filter by Remarks', selectedRemarks, ["Check Ride", "IPC", "Flight Review", "Favorite"]),
           SizedBox(height: 48),
           _buildBarChart(hoursByYear, 'Flight Hours by Year'),
           SizedBox(height: 48),

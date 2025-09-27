@@ -660,12 +660,13 @@ class MapScreenState extends State<MapScreen> {
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
+            double angle = _northUp ? 0 : Storage().position.heading;
             return MarkerLayer(
               markers:
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                   point: e.getCoordinates(),
-                  child: e.getIcon(_northUp, Storage().settings.isAudibleAlertsEnabled()),
+                  child: Transform.rotate(angle: angle * pi / 180, child:e.getIcon(Storage().settings.isAudibleAlertsEnabled(), angle)),
                 );
               }).toList(),
             );
