@@ -87,6 +87,20 @@ class PathUtils {
     }
   }
 
+  static Future<String?> writeLogbook(String base, String data) async {
+    DateTime now = DateTime.now();
+    try {
+      final format = DateFormat('yyyy_MMMM_dd@kk_mm_ss').format(now);
+      final String file = path.join(base, "logbook_$format.csv");
+      final File f = File(file);
+      await f.writeAsString(data);
+      return(f.path);
+    }
+    catch(e) {
+      return(null);
+    }
+  }
+
   static String _getPlateFilePath(String base, String airport, String plate) {
     String plates = path.join(base, "plates");
     String id = path.join(plates, airport);

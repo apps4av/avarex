@@ -221,7 +221,7 @@ class _FilterableLogbookDashboardState
           _buildMultiSelectFilter(
               'Filter by Tail Number', selectedTails, allTails),
           _buildMultiSelectFilter(
-              'Filter by Remark', selectedRemarks, ["Check", "IPC", "Review"]),
+              'Filter by Remark', selectedRemarks, ["Check Ride", "IPC", "Flight Review"]),
           SizedBox(height: 48),
           _buildBarChart(hoursByYear, 'Flight Hours by Year'),
           SizedBox(height: 48),

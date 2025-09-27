@@ -1,9 +1,10 @@
 import 'package:avaremp/filterable_logbook_dashboard.dart';
 import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -114,18 +115,22 @@ class _LogbookScreenState extends State<LogbookScreen> {
     ];
 
     final csv = const ListToCsvConverter().convert(rows);
+    String? path = await PathUtils.writeLogbook(Storage().dataDir, csv);
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/logbook_export.csv");
-    await file.writeAsString(csv);
-
-    final params = ShareParams(
-      files: [XFile(file.path)],
-      sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
-    );
-    SharePlus.instance.share(params);
+    if(path != null) {
+      final params = ShareParams(
+        files: [XFile(path)],
+        sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
+      );
+      SharePlus.instance.share(params);
+    }
+    else {
+      if(mounted) {
+        MapScreenState.showToast(
+            context, "Failed to write CSV", Icon(Icons.error, color: Colors.red,), 3);
+      }
+    }
   }
-
 
   void _openForm({LogEntry? entry}) {
     Navigator.of(context).push(MaterialPageRoute(
