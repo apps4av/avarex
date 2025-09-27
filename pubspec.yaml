@@ -79,6 +79,7 @@ dependencies:
   scribble: ^0.10.0+1
   value_notifier_tools: ^0.1.2
   geojson_vi: ^2.2.5
+  csv: ^5.0.0
   flutter_bluetooth_serial_ble: ^0.5.0
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:

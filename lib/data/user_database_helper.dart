@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/checklist.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb.dart';
@@ -463,4 +464,53 @@ class UserDatabaseHelper {
     return ret;
   }
 
+
+  Future<void> insertLogbook(LogEntry entry) async {
+    final db = await database;
+    if(db != null) {
+      await db.insert(
+        'logbook',
+        entry.toJson(), // use toJson
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<List<LogEntry>> getAllLogbook() async {
+    final db = await database;
+    if(db != null) {
+      final maps = await db.query('logbook', orderBy: 'date DESC');
+      return maps.map((e) => LogEntry.fromJson(e)).toList(); // use fromJson
+    }
+    return [];
+  }
+
+  Future<void> updateLogbook(LogEntry entry) async {
+    final db = await database;
+    if(db != null) {
+      await db.update(
+        'logbook',
+        entry.toJson(),
+        where: 'id = ?',
+        whereArgs: [entry.id],
+      );
+    }
+  }
+
+  Future<void> deleteLogbook(String id) async {
+    final db = await database;
+    if(db != null) {
+      await db.delete('logbook', where: 'id = ?', whereArgs: [id]);
+    }
+  }
+
+  Future<double> getTotalHoursLogbook() async {
+    final db = await database;
+    if(db != null) {
+      final result =
+      await db.rawQuery('SELECT SUM(totalFlightTime) as total FROM logbook');
+      return (result.first['total'] ?? 0) as double;
+    }
+    return 0;
+  }
 }
