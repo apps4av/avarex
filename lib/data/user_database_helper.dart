@@ -36,7 +36,7 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 3,
+          version: 4,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion == 1 && newVersion == 2) {
               await db.execute("create table sketch("
@@ -53,6 +53,34 @@ class UserDatabaseHelper {
                   "elevation    float,"
                   "unique(latitude, longitude) on conflict replace);");
             }
+            if(oldVersion <= 3 && newVersion == 4) {
+              await db.execute("create table logbook ("
+                  "id                      text primary key, "
+                  "date                    text, "
+                  "aircraftMakeModel       text, "
+                  "aircraftIdentification  text, "
+                  "route                   text, "
+                  "totalFlightTime         real, "
+                  "dayTime                 real, "
+                  "nightTime               real, "
+                  "crossCountryTime        real, "
+                  "soloTime                real, "
+                  "simulatedInstruments    real, "
+                  "actualInstruments       real, "
+                  "dualReceived            real, "
+                  "pilotInCommand          real, "
+                  "copilot                 real, "
+                  "instructor              real, "
+                  "examiner                real, "
+                  "flightSimulator         real, "
+                  "dayLandings             integer, "
+                  "nightLandings           integer, "
+                  "holdingProcedures       real, "
+                  "instrumentApproaches    integer, "
+                  "instructorName          text, "
+                  "instructorCertificate   text, "
+                  "remarks                 text);");
+            }
           },
           onCreate: (Database db, int version) async {
 
@@ -68,6 +96,33 @@ class UserDatabaseHelper {
                 "longitude    float,"
                 "elevation    float,"
                 "unique(latitude, longitude) on conflict replace);");
+
+            await db.execute("create table logbook ("
+                "id                      text primary key, "
+                "date                    text, "
+                "aircraftMakeModel       text, "
+                "aircraftIdentification  text, "
+                "route                   text, "
+                "totalFlightTime         real, "
+                "dayTime                 real, "
+                "nightTime               real, "
+                "crossCountryTime        real, "
+                "soloTime                real, "
+                "simulatedInstruments    real, "
+                "actualInstruments       real, "
+                "dualReceived            real, "
+                "pilotInCommand          real, "
+                "copilot                 real, "
+                "instructor              real, "
+                "examiner                real, "
+                "flightSimulator         real, "
+                "dayLandings             integer, "
+                "nightLandings           integer, "
+                "holdingProcedures       real, "
+                "instrumentApproaches    integer, "
+                "instructorName          text, "
+                "instructorCertificate   text, "
+                "remarks                 text);");
 
             await db.execute("create table recent ("
                 "id           integer primary key autoincrement, "
