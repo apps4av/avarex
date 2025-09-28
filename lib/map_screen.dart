@@ -588,6 +588,26 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
+      layers.add(
+        // nexrad layer
+          IgnorePointer(child:Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+            valueListenable: Storage().timeChange,
+            builder: (context, value, _) {
+              bool conus = true;
+              // show conus above zoom level 7
+              conus = _controller.camera.zoom < 7 ? true : false;
+              List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
+              return OverlayImageLayer(
+                overlayImages: images.map((e) {
+                  return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
+                      bounds: e.getBounds());
+                }).toList(),
+              );
+            },
+          ),
+          ))
+      );
+
       layers.add(Opacity(opacity: opacity, child: _makeMetarCluster()));
 
       layers.add(Opacity(opacity: opacity, child: _makeTafCluster()));
@@ -598,24 +618,6 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
-      layers.add(
-        // nexrad layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().timeChange,
-          builder: (context, value, _) {
-            bool conus = true;
-            // show conus above zoom level 7
-            conus = _controller.camera.zoom < 7 ? true : false;
-            List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
-            return OverlayImageLayer(
-              overlayImages: images.map((e) {
-                return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
-                    bounds: e.getBounds());
-              }).toList(),
-            );
-          },
-        ),
-      ));
     }
 
     lIndex = _layers.indexOf('TFR');
@@ -630,7 +632,7 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add( // circle layer
-        Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
             valueListenable: Storage().plateChange,
             builder: (context, value, _) {
               return OverlayImageLayer(
@@ -649,7 +651,7 @@ class MapScreenState extends State<MapScreen> {
               );
             }
         ),
-      ));
+      )));
     }
 
     lIndex = _layers.indexOf('Traffic');
