@@ -9,6 +9,7 @@ import 'map_screen.dart';
 import 'find_screen.dart';
 import 'package:yaml/yaml.dart';
 import 'package:flutter/services.dart';
+import 'package:avaremp/revenuecat_service.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -141,6 +142,19 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               ListTile(title: const Text("Log Book"), leading: Icon(Icons.notes), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/logbook');}, dense: true,),
               if(Constants.shouldShowBluetoothSpp) ListTile(title: const Text("IO"), leading: const Icon(Icons.compare_arrows_rounded), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/io');}, dense: true,),
               if(Constants.shouldShowDonation) ListTile(title: const Text("Donate"), leading: const Icon(Icons.celebration), onTap: () {Navigator.pushNamed(context, '/donate');}, dense: true,),
+              ListTile(title: const Text("AvareX Pro"), leading: const Icon(Icons.star), onTap: () async {
+                Navigator.pop(context);
+                final bool pro = await RevenueCatService().isProUser();
+                if (pro) {
+                  if (mounted) {
+                    Navigator.pushNamed(context, '/pro');
+                  }
+                } else {
+                  if (mounted) {
+                    Navigator.pushNamed(context, '/upgrade');
+                  }
+                }
+              }, dense: true,),
             ],
           ))
         ),

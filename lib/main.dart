@@ -7,6 +7,9 @@ import 'package:avaremp/wnb_screen.dart';
 import 'package:avaremp/writing_screen.dart';
 import 'package:flutter/material.dart';
 import 'aircraft_screen.dart';
+import 'package:avaremp/pro_screen.dart';
+import 'package:avaremp/revenuecat_service.dart';
+import 'package:avaremp/upgrade_screen.dart';
 import 'checklist_screen.dart';
 import 'constants.dart';
 import 'destination/destination.dart';
@@ -25,7 +28,8 @@ void main()  {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
 
-  Storage().init().then((accentColor) {
+  Storage().init().then((accentColor) async {
+    await RevenueCatService().init();
     runApp(const MainApp());
   });
 
@@ -61,6 +65,8 @@ class MainApp extends StatelessWidget {
                   final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;
                   return LongPressScreen(destinations: args);
                 }
+              , '/pro': (context) => const ProScreen()
+              , '/upgrade': (context) => const UpgradeScreen()
             },
             theme: value,
           )); // Safe Area so things from OS do not get in the way

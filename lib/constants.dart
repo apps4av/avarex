@@ -60,6 +60,14 @@ class Constants {
   static const String appleId = "6502421523";
   static const String microsoftId = "9MX4HKL30MWW";
 
+  // RevenueCat configuration
+  // Fill these with your RevenueCat public SDK keys per platform
+  static const String revenueCatPublicSdkKeyAndroid = ""; // e.g. rc_android_key_... 
+  static const String revenueCatPublicSdkKeyIOS = ""; // e.g. rc_ios_key_...
+  static const String revenueCatPublicSdkKeyMacOS = ""; // optional if different
+  static const String revenueCatPublicSdkKeyWindows = ""; // optional if different
+  static const String revenueCatEntitlementPro = "pro";
+
   static double dropDownButtonFontSize = 14;
 
   static double carouselAspectRatio(BuildContext context) {
