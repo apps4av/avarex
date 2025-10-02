@@ -253,4 +253,22 @@ class AppSettings {
     provider.setBool("key-review-never", true);
   }
 
+  // OpenAI API key storage
+  void setOpenAiApiKey(String apiKey) {
+    provider.setString("key-openai-api-key", apiKey);
+  }
+
+  String getOpenAiApiKey() {
+    return provider.getValue("key-openai-api-key", defaultValue: "") as String;
+  }
+
+  // Chat model storage
+  void setChatModel(String model) {
+    provider.setString("key-openai-model-v1", model);
+  }
+
+  String getChatModel() {
+    return provider.getValue("key-openai-model-v1", defaultValue: "gpt-4o-mini") as String;
+  }
+
 }
