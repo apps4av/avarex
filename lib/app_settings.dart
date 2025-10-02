@@ -253,4 +253,21 @@ class AppSettings {
     provider.setBool("key-review-never", true);
   }
 
+  // OpenAI / ChatGPT settings
+  void setOpenAIKey(String key) {
+    provider.setString("key-openai-api-key", key);
+  }
+
+  String getOpenAIKey() {
+    return provider.getValue("key-openai-api-key", defaultValue: "") as String;
+  }
+
+  void setOpenAIModel(String model) {
+    provider.setString("key-openai-model", model);
+  }
+
+  String getOpenAIModel() {
+    return provider.getValue("key-openai-model", defaultValue: "gpt-4o-mini") as String;
+  }
+
 }

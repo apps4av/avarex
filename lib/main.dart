@@ -12,6 +12,7 @@ import 'constants.dart';
 import 'destination/destination.dart';
 import 'documents_screen.dart';
 import 'download_screen.dart';
+import 'chat_screen.dart';
 import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
@@ -56,6 +57,7 @@ class MainApp extends StatelessWidget {
               '/donate': (context) => const DonateScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
+              '/chat': (context) => const ChatScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
               '/popup': (context) {
                   final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;
