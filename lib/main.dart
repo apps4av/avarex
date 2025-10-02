@@ -12,6 +12,7 @@ import 'constants.dart';
 import 'destination/destination.dart';
 import 'documents_screen.dart';
 import 'download_screen.dart';
+import 'clocks_screen.dart';
 import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
@@ -54,6 +55,7 @@ class MainApp extends StatelessWidget {
               '/wnb': (context) => const WnbScreen(),
               '/logbook': (context) => const LogbookScreen(),
               '/donate': (context) => const DonateScreen(),
+              '/clocks': (context) => const ClocksScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),

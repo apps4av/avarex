@@ -139,6 +139,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               ListTile(title: const Text("Check Lists"), leading: Icon(MdiIcons.check), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/checklists');}, dense: true,),
               ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/wnb');}, dense: true,),
               ListTile(title: const Text("Log Book"), leading: Icon(Icons.notes), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/logbook');}, dense: true,),
+              ListTile(title: const Text("World Clocks"), leading: const Icon(Icons.access_time), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/clocks');}, dense: true,),
               if(Constants.shouldShowBluetoothSpp) ListTile(title: const Text("IO"), leading: const Icon(Icons.compare_arrows_rounded), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/io');}, dense: true,),
               if(Constants.shouldShowDonation) ListTile(title: const Text("Donate"), leading: const Icon(Icons.celebration), onTap: () {Navigator.pushNamed(context, '/donate');}, dense: true,),
             ],
