@@ -268,7 +268,7 @@ class AppSettings {
   }
 
   String getChatModel() {
-    return provider.getValue("key-openai-model-v1", defaultValue: "gpt-4o-mini") as String;
+    return provider.getValue("key-openai-model-v1", defaultValue: "gpt-5") as String;
   }
 
 }
