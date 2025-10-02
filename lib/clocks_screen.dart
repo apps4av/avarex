@@ -1,5 +1,236 @@
 import 'dart:async';
 import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:timezone/timezone.dart' as tz;
+
+import 'constants.dart';
+
+class ClocksScreen extends StatefulWidget {
+  const ClocksScreen({super.key});
+
+  @override
+  State<StatefulWidget> createState() => ClocksScreenState();
+}
+
+class ClocksScreenState extends State<ClocksScreen> {
+  late Timer _ticker;
+
+  final List<(String, String)> _zones = const [
+    ("UTC", "UTC"),
+    ("Los Angeles", "America/Los_Angeles"),
+    ("New York", "America/New_York"),
+    ("London", "Europe/London"),
+    ("Paris", "Europe/Paris"),
+    ("Moscow", "Europe/Moscow"),
+    ("Dubai", "Asia/Dubai"),
+    ("Delhi", "Asia/Kolkata"),
+    ("Hong Kong", "Asia/Hong_Kong"),
+    ("Tokyo", "Asia/Tokyo"),
+    // ("Sydney", "Australia/Sydney"), // Keep to 10 total
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    bool portrait = Constants.isPortrait(context);
+    int crossAxisCount = portrait ? 2 : 4;
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Constants.appBarBackgroundColor,
+        title: const Text("Clocks"),
+      ),
+      body: GridView.builder(
+        padding: const EdgeInsets.all(10),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1,
+        ),
+        itemCount: _zones.length,
+        itemBuilder: (_, index) {
+          final (city, zone) = _zones[index];
+          final tz.TZDateTime now = tz.TZDateTime.now(tz.getLocation(zone));
+          return _ClockTile(city: city, now: now);
+        },
+      ),
+    );
+  }
+}
+
+class _ClockTile extends StatelessWidget {
+  final String city;
+  final DateTime now;
+  const _ClockTile({required this.city, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    Color dialColor = Theme.of(context).cardColor.withValues(alpha: 0.8);
+    Color handColor = Theme.of(context).colorScheme.primary;
+    Color secondHandColor = Theme.of(context).colorScheme.secondary;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(16)),
+        color: dialColor,
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double size = min(constraints.maxWidth, constraints.maxHeight);
+                  return CustomPaint(
+                    size: Size.square(size),
+                    painter: _AnalogClockPainter(
+                      now: now,
+                      dialColor: Theme.of(context).scaffoldBackgroundColor,
+                      tickColor: Theme.of(context).hintColor,
+                      handColor: handColor,
+                      secondHandColor: secondHandColor,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+            child: Column(
+              children: [
+                Text(city, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(_format(now), style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _format(DateTime t) {
+    String hh = t.hour.toString().padLeft(2, '0');
+    String mm = t.minute.toString().padLeft(2, '0');
+    String ss = t.second.toString().padLeft(2, '0');
+    return "$hh:$mm:$ss";
+  }
+}
+
+class _AnalogClockPainter extends CustomPainter {
+  final DateTime now;
+  final Color dialColor;
+  final Color tickColor;
+  final Color handColor;
+  final Color secondHandColor;
+
+  _AnalogClockPainter({
+    required this.now,
+    required this.dialColor,
+    required this.tickColor,
+    required this.handColor,
+    required this.secondHandColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Offset center = Offset(size.width / 2, size.height / 2);
+    final double radius = min(size.width, size.height) / 2;
+
+    final Paint facePaint = Paint()
+      ..color = dialColor
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, facePaint);
+
+    final Paint borderPaint = Paint()
+      ..color = tickColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawCircle(center, radius, borderPaint);
+
+    final Paint tickPaint = Paint()
+      ..color = tickColor
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final Paint hourTickPaint = Paint()
+      ..color = tickColor
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 60; i++) {
+      final double tickLength = (i % 5 == 0) ? radius * 0.10 : radius * 0.05;
+      final Paint p = (i % 5 == 0) ? hourTickPaint : tickPaint;
+      final double angle = (pi / 30) * i;
+      final double outerX = center.dx + (radius - 6) * sin(angle);
+      final double outerY = center.dy - (radius - 6) * cos(angle);
+      final double innerX = center.dx + (radius - 6 - tickLength) * sin(angle);
+      final double innerY = center.dy - (radius - 6 - tickLength) * cos(angle);
+      canvas.drawLine(Offset(innerX, innerY), Offset(outerX, outerY), p);
+    }
+
+    final int hour = now.hour % 12;
+    final int minute = now.minute;
+    final int second = now.second;
+
+    final double hourAngle = (pi / 6) * (hour + minute / 60 + second / 3600);
+    final double minuteAngle = (pi / 30) * (minute + second / 60);
+    final double secondAngle = (pi / 30) * second;
+
+    final Paint hourHandPaint = Paint()
+      ..color = handColor
+      ..strokeWidth = radius * 0.06
+      ..strokeCap = StrokeCap.round;
+    final Paint minuteHandPaint = Paint()
+      ..color = handColor
+      ..strokeWidth = radius * 0.04
+      ..strokeCap = StrokeCap.round;
+    final Paint secondHandPaint = Paint()
+      ..color = secondHandColor
+      ..strokeWidth = radius * 0.02
+      ..strokeCap = StrokeCap.round;
+
+    _drawHand(canvas, center, radius * 0.55, hourAngle, hourHandPaint);
+    _drawHand(canvas, center, radius * 0.75, minuteAngle, minuteHandPaint);
+    _drawHand(canvas, center, radius * 0.85, secondAngle, secondHandPaint);
+
+    final Paint centerDot = Paint()..color = handColor;
+    canvas.drawCircle(center, radius * 0.04, centerDot);
+  }
+
+  void _drawHand(Canvas canvas, Offset center, double length, double angle, Paint paint) {
+    final double x = center.dx + length * sin(angle);
+    final double y = center.dy - length * cos(angle);
+    canvas.drawLine(center, Offset(x, y), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _AnalogClockPainter oldDelegate) {
+    return oldDelegate.now.second != now.second ||
+        oldDelegate.dialColor != dialColor ||
+        oldDelegate.tickColor != tickColor ||
+        oldDelegate.handColor != handColor ||
+        oldDelegate.secondHandColor != secondHandColor;
+  }
+}
+
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 

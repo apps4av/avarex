@@ -16,6 +16,7 @@ import 'clocks_screen.dart';
 import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
+import 'package:timezone/data/latest.dart' as tzdata;
 
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
   @override
@@ -27,6 +28,7 @@ void main()  {
   CustomWidgetsBinding();
 
   Storage().init().then((accentColor) {
+    tzdata.initializeTimeZones();
     runApp(const MainApp());
   });
 
