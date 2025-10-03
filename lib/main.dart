@@ -15,6 +15,7 @@ import 'download_screen.dart';
 import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
+import 'chatgpt_screen.dart';
 
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
   @override
@@ -56,6 +57,7 @@ class MainApp extends StatelessWidget {
               '/donate': (context) => const DonateScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
+              '/chatgpt': (context) => const ChatGptScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
               '/popup': (context) {
                   final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;
