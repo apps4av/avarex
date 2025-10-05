@@ -1,5 +1,4 @@
-import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/logbook/filterable_dashboard.dart';
+import 'package:avaremp/filterable_logbook_dashboard.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -9,8 +8,8 @@ import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'logbook/entry.dart';
-
+import 'data/user_database_helper.dart';
+import 'log_entry.dart';
 
 // this is entirely AI generated code to manage a logbook
 
@@ -18,11 +17,11 @@ class LogbookScreen extends StatefulWidget {
   const LogbookScreen({super.key});
 
   @override
-  State<LogbookScreen> createState() => LogbookScreenState();
+  State<LogbookScreen> createState() => _LogbookScreenState();
 }
 
-class LogbookScreenState extends State<LogbookScreen> {
-  List<Entry> entries = [];
+class _LogbookScreenState extends State<LogbookScreen> {
+  List<LogEntry> entries = [];
   double totalHours = 0.0;
 
   @override
@@ -94,9 +93,9 @@ class LogbookScreenState extends State<LogbookScreen> {
         }
       }
 
-      final Entry entry;
+      final LogEntry entry;
       try {
-        entry = Entry.fromMap(map);
+        entry = LogEntry.fromMap(map);
       }
       catch(e) {
         error = true;
@@ -149,7 +148,7 @@ class LogbookScreenState extends State<LogbookScreen> {
     }
   }
 
-  void _openForm({Entry? entry}) {
+  void _openForm({LogEntry? entry}) {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => LogEntryForm(
         entry: entry,
@@ -175,7 +174,7 @@ class LogbookScreenState extends State<LogbookScreen> {
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(title: Text('Log Book Dashboard')),
-          body: FilterableDashboard(logEntries: entries),
+          body: FilterableLogbookDashboard(logEntries: entries),
         ),
       ),
     );
@@ -226,9 +225,9 @@ class LogbookScreenState extends State<LogbookScreen> {
 
 
 class LogEntryForm extends StatefulWidget {
-  final Entry? entry;
-  final void Function(Entry) onSave;
-  final void Function(Entry) onDelete;
+  final LogEntry? entry;
+  final void Function(LogEntry) onSave;
+  final void Function(LogEntry) onDelete;
 
   const LogEntryForm({super.key, this.entry, required this.onSave, required this.onDelete});
 
@@ -348,7 +347,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
       return;
     }
 
-    final entry = Entry(
+    final entry = LogEntry(
       id: widget.entry?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       date: dt,
       aircraftMakeModel: _aircraftMakeModelController.text,
@@ -486,7 +485,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
 }
 
 class LogbookCsv {
-  static String exportCsv(List<Entry> entries) {
+  static String exportCsv(List<LogEntry> entries) {
     if (entries.isEmpty) return "";
 
     final header = entries.first.toMap().keys.toList();
@@ -502,7 +501,7 @@ class LogbookCsv {
     return const ListToCsvConverter().convert(rows);
   }
 
-  static List<Entry> importCsv(String csvContent) {
+  static List<LogEntry> importCsv(String csvContent) {
     final rows = const CsvToListConverter().convert(csvContent, eol: "\n");
     if (rows.isEmpty) return [];
 
@@ -511,7 +510,7 @@ class LogbookCsv {
 
     return data.map((r) {
       final row = Map<String, dynamic>.fromIterables(header, r);
-      return Entry.fromMap(row); // use fromJson
+      return LogEntry.fromMap(row); // use fromJson
     }).toList();
   }
 }
