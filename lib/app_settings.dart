@@ -262,13 +262,4 @@ class AppSettings {
     return provider.getValue("key-openai-api-key", defaultValue: "") as String;
   }
 
-  // Chat model storage
-  void setChatModel(String model) {
-    provider.setString("key-openai-model-v1", model);
-  }
-
-  String getChatModel() {
-    return provider.getValue("key-openai-model-v1", defaultValue: "gpt5") as String;
-  }
-
 }
