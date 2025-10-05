@@ -12,6 +12,7 @@ import 'package:http_parser/http_parser.dart';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'logbook/totals.dart';
 
@@ -176,6 +177,34 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     }
   }
 
+  Future<String?> _exportUserDbToJsonFile() async {
+    try {
+      final Database? db = await UserDatabaseHelper.db.database;
+      if (db == null) return null;
+      // fetch all non-internal tables
+      final List<Map<String, Object?>> tableRows = await db.rawQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+      );
+      final Map<String, dynamic> export = {};
+      for (final row in tableRows) {
+        final String tableName = (row['name'] ?? '').toString();
+        if (tableName.isEmpty) continue;
+        try {
+          final rows = await db.query(tableName);
+          export[tableName] = rows;
+        } catch (_) {
+          // ignore tables that cannot be exported
+        }
+      }
+      final String exportPath = p.join(Storage().dataDir, 'user_export.json');
+      final file = File(exportPath);
+      await file.writeAsString(jsonEncode(export));
+      return exportPath;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _uploadUserDb() async {
     if (_isUploading) return;
     final String apiKey = Storage().settings.getOpenAiApiKey();
@@ -183,10 +212,10 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       MapScreenState.showToast(context, "Set API key first", Icon(Icons.error, color: Colors.red,), 3);
       return;
     }
-    final String dbPath = p.join(Storage().dataDir, 'user.db');
-    final file = File(dbPath);
-    if (!await file.exists()) {
-      MapScreenState.showToast(context, "user.db not found", Icon(Icons.error, color: Colors.red,), 3);
+    // Export DB to JSON to meet Files API expectations
+    final String? exportPath = await _exportUserDbToJsonFile();
+    if (exportPath == null) {
+      MapScreenState.showToast(context, "Failed to export database", Icon(Icons.error, color: Colors.red,), 3);
       return;
     }
 
@@ -196,7 +225,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $apiKey'
         ..fields['purpose'] = 'assistants'
-        ..files.add(await http.MultipartFile.fromPath('file', dbPath, filename: 'user.db', contentType: MediaType('application', 'octet-stream')));
+        ..files.add(await http.MultipartFile.fromPath('file', exportPath, filename: 'user_export.json', contentType: MediaType('application', 'json')));
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
@@ -205,12 +234,19 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
         final String fileId = body['id']?.toString() ?? '';
         if (fileId.isNotEmpty) {
           Storage().settings.setOpenAiUserDbFileId(fileId);
-          MapScreenState.showToast(context, "user.db uploaded", Icon(Icons.check_circle, color: Colors.green,), 3);
+          MapScreenState.showToast(context, "Data uploaded", Icon(Icons.check_circle, color: Colors.green,), 3);
         } else {
-          MapScreenState.showToast(context, "Upload succeeded but no file id", Icon(Icons.warning, color: Colors.orange,), 3);
+          MapScreenState.showToast(context, "Upload ok but no file id", Icon(Icons.warning, color: Colors.orange,), 3);
         }
       } else {
-        MapScreenState.showToast(context, "Upload failed ${response.statusCode}", Icon(Icons.error, color: Colors.red,), 3);
+        String detail;
+        try {
+          final Map<String, dynamic> body = jsonDecode(response.body);
+          detail = body['error']?['message']?.toString() ?? response.body;
+        } catch (_) {
+          detail = response.body;
+        }
+        MapScreenState.showToast(context, "Upload failed ${response.statusCode}: ${detail.length > 160 ? detail.substring(0, 160) + '…' : detail}", Icon(Icons.error, color: Colors.red,), 5);
       }
     } catch (e) {
       MapScreenState.showToast(context, "Upload error: $e", Icon(Icons.error, color: Colors.red,), 4);
