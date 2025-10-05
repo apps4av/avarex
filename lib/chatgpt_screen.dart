@@ -8,6 +8,9 @@ import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 import 'package:avaremp/data/user_database_helper.dart';
 
 import 'logbook/totals.dart';
@@ -71,6 +74,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     ],
   };
   String? _selectedExample;
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -169,6 +173,49 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
         _isSending = false;
       });
       await _scrollToBottom();
+    }
+  }
+
+  Future<void> _uploadUserDb() async {
+    if (_isUploading) return;
+    final String apiKey = Storage().settings.getOpenAiApiKey();
+    if (apiKey.isEmpty) {
+      MapScreenState.showToast(context, "Set API key first", Icon(Icons.error, color: Colors.red,), 3);
+      return;
+    }
+    final String dbPath = p.join(Storage().dataDir, 'user.db');
+    final file = File(dbPath);
+    if (!await file.exists()) {
+      MapScreenState.showToast(context, "user.db not found", Icon(Icons.error, color: Colors.red,), 3);
+      return;
+    }
+
+    setState(() { _isUploading = true; });
+    try {
+      final uri = Uri.parse('https://api.openai.com/v1/files');
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $apiKey'
+        ..fields['purpose'] = 'assistants'
+        ..files.add(await http.MultipartFile.fromPath('file', dbPath, filename: 'user.db', contentType: MediaType('application', 'octet-stream')));
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final String fileId = body['id']?.toString() ?? '';
+        if (fileId.isNotEmpty) {
+          Storage().settings.setOpenAiUserDbFileId(fileId);
+          MapScreenState.showToast(context, "user.db uploaded", Icon(Icons.check_circle, color: Colors.green,), 3);
+        } else {
+          MapScreenState.showToast(context, "Upload succeeded but no file id", Icon(Icons.warning, color: Colors.orange,), 3);
+        }
+      } else {
+        MapScreenState.showToast(context, "Upload failed ${response.statusCode}", Icon(Icons.error, color: Colors.red,), 3);
+      }
+    } catch (e) {
+      MapScreenState.showToast(context, "Upload error: $e", Icon(Icons.error, color: Colors.red,), 4);
+    } finally {
+      if (mounted) setState(() { _isUploading = false; });
     }
   }
 
@@ -423,6 +470,13 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
             tooltip: 'Set API key',
             onPressed: _setApiKeyDialog,
             icon: const Icon(Icons.vpn_key),
+          ),
+          IconButton(
+            tooltip: 'Upload user.db to ChatGPT',
+            onPressed: _isUploading ? null : _uploadUserDb,
+            icon: _isUploading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.cloud_upload),
           ),
         ],
       ),

@@ -262,4 +262,13 @@ class AppSettings {
     return provider.getValue("key-openai-api-key", defaultValue: "") as String;
   }
 
+  // OpenAI uploaded user.db file id storage
+  void setOpenAiUserDbFileId(String fileId) {
+    provider.setString("key-openai-userdb-file-id", fileId);
+  }
+
+  String getOpenAiUserDbFileId() {
+    return provider.getValue("key-openai-userdb-file-id", defaultValue: "") as String;
+  }
+
 }
