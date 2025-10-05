@@ -122,48 +122,145 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     await _scrollToBottom();
 
     try {
-      final String model = "gpt-5";
-      final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
+      final String fileId = Storage().settings.getOpenAiUserDbFileId();
+      bool usedResponsesApi = false;
+      if (fileId.isNotEmpty) {
+        try {
+          // Use Responses API with file_search attachments so the model can retrieve from uploaded file
+          final uri = Uri.parse('https://api.openai.com/v1/responses');
+          final List<Map<String, dynamic>> inputMessages = _session.messages
+              .map((m) => {
+                    'role': m.role,
+                    'content': [
+                      {
+                        'type': 'input_text',
+                        'text': m.content,
+                      }
+                    ],
+                  })
+              .toList();
+          // Attach file to the last user message
+          if (inputMessages.isNotEmpty && inputMessages.last['role'] == 'user') {
+            inputMessages.last['attachments'] = [
+              {
+                'file_id': fileId,
+                'tools': [
+                  {'type': 'file_search'}
+                ],
+              }
+            ];
+          }
 
-      final bool isGpt5 = model.toLowerCase().replaceAll('-', '') == 'gpt5' || model.toLowerCase().startsWith('gpt-5');
+          final Map<String, dynamic> payload = {
+            'model': 'gpt-4.1-mini',
+            'input': inputMessages,
+            'max_output_tokens': 2000,
+          };
 
-      final Map<String, dynamic> payload = {
-        'model': model,
-        'messages': _session.messages
-            .map((m) => {
-                  'role': m.role,
-                  'content': m.content,
-                })
-            .toList(),
-      };
+          final response = await http.post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode(payload),
+          );
 
-      if (isGpt5) {
-        payload['max_completion_tokens'] = 10000;
-        // temperature not supported for gpt-5; use default server-side
-      } else {
-        payload['max_tokens'] = 600;
-        payload['temperature'] = 0.2;
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            usedResponsesApi = true;
+            final Map<String, dynamic> body = jsonDecode(response.body);
+            String reply = body['output_text']?.toString() ?? '';
+            if (reply.isEmpty) {
+              // Fallback parse
+              final output = body['output'];
+              if (output is List && output.isNotEmpty) {
+                for (final item in output) {
+                  if (item is Map && item['type'] == 'message') {
+                    final content = item['content'];
+                    if (content is List) {
+                      for (final c in content) {
+                        if (c is Map && (c['type'] == 'output_text' || c['type'] == 'text')) {
+                          final t = (c['text'] ?? c['value'])?.toString();
+                          if (t != null && t.isNotEmpty) {
+                            reply = t;
+                            break;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  if (reply.isNotEmpty) break;
+                }
+              }
+            }
+            if (reply.isEmpty) {
+              reply = 'No response';
+            }
+            setState(() {
+              _session.addAssistantMessage(reply);
+            });
+          } else {
+            // Include details in the assistant message and fall through to legacy call
+            String detail;
+            try {
+              final Map<String, dynamic> b = jsonDecode(response.body);
+              detail = b['error']?['message']?.toString() ?? response.body;
+            } catch (_) {
+              detail = response.body;
+            }
+            setState(() {
+              _session.addAssistantMessage('File-aware call failed ${response.statusCode}: $detail');
+            });
+          }
+        } catch (_) {
+          // ignore and fall back to chat completions
+        }
       }
 
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode(payload),
-      );
+      if (!usedResponsesApi) {
+        final String model = "gpt-5";
+        final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> body = jsonDecode(response.body);
-        final String reply = body['choices']?[0]?['message']?['content']?.toString() ?? 'No response';
-        setState(() {
-          _session.addAssistantMessage(reply);
-        });
-      } else {
-        setState(() {
-          _session.addAssistantMessage('Error ${response.statusCode}: ${response.body}');
-        });
+        final bool isGpt5 = model.toLowerCase().replaceAll('-', '') == 'gpt5' || model.toLowerCase().startsWith('gpt-5');
+
+        final Map<String, dynamic> payload = {
+          'model': model,
+          'messages': _session.messages
+              .map((m) => {
+                    'role': m.role,
+                    'content': m.content,
+                  })
+              .toList(),
+        };
+
+        if (isGpt5) {
+          payload['max_completion_tokens'] = 10000;
+          // temperature not supported for gpt-5; use default server-side
+        } else {
+          payload['max_tokens'] = 600;
+          payload['temperature'] = 0.2;
+        }
+
+        final response = await http.post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode(payload),
+        );
+
+        if (response.statusCode == 200) {
+          final Map<String, dynamic> body = jsonDecode(response.body);
+          final String reply = body['choices']?[0]?['message']?['content']?.toString() ?? 'No response';
+          setState(() {
+            _session.addAssistantMessage(reply);
+          });
+        } else {
+          setState(() {
+            _session.addAssistantMessage('Error ${response.statusCode}: ${response.body}');
+          });
+        }
       }
     } catch (e) {
       setState(() {
