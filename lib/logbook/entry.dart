@@ -1,4 +1,4 @@
-class LogEntry {
+class Entry {
   String id; // unique identifier (UUID, timestamp, etc.)
   DateTime date;
 
@@ -38,7 +38,7 @@ class LogEntry {
   // Remarks
   String remarks;
 
-  LogEntry({
+  Entry({
     required this.id,
     required this.date,
     required this.aircraftMakeModel,
@@ -67,7 +67,7 @@ class LogEntry {
     this.remarks = '',
   });
 
-  factory LogEntry.fromMap(Map<String, dynamic> map) => LogEntry(
+  factory Entry.fromMap(Map<String, dynamic> map) => Entry(
     id: (map['id'] ?? "") as String,
     date: DateTime.parse((map['date'] ?? "") as String),
     aircraftMakeModel: (map['aircraftMakeModel'] ?? "") as String,

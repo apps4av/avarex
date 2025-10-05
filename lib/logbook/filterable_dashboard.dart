@@ -2,26 +2,26 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'log_entry.dart';
+import 'entry.dart';
 
-class FilterableLogbookDashboard extends StatefulWidget {
-  final List<LogEntry> logEntries;
+class FilterableDashboard extends StatefulWidget {
+  final List<Entry> logEntries;
 
-  const FilterableLogbookDashboard({super.key, required this.logEntries});
+  const FilterableDashboard({super.key, required this.logEntries});
 
   @override
-  FilterableLogbookDashboardState createState() =>
-      FilterableLogbookDashboardState();
+  FilterableDashboardState createState() =>
+      FilterableDashboardState();
 }
 
-class FilterableLogbookDashboardState
-    extends State<FilterableLogbookDashboard> {
+class FilterableDashboardState
+    extends State<FilterableDashboard> {
   Set<String> selectedYears = {};
   Set<String> selectedMakeModels = {};
   Set<String> selectedTails = {};
   Set<String> selectedRemarks = {};
 
-  List<LogEntry> get filteredEntries {
+  List<Entry> get filteredEntries {
     return widget.logEntries.where((e) {
       final yearMatch =
           selectedYears.isEmpty || selectedYears.contains(e.date.year.toString());
@@ -33,7 +33,7 @@ class FilterableLogbookDashboardState
     }).toList();
   }
 
-  Map<String, double> _aggregateHoursByYear(List<LogEntry> entries) {
+  Map<String, double> _aggregateHoursByYear(List<Entry> entries) {
     Map<String, double> result = {};
     for (var entry in entries) {
       String year = entry.date.year.toString();
@@ -42,7 +42,7 @@ class FilterableLogbookDashboardState
     return result;
   }
 
-  Map<String, double> _aggregateByType(List<LogEntry> entries) {
+  Map<String, double> _aggregateByType(List<Entry> entries) {
     double night = 0, day = 0, instrument = 0, instructor = 0, cross = 0, solo = 0, dual = 0, pic = 0, sic = 0, examiner = 0, sim = 0, simI = 0, holds = 0, ground = 0;
     for (var entry in entries) {
       night += entry.nightTime;
@@ -78,7 +78,7 @@ class FilterableLogbookDashboardState
     };
   }
 
-  Map<String, double> _aggregateByProcedure(List<LogEntry> entries) {
+  Map<String, double> _aggregateByProcedure(List<Entry> entries) {
     double night = 0, day = 0, approaches = 0;
     for (var entry in entries) {
       night += entry.nightLandings;
@@ -92,7 +92,7 @@ class FilterableLogbookDashboardState
     };
   }
 
-  Map<String, double> _aggregateByMakeModel(List<LogEntry> entries) {
+  Map<String, double> _aggregateByMakeModel(List<Entry> entries) {
     Map<String, double> result = {};
     for (var entry in entries) {
       String key = entry.aircraftMakeModel;
@@ -101,7 +101,7 @@ class FilterableLogbookDashboardState
     return result;
   }
 
-  Map<String, double> _aggregateByTailNumber(List<LogEntry> entries) {
+  Map<String, double> _aggregateByTailNumber(List<Entry> entries) {
     Map<String, double> result = {};
     for (var entry in entries) {
       String tail = entry.aircraftIdentification;
@@ -183,7 +183,7 @@ class FilterableLogbookDashboardState
     );
   }
 
-  Widget _buildFlightList(List<LogEntry> entries) {
+  Widget _buildFlightList(List<Entry> entries) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: entries

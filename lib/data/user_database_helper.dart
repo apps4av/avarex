@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/checklist.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/log_entry.dart';
+import 'package:avaremp/logbook/entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb.dart';
@@ -467,7 +467,7 @@ class UserDatabaseHelper {
   }
 
 
-  Future<void> insertLogbook(LogEntry entry) async {
+  Future<void> insertLogbook(Entry entry) async {
     final db = await database;
     if(db != null) {
       await db.insert(
@@ -478,16 +478,16 @@ class UserDatabaseHelper {
     }
   }
 
-  Future<List<LogEntry>> getAllLogbook() async {
+  Future<List<Entry>> getAllLogbook() async {
     final db = await database;
     if(db != null) {
       final maps = await db.query('logbook', orderBy: 'date DESC');
-      return maps.map((e) => LogEntry.fromMap(e)).toList();
+      return maps.map((e) => Entry.fromMap(e)).toList();
     }
     return [];
   }
 
-  Future<void> updateLogbook(LogEntry entry) async {
+  Future<void> updateLogbook(Entry entry) async {
     final db = await database;
     if(db != null) {
       await db.update(
