@@ -52,6 +52,25 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   ];
   String? _categoryContext; // last loaded summary for selected category
   String? _categoryError;
+  // Example queries per category
+  final Map<String, List<String>> _exampleQueries = {
+    'Logbook': [
+      'Summarize my recent flight time by category.',
+      'How many night landings in the last 90 days?',
+      'What’s my total PIC time this year?',
+    ],
+    'Flight plan': [
+      'Suggest fuel stops for my current route.',
+      'Estimate flight time with current winds.',
+      'Identify potential alternates along the route.',
+    ],
+    'Aircraft': [
+      'Which aircraft do I fly most often?',
+      'Summarize key performance numbers for my aircraft.',
+      'What’s my recent time in this aircraft?',
+    ],
+  };
+  String? _selectedExample;
 
   @override
   void initState() {
@@ -217,6 +236,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   }
 
   Widget _buildCategorySelector() {
+    final List<String> examples = _exampleQueries[_selectedCategory] ?? const [];
     return Row(
       children: [
         const Text('Category:'),
@@ -230,10 +250,40 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
             if (val == null) return;
             setState(() {
               _selectedCategory = val;
+              _selectedExample = null; // reset example when category changes
             });
             await _loadCategoryContext();
           },
         ),
+        const SizedBox(width: 16),
+        if (examples.isNotEmpty) ...[
+          const Text('Example:'),
+          const SizedBox(width: 8),
+          Flexible(
+            child: DropdownButton<String>(
+              isExpanded: true,
+              value: _selectedExample,
+              hint: const Text('Choose example'),
+              items: examples
+                  .map((q) => DropdownMenuItem<String>(
+                        value: q,
+                        child: Text(q, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                if (val == null) return;
+                setState(() {
+                  _selectedExample = val;
+                });
+                _inputController.text = val;
+                _inputController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _inputController.text.length),
+                );
+                _inputFocusNode.requestFocus();
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
