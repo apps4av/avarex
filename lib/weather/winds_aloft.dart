@@ -244,14 +244,6 @@ class WindsAloft extends Weather {
     return winds;
   }
 
-  List<String> toListRaw() {
-    List<String> winds = [];
-    for(double altitude = 0; altitude < 42000; altitude += 3000) {
-      // show dir, speed, and actual string for every 3000ft
-      winds.add("${altitude.round().toString().padLeft(5, '0')} ${getWindAtAltitudeRaw(altitude.round())}");
-    }
-    return winds;
-  }
 
   @override
   toString() {
