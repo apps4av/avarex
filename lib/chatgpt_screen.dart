@@ -126,101 +126,116 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
 
     try {
       final String fileId = Storage().settings.getOpenAiUserDbFileId();
-      bool usedResponsesApi = false;
       if (fileId.isNotEmpty) {
-        try {
-          // Use Responses API with file_search attachments so the model can retrieve from uploaded file
-          final uri = Uri.parse('https://api.openai.com/v1/responses');
-          final List<Map<String, dynamic>> inputMessages = _session.messages
-              .map((m) => {
-                    'role': m.role,
-                    'content': [
-                      {
-                        'type': 'input_text',
-                        'text': m.content,
-                      }
-                    ],
-                  })
-              .toList();
-
-          final Map<String, dynamic> payload = {
-            'model': 'gpt-4.1-mini',
-            'input': inputMessages,
-            'max_output_tokens': 2000,
-            'tools': [
-              {'type': 'file_search'}
-            ],
-            'attachments': [
-              {
-                'file_id': fileId,
-                'tools': [
-                  {'type': 'file_search'}
-                ]
-              }
-            ]
-          };
-
-          final response = await http.post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $apiKey',
-            },
-            body: jsonEncode(payload),
-          );
-
-          if (response.statusCode >= 200 && response.statusCode < 300) {
-            usedResponsesApi = true;
-            final Map<String, dynamic> body = jsonDecode(response.body);
-            String reply = body['output_text']?.toString() ?? '';
-            if (reply.isEmpty) {
-              // Fallback parse
-              final output = body['output'];
-              if (output is List && output.isNotEmpty) {
-                for (final item in output) {
-                  if (item is Map && item['type'] == 'message') {
-                    final content = item['content'];
-                    if (content is List) {
-                      for (final c in content) {
-                        if (c is Map && (c['type'] == 'output_text' || c['type'] == 'text')) {
-                          final t = (c['text'] ?? c['value'])?.toString();
-                          if (t != null && t.isNotEmpty) {
-                            reply = t;
-                            break;
-                          }
-                        }
-                      }
-                    }
-                  }
-                  if (reply.isNotEmpty) break;
+        // Prefer Assistants Threads/Runs if assistant has been configured
+        final String assistantId = Storage().settings.getOpenAiAssistantId();
+        if (assistantId.isNotEmpty) {
+          try {
+            String threadId = Storage().settings.getOpenAiThreadId();
+            if (threadId.isEmpty) {
+              final tResp = await http.post(
+                Uri.parse('https://api.openai.com/v1/threads'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({}),
+              );
+              if (tResp.statusCode >= 200 && tResp.statusCode < 300) {
+                final tb = jsonDecode(tResp.body) as Map<String, dynamic>;
+                threadId = tb['id']?.toString() ?? '';
+                if (threadId.isNotEmpty) {
+                  Storage().settings.setOpenAiThreadId(threadId);
                 }
               }
             }
-            if (reply.isEmpty) {
-              reply = 'No response';
+            if (threadId.isNotEmpty) {
+              // Add only the latest user query (already augmented with category)
+              await http.post(
+                Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({
+                  'role': 'user',
+                  'content': finalWithCategory,
+                }),
+              );
+
+              final runResp = await http.post(
+                Uri.parse('https://api.openai.com/v1/threads/$threadId/runs'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({'assistant_id': assistantId}),
+              );
+              if (runResp.statusCode >= 200 && runResp.statusCode < 300) {
+                final runBody = jsonDecode(runResp.body) as Map<String, dynamic>;
+                final String runId = runBody['id']?.toString() ?? '';
+                // Poll for completion up to ~15 seconds
+                for (int i = 0; i < 30; i++) {
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  final st = await http.get(
+                    Uri.parse('https://api.openai.com/v1/threads/$threadId/runs/$runId'),
+                    headers: {'Authorization': 'Bearer $apiKey'},
+                  );
+                  if (st.statusCode >= 200 && st.statusCode < 300) {
+                    final sb = jsonDecode(st.body) as Map<String, dynamic>;
+                    final String status = sb['status']?.toString() ?? '';
+                    if (status == 'completed' || status == 'failed' || status == 'cancelled' || status == 'expired') {
+                      break;
+                    }
+                  }
+                }
+                // Fetch latest assistant message
+                final msgsResp = await http.get(
+                  Uri.parse('https://api.openai.com/v1/threads/$threadId/messages?limit=10'),
+                  headers: {'Authorization': 'Bearer $apiKey'},
+                );
+                if (msgsResp.statusCode >= 200 && msgsResp.statusCode < 300) {
+                  final mb = jsonDecode(msgsResp.body) as Map<String, dynamic>;
+                  final List data = (mb['data'] as List?) ?? [];
+                  String reply = '';
+                  for (final m in data) {
+                    if (m is Map && m['role'] == 'assistant') {
+                      final content = m['content'];
+                      if (content is List) {
+                        for (final c in content) {
+                          if (c is Map && c['type'] == 'text') {
+                            final v = (c['text']?['value'])?.toString();
+                            if (v != null && v.isNotEmpty) {
+                              reply = v;
+                              break;
+                            }
+                          }
+                        }
+                      }
+                      if (reply.isNotEmpty) break;
+                    }
+                  }
+                  if (reply.isNotEmpty) {
+                    setState(() {
+                      _session.addAssistantMessage(reply);
+                    });
+                    return; // handled via assistants
+                  }
+                }
+              }
             }
+          } catch (e) {
             setState(() {
-              _session.addAssistantMessage(reply);
-            });
-          } else {
-            // Include details in the assistant message and fall through to legacy call
-            String detail;
-            try {
-              final Map<String, dynamic> b = jsonDecode(response.body);
-              detail = b['error']?['message']?.toString() ?? response.body;
-            } catch (_) {
-              detail = response.body;
-            }
-            setState(() {
-              _session.addAssistantMessage('File-aware call failed ${response.statusCode}: $detail');
+              _session.addAssistantMessage('Assistant call failed: $e');
             });
           }
-        } catch (_) {
-          // ignore and fall back to chat completions
         }
       }
 
-      if (!usedResponsesApi) {
+      // Fallback to chat completions
+      {
+        final String model = "gpt-5";
+        final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
         // Try Assistants Threads/Runs if assistant has been configured
         final String assistantId = Storage().settings.getOpenAiAssistantId();
         if (assistantId.isNotEmpty) {
