@@ -139,22 +139,19 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                     ],
                   })
               .toList();
-          // Attach file to the last user message
-          if (inputMessages.isNotEmpty && inputMessages.last['role'] == 'user') {
-            inputMessages.last['attachments'] = [
-              {
-                'file_id': fileId,
-                'tools': [
-                  {'type': 'file_search'}
-                ],
-              }
-            ];
-          }
 
           final Map<String, dynamic> payload = {
             'model': 'gpt-4.1-mini',
             'input': inputMessages,
             'max_output_tokens': 2000,
+            'tools': [
+              {'type': 'file_search'}
+            ],
+            'tool_resources': {
+              'file_search': {
+                'file_ids': [fileId]
+              }
+            }
           };
 
           final response = await http.post(
