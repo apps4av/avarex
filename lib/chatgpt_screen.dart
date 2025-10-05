@@ -181,7 +181,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
           title: const Text('Chat Model'),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(hintText: 'e.g. gpt5'),
+            decoration: const InputDecoration(hintText: 'e.g. gpt-5'),
           ),
           actions: [
             TextButton(
