@@ -4,8 +4,6 @@ import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/logbook/entry.dart';
 
 class ChatGptScreen extends StatefulWidget {
   const ChatGptScreen({super.key});
@@ -33,53 +31,12 @@ class _ChatSessionState {
   }
 }
 
-class _LogbookTotals {
-  double totalFlightTime = 0.0;
-  double pilotInCommand = 0.0;
-  double dualReceived = 0.0;
-  double soloTime = 0.0;
-  double crossCountryTime = 0.0;
-  double dayTime = 0.0;
-  double nightTime = 0.0;
-  double actualInstruments = 0.0;
-  double simulatedInstruments = 0.0;
-  int dayLandings = 0;
-  int nightLandings = 0;
-  int instrumentApproaches = 0;
-  double groundTime = 0.0;
-  double flightSimulator = 0.0;
-
-  bool get hasData {
-    return totalFlightTime > 0.0 ||
-        pilotInCommand > 0.0 ||
-        dualReceived > 0.0 ||
-        soloTime > 0.0 ||
-        crossCountryTime > 0.0 ||
-        dayTime > 0.0 ||
-        nightTime > 0.0 ||
-        actualInstruments > 0.0 ||
-        simulatedInstruments > 0.0 ||
-        dayLandings > 0 ||
-        nightLandings > 0 ||
-        instrumentApproaches > 0;
-  }
-}
-
 class _ChatGptScreenState extends State<ChatGptScreen> {
   final TextEditingController _inputController = TextEditingController();
   final FocusNode _inputFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   final _ChatSessionState _session = _ChatSessionState();
   bool _isSending = false;
-  _LogbookTotals? _logbookTotals;
-  bool _loadingTotals = false;
-  String? _totalsError;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadLogbookTotals();
-  }
 
   @override
   void dispose() {
@@ -90,8 +47,8 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   }
 
   Future<void> _send() async {
-    final String originalText = _inputController.text.trim();
-    if (originalText.isEmpty || _isSending) return;
+    final String text = _inputController.text.trim();
+    if (text.isEmpty || _isSending) return;
 
     final String apiKey = Storage().settings.getOpenAiApiKey();
     if (apiKey.isEmpty) {
@@ -100,16 +57,9 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       return;
     }
 
-    String finalText = originalText;
-    try {
-      finalText = await _augmentQueryIfNeeded(originalText);
-    } catch (_) {
-      // Ignore augmentation errors and proceed with original text
-    }
-
     setState(() {
       _isSending = true;
-      _session.addUserMessage(finalText);
+      _session.addUserMessage(text);
       _inputController.clear();
     });
 
@@ -178,174 +128,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       _scrollController.position.maxScrollExtent,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
-    );
-  }
-
-  Future<void> _loadLogbookTotals() async {
-    if (_loadingTotals) return;
-    setState(() {
-      _loadingTotals = true;
-      _totalsError = null;
-    });
-    try {
-      final List<Entry> entries = await UserDatabaseHelper.db.getAllLogbook();
-      final totals = _LogbookTotals();
-      for (final e in entries) {
-        totals.totalFlightTime += e.totalFlightTime;
-        totals.pilotInCommand += e.pilotInCommand;
-        totals.dualReceived += e.dualReceived;
-        totals.soloTime += e.soloTime;
-        totals.crossCountryTime += e.crossCountryTime;
-        totals.dayTime += e.dayTime;
-        totals.nightTime += e.nightTime;
-        totals.actualInstruments += e.actualInstruments;
-        totals.simulatedInstruments += e.simulatedInstruments;
-        totals.dayLandings += e.dayLandings;
-        totals.nightLandings += e.nightLandings;
-        totals.instrumentApproaches += e.instrumentApproaches;
-        totals.groundTime += e.groundTime;
-        totals.flightSimulator += e.flightSimulator;
-      }
-      if (!mounted) return;
-      setState(() {
-        _logbookTotals = totals;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _totalsError = e.toString();
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingTotals = false;
-      });
-    }
-  }
-
-  Future<void> _ensureTotalsLoaded() async {
-    if (_logbookTotals == null && !_loadingTotals) {
-      await _loadLogbookTotals();
-    }
-  }
-
-  String _fmtH(double h) => h.toStringAsFixed(1);
-
-  String _formatTotalsSummary(_LogbookTotals t) {
-    return "(total ${_fmtH(t.totalFlightTime)}, PIC ${_fmtH(t.pilotInCommand)}, dual ${_fmtH(t.dualReceived)}, solo ${_fmtH(t.soloTime)}, XC ${_fmtH(t.crossCountryTime)}, night ${_fmtH(t.nightTime)}, actual instrument ${_fmtH(t.actualInstruments)}, simulated instrument ${_fmtH(t.simulatedInstruments)}, day landings ${t.dayLandings}, night landings ${t.nightLandings}, instrument approaches ${t.instrumentApproaches})";
-  }
-
-  Future<String> _augmentQueryIfNeeded(String text) async {
-    final lower = text.toLowerCase();
-    final bool looksLikePplHoursQuery =
-        (lower.contains('private pilot') || lower.contains('ppl')) &&
-        (lower.contains('how many hours') || lower.contains('hours left') || lower.contains('hours do i have left') || lower.contains('how much time'));
-    if (!looksLikePplHoursQuery) return text;
-
-    await _ensureTotalsLoaded();
-    final t = _logbookTotals;
-    if (t == null || !t.hasData) return text;
-
-    if (lower.contains('my current hours are')) return text; // already has context
-    final summary = _formatTotalsSummary(t);
-    return "$text, my current hours are $summary";
-  }
-
-  void _onPplHoursLeft() async {
-    await _ensureTotalsLoaded();
-    final t = _logbookTotals;
-    final base = "How many hours do I have left to get to private pilot certificate";
-    final withTotals = (t != null && t.hasData) ? ", my current hours are ${_formatTotalsSummary(t)}" : "";
-    final text = "$base$withTotals";
-    setState(() {
-      _inputController.text = text;
-      _inputController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _inputController.text.length),
-      );
-    });
-    _inputFocusNode.requestFocus();
-  }
-
-  void _appendTotalsToInput() async {
-    await _ensureTotalsLoaded();
-    final t = _logbookTotals;
-    if (t == null || !t.hasData) {
-      // If not available, try reloading
-      await _loadLogbookTotals();
-      return;
-    }
-    final snippet = "my current hours are ${_formatTotalsSummary(t)}";
-    final current = _inputController.text.trim();
-    final newText = current.isEmpty ? snippet : "$current, $snippet";
-    setState(() {
-      _inputController.text = newText;
-      _inputController.selection = TextSelection.fromPosition(
-        TextPosition(offset: _inputController.text.length),
-      );
-    });
-    _inputFocusNode.requestFocus();
-  }
-
-  Widget _hoursChip(String label, double hours) {
-    return Chip(label: Text('$label ${_fmtH(hours)}h'));
-  }
-
-  Widget _buildTotalsSummaryWidget(_LogbookTotals t) {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(0, 6, 0, 6),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _hoursChip('Total', t.totalFlightTime),
-            _hoursChip('PIC', t.pilotInCommand),
-            _hoursChip('Dual', t.dualReceived),
-            _hoursChip('Solo', t.soloTime),
-            _hoursChip('XC', t.crossCountryTime),
-            _hoursChip('Night', t.nightTime),
-            _hoursChip('Instr (act)', t.actualInstruments),
-            _hoursChip('Instr (sim)', t.simulatedInstruments),
-            Chip(label: Text('Landings D ${t.dayLandings} N ${t.nightLandings}')),
-            Chip(label: Text('Approaches ${t.instrumentApproaches}')),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAviationHelpers() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ActionChip(label: const Text('PPL hours left'), onPressed: _onPplHoursLeft),
-                const SizedBox(width: 8),
-                ActionChip(label: const Text('Insert totals'), onPressed: _appendTotalsToInput),
-                const SizedBox(width: 8),
-                IconButton(
-                  tooltip: 'Refresh logbook totals',
-                  onPressed: _loadingTotals ? null : _loadLogbookTotals,
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-          ),
-          if (_loadingTotals) const LinearProgressIndicator(minHeight: 2),
-          if (_totalsError != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('Failed to load totals: \'${_totalsError}\'', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
-            ),
-          if (_logbookTotals != null) _buildTotalsSummaryWidget(_logbookTotals!),
-        ],
-      ),
     );
   }
 
@@ -453,7 +235,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
               },
             ),
           ),
-          _buildAviationHelpers(),
           SafeArea(
             top: false,
             child: Padding(
