@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -53,7 +52,9 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     final String apiKey = Storage().settings.getOpenAiApiKey();
     if (apiKey.isEmpty) {
       if (!mounted) return;
-      MapScreenState.showToast(context, "Set API key first", Icon(Icons.error, color: Colors.red,), 3);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Set OpenAI API key first.')),
+      );
       return;
     }
 
@@ -66,7 +67,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     await _scrollToBottom();
 
     try {
-      final String model = "gpt-5";
+      final String model = Storage().settings.getChatModel();
       final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
 
       final bool isGpt5 = model.toLowerCase().replaceAll('-', '') == 'gpt5' || model.toLowerCase().startsWith('gpt-5');
@@ -82,7 +83,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       };
 
       if (isGpt5) {
-        payload['max_completion_tokens'] = 10000;
+        payload['max_completion_tokens'] = 600;
         // temperature not supported for gpt-5; use default server-side
       } else {
         payload['max_tokens'] = 600;
@@ -139,7 +140,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('API Key'),
+          title: const Text('OpenAI API Key'),
           content: Form(
             key: formKey,
             child: TextFormField(
@@ -168,8 +169,42 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                 if (formKey.currentState!.validate()) {
                   Storage().settings.setOpenAiApiKey(controller.text.trim());
                   Navigator.of(context).pop();
-                  MapScreenState.showToast(context, "API key saved", Icon(Icons.info, color: Colors.blue,), 3);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('API key saved locally.')),
+                  );
                 }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _setModelDialog() async {
+    final TextEditingController controller = TextEditingController(text: Storage().settings.getChatModel());
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Chat Model'),
+          content: TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: 'e.g. gpt5'),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Storage().settings.setChatModel(controller.text.trim());
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Model updated.')),
+                );
               },
               child: const Text('Save'),
             ),
@@ -183,12 +218,17 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FlightAI'),
+        title: const Text('ChatGPT'),
         actions: [
           IconButton(
             tooltip: 'Set API key',
             onPressed: _setApiKeyDialog,
             icon: const Icon(Icons.vpn_key),
+          ),
+          IconButton(
+            tooltip: 'Chat model',
+            onPressed: _setModelDialog,
+            icon: const Icon(Icons.tune),
           ),
         ],
       ),
@@ -257,8 +297,8 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: _isSending ? null : _send,
-                    icon: _isSending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : null,
-                    label: const Text('Ask'),
+                    icon: _isSending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send),
+                    label: const Text('Send'),
                   )
                 ],
               ),
