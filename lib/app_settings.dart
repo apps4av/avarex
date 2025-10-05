@@ -271,4 +271,29 @@ class AppSettings {
     return provider.getValue("key-openai-userdb-file-id", defaultValue: "") as String;
   }
 
+  // Assistants + Vector Store IDs
+  void setOpenAiAssistantId(String assistantId) {
+    provider.setString("key-openai-assistant-id", assistantId);
+  }
+
+  String getOpenAiAssistantId() {
+    return provider.getValue("key-openai-assistant-id", defaultValue: "") as String;
+  }
+
+  void setOpenAiVectorStoreId(String vectorStoreId) {
+    provider.setString("key-openai-vector-store-id", vectorStoreId);
+  }
+
+  String getOpenAiVectorStoreId() {
+    return provider.getValue("key-openai-vector-store-id", defaultValue: "") as String;
+  }
+
+  void setOpenAiThreadId(String threadId) {
+    provider.setString("key-openai-thread-id", threadId);
+  }
+
+  String getOpenAiThreadId() {
+    return provider.getValue("key-openai-thread-id", defaultValue: "") as String;
+  }
+
 }

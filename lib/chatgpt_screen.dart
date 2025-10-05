@@ -76,12 +76,15 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   };
   String? _selectedExample;
   bool _isUploading = false;
+  bool _isAssistantReady = false;
 
   @override
   void initState() {
     super.initState();
     _discoverExtraCategories();
     _loadCategoryContext();
+    _isAssistantReady = Storage().settings.getOpenAiAssistantId().isNotEmpty &&
+        Storage().settings.getOpenAiVectorStoreId().isNotEmpty;
   }
 
   @override
@@ -218,6 +221,110 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       }
 
       if (!usedResponsesApi) {
+        // Try Assistants Threads/Runs if assistant has been configured
+        final String assistantId = Storage().settings.getOpenAiAssistantId();
+        if (assistantId.isNotEmpty) {
+          try {
+            String threadId = Storage().settings.getOpenAiThreadId();
+            if (threadId.isEmpty) {
+              final tResp = await http.post(
+                Uri.parse('https://api.openai.com/v1/threads'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({}),
+              );
+              if (tResp.statusCode >= 200 && tResp.statusCode < 300) {
+                final tb = jsonDecode(tResp.body) as Map<String, dynamic>;
+                threadId = tb['id']?.toString() ?? '';
+                if (threadId.isNotEmpty) {
+                  Storage().settings.setOpenAiThreadId(threadId);
+                }
+              }
+            }
+            if (threadId.isNotEmpty) {
+              // Add only the latest user query (already augmented with category)
+              await http.post(
+                Uri.parse('https://api.openai.com/v1/threads/$threadId/messages'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({
+                  'role': 'user',
+                  'content': finalWithCategory,
+                }),
+              );
+
+              final runResp = await http.post(
+                Uri.parse('https://api.openai.com/v1/threads/$threadId/runs'),
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': 'Bearer $apiKey',
+                },
+                body: jsonEncode({'assistant_id': assistantId}),
+              );
+              if (runResp.statusCode >= 200 && runResp.statusCode < 300) {
+                final runBody = jsonDecode(runResp.body) as Map<String, dynamic>;
+                final String runId = runBody['id']?.toString() ?? '';
+                // Poll for completion up to ~15 seconds
+                for (int i = 0; i < 30; i++) {
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  final st = await http.get(
+                    Uri.parse('https://api.openai.com/v1/threads/$threadId/runs/$runId'),
+                    headers: {'Authorization': 'Bearer $apiKey'},
+                  );
+                  if (st.statusCode >= 200 && st.statusCode < 300) {
+                    final sb = jsonDecode(st.body) as Map<String, dynamic>;
+                    final String status = sb['status']?.toString() ?? '';
+                    if (status == 'completed' || status == 'failed' || status == 'cancelled' || status == 'expired') {
+                      break;
+                    }
+                  }
+                }
+                // Fetch latest assistant message
+                final msgsResp = await http.get(
+                  Uri.parse('https://api.openai.com/v1/threads/$threadId/messages?limit=10'),
+                  headers: {'Authorization': 'Bearer $apiKey'},
+                );
+                if (msgsResp.statusCode >= 200 && msgsResp.statusCode < 300) {
+                  final mb = jsonDecode(msgsResp.body) as Map<String, dynamic>;
+                  final List data = (mb['data'] as List?) ?? [];
+                  String reply = '';
+                  for (final m in data) {
+                    if (m is Map && m['role'] == 'assistant') {
+                      final content = m['content'];
+                      if (content is List) {
+                        for (final c in content) {
+                          if (c is Map && c['type'] == 'text') {
+                            final v = (c['text']?['value'])?.toString();
+                            if (v != null && v.isNotEmpty) {
+                              reply = v;
+                              break;
+                            }
+                          }
+                        }
+                      }
+                      if (reply.isNotEmpty) break;
+                    }
+                  }
+                  if (reply.isNotEmpty) {
+                    usedResponsesApi = true; // handled
+                    setState(() {
+                      _session.addAssistantMessage(reply);
+                    });
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            setState(() {
+              _session.addAssistantMessage('Assistant call failed: $e');
+            });
+          }
+        }
+
         final String model = "gpt-5";
         final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
 
@@ -331,7 +438,9 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
         final String fileId = body['id']?.toString() ?? '';
         if (fileId.isNotEmpty) {
           Storage().settings.setOpenAiUserDbFileId(fileId);
-          MapScreenState.showToast(context, "Data uploaded", Icon(Icons.check_circle, color: Colors.green,), 3);
+          // Create or update vector store and assistant to reference this file
+          await _ensureAssistantWithVectorStore(apiKey, fileId);
+          MapScreenState.showToast(context, "Data uploaded and indexed", Icon(Icons.check_circle, color: Colors.green,), 3);
         } else {
           MapScreenState.showToast(context, "Upload ok but no file id", Icon(Icons.warning, color: Colors.orange,), 3);
         }
@@ -349,6 +458,81 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       MapScreenState.showToast(context, "Upload error: $e", Icon(Icons.error, color: Colors.red,), 4);
     } finally {
       if (mounted) setState(() { _isUploading = false; });
+    }
+  }
+
+  Future<void> _ensureAssistantWithVectorStore(String apiKey, String fileId) async {
+    try {
+      String vectorStoreId = Storage().settings.getOpenAiVectorStoreId();
+      String assistantId = Storage().settings.getOpenAiAssistantId();
+
+      if (vectorStoreId.isEmpty) {
+        // Create vector store and attach file
+        final vsResp = await http.post(
+          Uri.parse('https://api.openai.com/v1/vector_stores'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({'name': 'Avare User Data'}),
+        );
+        if (vsResp.statusCode >= 200 && vsResp.statusCode < 300) {
+          final vsBody = jsonDecode(vsResp.body) as Map<String, dynamic>;
+          vectorStoreId = vsBody['id']?.toString() ?? '';
+          if (vectorStoreId.isNotEmpty) {
+            Storage().settings.setOpenAiVectorStoreId(vectorStoreId);
+          }
+        }
+      }
+
+      if (vectorStoreId.isNotEmpty) {
+        // Add file to vector store
+        final attachResp = await http.post(
+          Uri.parse('https://api.openai.com/v1/vector_stores/$vectorStoreId/files'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({'file_id': fileId}),
+        );
+        // ignore non-2xx; vector store may already contain the file
+      }
+
+      if (assistantId.isEmpty) {
+        // Create assistant with file_search tool and vector store resource
+        final asstResp = await http.post(
+          Uri.parse('https://api.openai.com/v1/assistants'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $apiKey',
+          },
+          body: jsonEncode({
+            'model': 'gpt-4.1-mini',
+            'name': 'Avare Flight Assistant',
+            'instructions': 'You are an aviation copilot for Avare. Use the provided files to answer.',
+            'tools': [
+              {'type': 'file_search'}
+            ],
+            'tool_resources': {
+              'file_search': {
+                'vector_store_ids': vectorStoreId.isNotEmpty ? [vectorStoreId] : []
+              }
+            }
+          }),
+        );
+        if (asstResp.statusCode >= 200 && asstResp.statusCode < 300) {
+          final asstBody = jsonDecode(asstResp.body) as Map<String, dynamic>;
+          assistantId = asstBody['id']?.toString() ?? '';
+          if (assistantId.isNotEmpty) {
+            Storage().settings.setOpenAiAssistantId(assistantId);
+          }
+        }
+      }
+      if (assistantId.isNotEmpty) {
+        setState(() { _isAssistantReady = true; });
+      }
+    } catch (_) {
+      // silently ignore; user can still use normal chat
     }
   }
 
