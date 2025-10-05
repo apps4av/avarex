@@ -147,11 +147,14 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
             'tools': [
               {'type': 'file_search'}
             ],
-            'tool_resources': {
-              'file_search': {
-                'file_ids': [fileId]
+            'attachments': [
+              {
+                'file_id': fileId,
+                'tools': [
+                  {'type': 'file_search'}
+                ]
               }
-            }
+            ]
           };
 
           final response = await http.post(
