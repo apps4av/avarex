@@ -6,9 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/logbook/entry.dart';
-import 'package:avaremp/checklist.dart';
-import 'package:avaremp/wnb.dart';
-import 'package:avaremp/weather/metar.dart';
 
 class ChatGptScreen extends StatefulWidget {
   const ChatGptScreen({super.key});
@@ -77,24 +74,11 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   _LogbookTotals? _logbookTotals;
   bool _loadingTotals = false;
   String? _totalsError;
-  String _selectedCategory = 'Logbook';
-  List<String> _categories = [
-    'Logbook',
-    'Flight plan',
-    'Weather',
-    'Checklists',
-    'Weight & balance',
-  ];
-  String? _categoryContext; // last loaded summary for selected category
-  bool _loadingCategory = false;
-  String? _categoryError;
 
   @override
   void initState() {
     super.initState();
     _loadLogbookTotals();
-    _discoverExtraCategories();
-    _loadCategoryContext();
   }
 
   @override
@@ -123,12 +107,9 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       // Ignore augmentation errors and proceed with original text
     }
 
-    // Append selected category context before sending
-    final String finalWithCategory = await _augmentWithSelectedCategory(finalText);
-
     setState(() {
       _isSending = true;
-      _session.addUserMessage(finalWithCategory);
+      _session.addUserMessage(finalText);
       _inputController.clear();
     });
 
@@ -198,22 +179,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
-  }
-
-  Future<void> _discoverExtraCategories() async {
-    try {
-      // Aircraft available? If yes, expose as a category users commonly ask about
-      final aircraft = await UserDatabaseHelper.db.getAllAircraft();
-      if (aircraft.isNotEmpty && !_categories.contains('Aircraft')) {
-        setState(() {
-          _categories.add('Aircraft');
-        });
-      }
-      // Plans exist? Already covered by 'Flight plan'
-      // Recents/Other are not primary AI-query categories; skip unless requested
-    } catch (_) {
-      // ignore discovery failures
-    }
   }
 
   Future<void> _loadLogbookTotals() async {
@@ -286,15 +251,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
     return "$text, my current hours are $summary";
   }
 
-  Future<String> _augmentWithSelectedCategory(String text) async {
-    await _loadCategoryContext();
-    final ctx = _categoryContext?.trim();
-    if (ctx == null || ctx.isEmpty) return text;
-    final label = _selectedCategory;
-    if (text.toLowerCase().contains('context:')) return text; // basic guard to avoid duplication
-    return "$text\nContext [$label]: $ctx";
-  }
-
   void _onPplHoursLeft() async {
     await _ensureTotalsLoaded();
     final t = _logbookTotals;
@@ -365,13 +321,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCategorySelector(),
-          if (_categoryError != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('Failed to load category: \'${_categoryError}\'', style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
-            ),
-          if (_categoryContext != null && _categoryContext!.isNotEmpty) _buildCategorySummaryCard(_selectedCategory, _categoryContext!),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -379,19 +328,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                 ActionChip(label: const Text('PPL hours left'), onPressed: _onPplHoursLeft),
                 const SizedBox(width: 8),
                 ActionChip(label: const Text('Insert totals'), onPressed: _appendTotalsToInput),
-                const SizedBox(width: 8),
-                ActionChip(label: const Text('Insert context'), onPressed: () async {
-                  await _loadCategoryContext();
-                  if ((_categoryContext ?? '').isEmpty) return;
-                  final current = _inputController.text.trim();
-                  final snippet = 'Context [$_selectedCategory]: ${_categoryContext!}';
-                  final newText = current.isEmpty ? snippet : '$current\n$snippet';
-                  setState(() {
-                    _inputController.text = newText;
-                    _inputController.selection = TextSelection.fromPosition(TextPosition(offset: _inputController.text.length));
-                  });
-                  _inputFocusNode.requestFocus();
-                }),
                 const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'Refresh logbook totals',
@@ -411,171 +347,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildCategorySelector() {
-    return Row(
-      children: [
-        const Text('Category:'),
-        const SizedBox(width: 8),
-        DropdownButton<String>(
-          value: _selectedCategory,
-          items: _categories
-              .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
-              .toList(),
-          onChanged: (val) async {
-            if (val == null) return;
-            setState(() {
-              _selectedCategory = val;
-            });
-            await _loadCategoryContext();
-          },
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Refresh category',
-          onPressed: _loadingCategory ? null : _loadCategoryContext,
-          icon: const Icon(Icons.autorenew),
-        ),
-        if (_loadingCategory) const Padding(padding: EdgeInsets.only(left: 8), child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))),
-      ],
-    );
-  }
-
-  Widget _buildCategorySummaryCard(String label, String summary) {
-    return Card(
-      margin: const EdgeInsets.fromLTRB(0, 6, 0, 6),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('$label context', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: 4),
-            Text(summary, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _loadCategoryContext() async {
-    setState(() {
-      _loadingCategory = true;
-      _categoryError = null;
-    });
-    try {
-      String ctx;
-      switch (_selectedCategory) {
-        case 'Logbook':
-          await _ensureTotalsLoaded();
-          final t = _logbookTotals;
-          ctx = (t == null || !t.hasData) ? '' : _formatTotalsSummary(t);
-          break;
-        case 'Flight plan':
-          ctx = await _summarizeFlightPlan();
-          break;
-        case 'Weather':
-          ctx = _summarizeWeather();
-          break;
-        case 'Checklists':
-          ctx = await _summarizeChecklists();
-          break;
-        case 'Weight & balance':
-          ctx = await _summarizeWnb();
-          break;
-        case 'Aircraft':
-          ctx = await _summarizeAircraft();
-          break;
-        default:
-          ctx = '';
-      }
-      if (!mounted) return;
-      setState(() {
-        _categoryContext = ctx;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _categoryError = e.toString();
-        _categoryContext = null;
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _loadingCategory = false;
-      });
-    }
-  }
-
-  Future<String> _summarizeFlightPlan() async {
-    final route = Storage().route;
-    final all = route.getAllDestinations();
-    final names = all.map((d) => d.locationID).toList();
-    final tc = route.totalCalculations;
-    if (names.isEmpty && tc == null) return '';
-    String partRoute = names.isEmpty ? '' : 'route ${names.join(' ')}';
-    String partCalc = '';
-    if (tc != null) {
-      final distNm = tc.distance.toStringAsFixed(1);
-      final gs = tc.groundSpeed.toStringAsFixed(0);
-      final timeMin = (tc.time).toStringAsFixed(0);
-      final fuel = tc.fuel.toStringAsFixed(1);
-      partCalc = 'distance ${distNm}nm, GS ${gs}kt, time ${timeMin}min, fuel ${fuel}gal';
-    }
-    return [partRoute, partCalc].where((s) => s.isNotEmpty).join('; ');
-  }
-
-  String _summarizeWeather() {
-    try {
-      final metars = Storage().metar.getAll().whereType<Metar>().toList();
-      int vfr = 0, mvfr = 0, ifr = 0, lifr = 0;
-      for (final m in metars) {
-        switch (m.category) {
-          case 'VFR': vfr++; break;
-          case 'MVFR': mvfr++; break;
-          case 'IFR': ifr++; break;
-          case 'LIFR': lifr++; break;
-        }
-      }
-      final tafs = Storage().taf.getAll();
-      final tfrs = Storage().tfr.getAll();
-      final aireps = Storage().airep.getAll();
-      final asg = Storage().airSigmet.getAll();
-      return 'METAR: VFR $vfr, MVFR $mvfr, IFR $ifr, LIFR $lifr; TAF ${tafs.length}; TFR ${tfrs.length}; AIREP ${aireps.length}; SIGMET/AIRMET ${asg.length}';
-    } catch (_) {
-      return '';
-    }
-  }
-
-  Future<String> _summarizeChecklists() async {
-    final lists = await UserDatabaseHelper.db.getAllChecklist();
-    if (lists.isEmpty) return '';
-    final active = Storage().activeChecklistName;
-    final names = lists.map((c) => c.name).take(3).join(', ');
-    final suffix = lists.length > 3 ? '…' : '';
-    final head = active.isNotEmpty ? 'active $active; ' : '';
-    return '${head}${lists.length} lists: $names$suffix';
-  }
-
-  Future<String> _summarizeWnb() async {
-    final all = await UserDatabaseHelper.db.getAllWnb();
-    if (all.isEmpty) return '';
-    final names = all.map((w) => w.name).take(3).join(', ');
-    final suffix = all.length > 3 ? '…' : '';
-    return '${all.length} configs: $names$suffix';
-  }
-
-  Future<String> _summarizeAircraft() async {
-    try {
-      final acs = await UserDatabaseHelper.db.getAllAircraft();
-      if (acs.isEmpty) return '';
-      final names = acs.map((a) => a.tail).take(3).join(', ');
-      final suffix = acs.length > 3 ? '…' : '';
-      return '${acs.length} aircraft: $names$suffix';
-    } catch (_) {
-      return '';
-    }
   }
 
   Future<void> _setApiKeyDialog() async {
