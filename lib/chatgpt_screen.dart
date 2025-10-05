@@ -80,14 +80,13 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                   'content': m.content,
                 })
             .toList(),
+        'temperature': 0.2,
       };
 
       if (isGpt5) {
         payload['max_completion_tokens'] = 600;
-        // temperature not supported for gpt-5; use default server-side
       } else {
         payload['max_tokens'] = 600;
-        payload['temperature'] = 0.2;
       }
 
       final response = await http.post(
