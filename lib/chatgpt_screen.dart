@@ -32,7 +32,6 @@ class _ChatSessionState {
 
 class _ChatGptScreenState extends State<ChatGptScreen> {
   final TextEditingController _inputController = TextEditingController();
-  final FocusNode _inputFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
   final _ChatSessionState _session = _ChatSessionState();
   bool _isSending = false;
@@ -40,7 +39,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
   @override
   void dispose() {
     _inputController.dispose();
-    _inputFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -70,9 +68,7 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
       final String model = Storage().settings.getChatModel();
       final uri = Uri.parse('https://api.openai.com/v1/chat/completions');
 
-      final bool isGpt5 = model.toLowerCase().replaceAll('-', '') == 'gpt5' || model.toLowerCase().startsWith('gpt-5');
-
-      final Map<String, dynamic> payload = {
+      final payload = {
         'model': model,
         'messages': _session.messages
             .map((m) => {
@@ -81,13 +77,8 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                 })
             .toList(),
         'temperature': 0.2,
+        'max_tokens': 600,
       };
-
-      if (isGpt5) {
-        payload['max_completion_tokens'] = 600;
-      } else {
-        payload['max_tokens'] = 600;
-      }
 
       final response = await http.post(
         uri,
@@ -243,30 +234,18 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                 final bool isUser = m.role == 'user';
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: isUser
-                        ? () {
-                            _inputController.text = m.content;
-                            _inputController.selection = TextSelection.fromPosition(
-                              TextPosition(offset: _inputController.text.length),
-                            );
-                            _inputFocusNode.requestFocus();
-                          }
-                        : null,
-                    child: Container(
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isUser ? Theme.of(context).colorScheme.primary : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: SelectableText(
-                        m.content,
-                        style: TextStyle(
-                          color: isUser ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isUser ? Theme.of(context).colorScheme.primary : Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      m.content,
+                      style: TextStyle(
+                        color: isUser ? Colors.white : Theme.of(context).textTheme.bodyMedium?.color,
                       ),
                     ),
                   ),
@@ -282,7 +261,6 @@ class _ChatGptScreenState extends State<ChatGptScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      focusNode: _inputFocusNode,
                       controller: _inputController,
                       minLines: 1,
                       maxLines: 6,
