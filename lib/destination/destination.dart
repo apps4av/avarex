@@ -363,12 +363,14 @@ class AirwayDestination extends Destination {
 
     // airway has multiple entries for sequences
     List<Destination> ret = List.generate(maps.length, (i) {
-      return Destination(
+      Destination d = Destination(
         locationID: maps[i]['name'] as String,
         facilityName: maps[i]['name'] as String,
         type: Destination.typeAirway,
         coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
       );
+      d.secondaryName = maps[i]['sequence'] as String; // this will be overwritten after airway is created
+      return d;
     });
 
     return AirwayDestination(

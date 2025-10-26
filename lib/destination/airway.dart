@@ -1,3 +1,5 @@
+import 'package:avaremp/storage.dart';
+
 import 'destination.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
@@ -71,19 +73,50 @@ class Airway {
 
     // Not an airway
     if(airway.points.isEmpty) {
+      Storage().setException("Attempted Plan creation with unknown airway");
       return ret;
     }
 
     // find start point
     LatLng? startCoordinate = findPoint(start, airway);
     if(startCoordinate == null) {
+      Storage().setException("Attempted Plan creation has an airway segment with invalid start transition point");
       return ret;
     }
 
     // find end point
     LatLng? endCoordinate = findPoint(end, airway);
     if(endCoordinate == null) {
+      Storage().setException("Attempted Plan creation has an airway segment with invalid end transition point");
       return ret;
+    }
+
+    List<String?> sequences = airway.points.map((e) => e.secondaryName).toList();
+    List<double> distances = airway.points.map((e) => calc.calculateDistance(e.coordinate, startCoordinate)).toList();
+    List<int> removalIndexes = [];
+    // now remove all identical sequences based on distance, remove far off identical sequences
+    for(int s = 0; s < sequences.length; s++) {
+      for(int t = s + 1; t < sequences.length; t++) {
+        if(sequences[s] == sequences[t]) {
+          // identical sequence found, remove the one that is farther away
+          if(distances[s] < distances[t]) {
+            // remove t
+            sequences[t] = null;
+            removalIndexes.add(t);
+          }
+          else {
+            // remove s
+            sequences[s] = null;
+            removalIndexes.add(s);
+          }
+        }
+      }
+    }
+
+    for(int r in removalIndexes.reversed) {
+      sequences.removeAt(r);
+      distances.removeAt(r);
+      airway.points.removeAt(r);
     }
 
     // Now find start to end of an airway
@@ -92,6 +125,7 @@ class Airway {
 
     // Some sort of error
     if(startIndex < 0 || endIndex < 0 || startIndex == endIndex) {
+      Storage().setException("Attempted Plan creation has an airway segment with invalid start/end transition points");
       return ret;
     }
 
@@ -105,7 +139,10 @@ class Airway {
       selected = coordinates.sublist(endIndex + 1, startIndex).reversed.toList();
     }
 
-    if(selected.isNotEmpty) { // this can be empty if there is only 2 points on v-way
+    if(selected.isEmpty) {
+      Storage().setException("Attempted Plan creation has an airway segment with no points between start and end");
+    }
+    else {// this can be empty if there is only 2 points on v-way
       LatLng lastCoordinate = selected[0];
       for (LatLng c in selected) {
         // Keep far away airways out
