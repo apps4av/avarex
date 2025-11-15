@@ -7,6 +7,7 @@ import 'package:avaremp/app_log.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
+import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/gps_recorder.dart';
@@ -1180,6 +1181,41 @@ class MapScreenState extends State<MapScreen> {
                 ),
               ),
               Positioned(
+                child: Align(
+                    alignment: Alignment.bottomRight,
+                    child: Padding(
+                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
+                        child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                          // switch audio on off
+                          if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
+                            IconButton(
+                                tooltip: "Mute audible alerts",
+                                onPressed: () {
+                                  setState(() {
+                                    Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
+                                  });
+                                },
+                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
+                          if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
+                            IconButton(
+                                tooltip: "Traffic 'hockey puck' size",
+                                onPressed: () {
+                                  setState(() {
+                                    Storage().settings.setTrafficPuckSize(TrafficCache.adjustPuck(Storage().settings.getTrafficPuckSize()));
+                                  });
+                                  Storage().trafficCache.changeArea(Storage().settings.getTrafficPuckSize());
+                                },
+                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    child: Text(Storage().settings.getTrafficPuckSize()))
+                            ),
+
+                        ]
+                      )
+                    )
+                )
+              ),
+              Positioned(
                   child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
@@ -1338,17 +1374,6 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
-                                  // switch audio on off
-                                  IconButton(
-                                      tooltip: "Mute audible alerts",
-                                      onPressed: () {
-                                        setState(() {
-                                          Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
-                                        });
-                                      },
-                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                          child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
-
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the chart type",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
@@ -1428,7 +1453,7 @@ class MapScreenState extends State<MapScreen> {
                                                         _layersOpacity[index] = value; // this is the state for the map
                                                       });
                                                       // Turn audible alerts off and on depending on traffic layer
-                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[Storage().settings.getLayers().indexOf("Traffic")] > 0);
+                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[_layers.indexOf("Traffic")] > 0);
                                                     },
                                                   )),
                                                 ])),

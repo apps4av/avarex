@@ -14,8 +14,6 @@ import '../gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;
-const int _kTrafficAltDiffThresholdFt = 3000;
-const int _kTrafficDistanceDiffThresholdNm = 10;
 
 enum TrafficAlertLevel { none, advisory, resolution }
 
@@ -84,12 +82,55 @@ class Traffic {
 
 
 class TrafficCache {
-  static const int maxEntries = 20;
-  final List<Traffic?> _traffic = List.filled(maxEntries + 1, null); // +1 is the empty slot where new traffic is added
-  static const bool ac20_172Mode = true;
 
+  List<Traffic?> _traffic = [];
+  late int _kTrafficAltDiffThresholdFt;
+  late int _kTrafficDistanceDiffThresholdNm;
+  late int maxEntries;
+
+  void changeArea(String size) {
+    // puck size S, M, L
+    maxEntries =                        size == "S" ? 20    : (size == "M" ? 200   : 1000);
+    _kTrafficAltDiffThresholdFt =       size == "S" ? 3000  : (size == "M" ? 6000  : 30000);
+    _kTrafficDistanceDiffThresholdNm =  size == "S" ? 10    : (size == "M" ? 50    : 500);
+    List<Traffic?> t = List.filled(maxEntries + 1, null);
+    if(t.length < _traffic.length) {
+      // shrink
+      for(int i = 0; i < t.length; i++) {
+        t[i] = _traffic[i];
+      }
+    } else {
+      // expand
+      for(int i = 0; i < _traffic.length; i++) {
+        t[i] = _traffic[i];
+      }
+    }
+    _traffic = t;
+  }
+
+  TrafficCache(String size) {
+    changeArea(size);
+  }
+
+  static final bool ac20_172Mode = true;
   bool _audibleAlertsRequested = false;
   bool _audibleAlertsHandling = false;
+
+  static String adjustPuck(String input) {
+    String output = "S";
+    switch (input) {
+      case "S":
+        output = "M";
+        break;
+      case "M":
+        output = "L";
+        break;
+      case "L":
+        output = "S";
+        break;
+    }
+    return output;
+  }
 
   // Moving the raw calculation into constructor of Traffic, and the vertical distance heuristic into the sort method
   // where it is used

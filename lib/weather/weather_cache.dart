@@ -67,7 +67,10 @@ class WeatherCache {
           responses.add(response.bodyBytes);
         }
         catch(e) {
-          Storage().setException("Failed to download weather from Internet.");
+          if(Storage().gpsInternal) {
+            // if source is external, user is probably having to internet so do not log errors
+            Storage().setException("Failed to download weather from Internet.");
+          }
         }
     }
     await parse(responses);

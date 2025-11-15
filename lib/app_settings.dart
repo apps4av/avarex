@@ -181,6 +181,14 @@ class AppSettings {
     provider.setBool("key-signed", value);
   }
 
+  String getTrafficPuckSize() {
+    return provider.getValue("key-traffic-puck-size", defaultValue: "S") as String;
+  }
+
+  void setTrafficPuckSize(String value) {
+    provider.setString("key-traffic-puck-size", value);
+  }
+
   bool showIntro() {
     return provider.getValue("key-intro", defaultValue: true) as bool;
   }

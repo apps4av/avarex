@@ -155,12 +155,12 @@ class LongPressScreenState extends State<LongPressScreen> {
       List<Widget> values = [];
       if(future.navs != null) {
         for (NavDestination nav in future.navs!) {
-          values.addAll(Nav.getVorLine(nav).map((String s) =>
-              Padding(padding: const EdgeInsets.all(3), child: Text(s))));
+          values.addAll(Nav.getVorLine(nav).map((String s) => Text(s)));
         }
         Widget grid = GridView.count(
           crossAxisCount: gridColumns,
           scrollDirection: Axis.horizontal,
+          mainAxisSpacing: 20,
           children: values,
         );
         pages[labels.indexOf("Main")] =

@@ -84,7 +84,7 @@ class Storage {
   late NotamCache notam;
   final NexradCache nexradCache = NexradCache();
   final Area area = Area();
-  final TrafficCache trafficCache = TrafficCache();
+  late TrafficCache trafficCache;
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.fromLatLng(LatLng(0, 0)));
   ImageCache imageCache = ImageCache();
   int myAircraftIcao = 0;
@@ -278,7 +278,7 @@ class Storage {
     }
     try {
       // Have audible alerts stop listening for GPS changes
-      Storage().gpsChange.removeListener(TrafficCache().handleAudibleAlerts);    
+      Storage().gpsChange.removeListener(trafficCache.handleAudibleAlerts);
     } catch (e) {
       AppLog.logMessage("Error removing GPS traffic cache listener: $e");
     }
@@ -297,6 +297,7 @@ class Storage {
     DbGeneral.set(); // set database platform
 
     await settings.initSettings();
+    trafficCache = TrafficCache(settings.getTrafficPuckSize());
     themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
     units = UnitConversion(settings.getUnits());
     flightTimer = FlightTimer(true, 0, timeChange);
