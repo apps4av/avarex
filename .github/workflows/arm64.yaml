@@ -5,7 +5,7 @@ on: push
 jobs:
 
   build-and-release:
-    runs-on: ubuntu-latest-arm
+    runs-on: ubuntu-22.04-arm
 
     steps:
       - uses: actions/checkout@v4
