@@ -1,18 +1,18 @@
-name: Snap-Linux
+name: ARM64-Linux
 
 on: push
 
 jobs:
 
   build-and-release:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-latest-arm
 
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.35.1'
+          flutter-version: '3.38.1'
 
       - name: Find and Replace OpenAIP
         uses: richardrigutins/replace-in-files@v2
