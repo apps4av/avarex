@@ -1,18 +1,14 @@
-name: ARM64-Linux
+name: Arm64-Linux
 
 on: push
 
 jobs:
 
   build-and-release:
-    runs-on: ubuntu-22.04-arm
+    runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          flutter-version: '3.38.1'
 
       - name: Find and Replace OpenAIP
         uses: richardrigutins/replace-in-files@v2
@@ -32,17 +28,11 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
-      - name: Update source repo
-        run: sudo apt-get update
-      - name: Pre-empt libunwind issue for gstreamer
-        run: sudo apt-get install -y libunwind-dev
-      - name: Install audioplayers dependencies
-        run: sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
-      - name: Install dependencies
-        run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - name: Build Flutter
+        run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter build linux --release
 
-      - name: Build RPI Image
-        run: flutter build linux
+      - name: Integration Test
+        run: export PATH=${PATH}:/home/zkhan/flutter/bin && xvfb-run flutter test integration_test/app_test.dart -d linux
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
