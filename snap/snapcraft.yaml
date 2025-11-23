@@ -1,5 +1,5 @@
 name: avarex 
-version: 0.0.67
+version: 0.0.68
 icon: assets/images/logo.png
 summary: AvareX Flight Support 
 description: AvareX provide FAA charts, plates, airport data, weather, air traffic over ADS-B, and lets you create and file flight plans. 
