@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:avaremp/app_log.dart';
 import 'package:flutter/foundation.dart';

@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 
 // put all singletons here.
@@ -286,13 +287,20 @@ class Storage {
 
   Future<void> init() async {
     WidgetsFlutterBinding.ensureInitialized();
-    Directory dir = await getApplicationDocumentsDirectory();
-    dataDir = PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
-    dir = await getApplicationSupportDirectory();
-    cacheDir = dir.path; // for tiles cache
-    dir = Directory(dataDir);
-    if(!dir.existsSync()) {
-      dir.createSync();
+    if (kIsWeb) {
+      // No filesystem on web; use inert paths
+      dataDir = "/";
+      cacheDir = "/";
+    } else {
+      Directory dir = await getApplicationDocumentsDirectory();
+      dataDir =
+          PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
+      dir = await getApplicationSupportDirectory();
+      cacheDir = dir.path; // for tiles cache
+      dir = Directory(dataDir);
+      if (!dir.existsSync()) {
+        dir.createSync();
+      }
     }
     DbGeneral.set(); // set database platform
 
@@ -324,8 +332,10 @@ class Storage {
 
     // this is a long login process, do not await here
 
-    await checkChartsExist();
-    await checkDataExpiry();
+    if(!kIsWeb) {
+      await checkChartsExist();
+      await checkDataExpiry();
+    }
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;

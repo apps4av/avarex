@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pdf_viewer.dart';

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/checklist.dart';
 import 'package:avaremp/destination/destination.dart';

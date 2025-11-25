@@ -1,6 +1,5 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:math';
+import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/app_log.dart';
@@ -186,10 +185,10 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     LatLng center = Gps.toLatLng(Storage().gpsChange.value);
-    LatLng topCenter = _controller.camera.pointToLatLng(Point(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
+    LatLng topCenter = _controller.camera.screenOffsetToLatLng(Offset(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
     String centralDistance = _calculations.calculateDistance(center, topCenter).round().toString();
-    LatLng topLeft = _controller.camera.pointToLatLng(const Point(iconRadius, 0));
-    LatLng bottomLeft = _controller.camera.pointToLatLng(Point(iconRadius, Constants.screenHeight(context)));
+    LatLng topLeft = _controller.camera.screenOffsetToLatLng(Offset(iconRadius, 0));
+    LatLng bottomLeft = _controller.camera.screenOffsetToLatLng(Offset(iconRadius, Constants.screenHeight(context)));
     double ticksInLatitude = ((topLeft.latitude - bottomLeft.latitude)).round() / 6;
     if(ticksInLatitude < 0.1) {
       ticksInLatitude = 0.1; // avoid busy loop
@@ -846,6 +845,7 @@ class MapScreenState extends State<MapScreen> {
             return PolylineLayer(
               polylines: [
                 // route
+                if(Storage().route.getPathPassed().isNotEmpty)
                 Polyline(
                     borderStrokeWidth: 1,
                     borderColor: Constants.planBorderColor,
@@ -853,6 +853,7 @@ class MapScreenState extends State<MapScreen> {
                     points: Storage().route.getPathPassed(),
                     color: Constants.planPassedColor,
                 ),
+                if(Storage().route.getPathCurrent().isNotEmpty)
                 Polyline(
                   borderStrokeWidth: 2,
                   borderColor: Constants.planBorderColor,
@@ -861,6 +862,7 @@ class MapScreenState extends State<MapScreen> {
                   points: Storage().route.getPathCurrent(),
                   color: Constants.planCurrentColor,
                 ),
+                if(Storage().route.getPathNext().isNotEmpty)
                 Polyline(
                     borderStrokeWidth: 1,
                     borderColor: Constants.planBorderColor,
@@ -915,6 +917,7 @@ class MapScreenState extends State<MapScreen> {
             List<LatLng> path = here.getPathFromLocation(Storage().position);
             return PolylineLayer(
               polylines: [
+                if(path.isNotEmpty)
                 Polyline(
                   strokeWidth: 4,
                   points: path,
@@ -946,7 +949,7 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 if(_rubberBanding) { // start rubber banding
-                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  LatLng l = _controller.camera.screenOffsetToLatLng(Offset(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                              },
@@ -964,7 +967,7 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                LatLng l = _controller.camera.screenOffsetToLatLng(Offset(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestinationFromDb(index, l);
                                 Storage().rubberBandChange.value++;
                               },
@@ -989,7 +992,7 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 if(_rubberBanding) { // start rubber banding
-                                  LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                  LatLng l = _controller.camera.screenOffsetToLatLng(Offset(details.globalPosition.dx, details.globalPosition.dy));
                                   Storage().route.replaceDestination(index, l);
                                 }
                               },
@@ -1010,7 +1013,7 @@ class MapScreenState extends State<MapScreen> {
                                   return;
                                 }
                                 _rubberBanding = false;
-                                LatLng l = _controller.camera.pointToLatLng(Point(details.globalPosition.dx, details.globalPosition.dy));
+                                LatLng l = _controller.camera.screenOffsetToLatLng(Offset(details.globalPosition.dx, details.globalPosition.dy));
                                 Storage().route.replaceDestinationFromDb(index, l);
                                 Storage().rubberBandChange.value++;
                               },
@@ -1505,10 +1508,12 @@ class Plane extends CustomPainter {
 class ChartTileProvider extends TileProvider {
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
-    File f = File(getTileUrl(coordinates, options));
-    if(f.existsSync()) {
-      // get rid of annoying tile name error problem by providing a transparent tile
+    // get rid of annoying tile name error problem by providing a transparent tile
+    try {
       return FileImage(File(getTileUrl(coordinates, options)));
+    }
+    catch(e) {
+      //
     }
 
     // get file to download message in tile missing

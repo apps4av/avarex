@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';

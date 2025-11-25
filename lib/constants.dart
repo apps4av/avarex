@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:flutter/material.dart';
 
@@ -8,7 +8,7 @@ class Constants {
   static const int _hashIntCoprimeSeed = 23;
   static const int _hashIntCoprimeMultiplier = 31;
 
-  static const int kMaxIntValue = 0x7FFFFFFFFFFFFFFF;
+  static const int kMaxIntValue = 0x7FFFFFFF;
 
   @pragma("vm:prefer-inline")
   @pragma("vm:prefer-inline")

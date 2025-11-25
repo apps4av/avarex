@@ -1,7 +1,7 @@
 // destination base class
 
 import 'dart:convert';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:avaremp/app_log.dart';
 import 'package:flutter/material.dart';

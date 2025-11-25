@@ -4,7 +4,7 @@ import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
 

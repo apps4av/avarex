@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+import 'package:universal_io/io.dart';
 import 'dart:math';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/geo_calculations.dart';

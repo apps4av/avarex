@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:universal_io/io.dart';
 
 import 'package:avaremp/path_utils.dart';
 import 'package:flutter/foundation.dart';
