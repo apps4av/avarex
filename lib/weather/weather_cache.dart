@@ -195,7 +195,7 @@ class WeatherCache {
     else if(type == NotamCache) {
       // default
       WeatherCache cache = NotamCache(
-          ["https://rfinder.asalink.net/avionet_run.php"], // dummy link
+          ["https://notams.aim.faa.gov/notamSearch/search"],
           WeatherDatabaseHelper.db.getAllNotams);
       return cache;
     }
