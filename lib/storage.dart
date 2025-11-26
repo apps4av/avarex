@@ -332,10 +332,8 @@ class Storage {
 
     // this is a long login process, do not await here
 
-    if(!kIsWeb) {
-      await checkChartsExist();
-      await checkDataExpiry();
-    }
+    await checkChartsExist();
+    await checkDataExpiry();
 
     winds = WeatherCache.make(WindsCache) as WindsCache;
     metar = WeatherCache.make(MetarCache) as MetarCache;

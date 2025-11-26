@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:core';
 import 'package:universal_io/io.dart';
-import 'package:async_zip/async_zip.dart' if (dart.library.html) 'web.dart';
+import 'package:async_zip/async_zip.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
