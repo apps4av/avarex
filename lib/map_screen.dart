@@ -76,11 +76,13 @@ class MapScreenState extends State<MapScreen> {
   TileLayer _nexradLayer = TileLayer(
     maxNativeZoom: 5,
     urlTemplate: _mesonets[0],
+    userAgentPackageName: 'com.apps4av.avarex',
     tileProvider: NetworkTileProvider(),
   );
 
   final TileLayer _osmLayer = TileLayer(
     urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    userAgentPackageName: 'com.apps4av.avarex',
     tileProvider: MapNetworkTileProvider());
 
   final TileLayer _openaipLayer = TileLayer(
@@ -90,6 +92,7 @@ class MapScreenState extends State<MapScreen> {
 
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
+    userAgentPackageName: 'com.apps4av.avarex',
     urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
     tileProvider: MapNetworkTileProvider()
   );
@@ -563,6 +566,7 @@ class MapScreenState extends State<MapScreen> {
               index = _mesonets.length - 1; // give 2 times the time for latest to stay on
             }
             _nexradLayer = TileLayer(
+              userAgentPackageName: 'com.apps4av.avarex',
               maxNativeZoom: 5,
               urlTemplate: _mesonets[index],
               tileProvider: NetworkTileProvider(),
@@ -1509,11 +1513,10 @@ class ChartTileProvider extends TileProvider {
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
     // get rid of annoying tile name error problem by providing a transparent tile
-    try {
-      return FileImage(File(getTileUrl(coordinates, options)));
-    }
-    catch(e) {
-      //
+    File f = File(getTileUrl(coordinates, options));
+    if(f.existsSync()) {
+      // get rid of annoying tile name error problem by providing a transparent tile
+      return FileImage(f);
     }
 
     // get file to download message in tile missing
