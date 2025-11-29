@@ -91,7 +91,6 @@ dependencies:
   yaml: any
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
-  firebase_functions: ^0.0.1-dev
   firebase_ui_auth: ^3.0.1
   firebase_ai: ^3.6.0
   firebase_storage: ^13.0.4
