@@ -38,8 +38,9 @@ jobs:
       - name: Login to Firebase
         run: |
           curl -sL https://firebase.tools | bash
-          echo ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 -d > key.json
-          export GOOGLE_APPLICATION_CREDENTIALS="key.json"
+          echo ${{ secrets.GOOGLE_SERVICES_KEY }} > key.64 
+          certutil -decode key.64 key.json
+          set GOOGLE_APPLICATION_CREDENTIALS=key.json
           dart pub global activate flutterfire_cli
           flutterfire configure --project avarex-479ae --platforms windows --yes
 
