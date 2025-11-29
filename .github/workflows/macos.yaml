@@ -34,8 +34,14 @@ jobs:
 
       - name: Install project dependencies
         run: |
+          curl -sL https://firebase.tools | bash
           flutter pub get
           brew install create-dmg
+
+      - name: Setup Firebase
+        run: |
+          firebase login --token ${{ secrets.FIREBASE_TOKEN }}
+          firebase init --token ${{ secrets.FIREBASE_TOKEN }}
 
       - name: Integration Test
         run: |
