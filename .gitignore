@@ -50,3 +50,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+#firebase
+firebase.json
+lib/firebase_options.dart
+firepit-log.txt
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+macos/Runner/GoogleService-Info.plist
+

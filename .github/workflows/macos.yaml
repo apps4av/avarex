@@ -38,11 +38,12 @@ jobs:
           brew install create-dmg
 
       - name: Login to Firebase
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
           curl -sL https://firebase.tools | bash
-          firebase login --no-localhost
+          echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 --decode --output key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="key.json"
+          dart pub global activate flutterfire_cli
+          flutterfire configure --project avarex-479ae
 
       - name: Integration Test
         run: |
