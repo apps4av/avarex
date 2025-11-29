@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:universal_io/io.dart';
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/checklist.dart';
@@ -31,9 +32,14 @@ class UserDatabaseHelper {
     return _database;
   }
 
-  Future<Database> _initDB() async {
+  static String getPath() {
     Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "user.db");
+    return path;
+  }
+
+  Future<Database> _initDB() async {
+    String path = getPath();
     return
       await openDatabase(
           path,
@@ -515,4 +521,15 @@ class UserDatabaseHelper {
     }
     return 0;
   }
+
+  Future<String> getLogbookAsJson() async {
+    final db = await database;
+    if(db != null) {
+      final maps = await db.query('logbook', orderBy: 'date DESC');
+      return jsonEncode(maps);
+    }
+    return "[]";
+  }
 }
+
+

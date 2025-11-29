@@ -43,6 +43,18 @@ class WindsCache extends WeatherCache {
     return (wd, ws);
   }
 
+  // metar if winds from ground need to be used
+  static String? getWindsAtAll(LatLng coordinate, int fore) {
+    String foreString = fore.toString().padLeft(2, "0"); // stations has fore in the name
+    String? station = WindsCache.locateNearestStation(coordinate);
+    var ww = Storage().winds.get("$station${foreString}H");
+    if(ww != null) {
+      String winds = (ww as WindsAloft).toList().join("\n");
+      return winds;
+    }
+    return null;
+  }
+
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
     if(data.isEmpty) {
