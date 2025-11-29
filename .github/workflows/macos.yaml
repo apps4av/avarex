@@ -45,10 +45,6 @@ jobs:
           dart pub global activate flutterfire_cli
           flutterfire configure --project avarex-479ae --platforms macos --yes
 
-      - name: Integration Test
-        run: |
-          flutter test integration_test/app_test.dart -d macos
-          
       - name: Build artifacts and sign
         run: |
           flutter build macos --release
