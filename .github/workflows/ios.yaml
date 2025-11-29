@@ -61,6 +61,14 @@ jobs:
       - name: Install project dependencies
         run: flutter pub get
 
+      - name: Login to Firebase
+        run: |
+          curl -sL https://firebase.tools | bash
+          echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 --decode --output key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="key.json"
+          dart pub global activate flutterfire_cli
+          flutterfire configure --project avarex-479ae --platforms ios --yes
+
       - name: Integration Test
         run: |
           flutter test integration_test/app_test.dart -d 'iPhone 16'
