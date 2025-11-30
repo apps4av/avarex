@@ -21,11 +21,12 @@ class AiScreen extends StatefulWidget {
 
 class AiScreenState extends State<AiScreen> {
 
-  static final String ownQuestion = 'Your own question:';
+  static final String ownQuestion = '(My own question)';
 
   final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro');
   bool _isSending = false;
   final TextEditingController _editingController = TextEditingController();
+  final TextEditingController _editingControllerQuestion = TextEditingController();
   final List<String> _categories = [
     'Flight plan',
     'Log book',
@@ -208,14 +209,15 @@ class AiScreenState extends State<AiScreen> {
           )
           ))),
           if(_selectedQuery == ownQuestion)
-            Expanded(flex: 2, child: TextField(maxLength: 128,)),
+            Expanded(flex: 2, child: TextField(controller: _editingControllerQuestion, maxLength: 128,)),
           Expanded(flex: 1, child: Padding(padding: EdgeInsets.all(10), child: ElevatedButton(
             onPressed: _isSending ? null : () async {
               setState(() {
                 _isSending = true;
+                _editingController.text = "";
               });
 
-              String myQuery = _selectedQuery == ownQuestion ? _editingController.text : _selectedQuery;
+              String myQuery = _selectedQuery == ownQuestion ? _editingControllerQuestion.text : _selectedQuery;
               final prompt = TextPart("$_selectedCategory query: $myQuery");
               List<Part> parts = [];
               parts.add(prompt);
