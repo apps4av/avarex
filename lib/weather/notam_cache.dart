@@ -26,6 +26,7 @@ class NotamCache extends WeatherCache {
 
     // JSON returned from Internet NOTAM API; grok it
     for (var notam in jsonDecode(utf8.decode(data[0]))['notamList']) {
+      if (notam['traditionalMessage'] == null) continue;
       var text = notam['traditionalMessage'].replaceAll('\n', '');
       if (notam['featureName'] == "LTA") {  // Letters to Airmen: include?  hyperlink to reference?
         //continue;
@@ -66,7 +67,7 @@ class NotamCache extends WeatherCache {
     // 2025-11-25, bspatz: try NOTAMs via working FAA API, by locationID
     String _icaoID = airport.locationID;
     if (_icaoID.substring(0,1) == "K" && _icaoID.length == 4) { // more coverage
-      _icaoID = _icaoID.substring(1);
+      _icaoID = _icaoID.substring(1) + ',' + _icaoID;
     }
     Map<String, String> body = {
       "searchType": "0",
