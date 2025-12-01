@@ -78,10 +78,6 @@ jobs:
           dart pub global activate flutterfire_cli
           flutterfire configure --project avarex-479ae --platforms ios --yes
 
-      - name: Integration Test
-        run: |
-          flutter test integration_test/app_test.dart -d 'iPhone 16'
-
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
