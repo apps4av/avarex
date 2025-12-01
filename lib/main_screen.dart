@@ -1,10 +1,14 @@
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
+import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'constants.dart';
+import 'firebase_options.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
 import 'package:yaml/yaml.dart';
@@ -140,8 +144,31 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/wnb');}, dense: true,),
               ListTile(title: const Text("Log Book"), leading: Icon(Icons.notes), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/logbook');}, dense: true,),
               if(Constants.shouldShowBluetoothSpp) ListTile(title: const Text("IO"), leading: const Icon(Icons.compare_arrows_rounded), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/io');}, dense: true,),
-              if(Constants.shouldShowProServices) ListTile(title: const Text("Pro Services"), leading: Icon(MdiIcons.accountTieHat), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/pro');}, dense: true,),
               if(Constants.shouldShowDonation) ListTile(title: const Text("Donate"), leading: const Icon(Icons.celebration), onTap: () {Navigator.pushNamed(context, '/donate');}, dense: true,),
+              if(Constants.shouldShowProServices) ListTile(title: const Text("Pro Services"), leading: Icon(MdiIcons.accountTieHat),
+                onTap: () async {
+                  try {
+                    if (Constants.shouldShowProServices) {
+                      await Firebase.initializeApp(
+                        options: DefaultFirebaseOptions.currentPlatform,
+                      );
+                      FirebaseUIAuth.configureProviders([
+                        EmailAuthProvider(),
+                      ]);
+                    }
+                    await RevenueCatService.initPlatformState();
+                    await RevenueCatService.logIn();
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(context, '/pro');
+                    }
+                  }
+                  catch(e) {
+                    Storage().setException("Unable to initialize Pro Services: $e");
+                  }
+                },
+                dense: true,),
             ],
           ))
         ),
