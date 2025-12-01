@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:core';
 import 'package:universal_io/io.dart';
-import 'package:async_zip/async_zip.dart';
 import 'package:avaremp/faa_dates.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -179,41 +178,8 @@ class Download {
     }
 
     try {
+      if(false) {
 
-      if(Platform.isAndroid || Platform.isIOS) { // unzip for low memory devices
-        final reader = ZipFileReaderSync();
-        try {
-          reader.open(File(PathUtils.getLocalFilePath(Storage().dataDir, chart.filename)));
-
-          // Get all Zip entries
-          final entries = reader.entries();
-          double num = 1;
-          for (final entry in entries) {
-            if(!entry.isDir) {
-              await File(
-                  PathUtils.getUnzipFilePath(Storage().dataDir, entry.name))
-                  .create(recursive: true); // this creates sub folders
-              reader.readToFile(entry.name, File(
-                  PathUtils.getUnzipFilePath(Storage().dataDir, entry.name)));
-              if (_cancelDownloadAndDelete) {
-                callback(chart, -1);
-                reader.close();
-                return;
-              }
-            }
-            double fraction = num++ / entries.length.toDouble();
-            double progress = 0.5 + (fraction / 2); // 0.50 to 1
-            if (progress - lastProgress >= 0.1) { // unzip is faster than download
-              callback(chart, (progress * 100).toInt());
-              lastProgress = progress;
-            }
-          }
-          // Read a specific file
-        } on ZipException {
-          callback(chart, -1);
-        } finally {
-          reader.close();
-        }
       }
       else {
         final inputStream = InputFileStream(
