@@ -1,4 +1,7 @@
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/services/revenue_cat.dart';
+import 'package:avaremp/storage.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,9 +25,33 @@ class LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void _showPaywall(String route) async {
+      try {
+        RevenueCatService.presentPaywallIfNeeded().then((entitled) {
+          if (mounted) {
+            if (entitled) {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, route);
+            }
+            else {
+              MapScreenState.showToast(context, "Please subscribe before proceeding. Thank you.",
+                  Icon(Icons.info, color: Colors.red), 3);
+            }
+          }
+        });
+      }
+      catch(e) {
+        Storage().setException("Unable to initialize Pro Services: $e");
+      }
+  }
+
   @override
   Widget build(BuildContext context) {
     final providers = [EmailAuthProvider()];
+
+    if(FirebaseAuth.instance.currentUser != null) {
+      RevenueCatService.logIn(FirebaseAuth.instance.currentUser!.uid);
+    }
 
     return Scaffold(
         appBar: AppBar(
@@ -40,13 +67,13 @@ class LoginScreenState extends State<LoginScreen> {
                 child: const Text("Flight Intelligence"),
                 onPressed: () {
                   // Offerings and purchase options
-                  Navigator.pushNamed(context, '/ai');
+                  _showPaywall('/ai');
                 },
               ),
               TextButton(
                 child: const Text("Backup/Sync"),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/backup');
+                  _showPaywall('/backup');
                 },
               ),
             ],

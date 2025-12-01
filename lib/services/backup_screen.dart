@@ -130,7 +130,7 @@ class BackupScreenState extends State<BackupScreen> {
                   });
                 }
                 catch(e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     MapScreenState.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
@@ -164,7 +164,7 @@ class BackupScreenState extends State<BackupScreen> {
                   });
                 }
                 catch(e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     MapScreenState.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
@@ -198,7 +198,7 @@ class BackupScreenState extends State<BackupScreen> {
                   });
                 }
                 catch(e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     MapScreenState.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
@@ -229,7 +229,7 @@ class BackupScreenState extends State<BackupScreen> {
                   });
                 }
                 catch(e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     MapScreenState.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
@@ -260,7 +260,7 @@ class BackupScreenState extends State<BackupScreen> {
                   });
                 }
                 catch(e) {
-                  if (mounted) {
+                  if (context.mounted) {
                     MapScreenState.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
