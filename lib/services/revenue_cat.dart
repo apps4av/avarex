@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'package:universal_io/io.dart';
@@ -30,11 +29,6 @@ class RevenueCatService {
     await Purchases.logOut();
   }
 
-  static Future<LogInResult> logIn() async {
-    // log in with user ID from Firebase Auth
-    return await Purchases.logIn(FirebaseAuth.instance.currentUser!.uid);
-  }
-
   static Future<bool> presentPaywallIfNeeded() async {
     bool entitled = false;
     try {
@@ -50,7 +44,7 @@ class RevenueCatService {
         case PaywallResult.error:
           break;
       }
-      RevenueCatService.getCustomerInfo().then((customerInfo) {
+      await RevenueCatService.getCustomerInfo().then((customerInfo) {
         if (customerInfo.entitlements.all[entitlementId] != null &&
             customerInfo.entitlements.all[entitlementId]!.isActive) {
           entitled = true;

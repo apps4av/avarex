@@ -3,9 +3,12 @@ import 'package:avaremp/logbook_screen.dart';
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
+import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb_screen.dart';
 import 'package:avaremp/writing_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 import 'ai/ai_screen.dart';
 import 'aircraft_screen.dart';
@@ -14,6 +17,7 @@ import 'constants.dart';
 import 'destination/destination.dart';
 import 'documents_screen.dart';
 import 'download_screen.dart';
+import 'firebase_options.dart';
 import 'io_screen.dart';
 import 'main_screen.dart';
 import 'onboarding_screen.dart';
@@ -28,6 +32,18 @@ void main() {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
   Storage().init().then((accentColor) async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      FirebaseUIAuth.configureProviders([
+        EmailAuthProvider(),
+      ]);
+      await RevenueCatService.initPlatformState();
+    }
+    catch(e) {
+      // ignore errors here
+    }
     runApp(const MainApp());
   });
 

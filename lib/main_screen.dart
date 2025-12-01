@@ -3,12 +3,9 @@ import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'constants.dart';
-import 'firebase_options.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
 import 'package:yaml/yaml.dart';
@@ -149,30 +146,22 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                 onTap: () async {
                   try {
                     if (Constants.shouldShowProServices) {
-                      await Firebase.initializeApp(
-                        options: DefaultFirebaseOptions.currentPlatform,
-                      );
-                      FirebaseUIAuth.configureProviders([
-                        EmailAuthProvider(),
-                      ]);
+                      RevenueCatService.presentPaywallIfNeeded().then((
+                          entitled) {
+                        if (mounted) {
+                          if (entitled) {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/pro');
+                          }
+                          else {
+                            Navigator.pop(context);
+                            MapScreenState.showToast(context,
+                                "Unable to start the Pro services due to system error.",
+                                Icon(Icons.info, color: Colors.red), 3);
+                          }
+                        }
+                      });
                     }
-                    await RevenueCatService.initPlatformState();
-                    await RevenueCatService.logIn();
-
-                    RevenueCatService.presentPaywallIfNeeded().then((entitled) {
-                      if (mounted) {
-                        if (entitled) {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/pro');
-                        }
-                        else {
-                          Navigator.pop(context);
-                          MapScreenState.showToast(context,
-                              "Unable to start the Pro services due to system error.",
-                              Icon(Icons.info, color: Colors.red), 3);
-                        }
-                      }
-                    });
                   }
                   catch(e) {
                     Storage().setException("Unable to initialize Pro Services: $e");
