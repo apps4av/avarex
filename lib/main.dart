@@ -32,17 +32,19 @@ void main() {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
   Storage().init().then((accentColor) async {
-    try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      FirebaseUIAuth.configureProviders([
-        EmailAuthProvider(),
-      ]);
-      await RevenueCatService.initPlatformState();
-    }
-    catch(e) {
-      // ignore errors here
+    if(Constants.shouldShowProServices) {
+      try {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        FirebaseUIAuth.configureProviders([
+          EmailAuthProvider(),
+        ]);
+        await RevenueCatService.initPlatformState();
+      }
+      catch (e) {
+        // ignore errors here
+      }
     }
     runApp(const MainApp());
   });
