@@ -21,8 +21,6 @@ class AiScreen extends StatefulWidget {
 
 class AiScreenState extends State<AiScreen> {
 
-  static final String ownQuestion = '(My own question)';
-
   final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro');
   bool _isSending = false;
   final TextEditingController _editingController = TextEditingController();
@@ -35,7 +33,6 @@ class AiScreenState extends State<AiScreen> {
     'FAA',
   ];
   String _selectedCategory = 'Flight plan';
-  String _selectedQuery = 'Is this a valid plan?';
   final Map<String, List<String>> _typicalQueriesByCategory = {
     'Flight plan': [
       'Is this a valid plan?',
@@ -49,7 +46,6 @@ class AiScreenState extends State<AiScreen> {
       'Find minimum fuel stop plan',
       'Compute great-circle distance for this route',
       'Recommend cruise altitude by winds and terrain',
-      ownQuestion,
     ],
     'FAA': [
       'How do I maintain instrument currency?',
@@ -69,7 +65,6 @@ class AiScreenState extends State<AiScreen> {
       'What are the required tests and inspections for IFR operations?',
       'What are the lost communication procedures for an IFR flight?',
       'What are the lost communication procedures for a VFR flight?',
-      ownQuestion,
     ],
     'Log book': [
       'Am I instrument current?',
@@ -81,7 +76,6 @@ class AiScreenState extends State<AiScreen> {
       'Totals by aircraft make/model',
       'Which aircraft do I fly most?',
       'Show my most recent flight details',
-      ownQuestion,
     ],
     'Aircraft': [
       'Describe the electrical system',
@@ -97,14 +91,12 @@ class AiScreenState extends State<AiScreen> {
       'What are the performance numbers for landing?',
       'What are the recommended climb speeds?',
       'What are the recommended cruise settings?',
-      ownQuestion,
     ],
     'Tracks': [
       'Summarize my last flight',
       'What was my average ground speed?',
       'What was my maximum altitude?',
       'How long was my last flight?',
-      ownQuestion,
     ],
   };
 
@@ -150,12 +142,47 @@ class AiScreenState extends State<AiScreen> {
                     setState(() {
                       _selectedCategory = value;
                       _editingController.text = "";
-                      _selectedQuery = _typicalQueriesByCategory[_selectedCategory]![0];
+                      _editingControllerQuestion.text = _typicalQueriesByCategory[_selectedCategory]![0];
                     });
                   },
                 )
               )),
-              Padding(padding: EdgeInsets.all(10),
+              Padding(padding: EdgeInsets.all(10), child: DropdownButtonHideUnderline(child:DropdownButton2<String>(
+                  isDense: true,
+                  customButton: Icon(Icons.more_horiz),
+                  buttonStyleData: ButtonStyleData(
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                  ),
+                  dropdownStyleData: DropdownStyleData(
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    width: Constants.screenWidth(context) * 0.9,
+                  ),
+                  isExpanded: false,
+                  value: _typicalQueriesByCategory[_selectedCategory]![0],
+                  items: _typicalQueriesByCategory[_selectedCategory]!.map((String item) {
+                    return DropdownMenuItem<String>(
+                        value: item,
+                        child: Row(children:[
+                          Expanded(child:
+                          Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5),),
+                              child: Padding(padding: const EdgeInsets.all(5), child:
+                              AutoSizeText(item, minFontSize: 2, maxLines: 1),)),
+                          )
+                        ])
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _editingControllerQuestion.text = value;
+                      _editingController.text = "";
+                    });
+                  },
+                )
+                )),
+                Padding(padding: EdgeInsets.all(10),
                   child:TextButton(child: const Text("Context"),
                       onPressed: () {
                         // route based on category
@@ -171,105 +198,90 @@ class AiScreenState extends State<AiScreen> {
                         else if(_selectedCategory == 'Tracks') {
                           Navigator.pushNamed(context, '/backup');
                         }
-                      })),
-          ])),
-          Expanded(flex: 1, child: Padding(padding: EdgeInsets.all(10), child: DropdownButtonHideUnderline(child:DropdownButton2<String>(
-            isDense: true,
-            customButton: AutoSizeText(_selectedQuery, style: TextStyle(fontStyle: FontStyle.italic)),
-            buttonStyleData: ButtonStyleData(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-            ),
-            dropdownStyleData: DropdownStyleData(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-              width: Constants.screenWidth(context) * 0.75,
-            ),
-            isExpanded: false,
-            value: _typicalQueriesByCategory[_selectedCategory]![0],
-            items: _typicalQueriesByCategory[_selectedCategory]!.map((String item) {
-              return DropdownMenuItem<String>(
-                  value: item,
-                  child: Row(children:[
-                    Expanded(child:
-                    Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(5),),
-                        child: Padding(padding: const EdgeInsets.all(5), child:
-                        AutoSizeText(item, minFontSize: 2, maxLines: 1),)),
-                    )
-                  ])
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _selectedQuery = value;
-                _editingController.text = "";
-              });
-            },
-          )
-          ))),
-          if(_selectedQuery == ownQuestion)
-            Expanded(flex: 2, child: TextField(controller: _editingControllerQuestion, maxLength: 128,)),
-          Expanded(flex: 1, child: Padding(padding: EdgeInsets.all(10), child: ElevatedButton(
-            onPressed: _isSending ? null : () async {
-              setState(() {
-                _isSending = true;
-                _editingController.text = "";
-              });
+                      })
+                  ),
+              ])
+          ),
+          Expanded(flex: 2, child:TextField(
+            controller: _editingControllerQuestion, maxLength: 128,
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.question_mark),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide(
+                  width: 1,
+                  style: BorderStyle.solid,
+                ),
+              ),
+              suffixIcon: Container(
+                margin: EdgeInsets.all(10),
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30.0),
+                    ),
+                  ),
+                  onPressed: _isSending ? null : () async {
+                    setState(() {
+                      _isSending = true;
+                      _editingController.text = "";
+                    });
 
-              String myQuery = _selectedQuery == ownQuestion ? _editingControllerQuestion.text : _selectedQuery;
-              final prompt = TextPart("$_selectedCategory query: $myQuery");
-              List<Part> parts = [];
-              parts.add(prompt);
+                    String myQuery = _editingControllerQuestion.text;
+                    final prompt = TextPart("$_selectedCategory query: $myQuery");
+                    List<Part> parts = [];
+                    parts.add(prompt);
 
-              // context based parts
-              if(_selectedCategory == 'Flight plan') {
-                List<Destination> destinations = Storage().route.getAllDestinations();
-                if(destinations.isNotEmpty) {
-                  final flightPlanPart = TextPart(Storage().route.toString());
-                  parts.add(flightPlanPart);
-                  String? winds = WindsCache.getWindsAtAll(destinations[0].coordinate, 6);
-                  if(winds != null) {
-                    final windsPart = TextPart("Use winds:\n $winds");
-                    parts.add(windsPart);
-                  }
-                }
-                final List<Aircraft> aircraft = await UserDatabaseHelper.db.getAllAircraft();
-                if(aircraft.isNotEmpty) {
-                  final aircraft1 = aircraft.first;
-                  final aircraftPart = TextPart("Use aircraft:\n ${jsonEncode(aircraft1.toMap())}");
-                  parts.add(aircraftPart);
-                }
-              }
-              else if(_selectedCategory == 'Log book') {
-                final filePart = FileData("text/plain", BackupScreen.getUserDataJsonPath());
-                parts.add(filePart);
-              }
-              else if(_selectedCategory == 'Tracks') {
-                final filePart = FileData("text/plain", BackupScreen.getUserTracksPath());
-                parts.add(filePart);
-              }
-              else if(_selectedCategory == 'FAA') {
-              }
-              else if(_selectedCategory == 'Aircraft') {
-                final filePart = FileData("application/pdf", BackupScreen.getAircraftPath());
-                parts.add(filePart);
-              }
-              final query =  Content.multi(parts);
-              final response = await _model.generateContent([query]);
-              setState(() {
-                _isSending = false;
-                if(response.text == null) {
-                  _editingController.text = "Error: no response from AI";
-                  return;
-                }
-                else {
-                  _editingController.text = response.text!;
-                }
-              });
-            },
-            child: _isSending ? const SizedBox(width: 10, height: 10, child:CircularProgressIndicator()) : const Text("Ask"),
-          ))),
+                    // context based parts
+                    if(_selectedCategory == 'Flight plan') {
+                      List<Destination> destinations = Storage().route.getAllDestinations();
+                      if(destinations.isNotEmpty) {
+                        final flightPlanPart = TextPart(Storage().route.toString());
+                        parts.add(flightPlanPart);
+                        String? winds = WindsCache.getWindsAtAll(destinations[0].coordinate, 6);
+                        if(winds != null) {
+                          final windsPart = TextPart("Use winds:\n $winds");
+                          parts.add(windsPart);
+                        }
+                      }
+                      final List<Aircraft> aircraft = await UserDatabaseHelper.db.getAllAircraft();
+                      if(aircraft.isNotEmpty) {
+                        final aircraft1 = aircraft.first;
+                        final aircraftPart = TextPart("Use aircraft:\n ${jsonEncode(aircraft1.toMap())}");
+                        parts.add(aircraftPart);
+                      }
+                    }
+                    else if(_selectedCategory == 'Log book') {
+                      final filePart = FileData("text/plain", BackupScreen.getUserDataJsonPath());
+                      parts.add(filePart);
+                    }
+                    else if(_selectedCategory == 'Tracks') {
+                      final filePart = FileData("text/plain", BackupScreen.getUserTracksPath());
+                      parts.add(filePart);
+                    }
+                    else if(_selectedCategory == 'FAA') {
+                    }
+                    else if(_selectedCategory == 'Aircraft') {
+                      final filePart = FileData("application/pdf", BackupScreen.getAircraftPath());
+                      parts.add(filePart);
+                    }
+                    final query =  Content.multi(parts);
+                    final response = await _model.generateContent([query]);
+                    setState(() {
+                      _isSending = false;
+                      if(response.text == null) {
+                        _editingController.text = "Error: no response from AI";
+                        return;
+                      }
+                      else {
+                        _editingController.text = response.text!;
+                      }
+                    });
+                  },
+                  child:Text("Ask"))
+              )
+            )
+          )),
           Expanded(flex: 10, child: TextField(
             controller: _editingController,
             enableInteractiveSelection: true,

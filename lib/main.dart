@@ -3,6 +3,7 @@ import 'package:avaremp/logbook_screen.dart';
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
+import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/wnb_screen.dart';
 import 'package:avaremp/writing_screen.dart';
@@ -39,6 +40,8 @@ void main() {
         EmailAuthProvider(),
       ]);
     }
+    await RevenueCatService.initPlatformState();
+    await RevenueCatService.logIn();
     runApp(const MainApp());
   });
 

@@ -32,6 +32,15 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
+      - name: Find and Replace RC Key
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '**/*.dart'
+          search-text: '@@___revenuecat_android_api_key__@@'
+          replacement-text: ${{ secrets.ANDROID_REVENUECAT_API_KEY }}
+          encoding: 'utf8'
+          max-parallelism: 10
+
       - name: Install project dependencies
         run: flutter pub get
 

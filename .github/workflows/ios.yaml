@@ -37,6 +37,15 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
+      - name: Find and Replace RC Key
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '**/*.dart'
+          search-text: '@@___revenuecat_ios_api_key__@@'
+          replacement-text: ${{ secrets.IOS_REVENUECAT_API_KEY }}
+          encoding: 'utf8'
+          max-parallelism: 10
+
       - name: Install the Apple certificate and provisioning profile
         run: |
           # create variables
