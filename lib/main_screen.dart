@@ -159,10 +159,20 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                     await RevenueCatService.initPlatformState();
                     await RevenueCatService.logIn();
 
-                    if (mounted) {
-                      Navigator.pop(context);
-                      Navigator.pushNamed(context, '/pro');
-                    }
+                    RevenueCatService.presentPaywallIfNeeded().then((entitled) {
+                      if (mounted) {
+                        if (entitled) {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/pro');
+                        }
+                        else {
+                          Navigator.pop(context);
+                          MapScreenState.showToast(context,
+                              "Unable to start the Pro services due to system error.",
+                              Icon(Icons.info, color: Colors.red), 3);
+                        }
+                      }
+                    });
                   }
                   catch(e) {
                     Storage().setException("Unable to initialize Pro Services: $e");

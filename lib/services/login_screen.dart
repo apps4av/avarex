@@ -1,6 +1,4 @@
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/map_screen.dart';
-import 'package:avaremp/services/revenue_cat.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
@@ -42,37 +40,17 @@ class LoginScreenState extends State<LoginScreen> {
                 child: const Text("Flight Intelligence"),
                 onPressed: () {
                   // Offerings and purchase options
-                  RevenueCatService.presentPaywallIfNeeded().then((entitled) {
-                    if(mounted) {
-                      if (entitled) {
-                        Navigator.pushNamed(context, '/ai');
-                      }
-                      else {
-                        MapScreenState.showToast(context, "Error upgrading to Pro account.",
-                            Icon(Icons.info, color: Colors.red,), 3);
-                      }
-                    }
-                  });
+                  Navigator.pushNamed(context, '/ai');
                 },
               ),
               TextButton(
                 child: const Text("Backup/Sync"),
                 onPressed: () {
-                  RevenueCatService.presentPaywallIfNeeded().then((entitled) {
-                    if(mounted) {
-                      if (entitled) {
-                        Navigator.pushNamed(context, '/backup');
-                      }
-                      else {
-                        MapScreenState.showToast(context, "Error upgrading to Pro account.",
-                            Icon(Icons.info, color: Colors.red,), 3);
-                      }
-                    }
-                  });
+                  Navigator.pushNamed(context, '/backup');
                 },
               ),
             ],
-          ) : Padding(padding: EdgeInsets.all(10), child:Text("Please sign in to access Pro Services")),
+          ) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
         ),
         body: isLoggedIn ?
           ProfileScreen(
