@@ -29,6 +29,18 @@ class RevenueCatService {
     await Purchases.logOut();
   }
 
+  static Future<bool> logIn(String userId) async {
+    bool loggedIn = false;
+    try {
+      await Purchases.logIn(userId);
+      loggedIn = true;
+    }
+    catch(e) {// ignore
+      loggedIn = false;
+    }
+    return loggedIn;
+  }
+
   static Future<bool> presentPaywallIfNeeded() async {
     bool entitled = false;
     try {
