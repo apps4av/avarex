@@ -178,37 +178,32 @@ class Download {
     }
 
     try {
-      if(false) {
+      final inputStream = InputFileStream(
+          PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
+      final archive = ZipDecoder().decodeStream(inputStream);
 
-      }
-      else {
-        final inputStream = InputFileStream(
-            PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
-        final archive = ZipDecoder().decodeStream(inputStream);
-
-        double num = 1; // file number being decoded
-        for (var file in archive) {
-          if (file.isFile) {
-            final outputStream = OutputFileStream(
-                PathUtils.getUnzipFilePath(Storage().dataDir, file.name));
-            file.writeContent(outputStream);
-            outputStream.close();
-            if (_cancelDownloadAndDelete) {
-              callback(chart, -1);
-              inputStream.close();
-              return;
-            }
-          }
-          double fraction = num++ / archive.length.toDouble();
-          double progress = 0.5 + (fraction / 2); // 0.50 to 1
-          if (progress - lastProgress >= 0.1) { // unzip is faster than download
-            callback(chart, (progress * 100).toInt());
-            lastProgress = progress;
+      double num = 1; // file number being decoded
+      for (var file in archive) {
+        if (file.isFile) {
+          final outputStream = OutputFileStream(
+              PathUtils.getUnzipFilePath(Storage().dataDir, file.name));
+          file.writeContent(outputStream);
+          outputStream.close();
+          if (_cancelDownloadAndDelete) {
+            callback(chart, -1);
+            inputStream.close();
+            return;
           }
         }
-
-        inputStream.close();
+        double fraction = num++ / archive.length.toDouble();
+        double progress = 0.5 + (fraction / 2); // 0.50 to 1
+        if (progress - lastProgress >= 0.1) { // unzip is faster than download
+          callback(chart, (progress * 100).toInt());
+          lastProgress = progress;
+        }
       }
+
+      inputStream.close();
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
       callback(chart, 100); // done
