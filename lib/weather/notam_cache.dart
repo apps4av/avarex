@@ -30,7 +30,7 @@ class NotamCache extends WeatherCache {
       var text = notam['traditionalMessage'].replaceAll('\n', '');
       if (notam['featureName'] == "LTA") {  // Letters to Airmen: include?  hyperlink to reference?
         //continue;
-        text = "[LTA] " + text + ", see " + notam['notamNumber'] + " (" + notam['comment'] + ")";
+        text = "[LTA] " + text + ", see notams.aim.faa.gov for " + argument; // URL in notam['comment']
       } else {
         text = text.split(" ").sublist(2).join(" ");  // skip first 2 words, e.g. "!GNV 10/027"
       }
