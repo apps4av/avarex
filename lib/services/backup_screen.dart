@@ -26,14 +26,6 @@ class BackupScreen extends StatefulWidget {
     return 'gs://$bucket/$fullPath';
   }
 
-  static String getUserTracksPath() {
-    final storageRef = FirebaseStorage.instance.ref();
-    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("tracks.kml");
-    final bucket = FirebaseStorage.instance.app.options.storageBucket;
-    final fullPath = dbRef.fullPath;
-    return 'gs://$bucket/$fullPath';
-  }
-
   @override
   BackupScreenState createState() => BackupScreenState();
 }
@@ -152,40 +144,6 @@ class BackupScreenState extends State<BackupScreen> {
                     contentType: "application/pdf",
                   );
                   FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', "PDF"]);
-                  String? path = result!.files.single.path;
-                  File file = File(path!);
-
-                  dbRef.putFile(file, md).snapshotEvents.listen((taskSnapshot) {
-                    if(mounted) {
-                      setState(() {
-                        setStatus(taskSnapshot);
-                      });
-                    }
-                  });
-                }
-                catch(e) {
-                  if (context.mounted) {
-                    MapScreenState.showToast(context, "Operation Failed",
-                        Icon(Icons.warning, color: Colors.red,), 3);
-                  }
-                }
-              },
-            ),
-          ),
-          ListTile(
-            enabled: _status.isEmpty || _status == "Completed" || _status == "Operation failed" || _status == "Canceled",
-            title: const Text("Flight Intelligence - Tracks"),
-            subtitle: const Text("Prepare and send recorded tracks (KML only)"),
-            trailing: IconButton(
-              icon: const Icon(Icons.upload),
-              onPressed: () async {
-                try {
-                  final storageRef = FirebaseStorage.instance.ref();
-                  final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("tracks.kml");
-                  final md = SettableMetadata(
-                    contentType: "text/plain",
-                  );
-                  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['kml', "KML"]);
                   String? path = result!.files.single.path;
                   File file = File(path!);
 
