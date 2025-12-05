@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/aircraft.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -103,7 +102,7 @@ class AiScreenState extends State<AiScreen> {
       return response.text!;
     }
 
-    ElevatedButton queryButton = ElevatedButton(
+    Widget queryButton = _isSending ?  CircularProgressIndicator() : ElevatedButton(
       style: ElevatedButton.styleFrom(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(30.0),
@@ -115,14 +114,20 @@ class AiScreenState extends State<AiScreen> {
           _editingControllerOutput.text = "";
         });
 
-        String responseText = await processQuery();
+        String responseText;
+        try {
+          responseText = await processQuery();
+        }
+        catch(e) {
+          responseText = e.toString();
+        }
 
         setState(() {
           _isSending = false;
           _editingControllerOutput.text = responseText;
         });
       },
-      child: _isSending ?  CircularProgressIndicator() : Text("Ask")
+      child: Text("Ask")
     );
 
     Widget questions = DropdownButtonHideUnderline(child:DropdownButton2<String>(
@@ -141,13 +146,7 @@ class AiScreenState extends State<AiScreen> {
         return DropdownMenuItem<String>(
             value: item,
             child: Row(children:[
-              Expanded(child:
-              Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),),
-                  child: Padding(padding: const EdgeInsets.all(5), child:
-                  AutoSizeText(item, minFontSize: 2, maxLines: 1),)),
-              )
+               Expanded(child: Text(item)),
             ])
         );
       }).toList(),
@@ -197,12 +196,11 @@ class AiScreenState extends State<AiScreen> {
       body: Padding(padding: EdgeInsets.all(10), child:Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 2, child: inputTextField),
+          Expanded(flex: 3, child: inputTextField),
           Expanded(flex: 2, child: Padding(padding: EdgeInsets.all(10),
-              child:TextButton(child: const Text("Upload Query Context"),
-                  onPressed: () {
+              child:TextButton(onPressed: _isSending ? null : () {
                     Navigator.pushNamed(context, '/backup');
-                  })
+                  }, child: const Text("Upload Context"))
           )),
           Expanded(flex: 15, child: outputTextField),
         ],

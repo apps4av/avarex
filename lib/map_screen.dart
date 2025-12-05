@@ -1179,7 +1179,7 @@ class MapScreenState extends State<MapScreen> {
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(0, Constants.screenHeightForInstruments(context) + 5, 5, 5),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.end, children:[
-                          IconButton(icon: CircleAvatar(child: Icon(MdiIcons.accountTieHat)), onPressed: () { Navigator.pushNamed(context, '/pro');}),
+                          if(Constants.shouldShowProServices) IconButton(icon: CircleAvatar(child: Icon(MdiIcons.accountTieHat)), onPressed: () { Navigator.pushNamed(context, '/pro');}),
                           ValueListenableBuilder<bool>(
                             valueListenable: Storage().warningChange,
                             builder: (context, value, _) {
