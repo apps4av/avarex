@@ -1,5 +1,5 @@
+import 'dart:convert';
 import 'dart:typed_data';
-import 'package:avaremp/app_log.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
@@ -7,8 +7,8 @@ import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/weather_cache.dart';
-import 'package:html/parser.dart' as html show parse;
 import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart' as xml;
 
 import 'notam.dart';
 
@@ -16,59 +16,106 @@ class NotamCache extends WeatherCache {
 
   NotamCache(super.url, super.dbCall);
 
+  /// Returns the inner text of <event:formattedText> (decoded from entities),
+  /// or null if not found.
+  String? extractFormattedText(String xmlString) {
+    // Parse the XML document
+    final doc = xml.XmlDocument.parse(xmlString);
+
+    // Find all elements named "formattedText" (namespace prefix doesn't matter)
+    final formattedElements = doc.findAllElements('event:formattedText');
+
+    if (formattedElements.isEmpty) {
+      return null;
+    }
+
+    final formatted = formattedElements.first;
+
+    // Get all text within the formattedText element (including inner <html:div>)
+    // xml package will decode &lt;pre&gt; to <pre>, etc.
+    final text = formatted.innerText
+        .replaceAll(RegExp("<[^>]+>"), " ")
+        .replaceAll("\n", " ");
+
+    return text.trim();
+  }
+
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
 
+  }
+
+  // Download and parse, override because this is a POST
+  @override
+  Future<void> download([String? argument]) async {
     if(null == argument) {
       return;
     }
 
-    String? cookie;
-    //@@___asa_password___@@
-    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=@@___asa_password__@@"));
-    if (responseHttp.statusCode == 200) {
-      try {
-        cookie = responseHttp.headers['set-cookie'];
-      }
-      catch(e) {
-        AppLog.logMessage("ASA NOTAM cookie error $e");
-      }
+    Destination? airport = await MainDatabaseHelper.db.findAirport(argument);
+    if(null == airport) {
+      return;
     }
 
-    Map<String, String> headers = {};
-    headers['Cookie'] = cookie ?? "";
-    final response = await http.get(Uri.parse("https://rfinder.asalink.net/avionet_run.php?form_id=notam_inquiry&apt_icao_id=$argument"), headers: headers);
-    if (response.statusCode == 200) {
-      String data = response.body;
-
-      // Parse HTML
-      final document = html.parse(data);
-
-      // Find all <tt> elements
-      final ttElements = document.getElementsByTagName('tt');
+    try {
 
       // Store results
-      List<List<String>> allNotams = [];
+      List<String> allNotams = [];
 
-      for (var tt in ttElements) {
-        // Get raw HTML text of this <tt>
-        final ttHtml = tt.innerHtml;
+      // ================================
+      // 1. Get OAuth access token
+      // ================================
+      final tokenUrl = Uri.parse(
+          "https://api-staging.cgifederal-aim.com/v1/auth/token");
 
-        // Regex to capture content between <b>E)</b> and <br>
-        final regex = RegExp(r'<b>E\)</b>\s*(.*?)<br>', dotAll: true);
-        final match = regex.firstMatch(ttHtml);
+      // Build Basic Auth header
+      final creds = base64Encode(utf8.encode(
+          "@@__faa_nms_api_client_id_secret__@@"));
 
-        if (match != null) {
-          // Extracted text
-          String content = match.group(1) ?? '';
+      final tokenResponse = await http.post(
+        tokenUrl,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Authorization": "Basic $creds",
+        },
+        body: {
+          "grant_type": "client_credentials",
+        },
+      );
 
-          // Clean HTML tags if any remain
-          content = content.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+      if (tokenResponse.statusCode != 200) {
+        return;
+      }
 
-          // Split into lines
-          List<String> lines = content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      final tokenJson = jsonDecode(tokenResponse.body);
+      final accessToken = tokenJson["access_token"];
 
-          allNotams.add(lines);
+      // ================================
+      // 2. Use access token to call NOTAM API
+      // ================================
+      final notamUrl = Uri.parse(
+          "https://api-staging.cgifederal-aim.com/nmsapi/v1/notams?location=${airport.locationID}"
+      );
+
+      final notamResponse = await http.get(
+        notamUrl,
+        headers: {
+          "Authorization": "Bearer $accessToken",
+          "nmsResponseFormat": "AIXM",
+        },
+      );
+
+      if (notamResponse.statusCode != 200) {
+        return;
+      }
+
+      // this is ugly, parse is not used for NOTAMs
+
+      final data = jsonDecode(notamResponse.body)["data"]["aixm"];
+      for (var item in data) {
+        String? txt = extractFormattedText(item);
+        if (null != txt) {
+          allNotams.add(txt);
         }
       }
 
@@ -83,45 +130,11 @@ class NotamCache extends WeatherCache {
           Weather.sourceInternet, all);
 
       await WeatherDatabaseHelper.db.addNotam(notam);
-    }
-  }
 
-  // Download and parse, override because this is a POST
-  @override
-  Future<void> download([String? argument]) async {
-    if(null == argument) {
-      return;
-    }
-
-    // find lat/lon
-    Destination? airport = await MainDatabaseHelper.db.findAirport(argument);
-    if(null == airport) {
-      return;
-    }
-
-    String ll = Destination.toSexagesimal(airport.coordinate);
-
-    Map<String, String> body = {
-      "geoLatDegree": ll.substring(0, 3),
-      "geoLatMinute": ll.substring(3, 5),
-      "geoLatNorthSouth": ll.substring(7, 8),
-      "geoLongDegree": ll.substring(9, 12),
-      "geoLongMinute": ll.substring(12, 14),
-      "geoLongEastWest": ll.substring(16, 17),
-      "reportType": "Raw",
-      "geoLatLongRadius": "20",
-      "actionType": "latLongSearch",
-      "submit": "View+NOTAMs",
-    };
-
-    try {
-      http.Response response = await http.post(
-          Uri.parse(urls[0]),
-          body: body);
-      await parse([response.bodyBytes], argument);
     }
     catch(e) {
       Storage().setException("Unable to download NOTAM: $e");
+      return;
     }
     await initialize();
   }
