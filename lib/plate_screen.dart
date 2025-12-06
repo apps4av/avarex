@@ -422,6 +422,8 @@ class _PlatePainter extends CustomPainter {
 
   // Define a paint object
   final _paint = Paint();
+    ..isAntiAlias = true
+    ..filterQuality = FilterQuality.high;
   // Define a paint object for circle
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
