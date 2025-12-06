@@ -1,10 +1,14 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/plan/plan_route.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:universal_io/universal_io.dart';
 
 class BackupScreen extends StatefulWidget {
@@ -34,6 +38,34 @@ class BackupScreenState extends State<BackupScreen> {
 
   final storageRef = FirebaseStorage.instance.ref();
   String _status = "";
+
+  static final String dbRefUserDb = "user.db";
+  static final String dbRefUserJson = "user.json";
+  static final String dbRefPlanTxt = "plan.txt";
+  static final String dbRefAircraftPdf = "aircraft.pdf";
+
+  Map<String, Reference?> files = {
+    dbRefUserDb: null,
+    dbRefUserJson: null,
+    dbRefPlanTxt: null,
+    dbRefAircraftPdf: null,
+  };
+
+  static String getPath(String key) {
+    final storageRef = FirebaseStorage.instance.ref();
+    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child(key);
+    final bucket = FirebaseStorage.instance.app.options.storageBucket;
+    final fullPath = dbRef.fullPath;
+    return 'gs://$bucket/$fullPath';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    for (var key in files.keys) {
+      files[key] = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child(key);
+    }
+  }
 
   Future<bool> showConfirmDialog(String message) {
     // return a Future that resolves to true if user confirms, false otherwise
@@ -67,8 +99,6 @@ class BackupScreenState extends State<BackupScreen> {
 
   @override
   Widget build(BuildContext context) {
-
-    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("user.db");
 
     void setStatus(TaskSnapshot snapshot) {
       switch (snapshot.state) {
@@ -108,12 +138,10 @@ class BackupScreenState extends State<BackupScreen> {
               icon: const Icon(Icons.upload),
               onPressed: () async {
                 try {
-                  final storageRef = FirebaseStorage.instance.ref();
-                  final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("user.json");
                   final md = SettableMetadata(
                     contentType: "text/plain",
                   );
-                  dbRef.putString(await UserDatabaseHelper.db.getLogbookAsJson(), metadata: md).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefUserJson]!.putString(await UserDatabaseHelper.db.getLogbookAsJson(), metadata: md).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -138,8 +166,6 @@ class BackupScreenState extends State<BackupScreen> {
               icon: const Icon(Icons.upload),
               onPressed: () async {
                 try {
-                  final storageRef = FirebaseStorage.instance.ref();
-                  final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("aircraft.pdf");
                   final md = SettableMetadata(
                     contentType: "application/pdf",
                   );
@@ -147,7 +173,7 @@ class BackupScreenState extends State<BackupScreen> {
                   String? path = result!.files.single.path;
                   File file = File(path!);
 
-                  dbRef.putFile(file, md).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefAircraftPdf]!.putFile(file, md).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -164,6 +190,93 @@ class BackupScreenState extends State<BackupScreen> {
               },
             ),
           ),
+          ListTile(
+            enabled: _status.isEmpty || _status == "Completed" || _status == "Operation failed" || _status == "Canceled",
+            title: const Text("Flight Intelligence - Plan"),
+            subtitle: const Text("Prepare and send your current plan and weather"),
+            trailing: IconButton(
+              icon: const Icon(Icons.upload),
+              onPressed: () async {
+                try {
+                  final md = SettableMetadata(
+                    contentType: "text/plain",
+                  );
+
+                  PlanRoute route = Storage().route;
+
+
+                  String data = "";
+                  if(route.isNotEmpty) {
+                    data += "Plan is: ${route.toString()}\n";
+                    // winds
+                    LatLng start = route.getAllDestinations().first.coordinate;
+                    LatLng end = route.getAllDestinations().last.coordinate;
+                    String? windsStart = WindsCache.getWindsAtAll(start, 6);
+                    String? windsEnd = WindsCache.getWindsAtAll(end, 6);
+                    if(windsStart != null) {
+                      data += "Winds at departure:\n$windsStart\n";
+                    }
+                    if(windsEnd != null) {
+                      data += "Winds at destination:\n$windsStart\n";
+                    }
+                  }
+                  files[dbRefPlanTxt]!.putString(data, metadata: md).snapshotEvents.listen((taskSnapshot) {
+                    if(mounted) {
+                      setState(() {
+                        setStatus(taskSnapshot);
+                      });
+                    }
+                  });
+                }
+                catch(e) {
+                  if (context.mounted) {
+                    MapScreenState.showToast(context, "Operation Failed $e",
+                        Icon(Icons.warning, color: Colors.red,), 3);
+                  }
+                }
+              },
+            ),
+          ),
+
+          ListTile(
+            enabled: _status.isEmpty || _status == "Completed" || _status == "Operation failed" || _status == "Canceled",
+            title: const Text("Flight Intelligence - Delete"),
+            subtitle: const Text("Delete all Flight Intelligence data"),
+            trailing: IconButton(
+              icon: const Icon(Icons.delete),
+              onPressed: () async {
+                // download database file
+                  int count = 1;
+                  int total = files.length;
+                  bool success = true;
+                  for(var key in files.keys) {
+                    setState(() {
+                      _status = "${count++}/$total";
+                    });
+                    try {
+                      await files[key]!.delete();
+                    }
+                    catch(e) {
+                      success = false;
+                      if (context.mounted) {
+                        MapScreenState.showToast(context, "Operation Failed",
+                        Icon(Icons.warning, color: Colors.red,), 3);
+                      }
+                    }
+                  }
+                  if(success) {
+                    if (context.mounted) {
+                      MapScreenState.showToast(context, "Operation Completed",
+                          Icon(Icons.info, color: Colors.green,), 3);
+                    }
+                  }
+                  setState(() {
+                    _status = "";
+                  });
+                }
+            ),
+          ),
+
           Divider(),
           ListTile(
             enabled: _status.isEmpty || _status == "Completed" || _status == "Operation failed" || _status == "Canceled",
@@ -178,7 +291,7 @@ class BackupScreenState extends State<BackupScreen> {
                   return;
                 }
                 try {
-                  dbRef.putFile(dbFile).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefUserDb]!.putFile(dbFile).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -209,7 +322,7 @@ class BackupScreenState extends State<BackupScreen> {
                   return;
                 }
                 try {
-                  dbRef.writeToFile(dbFile).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefUserDb]!.writeToFile(dbFile).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);

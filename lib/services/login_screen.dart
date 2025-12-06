@@ -30,7 +30,6 @@ class LoginScreenState extends State<LoginScreen> {
         RevenueCatService.presentPaywallIfNeeded().then((entitled) {
           if (mounted) {
             if (entitled) {
-              Navigator.pop(context);
               Navigator.pushNamed(context, route);
             }
             else {

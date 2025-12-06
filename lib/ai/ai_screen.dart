@@ -1,13 +1,4 @@
-import 'dart:convert';
-
-import 'package:avaremp/aircraft.dart';
-import 'package:avaremp/constants.dart';
-import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/services/backup_screen.dart';
-import 'package:avaremp/storage.dart';
-import 'package:avaremp/weather/winds_cache.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
 
@@ -73,26 +64,11 @@ class AiScreenState extends State<AiScreen> {
       parts.add(prompt);
 
       // context based parts
-      List<Destination> destinations = Storage().route.getAllDestinations();
-      if(destinations.isNotEmpty) {
-        final flightPlanPart = TextPart(
-            "If needed, use the current flight plan:\n${Storage().route}");
-        parts.add(flightPlanPart);
-        String? winds = WindsCache.getWindsAtAll(destinations[0].coordinate, 6);
-        if(winds != null) {
-          final windsPart = TextPart("If needed, use winds aloft:\n$winds");
-          parts.add(windsPart);
-        }
-        final List<Aircraft> aircraft = await UserDatabaseHelper.db.getAllAircraft();
-        if(aircraft.isNotEmpty) {
-          final aircraft1 = aircraft.first;
-          final aircraftPart = TextPart("If needed use aircraft:\n ${jsonEncode(aircraft1.toMap())}");
-          parts.add(aircraftPart);
-        }
-      }
-      FileData filePart = FileData("text/plain", BackupScreen.getUserDataJsonPath());
+      FileData filePart = FileData("text/plain", BackupScreenState.getPath(BackupScreenState.dbRefUserJson));
       parts.add(filePart);
-      filePart = FileData("application/pdf", BackupScreen.getAircraftPath());
+      filePart = FileData("text/plain", BackupScreenState.getPath(BackupScreenState.dbRefPlanTxt));
+      parts.add(filePart);
+      filePart = FileData("application/pdf", BackupScreenState.getPath(BackupScreenState.dbRefAircraftPdf));
       parts.add(filePart);
       final query =  Content.multi(parts);
       final response = await _model.generateContent([query]);
@@ -130,34 +106,24 @@ class AiScreenState extends State<AiScreen> {
       child: Text("Ask")
     );
 
-    Widget questions = DropdownButtonHideUnderline(child:DropdownButton2<String>(
-      isDense: true,
-      customButton: Icon(Icons.question_mark_outlined),
-      buttonStyleData: ButtonStyleData(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-      ),
-      dropdownStyleData: DropdownStyleData(
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-        width: Constants.screenWidth(context) * 0.9,
-      ),
-      isExpanded: false,
-      value: _typicalQueries[0],
-      items: _typicalQueries.map((String item) {
-        return DropdownMenuItem<String>(
+    Widget questions = PopupMenuButton(
+      icon: Icon(Icons.question_mark),
+      itemBuilder: (context) => _typicalQueries.map((String item) {
+          return PopupMenuItem<String>(
             value: item,
+            padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
             child: Row(children:[
-               Expanded(child: Text(item)),
+              Expanded(child: Text(item)),
             ])
-        );
-      }).toList(),
-      onChanged: (value) {
-        if (value == null) return;
+          );
+        }).toList(),
+      onSelected: (value) {
         setState(() {
           _editingControllerQuery.text = value;
           _editingControllerOutput.text = "";
         });
       },
-    ));
+    );
 
     inputTextField = TextField(
         enabled: _isSending == false,
@@ -177,7 +143,6 @@ class AiScreenState extends State<AiScreen> {
             )
         )
     );
-
 
     TextField outputTextField = TextField(
       controller: _editingControllerOutput,
