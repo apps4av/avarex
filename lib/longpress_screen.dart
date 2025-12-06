@@ -110,6 +110,8 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("AD")] = InteractiveViewer(maxScale: 5, child: ad);
 
       Weather? w = Storage().metar.get(showDestination.locationID);
+      // bspatz: sidestep 42J as K42J, or X60 as KX60 in FAA METARs (no TAF examples of this in weather.db:{metar,taf})
+      if ((w == null) && (showDestination.locationID[0] != 'K')) w = Storage().metar.get("K${showDestination.locationID}");
       Weather? w1 = Storage().taf.get(showDestination.locationID);
       if(w != null || w1 != null) {
         pages[labels.indexOf("METAR")] = ListView(children: [
