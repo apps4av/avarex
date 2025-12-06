@@ -421,7 +421,7 @@ class _PlatePainter extends CustomPainter {
   double? _variation;
 
   // Define a paint object
-  final _paint = Paint();
+  final _paint = Paint()
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.high;
   // Define a paint object for circle
