@@ -69,31 +69,6 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       decoration: pageDecoration,
     );
 
-    // make GPS page, this requires logic.
-    PageViewModel unitsPage = PageViewModel(
-      title: "Units",
-      bodyWidget: Column(
-          children:[
-            const Text("Select your preferred distance, speed, and elevation units"),
-            const Padding(padding: EdgeInsets.fromLTRB(0, 30, 0, 0)),
-            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Text("SM/MPH/Feet"),
-              Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
-                setState(() {
-                  if(value == true) {
-                    Storage().settings.setUnits("Maritime");
-                  } else {
-                    Storage().settings.setUnits("Imperial");
-                  }
-                  Storage().units = UnitConversion(Storage().settings.getUnits());
-                });
-              }),
-              const Text("NM/Knots/Feet"),
-          ]
-      )]),
-      decoration: pageDecoration,
-    );
-
     return IntroductionScreen(
       key: _introKey,
       globalBackgroundColor: Colors.white,
@@ -153,6 +128,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
             children:[
               const Text("This introduction will show you the necessary steps to operate the app."),
               const Padding(padding: EdgeInsets.all(20)),
+              const Text("Select dark / light mode"),
               Row(mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.dark_mode),
@@ -164,12 +140,28 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
                   }),
                   const Icon(Icons.light_mode),
               ]),
+              const Padding(padding: EdgeInsets.fromLTRB(0, 30, 0, 0)),
+              const Text("Select your preferred distance, speed, and elevation units"),
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Text("SM/MPH/Feet"),
+                Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
+                  setState(() {
+                    if(value == true) {
+                      Storage().settings.setUnits("Maritime");
+                    } else {
+                      Storage().settings.setUnits("Imperial");
+                    }
+                    Storage().units = UnitConversion(Storage().settings.getUnits());
+                  });
+                }),
+                const Text("NM/Knots/Feet"),
+              ]
+              )
           ]),
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
         ),
         gpsPage,
-        unitsPage,
         PageViewModel(
           title: "Databases and Aviation Maps",
           bodyWidget: Column(children:[

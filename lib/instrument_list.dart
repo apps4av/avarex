@@ -433,7 +433,7 @@ class InstrumentListState extends State<InstrumentList> {
           child:DropdownButton2<String>(
             dropdownStyleData: DropdownStyleData(
               decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-              width: 96,
+              width: Constants.screenWidth(context) / 2,
             ),
             isExpanded: false,
             customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
