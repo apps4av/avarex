@@ -1,3 +1,4 @@
+import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/services/backup_screen.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
@@ -42,20 +43,36 @@ class AiScreenState extends State<AiScreen> {
       'Looking at my log book, what are the total flight hours this year',
       'Looking at my log book, which aircraft do I fly the most',
       'Looking at my log book, show my most recent flight details',
-      'From the given aircraft manual, describe the electrical system',
-      'From the given aircraft manual, give the weight and balance limits',
-      'From the given aircraft manual, what are the V-speeds',
-      'From the given aircraft manual, describe the fuel system',
-      'From the given aircraft manual, am I allowed to perform spins',
-      'From the given aircraft manual, what are the emergency procedures for engine failure',
-      'From the given aircraft manual, what are the normal procedures for takeoff',
-      'From the given aircraft manual, what are the recommended cruise settings',
+      'From the given POH, describe the electrical system',
+      'From the given POH, give the weight and balance limits',
+      'From the given POH, what are the V-speeds',
+      'From the given POH, describe the fuel system',
+      'From the given POH, am I allowed to perform spins',
+      'From the given POH, what are the emergency procedures for engine failure',
+      'From the given POH, what are the normal procedures for takeoff',
+      'From the given POH, what are the recommended cruise settings',
   ];
+
+  bool includePlan = false;
+  bool includePoh = false;
+  bool includeLogbook = false;
 
   @override
   Widget build(BuildContext context) {
 
     Widget inputTextField;
+
+    Widget listOfFiles = Row(children:[
+      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null :  () {setState(() {includeLogbook = !includeLogbook;});}, child:Text("Log Book", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includeLogbook ? FontWeight.bold : FontWeight.normal)))),
+      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null : () {setState(() {includePoh = !includePoh;});}, child:Text("POH", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includePoh ? FontWeight.bold : FontWeight.normal)))),
+      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null : () {setState(() {includePlan = !includePlan;});}, child:Text("Plan", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includePlan ? FontWeight.bold : FontWeight.normal)))),
+      if(includePlan || includeLogbook || includePoh) Expanded(flex: 2, child: Padding(padding: EdgeInsets.all(10),
+          child:TextButton(onPressed: _isSending ? null : () {
+            Navigator.pushNamed(context, '/backup');
+          }, child: const Text("Upload Context"))
+      )),
+
+    ]);
 
     Future<String> processQuery() async {
       String myQuery = _editingControllerQuery.text;
@@ -64,13 +81,35 @@ class AiScreenState extends State<AiScreen> {
       parts.add(prompt);
 
       // context based parts
-      FileData filePart = FileData("text/plain", BackupScreenState.getPath(BackupScreenState.dbRefUserJson));
-      parts.add(filePart);
-      filePart = FileData("text/plain", BackupScreenState.getPath(BackupScreenState.dbRefPlanTxt));
-      parts.add(filePart);
-      filePart = FileData("application/pdf", BackupScreenState.getPath(BackupScreenState.dbRefAircraftPdf));
-      parts.add(filePart);
+      List<String> files = await BackupScreenState.getFileList();
+      for(String file in files) {
+        if(file.endsWith(BackupScreenState.dbRefPoh) && includePoh) {
+          FileData filePart = FileData(
+              "application/pdf", file);
+          parts.add(filePart);
+        }
+        else if(file.endsWith(BackupScreenState.dbRefLogbook) && includeLogbook) {
+          FileData filePart = FileData(
+              "text/plain", file);
+          parts.add(filePart);
+        }
+        else if(file.endsWith(BackupScreenState.dbRefPlan) && includePlan) {
+          FileData filePart = FileData(
+              "text/plain", file);
+          parts.add(filePart);
+        }
+      }
       final query =  Content.multi(parts);
+      final responseT = await _model.countTokens([query]);
+      final totalTokens = responseT.totalTokens;
+      if(totalTokens > 5000) {
+        if(context.mounted) {
+          MapScreenState.showToast(context,
+              "Please reduce the amount of context included - total tokens used $totalTokens",
+              Icon(Icons.error, color: Colors.red), 5);
+        }
+      }
+
       final response = await _model.generateContent([query]);
       if(response.text == null) {
         return "Error: no response from AI";
@@ -162,11 +201,9 @@ class AiScreenState extends State<AiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(flex: 3, child: inputTextField),
-          Expanded(flex: 2, child: Padding(padding: EdgeInsets.all(10),
-              child:TextButton(onPressed: _isSending ? null : () {
-                    Navigator.pushNamed(context, '/backup');
-                  }, child: const Text("Upload Context"))
-          )),
+          Expanded(flex: 1, child: Text("Put context in the question (select to include): ")),
+          Expanded(flex: 2, child: listOfFiles),
+          Divider(),
           Expanded(flex: 15, child: outputTextField),
         ],
       ),

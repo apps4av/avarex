@@ -14,22 +14,6 @@ import 'package:universal_io/universal_io.dart';
 class BackupScreen extends StatefulWidget {
   const BackupScreen({super.key});
 
-  static String getUserDataJsonPath() {
-    final storageRef = FirebaseStorage.instance.ref();
-    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("user.json");
-    final bucket = FirebaseStorage.instance.app.options.storageBucket;
-    final fullPath = dbRef.fullPath;
-    return 'gs://$bucket/$fullPath';
-  }
-
-  static String getAircraftPath() {
-    final storageRef = FirebaseStorage.instance.ref();
-    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid).child("aircraft.pdf");
-    final bucket = FirebaseStorage.instance.app.options.storageBucket;
-    final fullPath = dbRef.fullPath;
-    return 'gs://$bucket/$fullPath';
-  }
-
   @override
   BackupScreenState createState() => BackupScreenState();
 }
@@ -40,15 +24,15 @@ class BackupScreenState extends State<BackupScreen> {
   String _status = "";
 
   static final String dbRefUserDb = "user.db";
-  static final String dbRefUserJson = "user.json";
-  static final String dbRefPlanTxt = "plan.txt";
-  static final String dbRefAircraftPdf = "aircraft.pdf";
+  static final String dbRefLogbook = "logbook.json";
+  static final String dbRefPlan = "plan.json";
+  static final String dbRefPoh = "poh.pdf";
 
   Map<String, Reference?> files = {
     dbRefUserDb: null,
-    dbRefUserJson: null,
-    dbRefPlanTxt: null,
-    dbRefAircraftPdf: null,
+    dbRefLogbook: null,
+    dbRefPlan: null,
+    dbRefPoh: null,
   };
 
   static String getPath(String key) {
@@ -57,6 +41,20 @@ class BackupScreenState extends State<BackupScreen> {
     final bucket = FirebaseStorage.instance.app.options.storageBucket;
     final fullPath = dbRef.fullPath;
     return 'gs://$bucket/$fullPath';
+  }
+
+  static Future<List<String>> getFileList() async {
+    List<String> fileList = [];
+    final storageRef = FirebaseStorage.instance.ref();
+    final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid);
+    final bucket = FirebaseStorage.instance.app.options.storageBucket;
+    await dbRef.listAll().then((listResult) {
+      for (var item in listResult.items) {
+        final fullPath = item.fullPath;
+        fileList.add('gs://$bucket/$fullPath');
+      }
+    });
+    return fileList;
   }
 
   @override
@@ -141,7 +139,7 @@ class BackupScreenState extends State<BackupScreen> {
                   final md = SettableMetadata(
                     contentType: "text/plain",
                   );
-                  files[dbRefUserJson]!.putString(await UserDatabaseHelper.db.getLogbookAsJson(), metadata: md).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefLogbook]!.putString(await UserDatabaseHelper.db.getLogbookAsJson(), metadata: md).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -161,7 +159,7 @@ class BackupScreenState extends State<BackupScreen> {
           ListTile(
             enabled: _status.isEmpty || _status == "Completed" || _status == "Operation failed" || _status == "Canceled",
             title: const Text("Flight Intelligence - Aircraft"),
-            subtitle: const Text("Prepare and send aircraft manual (PDF only)"),
+            subtitle: const Text("Prepare and send POH (PDF only)"),
             trailing: IconButton(
               icon: const Icon(Icons.upload),
               onPressed: () async {
@@ -173,7 +171,7 @@ class BackupScreenState extends State<BackupScreen> {
                   String? path = result!.files.single.path;
                   File file = File(path!);
 
-                  files[dbRefAircraftPdf]!.putFile(file, md).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefPoh]!.putFile(file, md).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -220,7 +218,7 @@ class BackupScreenState extends State<BackupScreen> {
                       data += "Winds at destination:\n$windsStart\n";
                     }
                   }
-                  files[dbRefPlanTxt]!.putString(data, metadata: md).snapshotEvents.listen((taskSnapshot) {
+                  files[dbRefPlan]!.putString(data, metadata: md).snapshotEvents.listen((taskSnapshot) {
                     if(mounted) {
                       setState(() {
                         setStatus(taskSnapshot);
@@ -248,27 +246,29 @@ class BackupScreenState extends State<BackupScreen> {
                 // download database file
                   int count = 1;
                   int total = files.length;
-                  bool success = true;
-                  for(var key in files.keys) {
-                    setState(() {
-                      _status = "${count++}/$total";
-                    });
-                    try {
-                      await files[key]!.delete();
-                    }
-                    catch(e) {
-                      success = false;
-                      if (context.mounted) {
-                        MapScreenState.showToast(context, "Operation Failed",
-                        Icon(Icons.warning, color: Colors.red,), 3);
+                  final dbRef = storageRef.child("users/").child(FirebaseAuth.instance.currentUser!.uid);
+                  await dbRef.listAll().then((listResult) {
+                    for (var item in listResult.items) {
+                      if(item.fullPath.endsWith(".pdf") || item.fullPath.endsWith(".json")) {
+                        try {
+                          item.delete();
+                        }
+                        catch (e) {
+                          if (context.mounted) {
+                            MapScreenState.showToast(
+                                context, "Operation Failed",
+                                Icon(Icons.warning, color: Colors.red,), 3);
+                          }
+                        }
+                        setState(() {
+                          _status = "${count++}/$total";
+                        });
                       }
                     }
-                  }
-                  if(success) {
-                    if (context.mounted) {
-                      MapScreenState.showToast(context, "Operation Completed",
-                          Icon(Icons.info, color: Colors.green,), 3);
-                    }
+                  });
+                  if (context.mounted) {
+                    MapScreenState.showToast(context, "Operation Completed",
+                        Icon(Icons.info, color: Colors.green,), 3);
                   }
                   setState(() {
                     _status = "";
