@@ -63,9 +63,9 @@ class AiScreenState extends State<AiScreen> {
     Widget inputTextField;
 
     Widget listOfFiles = Row(children:[
-      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null :  () {setState(() {includeLogbook = !includeLogbook;});}, child:Text("Log Book", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includeLogbook ? FontWeight.bold : FontWeight.normal)))),
-      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null : () {setState(() {includePoh = !includePoh;});}, child:Text("POH", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includePoh ? FontWeight.bold : FontWeight.normal)))),
-      Padding(padding:EdgeInsets.all(5), child:InkWell(onTap: _isSending ? null : () {setState(() {includePlan = !includePlan;});}, child:Text("Plan", style:TextStyle(decoration: TextDecoration.underline, fontWeight: includePlan ? FontWeight.bold : FontWeight.normal)))),
+      InkWell(onTap: _isSending ? null :  () {setState(() {includeLogbook = !includeLogbook;});}, child:Padding(padding:EdgeInsets.all(10), child:Text("Log Book", style:TextStyle(decoration: includeLogbook ? TextDecoration.underline: TextDecoration.none)))),
+      InkWell(onTap: _isSending ? null : () {setState(() {includePoh = !includePoh;});}, child:Padding(padding:EdgeInsets.all(10), child:Text("POH", style:TextStyle(decoration: includePoh ? TextDecoration.underline : TextDecoration.none)))),
+      InkWell(onTap: _isSending ? null : () {setState(() {includePlan = !includePlan;});}, child:Padding(padding:EdgeInsets.all(10), child:Text("Plan", style:TextStyle(decoration: includePlan ? TextDecoration.underline : TextDecoration.none,)))),
       if(includePlan || includeLogbook || includePoh) Expanded(flex: 2, child: Padding(padding: EdgeInsets.all(10),
           child:TextButton(onPressed: _isSending ? null : () {
             Navigator.pushNamed(context, '/backup');
@@ -201,7 +201,7 @@ class AiScreenState extends State<AiScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(flex: 3, child: inputTextField),
-          Expanded(flex: 1, child: Text("Put context in the question (select to include): ")),
+          Expanded(flex: 1, child: Text("Put context in the question (tap to include): ")),
           Expanded(flex: 2, child: listOfFiles),
           Divider(),
           Expanded(flex: 15, child: outputTextField),
