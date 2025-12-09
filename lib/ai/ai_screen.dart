@@ -12,7 +12,7 @@ class AiScreen extends StatefulWidget {
 
 class AiScreenState extends State<AiScreen> {
 
-  final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro');
+  final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro', tools: [Tool.googleSearch()]); // connect with google search
   bool _isSending = false;
   final TextEditingController _editingControllerOutput = TextEditingController();
   final TextEditingController _editingControllerQuery = TextEditingController();
