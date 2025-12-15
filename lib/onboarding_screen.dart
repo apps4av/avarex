@@ -77,7 +77,6 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
       pages: [
         PageViewModel(
           title: "Sign the Terms of Use",
-
           bodyWidget: Column(children: [
             const Text(
                 """
@@ -128,25 +127,25 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
             children:[
               const Text("This introduction will show you the necessary steps to operate the app."),
               const Padding(padding: EdgeInsets.all(20)),
-              const Text("Select dark / light mode"),
+              const Text("Select time of day theme"),
               Row(mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.dark_mode),
+                  const Text("Night"),
                   Switch(value: Storage().settings.isLightMode(), onChanged: (value) {
                     setState(() {
                       Storage().settings.setLightMode(!Storage().settings.isLightMode());
                       Storage().themeNotifier.value = Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark();
                     });
                   }),
-                  const Icon(Icons.light_mode),
+                  const Text("Day"),
               ]),
               const Padding(padding: EdgeInsets.fromLTRB(0, 30, 0, 0)),
               const Text("Select your preferred distance, speed, and elevation units"),
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text("SM/MPH/Feet"),
-                Switch(value: Storage().settings.getUnits() == "Maritime", onChanged: (value) {
+                const Text("NM/Knots/Feet"),
+                Switch(value: Storage().settings.getUnits() == "Imperial", onChanged: (value) {
                   setState(() {
-                    if(value == true) {
+                    if(value == false) {
                       Storage().settings.setUnits("Maritime");
                     } else {
                       Storage().settings.setUnits("Imperial");
@@ -154,7 +153,7 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
                     Storage().units = UnitConversion(Storage().settings.getUnits());
                   });
                 }),
-                const Text("NM/Knots/Feet"),
+                const Text("SM/MPH/Feet"),
               ]
               )
           ]),

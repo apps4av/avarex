@@ -40,10 +40,47 @@ class UserDatabaseHelper {
 
   Future<Database> _initDB() async {
     String path = getPath();
+    final List<String> typicalAiQueries = [
+      'Based on the current flight plan, find best altitude fuel wise',
+      'Based on the current flight plan, what are good alternates along the route',
+      'Based on the current flight plan, check terrain clearance along the route',
+      'Based on the current flight plan, suggest IFR or VFR',
+      'How do I maintain instrument currency',
+      'What are the night flight requirements',
+      'What are the required documents to carry in the aircraft',
+      'What are the VFR weather minimums for Class D airspace',
+      'What are the fuel requirements for VFR flight during the day',
+      'What are the fuel requirements for VFR flight at night',
+      'What are the IFR fuel requirements',
+      'What are the required reports to ATC when on an IFR flight plan',
+      'What are the VFR weather minimums for Class E airspace',
+      'When do I need an alternate airport on an IFR flight plan',
+      'What are the currency requirements for carrying passengers',
+      'What are the required tests and inspections for IFR operations',
+      'What are the lost communication procedures for an IFR flight',
+      'What are the lost communication procedures for a VFR flight',
+      'Looking at my log book, am I instrument current',
+      'Looking at my log book, how many night landings in the last 90 days',
+      'Looking at my log book, how many IFR approaches in the last 6 months',
+      'Looking at my log book, when does my instrument currency expire?',
+      'Looking at my log book, what is the total PIC time in the last 6 months',
+      'Looking at my log book, what are the total flight hours this year',
+      'Looking at my log book, which aircraft do I fly the most',
+      'Looking at my log book, show my most recent flight details',
+      'From the given aircraft, describe the electrical system',
+      'From the given aircraft, give the weight and balance limits',
+      'From the given aircraft, what are the V-speeds',
+      'From the given aircraft, describe the fuel system',
+      'From the given aircraft, am I allowed to perform spins',
+      'From the given aircraft, what are the emergency procedures for engine failure',
+      'From the given aircraft, what are the normal procedures for takeoff',
+      'From the given aircraft, what are the recommended cruise settings',
+    ];
+
     return
       await openDatabase(
           path,
-          version: 4,
+          version: 5,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion == 1 && newVersion == 2) {
               await db.execute("create table sketch("
@@ -89,6 +126,13 @@ class UserDatabaseHelper {
                   "instructorCertificate   text, "
                   "remarks                 text);");
             }
+
+            if(oldVersion <= 4 && newVersion == 5) {
+              await db.execute("create table aiQueries("
+                  "id           integer primary key autoincrement, "
+                  "query        text);");
+              await db.execute("insert into aiQueries(query) values ${typicalAiQueries.map((e) => "('$e')").toList().join(",")};");
+            }
           },
           onCreate: (Database db, int version) async {
 
@@ -97,6 +141,11 @@ class UserDatabaseHelper {
                 "name         text,"
                 "jsonData     text,"
                 "unique(name) on conflict replace);");
+
+            await db.execute("create table aiQueries("
+                "id           integer primary key autoincrement, "
+                "query        text);");
+            await db.execute("insert into aiQueries(query) values ${typicalAiQueries.map((e) => "('$e')").toList().join(",")};");
 
             await db.execute("create table elevation("
                 "id           integer primary key autoincrement, "
@@ -530,6 +579,35 @@ class UserDatabaseHelper {
     }
     return "[]";
   }
+
+
+  Future<void> insertAiQueries(String entry) async {
+    final db = await database;
+    if(db != null) {
+      await db.insert(
+        'aiQueries',
+        Map.from({'query': entry}),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+  }
+
+  Future<List<String>> getAllAiQueries() async {
+    final db = await database;
+    if(db != null) {
+      final maps = await db.query('aiQueries', orderBy: 'id DESC');
+      return maps.map((e) => e['query'] as String).toList();
+    }
+    return [];
+  }
+
+  Future<void> deleteAiQuery(String query) async {
+    final db = await database;
+    if(db != null) {
+      await db.rawQuery("DELETE FROM aiQueries WHERE query = '$query'");
+    }
+  }
+
 }
 
 
