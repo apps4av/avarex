@@ -592,19 +592,19 @@ class UserDatabaseHelper {
     }
   }
 
-  Future<List<String>> getAllAiQueries() async {
+  Future<List<(int, String)>> getAllAiQueries() async {
     final db = await database;
     if(db != null) {
       final maps = await db.query('aiQueries', orderBy: 'id DESC');
-      return maps.map((e) => e['query'] as String).toList();
+      return maps.map((e) => (e['id'] as int, e['query'] as String)).toList();
     }
     return [];
   }
 
-  Future<void> deleteAiQuery(String query) async {
+  Future<void> deleteAiQuery(int id) async {
     final db = await database;
     if(db != null) {
-      await db.rawQuery("DELETE FROM aiQueries WHERE query = '$query'");
+      await db.rawQuery("DELETE FROM aiQueries WHERE id = '$id'");
     }
   }
 

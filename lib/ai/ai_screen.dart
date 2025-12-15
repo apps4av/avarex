@@ -30,7 +30,7 @@ class AiScreenState extends State<AiScreen> {
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: UserDatabaseHelper.db.getAllAiQueries(),
-      builder: (BuildContext context, AsyncSnapshot<List<String>?> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<(int, String)>?> snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           return _makeContent(snapshot.data);
         }
@@ -39,9 +39,9 @@ class AiScreenState extends State<AiScreen> {
     );
   }
 
-  Widget _makeContent(List<String>? data) {
+  Widget _makeContent(List<(int, String)>? data) {
     data ??= [];
-    List<String> allQueries = data;
+    List<(int, String)> allQueries = data;
 
     Widget listOfContext = Row(children:[
       IconButton(tooltip: "Include the last 50 log book entries", onPressed: _isSending ? null :  () {setState(() {includeLogbook = !includeLogbook;});}, icon:Icon(Icons.notes, color: includeLogbook ? Colors.blueAccent : Colors.grey,)),
@@ -141,8 +141,11 @@ class AiScreenState extends State<AiScreen> {
 
     Widget questions = PopupMenuButton(
       enabled: _isSending ? false : true,
-      icon: Icon(Icons.question_mark),
-      itemBuilder: (context) => allQueries.map((String item) {
+      icon: Icon(Icons.more_horiz),
+      tooltip: "Questions",
+      itemBuilder: (context) => allQueries.map((query) {
+          int id = query.$1;
+          String item = query.$2;
           return PopupMenuItem<String>(
             value: item,
             padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
@@ -152,7 +155,7 @@ class AiScreenState extends State<AiScreen> {
                 key: Key(Storage().getKey()),
                 direction: DismissDirection.endToStart,
                 onDismissed:(direction) {
-                    UserDatabaseHelper.db.deleteAiQuery(item).then((value) {
+                    UserDatabaseHelper.db.deleteAiQuery(id).then((value) {
                       setState(() {});
                     });
                 },
@@ -170,6 +173,7 @@ class AiScreenState extends State<AiScreen> {
 
     TextField outputTextField = TextField(
       controller: _editingController,
+      autofocus: true,
       enabled: _isSending == false,
       enableInteractiveSelection: true,
       maxLines: null,
@@ -181,19 +185,38 @@ class AiScreenState extends State<AiScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Flight Intelligence"),
+        actions: [Tooltip(
+            showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap,
+            message:
+"""
+Ask AI anything about your flying -
+
+Type your question in the box, or tap ... to choose from suggested questions.
+
+Add context to get better answers:
+Logbook — include your 50 most recent logbook entries
+Aircraft — include details from your first aircraft
+Plan — include your current flight plan
+
+Tap any context item to highlight it.
+Highlighted context will be sent along with the question.
+
+Tap Ask to send your question to AI.
+""",
+            child: Icon(Icons.info))],
       ),
       body: Padding(padding: EdgeInsets.all(10), child:Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 15, child: Stack(children:[
+          Expanded(flex: 17, child: Stack(children:[
             outputTextField,
             Align(alignment: Alignment.bottomRight, child:queryButton),
-            Align(alignment: Alignment.bottomLeft, child:questions),
+            Align(alignment: Alignment.bottomCenter, child:questions),
             Align(alignment: Alignment.topRight, child:IconButton(onPressed: () {setState(() {
               _editingController.text = "";
             });}, icon: Opacity(opacity: 0.7, child:Icon(Icons.backspace))))])),
             Divider(),
-            Expanded(flex: 1, child: Text("Put context in the question (tap to include): ")),
+            Expanded(flex: 1, child: Text("Put context in the question:")),
             Expanded(flex: 2, child: listOfContext),
         ],
       ),
