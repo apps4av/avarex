@@ -108,7 +108,7 @@ class AiScreenState extends State<AiScreen> {
 
       final response = await _model.generateContent([query]);
       if(response.text == null) {
-        return "Error: no response from AI";
+        return "Error: no response from the server";
       }
       return response.text!;
     }
@@ -189,9 +189,9 @@ class AiScreenState extends State<AiScreen> {
             showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap,
             message:
 """
-Ask AI anything about your flying -
+Ask AvareX anything about your flying (Internet access required) -
 
-Type your question in the box, or tap ... to choose from suggested questions.
+Type your question in the box, or tap ... icon to choose from suggested questions.
 
 Add context to get better answers:
 Logbook — include your 50 most recent logbook entries
@@ -201,20 +201,25 @@ Plan — include your current flight plan
 Tap any context item to highlight it.
 Highlighted context will be sent along with the question.
 
-Tap Ask to send your question to AI.
+Tap Ask to submit your question.
 """,
-            child: Icon(Icons.info))],
+            child: Padding(padding: EdgeInsets.fromLTRB(0, 0, 10, 0), child: Icon(Icons.info)))],
       ),
       body: Padding(padding: EdgeInsets.all(10), child:Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(flex: 17, child: Stack(children:[
             outputTextField,
-            Align(alignment: Alignment.bottomRight, child:queryButton),
-            Align(alignment: Alignment.bottomCenter, child:questions),
-            Align(alignment: Alignment.topRight, child:IconButton(onPressed: () {setState(() {
-              _editingController.text = "";
-            });}, icon: Opacity(opacity: 0.7, child:Icon(Icons.backspace))))])),
+            Align(alignment: Alignment.bottomRight, child:
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                IconButton(onPressed: () {
+                  setState(() {
+                    _editingController.text = "";
+                  });
+                },
+                icon: Icon(Icons.close)), questions, queryButton
+              ])
+            )])),
             Divider(),
             Expanded(flex: 1, child: Text("Put context in the question:")),
             Expanded(flex: 2, child: listOfContext),
