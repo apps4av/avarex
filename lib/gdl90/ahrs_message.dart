@@ -5,6 +5,8 @@ import 'package:avaremp/storage.dart';
 
 import 'message.dart';
 
+bool isStratux = false;  // share state with message_factory.dart
+
 class AhrsMessage extends Message {
 
   double? aoa;
@@ -120,7 +122,8 @@ class AhrsMessage extends Message {
         double num;
         num = _combineBytesForFloat(m0, m1);
         if (num != 0x7FFF) {
-          roll = num / 10;
+          // roll = num / 10;
+          roll = (isStratux == true) ? -(num / 10) : (num / 10);  // reverse roll orientation
         }
         num = _combineBytesForFloat(m2, m3);
         if (num != 0x7FFF) {
