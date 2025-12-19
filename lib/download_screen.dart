@@ -526,5 +526,20 @@ class DownloadScreenState extends State<DownloadScreen> {
         Chart('Pacific',       _absentColor, _absentIcon, 'PAC_CSUP', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
       ], false,
     ),
+    ChartCategory(
+      ChartCategory.elevation,
+      _absentColor,
+      [
+        Chart('Northeast',    _absentColor, _absentIcon, 'ELEV_NE_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('North Central', _absentColor, _absentIcon, 'ELEV_NC_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Northwest',    _absentColor, _absentIcon, 'ELEV_NW_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southeast',    _absentColor, _absentIcon, 'ELEV_SE_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('South Central', _absentColor, _absentIcon, 'ELEV_SC_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Southwest',    _absentColor, _absentIcon, 'ELEV_SW_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('East Central',  _absentColor, _absentIcon, 'ELEV_EC_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Alaska',        _absentColor, _absentIcon, 'ELEV_AK_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()),
+        Chart('Pacific',       _absentColor, _absentIcon, 'ELEV_PAC_NEW', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download()), // fix this
+      ], false,
+    ),
   ];
 }

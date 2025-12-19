@@ -63,6 +63,8 @@ class ChartCategory {
   static const String plates = "Plates";
   static const String databases = "Databases";
   static const String csup = "CSUP";
+  static const String elevation = "Elevation";
+
 
   String title;
   Color color;
@@ -83,6 +85,8 @@ class ChartCategory {
         return "4";
       case ifra:
         return "5";
+      case elevation:
+        return "6";
       case heli:
         return "9";
       case flyway:
@@ -103,6 +107,8 @@ class ChartCategory {
         return 9;
       case ifra:
         return 11;
+      case elevation:
+        return 11;
       case heli:
         return 12;
       case flyway:
@@ -110,7 +116,6 @@ class ChartCategory {
     }
     return 5;
   }
-
 }
 
 

@@ -31,6 +31,9 @@ class Download {
   }
   
   String _getUrlOfRemoteFile(String filename, String server) {
+    if(filename.startsWith("ELEV_")) {   // put static files in static folder
+      return "$server/static/$filename.zip";
+    }
     return "$server/$_currentCycle/$filename.zip";
   }
 

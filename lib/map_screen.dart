@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:avaremp/elevation_tile_provider.dart';
 import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
@@ -64,6 +65,8 @@ class MapScreenState extends State<MapScreen> {
   final GeoCalculations _calculations = GeoCalculations();
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
+  ElevationTileProvider elevationTileProvider = ElevationTileProvider();
+  int _cacheBustElevation = 0;
 
   static final List<String> _mesonets = [
     "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
@@ -242,6 +245,13 @@ class MapScreenState extends State<MapScreen> {
     } // adding to lat lon is dangerous
 
     _previousPosition = Gps.toLatLng(Storage().position);
+
+    // evict tiles if needed
+    if(elevationTileProvider.evict()) {
+      setState(() {
+        _cacheBustElevation++;
+      });
+    };
   }
 
   PolylineLayer? _tfrLayer;
@@ -454,6 +464,13 @@ class MapScreenState extends State<MapScreen> {
         tileProvider: ChartTileProvider(),
         urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
 
+    final TileLayer elevationLayer = TileLayer(
+          tms: true,
+          maxNativeZoom: 11,
+          minNativeZoom: 7,
+          tileProvider: elevationTileProvider,
+          urlTemplate: "${Storage().dataDir}/tiles/6/{z}/{x}/{y}.png?$_cacheBustElevation");
+
     // start from known location
     final MapOptions opts = MapOptions(
       initialCenter: LatLng(Storage().settings.getCenterLatitude(),
@@ -542,6 +559,12 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(Opacity(opacity: opacity, child: chartLayer));
+    }
+
+    lIndex = _layers.indexOf('Elevation');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(Opacity(opacity: opacity, child: elevationLayer));
     }
 
     // Custom shapes
@@ -1512,26 +1535,6 @@ class Plane extends CustomPainter {
   bool shouldRepaint(Plane oldDelegate) => false;
 }
 
-// custom tile provider
-class ChartTileProvider extends TileProvider {
-  @override
-  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
-    // get rid of annoying tile name error problem by providing a transparent tile
-    File f = File(getTileUrl(coordinates, options));
-    if(f.existsSync()) {
-      // get rid of annoying tile name error problem by providing a transparent tile
-      return FileImage(f);
-    }
-
-    // get file to download message in tile missing
-    String name = Chart.getChartRegion(coordinates.x, coordinates.y, coordinates.z);
-    if(name.isEmpty) {
-      return const AssetImage("assets/images/512.png");
-    }
-    return AssetImage("assets/images/dl_$name.png");
-  }
-}
-
 // for scale measurement
 class Ruler {
 
@@ -1596,5 +1599,25 @@ class MapNetworkTileProvider extends TileProvider {
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
     String url = getTileUrl(coordinates, options);
     return CachedNetworkImageProvider(url, cacheManager: FileCacheManager().mapCacheManager);
+  }
+}
+
+// custom tile provider
+class ChartTileProvider extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    // get rid of annoying tile name error problem by providing a transparent tile
+    File f = File(getTileUrl(coordinates, options));
+    if(f.existsSync()) {
+      // get rid of annoying tile name error problem by providing a transparent tile
+      return FileImage(f);
+    }
+
+    // get file to download message in tile missing
+    String name = Chart.getChartRegion(coordinates.x, coordinates.y, coordinates.z);
+    if(name.isEmpty) {
+      return const AssetImage("assets/images/512.png");
+    }
+    return AssetImage("assets/images/dl_$name.png");
   }
 }
