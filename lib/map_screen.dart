@@ -251,7 +251,7 @@ class MapScreenState extends State<MapScreen> {
       setState(() {
         _cacheBustElevation++;
       });
-    };
+    }
   }
 
   PolylineLayer? _tfrLayer;
@@ -466,7 +466,7 @@ class MapScreenState extends State<MapScreen> {
 
     final TileLayer elevationLayer = TileLayer(
           tms: true,
-          maxNativeZoom: 11,
+          maxNativeZoom: 7,
           minNativeZoom: 7,
           tileProvider: elevationTileProvider,
           urlTemplate: "${Storage().dataDir}/tiles/6/{z}/{x}/{y}.png?$_cacheBustElevation");

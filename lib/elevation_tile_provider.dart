@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:avaremp/chart.dart';
+import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ import 'package:image/image.dart' as img;
 // tile provider that evicts tiles based on altitude changes, and colors the loaded tiles based on altitude
 class ElevationTileProvider extends TileProvider {
 
-  final List<ImageProvider> _cache = [];
+  final Map<String, ImageProvider> _cache = {};
   int _lastCalled = DateTime.now().millisecondsSinceEpoch;
   double _lastAltitude = 0.0;
 
@@ -29,8 +30,8 @@ class ElevationTileProvider extends TileProvider {
       return false;
     }
 
-    for(var p in _cache) {
-      p.evict();
+    for(var value in _cache.values) {
+      value.evict();
     }
 
     _cache.clear();
@@ -45,11 +46,12 @@ class ElevationTileProvider extends TileProvider {
     String url = getTileUrl(coordinates, options);
     // remove cache busting part
     String dlUrl = url.replaceAll(RegExp("\\?.*"), "");
+
     File f = File(dlUrl);
     if(f.existsSync()) {
       ImageProvider p = CustomImageProvider(FileImage(f));
       // add for eviction
-      _cache.add(p);
+      _cache[dlUrl] = p;
       return p;
     }
 
@@ -67,18 +69,8 @@ class CustomImageProvider extends ImageProvider {
 
   CustomImageProvider(this.inner);
 
-  double altitudeFtElevationPerPixelSlopeBase = 24.5276170372963;
+  double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
   double altitudeFtElevationPerPixelIntercept = -364.431597044586;
-
-  double elevationFromPixel(int px, {double heightConversion = 1.0}) {
-    // px & 0xFF matches Java's (px & 0x000000FF)
-    final int pixel = px & 0xFF;
-
-    final double slope =
-        altitudeFtElevationPerPixelSlopeBase * heightConversion;
-
-    return pixel * slope + altitudeFtElevationPerPixelIntercept;
-  }
 
   @override
   ImageStreamCompleter loadImage(Object key, ImageDecoderCallback decode) {
@@ -94,29 +86,25 @@ class CustomImageProvider extends ImageProvider {
         img.Image? decodedImage = img.decodePng(encodedList);
         if(decodedImage != null) {
           // compare elevation and current altitude then color the tile
-          double currentAltitudeMeters = Storage().position.altitude;
+          double currentAltitude = GeoCalculations.convertAltitude(Storage().position.altitude);
           for(int y = 0; y < decodedImage.height; y++) {
             for(int x = 0; x < decodedImage.width; x++) {
               // make transparent pixel white
               img.Pixel p = decodedImage.getPixel(x, y);
-              double aglMeters = elevationFromPixel(p.r as int);
-              double diff = currentAltitudeMeters - aglMeters;
-              if(diff > 300) { // transparent above 1000 feet
-                p.r = 0x0;
-                p.g = 0x0;
-                p.b = 0x0;
+              double elevation = (p.r as int) * altitudeFtElevationPerPixelSlopeBase + altitudeFtElevationPerPixelIntercept;
+              double diff = currentAltitude - elevation;
+              p.b = 0x0;
+              if(diff > 1000) { // transparent above 1000 feet
                 p.a = 0x0;
               }
-              else if(diff > 150) { // yellow between 500 and 1000 feet
+              else if(diff > 500) { // yellow between 500 and 1000 feet
                 p.r = 0xFF;
                 p.g = 0xFF;
-                p.b = 0x0;
                 p.a = 0xFF;
               }
               else { // red below 500 feet
                 p.r = 0xFF;
                 p.g = 0x0;
-                p.b = 0x0;
                 p.a = 0xFF;
               }
               decodedImage.setPixel(x, y, p);
