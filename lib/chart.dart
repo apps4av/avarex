@@ -18,9 +18,10 @@ class Chart {
   Color color;
   bool enabled;
   Download download;
+  bool check;
   ValueNotifier<int> progress; // 0 to 100 and <0 for error
 
-  Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download);
+  Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download, this.check);
 
   static String getChartRegion(int x, int y, int z) {
     List<(LatLngBounds, String)> regionCoordinates = [

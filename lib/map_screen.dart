@@ -1233,7 +1233,10 @@ class MapScreenState extends State<MapScreen> {
                                     child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
                           if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
                             IconButton(
-                                tooltip: "Traffic 'hockey puck' size",
+                                tooltip: "Traffic Volume:\n"
+                                    "S: 20 Aircraft, 3000ft, 10NM\n"
+                                    "M: 200 Aircraft, 6000ft, 50NM\n"
+                                    "L: 1000 Aircraft, 30000ft, 500NM",
                                 onPressed: () {
                                   setState(() {
                                     Storage().settings.setTrafficPuckSize(TrafficCache.adjustPuck(Storage().settings.getTrafficPuckSize()));

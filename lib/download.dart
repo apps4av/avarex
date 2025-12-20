@@ -30,8 +30,8 @@ class Download {
     _cancelDownloadAndDelete = true;
   }
   
-  String _getUrlOfRemoteFile(String filename, String server) {
-    if(filename.startsWith("ELEV_")) {   // put static files in static folder
+  String _getUrlOfRemoteFile(String filename, bool check, String server) {
+    if(!check) {   // put static files in static folder and do not check for cycle
       return "$server/static/$filename.zip";
     }
     return "$server/$_currentCycle/$filename.zip";
@@ -56,6 +56,14 @@ class Download {
 
     String current = FaaDates.getCurrentCycle();
     String version = await getChartCycleLocal(chart);
+
+    if(version.isEmpty) {
+      return true; // not downloaded, hence assume expired
+    }
+
+    if(!chart.check) {
+      return false; // static files do not expire
+    }
 
     return current != version;
   }
@@ -154,10 +162,10 @@ class Download {
     }
 
     try {
-      http.Response r = await http.head(Uri.parse(_getUrlOfRemoteFile(chart.filename, server)));
+      http.Response r = await http.head(Uri.parse(_getUrlOfRemoteFile(chart.filename, chart.check, server)));
       int total = int.parse(r.headers["content-length"] ?? "0");
       int downloaded = 0;
-      final request = http.Request('GET', Uri.parse(_getUrlOfRemoteFile(chart.filename, server)));
+      final request = http.Request('GET', Uri.parse(_getUrlOfRemoteFile(chart.filename, chart.check, server)));
       final streamedResponse = await request.send();
       var out = localFile.openWrite();
       await streamedResponse.stream.map((e) {
