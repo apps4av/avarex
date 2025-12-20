@@ -14,7 +14,7 @@ class Download {
   String _currentCycle = "";
   bool _cancelDownloadAndDelete = false;
 
-  Future<void> _deleteZipFile(File file) async {
+  static Future<void> _deleteZipFile(File file) async {
     bool exists = await file.exists();
     if(exists) {
       try {
@@ -37,7 +37,7 @@ class Download {
     return "$server/$_currentCycle/$filename.zip";
   }
 
-  Future<String> getChartCycleLocal(Chart chart) async {
+  static Future<String> getChartCycleLocal(Chart chart) async {
     String dir = Storage().dataDir;
     try {
       String version = await File(path.join(dir, chart.filename))
@@ -51,16 +51,15 @@ class Download {
     }
   }
 
-  Future<bool> isChartExpired(Chart chart) async {
+  static Future<bool> isChartExpired(Chart chart) async {
     //update chart instance to reflect state on disk
 
     String current = FaaDates.getCurrentCycle();
     String version = await getChartCycleLocal(chart);
 
     if(version.isEmpty) {
-      return true; // not downloaded, hence assume expired
+      return false; // not downloaded yet
     }
-
     if(!chart.check) {
       return false; // static files do not expire
     }

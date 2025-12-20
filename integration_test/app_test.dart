@@ -1,4 +1,5 @@
 
+import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/faa_dates.dart';
@@ -24,11 +25,13 @@ void main() {
                 await PathUtils.deleteFile("$dataDir/databasesx");
           }
           catch (e) {
+                if (kDebugMode) print("Error deleting databasesx: $e");
           }
           try {
                 await PathUtils.deleteFile("$dataDir/user.db");
           }
           catch (e) {
+                if (kDebugMode) print("Error deleting user.db: $e");
           }
           await Storage().init();
           await tester.pumpWidget(const MainApp());

@@ -238,12 +238,7 @@ class DownloadScreenState extends State<DownloadScreen> {
 
     for(ChartCategory cg in _allCharts) {
       for(Chart chart in cg.charts) {
-        String current = FaaDates.getCurrentCycle();
-        String cycle = await chart.download.getChartCycleLocal(chart);
-        if(cycle.isEmpty) {
-          continue;
-        }
-        if(cycle != current) {
+        if(await Download.isChartExpired(chart)) {
           return true;
         }
       }
@@ -255,7 +250,7 @@ class DownloadScreenState extends State<DownloadScreen> {
 
     for(ChartCategory cg in _allCharts) {
       for(Chart chart in cg.charts) {
-        bool exists = (await chart.download.getChartCycleLocal(chart)).isNotEmpty;
+        bool exists = (await Download.getChartCycleLocal(chart)).isNotEmpty;
         if(exists) {
           return true;
         }
@@ -265,19 +260,19 @@ class DownloadScreenState extends State<DownloadScreen> {
   }
 
   Future<void> _getChartStateFromLocal(Chart chart) async {
-    String cycle = await chart.download.getChartCycleLocal(chart);
-    bool expired = await chart.download.isChartExpired(chart);
+    String cycle = await Download.getChartCycleLocal(chart);
+    bool expired = await Download.isChartExpired(chart);
     String range = FaaDates.getVersionRange(cycle);
     setState(() {
-      if(expired && cycle != "") {
-        // available but expired
-        chart.state = _stateExpiredNone;
-        chart.subtitle = "$cycle $range";
-      }
-      else if(expired && cycle == "") {
+      if(cycle.isEmpty) {
         // missing
         chart.state = _stateAbsentNone;
         chart.subtitle = "";
+      }
+      else if(expired) {
+        // available but expired
+        chart.state = _stateExpiredNone;
+        chart.subtitle = "$cycle $range";
       }
       else {
         // current
