@@ -66,10 +66,6 @@ void main() {
           await tester.tap(fab);
           await tester.pumpAndSettle();
 
-          fab = find.widgetWithIcon(TextButton, Icons.arrow_forward);
-          await tester.tap(fab);
-          await tester.pumpAndSettle();
-
           Future<void> downloadTest() async {
                 // go to download
                 fab = find.widgetWithText(TextButton, "Download");
