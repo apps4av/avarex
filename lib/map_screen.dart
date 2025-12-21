@@ -452,7 +452,6 @@ class MapScreenState extends State<MapScreen> {
 
     double opacity = 1.0;
 
-    final String index = ChartCategory.chartTypeToIndex(_type);
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
     //add layers
@@ -462,14 +461,22 @@ class MapScreenState extends State<MapScreen> {
         tms: true,
         maxNativeZoom: _maxZoom,
         tileProvider: ChartTileProvider(),
-        urlTemplate: "${Storage().dataDir}/tiles/$index/{z}/{x}/{y}.webp");
+        urlTemplate: "${Storage().dataDir}/tiles/"
+          "${ChartCategory.chartTypeToIndex(_type)}/"
+          "{z}/{x}/{y}."
+          "${ChartCategory.chartTypeToExtension(_type)}"
+    );
 
     final TileLayer elevationLayer = TileLayer(
-          tms: true,
-          maxNativeZoom: 7,
-          minNativeZoom: 7,
-          tileProvider: elevationTileProvider,
-          urlTemplate: "${Storage().dataDir}/tiles/6/{z}/{x}/{y}.png?$_cacheBustElevation");
+        tms: true,
+        maxNativeZoom: 7,
+        minNativeZoom: 7,
+        tileProvider: elevationTileProvider,
+        urlTemplate: "${Storage().dataDir}/tiles/"
+          "${ChartCategory.chartTypeToIndex(ChartCategory.elevation)}/"
+          "{z}/{x}/{y}."
+          "${ChartCategory.chartTypeToExtension(ChartCategory.elevation)}?$_cacheBustElevation"
+    );
 
     // start from known location
     final MapOptions opts = MapOptions(

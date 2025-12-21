@@ -81,11 +81,11 @@ class AppSettings {
   }
 
   void setInstruments(String instruments) {
-    provider.setString("key-instruments-v14", instruments);
+    provider.setString("key-instruments-v16", instruments);
   }
 
   String getInstruments() {
-    return provider.getValue("key-instruments-v14", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT") as String;
+    return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT") as String;
   }
 
   void setUnits(String units) {

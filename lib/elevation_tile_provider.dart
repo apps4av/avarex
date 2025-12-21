@@ -49,7 +49,7 @@ class ElevationTileProvider extends TileProvider {
 
     File f = File(dlUrl);
     if(f.existsSync()) {
-      ImageProvider p = CustomImageProvider(FileImage(f));
+      ImageProvider p = ElevationImageProvider(FileImage(f));
       // add for eviction
       _cache[dlUrl] = p;
       return p;
@@ -64,13 +64,13 @@ class ElevationTileProvider extends TileProvider {
   }
 }
 
-class CustomImageProvider extends ImageProvider {
+class ElevationImageProvider extends ImageProvider {
   final ImageProvider inner;
 
-  CustomImageProvider(this.inner);
+  ElevationImageProvider(this.inner);
 
-  double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
-  double altitudeFtElevationPerPixelIntercept = -364.431597044586;
+  static double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
+  static double altitudeFtElevationPerPixelIntercept = -364.431597044586;
 
   @override
   ImageStreamCompleter loadImage(Object key, ImageDecoderCallback decode) {

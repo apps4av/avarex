@@ -62,6 +62,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _source = "";
   String _vsr = "";
   String _flightTime = "00:00";
+  String _gel = "DL";
 
   @override
   void dispose() {
@@ -219,6 +220,8 @@ class InstrumentListState extends State<InstrumentList> {
         }
       }
       Storage().pfdData.vdi = vdi;
+      double? elevation = Storage().area.elevation;
+      _gel = elevation == null ? "DL" : _truncate(elevation.round().toString());
     });
   }
 
@@ -367,6 +370,9 @@ class InstrumentListState extends State<InstrumentList> {
       case "DIS":
         value = _distance;
         break;
+      case "GEL":
+        value = _gel;
+        break;
       case "ETA":
         value = _eta;
         break;
@@ -468,22 +474,19 @@ class InstrumentListState extends State<InstrumentList> {
                       "GS  - Ground speed.\n"
                       "ALT - GPS altitude.\n"
                       "MT  - Magnetic track.\n"
-                      "PRV - Previous waypoint.\n"
-                      "NXT - Next waypoint.\n"
+                      "PRV - Tap to go to the previous waypoint as shown.\n"
+                      "NXT - Tap to go to the next waypoint as shown.\n"
                       "DIS - Distance to the next waypoint.\n"
                       "BRG - Bearing to the next waypoint.\n"
+                      "GEL - Ground elevation. Needs Elevation charts.\n"
                       "ETA - Estimated time of arrival at the next waypoint.\n"
                       "ETE - Estimated time en-route to the next waypoint.\n"
                       "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
-                      "UPT - Up count timer.\n"
-                      "DNT - Down count timer.\n"
+                      "UPT - Tap to start/stop the up timer.\n"
+                      "DNT - Tap to start/stop the down timer.\n"
                       "UTC - Coordinated Universal Time.\n"
                       "SRC - Source of GPS data.\n"
-                      "FLT - Total flight time in hours.\n\n"
-                      "Tap PRV/NXT to skip to previous/next waypoint.\n"
-                      "Tap UPT to start/stop the up timer.\n"
-                      "Tap DNT to start/stop the down timer.\n"
-                      "Tap FLT to reset the flight timer.\n",
+                      "FLT - Total flight time in hours. Tap to reset.\n",
                       null, 30);
                   },
                   child: const Text("?", style: TextStyle(fontSize: 12),),

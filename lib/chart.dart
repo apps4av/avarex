@@ -109,7 +109,7 @@ class ChartCategory {
       case ifra:
         return 11;
       case elevation:
-        return 11;
+        return 10;
       case heli:
         return 12;
       case flyway:
@@ -117,6 +117,23 @@ class ChartCategory {
     }
     return 5;
   }
+
+  static int chartTypeToMinZoom(String type) {
+    switch(type) {
+      case elevation:
+        return 7;
+    }
+    return 0;
+  }
+
+  static String chartTypeToExtension(String type) {
+    switch(type) {
+      case elevation:
+        return "png";
+    }
+    return "webp";
+  }
+
 }
 
 
