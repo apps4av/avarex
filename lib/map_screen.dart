@@ -665,7 +665,7 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Plate');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add( // circle layer
+      layers.add( // plate layer
         IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
             valueListenable: Storage().plateChange,
             builder: (context, value, _) {
@@ -769,6 +769,11 @@ class MapScreenState extends State<MapScreen> {
                     color: Constants.speedCircleColor,
                     strokeWidth: 3,
                   ),
+                  Polyline(
+                    points: Storage().area.glideProfile.getGlideCircle(),
+                    color: Constants.glideCircleColor,
+                    strokeWidth: 3,
+                  ),
                 ],
               );
             },
@@ -809,6 +814,13 @@ class MapScreenState extends State<MapScreen> {
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("2", style: TextStyle(fontSize: 14,
                             color: Colors.white,),)))),
+                  Marker(point: Storage().area.glideProfile.getGlidePoint(),
+                      width: 64,
+                      child: Transform.rotate(
+                          angle: _northUp ? 0 : Storage().position.heading * pi /
+                              180, child:
+                      AutoSizeText(Storage().area.glideProfile.label, style: TextStyle(
+                            color: Colors.white, backgroundColor: Constants.bottomNavBarBackgroundColor),))),
                 ],
               );
             },

@@ -46,6 +46,7 @@ class Constants {
 
   static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
   static const Color speedCircleColor = Color.fromARGB(200, 0, 0, 180);
+  static const Color glideCircleColor = Colors.blueAccent;
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.grey;
   static const Color planPassedColor = Colors.cyanAccent;

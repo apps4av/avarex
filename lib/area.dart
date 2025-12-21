@@ -8,6 +8,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/elevation_tile_provider.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/glide_profile.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
@@ -20,13 +21,14 @@ class Area {
 
   double geoAltitude = 0;
   double? elevation;
-  WindsAloft? _windsAloft;
+  WindsAloft? windsAloft;
   Destination? closestAirport;
   List<LatLng> obstacles = [];
   double variation = 0;
   ValueNotifier<int> change = ValueNotifier(0);
   String elevationTile = "";
   img.Image? decodedImage;
+  GlideProfile glideProfile = GlideProfile();
 
   Future<void> update(Position position) async {
     double geo = 0;
@@ -52,7 +54,7 @@ class Area {
     WindsAloft? wa = Storage().winds.get("${station}06H") as WindsAloft?;
     if(null != wa) {
       // combine surface and aloft wind
-      _windsAloft = WindsAloft(wa.station, wa.expires, wa.received, wa.source, wind, wa.w3k, wa.w6k, wa.w9k, wa.w12k, wa.w18k, wa.w24k, wa.w30k, wa.w34k, wa.w39k);
+      windsAloft = WindsAloft(wa.station, wa.expires, wa.received, wa.source, wind, wa.w3k, wa.w6k, wa.w9k, wa.w12k, wa.w18k, wa.w24k, wa.w30k, wa.w34k, wa.w39k);
     }
 
     // find elevation from tile
@@ -105,14 +107,17 @@ class Area {
       elevation = null;
     }
 
+    // change glide
+    glideProfile.updateGlide();
+
     change.value++;
   }
 
   (double?, double?) getWind(double altitude) {
     double? direction = 0;
     double? speed = 0;
-    if(null != _windsAloft) {
-      (direction, speed) = _windsAloft!.getWindAtAltitude(altitude);
+    if(null != windsAloft) {
+      (direction, speed) = windsAloft!.getWindAtAltitude(altitude);
     }
     return (direction, speed);
   }

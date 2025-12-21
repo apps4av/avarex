@@ -16,14 +16,10 @@ import 'dart:math' as math;
 /// See gdal2tiles.py.
 /// Optimized to use tables at run time, and avoid divisions
 class Epsg900913 {
-  // NOTE: The original Java code used BitmapHolder.HEIGHT for SIZE.
-  // If you have an equivalent constant in your Dart codebase replace TILE_SIZE
-  // with that value (e.g. BitmapHolder.HEIGHT).
-  static const double _tileSize = 512.0;
 
   /// To get tile info.
-  static final double _size = _tileSize;
-  static final double _sizeInverse = 1.0 / _tileSize;
+  static final double _size = 512; // tile size in pixels
+  static final double _sizeInverse = 1.0 / _size;
   static final double _originShift = 2 * math.pi * 6378137.0 / 2.0;
   static final double _initialResolution = 2 * math.pi * 6378137.0 / _size;
   static final double _pi180 = math.pi / 180.0;

@@ -4,6 +4,7 @@ import 'package:avaremp/app_log.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 
 class WindsAloft extends Weather {
   String w0k; // this optionally comes from metar.
@@ -335,3 +336,44 @@ class NorthPainter extends CustomPainter {
   }
 }
 
+/// Wind triangle solution (converted from Java).
+///
+/// Returns a set with two doubles:
+///  - index 0: true heading/track angle (ta) in degrees
+///  - index 1: true airspeed (ts)
+///
+/// Parameters:
+///  - gs: ground speed
+///  - ga: ground track/heading (degrees)
+///  - ws: wind speed
+///  - wa: wind direction (degrees)
+class WindTriangle {
+  /// Compute true airspeed and true heading from ground speed/heading and wind.
+  ///
+  /// Mirrors the original Java implementation; small protections are added
+  /// to avoid NaNs (clamping and tiny non-zero fallbacks).
+  static (double, double) getTrueFromGroundAndWind(
+      double ga, double gs, double wa, double ws) {
+    // Avoid division by zero / NaN when gs is exactly zero.
+    if (gs == 0.0) {
+      gs = 0.01;
+    }
+
+    final angle = (ga - wa - 180.0) * math.pi / 180.0;
+    var ts = math.sqrt(ws * ws + gs * gs - 2.0 * ws * gs * math.cos(angle));
+
+    // Avoid zero true airspeed causing divisions/NaNs later.
+    if (ts == 0.0) {
+      ts = 0.01;
+    }
+
+    // Compute argument for acos and clamp to [-1, 1] to avoid NaN from small
+    // floating point errors.
+    var acosArg = (ts * ts + gs * gs - ws * ws) / (2.0 * ts * gs);
+    acosArg = acosArg.clamp(-1.0, 1.0);
+
+    final ta = math.acos(acosArg) * 180.0 / math.pi + ga;
+
+    return (ta, ts);
+  }
+}
