@@ -133,7 +133,10 @@ class NotamCache extends WeatherCache {
 
     }
     catch(e) {
-      Storage().setException("Unable to download NOTAM: $e");
+      if(Storage().gpsInternal) {
+        // no internet if GPS external, so do not log errors
+        Storage().setException("Unable to download NOTAM: $e");
+      }
       return;
     }
     await initialize();

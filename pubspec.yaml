@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.76+76
+version: 0.0.77+77
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -184,7 +184,7 @@ msix_config:
   publisher_display_name: Apps4Av Inc.
   identity_name: Apps4AvInc.AvareX
   publisher: CN=97AA5BF2-3109-4884-8224-A2AB9E6DB29A
-  msix_version: 1.0.76.0
+  msix_version: 1.0.77.0
   logo_path: assets/images/logo.png
   capabilities: internetClient, location
   store: true
