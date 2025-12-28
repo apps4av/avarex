@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/geo_calculations.dart';
@@ -37,6 +38,7 @@ class LongPressFuture {
   final Destination _destination;
   Destination show;
   List<Saa> saa = [];
+  List<Destination> businesses = [];
   List<NavDestination>? navs;
 
   LongPressFuture(this._destination) : show =
@@ -52,6 +54,7 @@ class LongPressFuture {
     show = await DestinationFactory.make(_destination);
     navs = await MainDatabaseHelper.db.findNearestVOR(_destination.coordinate);
     saa = await MainDatabaseHelper.db.getSaa(_destination.coordinate);
+    businesses = await BusinessDatabaseHelper.db.findBusinesses(_destination);
   }
 
   Future<LongPressFuture> getAll() async {
@@ -63,7 +66,7 @@ class LongPressFuture {
 class LongPressScreenState extends State<LongPressScreen> {
 
   int _index = 0;
-  static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "ST"];
+  static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "ST", "Business"];
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +198,25 @@ class LongPressScreenState extends State<LongPressScreen> {
         children: [
           for(Saa s in future.saa)
             Padding(padding: const EdgeInsets.fromLTRB(10, 10, 10, 10), child: s.toWidget())
+        ],
+      );
+    }
+
+    if(future.businesses.isNotEmpty) {
+      pages[labels.indexOf("Business")] = ListView(
+        children: [
+          for(Destination b in future.businesses)
+            Padding(padding: const EdgeInsets.fromLTRB(10, 10, 10, 10), child:
+              ListTile(title: Text(b.facilityName, style: TextStyle(color: Colors.blueAccent)),
+                onTap: () async {
+                  // put in database for AI query history to pick up, go to pro screen
+                  UserDatabaseHelper.db.insertAiQueries("What are the address, telephone number, website, services (flight training, car rental, courtesy car, maintenance, fuel) at ${b.facilityName} (${b.locationID})").then((value) {
+                    if(mounted) {
+                      Navigator.of(context).pushNamed("/pro");
+                    }
+                  });
+                },
+              ))
         ],
       );
     }
