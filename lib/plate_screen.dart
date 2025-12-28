@@ -3,9 +3,11 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/gps.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
@@ -95,6 +97,7 @@ class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
   List<String> _procedures = [];
+  List<Destination> _businesses = [];
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
@@ -119,8 +122,12 @@ class PlatesFuture {
     if(_currentPlateAirport.isNotEmpty) {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
       _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
+      AirportDestination? d = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
+      if(d != null) {
+        _businesses = await BusinessDatabaseHelper.db.findBusinesses(d);
+      }
     }
-
+    // next one
     _airportDestination = await MainDatabaseHelper.db
         .findAirport(Storage().settings.getCurrentPlateAirport());
   }
@@ -133,6 +140,7 @@ class PlatesFuture {
   AirportDestination? get airportDestination => _airportDestination;
   List<String> get airports => _airports;
   List<String> get plates => _plates;
+  List<Destination> get business => _businesses;
   List<String> get procedures => _procedures;
   String get currentPlateAirport => _currentPlateAirport;
 }
@@ -183,10 +191,11 @@ class PlateScreenState extends State<PlateScreen> {
     double height = 0;
 
     if(future == null || future.airports.isEmpty) {
-      return makePlateView([], [], [], height, _notifier);
+      return makePlateView([], [], [], [], height, _notifier);
     }
 
     List<String> plates = future.plates;
+    List<Destination> business = future.business;
     List<String> airports = future.airports;
     List<String> procedures = future.procedures;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
@@ -208,10 +217,15 @@ class PlateScreenState extends State<PlateScreen> {
       }
     }
 
-    return makePlateView(airports, plates, procedureNames, height, _notifier);
+    return makePlateView(airports, plates, procedureNames, business, height, _notifier);
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, double height, ValueNotifier notifier) {
+  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
+
+    bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
+    if(notAd) {
+      Storage().business = null;
+    }
 
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
@@ -284,6 +298,52 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().currentPlate = value ?? plates[0];
+                          });
+                        },
+                      )
+                  )
+              )
+          )
+      ),
+
+      (business.isEmpty || notAd) ? Container() : // nothing to show here if plates is empty
+      Positioned(
+          child: Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                  padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
+                  child:DropdownButtonHideUnderline(
+                      child:DropdownButton2<String>(
+                        isDense: true,// plate selection
+                        customButton: CircleAvatar(backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.more_horiz),
+                        ),
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                          width: Constants.screenWidth(context) * 0.75,
+                        ),
+                        isExpanded: false,
+                        value: business.contains(Storage().business) ? Storage().business!.facilityName : business[0].facilityName,
+                        items: business.map((Destination item) {
+                          return DropdownMenuItem<String>(
+                              value: item.facilityName,
+                              child: Row(children:[
+                                Expanded(child:
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(5),),
+                                  child: Padding(padding: const EdgeInsets.all(5), child:
+                                  AutoSizeText(item.facilityName, minFontSize: 2, maxLines: 1,)),
+                                )
+                                )
+                              ])
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            Storage().business = value == null ? business[0] : business.firstWhere((element) => element.facilityName == value, orElse: () => business[0]);
                           });
                         },
                       )
@@ -416,6 +476,7 @@ class PlateScreenState extends State<PlateScreen> {
 class _PlatePainter extends CustomPainter {
 
   List<double>? _matrix;
+  Destination? _business;
   ui.Image? _image;
   ui.Image? _imagePlane;
   double? _variation;
@@ -437,12 +498,54 @@ class _PlatePainter extends CustomPainter {
     ..strokeWidth = 3
     ..color = Colors.red;
 
+  final _paintBusiness = Paint()
+    ..strokeWidth = 3
+    ..color = Colors.blueAccent.withAlpha(200)
+    ..style = PaintingStyle.fill;
+
   _PlatePainter(ValueNotifier repaint): super(repaint: repaint);
+
+  (Offset, double) _calculateOffset(LatLng ll) {
+    double lon = ll.longitude;
+    double lat = ll.latitude;
+    Offset offset = const Offset(0, 0);
+    double angle = 0;
+    if(_matrix!.length == 4) {
+      double dx = _matrix![0];
+      double dy = _matrix![1];
+      double lonTopLeft = _matrix![2];
+      double latTopLeft = _matrix![3];
+      double pixX = (lon - lonTopLeft) * dx;
+      double pixY = (lat - latTopLeft) * dy;
+      offset = Offset(pixX, pixY);
+      angle = 0;
+    }
+    else if(_matrix!.length == 6) {
+      double wftA = _matrix![0];
+      double wftB = _matrix![1];
+      double wftC = _matrix![2];
+      double wftD = _matrix![3];
+      double wftE = _matrix![4];
+      double wftF = _matrix![5];
+
+      double pixX = (wftA * lon + wftC * lat + wftE) / 2;
+      double pixY = (wftB * lon + wftD * lat + wftF) / 2;
+      offset = Offset(pixX, pixY);
+
+      double pixXn = (wftA * lon + wftC * (lat + 0.1) + wftE) / 2;
+      double pixYn = (wftB * lon + wftD * (lat + 0.1) + wftF) / 2;
+      double diffX = pixXn - pixX;
+      double diffY = pixYn - pixY;
+      angle = GeoCalculations.toDegrees(atan2(diffX, -diffY));
+    }
+    return (offset, angle);
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
 
     _image = Storage().imagePlate;
+    _business = Storage().business;
     _variation = Storage().area.variation;
     _imagePlane = Storage().imagePlane;
     _matrix = Storage().matrixPlate;
@@ -469,50 +572,31 @@ class _PlatePainter extends CustomPainter {
       if(null != _matrix) {
 
         double heading = Storage().position.heading;
-        double lon = Storage().position.longitude;
-        double lat = Storage().position.latitude;
-        double pixX = 0;
-        double pixY = 0;
         Offset offsetCircle = const Offset(0, 0);
+        Offset offsetPlane = const Offset(0, 0);
         double angle = 0;
 
-        if(_matrix!.length == 4) {
-          double dx = _matrix![0];
-          double dy = _matrix![1];
-          double lonTopLeft = _matrix![2];
-          double latTopLeft = _matrix![3];
-          pixX = (lon - lonTopLeft) * dx;
-          pixY = (lat - latTopLeft) * dy;
-          double pixAirportX = (center.coordinate.longitude - lonTopLeft) * dx;
-          double pixAirportY = (center.coordinate.latitude - latTopLeft) * dy;
-          offsetCircle = Offset(pixAirportX, pixAirportY);
-          angle = 0;
-        }
-        else if(_matrix!.length == 6) {
-          double wftA = _matrix![0];
-          double wftB = _matrix![1];
-          double wftC = _matrix![2];
-          double wftD = _matrix![3];
-          double wftE = _matrix![4];
-          double wftF = _matrix![5];
-
-          pixX = (wftA * lon + wftC * lat + wftE) / 2;
-          pixY = (wftB * lon + wftD * lat + wftF) / 2;
-          double pixAirportX = (wftA * center.coordinate.longitude + wftC * center.coordinate.latitude + wftE) / 2;
-          double pixAirportY = (wftB * center.coordinate.longitude + wftD * center.coordinate.latitude + wftF) / 2;
-          offsetCircle = Offset(pixAirportX, pixAirportY);
-
-          double pixXn = (wftA * lon + wftC * (lat + 0.1) + wftE) / 2;
-          double pixYn = (wftB * lon + wftD * (lat + 0.1) + wftF) / 2;
-          double diffX = pixXn - pixX;
-          double diffY = pixYn - pixY;
-          angle = GeoCalculations.toDegrees(atan2(diffX, -diffY));
-        }
+        (offsetCircle, _) = _calculateOffset(center.coordinate);
+        (offsetPlane, angle) = _calculateOffset(Gps.toLatLng(Storage().position));
 
         // draw circle at center of airport
         canvas.drawCircle(offsetCircle, 16  , _paintCenter);
+
+        if(_business != null) {
+          // draw selected business
+          Offset offsetBiz = const Offset(0, 0);
+          (offsetBiz, _) = _calculateOffset(_business!.coordinate);
+          canvas.drawCircle(offsetBiz, 10, _paintBusiness);
+          offsetBiz = Offset(offsetBiz.dx + 12, offsetBiz.dy - 12);
+          TextSpan span = TextSpan(text: _business!.facilityName.substring(0, min(_business!.facilityName.length, 24)),
+              style: TextStyle(color: Colors.red, backgroundColor: Colors.white, fontWeight: FontWeight.bold, fontSize: 12));
+          TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
+          tp.layout();
+          tp.paint(canvas, offsetBiz);
+        }
+
         //draw airplane
-        canvas.translate(pixX, pixY);
+        canvas.translate(offsetPlane.dx, offsetPlane.dy);
         canvas.rotate((heading + angle) * pi / 180);
         canvas.drawImage(_imagePlane!, Offset(-_imagePlane!.width / 2, -_imagePlane!.height / 2), _paint);
         // draw all based on screen width, height

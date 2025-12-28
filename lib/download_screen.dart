@@ -532,7 +532,6 @@ class DownloadScreenState extends State<DownloadScreen> {
         Chart('Southeast',    _absentColor, _absentIcon, 'ELEV_SE_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
         Chart('South Central', _absentColor, _absentIcon, 'ELEV_SC_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
         Chart('Southwest',    _absentColor, _absentIcon, 'ELEV_SW_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
-        Chart('East Central',  _absentColor, _absentIcon, 'ELEV_EC_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
         Chart('Alaska',        _absentColor, _absentIcon, 'ELEV_AK_NEW',  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
         Chart('Pacific',       _absentColor, _absentIcon, 'ELEV_PAC_NEW', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
       ], false,

@@ -75,6 +75,7 @@ class Storage {
   final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
+  Destination? business; // currently shown business on plate
   late WindsCache winds;
   late MetarCache metar;
   late TafCache taf;
