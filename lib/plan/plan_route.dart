@@ -545,19 +545,6 @@ class PlanRoute {
       return route;
     }
 
-    String? cookie;
-
-    //@@___asa_password___@@
-    final responseHttp = await http.post(Uri.parse("https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=@@___asa_password__@@"));
-    if (responseHttp.statusCode == 200) {
-      try {
-        cookie = responseHttp.headers['set-cookie'];
-      }
-      catch(e) {
-        AppLog.logMessage("ASA plan cookie error $e");
-      }
-    }
-
     Map<String, String> params = {};
     params['id1'] = split[0];
     params['id2'] = split[1];
@@ -569,9 +556,7 @@ class PlanRoute {
     params['minalt'] = minAltitude;
     params['maxalt'] = maxAltitude;
 
-    Map<String, String> headers = {};
-    headers['Cookie'] = cookie ?? "";
-    final response = await http.post(Uri.parse("https://rfinder.asalink.net/autorte_run.php"), body: params, headers: headers);
+    final response = await http.post(Uri.parse("https://rfinder.asalink.net/free/autoroute_rtx.php"), body: params);
     if (response.statusCode == 200) {
       /* parse the html
         https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=apps4av
