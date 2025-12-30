@@ -469,8 +469,7 @@ class MapScreenState extends State<MapScreen> {
 
     final TileLayer elevationLayer = TileLayer(
         tms: true,
-        maxNativeZoom: 7,
-        minNativeZoom: 7,
+        maxNativeZoom: _maxZoom,
         tileProvider: elevationTileProvider,
         urlTemplate: "${Storage().dataDir}/tiles/"
           "${ChartCategory.chartTypeToIndex(ChartCategory.elevation)}/"
@@ -1626,6 +1625,8 @@ class MapNetworkTileProvider extends TileProvider {
 
 // custom tile provider
 class ChartTileProvider extends TileProvider {
+  static const AssetImage assetImage = AssetImage("assets/images/512.png");
+
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
     // get rid of annoying tile name error problem by providing a transparent tile
@@ -1638,7 +1639,7 @@ class ChartTileProvider extends TileProvider {
     // get file to download message in tile missing
     String name = Chart.getChartRegion(coordinates.x, coordinates.y, coordinates.z);
     if(name.isEmpty) {
-      return const AssetImage("assets/images/512.png");
+      return assetImage;
     }
     return AssetImage("assets/images/dl_$name.png");
   }

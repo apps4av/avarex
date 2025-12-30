@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:avaremp/chart.dart';
+import 'package:avaremp/data/epsg900913.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +14,7 @@ class ElevationTileProvider extends TileProvider {
   final Map<String, ImageProvider> _cache = {};
   int _lastCalled = DateTime.now().millisecondsSinceEpoch;
   double _lastAltitude = 0.0;
+  static const AssetImage assetImage = AssetImage("assets/images/512.png");
 
   // evict tiles when altitude changes significantly so color map can be updated
   bool evict() {
@@ -47,20 +48,38 @@ class ElevationTileProvider extends TileProvider {
     // remove cache busting part
     String dlUrl = url.replaceAll(RegExp("\\?.*"), "");
 
+    // find x, y, z of tile from dlUrl, use regexp
+    RegExp regExp = RegExp(r'tiles\/\d/(\d+)/(\d+)/(\d+)\..*$');
+    Match? match = regExp.firstMatch(dlUrl);
+    if(match == null || match.groupCount != 3) {
+      return assetImage;
+    }
+    int z = int.parse(match.group(1)!);
+    int x = int.parse(match.group(2)!);
+    int y = int.parse(match.group(3)!);
+
+    Epsg900913 proj = Epsg900913.fromLatLon(
+        Storage().position.latitude,
+        Storage().position.longitude, z.toDouble());
+
+    int currentTileX = proj.getTilex();
+    int currentTileY = proj.getTiley();
+
+    // return empty image for tiles that are +-3 from current tile
+    if((x < (currentTileX - 3)) || (x > (currentTileX + 3)) ||
+       (y < (currentTileY - 3)) || (y > (currentTileY + 3))) {
+      return assetImage;
+    }
+
     File f = File(dlUrl);
     if(f.existsSync()) {
       ImageProvider p = ElevationImageProvider(FileImage(f));
-      // add for eviction
+      // add for eviction, not for reuse
       _cache[dlUrl] = p;
       return p;
     }
 
-    // get file to download message in tile missing
-    String name = Chart.getChartRegion(coordinates.x, coordinates.y, coordinates.z);
-    if(name.isEmpty) {
-      return const AssetImage("assets/images/512.png");
-    }
-    return AssetImage("assets/images/dl_$name.png");
+    return assetImage;
   }
 }
 
