@@ -4,22 +4,87 @@ import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:gpx/gpx.dart';
 import 'package:latlong2/latlong.dart';
 import 'gps.dart';
 
 class GpsRecorder {
+  TrackPoint _last;
+  final List<TrackPoint> _points;
 
-  TrackPosition _last;
-  final Gpx _gpx;
+  GpsRecorder() :
+    _last = TrackPoint(
+      coordinate: LatLng(0,0),
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+      time: DateTime.fromMillisecondsSinceEpoch(0),
+    ),
+    _points = [];
 
-  GpsRecorder() : _gpx = Gpx(),  _last = TrackPosition(LatLng(0,0), 0, 0, 0, DateTime.now()){
-    _gpx.creator = 'AvareX';
-    _gpx.metadata = Metadata();
-    _gpx.metadata?.name = "AvareX Flight Path";
-    _gpx.metadata?.desc = "3-D Flight Position Data";
-    _gpx.metadata?.time = DateTime.now();
-    _gpx.wpts = [];
+  static String _createKml({
+    required List<TrackPoint> points,
+    String name = 'AvareX Flight',
+  }) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
+    buffer.writeln('<kml xmlns="http://www.opengis.net/kml/2.2">');
+    buffer.writeln('<Document>');
+    buffer.writeln('<name>$name</name>');
+
+    // Path LineString
+    buffer.writeln('<Placemark>');
+    buffer.writeln('<name>$name Path</name>');
+    buffer.writeln('<LineString>');
+    buffer.writeln('<tessellate>1</tessellate>');
+    buffer.writeln('<altitudeMode>absolute</altitudeMode>');
+    buffer.writeln('<coordinates>');
+
+    for (final p in points) {
+      buffer.writeln(
+        '${p.coordinate.longitude},${p.coordinate.latitude},${p.altitude}',
+      );
+    }
+
+    buffer.writeln('</coordinates>');
+    buffer.writeln('</LineString>');
+    buffer.writeln('</Placemark>');
+
+    // Individual points with timestamp
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+
+      buffer.writeln('<Placemark>');
+      buffer.writeln('<name>Point ${i + 1}</name>');
+
+      // Time
+      buffer.writeln('<TimeStamp>');
+      buffer.writeln('<when>${p.time.toUtc().toIso8601String()}</when>');
+      buffer.writeln('</TimeStamp>');
+
+      // Location
+      buffer.writeln('<Point>');
+      buffer.writeln('<altitudeMode>absolute</altitudeMode>');
+      buffer.writeln(
+        '<coordinates>${p.coordinate.longitude},${p.coordinate.latitude},${p.altitude}</coordinates>',
+      );
+      buffer.writeln('</Point>');
+
+      // Metadata
+      buffer.writeln('<ExtendedData>');
+      buffer.writeln(
+          '<Data name="heading"><value>${p.heading}</value></Data>');
+      buffer.writeln(
+          '<Data name="speed"><value>${p.speed}</value></Data>');
+      buffer.writeln('</ExtendedData>');
+
+      buffer.writeln('</Placemark>');
+    }
+
+    buffer.writeln('</Document>');
+    buffer.writeln('</kml>');
+
+    return buffer.toString();
   }
 
   void add(Position position) {
@@ -69,35 +134,39 @@ class GpsRecorder {
       return;
     }
 
-    _last = TrackPosition(Gps.toLatLng(position), altitude, speed, heading, DateTime.now());
-    _gpx.wpts.add(Wpt(lat: _last.coordinate.latitude, lon: _last.coordinate.longitude, ele: _last.altitude, desc: "speed=${_last.speed.round()}", time: DateTime.now()));
+    _last = TrackPoint(coordinate: Gps.toLatLng(position), altitude: altitude, speed: speed, heading: heading, time: DateTime.now());
+    _points.add(_last);
   }
 
   String getKml() {
-    return KmlWriter().asString(_gpx, pretty: true);
-  }
-
-  String getGpx() {
-    return GpxWriter().asString(_gpx, pretty: true);
+    return _createKml(points: _points);
   }
 
   List<LatLng> getPoints() {
-    return _gpx.wpts.map((e) => LatLng(e.lat!, e.lon!)).toList();
+    if(_points.isEmpty) {
+      return [LatLng(0, 0)];
+    }
+    return _points.map((e) => e.coordinate).toList();
   }
 
   Future<String?> saveKml() async {
     String data = getKml();
     return await PathUtils.writeTrack(Storage().dataDir, data);
   }
-
 }
 
-class TrackPosition {
-  LatLng coordinate;
-  double altitude;
-  double speed;
-  double heading;
-  DateTime time;
+class TrackPoint {
+  final LatLng coordinate;
+  final double altitude; // meters
+  final double heading;  // degrees
+  final double speed;    // m/s, knots, etc.
+  final DateTime time;   // UTC
 
-  TrackPosition(this.coordinate, this.altitude, this.speed, this.heading, this.time);
+  TrackPoint({
+    required this.coordinate,
+    required this.altitude,
+    required this.heading,
+    required this.speed,
+    required this.time,
+  });
 }

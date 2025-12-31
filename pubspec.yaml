@@ -65,7 +65,6 @@ dependencies:
   flutter_keyboard_visibility: ^6.0.0
   html: ^0.15.4
   image: ^4.1.7
-  gpx: ^2.2.2
   share_plus: ^11.1.0
   file_picker: ^10.3.1
   audioplayers: ^6.5.0
