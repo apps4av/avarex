@@ -1,6 +1,6 @@
 import 'package:avaremp/plan/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/utils/unit_conversion.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'main_screen.dart';

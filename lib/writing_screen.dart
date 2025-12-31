@@ -1,9 +1,9 @@
 import 'dart:convert';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';

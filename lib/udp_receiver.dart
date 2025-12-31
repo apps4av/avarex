@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:universal_io/io.dart';
 
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:flutter/foundation.dart';
 
 // Get UDP from receivers, handle GDL90

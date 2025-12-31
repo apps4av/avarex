@@ -1,7 +1,7 @@
 
-import 'package:avaremp/faa_dates.dart';
+import 'package:avaremp/utils/faa_dates.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';
 import 'constants.dart';

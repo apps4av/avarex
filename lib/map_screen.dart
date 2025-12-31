@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:avaremp/elevation_tile_provider.dart';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';

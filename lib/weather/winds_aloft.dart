@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';

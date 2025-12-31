@@ -1,4 +1,4 @@
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/weather/time_segment_pie_chart.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:flutter/material.dart';

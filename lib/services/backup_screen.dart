@@ -1,6 +1,6 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';

@@ -1,4 +1,4 @@
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:avaremp/weather/winds_aloft.dart';

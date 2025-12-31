@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:toastification/toastification.dart';
 
-import 'ai/ai_screen.dart';
-import 'constants.dart';
+import '../ai/ai_screen.dart';
+import '../constants.dart';
 
 class Toast {
   static void showToast(BuildContext context, String text, Widget? icon, int duration, {bool translate = false}) {

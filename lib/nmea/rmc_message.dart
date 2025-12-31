@@ -1,4 +1,4 @@
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/nmea/nmea_message.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';

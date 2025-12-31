@@ -1,4 +1,4 @@
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:core';
 import 'package:universal_io/io.dart';
-import 'package:avaremp/faa_dates.dart';
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/utils/faa_dates.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;

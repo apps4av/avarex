@@ -1,11 +1,11 @@
 
 import 'dart:convert';
 
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
-import 'package:avaremp/faa_dates.dart';
+import 'package:avaremp/utils/faa_dates.dart';
 import 'package:avaremp/geo_calculations.dart';
 import 'package:avaremp/plan/passage.dart';
 import 'package:avaremp/storage.dart';

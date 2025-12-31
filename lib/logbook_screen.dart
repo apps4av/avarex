@@ -1,7 +1,7 @@
 import 'package:avaremp/filterable_logbook_dashboard.dart';
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_io/io.dart';

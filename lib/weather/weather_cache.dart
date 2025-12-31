@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/unit_conversion.dart';
+import 'package:avaremp/utils/unit_conversion.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 

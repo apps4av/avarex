@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import 'package:avaremp/app_log.dart';
-import 'package:avaremp/twilight_calculator.dart';
+import 'package:avaremp/utils/app_log.dart';
+import 'package:avaremp/utils/twilight_calculator.dart';
 
 import 'destination.dart';
 import 'package:avaremp/geo_calculations.dart';

@@ -3,7 +3,7 @@ import 'plan_lmfs.dart';
 import 'package:flutter/material.dart';
 
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/twilight_calculator.dart';
+import 'package:avaremp/utils/twilight_calculator.dart';
 import 'package:day_night_time_picker/lib/daynight_timepicker.dart';
 import 'package:day_night_time_picker/lib/state/time.dart';
 

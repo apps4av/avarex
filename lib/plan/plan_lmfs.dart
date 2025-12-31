@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:avaremp/app_log.dart';
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/storage.dart';
 import 'package:http/http.dart' as http;

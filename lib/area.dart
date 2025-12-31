@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:avaremp/chart.dart';
-import 'package:avaremp/data/epsg900913.dart';
+import 'package:avaremp/utils/epsg900913.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/elevation_tile_provider.dart';

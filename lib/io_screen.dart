@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:avaremp/toast.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 import 'dart:isolate';
 import 'package:avaremp/storage.dart';

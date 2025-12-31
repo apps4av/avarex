@@ -2,8 +2,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
 
-import 'package:avaremp/faa_dates.dart';
-import 'package:avaremp/path_utils.dart';
+import 'package:avaremp/utils/faa_dates.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
