@@ -80,7 +80,7 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 5,
+          version: 6,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion == 1 && newVersion == 2) {
               await db.execute("create table sketch("
@@ -133,6 +133,10 @@ class UserDatabaseHelper {
                   "query        text);");
               await db.execute("insert into aiQueries(query) values ${typicalAiQueries.map((e) => "('$e')").toList().join(",")};");
             }
+
+            if(oldVersion <= 5 && newVersion == 6) {
+              await db.execute("alter table aiQueries add column answer text default '';");
+            }
           },
           onCreate: (Database db, int version) async {
 
@@ -143,8 +147,10 @@ class UserDatabaseHelper {
                 "unique(name) on conflict replace);");
 
             await db.execute("create table aiQueries("
-                "id           integer primary key autoincrement, "
-                "query        text);");
+                "id           integer primary key autoincrement,"
+                "query        text,"
+                "answer       text);");
+
             await db.execute("insert into aiQueries(query) values ${typicalAiQueries.map((e) => "('$e')").toList().join(",")};");
 
             await db.execute("create table elevation("
@@ -581,22 +587,29 @@ class UserDatabaseHelper {
   }
 
 
-  Future<void> insertAiQueries(String entry) async {
+  Future<void> insertAiQueries(String query, String answer) async {
     final db = await database;
     if(db != null) {
       await db.insert(
         'aiQueries',
-        Map.from({'query': entry}),
+        Map.from({'query': query, 'answer': answer}),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
   }
 
-  Future<List<(int, String)>> getAllAiQueries() async {
+  Future<List<(int, String, String)>> getAllAiQueries() async {
     final db = await database;
     if(db != null) {
       final maps = await db.query('aiQueries', orderBy: 'id DESC');
-      return maps.map((e) => (e['id'] as int, e['query'] as String)).toList();
+      return maps.map((e) {
+        int id = e['id'] as int;
+        String? query = e['query'] as String?;
+        String? answer = e['answer'] as String?;
+        answer ??= "";
+        query ??= "";
+        return (id, query, answer);
+      }).toList();
     }
     return [];
   }

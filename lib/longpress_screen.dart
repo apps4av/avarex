@@ -213,7 +213,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                     // put in database for AI query history to pick up, go to pro screen
                     UserDatabaseHelper.db.insertAiQueries(
                         "What are the address, telephone number, website, services (flight training, car rental, courtesy car, maintenance, fuel) at ${b
-                            .facilityName} (${b.locationID})").then((value) {
+                            .facilityName} (${b.locationID})", "").then((value) {
                       if (mounted) {
                         Navigator.of(context).pushNamed("/pro");
                       }
