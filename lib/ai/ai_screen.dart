@@ -48,8 +48,11 @@ class AiScreenState extends State<AiScreen> {
     List<(int, String, String)> allQueries = data;
 
     // load the first question
+    if(_isSending) {
+
+    }
     // if asked a question then leave answer in box
-    if(_asked) {
+    else if(_asked) {
       _asked = false;
     }
     // if clear button was pressed delete the question
@@ -72,9 +75,6 @@ class AiScreenState extends State<AiScreen> {
       String myQuery = _editingController.text;
       if(myQuery.isEmpty) {
         return "Please enter a question first";
-      }
-      if(myQuery.length > 256) {
-        return "Question length must be less than 256 characters";
       }
       final prompt = TextPart(myQuery);
       List<Part> parts = [];
@@ -117,25 +117,32 @@ class AiScreenState extends State<AiScreen> {
           parts.add(TextPart(planText));
         }
       }
-      final query =  Content.multi(parts);
-      final responseT = await _model.countTokens([query]);
-      final totalTokens = responseT.totalTokens;
-      String ret = "";
-      if(totalTokens > 10000) {
-        ret = "Please reduce the amount of context included to 10000 tokens - total tokens $totalTokens";
+      String ret = "Unable to get an answer.";
+      try {
+        final query = Content.multi(parts);
+        final responseT = await _model.countTokens([query]);
+        final totalTokens = responseT.totalTokens;
+        if(myQuery.length > 256) {
+          ret = "Question length must be less than 256 characters";
+        }
+        else if (totalTokens > 10000) {
+          ret = "Please reduce the amount of context included to 10000 tokens - total tokens $totalTokens";
+        }
+        else {
+          final response = await _model.generateContent([query]);
+          if (response.text == null) {
+            ret = "Error: no response from the server";
+          }
+          else {
+            ret = disclaimer + response.text!;
+          }
+        }
       }
-
-      final response = await _model.generateContent([query]);
-      if(response.text == null) {
-        ret = "Error: no response from the server";
+      catch(e) {
+        ret = "Internet connection needed.";
       }
-      else {
-        ret = disclaimer + response.text!;
-      }
-
       // put in db
       UserDatabaseHelper.db.insertAiQueries(myQuery, ret);
-
       return ret;
     }
 

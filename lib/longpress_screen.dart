@@ -207,8 +207,8 @@ class LongPressScreenState extends State<LongPressScreen> {
         children: [
           for(Destination b in future.businesses)
             Padding(padding: const EdgeInsets.fromLTRB(10, 10, 10, 10), child:
-              ListTile(title: Text(b.facilityName, style: TextStyle(color: Colors.blueAccent)),
-                onTap: () async {
+              ListTile(title: Text(b.facilityName),
+                trailing: Constants.shouldShowProServices ? TextButton(onPressed: () {
                   if(Constants.shouldShowProServices) {
                     // put in database for AI query history to pick up, go to pro screen
                     UserDatabaseHelper.db.insertAiQueries(
@@ -219,11 +219,9 @@ class LongPressScreenState extends State<LongPressScreen> {
                       }
                     });
                   }
-                  else {
-                    // show toast that pro services are needed
-                    MapScreenState.showToast(context, "Business details may be checked from Pro Services under Flight Intelligence", Icon(Icons.info, color: Colors.green,), 5);
-                  }
                 },
+                child: Text("Details"),
+              ) : Container()
               ))
         ],
       );
