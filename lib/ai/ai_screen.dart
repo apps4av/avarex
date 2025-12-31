@@ -142,7 +142,7 @@ class AiScreenState extends State<AiScreen> {
         ret = "Internet connection needed.";
       }
       // put in db
-      UserDatabaseHelper.db.insertAiQueries(myQuery, ret);
+      await UserDatabaseHelper.db.insertAiQueries(myQuery, ret);
       return ret;
     }
 

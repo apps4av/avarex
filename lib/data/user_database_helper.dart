@@ -590,6 +590,11 @@ class UserDatabaseHelper {
   Future<void> insertAiQueries(String query, String answer) async {
     final db = await database;
     if(db != null) {
+      // first delete all similar queries to avoid duplicates
+      if(answer.isNotEmpty) {
+        // new answer, update it
+        await db.rawQuery("DELETE FROM aiQueries WHERE query = '$query';");
+      }
       await db.insert(
         'aiQueries',
         Map.from({'query': query, 'answer': answer}),
