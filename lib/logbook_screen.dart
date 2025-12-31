@@ -1,7 +1,7 @@
 import 'package:avaremp/filterable_logbook_dashboard.dart';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:universal_io/io.dart';
@@ -107,11 +107,11 @@ class _LogbookScreenState extends State<LogbookScreen> {
     _loadEntries();
     if(mounted) {
       if(error) {
-        MapScreenState.showToast(context, "Unable to import all or some of the CSV file",
+        Toast.showToast(context, "Unable to import all or some of the CSV file",
             Icon(Icons.info, color: Colors.red,), 3); //
       }
       else {
-        MapScreenState.showToast(
+        Toast.showToast(
             context, "CSV imported successfully",
             Icon(Icons.info, color: Colors.blue,), 3);
       }
@@ -142,7 +142,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
     }
     else {
       if(mounted) {
-        MapScreenState.showToast(
+        Toast.showToast(
             context, "Failed to write CSV", Icon(Icons.error, color: Colors.red,), 3);
       }
     }
@@ -342,7 +342,7 @@ class _LogEntryFormState extends State<LogEntryForm> {
     String dateText = _dateController.text;
     DateTime? dt = DateTime.tryParse(dateText);
     if(dt == null) {
-      MapScreenState.showToast(
+      Toast.showToast(
           context, "Invalid date format", Icon(Icons.error, color: Colors.red,), 3);
       return;
     }

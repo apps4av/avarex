@@ -1,6 +1,6 @@
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/toast.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +93,7 @@ class BackupScreenState extends State<BackupScreen> {
           _status = (snapshot.bytesTransferred > 0 && snapshot.totalBytes > 0) ? "${((snapshot.bytesTransferred / snapshot.totalBytes) * 100).round()}%" : "";
           break;
         case TaskState.success:
-          MapScreenState.showToast(context, "Operation Completed",
+          Toast.showToast(context, "Operation Completed",
               Icon(Icons.info, color: Colors.green,), 3);
           _status = "";
           break;
@@ -101,7 +101,7 @@ class BackupScreenState extends State<BackupScreen> {
           break;
         case TaskState.canceled:
         case TaskState.error:
-          MapScreenState.showToast(context, "Operation Failed",
+          Toast.showToast(context, "Operation Failed",
               Icon(Icons.warning, color: Colors.red,), 3);
           _status = "";
           break;
@@ -140,7 +140,7 @@ class BackupScreenState extends State<BackupScreen> {
                 }
                 catch(e) {
                   if (context.mounted) {
-                    MapScreenState.showToast(context, "Operation Failed",
+                    Toast.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
                 }
@@ -171,7 +171,7 @@ class BackupScreenState extends State<BackupScreen> {
                 }
                 catch(e) {
                   if (context.mounted) {
-                    MapScreenState.showToast(context, "Operation Failed",
+                    Toast.showToast(context, "Operation Failed",
                         Icon(Icons.warning, color: Colors.red,), 3);
                   }
                 }

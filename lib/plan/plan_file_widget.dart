@@ -1,6 +1,6 @@
 
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/toast.dart';
 
 import 'plan_lmfs.dart';
 import 'plan_route.dart';
@@ -306,7 +306,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                       _departureDateTime = DateTime.parse(value);
                     }
                     catch(e) {
-                      MapScreenState.showToast(context, "Invalid departure time", null, 3);
+                      Toast.showToast(context, "Invalid departure time", null, 3);
                     }
                   },
                   controller: TextEditingController()..text = stringTime(_departureDateTime),
@@ -468,7 +468,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                             minutes: int.parse(match.group(2)!));
                       }
                       catch(e) {
-                        MapScreenState.showToast(context, "Invalid elapsed time", null, 3);
+                        Toast.showToast(context, "Invalid elapsed time", null, 3);
                       }
                     }
                   },
@@ -536,7 +536,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
                             minutes: int.parse(match.group(2)!));
                       }
                       catch(e) {
-                        MapScreenState.showToast(context, "Invalid fuel endurance", null, 3);
+                        Toast.showToast(context, "Invalid fuel endurance", null, 3);
                       }
                     }
                   },

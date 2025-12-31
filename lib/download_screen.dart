@@ -1,7 +1,7 @@
 
 import 'package:avaremp/faa_dates.dart';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/toast.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';
 import 'constants.dart';
@@ -321,7 +321,7 @@ class DownloadScreenState extends State<DownloadScreen> {
   // Do actions on all charts
   void _start() async {
     if(Storage().downloadManager.total() != 0) {
-      MapScreenState.showToast(context, "Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish", null, 3);
+      Toast.showToast(context, "Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish", null, 3);
       return; // let DL finish
     }
     for (int category = 0; category < _allCharts.length; category++) {
@@ -354,10 +354,10 @@ class DownloadScreenState extends State<DownloadScreen> {
       }
     }
     if(0 == Storage().downloadManager.total()) {
-      MapScreenState.showToast(context, "Please select items to Download/Update/Install", null, 3);
+      Toast.showToast(context, "Please select items to Download/Update/Install", null, 3);
     }
     else {
-      MapScreenState.showToast(context, "Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items", null, 3);
+      Toast.showToast(context, "Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items", null, 3);
     }
   }
 

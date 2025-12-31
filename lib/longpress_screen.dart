@@ -1,4 +1,5 @@
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/ai/ai_screen.dart';
 import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -8,6 +9,7 @@ import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/saa.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/destination/nav.dart';
+import 'package:avaremp/toast.dart';
 import 'package:avaremp/weather/notam.dart';
 import 'package:avaremp/weather/sounding.dart';
 import 'package:avaremp/weather/taf.dart';
@@ -210,14 +212,11 @@ class LongPressScreenState extends State<LongPressScreen> {
               ListTile(title: Text(b.facilityName),
                 trailing: Constants.shouldShowProServices ? TextButton(onPressed: () {
                   if(Constants.shouldShowProServices) {
-                    // put in database for AI query history to pick up, go to pro screen
-                    UserDatabaseHelper.db.insertAiQueries(
-                        "What are the address, telephone number, website, services (flight training, car rental, courtesy car, maintenance, fuel) at ${b
-                            .facilityName} (${b.locationID})", "").then((value) {
-                      if (mounted) {
-                        Navigator.of(context).pushNamed("/pro");
-                      }
-                    });
+                    String query = "What are the address, telephone number, website, services (flight training, car rental, courtesy car, maintenance, fuel) at ${b
+                        .facilityName} (${b.locationID})";
+                    if(mounted) {
+                      AiScreenState.teleportToAiScreen(context, query);
+                    }
                   }
                 },
                 child: Text("Details"),
@@ -250,7 +249,7 @@ class LongPressScreenState extends State<LongPressScreen> {
               child: const Text("+Plan"),
               onPressed: () {
                 Storage().route.insertWaypoint(Waypoint(showDestination));
-                MapScreenState.showToast(context, "Added ${showDestination.facilityName} to Plan", null, 3);
+                Toast.showToast(context, "Added ${showDestination.facilityName} to Plan", null, 3);
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),

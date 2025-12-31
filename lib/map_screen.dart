@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:avaremp/elevation_tile_provider.dart';
+import 'package:avaremp/toast.dart';
 import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
@@ -34,7 +35,6 @@ import 'package:toastification/toastification.dart';
 import 'chart.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'data/user_database_helper.dart';
 import 'download_screen.dart';
 import 'gps.dart';
 import 'weather/metar.dart';
@@ -142,36 +142,6 @@ class MapScreenState extends State<MapScreen> {
       _geojsonCluster = null;
       _geoJsonLayer = null;
     });
-  }
-
-  static void showToast(BuildContext context, String text, Widget? icon, int duration, {bool translate = false}) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    Toastification().dismissAll();
-    Toastification().show(
-        alignment: Alignment.bottomRight,
-        context: context,
-        closeOnClick: true,
-        closeButton: ToastCloseButton(showType: CloseButtonShowType.none),
-        description: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(text, style: TextStyle(fontWeight: FontWeight.w500),),
-          if(Constants.shouldShowProServices && translate)
-            TextButton(onPressed:() {
-              // put in database for AI query history to pick up, go to pro screen
-              UserDatabaseHelper.db.insertAiQueries("translate: $text", "").then((value) {
-                if (context.mounted) {
-                  Toastification().dismissAll();
-                  Navigator.of(context).pushNamed("/pro");
-                }
-              });
-          } , child: Text("Translate")),
-        ]),
-        autoCloseDuration: Duration(seconds: duration),
-        icon: CircleAvatar(radius: 16, backgroundColor: Colors.white, child: icon),
-        showIcon: icon == null ? false : true,
-        backgroundColor: colorScheme.surfaceDim, // Using a theme color
-        foregroundColor: colorScheme.onSurface, // Using a theme c
-    );
   }
 
   @override
@@ -342,7 +312,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        showToast(context, m.toString(), m.getIcon(), 30, translate: true);
+                        Toast.showToast(context, m.toString(), m.getIcon(), 30, translate: true);
                       });
                     },
                     child: m.getIcon(),
@@ -367,7 +337,7 @@ class MapScreenState extends State<MapScreen> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  showToast(context, t.toString(), t.getIcon(), 30, translate: true);
+                  Toast.showToast(context, t.toString(), t.getIcon(), 30, translate: true);
                 });
               },
               child: t.getIcon(),))
@@ -387,7 +357,7 @@ class MapScreenState extends State<MapScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        showToast(context, a.toString(), const Icon(Icons.person, color: Colors.black,), 30, translate: true);
+                        Toast.showToast(context, a.toString(), const Icon(Icons.person, color: Colors.black,), 30, translate: true);
                       });
                     },
                     child: const Icon(Icons.person, color: Colors.black,),))
@@ -410,7 +380,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          showToast(context, "${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()), 30);
+                          Toast.showToast(context, "${a.toString()}\n** Long press to show/hide the covered area **", Icon(Icons.ac_unit_rounded,color: a.getColor()), 30);
                         });
                       },
                       onLongPress: () {
@@ -443,7 +413,7 @@ class MapScreenState extends State<MapScreen> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,), 30);
+                          Toast.showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,), 30);
                         });
                       },
                       child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
@@ -1491,10 +1461,10 @@ class MapScreenState extends State<MapScreen> {
                                                           Storage().tracks.saveKml().then((value) {
                                                             setState1(() {
                                                               if(value != null) {
-                                                                showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,), 3);
+                                                                Toast.showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                               else {
-                                                                showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
+                                                                Toast.showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                             });
                                                           });

@@ -1,7 +1,9 @@
 import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
+import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:firebase_ai/firebase_ai.dart';
@@ -281,6 +283,16 @@ Tap Ask to submit your question.
         ],
       ),
     ));
+  }
+
+  static void teleportToAiScreen(BuildContext context, String query) {
+    if(Constants.shouldShowProServices) {
+      UserDatabaseHelper.db.insertAiQueries(query, '').then((value) {
+        if(context.mounted) {
+          LoginScreenState.showPaywall(context, "/ai");
+        }
+      });
+    }
   }
 }
 

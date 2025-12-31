@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:avaremp/toast.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/data/user_database_helper.dart';
@@ -9,8 +10,6 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:scribble/scribble.dart';
 import 'package:toastification/toastification.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
-
-import 'map_screen.dart';
 
 class WritingScreen extends StatefulWidget {
   const WritingScreen({super.key});
@@ -107,7 +106,7 @@ class WritingScreenState extends State<WritingScreen> {
               String now = DateTime.now().toIso8601String();
               File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.jpg')).writeAsBytes(image.buffer.asUint8List());
               if(context.mounted) {
-                MapScreenState.showToast(context, "Saved to Documents as notes_$now.jpg", null, 3);
+                Toast.showToast(context, "Saved to Documents as notes_$now.jpg", null, 3);
               }
             });
           }),

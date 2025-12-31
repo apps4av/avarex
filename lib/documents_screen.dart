@@ -1,5 +1,5 @@
+import 'package:avaremp/toast.dart';
 import 'package:universal_io/io.dart';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/path_utils.dart';
 import 'package:avaremp/pdf_viewer.dart';
 import 'package:avaremp/storage.dart';
@@ -176,18 +176,18 @@ class DocumentsScreenState extends State<DocumentsScreen> {
            }
            else if(PathUtils.isJSONFile(product.url)) {
              // read file as string
-             MapScreenState.showToast(context, "Parsing GeoJSON file.", null, 3);
+             Toast.showToast(context, "Parsing GeoJSON file.", null, 3);
              File(product.url).readAsString().then((String value) {
                try {
                  Storage().geoParser.parse(value).then((value) {
                    setState(() {
-                     MapScreenState.showToast(context, "GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On.", null, 3);
+                     Toast.showToast(context, "GeoJSON file read. Shapes will appear on the map when GeoJSON layer is On.", null, 3);
                    });
                  });
                }
                catch(e) {
                  setState(() {
-                   MapScreenState.showToast(context, "Error reading the GeoJSON file.", null, 3);
+                   Toast.showToast(context, "Error reading the GeoJSON file.", null, 3);
                  });
                }
              });

@@ -1,7 +1,7 @@
 import 'package:avaremp/constants.dart';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/toast.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
@@ -25,23 +25,29 @@ class LoginScreenState extends State<LoginScreen> {
     });
   }
 
-  void _showPaywall(String route) async {
+  static void showPaywall(BuildContext context, String route) async {
+    if(FirebaseAuth.instance.currentUser == null) {
+      Navigator.pushNamed(context, "/pro");
+    }
+    else {
       try {
         RevenueCatService.presentPaywallIfNeeded().then((entitled) {
-          if (mounted) {
+          if (context.mounted) {
             if (entitled) {
               Navigator.pushNamed(context, route);
             }
             else {
-              MapScreenState.showToast(context, "Please subscribe before proceeding. Thank you.",
+              Toast.showToast(
+                  context, "Please subscribe before proceeding. Thank you.",
                   Icon(Icons.info, color: Colors.red), 3);
             }
           }
         });
       }
-      catch(e) {
+      catch (e) {
         Storage().setException("Unable to initialize Pro Services: $e");
       }
+    }
   }
 
   @override
@@ -66,13 +72,13 @@ class LoginScreenState extends State<LoginScreen> {
                 child: const Text("Flight Intelligence"),
                 onPressed: () {
                   // Offerings and purchase options
-                  _showPaywall('/ai');
+                  showPaywall(context, '/ai');
                 },
               ),
               TextButton(
                 child: const Text("Backup/Sync"),
                 onPressed: () {
-                  _showPaywall('/backup');
+                  showPaywall(context, '/backup');
                 },
               ),
             ],

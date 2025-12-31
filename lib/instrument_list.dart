@@ -2,11 +2,11 @@ import 'dart:math';
 
 import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
+import 'package:avaremp/toast.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
@@ -467,7 +467,7 @@ class InstrumentListState extends State<InstrumentList> {
                 value: "4",
                 onTap:() {
                   // Make a toast and show
-                  MapScreenState.showToast(context,
+                  Toast.showToast(context,
                       "You may adjust the size of the tiles using Expand/Contract.\n"
                       "You may drag a tile to adjust its position.\n\n"
                       "Available Tiles:\n"

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:avaremp/toast.dart';
 import 'package:universal_io/io.dart';
 import 'dart:isolate';
-import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
@@ -156,18 +156,18 @@ class IoScreenState extends State<IoScreen> {
                                   }
                                 }
                                 else {
-                                  MapScreenState.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
+                                  Toast.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                                 }
                               });
                             }
                           }).onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                MapScreenState.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
+                                Toast.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
                               });
                             }
                           });
-                          MapScreenState.showToast(context, "Connecting to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
+                          Toast.showToast(context, "Connecting to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red,), 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -185,11 +185,11 @@ class IoScreenState extends State<IoScreen> {
                           .onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                MapScreenState.showToast(context, "Failed to unpair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
+                                Toast.showToast(context, "Failed to unpair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                               });
                             }
                           });
-                          MapScreenState.showToast(context, "Unpairing with ${result.device.name ?? result.device.address} ...", null, 3);
+                          Toast.showToast(context, "Unpairing with ${result.device.name ?? result.device.address} ...", null, 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -211,11 +211,11 @@ class IoScreenState extends State<IoScreen> {
                           .onError((error, stackTrace) {
                             if(mounted) {
                               setState(() {
-                                MapScreenState.showToast(context, "Failed to pair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
+                                Toast.showToast(context, "Failed to pair with ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
                               });
                             }
                           });
-                          MapScreenState.showToast(context, "Pairing with ${result.device.name ?? result.device.address} ...", null, 3);
+                          Toast.showToast(context, "Pairing with ${result.device.name ?? result.device.address} ...", null, 3);
                           Navigator.of(context).pop();
                         },
                       ),
@@ -238,7 +238,7 @@ class IoScreenState extends State<IoScreen> {
         child: const Text("Disconnect"),
         onPressed: () {
           disconnect();
-          MapScreenState.showToast(context, "Disconnecting ...", null, 3);
+          Toast.showToast(context, "Disconnecting ...", null, 3);
         },
       ),
       ])),
