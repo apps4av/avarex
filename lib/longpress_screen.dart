@@ -220,7 +220,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                   }
                 },
                 child: Text("Details"),
-              ) : Container()
+              ) : null
               ))
         ],
       );
