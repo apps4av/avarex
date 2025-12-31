@@ -1,4 +1,4 @@
-import 'package:avaremp/filterable_logbook_dashboard.dart';
+import 'package:avaremp/logbook/filterable_logbook_dashboard.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
@@ -8,7 +8,7 @@ import 'package:universal_io/io.dart';
 import 'package:csv/csv.dart';
 import 'package:share_plus/share_plus.dart';
 
-import 'data/user_database_helper.dart';
+import '../data/user_database_helper.dart';
 import 'log_entry.dart';
 
 // this is entirely AI generated code to manage a logbook

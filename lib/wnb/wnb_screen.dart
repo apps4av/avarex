@@ -1,12 +1,12 @@
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/toast.dart';
-import 'package:avaremp/wnb.dart';
+import 'package:avaremp/wnb/wnb.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:point_in_polygon/point_in_polygon.dart';
-import 'constants.dart';
+import '../constants.dart';
 
 class WnbScreen extends StatefulWidget {
   const WnbScreen({super.key});

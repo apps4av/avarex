@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:avaremp/gdl90/traffic_cache.dart';

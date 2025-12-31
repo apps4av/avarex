@@ -10,7 +10,7 @@ import 'package:day_night_time_picker/lib/daynight_timepicker.dart';
 import 'package:day_night_time_picker/lib/state/time.dart';
 import 'package:flutter/material.dart';
 
-import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/destination/destination.dart';
 
 class PlanFileWidget extends StatefulWidget {

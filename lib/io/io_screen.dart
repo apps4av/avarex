@@ -6,7 +6,7 @@ import 'dart:isolate';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
-import 'autopilot.dart';
+import '../instruments/autopilot.dart';
 
 
 class IoScreen extends StatefulWidget {

@@ -1,12 +1,12 @@
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'gps.dart';
+import 'io/gps.dart';
 import 'data/main_database_helper.dart';
 import 'main_screen.dart';
 

@@ -1,7 +1,7 @@
-import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/log_entry.dart';
+import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';

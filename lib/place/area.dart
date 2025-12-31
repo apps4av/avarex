@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:avaremp/chart.dart';
+import 'package:avaremp/chart/chart.dart';
 import 'package:avaremp/utils/epsg900913.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/elevation_tile_provider.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/elevation_tile_provider.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/glide_profile.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
@@ -14,7 +14,7 @@ import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'gps.dart';
+import '../io/gps.dart';
 import 'package:image/image.dart' as img;
 
 class Area {

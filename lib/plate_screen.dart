@@ -6,8 +6,8 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/gps.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
+import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
@@ -19,7 +19,7 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 
 import 'constants.dart';
 import 'data/main_database_helper.dart';
-import 'instrument_list.dart';
+import 'instruments/instrument_list.dart';
 
 // implements a drawing screen with a center reset button.
 

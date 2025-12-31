@@ -4,7 +4,7 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'chart.dart';
-import 'constants.dart';
+import '../constants.dart';
 import 'download.dart';
 
 

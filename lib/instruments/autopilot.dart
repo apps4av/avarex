@@ -1,7 +1,7 @@
 import 'dart:math';
 
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/nmea/bod_packet.dart';
 import 'package:avaremp/nmea/gga_packet.dart';
 import 'package:avaremp/nmea/rmb_packet.dart';
@@ -9,7 +9,7 @@ import 'package:avaremp/nmea/rmc_packet.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
 
-import 'gps.dart';
+import '../io/gps.dart';
 
 class AutoPilot {
   static String apCreateSentences() {

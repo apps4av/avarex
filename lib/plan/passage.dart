@@ -1,4 +1,4 @@
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:latlong2/latlong.dart';
 
 class Passage {

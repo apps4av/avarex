@@ -2,14 +2,14 @@ import 'dart:async';
 import 'package:universal_io/io.dart';
 import 'dart:math';
 import 'package:avaremp/destination/airport.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/weather/saa.dart';
+import 'package:avaremp/place/saa.dart';
 
 import 'db_general.dart';
 

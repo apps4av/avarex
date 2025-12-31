@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:avaremp/destination/destination.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../geo_calculations.dart';
+import '../utils/geo_calculations.dart';
 
 class DestinationCalculations {
 

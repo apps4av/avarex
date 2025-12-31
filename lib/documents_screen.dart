@@ -1,7 +1,7 @@
 import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 import 'package:avaremp/utils/path_utils.dart';
-import 'package:avaremp/pdf_viewer.dart';
+import 'package:avaremp/utils/pdf_viewer.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';

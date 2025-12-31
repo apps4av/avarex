@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:avaremp/pfd_painter.dart';
+import 'package:avaremp/instruments/pfd_painter.dart';
 import 'package:avaremp/storage.dart';
 
 import 'message.dart';

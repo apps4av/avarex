@@ -1,4 +1,4 @@
-import 'package:avaremp/chart.dart';
+import 'package:avaremp/chart/chart.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/data/settings_cache_provider.dart';
 

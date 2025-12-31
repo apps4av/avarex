@@ -3,14 +3,14 @@ import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:intl/intl.dart' as intl;
 import 'package:avaremp/gdl90/traffic_report_message.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:avaremp/gdl90/traffic_alerts.dart';
 import 'package:avaremp/constants.dart';
 
-import '../gps.dart';
+import '../io/gps.dart';
 
 const double _kDivBy180 = 1.0 / 180.0;
 const double _kMinutesPerMillisecond =  1.0 / 60000.0;

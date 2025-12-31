@@ -3,7 +3,7 @@ import 'package:avaremp/storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import '../geo_calculations.dart';
+import '../utils/geo_calculations.dart';
 
 class Sounding {
 

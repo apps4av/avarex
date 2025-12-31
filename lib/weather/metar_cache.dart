@@ -3,7 +3,7 @@ import 'package:universal_io/io.dart';
 import 'dart:typed_data';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
 import 'package:latlong2/latlong.dart';

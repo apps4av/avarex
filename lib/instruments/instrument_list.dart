@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:avaremp/destination/destination_calculations.dart';
-import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/pfd_painter.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
+import 'package:avaremp/instruments/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
@@ -13,9 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'constants.dart';
+import '../constants.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'gps.dart';
+import '../io/gps.dart';
 
 
 class InstrumentList extends StatefulWidget {

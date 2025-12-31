@@ -3,9 +3,9 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'data/main_database_helper.dart';
-import 'destination/destination.dart';
-import 'geo_calculations.dart';
+import '../data/main_database_helper.dart';
+import '../destination/destination.dart';
+import '../utils/geo_calculations.dart';
 
 class FlightStatus {
   static const int flightStateNoChange = 0;

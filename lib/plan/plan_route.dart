@@ -6,7 +6,7 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/utils/faa_dates.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/plan/passage.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
@@ -19,7 +19,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
-import 'package:avaremp/gps.dart';
+import 'package:avaremp/io/gps.dart';
 
 class PlanRoute {
 

@@ -4,7 +4,7 @@ import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/utils/twilight_calculator.dart';
 
 import 'destination.dart';
-import 'package:avaremp/geo_calculations.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/metar.dart';
 import 'package:flutter/material.dart';

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:universal_io/io.dart';
-import 'package:avaremp/aircraft.dart';
-import 'package:avaremp/checklist.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/checklist/checklist.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/log_entry.dart';
+import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/wnb.dart';
+import 'package:avaremp/wnb/wnb.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';

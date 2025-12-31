@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class ProgressButtonMessageInputWidget extends StatefulWidget {
+class ProgressButtonMessageInput extends StatefulWidget {
 
   final String label;
   final String label1;
@@ -12,14 +12,14 @@ class ProgressButtonMessageInputWidget extends StatefulWidget {
   final Future<String> Function(List<String> args) onPressed;
   final void Function(bool, String, String)? onComplete;
 
-  const ProgressButtonMessageInputWidget(this.label, this.label1, this.init1, this.label2, this.init2, this.title, this.onPressed,  this.onComplete, this.success, {super.key});
+  const ProgressButtonMessageInput(this.label, this.label1, this.init1, this.label2, this.init2, this.title, this.onPressed,  this.onComplete, this.success, {super.key});
 
   @override
-  State<StatefulWidget> createState() => ProgressButtonMessageInputWidgetState();
+  State<StatefulWidget> createState() => ProgressButtonMessageInputState();
 
 }
 
-class ProgressButtonMessageInputWidgetState extends State<ProgressButtonMessageInputWidget> {
+class ProgressButtonMessageInputState extends State<ProgressButtonMessageInput> {
 
   bool progress = false;
   String error = "";

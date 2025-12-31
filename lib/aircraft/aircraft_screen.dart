@@ -1,9 +1,9 @@
-import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import 'constants.dart';
+import '../constants.dart';
 
 class AircraftScreen extends StatefulWidget {
   const AircraftScreen({super.key});

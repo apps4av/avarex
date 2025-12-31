@@ -1,12 +1,12 @@
 import 'package:universal_io/io.dart';
 
-import 'package:avaremp/checklist.dart';
+import 'package:avaremp/checklist/checklist.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'constants.dart';
+import '../constants.dart';
 
 class ChecklistScreen extends StatefulWidget {
   const ChecklistScreen({super.key});

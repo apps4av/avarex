@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class ProgressButtonMessageWidget extends StatefulWidget {
+class ProgressButtonMessage extends StatefulWidget {
 
   final String label;
   final String title;
@@ -9,15 +9,15 @@ class ProgressButtonMessageWidget extends StatefulWidget {
   final Future<String> Function(List<String> args) onPressed;
   final void Function(bool)? onComplete;
 
-  const ProgressButtonMessageWidget(this.label, this.title, this.onPressed,  this.args, this.onComplete, this.success, {super.key});
+  const ProgressButtonMessage(this.label, this.title, this.onPressed,  this.args, this.onComplete, this.success, {super.key});
 
   @override
-  State<StatefulWidget> createState() => ProgressButtonMessageWidgetState();
+  State<StatefulWidget> createState() => ProgressButtonMessageState();
 
 }
 
 
-class ProgressButtonMessageWidgetState extends State<ProgressButtonMessageWidget> {
+class ProgressButtonMessageState extends State<ProgressButtonMessage> {
   bool progress = false;
   String error = "";
   Color color = Colors.red;

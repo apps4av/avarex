@@ -1,8 +1,8 @@
 import 'dart:math' as math;
-import 'package:avaremp/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/geo_calculations.dart';
-import 'package:avaremp/gps.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
+import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
