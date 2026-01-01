@@ -170,7 +170,7 @@ class PlanScreenState extends State<PlanScreen> {
       builder: (BuildContext context, var snapshot) {
         if(snapshot.hasData) {
           // draw the altitude profile
-          return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child: makeChart(context, snapshot.data!)));
+          return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child: makeChart(context, snapshot.data)));
         }
         return const Center(child: CircularProgressIndicator());
       }
@@ -229,7 +229,10 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  Widget makeChart(BuildContext context, List<double> data) {
+  Widget makeChart(BuildContext context, List<double?>? data) {
+    if(data == null) {
+      return const Center(child: Text("Elevation charts not downloaded"));
+    }
     return CustomPaint(painter: AltitudePainter(context, data),);
   }
 
@@ -239,9 +242,9 @@ class PlanScreenState extends State<PlanScreen> {
 class AltitudePainter extends CustomPainter {
 
   final BuildContext context;
-  final List<double> data;
-  double maxAltitude = 0;
-  double minAltitude = 0;
+  final List<double?> data;
+  double maxAltitude = double.negativeInfinity;
+  double minAltitude = double.infinity;
   final double altitudeOfPlan = Storage().route.altitude.toDouble();
   List<Destination> destinations = Storage().route.getNextDestinations();
   int length = 0;
@@ -255,8 +258,18 @@ class AltitudePainter extends CustomPainter {
     if(data.isEmpty) {
       return;
     }
-    maxAltitude = data.reduce((value, element) => value > element ? value : element);
-    minAltitude = data.reduce((value, element) => value < element ? value : element);
+    // find axix limits
+    for(int count = 0; count < data.length; count++) {
+      if(data[count] == null) {
+        continue;
+      }
+      else if(data[count]! > maxAltitude) {
+        maxAltitude = data[count]!;
+      }
+      else if(data[count]! <= minAltitude) {
+        minAltitude = data[count]!;
+      }
+    }
     // make minimum altitude in increments of 100
     minAltitude = (minAltitude / 100).floor() * 100;
     // make maximum altitude in increments of 100
@@ -286,14 +299,28 @@ class AltitudePainter extends CustomPainter {
     List<Offset> points = [];
     for (int i = 0; i < length; i++) {
       double x = i * step;
-      double y = height - (data[i] - minAltitude) * stepY;
+      double y = data[i] == null ?
+        double.nan : // treat nulls as minimum altitude
+        height - (data[i]! - minAltitude) * stepY;
       points.add(Offset(x, y));
     }
 
     double topAltitude = height - (altitudeOfPlan - minAltitude) * stepY;
     for (int i = 0; i < length - 1; i++) {
       // all areas into terrain mark red
-      _paint.color = topAltitude < points[i].dy || topAltitude < points[i + 1].dy ? Colors.blue : Colors.orange;
+      if(points[i].dy.isNaN) {
+        points[i] = Offset(points[i].dx, height);
+        _paint.color = Color.fromARGB(255, 255, 0, 255); // magenta for nulls
+      }
+      else {
+        _paint.color =
+        topAltitude < points[i].dy || topAltitude < points[i + 1].dy ? Colors
+            .blue : Colors.orange;
+      }
+      if(points[i + 1].dy.isNaN) {
+        points[i + 1] = Offset(points[i + 1].dx, height);
+        _paint.color = Color.fromARGB(255, 255, 0, 255); // magenta for nulls
+      }
       canvas.drawLine(points[i], points[i + 1], _paint);
     }
 

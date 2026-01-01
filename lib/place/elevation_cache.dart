@@ -20,14 +20,14 @@ class ElevationCache {
     Epsg900913 proj = Epsg900913.fromLatLon(position.latitude, position.longitude, zoom.toDouble());
     int x = proj.getTilex();
     int y = proj.getTiley();
-    double pixelX = Epsg900913.getOffsetX(proj.getLonUpperLeft(), position.longitude, 10);
-    double pixelY = Epsg900913.getOffsetY(proj.getLatUpperLeft(), position.latitude, 10);
+    double pixelX = Epsg900913.getOffsetX(proj.getLonUpperLeft(), position.longitude, zoom.toDouble());
+    double pixelY = Epsg900913.getOffsetY(proj.getLatUpperLeft(), position.latitude, zoom.toDouble());
 
     // cache elevation tile image at maximum zoom
     String tileName =
         "${Storage().dataDir}/tiles/"
         "${ChartCategory.chartTypeToIndex(ChartCategory.elevation)}/"
-        "${ChartCategory.chartTypeToZoom(ChartCategory.elevation)}/"
+        "$zoom/"
         "$x/$y."
         "${ChartCategory.chartTypeToExtension(ChartCategory.elevation)}";
 
@@ -64,6 +64,9 @@ class ElevationCache {
       // (R, G, B, R, G, B, ...)
       try {
         img.Pixel p = decodedImage.getPixel(pixelX.toInt(), pixelY.toInt());
+        if(p.a as int == 0 && p.r as int == 255) {
+          return null; // alpha 0 means no data when 255, we run over into abyss
+        }
         elevation = (p.r as int) *
             ElevationImageProvider.altitudeFtElevationPerPixelSlopeBase +
             ElevationImageProvider.altitudeFtElevationPerPixelIntercept;
@@ -75,13 +78,10 @@ class ElevationCache {
     return elevation;
   }
 
-  static Future<List<double>> getElevationOfPoints(List<LatLng> position) async {
-    List<double> elevations = [];
+  static Future<List<double?>> getElevationOfPoints(List<LatLng> position) async {
+    List<double?> elevations = [];
     for(LatLng pos in position) {
       double? elevation = await getElevation(pos);
-      if(elevation == null) {
-        return [];
-      }
       elevations.add(elevation);
     }
     return elevations;
