@@ -4,7 +4,7 @@ import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/weather/glide_profile.dart';
+import 'package:avaremp/instruments/glide_profile.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';

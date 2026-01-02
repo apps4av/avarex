@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/storage.dart';
@@ -12,8 +13,7 @@ class GlideProfile {
   final List<double?> _distanceTotal;
   String _label = "";
 
-  static const int _heightSteps = 10;
-  static const int _directionSteps = 24;
+  static const int _directionSteps = 30;
   static const double _feetPerNm = 6076.12;
   static const double _feetPerMeter = 3.28084;
   static const int _stepSizeDirection = (360 ~/ _directionSteps);
@@ -55,14 +55,10 @@ class GlideProfile {
     // units in feet and seconds
     double currentSpeed = Storage().position.speed * _feetPerMeter; // feet per second
     double altitudeGps = Storage().position.altitude * _feetPerMeter; // feet
-    double bearing = Storage().position.heading; // track true north
+    double heading = Storage().position.heading; // track true north
+    LatLng ll = Gps.toLatLng(Storage().position);
     _distanceTotal.fillRange(0, _directionSteps, null);
     _label = "";
-
-    if(Storage().area.elevation == null) {
-      return; // no area elevation, cannot compute glide
-    }
-    double elevation = Storage().area.elevation!;
 
     List<Aircraft> aircraftList = await UserDatabaseHelper.db.getAllAircraft();
     if(aircraftList.isEmpty) {
@@ -85,7 +81,7 @@ class GlideProfile {
     // convert wind speed to feet per second from knots
     wSpeed = (wSpeed * _feetPerNm) / 3600.0;
 
-    (double, double) t = WindTriangle.getTrueFromGroundAndWind(bearing, currentSpeed, wAngle, wSpeed);
+    (double, double) t = WindTriangle.getTrueFromGroundAndWind(heading, currentSpeed, wAngle, wSpeed);
     final double asT = t.$2; // true airspeed in feet per second
     double asToShow = GeoCalculations.convertSpeed(asT * Storage().units.fToM);
     _label = "${asToShow.round()}@${t.$1.round().toString()}\u00B0";
@@ -93,7 +89,7 @@ class GlideProfile {
     // calculate winds from current altitude to ground.
     for (int dir = 0; dir < _directionSteps; dir++) {
       final double targetAngle = dir * _stepSizeDirection.toDouble();
-      _distanceTotal[dir] = _findDistanceTo(bearing, targetAngle, sinkRate, altitudeGps, elevation, asT, wa);
+      _distanceTotal[dir] = await _findDistanceTo(ll, heading, targetAngle, sinkRate, altitudeGps, asT, wa);
       // now we know how far we can glide in each direction
     }
   }
@@ -105,36 +101,33 @@ class GlideProfile {
     return distance;
   }
 
-  /// Find distance covered when gliding from `bearing` to `bearingAt` given sink rate,
+  /// Find distance covered when gliding from `heading` to `bearingAt` given sink rate,
   /// altitudes, airspeed (as), and winds aloft.
   ///
   /// Returns miles (as in original code).
-  static double? _findDistanceTo(double bearing, double bearingAt, double sinkRate, double altitudeGps, double elevation, double asT, WindsAloft wa) {
+  static Future<double?> _findDistanceTo(LatLng currentPosition, double heading, double bearingAt, double sinkRate, double altitudeGps, double asT, WindsAloft wa) async {
     double distance = 0.0;
+    // correct altitude based on direction as turn loses altitude, assume 1 second per 3 degrees, and shortest dir turn
+    final double turnAngle = _angularDistance(heading, bearingAt);
+    final double altLost = turnAngle / 3.0 * sinkRate;
+    double altitude = altitudeGps - altLost;
+    if (altitude < 0) {
+      altitude = 0;
+    }
 
     // calculate ground speed from airspeed, direction, and wind speed.
-    for (int alt = 0; alt < _heightSteps; alt++) {
-      // correct altitude based on direction as turn loses altitude, assume 1 second per 3 degrees, and shortest dir turn
-      final double turnAngle = _angularDistance(bearing, bearingAt);
-      final double altLost = turnAngle / 3.0 * sinkRate;
-      double altitude = altitudeGps - altLost;
-      if (altitude < 0) {
-        altitude = 0;
-      }
-
-      final int stepSizeHeight = ((altitude - elevation) ~/ _heightSteps);
-      final double thisAltitude = alt * stepSizeHeight.toDouble() + elevation;
-
+    final double stepSizeHeight = 100;
+    for (double alt = altitude; alt >= 0; alt -= stepSizeHeight) {
       double? wSpeed;
       double? wAngle;
-      (wAngle, wSpeed) = wa.getWindAtAltitude(thisAltitude);
+      (wAngle, wSpeed) = wa.getWindAtAltitude(alt);
       if(wSpeed == null || wAngle == null) {
         return null; // no wind at altitude, cannot compute glide
       }
 
       wSpeed = (wSpeed * _feetPerNm) / 3600.0;
 
-      final double tas = asT - asT * ((thisAltitude / 1000.0) * 2.0 / 100.0); // 2% per 1000 ft approx
+      final double tas = asT - asT * ((alt / 1000.0) * 2.0 / 100.0); // 2% per 1000 ft approx
 
       final double deltaAngleRad = (bearingAt - wAngle) * math.pi / 180.0;
       final double gs = math.sqrt(tas * tas + wSpeed * wSpeed - 2.0 * tas * wSpeed * math.cos(deltaAngleRad));
@@ -142,11 +135,24 @@ class GlideProfile {
       // how much time we spend in each zone, thermals not accounted for.
       // Avoid division by zero
       final double timeInZone = stepSizeHeight / sinkRate;
-      distance += gs * timeInZone;
+      // find where we could get to
+      double? e;
+      LatLng ll = GeoCalculations().calculateOffset(currentPosition, distance, bearingAt);
+      e = await ElevationCache.getElevation(ll);
+      if(e == null) {
+        // cannot calculate as elevation data not there
+        return null;
+      }
+      if(e > alt) {
+        // we have reached elevation at this distance and cannot glide past
+        return distance;
+      }
+
+      // convert feet to NM/miles
+      distance += (gs * timeInZone  / _feetPerMeter) * Storage().units.mTo;
     }
 
-    // convert feet to NM/miles
-    return (distance / _feetPerMeter) * Storage().units.mTo;
+    return distance;
   }
 
 }
