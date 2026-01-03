@@ -125,7 +125,12 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                   files: [XFile(product.url)],
                   sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
                 );
-                SharePlus.instance.share(params);
+                SharePlus.instance.share(params).then((value) {
+                  if(mounted) {
+                    bool success = value.status == ShareResultStatus.success;
+                    Toast.showToast(context, "Sharing of file ${success ? "successful" : "failed"}", Icon(Icons.info, color: success ? Colors.green : Colors.red,), 30);
+                  }
+                });
               }, child: const Text("Share")),
         ])
     ]);
@@ -284,6 +289,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
           actions: [
             TextButton(onPressed: () {
               _pickFile().then((value) => setState(() {
+                Toast.showToast(context, "Import complete.", Icon(Icons.info, color: Colors.green), 3);
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear(); // rebuild so the doc appears in list immediately.
               }));},

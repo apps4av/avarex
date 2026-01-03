@@ -44,9 +44,9 @@ class Constants {
   static Color bottomNavBarBackgroundColor = Colors.black.withAlpha(156);
   static Color bottomNavBarIconColor = Colors.white;
 
-  static const Color distanceCircleColor = Color.fromARGB(200, 58, 58, 58);
-  static const Color speedCircleColor = Color.fromARGB(200, 0, 0, 180);
-  static const Color glideCircleColor = Colors.blueAccent;
+  static const Color distanceCircleColor = Color.fromARGB(255, 58, 58, 58);
+  static const Color speedCircleColor = Color.fromARGB(255, 0, 0, 180);
+  static const Color glideCircleColor = Color.fromARGB(255, 150, 0, 150);
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.grey;
   static const Color planPassedColor = Colors.cyanAccent;
@@ -55,8 +55,8 @@ class Constants {
   static const Color planBorderColor = Colors.black;
   static const Color planeColor = Color.fromARGB(150, 255, 0, 0);
   static const Color plateMarkColor = Color.fromARGB(150, 0, 255, 0);
-  static const Color tfrColor = Color.fromARGB(150, 255, 0, 0);
-  static const Color tfrColorFuture = Color.fromARGB(150, 150, 103, 0);
+  static const Color tfrColor = Color.fromARGB(255, 255, 0, 0);
+  static const Color tfrColorFuture = Color.fromARGB(255, 150, 103, 0);
 
   static const String appleId = "6502421523";
   static const String microsoftId = "9MX4HKL30MWW";
