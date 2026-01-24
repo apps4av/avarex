@@ -112,6 +112,7 @@ class Storage {
   int get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
   int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
   bool gpsInternal = true;
+  bool isRollReversed = false;
 
   // gps
   final _gps = Gps();

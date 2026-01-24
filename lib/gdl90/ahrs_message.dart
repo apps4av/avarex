@@ -120,7 +120,8 @@ class AhrsMessage extends Message {
         double num;
         num = _combineBytesForFloat(m0, m1);
         if (num != 0x7FFF) {
-          roll = num / 10;
+          // some ADS-B devices provide opposite roll
+          roll = num / 10 * (Storage().isRollReversed ? -1 : 1);
         }
         num = _combineBytesForFloat(m2, m3);
         if (num != 0x7FFF) {

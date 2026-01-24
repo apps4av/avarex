@@ -6,6 +6,7 @@ import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/gdl90/uplink_message.dart';
 import 'package:avaremp/gdl90/long_report_message.dart';
+import 'package:avaremp/storage.dart';
 import 'message.dart';
 import 'ownship_message.dart';
 
@@ -50,6 +51,9 @@ class MessageFactory
         m = AhrsMessage(type);
         break;
       case MessageType.deviceReport:
+        break;
+      case MessageType.rollReverse:
+        Storage().isRollReversed = true;
         break;
       default:
         m = null;
@@ -109,6 +113,7 @@ class MessageType {
   static const int longReport = 0x1F;
   static const int ahrsReport = 0x4C;
   static const int deviceReport = 0x7A;
+  static const int rollReverse = 0xCC;
 }
 
 class Crc {
