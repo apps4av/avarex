@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:avaremp/instruments/autopilot.dart';
+import 'package:avaremp/io/io_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
@@ -168,6 +170,8 @@ class Storage {
     return _exceptions;
   }
 
+
+
   void setException(String value) {
     if(_exceptions.contains(value)) {
       return;
@@ -177,9 +181,28 @@ class Storage {
 
   StreamSubscription<Position>? _gpsStream;
   StreamSubscription<Uint8List>? _udpStream;
+  StreamSubscription<Uint8List>? _btStream;
+
+  // set bluetooth stream from IO screen
+  void setBtStream(Stream<Uint8List>? s) {
+    if(null != _btStream) {
+      _btStream?.cancel(); // old
+      _btStream = null;
+    }
+    if(s == null) {
+      return;
+    }
+    _btStream = s.listen(
+      (data) {
+        _gdl90Buffer.put(data);
+        _nmeaBuffer.put(data);
+      },
+      onError: ((error) => AppLog.logMessage("Bluetooth stream error: $error")),
+      onDone: () => AppLog.logMessage("Bluetooth stream done")
+    );
+  }
 
   void startIO() {
-
     // GPS data receive
     // start both external and internal
     if(!gpsDisabled) {
@@ -199,7 +222,7 @@ class Storage {
     }
 
     // GPS data receive
-    _udpStream = _udpReceiver.getStream([4000, 43211, 49002, 5557], [false, false, false, false]); // 5557 is app to app comm
+    _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
     _udpStream?.onDone(() {
     });
     _udpStream?.onError((obj){
@@ -350,6 +373,12 @@ class Storage {
 
     // set area
     await area.update(position);
+
+    Timer.periodic(const Duration(seconds: 1), (tim) async {
+      // send AP data
+      String data = AutoPilot.apCreateSentences();
+      IoScreenState.sendData(data);
+    });
 
     Timer.periodic(const Duration(milliseconds: 250), (tim) async {
       // this provides time to apps

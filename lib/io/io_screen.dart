@@ -1,12 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:avaremp/utils/toast.dart';
-import 'package:universal_io/io.dart';
-import 'dart:isolate';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial_ble/flutter_bluetooth_serial_ble.dart';
-import '../instruments/autopilot.dart';
 
 
 class IoScreen extends StatefulWidget {
@@ -21,8 +18,25 @@ class IoScreenState extends State<IoScreen> {
   StreamSubscription<BluetoothDiscoveryResult>? _streamSubscription;
   List<BluetoothDiscoveryResult> results = List<BluetoothDiscoveryResult>.empty(growable: true);
   bool isDiscovering = false;
-  static BluetoothConnection? connectionIn;
-  static BluetoothDevice? connectedDeviceIn;// this should stay in memory, not putting in storage as this is platform specific
+  static BluetoothConnection? connection;
+  static BluetoothDevice? connectedDevice;// this should stay in memory, not putting in storage as this is platform specific
+
+
+  // send data to remote
+  static void sendData(String data) async {
+    // this sends auotpolot data
+    if(connection == null || (!connection!.isConnected)) {
+      return;
+    }
+    try {
+      connection!.output.add(utf8.encode(data));
+      await connection!.output.allSent;
+    }
+    catch(e) {
+      Storage().setException("Failed to drive the autopilot.");
+      return;
+    }
+  }
 
   void _startDiscovery() {
     _streamSubscription?.cancel();
@@ -118,42 +132,12 @@ class IoScreenState extends State<IoScreen> {
                               setState(() {
                                 if(value.isConnected) {
                                   results[results.indexOf(result)] =
-                                      makeResult(result, true, result.device.bondState);
+                                      makeResult(result, true,
+                                          result.device.bondState);
 
-                                  connectionIn = value;
-                                  connectedDeviceIn = result.device;
-                                  // send AP data
-                                  Isolate.spawn((void args) async {
-                                    String data = AutoPilot.apCreateSentences();
-                                    try {
-                                      value.output.add(utf8.encode(data));
-                                      await value.output.allSent;
-                                    }
-                                    catch(e) {
-                                      Storage().setException("Failed to drive the autopilot.");
-                                      return;
-                                    }
-                                  }, null);
-                                  // receive data
-                                  if(connectionIn!.input != null) {
-                                    // send udp packet to localhost
-                                    RawDatagramSocket? udpSocket;
-                                    RawDatagramSocket.bind(InternetAddress.loopbackIPv4, 5558).then((RawDatagramSocket socket) {
-                                      udpSocket = socket;
-                                    }).onError((error, stackTrace) {
-                                      disconnect();
-                                      return;
-                                    });
-
-                                    connectionIn!.input!.listen((data) {
-                                      if(udpSocket != null) {
-                                        udpSocket!.send(data, InternetAddress.loopbackIPv4, 5557);
-                                      }
-                                    },).onDone(() {
-                                      udpSocket?.close();
-                                      disconnect();
-                                    });
-                                  }
+                                  connection = value;
+                                  connectedDevice = result.device;
+                                  Storage().setBtStream(connection!.input);
                                 }
                                 else {
                                   Toast.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
@@ -233,8 +217,8 @@ class IoScreenState extends State<IoScreen> {
           );
         },
       )),
-      Expanded(flex: 1, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(connectedDeviceIn == null? "Not connected" : "Connected to ${connectedDeviceIn!.name ?? connectedDeviceIn!.address}"),
-      if(connectedDeviceIn != null) TextButton(
+      Expanded(flex: 1, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(connectedDevice == null? "Not connected" : "Connected to ${connectedDevice!.name ?? connectedDevice!.address}"),
+      if(connectedDevice != null) TextButton(
         child: const Text("Disconnect"),
         onPressed: () {
           disconnect();
@@ -260,9 +244,9 @@ class IoScreenState extends State<IoScreen> {
   }
 
   void disconnect() {
-    if(mounted && connectedDeviceIn != null) {
+    if(mounted && connectedDevice != null) {
       setState(() {
-        int index = results.indexWhere((element) => element.device.address == connectedDeviceIn!.address);
+        int index = results.indexWhere((element) => element.device.address == connectedDevice!.address);
         if(index >= 0) {
           BluetoothDiscoveryResult result = results[index];
           results[index] = makeResult(result, false, result.device.bondState);
@@ -270,9 +254,10 @@ class IoScreenState extends State<IoScreen> {
       });
     }
 
-    connectionIn?.dispose();
-    connectionIn = null;
-    connectedDeviceIn = null;
+    connection?.dispose();
+    connection = null;
+    connectedDevice = null;
+    Storage().setBtStream(null);
   }
 }
 
