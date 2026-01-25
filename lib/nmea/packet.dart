@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'nmea_message_factory.dart' show NmeaMessageFactory;
+
 class Packet {
   String packet = '';
 
@@ -7,7 +9,7 @@ class Packet {
     // Checksum
     packet += '*';
 
-    int xor = _checksum(utf8.encode(packet));
+    int xor = NmeaMessageFactory.checkSum(utf8.encode(packet));
     String ma = xor.toRadixString(16).toUpperCase();
     if (ma.length < 2) {
       packet += '0';
@@ -18,13 +20,5 @@ class Packet {
 
   String getPacket() {
     return packet;
-  }
-
-  int _checksum(List<int> bytes) {
-    int xor = 0;
-    for (int byte in bytes) {
-      xor ^= byte;
-    }
-    return xor;
   }
 }

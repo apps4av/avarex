@@ -183,6 +183,59 @@ class Storage {
   StreamSubscription<Uint8List>? _udpStream;
   StreamSubscription<Uint8List>? _btStream;
 
+
+  void _processData() {
+    // gdl90
+    while(true) {
+      Uint8List? message = _gdl90Buffer.get();
+      if (null != message) {
+        Message? m = MessageFactory.buildMessage(message);
+        if(m != null && m is OwnShipMessage) {
+          Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
+          if(Gps.isPositionCloseToZero(p)) {
+            continue; // skip 0, 0 when GPS is not locked
+          }
+          ownshipMessageIcao = m.icao;
+          _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+          _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+          _gpsStack.push(p);
+          // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
+          vSpeed = m.verticalSpeed;
+          airborne = m.airborne;
+          // record waypoints for tracks.
+          tracks.add(p);
+        }
+      }
+      else {
+        break;
+      }
+    }
+    // nmea
+    while(true) {
+      Uint8List? message = _nmeaBuffer.get();
+      if (null != message) {
+        NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
+        if(m != null && m is NmeaOwnShipMessage) {
+          NmeaOwnShipMessage m0 = m;
+          Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+          if(Gps.isPositionCloseToZero(p)) {
+            continue; // skip 0, 0 when GPS is not locked
+          }
+          ownshipMessageIcao = m0.icao;
+          _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+          _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+          vSpeed = m0.verticalSpeed;
+          airborne = m0.altitude > 100;
+          _gpsStack.push(p);
+          tracks.add(p);
+        }
+      }
+      else {
+        break;
+      }
+    }
+  }
+
   // set bluetooth stream from IO screen
   void setBtStream(Stream<Uint8List>? s) {
     if(null != _btStream) {
@@ -196,6 +249,7 @@ class Storage {
       (data) {
         _gdl90Buffer.put(data);
         _nmeaBuffer.put(data);
+        _processData();
       },
       onError: ((error) => AppLog.logMessage("Bluetooth stream error: $error")),
       onDone: () => AppLog.logMessage("Bluetooth stream done")
@@ -230,55 +284,7 @@ class Storage {
     _udpStream?.onData((data) {
       _gdl90Buffer.put(data);
       _nmeaBuffer.put(data);
-      // gdl90
-      while(true) {
-        Uint8List? message = _gdl90Buffer.get();
-        if (null != message) {
-          Message? m = MessageFactory.buildMessage(message);
-          if(m != null && m is OwnShipMessage) {
-            Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
-            if(Gps.isPositionCloseToZero(p)) {
-              continue; // skip 0, 0 when GPS is not locked
-            }
-            ownshipMessageIcao = m.icao;
-            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
-            _gpsStack.push(p);
-            // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
-            vSpeed = m.verticalSpeed;
-            airborne = m.airborne;
-            // record waypoints for tracks.
-            tracks.add(p);
-          }
-        }
-        else {
-          break;
-        }
-      }
-      // nmea
-      while(true) {
-        Uint8List? message = _nmeaBuffer.get();
-        if (null != message) {
-          NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
-          if(m != null && m is NmeaOwnShipMessage) {
-            NmeaOwnShipMessage m0 = m;
-            Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
-            if(Gps.isPositionCloseToZero(p)) {
-              continue; // skip 0, 0 when GPS is not locked
-            }
-            ownshipMessageIcao = m0.icao;
-            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
-            vSpeed = m0.verticalSpeed;
-            airborne = m0.altitude > 100;
-            _gpsStack.push(p);
-            tracks.add(p);
-          }
-        }
-        else {
-          break;
-        }
-      }
+      _processData();
     });
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes

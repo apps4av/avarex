@@ -24,7 +24,7 @@ class IoScreenState extends State<IoScreen> {
 
   // send data to remote
   static void sendData(String data) async {
-    // this sends auotpolot data
+    // this sends autopilot data
     if(connection == null || (!connection!.isConnected)) {
       return;
     }
