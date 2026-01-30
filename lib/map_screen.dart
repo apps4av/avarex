@@ -1451,11 +1451,11 @@ class MapScreenState extends State<MapScreen> {
                                                     Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
                                                     value: _layersOpacity[index],
                                                     onChanged: (double value) {
+                                                      double last = _layersOpacity[index];
+                                                      setState1(() {
+                                                        _layersOpacity[index] = value;
+                                                      });
                                                       if(_layers[index] == "Tracks") {
-                                                        double last = _layersOpacity[index];
-                                                        setState1(() {
-                                                          _layersOpacity[index] = value;
-                                                        });
                                                         if(value == 0 && last > 0) {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
