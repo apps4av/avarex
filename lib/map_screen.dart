@@ -1451,11 +1451,12 @@ class MapScreenState extends State<MapScreen> {
                                                     Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
                                                     value: _layersOpacity[index],
                                                     onChanged: (double value) {
+                                                      final double previousOpacity = _layersOpacity[index];
                                                       setState1(() {
                                                         _layersOpacity[index] = value;
                                                       });
                                                       if(_layers[index] == "Tracks") {
-                                                        if(value == 0) {
+                                                        if(previousOpacity > 0 && value == 0) {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                                                           Storage().tracks.saveKml().then((value) {
@@ -1469,8 +1470,8 @@ class MapScreenState extends State<MapScreen> {
                                                             });
                                                           });
                                                         }
-                                                        else {
-                                                          Storage().tracks = GpsRecorder(); //on turning on, start fresh
+                                                        else if(previousOpacity == 0 && value > 0) {
+                                                          Storage().tracks = GpsRecorder(); // on turning on, start fresh
                                                         }
                                                       }
                                                       if(_layers[index] == "OSM" && value > 0) {
