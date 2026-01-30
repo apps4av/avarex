@@ -1451,26 +1451,25 @@ class MapScreenState extends State<MapScreen> {
                                                     Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
                                                     value: _layersOpacity[index],
                                                     onChanged: (double value) {
-                                                      setState1(() {
-                                                        _layersOpacity[index] = value;
-                                                      });
                                                       if(_layers[index] == "Tracks") {
-                                                        if(value == 0) {
+                                                        double last = _layersOpacity[index];
+                                                        setState1(() {
+                                                          _layersOpacity[index] = value;
+                                                        });
+                                                        if(value == 0 && last > 0) {
                                                           // save tracks on turning them off then show user where to get them
                                                           Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                                                          Storage().tracks.saveKml().then((value) {
+                                                          Storage().tracks.saveKml().then((status) {
+                                                            Storage().tracks = GpsRecorder(); // clear
                                                             setState1(() {
-                                                              if(value != null) {
-                                                                Toast.showToast(context, "Track saved to Documents as $value.", Icon(Icons.info, color: Colors.black,), 3);
+                                                              if(status != null) {
+                                                                Toast.showToast(context, "Track saved to Documents as $status.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                               else {
                                                                 Toast.showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
                                                               }
                                                             });
                                                           });
-                                                        }
-                                                        else {
-                                                          Storage().tracks = GpsRecorder(); //on turning on, start fresh
                                                         }
                                                       }
                                                       if(_layers[index] == "OSM" && value > 0) {
