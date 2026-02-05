@@ -20,12 +20,16 @@ class IoScreenState extends State<IoScreen> {
   bool isDiscovering = false;
   static BluetoothConnection? connection;
   static BluetoothDevice? connectedDevice;// this should stay in memory, not putting in storage as this is platform specific
+  static bool _suspendOutput = false;
+
+  static bool get isConnected => connection != null && connection!.isConnected;
+  static String? get connectionName => connectedDevice?.name ?? connectedDevice?.address;
 
 
   // send data to remote
   static void sendData(String data) async {
     // this sends autopilot data
-    if(connection == null || (!connection!.isConnected)) {
+    if(_suspendOutput || connection == null || (!connection!.isConnected)) {
       return;
     }
     try {
@@ -35,6 +39,25 @@ class IoScreenState extends State<IoScreen> {
     catch(e) {
       Storage().setException("Failed to drive the autopilot.");
       return;
+    }
+  }
+
+  static Future<bool> sendPlanData(String data) async {
+    if (connection == null || (!connection!.isConnected)) {
+      return false;
+    }
+    _suspendOutput = true;
+    try {
+      connection!.output.add(utf8.encode(data));
+      await connection!.output.allSent;
+      return true;
+    }
+    catch (e) {
+      Storage().setException("Failed to transfer the flight plan.");
+      return false;
+    }
+    finally {
+      _suspendOutput = false;
     }
   }
 
