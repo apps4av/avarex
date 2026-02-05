@@ -8,7 +8,11 @@ By Apps4Av.
 
 ## Getting Started
 
+## Garmin Connext Flight Plan Transfer (Android)
 
+1. Open the IO screen and connect to your Garmin device over Bluetooth.
+2. Go to Plan -> Actions -> Transfer.
+3. Tap "Send to Garmin" to transmit the current flight plan (NMEA RTE/WPL).
 
 ### Downloading
 
