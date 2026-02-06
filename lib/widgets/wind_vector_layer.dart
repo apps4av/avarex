@@ -41,9 +41,9 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   static const int _minParticles = 120;
   static const int _maxParticles = 420;
   static const double _pixelsPerSecondPerUnit = 12.0;
-  static const double _baseStrokeWidth = 1.8;
+  static const double _baseStrokeWidth = 2.8;
   static const double _baseLengthPixels = 16.0;
-  static const double _baseAlpha = 0.7;
+  static const double _baseAlpha = 0.9;
   static const double _avoidRadiusPixels = 18.0;
   static const double _curlAngleDegrees = 30.0;
 
@@ -162,7 +162,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         continue;
       }
       final fade = (1.0 - (particle.age / particle.maxAge)).clamp(0.0, 1.0);
-      final alpha = (_baseAlpha * fade).clamp(0.1, 1.0);
+      final alpha = (_baseAlpha * fade).clamp(0.2, 1.0);
       final tail = _wrapLatLng(_geo.calculateOffset(
         particle.position,
         lengthUnits,
@@ -375,7 +375,11 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       return widget.color;
     }
     final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
-    return Color.lerp(Colors.lightBlueAccent, Colors.deepOrangeAccent, t) ??
+    return Color.lerp(
+          const Color(0xFF0D1B2A),
+          const Color(0xFF4B0F2B),
+          t,
+        ) ??
         widget.color;
   }
 
