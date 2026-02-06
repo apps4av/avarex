@@ -41,6 +41,11 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   static const int _minParticles = 120;
   static const int _maxParticles = 420;
   static const double _pixelsPerSecondPerUnit = 12.0;
+  static const double _baseStrokeWidth = 1.8;
+  static const double _baseLengthPixels = 16.0;
+  static const double _baseAlpha = 0.7;
+  static const double _avoidRadiusPixels = 18.0;
+  static const double _curlAngleDegrees = 30.0;
 
   final List<_WindParticle> _particles = [];
   final GeoCalculations _geo = GeoCalculations();
@@ -144,18 +149,28 @@ class _WindVectorLayerState extends State<WindVectorLayer>
     if (_particles.isEmpty) {
       return const [];
     }
+    final unitsPerPixel = _unitsPerPixel();
+    final lengthUnits = unitsPerPixel *
+        _baseLengthPixels *
+        widget.lengthMultiplier.clamp(0.3, 4.0);
+    if (lengthUnits <= 0) {
+      return const [];
+    }
     final List<Polyline> polylines = [];
     for (final particle in _particles) {
       if (particle.speed < _minSpeedKnots) {
         continue;
       }
       final fade = (1.0 - (particle.age / particle.maxAge)).clamp(0.0, 1.0);
-      final speedFactor =
-          (particle.speed / _maxSpeedKnots).clamp(0.35, 1.0);
-      final alpha = (0.35 + 0.65 * fade) * speedFactor;
+      final alpha = (_baseAlpha * fade).clamp(0.1, 1.0);
+      final tail = _geo.calculateOffset(
+        particle.position,
+        lengthUnits,
+        (particle.heading + 180) % 360,
+      );
       polylines.add(Polyline(
-        points: [particle.previousPosition, particle.position],
-        strokeWidth: particle.strokeWidth,
+        points: [tail, particle.position],
+        strokeWidth: _baseStrokeWidth,
         strokeCap: StrokeCap.round,
         color: particle.baseColor.withValues(alpha: alpha),
       ));
@@ -166,6 +181,9 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   void _advanceParticles(LatLngBounds bounds, double altitudeFt, double dt) {
     final unitsPerPixel = _unitsPerPixel();
     final speedMultiplier = widget.speedMultiplier.clamp(0.2, 4.0);
+    final avoidRadiusUnits = _avoidRadiusPixels * unitsPerPixel;
+    final grid = <int, List<_WindParticle>>{};
+    final (cellLatDeg, cellLonDeg) = _gridMetrics(bounds, avoidRadiusUnits);
     for (final particle in _particles) {
       particle.age += dt;
       if (particle.age >= particle.maxAge ||
@@ -174,6 +192,20 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         continue;
       }
 
+      final neighbor = _findNeighbor(
+        grid,
+        particle.position,
+        bounds,
+        cellLatDeg,
+        cellLonDeg,
+        avoidRadiusUnits,
+      );
+      final heading = _applyCurlHeading(
+        particle,
+        neighbor,
+        avoidRadiusUnits,
+      );
+      particle.heading = heading;
       final pixelDistance =
           particle.speed * _pixelsPerSecondPerUnit * speedMultiplier * dt;
       final distanceUnits = pixelDistance * unitsPerPixel;
@@ -183,10 +215,30 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       }
       particle.previousPosition = particle.position;
       particle.position =
-          _geo.calculateOffset(particle.position, distanceUnits, particle.heading);
+          _geo.calculateOffset(particle.position, distanceUnits, heading);
+      if (neighbor != null &&
+          _geo.calculateDistance(particle.position, neighbor.position) <
+              (avoidRadiusUnits * 0.6)) {
+        final bearing =
+            _geo.calculateBearing(neighbor.position, particle.position);
+        final tangent =
+            (bearing + (particle.curlBias * 90.0)) % 360.0;
+        particle.position = _geo.calculateOffset(
+          particle.position,
+          avoidRadiusUnits * 0.4,
+          tangent,
+        );
+      }
       if (!_boundsContains(bounds, particle.position)) {
         _resetParticle(particle, bounds, altitudeFt);
       }
+      _insertInGrid(
+        grid,
+        particle,
+        bounds,
+        cellLatDeg,
+        cellLonDeg,
+      );
     }
   }
 
@@ -217,12 +269,13 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       ..previousPosition = position
       ..speed = sample.speed
       ..direction = sample.direction
+      ..windHeading = (sample.direction + 180) % 360
       ..heading = (sample.direction + 180) % 360
       ..age = 0
       ..maxAge = _lerp(_minAgeSeconds, _maxAgeSeconds, _random.nextDouble()) *
           lengthMultiplier
       ..baseColor = _colorForSpeed(sample.speed)
-      ..strokeWidth = _strokeForSpeed(sample.speed);
+      ..curlBias = _random.nextBool() ? 1 : -1;
   }
 
   _WindSample _sampleWind(LatLng position, double altitudeFt) {
@@ -290,11 +343,6 @@ class _WindVectorLayerState extends State<WindVectorLayer>
 
   double _lerp(double a, double b, double t) => a + (b - a) * t;
 
-  double _strokeForSpeed(double speed) {
-    final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
-    return 1.4 + t * 2.2;
-  }
-
   Color _colorForSpeed(double speed) {
     if (!widget.colorBySpeed) {
       return widget.color;
@@ -324,41 +372,154 @@ class _WindVectorLayerState extends State<WindVectorLayer>
     }
     return units;
   }
+
+  (double, double) _gridMetrics(
+    LatLngBounds bounds,
+    double avoidRadiusUnits,
+  ) {
+    final centerLat = (bounds.north + bounds.south) / 2;
+    final centerLon = _normalizedLongitude(
+      (bounds.west + bounds.east) / 2,
+      bounds.west,
+      bounds.east,
+    );
+    final center = LatLng(centerLat, centerLon);
+    final unitsPerDegLat =
+        _geo.calculateDistance(center, LatLng(centerLat + 1, centerLon));
+    final unitsPerDegLon =
+        _geo.calculateDistance(center, LatLng(centerLat, centerLon + 1));
+    final cellLatDeg = (avoidRadiusUnits / (unitsPerDegLat == 0 ? 1 : unitsPerDegLat))
+        .clamp(0.01, 5.0);
+    final cellLonDeg = (avoidRadiusUnits / (unitsPerDegLon == 0 ? 1 : unitsPerDegLon))
+        .clamp(0.01, 5.0);
+    return (cellLatDeg, cellLonDeg);
+  }
+
+  _WindParticle? _findNeighbor(
+    Map<int, List<_WindParticle>> grid,
+    LatLng position,
+    LatLngBounds bounds,
+    double cellLatDeg,
+    double cellLonDeg,
+    double avoidRadiusUnits,
+  ) {
+    final cell = _gridCell(position, bounds, cellLatDeg, cellLonDeg);
+    _WindParticle? nearest;
+    double nearestDistance = double.maxFinite;
+    for (int dx = -1; dx <= 1; dx++) {
+      for (int dy = -1; dy <= 1; dy++) {
+        final key = _gridKey(cell.$1 + dx, cell.$2 + dy);
+        final bucket = grid[key];
+        if (bucket == null) {
+          continue;
+        }
+        for (final other in bucket) {
+          final distance = _geo.calculateDistance(position, other.position);
+          if (distance < avoidRadiusUnits && distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = other;
+          }
+        }
+      }
+    }
+    return nearest;
+  }
+
+  double _applyCurlHeading(
+    _WindParticle particle,
+    _WindParticle? neighbor,
+    double avoidRadiusUnits,
+  ) {
+    final baseHeading = particle.windHeading;
+    if (neighbor == null) {
+      return baseHeading;
+    }
+    final distance =
+        _geo.calculateDistance(particle.position, neighbor.position);
+    final factor = (1.0 - (distance / avoidRadiusUnits)).clamp(0.0, 1.0);
+    if (factor <= 0) {
+      return baseHeading;
+    }
+    final bearing =
+        _geo.calculateBearing(neighbor.position, particle.position);
+    final tangent = (bearing + (particle.curlBias * 90.0)) % 360.0;
+    final curlHeading = _lerpAngle(baseHeading, tangent, factor);
+    final finalHeading =
+        (curlHeading + particle.curlBias * _curlAngleDegrees * factor) % 360.0;
+    return finalHeading < 0 ? finalHeading + 360.0 : finalHeading;
+  }
+
+  void _insertInGrid(
+    Map<int, List<_WindParticle>> grid,
+    _WindParticle particle,
+    LatLngBounds bounds,
+    double cellLatDeg,
+    double cellLonDeg,
+  ) {
+    final cell =
+        _gridCell(particle.position, bounds, cellLatDeg, cellLonDeg);
+    final key = _gridKey(cell.$1, cell.$2);
+    final bucket = grid.putIfAbsent(key, () => <_WindParticle>[]);
+    bucket.add(particle);
+  }
+
+  (int, int) _gridCell(
+    LatLng position,
+    LatLngBounds bounds,
+    double cellLatDeg,
+    double cellLonDeg,
+  ) {
+    final lat = position.latitude;
+    final lon = _normalizedLongitude(position.longitude, bounds.west, bounds.east);
+    final westNorm = bounds.west;
+    final latIndex = ((lat - bounds.south) / cellLatDeg).floor();
+    final lonIndex = ((lon - westNorm) / cellLonDeg).floor();
+    return (latIndex, lonIndex);
+  }
+
+  double _normalizedLongitude(double lon, double west, double east) {
+    if (west <= east) {
+      return lon;
+    }
+    if (lon < west) {
+      return lon + 360;
+    }
+    return lon;
+  }
+
+  int _gridKey(int x, int y) {
+    return (x * 73856093) ^ (y * 19349663);
+  }
+
+  double _lerpAngle(double a, double b, double t) {
+    final diff = ((b - a + 540) % 360) - 180;
+    return (a + diff * t + 360) % 360;
+  }
 }
 
 class _WindParticle {
-  _WindParticle({
-    required this.position,
-    required this.previousPosition,
-    required this.speed,
-    required this.direction,
-    required this.heading,
-    required this.age,
-    required this.maxAge,
-    required this.baseColor,
-    required this.strokeWidth,
-  });
-
   _WindParticle.empty()
       : position = const LatLng(0, 0),
         previousPosition = const LatLng(0, 0),
         speed = 0,
         direction = 0,
+        windHeading = 0,
         heading = 0,
+        curlBias = 1,
         age = 0,
         maxAge = 1,
-        baseColor = Colors.lightBlueAccent,
-        strokeWidth = 1.0;
+        baseColor = Colors.lightBlueAccent;
 
   LatLng position;
   LatLng previousPosition;
   double speed;
   double direction;
+  double windHeading;
   double heading;
+  int curlBias;
   double age;
   double maxAge;
   Color baseColor;
-  double strokeWidth;
 }
 
 class _WindSample {
