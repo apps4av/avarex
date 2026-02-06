@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:avaremp/utils/epsg900913.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -6,12 +8,11 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:image/image.dart' as img;
 
 // tile provider that evicts tiles based on altitude changes, and colors the loaded tiles based on altitude
 class ElevationTileProvider extends TileProvider {
 
-  final Map<String, ImageProvider> _cache = {};
+  final Map<String, ElevationImageProvider> _cache = {};
   int _lastCalled = DateTime.now().millisecondsSinceEpoch;
   double _lastAltitude = 0.0;
   static const AssetImage assetImage = AssetImage("assets/images/512.png");
@@ -73,7 +74,7 @@ class ElevationTileProvider extends TileProvider {
 
     File f = File(dlUrl);
     if(f.existsSync()) {
-      ImageProvider p = ElevationImageProvider(FileImage(f));
+      ElevationImageProvider p = ElevationImageProvider(f);
       // add for eviction, not for reuse
       _cache[dlUrl] = p;
       return p;
@@ -83,65 +84,117 @@ class ElevationTileProvider extends TileProvider {
   }
 }
 
-class ElevationImageProvider extends ImageProvider {
-  final ImageProvider inner;
+class ElevationImageProvider extends ImageProvider<ElevationImageProvider> {
+  ElevationImageProvider(this.file);
 
-  ElevationImageProvider(this.inner);
+  final File file;
 
-  static double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
-  static double altitudeFtElevationPerPixelIntercept = -364.431597044586;
+  static const double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
+  static const double altitudeFtElevationPerPixelIntercept = -364.431597044586;
+
+  static const int _transparentClass = 0;
+  static const int _yellowClass = 1;
+  static const int _redClass = 2;
 
   @override
-  ImageStreamCompleter loadImage(Object key, ImageDecoderCallback decode) {
-    return inner.loadImage(key,
-            (ui.ImmutableBuffer buffer, {
-      ui.TargetImageSizeCallback? getTargetSize}) async {
-      var imageCodec = await ui.instantiateImageCodecFromBuffer(buffer);
-      var frame = await imageCodec.getNextFrame();
-      ui.Image image = frame.image;
-      final ByteData? encodedBytes = await image.toByteData(format: ui.ImageByteFormat.png);
-      if(encodedBytes != null) {
-        final encodedList = encodedBytes.buffer.asUint8List();
-        img.Image? decodedImage = img.decodePng(encodedList);
-        if(decodedImage != null) {
-          // compare elevation and current altitude then color the tile
-          double currentAltitude = GeoCalculations.convertAltitude(Storage().position.altitude);
-          for(int y = 0; y < decodedImage.height; y++) {
-            for(int x = 0; x < decodedImage.width; x++) {
-              // make transparent pixel white
-              img.Pixel p = decodedImage.getPixel(x, y);
-              double elevation = (p.r as int) * altitudeFtElevationPerPixelSlopeBase + altitudeFtElevationPerPixelIntercept;
-              double diff = currentAltitude - elevation;
-              p.b = 0x0;
-              if(diff > 1000) { // transparent above 1000 feet
-                p.a = 0x0;
-              }
-              else if(diff > 500) { // yellow between 500 and 1000 feet
-                p.r = 0xFF;
-                p.g = 0xFF;
-                p.a = 0xFF;
-              }
-              else { // red below 500 feet
-                p.r = 0xFF;
-                p.g = 0x0;
-                p.a = 0xFF;
-              }
-              decodedImage.setPixel(x, y, p);
-            }
-          }
-          Uint8List reEncodedList = img.encodePng(decodedImage);
-          return decode.call(
-            await ui.ImmutableBuffer.fromUint8List(reEncodedList),
-            getTargetSize: getTargetSize);
-        }
+  Future<ElevationImageProvider> obtainKey(ImageConfiguration configuration) {
+    return SynchronousFuture<ElevationImageProvider>(this);
+  }
+
+  @override
+  ImageStreamCompleter loadImage(ElevationImageProvider key, ImageDecoderCallback decode) {
+    return OneFrameImageStreamCompleter(_loadAsync(key));
+  }
+
+  Future<ImageInfo> _loadAsync(ElevationImageProvider key) async {
+    final Uint8List encodedBytes = await file.readAsBytes();
+    final ui.ImmutableBuffer buffer = await ui.ImmutableBuffer.fromUint8List(encodedBytes);
+    final ui.Codec codec = await ui.instantiateImageCodecFromBuffer(buffer);
+    final ui.FrameInfo frame = await codec.getNextFrame();
+    codec.dispose();
+
+    final ui.Image image = frame.image;
+    final ByteData? pixelData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (pixelData == null) {
+      return ImageInfo(image: image, scale: 1.0);
+    }
+
+    final Uint8List pixels = pixelData.buffer.asUint8List(
+      pixelData.offsetInBytes,
+      pixelData.lengthInBytes,
+    );
+    final double currentAltitude = GeoCalculations.convertAltitude(Storage().position.altitude);
+    final List<int> classByRed = _buildClassByRed(currentAltitude);
+    _applyElevationColors(pixels, classByRed);
+
+    final ui.Image coloredImage = await _imageFromPixels(
+      pixels,
+      image.width,
+      image.height,
+    );
+    return ImageInfo(image: coloredImage, scale: 1.0);
+  }
+
+  static List<int> _buildClassByRed(double currentAltitude) {
+    final List<int> classes = List<int>.filled(256, _transparentClass);
+    final double base = currentAltitude - altitudeFtElevationPerPixelIntercept;
+    final double threshold1000 = (base - 1000) / altitudeFtElevationPerPixelSlopeBase;
+    final double threshold500 = (base - 500) / altitudeFtElevationPerPixelSlopeBase;
+    for (int red = 0; red < 256; red++) {
+      if (red < threshold1000) {
+        classes[red] = _transparentClass;
+      } else if (red < threshold500) {
+        classes[red] = _yellowClass;
+      } else {
+        classes[red] = _redClass;
       }
+    }
+    return classes;
+  }
 
-      return decode.call(buffer, getTargetSize: getTargetSize);
-    });
+  static void _applyElevationColors(Uint8List pixels, List<int> classByRed) {
+    for (int i = 0; i < pixels.length; i += 4) {
+      final int red = pixels[i];
+      final int classification = classByRed[red];
+      if (classification == _transparentClass) {
+        pixels[i + 2] = 0x0; // blue
+        pixels[i + 3] = 0x0; // alpha
+      } else if (classification == _yellowClass) {
+        pixels[i] = 0xFF;
+        pixels[i + 1] = 0xFF;
+        pixels[i + 2] = 0x0;
+        pixels[i + 3] = 0xFF;
+      } else {
+        pixels[i] = 0xFF;
+        pixels[i + 1] = 0x0;
+        pixels[i + 2] = 0x0;
+        pixels[i + 3] = 0xFF;
+      }
+    }
+  }
+
+  static Future<ui.Image> _imageFromPixels(
+    Uint8List pixels,
+    int width,
+    int height,
+  ) {
+    final Completer<ui.Image> completer = Completer<ui.Image>();
+    ui.decodeImageFromPixels(
+      pixels,
+      width,
+      height,
+      ui.PixelFormat.rgba8888,
+      (ui.Image image) => completer.complete(image),
+      rowBytes: width * 4,
+    );
+    return completer.future;
   }
 
   @override
-  Future<Object> obtainKey(ImageConfiguration configuration) {
-    return inner.obtainKey(configuration);
+  bool operator ==(Object other) {
+    return other is ElevationImageProvider && other.file.path == file.path;
   }
+
+  @override
+  int get hashCode => file.path.hashCode;
 }
