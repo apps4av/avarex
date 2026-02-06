@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -11,6 +13,9 @@ import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
+import 'package:avaremp/weather/winds_cache.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
+import 'package:latlong2/latlong.dart';
 
 class PlanScreen extends StatefulWidget {
   const PlanScreen({super.key});
@@ -210,15 +215,31 @@ class PlanScreenState extends State<PlanScreen> {
       children: values,
     );
 
+    Widget windDiagram = Padding(
+      padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
+      child: _makeWindBarbDiagram(),
+    );
+
     return Scaffold(body:
-      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[Expanded(flex: 4, child:grid),             const Row( // nearby destinations
+      Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[
+        Expanded(flex: 4, child:grid),
+        const Row( // nearby destinations
+          children: <Widget>[
+            Expanded(flex: 1, child: Divider()),
+            Text("Winds aloft along route", style: TextStyle(fontSize: 10)),
+            Expanded(flex: 16, child: Divider()),
+          ]
+        ),
+        Expanded(flex: 2, child: windDiagram),
+        const Row( // nearby destinations
           children: <Widget>[
             Expanded(flex: 1, child: Divider()),
             Text("Terrain en route", style: TextStyle(fontSize: 10)),
             Expanded(flex: 16, child: Divider()),
           ]
-      ),
-           Expanded(flex:1, child: w)])),
+        ),
+        Expanded(flex:1, child: w)
+      ])),
       appBar: AppBar(title: const Text("Navigation Log"),
         actions: <Widget>[
           Padding(padding: const EdgeInsets.all(5), child: IconButton(icon: const Icon(Icons.copy), tooltip: "Copy plan to clipboard", onPressed: () {
@@ -227,6 +248,88 @@ class PlanScreenState extends State<PlanScreen> {
           },),)
         ])
     );
+  }
+
+  Widget _makeWindBarbDiagram() {
+    final List<LatLng> path = Storage().route.getPathNextHighResolution();
+    if(path.length < 2) {
+      return const Center(child: Text("No route for winds aloft"));
+    }
+
+    final List<int> altitudes = _windBarbAltitudes();
+    final List<_WindBarbSample> samples = _buildWindBarbSamples(path, altitudes);
+    if(samples.isEmpty) {
+      return const Center(child: Text("No winds aloft available"));
+    }
+
+    final Color textColor = Theme.of(context).colorScheme.onSurface;
+    final Color gridColor = textColor.withOpacity(0.2);
+    return SizedBox.expand(
+      child: CustomPaint(
+        painter: _WindBarbDiagramPainter(
+          samples: samples,
+          altitudes: altitudes,
+          textColor: textColor,
+          gridColor: gridColor,
+          barbColor: textColor,
+        ),
+      ),
+    );
+  }
+
+  List<int> _windBarbAltitudes() {
+    return const [
+      0,
+      3000,
+      6000,
+      9000,
+      12000,
+      18000,
+      24000,
+      30000,
+      34000,
+      39000,
+    ];
+  }
+
+  List<_WindBarbSample> _buildWindBarbSamples(
+      List<LatLng> path, List<int> altitudes) {
+    if(path.length < 2 || altitudes.isEmpty) {
+      return [];
+    }
+
+    const int maxSamples = 7;
+    final int sampleCount = math.min(maxSamples, path.length).toInt();
+    final int fore = Storage().route.fore;
+    final int lastIndex = path.length - 1;
+    final double step = sampleCount > 1 ? lastIndex / (sampleCount - 1) : 0;
+    final Set<int> sampleIndices = {};
+    final List<_WindBarbSample> samples = [];
+
+    for(int i = 0; i < sampleCount; i++) {
+      final int index = sampleCount == 1 ? 0 : (i * step).round();
+      if(!sampleIndices.add(index)) {
+        continue;
+      }
+      final double position = lastIndex == 0 ? 0 : index / lastIndex;
+      final LatLng coordinate = path[index];
+      for(final int altitude in altitudes) {
+        double? wd;
+        double? ws;
+        (wd, ws) = WindsCache.getWindsAt(
+            coordinate, altitude.toDouble(), fore);
+        if(wd == null || ws == null) {
+          continue;
+        }
+        samples.add(_WindBarbSample(
+          position: position,
+          altitude: altitude,
+          direction: wd,
+          speed: ws,
+        ));
+      }
+    }
+    return samples;
   }
 
   Widget makeChart(BuildContext context, List<double?>? data) {
@@ -360,5 +463,118 @@ class AltitudePainter extends CustomPainter {
   bool shouldRepaint(oldDelegate) => false;
 
 
+}
+
+class _WindBarbSample {
+  final double position;
+  final int altitude;
+  final double speed;
+  final double direction;
+
+  const _WindBarbSample({
+    required this.position,
+    required this.altitude,
+    required this.speed,
+    required this.direction,
+  });
+}
+
+class _WindBarbDiagramPainter extends CustomPainter {
+  final List<_WindBarbSample> samples;
+  final List<int> altitudes;
+  final Color textColor;
+  final Color gridColor;
+  final Color barbColor;
+
+  const _WindBarbDiagramPainter({
+    required this.samples,
+    required this.altitudes,
+    required this.textColor,
+    required this.gridColor,
+    required this.barbColor,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if(altitudes.isEmpty) {
+      return;
+    }
+
+    final List<int> sortedAltitudes = altitudes.toList()..sort();
+    final double minAltitude = sortedAltitudes.first.toDouble();
+    final double maxAltitude = sortedAltitudes.last.toDouble();
+    if(minAltitude == maxAltitude) {
+      return;
+    }
+
+    const double topPadding = 4;
+    const double bottomPadding = 16;
+    const double rightPadding = 4;
+    final TextStyle labelStyle = TextStyle(fontSize: 10, color: textColor);
+    final TextPainter labelSizer = TextPainter(
+      text: TextSpan(text: _formatAltitudeLabel(sortedAltitudes.last), style: labelStyle),
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final double leftPadding = labelSizer.width + 6;
+
+    final double chartWidth = size.width - leftPadding - rightPadding;
+    final double chartHeight = size.height - topPadding - bottomPadding;
+    if(chartWidth <= 0 || chartHeight <= 0) {
+      return;
+    }
+
+    final Paint gridPaint = Paint()
+      ..color = gridColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final double rowSpacing = chartHeight / (sortedAltitudes.length - 1);
+    final double barbSize = math.min(24.0, rowSpacing * 0.9);
+
+    for(final int altitude in sortedAltitudes) {
+      final double y = topPadding + (maxAltitude - altitude) /
+          (maxAltitude - minAltitude) * chartHeight;
+      canvas.drawLine(
+        Offset(leftPadding, y),
+        Offset(leftPadding + chartWidth, y),
+        gridPaint,
+      );
+      final String label = _formatAltitudeLabel(altitude);
+      final TextPainter labelPainter = TextPainter(
+        text: TextSpan(text: label, style: labelStyle),
+        textAlign: TextAlign.right,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      labelPainter.paint(
+          canvas, Offset(leftPadding - labelPainter.width - 4, y - labelPainter.height / 2));
+    }
+
+    for(final _WindBarbSample sample in samples) {
+      final double y = topPadding + (maxAltitude - sample.altitude) /
+          (maxAltitude - minAltitude) * chartHeight;
+      final double rawX = leftPadding + sample.position * chartWidth;
+      final double clampedX = rawX.clamp(
+          leftPadding + barbSize / 2,
+          leftPadding + chartWidth - barbSize / 2) as double;
+      canvas.save();
+      canvas.translate(clampedX - barbSize / 2, y - barbSize / 2);
+      WindBarbPainter(sample.speed, sample.direction, color: barbColor)
+          .paint(canvas, Size(barbSize, barbSize));
+      canvas.restore();
+    }
+  }
+
+  static String _formatAltitudeLabel(int altitude) {
+    if(altitude == 0) {
+      return "0";
+    }
+    return "${(altitude / 1000).round()}k";
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return false;
+  }
 }
 
