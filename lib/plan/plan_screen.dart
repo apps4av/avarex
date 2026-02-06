@@ -15,7 +15,6 @@ import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
 
 class PlanScreen extends StatefulWidget {
@@ -218,7 +217,7 @@ class PlanScreenState extends State<PlanScreen> {
 
     Widget windDiagram = Padding(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
-      child: _makeWindBarbDiagram(),
+      child: _makeWindFieldDiagram(),
     );
 
     return Scaffold(body:
@@ -251,15 +250,15 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  Widget _makeWindBarbDiagram() {
+  Widget _makeWindFieldDiagram() {
     final List<LatLng> path = Storage().route.getPathNextHighResolution();
     if(path.length < 2) {
       return const Center(child: Text("No route for winds aloft"));
     }
 
-    final List<int> altitudes = _windBarbAltitudes();
-    final List<_WindBarbSample> samples = _buildWindBarbSamples(path, altitudes);
-    if(samples.isEmpty) {
+    final List<int> altitudes = _windFieldAltitudes();
+    final _WindFieldData field = _buildWindFieldData(path, altitudes);
+    if(field.samples.isEmpty) {
       return const Center(child: Text("No winds aloft available"));
     }
 
@@ -267,8 +266,9 @@ class PlanScreenState extends State<PlanScreen> {
     final Color gridColor = textColor.withOpacity(0.2);
     return SizedBox.expand(
       child: CustomPaint(
-        painter: _WindBarbDiagramPainter(
-          samples: samples,
+        painter: _WindFieldDiagramPainter(
+          samples: field.samples,
+          columns: field.columns,
           altitudes: altitudes,
           textColor: textColor,
           gridColor: gridColor,
@@ -277,7 +277,7 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  List<int> _windBarbAltitudes() {
+  List<int> _windFieldAltitudes() {
     return const [
       0,
       3000,
@@ -288,26 +288,21 @@ class PlanScreenState extends State<PlanScreen> {
     ];
   }
 
-  List<_WindBarbSample> _buildWindBarbSamples(
+  _WindFieldData _buildWindFieldData(
       List<LatLng> path, List<int> altitudes) {
     if(path.length < 2 || altitudes.isEmpty) {
-      return [];
+      return const _WindFieldData([], 0);
     }
 
-    const int maxSamples = 7;
-    final int sampleCount = math.min(maxSamples, path.length).toInt();
+    const int maxColumns = 40;
+    final int columnCount = math.min(maxColumns, path.length).toInt();
     final int fore = Storage().route.fore;
     final int lastIndex = path.length - 1;
-    final double step = sampleCount > 1 ? lastIndex / (sampleCount - 1) : 0;
-    final Set<int> sampleIndices = {};
-    final List<_WindBarbSample> samples = [];
+    final double step = columnCount > 1 ? lastIndex / (columnCount - 1) : 0;
+    final List<_WindFieldSample> samples = [];
 
-    for(int i = 0; i < sampleCount; i++) {
-      final int index = sampleCount == 1 ? 0 : (i * step).round();
-      if(!sampleIndices.add(index)) {
-        continue;
-      }
-      final double position = lastIndex == 0 ? 0 : index / lastIndex;
+    for(int column = 0; column < columnCount; column++) {
+      final int index = columnCount == 1 ? 0 : (column * step).round();
       final LatLng coordinate = path[index];
       final double course = _courseAtPathIndex(path, index);
       for(final int altitude in altitudes) {
@@ -320,18 +315,14 @@ class PlanScreenState extends State<PlanScreen> {
         }
         final double angleRad = (wd - course) * math.pi / 180;
         final double headwindComponent = ws * math.cos(angleRad);
-        final bool isHeadwind = headwindComponent >= 0;
-        final Color barbColor = isHeadwind ? Colors.red : Colors.green;
-        samples.add(_WindBarbSample(
-          position: position,
+        samples.add(_WindFieldSample(
+          column: column,
           altitude: altitude,
-          direction: wd,
-          speed: ws,
-          color: barbColor,
+          component: headwindComponent,
         ));
       }
     }
-    return samples;
+    return _WindFieldData(samples, columnCount);
   }
 
   double _courseAtPathIndex(List<LatLng> path, int index) {
@@ -484,30 +475,35 @@ class AltitudePainter extends CustomPainter {
 
 }
 
-class _WindBarbSample {
-  final double position;
-  final int altitude;
-  final double speed;
-  final double direction;
-  final Color color;
+class _WindFieldData {
+  final List<_WindFieldSample> samples;
+  final int columns;
 
-  const _WindBarbSample({
-    required this.position,
+  const _WindFieldData(this.samples, this.columns);
+}
+
+class _WindFieldSample {
+  final int column;
+  final int altitude;
+  final double component;
+
+  const _WindFieldSample({
+    required this.column,
     required this.altitude,
-    required this.speed,
-    required this.direction,
-    required this.color,
+    required this.component,
   });
 }
 
-class _WindBarbDiagramPainter extends CustomPainter {
-  final List<_WindBarbSample> samples;
+class _WindFieldDiagramPainter extends CustomPainter {
+  final List<_WindFieldSample> samples;
+  final int columns;
   final List<int> altitudes;
   final Color textColor;
   final Color gridColor;
 
-  const _WindBarbDiagramPainter({
+  const _WindFieldDiagramPainter({
     required this.samples,
+    required this.columns,
     required this.altitudes,
     required this.textColor,
     required this.gridColor,
@@ -515,7 +511,7 @@ class _WindBarbDiagramPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if(altitudes.isEmpty) {
+    if(altitudes.isEmpty || columns <= 0) {
       return;
     }
 
@@ -543,17 +539,24 @@ class _WindBarbDiagramPainter extends CustomPainter {
       return;
     }
 
+    final Paint backgroundPaint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+    canvas.drawRect(
+      Rect.fromLTWH(leftPadding, topPadding, chartWidth, chartHeight),
+      backgroundPaint,
+    );
+
     final Paint gridPaint = Paint()
       ..color = gridColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    final double rowSpacing = chartHeight / (sortedAltitudes.length - 1);
-    final double barbSize = math.min(22.0, rowSpacing * 0.65);
-
+    final Map<int, double> altitudeY = {};
     for(final int altitude in sortedAltitudes) {
       final double y = topPadding + (maxAltitude - altitude) /
           (maxAltitude - minAltitude) * chartHeight;
+      altitudeY[altitude] = y;
       canvas.drawLine(
         Offset(leftPadding, y),
         Offset(leftPadding + chartWidth, y),
@@ -569,18 +572,38 @@ class _WindBarbDiagramPainter extends CustomPainter {
           canvas, Offset(leftPadding - labelPainter.width - 4, y - labelPainter.height / 2));
     }
 
-    for(final _WindBarbSample sample in samples) {
-      final double y = topPadding + (maxAltitude - sample.altitude) /
-          (maxAltitude - minAltitude) * chartHeight;
-      final double rawX = leftPadding + sample.position * chartWidth;
-      final double clampedX = rawX.clamp(
-          leftPadding + barbSize / 2,
-          leftPadding + chartWidth - barbSize / 2) as double;
-      canvas.save();
-      canvas.translate(clampedX - barbSize / 2, y - barbSize / 2);
-      WindBarbPainter(sample.speed, sample.direction, color: sample.color)
-          .paint(canvas, Size(barbSize, barbSize));
-      canvas.restore();
+    if(samples.isEmpty) {
+      return;
+    }
+
+    final Map<int, (double, double)> altitudeBands =
+        _computeAltitudeBands(sortedAltitudes, altitudeY, topPadding, chartHeight);
+    final double cellWidth = chartWidth / columns;
+    double maxComponent = 0;
+    for(final _WindFieldSample sample in samples) {
+      final double magnitude = sample.component.abs();
+      if(magnitude > maxComponent) {
+        maxComponent = magnitude;
+      }
+    }
+    if(maxComponent <= 0) {
+      maxComponent = 1;
+    }
+
+    for(final _WindFieldSample sample in samples) {
+      final (double bandTop, double bandBottom) = altitudeBands[sample.altitude] ??
+          (topPadding, topPadding + chartHeight);
+      final double intensity = (sample.component.abs() / maxComponent).clamp(0.0, 1.0);
+      final Color target = sample.component >= 0 ? Colors.red : Colors.green;
+      final Color color = Color.lerp(Colors.black, target, intensity) ?? target;
+      final Paint cellPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+      final double x = leftPadding + sample.column * cellWidth;
+      canvas.drawRect(
+        Rect.fromLTWH(x, bandTop, cellWidth, bandBottom - bandTop),
+        cellPaint,
+      );
     }
   }
 
@@ -595,5 +618,43 @@ class _WindBarbDiagramPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return false;
   }
+}
+
+Map<int, (double, double)> _computeAltitudeBands(
+    List<int> sortedAltitudes,
+    Map<int, double> altitudeY,
+    double topPadding,
+    double chartHeight) {
+  final Map<int, (double, double)> bands = {};
+  final int lastIndex = sortedAltitudes.length - 1;
+  for(int i = 0; i < sortedAltitudes.length; i++) {
+    final int altitude = sortedAltitudes[i];
+    final double y = altitudeY[altitude] ?? topPadding;
+    double bandTop;
+    double bandBottom;
+    if(i == 0) {
+      final double nextY = altitudeY[sortedAltitudes[i + 1]] ?? y;
+      bandTop = topPadding;
+      bandBottom = (y + nextY) / 2;
+    }
+    else if(i == lastIndex) {
+      final double prevY = altitudeY[sortedAltitudes[i - 1]] ?? y;
+      bandTop = (prevY + y) / 2;
+      bandBottom = topPadding + chartHeight;
+    }
+    else {
+      final double prevY = altitudeY[sortedAltitudes[i - 1]] ?? y;
+      final double nextY = altitudeY[sortedAltitudes[i + 1]] ?? y;
+      bandTop = (prevY + y) / 2;
+      bandBottom = (y + nextY) / 2;
+    }
+    if(bandBottom < bandTop) {
+      final double swap = bandTop;
+      bandTop = bandBottom;
+      bandBottom = swap;
+    }
+    bands[altitude] = (bandTop, bandBottom);
+  }
+  return bands;
 }
 
