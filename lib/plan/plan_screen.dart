@@ -626,25 +626,37 @@ Map<int, (double, double)> _computeAltitudeBands(
     double topPadding,
     double chartHeight) {
   final Map<int, (double, double)> bands = {};
-  final int lastIndex = sortedAltitudes.length - 1;
-  for(int i = 0; i < sortedAltitudes.length; i++) {
-    final int altitude = sortedAltitudes[i];
-    final double y = altitudeY[altitude] ?? topPadding;
+  final List<int> altitudesByY = sortedAltitudes
+      .where((altitude) => altitudeY.containsKey(altitude))
+      .toList()
+    ..sort((a, b) => altitudeY[a]!.compareTo(altitudeY[b]!));
+  if(altitudesByY.isEmpty) {
+    return bands;
+  }
+  final int lastIndex = altitudesByY.length - 1;
+  final double bottom = topPadding + chartHeight;
+  for(int i = 0; i < altitudesByY.length; i++) {
+    final int altitude = altitudesByY[i];
+    final double y = altitudeY[altitude]!;
     double bandTop;
     double bandBottom;
-    if(i == 0) {
-      final double nextY = altitudeY[sortedAltitudes[i + 1]] ?? y;
+    if(altitudesByY.length == 1) {
+      bandTop = topPadding;
+      bandBottom = bottom;
+    }
+    else if(i == 0) {
+      final double nextY = altitudeY[altitudesByY[i + 1]] ?? y;
       bandTop = topPadding;
       bandBottom = (y + nextY) / 2;
     }
     else if(i == lastIndex) {
-      final double prevY = altitudeY[sortedAltitudes[i - 1]] ?? y;
+      final double prevY = altitudeY[altitudesByY[i - 1]] ?? y;
       bandTop = (prevY + y) / 2;
-      bandBottom = topPadding + chartHeight;
+      bandBottom = bottom;
     }
     else {
-      final double prevY = altitudeY[sortedAltitudes[i - 1]] ?? y;
-      final double nextY = altitudeY[sortedAltitudes[i + 1]] ?? y;
+      final double prevY = altitudeY[altitudesByY[i - 1]] ?? y;
+      final double nextY = altitudeY[altitudesByY[i + 1]] ?? y;
       bandTop = (prevY + y) / 2;
       bandBottom = (y + nextY) / 2;
     }
