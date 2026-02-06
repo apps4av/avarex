@@ -192,6 +192,12 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         continue;
       }
 
+      final sample = _sampleWind(particle.position, altitudeFt);
+      particle.speed = sample.speed;
+      particle.direction = sample.direction;
+      particle.baseColor = _colorForSpeed(sample.speed);
+
+      final baseHeading = (sample.direction + 180.0) % 360.0;
       final neighbor = _findNeighbor(
         grid,
         particle.position,
@@ -200,12 +206,13 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         cellLonDeg,
         avoidRadiusUnits,
       );
-      final heading = _applyCurlHeading(
+      var heading = _applyCurlHeading(
+        baseHeading,
         particle,
         neighbor,
         avoidRadiusUnits,
       );
-      particle.heading = heading;
+
       final pixelDistance =
           particle.speed * _pixelsPerSecondPerUnit * speedMultiplier * dt;
       final distanceUnits = pixelDistance * unitsPerPixel;
@@ -213,25 +220,44 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         particle.age = particle.maxAge;
         continue;
       }
+
       particle.previousPosition = particle.position;
       particle.position =
           _geo.calculateOffset(particle.position, distanceUnits, heading);
-      if (neighbor != null &&
-          _geo.calculateDistance(particle.position, neighbor.position) <
-              (avoidRadiusUnits * 0.6)) {
-        final bearing =
-            _geo.calculateBearing(neighbor.position, particle.position);
-        final tangent =
-            (bearing + (particle.curlBias * 90.0)) % 360.0;
-        particle.position = _geo.calculateOffset(
-          particle.position,
-          avoidRadiusUnits * 0.4,
-          tangent,
-        );
+      particle.heading = heading;
+
+      if (neighbor != null) {
+        final separation =
+            _geo.calculateDistance(particle.position, neighbor.position);
+        if (separation < avoidRadiusUnits) {
+          final bearing =
+              _geo.calculateBearing(neighbor.position, particle.position);
+          final tangent =
+              (bearing + (particle.curlBias * 90.0)) % 360.0;
+          particle.position = _geo.calculateOffset(
+            particle.position,
+            avoidRadiusUnits * 0.6,
+            tangent,
+          );
+        }
       }
+
       if (!_boundsContains(bounds, particle.position)) {
         _resetParticle(particle, bounds, altitudeFt);
+      } else {
+        final conflict = _findNeighbor(
+          grid,
+          particle.position,
+          bounds,
+          cellLatDeg,
+          cellLonDeg,
+          avoidRadiusUnits * 0.8,
+        );
+        if (conflict != null) {
+          _resetParticle(particle, bounds, altitudeFt);
+        }
       }
+
       _insertInGrid(
         grid,
         particle,
@@ -269,7 +295,6 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       ..previousPosition = position
       ..speed = sample.speed
       ..direction = sample.direction
-      ..windHeading = (sample.direction + 180) % 360
       ..heading = (sample.direction + 180) % 360
       ..age = 0
       ..maxAge = _lerp(_minAgeSeconds, _maxAgeSeconds, _random.nextDouble()) *
@@ -426,11 +451,11 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   }
 
   double _applyCurlHeading(
+    double baseHeading,
     _WindParticle particle,
     _WindParticle? neighbor,
     double avoidRadiusUnits,
   ) {
-    final baseHeading = particle.windHeading;
     if (neighbor == null) {
       return baseHeading;
     }
