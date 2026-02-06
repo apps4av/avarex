@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
 import 'package:avaremp/utils/toast.dart';
+import 'package:avaremp/weather/wind_vector_layer.dart';
 import 'package:universal_io/io.dart';
 import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
@@ -634,6 +635,23 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
+    }
+
+    lIndex = _layers.indexOf('Wind Vectors');
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        layers.add(
+          IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: WindVectorLayer(
+                mapController: _controller,
+              ),
+            ),
+          ),
+        );
+      }
     }
 
     lIndex = _layers.indexOf('TFR');
