@@ -13,6 +13,7 @@ import 'plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
@@ -271,7 +272,6 @@ class PlanScreenState extends State<PlanScreen> {
           altitudes: altitudes,
           textColor: textColor,
           gridColor: gridColor,
-          barbColor: textColor,
         ),
       ),
     );
@@ -285,10 +285,6 @@ class PlanScreenState extends State<PlanScreen> {
       9000,
       12000,
       18000,
-      24000,
-      30000,
-      34000,
-      39000,
     ];
   }
 
@@ -313,6 +309,7 @@ class PlanScreenState extends State<PlanScreen> {
       }
       final double position = lastIndex == 0 ? 0 : index / lastIndex;
       final LatLng coordinate = path[index];
+      final double course = _courseAtPathIndex(path, index);
       for(final int altitude in altitudes) {
         double? wd;
         double? ws;
@@ -321,15 +318,37 @@ class PlanScreenState extends State<PlanScreen> {
         if(wd == null || ws == null) {
           continue;
         }
+        final double angleRad = (wd - course) * math.pi / 180;
+        final double headwindComponent = ws * math.cos(angleRad);
+        final bool isHeadwind = headwindComponent >= 0;
+        final Color barbColor = isHeadwind ? Colors.red : Colors.green;
         samples.add(_WindBarbSample(
           position: position,
           altitude: altitude,
           direction: wd,
           speed: ws,
+          color: barbColor,
         ));
       }
     }
     return samples;
+  }
+
+  double _courseAtPathIndex(List<LatLng> path, int index) {
+    if(path.length < 2) {
+      return 0;
+    }
+    int startIndex = index;
+    int endIndex = index + 1;
+    if(endIndex >= path.length) {
+      endIndex = index;
+      startIndex = index - 1;
+    }
+    if(startIndex < 0 || startIndex == endIndex) {
+      startIndex = 0;
+      endIndex = 1;
+    }
+    return GeoCalculations().calculateBearing(path[startIndex], path[endIndex]);
   }
 
   Widget makeChart(BuildContext context, List<double?>? data) {
@@ -470,12 +489,14 @@ class _WindBarbSample {
   final int altitude;
   final double speed;
   final double direction;
+  final Color color;
 
   const _WindBarbSample({
     required this.position,
     required this.altitude,
     required this.speed,
     required this.direction,
+    required this.color,
   });
 }
 
@@ -484,14 +505,12 @@ class _WindBarbDiagramPainter extends CustomPainter {
   final List<int> altitudes;
   final Color textColor;
   final Color gridColor;
-  final Color barbColor;
 
   const _WindBarbDiagramPainter({
     required this.samples,
     required this.altitudes,
     required this.textColor,
     required this.gridColor,
-    required this.barbColor,
   });
 
   @override
@@ -530,7 +549,7 @@ class _WindBarbDiagramPainter extends CustomPainter {
       ..strokeWidth = 1;
 
     final double rowSpacing = chartHeight / (sortedAltitudes.length - 1);
-    final double barbSize = math.min(24.0, rowSpacing * 0.9);
+    final double barbSize = math.min(22.0, rowSpacing * 0.65);
 
     for(final int altitude in sortedAltitudes) {
       final double y = topPadding + (maxAltitude - altitude) /
@@ -559,7 +578,7 @@ class _WindBarbDiagramPainter extends CustomPainter {
           leftPadding + chartWidth - barbSize / 2) as double;
       canvas.save();
       canvas.translate(clampedX - barbSize / 2, y - barbSize / 2);
-      WindBarbPainter(sample.speed, sample.direction, color: barbColor)
+      WindBarbPainter(sample.speed, sample.direction, color: sample.color)
           .paint(canvas, Size(barbSize, barbSize));
       canvas.restore();
     }
