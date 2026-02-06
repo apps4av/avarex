@@ -258,13 +258,12 @@ class WindsAloft extends Weather {
 class WindBarbPainter extends CustomPainter {
   final double speed;
   final double direction;
-  final Color color;
-  late final Paint _paint = Paint()
-    ..color = color
+  final _paint = Paint()
+    ..color = Colors.black
     ..style = PaintingStyle.stroke
     ..strokeWidth = 3;
 
-  WindBarbPainter(this.speed, this.direction, {this.color = Colors.black});
+  WindBarbPainter(this.speed, this.direction);
 
   @override
   void paint(Canvas canvas, Size size) {
