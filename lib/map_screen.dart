@@ -655,6 +655,14 @@ class MapScreenState extends State<MapScreen> {
         final windColor = Storage().settings.isLightMode()
             ? Colors.black87
             : Colors.white70;
+        final windSpeed = Storage().settings.getWindVectorSpeed();
+        final windLength = Storage().settings.getWindVectorLength();
+        final windAltitudeSetting =
+            Storage().settings.getWindVectorAltitudeFt();
+        final windAltitude =
+            windAltitudeSetting <= 0 ? null : windAltitudeSetting;
+        final windColorBySpeed =
+            Storage().settings.isWindVectorColorBySpeed();
         layers.add(
           IgnorePointer(
             child: Opacity(
@@ -662,6 +670,10 @@ class MapScreenState extends State<MapScreen> {
               child: WindVectorLayer(
                 mapController: _controller,
                 color: windColor,
+                speedMultiplier: windSpeed,
+                lengthMultiplier: windLength,
+                altitudeFt: windAltitude,
+                colorBySpeed: windColorBySpeed,
               ),
             ),
           ),
@@ -1477,56 +1489,151 @@ class MapScreenState extends State<MapScreen> {
                                         List.generate(_layers.length, (int index) => PopupMenuItem(
                                           child: StatefulBuilder(
                                             builder: (context1, setState1) =>
-                                                ListTile(
-                                                  dense: true,
-                                                  title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                    Expanded(flex: 1, child:Text(_layerLabel(_layers[index]))),
-                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
-                                                    value: _layersOpacity[index],
-                                                    onChanged: (double value) {
-                                                      double last = _layersOpacity[index];
-                                                      setState1(() {
-                                                        _layersOpacity[index] = value;
-                                                      });
-                                                      if(_layers[index] == "Tracks") {
-                                                        if(value == 0 && last > 0) {
-                                                          // save tracks on turning them off then show user where to get them
-                                                          Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                                                          Storage().tracks.saveKml().then((status) {
-                                                            Storage().tracks = GpsRecorder(); // clear
-                                                            setState1(() {
-                                                              if(status != null) {
-                                                                Toast.showToast(context, "Track saved to Documents as $status.", Icon(Icons.info, color: Colors.black,), 3);
-                                                              }
-                                                              else {
-                                                                Toast.showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
-                                                              }
-                                                            });
+                                                Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    ListTile(
+                                                      dense: true,
+                                                      title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                        Expanded(flex: 1, child:Text(_layerLabel(_layers[index]))),
+                                                        Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
+                                                        value: _layersOpacity[index],
+                                                        onChanged: (double value) {
+                                                          double last = _layersOpacity[index];
+                                                          setState1(() {
+                                                            _layersOpacity[index] = value;
                                                           });
-                                                        }
-                                                      }
-                                                      if(_layers[index] == "OSM" && value > 0) {
-                                                          _layersOpacity[_layers.indexOf("Topo")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "Topo" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("OSM")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "Chart" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("OpenAIP")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "OpenAIP" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("Chart")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      // now save to settings
-                                                      Storage().settings.setLayersOpacity(_layersOpacity);
-                                                      setState(() {
-                                                        _layersOpacity[index] = value; // this is the state for the map
-                                                      });
-                                                      // Turn audible alerts off and on depending on traffic layer
-                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[_layers.indexOf("Traffic")] > 0);
-                                                    },
-                                                  )),
-                                                ])),
+                                                          if(_layers[index] == "Tracks") {
+                                                            if(value == 0 && last > 0) {
+                                                              // save tracks on turning them off then show user where to get them
+                                                              Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                                                              Storage().tracks.saveKml().then((status) {
+                                                                Storage().tracks = GpsRecorder(); // clear
+                                                                setState1(() {
+                                                                  if(status != null) {
+                                                                    Toast.showToast(context, "Track saved to Documents as $status.", Icon(Icons.info, color: Colors.black,), 3);
+                                                                  }
+                                                                  else {
+                                                                    Toast.showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
+                                                                  }
+                                                                });
+                                                              });
+                                                            }
+                                                          }
+                                                          if(_layers[index] == "OSM" && value > 0) {
+                                                              _layersOpacity[_layers.indexOf("Topo")] = 0; // save memory by keeping layers to minimum
+                                                          }
+                                                          if(_layers[index] == "Topo" && value > 0) {
+                                                            _layersOpacity[_layers.indexOf("OSM")] = 0; // save memory by keeping layers to minimum
+                                                          }
+                                                          if(_layers[index] == "Chart" && value > 0) {
+                                                            _layersOpacity[_layers.indexOf("OpenAIP")] = 0; // save memory by keeping layers to minimum
+                                                          }
+                                                          if(_layers[index] == "OpenAIP" && value > 0) {
+                                                            _layersOpacity[_layers.indexOf("Chart")] = 0; // save memory by keeping layers to minimum
+                                                          }
+                                                          // now save to settings
+                                                          Storage().settings.setLayersOpacity(_layersOpacity);
+                                                          setState(() {
+                                                            _layersOpacity[index] = value; // this is the state for the map
+                                                          });
+                                                          // Turn audible alerts off and on depending on traffic layer
+                                                          Storage().settings.setAudibleAlertsEnabled(_layersOpacity[_layers.indexOf("Traffic")] > 0);
+                                                        },
+                                                      )),
+                                                    ])),
+                                                    if(_layers[index] == "Wind")
+                                                      Padding(
+                                                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                                                        child: Column(
+                                                          children: [
+                                                            Row(
+                                                              children: [
+                                                                const SizedBox(width: 70, child: Text("Speed")),
+                                                                Expanded(
+                                                                  child: Slider(
+                                                                    min: 0.2,
+                                                                    max: 2.5,
+                                                                    divisions: 23,
+                                                                    value: Storage().settings.getWindVectorSpeed(),
+                                                                    label: Storage().settings.getWindVectorSpeed().toStringAsFixed(1),
+                                                                    onChanged: (double value) {
+                                                                      Storage().settings.setWindVectorSpeed(value);
+                                                                      setState1(() {});
+                                                                      setState(() {});
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                const SizedBox(width: 70, child: Text("Length")),
+                                                                Expanded(
+                                                                  child: Slider(
+                                                                    min: 0.5,
+                                                                    max: 3.0,
+                                                                    divisions: 25,
+                                                                    value: Storage().settings.getWindVectorLength(),
+                                                                    label: Storage().settings.getWindVectorLength().toStringAsFixed(1),
+                                                                    onChanged: (double value) {
+                                                                      Storage().settings.setWindVectorLength(value);
+                                                                      setState1(() {});
+                                                                      setState(() {});
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                const SizedBox(width: 70, child: Text("Altitude")),
+                                                                Expanded(
+                                                                  child: Slider(
+                                                                    min: 0,
+                                                                    max: 45000,
+                                                                    divisions: 18,
+                                                                    value: () {
+                                                                      final altitude = Storage().settings.getWindVectorAltitudeFt();
+                                                                      if (altitude < 0) {
+                                                                        return 0.0;
+                                                                      }
+                                                                      if (altitude > 45000) {
+                                                                        return 45000.0;
+                                                                      }
+                                                                      return altitude;
+                                                                    }(),
+                                                                    label: Storage().settings.getWindVectorAltitudeFt() <= 0
+                                                                        ? "Auto"
+                                                                        : "${Storage().settings.getWindVectorAltitudeFt().round()} ft",
+                                                                    onChanged: (double value) {
+                                                                      Storage().settings.setWindVectorAltitudeFt(value);
+                                                                      setState1(() {});
+                                                                      setState(() {});
+                                                                    },
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            Row(
+                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              children: [
+                                                                const Text("Color by speed"),
+                                                                Switch(
+                                                                  value: Storage().settings.isWindVectorColorBySpeed(),
+                                                                  onChanged: (bool value) {
+                                                                    Storage().settings.setWindVectorColorBySpeed(value);
+                                                                    setState1(() {});
+                                                                    setState(() {});
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
                                           ),)
                                         ),
                                     ),

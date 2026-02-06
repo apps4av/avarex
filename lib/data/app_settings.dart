@@ -48,6 +48,10 @@ class AppSettings {
     0,
     0,
   ];
+  static const double _defaultWindVectorSpeed = 0.8;
+  static const double _defaultWindVectorLength = 1.4;
+  static const double _defaultWindVectorAltitudeFt = 0.0; // 0 = auto
+  static const bool _defaultWindVectorColorBySpeed = true;
 
   Future<void> initSettings() async {
     provider = SettingsCacheProvider();
@@ -193,6 +197,50 @@ class AppSettings {
 
   void setLayersOpacity(List<double> opacity) {
     provider.setString("key-layers-opacity-v42", opacity.map((double e) => e.toString()).toList().join(","));
+  }
+
+  double getWindVectorSpeed() {
+    return provider.getValue(
+      "key-wind-vector-speed",
+      defaultValue: _defaultWindVectorSpeed,
+    ) as double;
+  }
+
+  void setWindVectorSpeed(double value) {
+    provider.setDouble("key-wind-vector-speed", value);
+  }
+
+  double getWindVectorLength() {
+    return provider.getValue(
+      "key-wind-vector-length",
+      defaultValue: _defaultWindVectorLength,
+    ) as double;
+  }
+
+  void setWindVectorLength(double value) {
+    provider.setDouble("key-wind-vector-length", value);
+  }
+
+  double getWindVectorAltitudeFt() {
+    return provider.getValue(
+      "key-wind-vector-altitude-ft",
+      defaultValue: _defaultWindVectorAltitudeFt,
+    ) as double;
+  }
+
+  void setWindVectorAltitudeFt(double value) {
+    provider.setDouble("key-wind-vector-altitude-ft", value);
+  }
+
+  bool isWindVectorColorBySpeed() {
+    return provider.getValue(
+      "key-wind-vector-color-speed",
+      defaultValue: _defaultWindVectorColorBySpeed,
+    ) as bool;
+  }
+
+  void setWindVectorColorBySpeed(bool value) {
+    provider.setBool("key-wind-vector-color-speed", value);
   }
 
   void setCurrentPlateAirport(String name) {

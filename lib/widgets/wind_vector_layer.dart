@@ -13,11 +13,19 @@ class WindVectorLayer extends StatefulWidget {
     required this.mapController,
     required this.color,
     this.forecastHours = 6,
+    this.speedMultiplier = 1.0,
+    this.lengthMultiplier = 1.0,
+    this.altitudeFt,
+    this.colorBySpeed = true,
   });
 
   final MapController mapController;
   final Color color;
   final int forecastHours;
+  final double speedMultiplier;
+  final double lengthMultiplier;
+  final double? altitudeFt;
+  final bool colorBySpeed;
 
   @override
   State<WindVectorLayer> createState() => _WindVectorLayerState();
@@ -32,7 +40,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   static const double _maxAgeSeconds = 6.5;
   static const int _minParticles = 120;
   static const int _maxParticles = 420;
-  static const double _pixelsPerSecondPerUnit = 28.0;
+  static const double _pixelsPerSecondPerUnit = 12.0;
 
   final List<_WindParticle> _particles = [];
   final GeoCalculations _geo = GeoCalculations();
@@ -48,8 +56,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   @override
   void initState() {
     super.initState();
-    _lastAltitudeFt =
-        GeoCalculations.convertAltitude(Storage().position.altitude);
+    _lastAltitudeFt = _effectiveAltitudeFt();
     _ticker = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
@@ -57,6 +64,17 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       ..addListener(_onTick)
       ..repeat();
     Storage().winds.change.addListener(_onWindsChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant WindVectorLayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.speedMultiplier != widget.speedMultiplier ||
+        oldWidget.lengthMultiplier != widget.lengthMultiplier ||
+        oldWidget.altitudeFt != widget.altitudeFt ||
+        oldWidget.colorBySpeed != widget.colorBySpeed) {
+      _needsReset = true;
+    }
   }
 
   @override
@@ -105,8 +123,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       Storage().winds.download();
     }
 
-    final altitudeFt =
-        GeoCalculations.convertAltitude(Storage().position.altitude);
+    final altitudeFt = _effectiveAltitudeFt();
     final bounds = _calculateBounds(_lastSize);
 
     if (_needsReset ||
@@ -148,6 +165,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
 
   void _advanceParticles(LatLngBounds bounds, double altitudeFt, double dt) {
     final unitsPerPixel = _unitsPerPixel();
+    final speedMultiplier = widget.speedMultiplier.clamp(0.2, 4.0);
     for (final particle in _particles) {
       particle.age += dt;
       if (particle.age >= particle.maxAge ||
@@ -157,7 +175,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       }
 
       final pixelDistance =
-          particle.speed * _pixelsPerSecondPerUnit * dt;
+          particle.speed * _pixelsPerSecondPerUnit * speedMultiplier * dt;
       final distanceUnits = pixelDistance * unitsPerPixel;
       if (distanceUnits <= 0) {
         particle.age = particle.maxAge;
@@ -193,6 +211,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   ) {
     final position = _randomPosition(bounds);
     final sample = _sampleWind(position, altitudeFt);
+    final lengthMultiplier = widget.lengthMultiplier.clamp(0.3, 4.0);
     particle
       ..position = position
       ..previousPosition = position
@@ -200,7 +219,8 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       ..direction = sample.direction
       ..heading = (sample.direction + 180) % 360
       ..age = 0
-      ..maxAge = _lerp(_minAgeSeconds, _maxAgeSeconds, _random.nextDouble())
+      ..maxAge = _lerp(_minAgeSeconds, _maxAgeSeconds, _random.nextDouble()) *
+          lengthMultiplier
       ..baseColor = _colorForSpeed(sample.speed)
       ..strokeWidth = _strokeForSpeed(sample.speed);
   }
@@ -276,9 +296,20 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   }
 
   Color _colorForSpeed(double speed) {
+    if (!widget.colorBySpeed) {
+      return widget.color;
+    }
     final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
-    return Color.lerp(widget.color, Colors.lightBlueAccent, 0.35) ??
+    return Color.lerp(Colors.lightBlueAccent, Colors.deepOrangeAccent, t) ??
         widget.color;
+  }
+
+  double _effectiveAltitudeFt() {
+    final fixedAltitude = widget.altitudeFt;
+    if (fixedAltitude != null && fixedAltitude > 0) {
+      return fixedAltitude;
+    }
+    return GeoCalculations.convertAltitude(Storage().position.altitude);
   }
 
   double _unitsPerPixel() {
