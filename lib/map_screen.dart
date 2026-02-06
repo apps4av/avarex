@@ -59,8 +59,8 @@ class MapScreenState extends State<MapScreen> {
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
   // get layers and states from settings
-  final List<String> _layers = Storage().settings.getLayers();
-  final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
+  late List<String> _layers;
+  late List<double> _layersOpacity;
   final int _disableClusteringAtZoom = 10;
   final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
@@ -106,6 +106,13 @@ class MapScreenState extends State<MapScreen> {
     await Navigator.pushNamed(context, "/popup", arguments: destinations);
   }
 
+  String _layerLabel(String layer) {
+    if (layer == "Wind") {
+      return "Winds";
+    }
+    return layer;
+  }
+
   void _metarListen() {
     setState(() {
       _metarCluster = null;
@@ -148,6 +155,8 @@ class MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     // move with airplane but do not hold the map
+    _layers = Storage().settings.getLayers();
+    _layersOpacity = Storage().settings.getLayersOpacity();
     Storage().gpsChange.addListener(_gpsListen);
     Storage().metar.change.addListener(_metarListen);
     Storage().taf.change.addListener(_tafListen);
@@ -434,6 +443,8 @@ class MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
 
+    _layers = Storage().settings.getLayers();
+    _layersOpacity = Storage().settings.getLayersOpacity();
     double opacity = 1.0;
 
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
@@ -1469,7 +1480,7 @@ class MapScreenState extends State<MapScreen> {
                                                 ListTile(
                                                   dense: true,
                                                   title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                    Expanded(flex: 1, child:Text(_layers[index])),
+                                                    Expanded(flex: 1, child:Text(_layerLabel(_layers[index]))),
                                                     Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
                                                     value: _layersOpacity[index],
                                                     onChanged: (double value) {
