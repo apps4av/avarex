@@ -24,7 +24,7 @@ class WindVectorLayer extends StatefulWidget {
 }
 
 class _WindVectorLayerState extends State<WindVectorLayer>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const double _speedScale = 6.0;
   static const double _minAgeSeconds = 2.5;
   static const double _maxAgeSeconds = 6.5;
@@ -34,7 +34,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   final math.Random _random = math.Random();
   final GeoCalculations _geo = GeoCalculations();
   final List<_WindParticle> _particles = [];
-  AnimationController? _ticker;
+  late final AnimationController _ticker;
   LatLngBounds? _bounds;
   Size? _viewSize;
   double _lastTickSeconds = 0;
@@ -57,7 +57,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   @override
   void dispose() {
     Storage().winds.change.removeListener(_onWindsChanged);
-    _ticker?.dispose();
+    _ticker.dispose();
     super.dispose();
   }
 
@@ -66,7 +66,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   }
 
   void _onTick() {
-    final elapsed = _ticker?.lastElapsedDuration;
+    final elapsed = _ticker.lastElapsedDuration;
     if (elapsed == null) {
       return;
     }
