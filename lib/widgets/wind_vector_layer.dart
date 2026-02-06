@@ -163,11 +163,11 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       }
       final fade = (1.0 - (particle.age / particle.maxAge)).clamp(0.0, 1.0);
       final alpha = (_baseAlpha * fade).clamp(0.1, 1.0);
-      final tail = _geo.calculateOffset(
+      final tail = _wrapLatLng(_geo.calculateOffset(
         particle.position,
         lengthUnits,
         (particle.heading + 180) % 360,
-      );
+      ));
       polylines.add(Polyline(
         points: [tail, particle.position],
         strokeWidth: _baseStrokeWidth,
@@ -222,8 +222,9 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       }
 
       particle.previousPosition = particle.position;
-      particle.position =
-          _geo.calculateOffset(particle.position, distanceUnits, heading);
+      particle.position = _wrapLatLng(
+        _geo.calculateOffset(particle.position, distanceUnits, heading),
+      );
       particle.heading = heading;
 
       if (neighbor != null) {
@@ -234,11 +235,11 @@ class _WindVectorLayerState extends State<WindVectorLayer>
               _geo.calculateBearing(neighbor.position, particle.position);
           final tangent =
               (bearing + (particle.curlBias * 90.0)) % 360.0;
-          particle.position = _geo.calculateOffset(
+          particle.position = _wrapLatLng(_geo.calculateOffset(
             particle.position,
             avoidRadiusUnits * 0.6,
             tangent,
-          );
+          ));
         }
       }
 
@@ -290,9 +291,10 @@ class _WindVectorLayerState extends State<WindVectorLayer>
     final position = _randomPosition(bounds);
     final sample = _sampleWind(position, altitudeFt);
     final lengthMultiplier = widget.lengthMultiplier.clamp(0.3, 4.0);
+    final wrapped = _wrapLatLng(position);
     particle
-      ..position = position
-      ..previousPosition = position
+      ..position = wrapped
+      ..previousPosition = wrapped
       ..speed = sample.speed
       ..direction = sample.direction
       ..heading = (sample.direction + 180) % 360
@@ -396,6 +398,22 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       return 0.0001;
     }
     return units;
+  }
+
+  LatLng _wrapLatLng(LatLng value) {
+    final lat = value.latitude.clamp(-90.0, 90.0);
+    return LatLng(lat, _wrapLongitude(value.longitude));
+  }
+
+  double _wrapLongitude(double longitude) {
+    var wrapped = longitude;
+    while (wrapped < -180) {
+      wrapped += 360;
+    }
+    while (wrapped > 180) {
+      wrapped -= 360;
+    }
+    return wrapped;
   }
 
   (double, double) _gridMetrics(
