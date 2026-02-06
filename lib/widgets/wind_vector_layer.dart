@@ -388,6 +388,10 @@ class _WindVectorLayerState extends State<WindVectorLayer>
     if (fixedAltitude != null && fixedAltitude > 0) {
       return fixedAltitude;
     }
+    final planAltitude = Storage().route.altitude.toDouble();
+    if (planAltitude > 0) {
+      return planAltitude;
+    }
     return GeoCalculations.convertAltitude(Storage().position.altitude);
   }
 
