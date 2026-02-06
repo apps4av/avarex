@@ -8,6 +8,46 @@ class AppSettings {
   // local vars, to prevent constant cache lookups that are showing up in CPU flamechart
   bool _localAudibleAlertsEnabledSetting = true;  
   String _localUnits = "Maritime";
+  static const List<String> _defaultLayers = [
+    "Nav",
+    "Circles",
+    "Chart",
+    "OSM",
+    "OpenAIP",
+    "Topo",
+    "Elevation",
+    "Weather",
+    "Wind",
+    "Radar",
+    "TFR",
+    "Plate",
+    "Traffic",
+    "Obstacles",
+    "Tape",
+    "GeoJSON",
+    "PFD",
+    "Tracks",
+  ];
+  static const List<double> _defaultLayersOpacity = [
+    1,
+    0,
+    1,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+  ];
 
   Future<void> initSettings() async {
     provider = SettingsCacheProvider();
@@ -98,11 +138,57 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v42", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Elevation,Weather,Radar,TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
+    final value = provider.getValue(
+      "key-layers-v42",
+      defaultValue: _defaultLayers.join(","),
+    ) as String;
+    final layers = value.split(",");
+    if (!layers.contains("Wind")) {
+      final updated = List<String>.from(layers);
+      final weatherIndex = updated.indexOf("Weather");
+      if (weatherIndex >= 0) {
+        updated.insert(weatherIndex + 1, "Wind");
+      } else {
+        updated.add("Wind");
+      }
+      provider.setString("key-layers-v42", updated.join(","));
+      return updated;
+    }
+    return layers;
   }
 
   List<double> getLayersOpacity() {
-    return (provider.getValue("key-layers-opacity-v42", defaultValue: "1,0,1,1,0,0,0,0,0,1,0,1,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
+    final layers = getLayers();
+    final value = provider.getValue(
+      "key-layers-opacity-v42",
+      defaultValue: _defaultLayersOpacity.join(","),
+    ) as String;
+    final opacity = value
+        .split(",")
+        .map((String e) => double.tryParse(e) ?? 0.0)
+        .toList();
+    if (opacity.length != layers.length) {
+      final updated = List<double>.from(opacity);
+      if (updated.length == layers.length - 1 &&
+          layers.contains("Wind")) {
+        final windIndex = layers.indexOf("Wind");
+        updated.insert(windIndex, 0.0);
+      }
+      if (updated.length < layers.length) {
+        updated.addAll(
+          List.filled(layers.length - updated.length, 0.0),
+        );
+      }
+      if (updated.length > layers.length) {
+        updated.removeRange(layers.length, updated.length);
+      }
+      provider.setString(
+        "key-layers-opacity-v42",
+        updated.map((double e) => e.toString()).toList().join(","),
+      );
+      return updated;
+    }
+    return opacity;
   }
 
   void setLayersOpacity(List<double> opacity) {

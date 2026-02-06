@@ -21,6 +21,7 @@ import 'package:avaremp/weather/airsigmet.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
+import 'package:avaremp/widgets/wind_vector_layer.dart';
 import 'package:avaremp/weather/weather.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -599,6 +600,27 @@ class MapScreenState extends State<MapScreen> {
                 return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
           }),
       )));
+    }
+
+    lIndex = _layers.indexOf('Wind');
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        final windColor = Storage().settings.isLightMode()
+            ? Colors.black87
+            : Colors.white70;
+        layers.add(
+          IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: WindVectorLayer(
+                mapController: _controller,
+                color: windColor,
+              ),
+            ),
+          ),
+        );
+      }
     }
 
     lIndex = _layers.indexOf('Weather');
