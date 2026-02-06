@@ -1,7 +1,9 @@
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/plan/plan_create_widget.dart';
 import 'package:avaremp/plan/plan_file_widget.dart';
 import 'package:avaremp/plan/plan_load_save_widget.dart';
 import 'package:avaremp/plan/plan_manage_widget.dart';
+import 'package:avaremp/plan/plan_transfer_widget.dart';
 import 'package:flutter/material.dart';
 
 class PlanActionScreen extends StatefulWidget {
@@ -26,19 +28,8 @@ class PlanActionState extends State<PlanActionScreen> {
 
   Widget _makeContent() {
 
-    Widget loadSavePage = const PlanLoadSaveWidget();
-
-    Widget createPage = const PlanCreateWidget();
-
-    Widget filePage = const PlanFileWidget();
-
-    Widget managePage = const PlanManageWidget();
-
-    List<Widget> pages = [];
-    pages.add(loadSavePage);
-    pages.add(createPage);
-    pages.add(filePage);
-    pages.add(managePage);
+    final tabs = _buildTabs();
+    final current = _current >= tabs.length ? 0 : _current;
 
     return Container(
         padding: const EdgeInsets.all(5),
@@ -51,38 +42,41 @@ class PlanActionState extends State<PlanActionScreen> {
         child:
         Column(children: [
           // various info
-          Expanded(flex: 8, child: Padding(padding: const EdgeInsets.all(10), child: pages[_current])),
+          Expanded(
+              flex: 8,
+              child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: tabs[current].page)),
           // add various buttons that expand to diagram
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
-            TextButton(
-                child: const Text("Load & Save"),
-                onPressed: () => setState(() {
-                  _current = 0;
-                })
-            ),
-            TextButton(
-                child: const Text("Create"),
-                onPressed: () => setState(() {
-                  _current = 1;
-                })
-            ),
-            TextButton(
-                child: const Text("Brief & File"),
-                onPressed: () => setState(() {
-                  _current = 2;
-                })
-            ),
-            TextButton(
-                child: const Text("Manage"),
-                onPressed: () => setState(() {
-                  _current = 3;
-                })
-            ),
+            for (int index = 0; index < tabs.length; index++)
+              TextButton(
+                  child: Text(tabs[index].label),
+                  onPressed: () => setState(() {
+                        _current = index;
+                      }))
           ])),
           ),
         ],
         )
     );
+  }
+
+  List<_PlanActionTab> _buildTabs() {
+    final tabs = <_PlanActionTab>[
+      _PlanActionTab(
+          label: "Load & Save", page: const PlanLoadSaveWidget()),
+      _PlanActionTab(label: "Create", page: const PlanCreateWidget()),
+      _PlanActionTab(label: "Brief & File", page: const PlanFileWidget()),
+      _PlanActionTab(label: "Manage", page: const PlanManageWidget()),
+    ];
+
+    if (Constants.shouldShowBluetoothSpp) {
+      tabs.add(_PlanActionTab(
+          label: "Transfer", page: const PlanTransferWidget()));
+    }
+
+    return tabs;
   }
 
 
@@ -94,4 +88,11 @@ class PlanActionState extends State<PlanActionScreen> {
     ),
     body: _makeContent());
   }
+}
+
+class _PlanActionTab {
+  final String label;
+  final Widget page;
+
+  const _PlanActionTab({required this.label, required this.page});
 }
