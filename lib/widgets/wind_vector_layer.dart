@@ -25,14 +25,14 @@ class WindVectorLayer extends StatefulWidget {
 
 class _WindVectorLayerState extends State<WindVectorLayer>
     with TickerProviderStateMixin {
-  static const double _speedScale = 6.0;
-  static const double _minSpeedKnots = 2;
+  static const double _minSpeedKnots = 1;
   static const double _maxSpeedKnots = 60;
   static const double _altitudeResetFt = 2000;
   static const double _minAgeSeconds = 2.5;
   static const double _maxAgeSeconds = 6.5;
   static const int _minParticles = 80;
   static const int _maxParticles = 320;
+  static const double _pixelsPerSecondPerUnit = 6.0;
 
   final List<_WindParticle> _particles = [];
   final GeoCalculations _geo = GeoCalculations();
@@ -43,6 +43,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   Size _lastSize = Size.zero;
   double _lastAltitudeFt = 0;
   bool _needsReset = true;
+  bool _downloadRequested = false;
 
   @override
   void initState() {
@@ -97,6 +98,10 @@ class _WindVectorLayerState extends State<WindVectorLayer>
     if (_lastSize == Size.zero) {
       return;
     }
+    if (!_downloadRequested && Storage().winds.getAll().isEmpty) {
+      _downloadRequested = true;
+      Storage().winds.download();
+    }
 
     final altitudeFt =
         GeoCalculations.convertAltitude(Storage().position.altitude);
@@ -140,6 +145,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   }
 
   void _advanceParticles(LatLngBounds bounds, double altitudeFt, double dt) {
+    final unitsPerPixel = _unitsPerPixel();
     for (final particle in _particles) {
       particle.age += dt;
       if (particle.age >= particle.maxAge ||
@@ -148,14 +154,16 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         continue;
       }
 
-      final distanceNm = particle.speed * dt / 3600.0 * _speedScale;
-      if (distanceNm <= 0) {
+      final pixelDistance =
+          particle.speed * _pixelsPerSecondPerUnit * dt;
+      final distanceUnits = pixelDistance * unitsPerPixel;
+      if (distanceUnits <= 0) {
         particle.age = particle.maxAge;
         continue;
       }
       particle.previousPosition = particle.position;
       particle.position =
-          _geo.calculateOffset(particle.position, distanceNm, particle.heading);
+          _geo.calculateOffset(particle.position, distanceUnits, particle.heading);
       if (!_boundsContains(bounds, particle.position)) {
         _resetParticle(particle, bounds, altitudeFt);
       }
@@ -268,6 +276,19 @@ class _WindVectorLayerState extends State<WindVectorLayer>
   Color _colorForSpeed(double speed) {
     final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
     return Color.lerp(widget.color, Colors.orangeAccent, t) ?? widget.color;
+  }
+
+  double _unitsPerPixel() {
+    final camera = widget.mapController.camera;
+    final center = Offset(_lastSize.width / 2, _lastSize.height / 2);
+    final centerLatLng = camera.screenOffsetToLatLng(center);
+    final rightLatLng =
+        camera.screenOffsetToLatLng(Offset(center.dx + 1, center.dy));
+    final units = _geo.calculateDistance(centerLatLng, rightLatLng);
+    if (units <= 0) {
+      return 0.0001;
+    }
+    return units;
   }
 }
 
