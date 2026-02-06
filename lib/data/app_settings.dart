@@ -48,8 +48,8 @@ class AppSettings {
     0,
     0,
   ];
-  static const double _defaultWindVectorSpeed = 0.8;
-  static const double _defaultWindVectorLength = 1.4;
+  static const double _defaultWindVectorSpeed = 0.6;
+  static const double _defaultWindVectorLength = 0.8;
   static const double _defaultWindVectorAltitudeFt = 0.0; // 0 = auto
   static const bool _defaultWindVectorColorBySpeed = true;
 

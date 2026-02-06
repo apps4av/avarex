@@ -113,6 +113,58 @@ class MapScreenState extends State<MapScreen> {
     return layer;
   }
 
+  Future<void> _showWindAltitudeDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        double altitude = Storage().settings.getWindVectorAltitudeFt();
+        if (altitude < 0) {
+          altitude = 0;
+        }
+        if (altitude > 45000) {
+          altitude = 45000;
+        }
+        return AlertDialog(
+          title: const Text("Wind Altitude"),
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              final label = altitude <= 0
+                  ? "Auto"
+                  : "${altitude.round()} ft";
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(label),
+                  Slider(
+                    min: 0,
+                    max: 45000,
+                    divisions: 18,
+                    value: altitude,
+                    onChanged: (double value) {
+                      setStateDialog(() {
+                        altitude = value;
+                      });
+                      Storage().settings.setWindVectorAltitudeFt(value);
+                      setState(() {});
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _metarListen() {
     setState(() {
       _metarCluster = null;
@@ -1457,6 +1509,18 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
+                                  IconButton(
+                                      tooltip: "Wind altitude",
+                                      onPressed: () {
+                                        _showWindAltitudeDialog();
+                                      },
+                                      icon: CircleAvatar(
+                                          radius: iconRadius,
+                                          backgroundColor: Theme.of(context)
+                                              .scaffoldBackgroundColor
+                                              .withValues(alpha: 0.7),
+                                          child: Icon(MdiIcons.weatherWindy))),
+
                                   PopupMenuButton( // layer selection
                                     tooltip: "Select the chart type",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
@@ -1542,96 +1606,6 @@ class MapScreenState extends State<MapScreen> {
                                                         },
                                                       )),
                                                     ])),
-                                                    if(_layers[index] == "Wind")
-                                                      Padding(
-                                                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                                                        child: Column(
-                                                          children: [
-                                                            Row(
-                                                              children: [
-                                                                const SizedBox(width: 70, child: Text("Speed")),
-                                                                Expanded(
-                                                                  child: Slider(
-                                                                    min: 0.2,
-                                                                    max: 2.5,
-                                                                    divisions: 23,
-                                                                    value: Storage().settings.getWindVectorSpeed(),
-                                                                    label: Storage().settings.getWindVectorSpeed().toStringAsFixed(1),
-                                                                    onChanged: (double value) {
-                                                                      Storage().settings.setWindVectorSpeed(value);
-                                                                      setState1(() {});
-                                                                      setState(() {});
-                                                                    },
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            Row(
-                                                              children: [
-                                                                const SizedBox(width: 70, child: Text("Length")),
-                                                                Expanded(
-                                                                  child: Slider(
-                                                                    min: 0.5,
-                                                                    max: 3.0,
-                                                                    divisions: 25,
-                                                                    value: Storage().settings.getWindVectorLength(),
-                                                                    label: Storage().settings.getWindVectorLength().toStringAsFixed(1),
-                                                                    onChanged: (double value) {
-                                                                      Storage().settings.setWindVectorLength(value);
-                                                                      setState1(() {});
-                                                                      setState(() {});
-                                                                    },
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            Row(
-                                                              children: [
-                                                                const SizedBox(width: 70, child: Text("Altitude")),
-                                                                Expanded(
-                                                                  child: Slider(
-                                                                    min: 0,
-                                                                    max: 45000,
-                                                                    divisions: 18,
-                                                                    value: () {
-                                                                      final altitude = Storage().settings.getWindVectorAltitudeFt();
-                                                                      if (altitude < 0) {
-                                                                        return 0.0;
-                                                                      }
-                                                                      if (altitude > 45000) {
-                                                                        return 45000.0;
-                                                                      }
-                                                                      return altitude;
-                                                                    }(),
-                                                                    label: Storage().settings.getWindVectorAltitudeFt() <= 0
-                                                                        ? "Auto"
-                                                                        : "${Storage().settings.getWindVectorAltitudeFt().round()} ft",
-                                                                    onChanged: (double value) {
-                                                                      Storage().settings.setWindVectorAltitudeFt(value);
-                                                                      setState1(() {});
-                                                                      setState(() {});
-                                                                    },
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                            Row(
-                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                              children: [
-                                                                const Text("Color by speed"),
-                                                                Switch(
-                                                                  value: Storage().settings.isWindVectorColorBySpeed(),
-                                                                  onChanged: (bool value) {
-                                                                    Storage().settings.setWindVectorColorBySpeed(value);
-                                                                    setState1(() {});
-                                                                    setState(() {});
-                                                                  },
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
                                                   ],
                                                 ),
                                           ),)
