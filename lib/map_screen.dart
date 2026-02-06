@@ -613,27 +613,6 @@ class MapScreenState extends State<MapScreen> {
       )));
     }
 
-    lIndex = _layers.indexOf('Wind');
-    if (lIndex >= 0) {
-      opacity = _layersOpacity[lIndex];
-      if (opacity > 0) {
-        final windColor = Storage().settings.isLightMode()
-            ? Colors.black87
-            : Colors.white70;
-        layers.add(
-          IgnorePointer(
-            child: Opacity(
-              opacity: opacity,
-              child: WindVectorLayer(
-                mapController: _controller,
-                color: windColor,
-              ),
-            ),
-          ),
-        );
-      }
-    }
-
     lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
@@ -667,6 +646,27 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
+    }
+
+    lIndex = _layers.indexOf('Wind');
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        final windColor = Storage().settings.isLightMode()
+            ? Colors.black87
+            : Colors.white70;
+        layers.add(
+          IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: WindVectorLayer(
+                mapController: _controller,
+                color: windColor,
+              ),
+            ),
+          ),
+        );
+      }
     }
 
     lIndex = _layers.indexOf('TFR');

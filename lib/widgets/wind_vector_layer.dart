@@ -25,14 +25,14 @@ class WindVectorLayer extends StatefulWidget {
 
 class _WindVectorLayerState extends State<WindVectorLayer>
     with TickerProviderStateMixin {
-  static const double _minSpeedKnots = 1;
+  static const double _minSpeedKnots = 0.5;
   static const double _maxSpeedKnots = 60;
   static const double _altitudeResetFt = 2000;
   static const double _minAgeSeconds = 2.5;
   static const double _maxAgeSeconds = 6.5;
-  static const int _minParticles = 80;
-  static const int _maxParticles = 320;
-  static const double _pixelsPerSecondPerUnit = 6.0;
+  static const int _minParticles = 120;
+  static const int _maxParticles = 420;
+  static const double _pixelsPerSecondPerUnit = 28.0;
 
   final List<_WindParticle> _particles = [];
   final GeoCalculations _geo = GeoCalculations();
@@ -78,10 +78,12 @@ class _WindVectorLayerState extends State<WindVectorLayer>
         _lastSize = size;
         _needsReset = true;
       }
-      return IgnorePointer(
-        child: RepaintBoundary(
-          child: PolylineLayer(
-            polylines: _buildPolylines(),
+      return SizedBox.expand(
+        child: IgnorePointer(
+          child: RepaintBoundary(
+            child: PolylineLayer(
+              polylines: _buildPolylines(),
+            ),
           ),
         ),
       );
@@ -132,8 +134,8 @@ class _WindVectorLayerState extends State<WindVectorLayer>
       }
       final fade = (1.0 - (particle.age / particle.maxAge)).clamp(0.0, 1.0);
       final speedFactor =
-          (particle.speed / _maxSpeedKnots).clamp(0.2, 1.0);
-      final alpha = (0.15 + 0.85 * fade) * speedFactor;
+          (particle.speed / _maxSpeedKnots).clamp(0.35, 1.0);
+      final alpha = (0.35 + 0.65 * fade) * speedFactor;
       polylines.add(Polyline(
         points: [particle.previousPosition, particle.position],
         strokeWidth: particle.strokeWidth,
@@ -227,7 +229,7 @@ class _WindVectorLayerState extends State<WindVectorLayer>
 
   int _targetParticleCount(Size size) {
     final area = size.width * size.height;
-    final count = (area / 9000).round();
+    final count = (area / 8000).round();
     if (count < _minParticles) {
       return _minParticles;
     }
@@ -270,12 +272,13 @@ class _WindVectorLayerState extends State<WindVectorLayer>
 
   double _strokeForSpeed(double speed) {
     final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
-    return 1.0 + t * 1.5;
+    return 1.4 + t * 2.2;
   }
 
   Color _colorForSpeed(double speed) {
     final t = (speed / _maxSpeedKnots).clamp(0.0, 1.0);
-    return Color.lerp(widget.color, Colors.orangeAccent, t) ?? widget.color;
+    return Color.lerp(widget.color, Colors.lightBlueAccent, 0.35) ??
+        widget.color;
   }
 
   double _unitsPerPixel() {
