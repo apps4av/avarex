@@ -19,6 +19,7 @@ import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/ceiling_layer.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
@@ -65,6 +66,7 @@ class MapScreenState extends State<MapScreen> {
   final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations _calculations = GeoCalculations();
+  final CeilingLayer _ceilingLayer = CeilingLayer();
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
@@ -635,6 +637,30 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
+    }
+
+    lIndex = _layers.indexOf('Ceiling');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([Storage().route.change, Storage().metar.change, Storage().gpsChange]),
+              builder: (context, _) {
+                List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
+                return _ceilingLayer.build(
+                  altitudeFt: Storage().route.altitude,
+                  metarRevision: Storage().metar.change.value,
+                  current: Gps.toLatLng(Storage().position),
+                  metars: metars,
+                );
+              },
+            ),
+          ),
+        ),
+      );
     }
 
     lIndex = _layers.indexOf('Wind Vectors');

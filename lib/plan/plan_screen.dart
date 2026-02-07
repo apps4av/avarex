@@ -125,7 +125,7 @@ class PlanScreenState extends State<PlanScreen> {
                         onChanged: (value) {
                           int? pValue = int.tryParse(value);
                           pValue ??= 3000;
-                          Storage().route.altitude = pValue;
+                          Storage().route.setAltitude(pValue);
                         },
                         controller: TextEditingController()..text = Storage().route.altitude.toString(),
                         decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
