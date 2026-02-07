@@ -50,12 +50,17 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
+  static const int _minPlanAltitude = 0;
+  static const int _maxPlanAltitude = 45000;
+  static const int _planAltitudeStep = 100;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
   bool _interacting = false;
   bool _rubberBanding = false;
   final Ruler _ruler = Ruler();
+  bool _showAltitudeSlider = false;
+  final GlobalKey _chartTypeButtonKey = GlobalKey();
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
@@ -430,6 +435,153 @@ class MapScreenState extends State<MapScreen> {
     _geojsonCluster ??= makeCluster(Storage().geoParser.markers);
 
     return _geojsonCluster!;
+  }
+
+  int _snapPlanAltitude(double value) {
+    final int snapped = (value / _planAltitudeStep).round() * _planAltitudeStep;
+    return snapped.clamp(_minPlanAltitude, _maxPlanAltitude).toInt();
+  }
+
+  Future<void> _showChartTypeMenu() async {
+    final RenderBox? button = _chartTypeButtonKey.currentContext?.findRenderObject() as RenderBox?;
+    if (button == null) {
+      return;
+    }
+    final OverlayState? overlayState = Overlay.of(context);
+    if (overlayState == null) {
+      return;
+    }
+    final RenderBox overlay = overlayState.context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(button.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+    final String? selected = await showMenu<String>(
+      context: context,
+      position: position,
+      items: List.generate(_charts.length, (int index) {
+        final String chart = _charts[index];
+        return PopupMenuItem<String>(
+          value: chart,
+          child: ListTile(
+            dense: true,
+            title: Text(chart),
+            leading: Visibility(
+              visible: chart == _type,
+              child: const Icon(Icons.check),
+            ),
+          ),
+        );
+      }),
+    );
+    if (!mounted || selected == null || selected == _type) {
+      return;
+    }
+    setState(() {
+      _type = selected;
+      Storage().settings.setChartType(selected);
+    });
+  }
+
+  Widget _buildPlanAltitudeControl() {
+    final int altitude = Storage().route.altitude.clamp(_minPlanAltitude, _maxPlanAltitude).toInt();
+    final double sliderWidth = Constants.screenWidth(context) / 2.3;
+
+    return SizedBox(
+      key: _chartTypeButtonKey,
+      width: iconRadius * 2 + 6,
+      height: iconRadius * 2 + 6,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.bottomRight,
+        children: [
+          Positioned(
+            bottom: iconRadius * 2 + 6,
+            right: 0,
+            child: AnimatedSlide(
+              offset: _showAltitudeSlider ? const Offset(0, 0) : const Offset(0, 0.2),
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeInOut,
+              child: AnimatedOpacity(
+                opacity: _showAltitudeSlider ? 1 : 0,
+                duration: const Duration(milliseconds: 120),
+                child: IgnorePointer(
+                  ignoring: !_showAltitudeSlider,
+                  child: Material(
+                    color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.9),
+                    elevation: 4,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: sliderWidth,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("Plan Altitude", style: TextStyle(fontSize: 11)),
+                              Text(
+                                "$altitude ft",
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          Slider(
+                            min: _minPlanAltitude.toDouble(),
+                            max: _maxPlanAltitude.toDouble(),
+                            divisions: (_maxPlanAltitude - _minPlanAltitude) ~/ _planAltitudeStep,
+                            label: "$altitude ft",
+                            value: altitude.toDouble(),
+                            onChanged: (value) {
+                              final int snapped = _snapPlanAltitude(value);
+                              if (snapped == Storage().route.altitude) {
+                                return;
+                              }
+                              setState(() {
+                                Storage().route.altitude = snapped;
+                              });
+                            },
+                            onChangeEnd: (_) {
+                              Storage().route.update();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: "Plan altitude (tap)\nChart type (hold)",
+            child: InkResponse(
+              onTap: () {
+                setState(() {
+                  _showAltitudeSlider = !_showAltitudeSlider;
+                });
+              },
+              onLongPress: () {
+                setState(() {
+                  _showAltitudeSlider = false;
+                });
+                _showChartTypeMenu();
+              },
+              radius: iconRadius + 8,
+              child: CircleAvatar(
+                radius: iconRadius,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                child: const Icon(Icons.photo_library_rounded),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
 
@@ -1395,8 +1547,10 @@ class MapScreenState extends State<MapScreen> {
                       alignment: Alignment.bottomRight,
                       child: Padding(
                           padding: EdgeInsets.fromLTRB(0, 0, 5, Constants.bottomPaddingSize(context)),
-                          child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
-                              Row(mainAxisAlignment: MainAxisAlignment.end,
+                          child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              clipBehavior: Clip.none,
+                              child: Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
                                   IconButton(
                                     tooltip: "Measure distances and bearings",
@@ -1456,27 +1610,7 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
-                                  PopupMenuButton( // layer selection
-                                    tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                        child: const Icon(Icons.photo_library_rounded)),
-                                    initialValue: _type,
-                                    itemBuilder: (BuildContext context) =>
-                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
-                                          ListTile(
-                                            onTap: () {
-                                              setState(() {
-                                                Navigator.pop(context);
-                                                _type = _charts[index];
-                                                Storage().settings.setChartType(_charts[index]);
-                                              });
-                                            },
-                                            dense: true,
-                                            title: Text(_charts[index]),
-                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
-                                          ),
-                                        ),)
-                                  ),
+                                  _buildPlanAltitudeControl(),
 
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
