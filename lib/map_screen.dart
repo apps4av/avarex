@@ -51,6 +51,8 @@ class MapScreenState extends State<MapScreen> {
   static const double iconRadius = 18;
   static const double _cloudCeilingCellSizeDeg = 0.5;
   static const double _cloudCeilingOpacity = 0.45;
+  static const double _cloudCeilingRadiusMiles = 500;
+  static const double _cloudCeilingMilesToMeters = 1609.34;
   static const int _cloudCeilingCellKeyShift = 12;
 
   final List<String> _charts = DownloadScreenState.getCategories();
@@ -310,6 +312,7 @@ class MapScreenState extends State<MapScreen> {
   PolygonLayer? _cloudCeilingLayer;
   int? _cloudCeilingAltitudeFt;
   int _cloudCeilingMetarRevision = -1;
+  LatLng? _cloudCeilingCenterRounded;
   MarkerClusterLayerWidget _makeMetarCluster() {
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
@@ -352,24 +355,39 @@ class MapScreenState extends State<MapScreen> {
   }
 
   PolygonLayer _makeCloudCeilingLayer(int altitudeFt) {
+    LatLng current = Gps.toLatLng(Storage().position);
+    LatLng currentRounded = LatLng(
+      double.parse(current.latitude.toStringAsFixed(2)),
+      double.parse(current.longitude.toStringAsFixed(2)),
+    );
     int metarRevision = Storage().metar.change.value;
     if(_cloudCeilingLayer != null &&
         _cloudCeilingAltitudeFt == altitudeFt &&
-        _cloudCeilingMetarRevision == metarRevision) {
+        _cloudCeilingMetarRevision == metarRevision &&
+        _cloudCeilingCenterRounded != null &&
+        _cloudCeilingCenterRounded!.latitude == currentRounded.latitude &&
+        _cloudCeilingCenterRounded!.longitude == currentRounded.longitude) {
       return _cloudCeilingLayer!;
     }
     _cloudCeilingAltitudeFt = altitudeFt;
     _cloudCeilingMetarRevision = metarRevision;
+    _cloudCeilingCenterRounded = currentRounded;
     final int latCells = (180 / _cloudCeilingCellSizeDeg).ceil();
     final int lonCells = (360 / _cloudCeilingCellSizeDeg).ceil();
     final int maxLatIndex = latCells - 1;
     final int maxLonIndex = lonCells - 1;
     final Map<int, int> cellCeilings = {};
+    final double radiusMeters = _cloudCeilingRadiusMiles * _cloudCeilingMilesToMeters;
+    final Distance distanceCalc = const Distance();
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
     for(Metar m in metars) {
       int? ceilingFt = m.getCeilingFt();
       if(ceilingFt == null) {
+        continue;
+      }
+      double distanceMeters = distanceCalc.as(LengthUnit.Meter, current, m.coordinate);
+      if(distanceMeters > radiusMeters) {
         continue;
       }
       int cellX = ((m.coordinate.longitude + 180) / _cloudCeilingCellSizeDeg).floor();
@@ -408,6 +426,14 @@ class MapScreenState extends State<MapScreen> {
       west = _clampLongitude(west);
       east = _clampLongitude(east);
       if(south >= north || west >= east) {
+        continue;
+      }
+      LatLng center = LatLng(
+        (south + north) / 2,
+        (west + east) / 2,
+      );
+      double distanceMeters = distanceCalc.as(LengthUnit.Meter, current, center);
+      if(distanceMeters > radiusMeters) {
         continue;
       }
       polygons.add(Polygon(
@@ -751,7 +777,7 @@ class MapScreenState extends State<MapScreen> {
           child: Opacity(
             opacity: opacity,
             child: AnimatedBuilder(
-              animation: Listenable.merge([Storage().route.change, Storage().metar.change]),
+              animation: Listenable.merge([Storage().route.change, Storage().metar.change, Storage().gpsChange]),
               builder: (context, _) {
                 return _makeCloudCeilingLayer(Storage().route.altitude);
               },
