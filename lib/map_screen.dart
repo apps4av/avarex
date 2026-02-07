@@ -49,8 +49,9 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
-  static const double _cloudCeilingRadiusNm = 25;
+  static const double _cloudCeilingCellSizeDeg = 0.5;
   static const double _cloudCeilingOpacity = 0.45;
+  static const int _cloudCeilingCellKeyShift = 12;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
@@ -330,6 +331,26 @@ class MapScreenState extends State<MapScreen> {
     return _metarCluster!;
   }
 
+  double _clampLatitude(double value) {
+    if(value > 90) {
+      return 90;
+    }
+    if(value < -90) {
+      return -90;
+    }
+    return value;
+  }
+
+  double _clampLongitude(double value) {
+    if(value > 180) {
+      return 180;
+    }
+    if(value < -180) {
+      return -180;
+    }
+    return value;
+  }
+
   PolygonLayer _makeCloudCeilingLayer(int altitudeFt) {
     int metarRevision = Storage().metar.change.value;
     if(_cloudCeilingLayer != null &&
@@ -339,16 +360,63 @@ class MapScreenState extends State<MapScreen> {
     }
     _cloudCeilingAltitudeFt = altitudeFt;
     _cloudCeilingMetarRevision = metarRevision;
+    final int latCells = (180 / _cloudCeilingCellSizeDeg).ceil();
+    final int lonCells = (360 / _cloudCeilingCellSizeDeg).ceil();
+    final int maxLatIndex = latCells - 1;
+    final int maxLonIndex = lonCells - 1;
+    final Map<int, int> cellCeilings = {};
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
-    List<Polygon> polygons = [];
     for(Metar m in metars) {
       int? ceilingFt = m.getCeilingFt();
-      if(ceilingFt == null || altitudeFt <= ceilingFt) {
+      if(ceilingFt == null) {
+        continue;
+      }
+      int cellX = ((m.coordinate.longitude + 180) / _cloudCeilingCellSizeDeg).floor();
+      int cellY = ((m.coordinate.latitude + 90) / _cloudCeilingCellSizeDeg).floor();
+      if(cellX < 0) {
+        cellX = 0;
+      }
+      else if(cellX > maxLonIndex) {
+        cellX = maxLonIndex;
+      }
+      if(cellY < 0) {
+        cellY = 0;
+      }
+      else if(cellY > maxLatIndex) {
+        cellY = maxLatIndex;
+      }
+      int key = (cellY << _cloudCeilingCellKeyShift) + cellX;
+      int? existing = cellCeilings[key];
+      if(existing == null || ceilingFt < existing) {
+        cellCeilings[key] = ceilingFt;
+      }
+    }
+    List<Polygon> polygons = [];
+    for(MapEntry<int, int> entry in cellCeilings.entries) {
+      if(altitudeFt <= entry.value) {
+        continue;
+      }
+      int cellY = entry.key >> _cloudCeilingCellKeyShift;
+      int cellX = entry.key & ((1 << _cloudCeilingCellKeyShift) - 1);
+      double south = -90 + cellY * _cloudCeilingCellSizeDeg;
+      double west = -180 + cellX * _cloudCeilingCellSizeDeg;
+      double north = south + _cloudCeilingCellSizeDeg;
+      double east = west + _cloudCeilingCellSizeDeg;
+      south = _clampLatitude(south);
+      north = _clampLatitude(north);
+      west = _clampLongitude(west);
+      east = _clampLongitude(east);
+      if(south >= north || west >= east) {
         continue;
       }
       polygons.add(Polygon(
-        points: _calculations.calculateCircle(m.coordinate, _cloudCeilingRadiusNm),
+        points: [
+          LatLng(south, west),
+          LatLng(south, east),
+          LatLng(north, east),
+          LatLng(north, west),
+        ],
         color: Colors.black.withValues(alpha: _cloudCeilingOpacity),
         borderColor: Colors.transparent,
         borderStrokeWidth: 0,
