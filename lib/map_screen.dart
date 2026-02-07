@@ -19,6 +19,7 @@ import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/ceiling_layer.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
@@ -49,11 +50,6 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
-  static const double _cloudCeilingCellSizeDeg = 0.5;
-  static const double _cloudCeilingOpacity = 0.45;
-  static const double _cloudCeilingRadiusMiles = 500;
-  static const double _cloudCeilingMilesToMeters = 1609.34;
-  static const int _cloudCeilingCellKeyShift = 12;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
@@ -70,6 +66,7 @@ class MapScreenState extends State<MapScreen> {
   final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations _calculations = GeoCalculations();
+  final CeilingLayer _ceilingLayer = CeilingLayer();
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
@@ -114,7 +111,6 @@ class MapScreenState extends State<MapScreen> {
   void _metarListen() {
     setState(() {
       _metarCluster = null;
-      _cloudCeilingLayer = null;
     });
   }
 
@@ -309,10 +305,6 @@ class MapScreenState extends State<MapScreen> {
 
   // this should not rebuild till weather is updated
   MarkerClusterLayerWidget? _metarCluster;
-  PolygonLayer? _cloudCeilingLayer;
-  int? _cloudCeilingAltitudeFt;
-  int _cloudCeilingMetarRevision = -1;
-  LatLng? _cloudCeilingCenterRounded;
   MarkerClusterLayerWidget _makeMetarCluster() {
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
@@ -332,128 +324,6 @@ class MapScreenState extends State<MapScreen> {
           ],
         );
     return _metarCluster!;
-  }
-
-  double _clampLatitude(double value) {
-    if(value > 90) {
-      return 90;
-    }
-    if(value < -90) {
-      return -90;
-    }
-    return value;
-  }
-
-  double _clampLongitude(double value) {
-    if(value > 180) {
-      return 180;
-    }
-    if(value < -180) {
-      return -180;
-    }
-    return value;
-  }
-
-  PolygonLayer _makeCloudCeilingLayer(int altitudeFt) {
-    LatLng current = Gps.toLatLng(Storage().position);
-    LatLng currentRounded = LatLng(
-      double.parse(current.latitude.toStringAsFixed(2)),
-      double.parse(current.longitude.toStringAsFixed(2)),
-    );
-    int metarRevision = Storage().metar.change.value;
-    if(_cloudCeilingLayer != null &&
-        _cloudCeilingAltitudeFt == altitudeFt &&
-        _cloudCeilingMetarRevision == metarRevision &&
-        _cloudCeilingCenterRounded != null &&
-        _cloudCeilingCenterRounded!.latitude == currentRounded.latitude &&
-        _cloudCeilingCenterRounded!.longitude == currentRounded.longitude) {
-      return _cloudCeilingLayer!;
-    }
-    _cloudCeilingAltitudeFt = altitudeFt;
-    _cloudCeilingMetarRevision = metarRevision;
-    _cloudCeilingCenterRounded = currentRounded;
-    final int latCells = (180 / _cloudCeilingCellSizeDeg).ceil();
-    final int lonCells = (360 / _cloudCeilingCellSizeDeg).ceil();
-    final int maxLatIndex = latCells - 1;
-    final int maxLonIndex = lonCells - 1;
-    final Map<int, int> cellCeilings = {};
-    final double radiusMeters = _cloudCeilingRadiusMiles * _cloudCeilingMilesToMeters;
-    final Distance distanceCalc = const Distance();
-    List<Weather> weather = Storage().metar.getAll();
-    List<Metar> metars = weather.map((e) => e as Metar).toList();
-    for(Metar m in metars) {
-      int? ceilingFt = m.getCeilingFt();
-      if(ceilingFt == null) {
-        continue;
-      }
-      double distanceMeters = distanceCalc.as(LengthUnit.Meter, current, m.coordinate);
-      if(distanceMeters > radiusMeters) {
-        continue;
-      }
-      int cellX = ((m.coordinate.longitude + 180) / _cloudCeilingCellSizeDeg).floor();
-      int cellY = ((m.coordinate.latitude + 90) / _cloudCeilingCellSizeDeg).floor();
-      if(cellX < 0) {
-        cellX = 0;
-      }
-      else if(cellX > maxLonIndex) {
-        cellX = maxLonIndex;
-      }
-      if(cellY < 0) {
-        cellY = 0;
-      }
-      else if(cellY > maxLatIndex) {
-        cellY = maxLatIndex;
-      }
-      int key = (cellY << _cloudCeilingCellKeyShift) + cellX;
-      int? existing = cellCeilings[key];
-      if(existing == null || ceilingFt < existing) {
-        cellCeilings[key] = ceilingFt;
-      }
-    }
-    List<Polygon> polygons = [];
-    for(MapEntry<int, int> entry in cellCeilings.entries) {
-      if(altitudeFt <= entry.value) {
-        continue;
-      }
-      int cellY = entry.key >> _cloudCeilingCellKeyShift;
-      int cellX = entry.key & ((1 << _cloudCeilingCellKeyShift) - 1);
-      double south = -90 + cellY * _cloudCeilingCellSizeDeg;
-      double west = -180 + cellX * _cloudCeilingCellSizeDeg;
-      double north = south + _cloudCeilingCellSizeDeg;
-      double east = west + _cloudCeilingCellSizeDeg;
-      south = _clampLatitude(south);
-      north = _clampLatitude(north);
-      west = _clampLongitude(west);
-      east = _clampLongitude(east);
-      if(south >= north || west >= east) {
-        continue;
-      }
-      LatLng center = LatLng(
-        (south + north) / 2,
-        (west + east) / 2,
-      );
-      double distanceMeters = distanceCalc.as(LengthUnit.Meter, current, center);
-      if(distanceMeters > radiusMeters) {
-        continue;
-      }
-      polygons.add(Polygon(
-        points: [
-          LatLng(south, west),
-          LatLng(south, east),
-          LatLng(north, east),
-          LatLng(north, west),
-        ],
-        color: Colors.black.withValues(alpha: _cloudCeilingOpacity),
-        borderColor: Colors.transparent,
-        borderStrokeWidth: 0,
-      ));
-    }
-    if(polygons.isEmpty) {
-      _cloudCeilingLayer = PolygonLayer(polygons: const []);
-      return _cloudCeilingLayer!;
-    }
-    _cloudCeilingLayer = PolygonLayer(polygons: polygons);
-    return _cloudCeilingLayer!;
   }
 
   // this should not rebuild till weather is updated
@@ -779,7 +649,13 @@ class MapScreenState extends State<MapScreen> {
             child: AnimatedBuilder(
               animation: Listenable.merge([Storage().route.change, Storage().metar.change, Storage().gpsChange]),
               builder: (context, _) {
-                return _makeCloudCeilingLayer(Storage().route.altitude);
+                List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
+                return _ceilingLayer.build(
+                  altitudeFt: Storage().route.altitude,
+                  metarRevision: Storage().metar.change.value,
+                  current: Gps.toLatLng(Storage().position),
+                  metars: metars,
+                );
               },
             ),
           ),
