@@ -43,6 +43,14 @@ class PlanRoute {
   int get length => _waypoints.length;
   bool get isNotEmpty => _waypoints.isNotEmpty;
 
+  void setAltitude(int value) {
+    if(altitude == value) {
+      return;
+    }
+    altitude = value;
+    update();
+  }
+
   void _procedureAdjust(Waypoint waypoint) {
     waypoint.currentDestinationIndex = 0; // on change to airway, reset it
     waypoint.destinationsOnRoute = [];

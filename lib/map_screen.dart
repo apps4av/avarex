@@ -109,6 +109,7 @@ class MapScreenState extends State<MapScreen> {
   void _metarListen() {
     setState(() {
       _metarCluster = null;
+      _cloudCeilingLayer = null;
     });
   }
 
@@ -303,6 +304,9 @@ class MapScreenState extends State<MapScreen> {
 
   // this should not rebuild till weather is updated
   MarkerClusterLayerWidget? _metarCluster;
+  Widget? _cloudCeilingLayer;
+  int? _cloudCeilingAltitudeFt;
+  int _cloudCeilingMetarRevision = -1;
   MarkerClusterLayerWidget _makeMetarCluster() {
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
@@ -322,6 +326,58 @@ class MapScreenState extends State<MapScreen> {
           ],
         );
     return _metarCluster!;
+  }
+
+  Widget _buildCloudCeilingMarker(int ceilingFt) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.cloud, color: Colors.white, size: 18),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.6),
+            borderRadius: const BorderRadius.all(Radius.circular(6)),
+          ),
+          child: AutoSizeText(
+            "$ceilingFt ft",
+            style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
+            minFontSize: 6,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _makeCloudCeilingLayer(int altitudeFt) {
+    int metarRevision = Storage().metar.change.value;
+    if(_cloudCeilingLayer != null &&
+        _cloudCeilingAltitudeFt == altitudeFt &&
+        _cloudCeilingMetarRevision == metarRevision) {
+      return _cloudCeilingLayer!;
+    }
+    _cloudCeilingAltitudeFt = altitudeFt;
+    _cloudCeilingMetarRevision = metarRevision;
+    List<Weather> weather = Storage().metar.getAll();
+    List<Metar> metars = weather.map((e) => e as Metar).toList();
+    List<Marker> markers = [];
+    for(Metar m in metars) {
+      int? ceilingFt = m.getCeilingFt();
+      if(ceilingFt == null || altitudeFt <= ceilingFt) {
+        continue;
+      }
+      markers.add(Marker(
+        point: m.coordinate,
+        alignment: Alignment.bottomCenter,
+        child: _buildCloudCeilingMarker(ceilingFt),
+      ));
+    }
+    if(markers.isEmpty) {
+      _cloudCeilingLayer = MarkerLayer(markers: const []);
+      return _cloudCeilingLayer!;
+    }
+    _cloudCeilingLayer = makeCluster(markers);
+    return _cloudCeilingLayer!;
   }
 
   // this should not rebuild till weather is updated
@@ -635,6 +691,24 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
+    }
+
+    lIndex = _layers.indexOf('Clouds');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([Storage().route.change, Storage().metar.change]),
+              builder: (context, _) {
+                return _makeCloudCeilingLayer(Storage().route.altitude);
+              },
+            ),
+          ),
+        ),
+      );
     }
 
     lIndex = _layers.indexOf('Wind Vectors');
