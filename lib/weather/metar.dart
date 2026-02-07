@@ -215,5 +215,40 @@ class Metar extends Weather {
     return category;
   }
 
+  static int? getCeilingFtFromReport(String report) {
+    final RegExp cloud = RegExp(
+        r'^(?<cover>VV|CLR|SKC|NSC|NCD|BKN|SCT|FEW|OVC|///)'
+        r'(?<height>\d{3}|///)?'
+        r'(?<type>TCU|CB|///)?$');
+    int? ceilingFt;
+    List<String> tokens = report.split(" ");
+    for(String token in tokens) {
+      var cld = cloud.firstMatch(token);
+      if(cld == null) {
+        continue;
+      }
+      String? cover = cld.namedGroup("cover");
+      String? height = cld.namedGroup("height");
+      if(cover == null || height == null || height == "///") {
+        continue;
+      }
+      if(cover == "OVC" || cover == "BKN" || cover == "VV") {
+        try {
+          int ft = int.parse(height) * 100;
+          if(ceilingFt == null || ft < ceilingFt) {
+            ceilingFt = ft;
+          }
+        }
+        catch (e) {
+          AppLog.logMessage("Metar.getCeilingFt: error parsing cloud height $height");
+        }
+      }
+    }
+    return ceilingFt;
+  }
+
+  int? getCeilingFt() {
+    return getCeilingFtFromReport(text);
+  }
 }
 
