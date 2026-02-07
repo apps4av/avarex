@@ -98,15 +98,15 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v44", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Elevation,Weather,Clouds,Radar,TFR,Wind Vectors,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
+    return (provider.getValue("key-layers-v45", defaultValue: "Nav,Circles,Chart,OSM,OpenAIP,Topo,Elevation,Weather,Ceiling,Radar,TFR,Wind Vectors,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
   }
 
   List<double> getLayersOpacity() {
-    return (provider.getValue("key-layers-opacity-v44", defaultValue: "1,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
+    return (provider.getValue("key-layers-opacity-v45", defaultValue: "1,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
   }
 
   void setLayersOpacity(List<double> opacity) {
-    provider.setString("key-layers-opacity-v44", opacity.map((double e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-opacity-v45", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {

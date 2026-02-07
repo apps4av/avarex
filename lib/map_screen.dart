@@ -769,7 +769,7 @@ class MapScreenState extends State<MapScreen> {
 
     }
 
-    lIndex = _layers.indexOf('Clouds');
+    lIndex = _layers.indexOf('Ceiling');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(
