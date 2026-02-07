@@ -240,6 +240,43 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
+  PopupMenuButton<int> _buildAltitudeSelector(BuildContext context) {
+    final List<int> altitudeOptions = List<int>.generate(21, (index) => index * 1000);
+    final int currentAltitude = Storage().route.altitude;
+    final String label = currentAltitude == 0
+        ? "0"
+        : (currentAltitude % 1000 == 0
+            ? "${currentAltitude ~/ 1000}k"
+            : currentAltitude.toString());
+    return PopupMenuButton<int>(
+      tooltip: "Set plan altitude",
+      icon: CircleAvatar(
+        radius: iconRadius,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+        child: AutoSizeText(
+          label,
+          minFontSize: 6,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).iconTheme.color,
+          ),
+        ),
+      ),
+      onSelected: (value) {
+        setState(() {
+          Storage().route.setAltitude(value);
+        });
+      },
+      itemBuilder: (BuildContext context) => [
+        for (int altitude in altitudeOptions)
+          PopupMenuItem<int>(
+            value: altitude,
+            child: Text("$altitude ft"),
+          ),
+      ],
+    );
+  }
+
   PolylineLayer? _tfrLayer;
   PolylineLayer _makeTfrLayer() {
     List<Weather> weather = Storage().tfr.getAll();
@@ -437,6 +474,11 @@ class MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
 
     double opacity = 1.0;
+    final int ceilingIndex = _layers.indexOf('Ceiling');
+    final int windIndex = _layers.indexOf('Wind Vectors');
+    final bool showAltitudeSelector =
+        (ceilingIndex >= 0 && _layersOpacity[ceilingIndex] > 0) ||
+        (windIndex >= 0 && _layersOpacity[windIndex] > 0);
 
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
@@ -1456,27 +1498,56 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
-                                  PopupMenuButton( // layer selection
-                                    tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                        child: const Icon(Icons.photo_library_rounded)),
-                                    initialValue: _type,
-                                    itemBuilder: (BuildContext context) =>
-                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
-                                          ListTile(
-                                            onTap: () {
-                                              setState(() {
-                                                Navigator.pop(context);
-                                                _type = _charts[index];
-                                                Storage().settings.setChartType(_charts[index]);
-                                              });
-                                            },
-                                            dense: true,
-                                            title: Text(_charts[index]),
-                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
-                                          ),
-                                        ),)
-                                  ),
+                                  (showAltitudeSelector)
+                                      ? Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            _buildAltitudeSelector(context),
+                                            const SizedBox(height: 4),
+                                            PopupMenuButton( // layer selection
+                                              tooltip: "Select the chart type",
+                                              icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                                  child: const Icon(Icons.photo_library_rounded)),
+                                              initialValue: _type,
+                                              itemBuilder: (BuildContext context) =>
+                                                  List.generate(_charts.length, (int index) => PopupMenuItem(child:
+                                                    ListTile(
+                                                      onTap: () {
+                                                        setState(() {
+                                                          Navigator.pop(context);
+                                                          _type = _charts[index];
+                                                          Storage().settings.setChartType(_charts[index]);
+                                                        });
+                                                      },
+                                                      dense: true,
+                                                      title: Text(_charts[index]),
+                                                      leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
+                                                    ),
+                                                  ),)
+                                            ),
+                                          ],
+                                        )
+                                      : PopupMenuButton( // layer selection
+                                          tooltip: "Select the chart type",
+                                          icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                              child: const Icon(Icons.photo_library_rounded)),
+                                          initialValue: _type,
+                                          itemBuilder: (BuildContext context) =>
+                                              List.generate(_charts.length, (int index) => PopupMenuItem(child:
+                                                ListTile(
+                                                  onTap: () {
+                                                    setState(() {
+                                                      Navigator.pop(context);
+                                                      _type = _charts[index];
+                                                      Storage().settings.setChartType(_charts[index]);
+                                                    });
+                                                  },
+                                                  dense: true,
+                                                  title: Text(_charts[index]),
+                                                  leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
+                                                ),
+                                              ),)
+                                        ),
 
                                   // switch layers on off
                                   PopupMenuButton( // layer selection
