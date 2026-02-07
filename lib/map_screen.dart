@@ -49,6 +49,8 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
+  static const double _cloudCeilingRadiusNm = 25;
+  static const double _cloudCeilingOpacity = 0.45;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
@@ -304,7 +306,7 @@ class MapScreenState extends State<MapScreen> {
 
   // this should not rebuild till weather is updated
   MarkerClusterLayerWidget? _metarCluster;
-  Widget? _cloudCeilingLayer;
+  PolygonLayer? _cloudCeilingLayer;
   int? _cloudCeilingAltitudeFt;
   int _cloudCeilingMetarRevision = -1;
   MarkerClusterLayerWidget _makeMetarCluster() {
@@ -328,28 +330,7 @@ class MapScreenState extends State<MapScreen> {
     return _metarCluster!;
   }
 
-  Widget _buildCloudCeilingMarker(int ceilingFt) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.cloud, color: Colors.white, size: 18),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.6),
-            borderRadius: const BorderRadius.all(Radius.circular(6)),
-          ),
-          child: AutoSizeText(
-            "$ceilingFt ft",
-            style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w600),
-            minFontSize: 6,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _makeCloudCeilingLayer(int altitudeFt) {
+  PolygonLayer _makeCloudCeilingLayer(int altitudeFt) {
     int metarRevision = Storage().metar.change.value;
     if(_cloudCeilingLayer != null &&
         _cloudCeilingAltitudeFt == altitudeFt &&
@@ -360,23 +341,24 @@ class MapScreenState extends State<MapScreen> {
     _cloudCeilingMetarRevision = metarRevision;
     List<Weather> weather = Storage().metar.getAll();
     List<Metar> metars = weather.map((e) => e as Metar).toList();
-    List<Marker> markers = [];
+    List<Polygon> polygons = [];
     for(Metar m in metars) {
       int? ceilingFt = m.getCeilingFt();
       if(ceilingFt == null || altitudeFt <= ceilingFt) {
         continue;
       }
-      markers.add(Marker(
-        point: m.coordinate,
-        alignment: Alignment.bottomCenter,
-        child: _buildCloudCeilingMarker(ceilingFt),
+      polygons.add(Polygon(
+        points: _calculations.calculateCircle(m.coordinate, _cloudCeilingRadiusNm),
+        color: Colors.black.withValues(alpha: _cloudCeilingOpacity),
+        borderColor: Colors.transparent,
+        borderStrokeWidth: 0,
       ));
     }
-    if(markers.isEmpty) {
-      _cloudCeilingLayer = MarkerLayer(markers: const []);
+    if(polygons.isEmpty) {
+      _cloudCeilingLayer = PolygonLayer(polygons: const []);
       return _cloudCeilingLayer!;
     }
-    _cloudCeilingLayer = makeCluster(markers);
+    _cloudCeilingLayer = PolygonLayer(polygons: polygons);
     return _cloudCeilingLayer!;
   }
 
