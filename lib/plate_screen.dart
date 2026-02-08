@@ -8,6 +8,7 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
+import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
@@ -148,6 +149,9 @@ class PlatesFuture {
 class PlateScreenState extends State<PlateScreen> {
 
   final ValueNotifier _notifier = ValueNotifier(0);
+  final List<_PlateTerrainCell> _terrainCells = [];
+  String _terrainCacheKey = "";
+  int _terrainLoadId = 0;
 
   @override
   void dispose() {
@@ -179,11 +183,134 @@ class PlateScreenState extends State<PlateScreen> {
     // load plate in background
     await Storage().loadPlate();
     Storage().lastPlateAirport = Storage().settings.getCurrentPlateAirport();
+    _refreshTerrainOverlay();
   }
 
 
   void _notifyPaint() {
     _notifier.value++;
+  }
+
+  String _buildTerrainCacheKey(ui.Image image, List<double> matrix) {
+    return "${Storage().settings.getCurrentPlateAirport()}|"
+        "${Storage().currentPlate}|"
+        "${image.width}x${image.height}|"
+        "${matrix.join(",")}";
+  }
+
+  double _terrainCellSize(ui.Image image) {
+    const int targetCells = 64;
+    final int maxDim = max(image.width, image.height);
+    double size = maxDim / targetCells;
+    if (size < 16) {
+      size = 16;
+    }
+    return size;
+  }
+
+  LatLng? _pixelToLatLng(double pixelX, double pixelY, List<double> matrix) {
+    if (matrix.length == 4) {
+      double dx = matrix[0];
+      double dy = matrix[1];
+      double lonTopLeft = matrix[2];
+      double latTopLeft = matrix[3];
+      if (dx == 0 || dy == 0) {
+        return null;
+      }
+      double lon = pixelX / dx + lonTopLeft;
+      double lat = pixelY / dy + latTopLeft;
+      if (lon.isNaN || lat.isNaN) {
+        return null;
+      }
+      return LatLng(lat, lon);
+    }
+    else if (matrix.length == 6) {
+      double wftA = matrix[0];
+      double wftB = matrix[1];
+      double wftC = matrix[2];
+      double wftD = matrix[3];
+      double wftE = matrix[4];
+      double wftF = matrix[5];
+      double det = (wftA * wftD) - (wftB * wftC);
+      if (det == 0) {
+        return null;
+      }
+      double x = 2 * pixelX - wftE;
+      double y = 2 * pixelY - wftF;
+      double lon = (x * wftD - y * wftC) / det;
+      double lat = (y * wftA - x * wftB) / det;
+      if (lon.isNaN || lat.isNaN) {
+        return null;
+      }
+      return LatLng(lat, lon);
+    }
+    return null;
+  }
+
+  Future<List<_PlateTerrainCell>> _buildTerrainCells(ui.Image image, List<double> matrix, int loadId) async {
+    final List<_PlateTerrainCell> cells = [];
+    final double cellSize = _terrainCellSize(image);
+    final double width = image.width.toDouble();
+    final double height = image.height.toDouble();
+    for (double y = 0; y < height; y += cellSize) {
+      final double cellHeight = min(cellSize, height - y);
+      final double centerY = y + cellHeight / 2;
+      for (double x = 0; x < width; x += cellSize) {
+        if (!mounted || loadId != _terrainLoadId) {
+          return cells;
+        }
+        final double cellWidth = min(cellSize, width - x);
+        final double centerX = x + cellWidth / 2;
+        final LatLng? center = _pixelToLatLng(centerX, centerY, matrix);
+        if (center == null) {
+          continue;
+        }
+        final double? elevation = await ElevationCache.getElevation(center);
+        if (!mounted || loadId != _terrainLoadId) {
+          return cells;
+        }
+        if (elevation == null) {
+          continue;
+        }
+        cells.add(_PlateTerrainCell(
+          rect: Rect.fromLTWH(x, y, cellWidth, cellHeight),
+          elevationFt: elevation,
+        ));
+      }
+    }
+    return cells;
+  }
+
+  Future<void> _refreshTerrainOverlay() async {
+    try {
+      final ui.Image? image = Storage().imagePlate;
+      final List<double>? matrix = Storage().matrixPlate;
+      if (image == null || matrix == null || matrix.isEmpty) {
+        if (_terrainCells.isNotEmpty) {
+          _terrainCells.clear();
+          _terrainCacheKey = "";
+          _notifyPaint();
+        }
+        return;
+      }
+      final String cacheKey = _buildTerrainCacheKey(image, matrix);
+      if (_terrainCacheKey == cacheKey && _terrainCells.isNotEmpty) {
+        return;
+      }
+      _terrainCacheKey = cacheKey;
+      final int loadId = ++_terrainLoadId;
+      final List<_PlateTerrainCell> cells = await _buildTerrainCells(image, matrix, loadId);
+      if (!mounted || loadId != _terrainLoadId) {
+        return;
+      }
+      _terrainCells
+        ..clear()
+        ..addAll(cells);
+      _notifyPaint();
+    }
+    catch (_) {
+      // ignore terrain overlay errors to avoid blocking plate rendering
+    }
   }
 
   Widget _makeContent(PlatesFuture? future) {
@@ -236,7 +363,7 @@ class PlateScreenState extends State<PlateScreen> {
           SizedBox(
             height: Constants.screenHeight(context),
             width: Constants.screenWidth(context),
-            child: CustomPaint(painter: _PlatePainter(notifier)),
+            child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells)),
           )
       ),
 
@@ -480,6 +607,9 @@ class _PlatePainter extends CustomPainter {
   ui.Image? _image;
   ui.Image? _imagePlane;
   double? _variation;
+  final List<_PlateTerrainCell> _terrainCells;
+
+  static const double _terrainOverlayAlpha = 0.35;
 
   // Define a paint object
   final _paint = Paint()
@@ -503,7 +633,10 @@ class _PlatePainter extends CustomPainter {
     ..color = Colors.blueAccent.withAlpha(200)
     ..style = PaintingStyle.fill;
 
-  _PlatePainter(ValueNotifier repaint): super(repaint: repaint);
+  final _paintTerrain = Paint()
+    ..style = PaintingStyle.fill;
+
+  _PlatePainter(ValueNotifier repaint, this._terrainCells): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
     double lon = ll.longitude;
@@ -569,6 +702,10 @@ class _PlatePainter extends CustomPainter {
       canvas.scale(fac);
       canvas.drawImage(_image!, const Offset(0, 0), _paint);
 
+      if(_terrainCells.isNotEmpty) {
+        _drawTerrainOverlay(canvas);
+      }
+
       if(null != _matrix) {
 
         double heading = Storage().position.heading;
@@ -615,7 +752,28 @@ class _PlatePainter extends CustomPainter {
     }
   }
 
+  void _drawTerrainOverlay(Canvas canvas) {
+    final double altitudeFt = GeoCalculations.convertAltitude(Storage().position.altitude);
+    final double warningFloor = altitudeFt - 1000;
+    final double cautionFloor = altitudeFt - 500;
+    final Color yellowColor = Colors.yellow.withValues(alpha: _terrainOverlayAlpha);
+    final Color redColor = Colors.red.withValues(alpha: _terrainOverlayAlpha);
+    for(final _PlateTerrainCell cell in _terrainCells) {
+      if(cell.elevationFt < warningFloor) {
+        continue;
+      }
+      _paintTerrain.color = cell.elevationFt < cautionFloor ? yellowColor : redColor;
+      canvas.drawRect(cell.rect, _paintTerrain);
+    }
+  }
+
   @override
   bool shouldRepaint(_PlatePainter oldDelegate) => true;
+}
+
+class _PlateTerrainCell {
+  final Rect rect;
+  final double elevationFt;
+  const _PlateTerrainCell({required this.rect, required this.elevationFt});
 }
 
