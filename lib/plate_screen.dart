@@ -22,6 +22,8 @@ import 'constants.dart';
 import 'data/main_database_helper.dart';
 import 'instruments/instrument_list.dart';
 
+const double _metersToNm = 0.000539957;
+
 // implements a drawing screen with a center reset button.
 
 class PlateScreen extends StatefulWidget {
@@ -152,6 +154,11 @@ class PlateScreenState extends State<PlateScreen> {
   final List<_PlateTerrainCell> _terrainCells = [];
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
+  final Distance _profileDistance = const Distance(calculator: Haversine());
+  final List<_VerticalProfilePoint> _verticalProfilePoints = [];
+  String? _selectedProcedure;
+  String _verticalProfileKey = "";
+  int _verticalProfileLoadId = 0;
 
   @override
   void dispose() {
@@ -313,6 +320,65 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
+  void _updateSelectedProcedure(List<String> procedureNames) {
+    if (procedureNames.isEmpty) {
+      _selectedProcedure = null;
+      _verticalProfilePoints.clear();
+      _verticalProfileKey = "";
+      return;
+    }
+    if (_selectedProcedure == null || !procedureNames.contains(_selectedProcedure)) {
+      _selectedProcedure = procedureNames[0];
+    }
+    final String cacheKey = "${Storage().settings.getCurrentPlateAirport()}|"
+        "${Storage().currentPlate}|$_selectedProcedure";
+    if (cacheKey != _verticalProfileKey) {
+      _verticalProfileKey = cacheKey;
+      _verticalProfilePoints.clear();
+      if (_selectedProcedure != null) {
+        _loadVerticalProfile(_selectedProcedure!);
+      }
+    }
+  }
+
+  Future<void> _loadVerticalProfile(String procedureName) async {
+    final int loadId = ++_verticalProfileLoadId;
+    final List<ProcedureProfilePoint> points =
+        await MainDatabaseHelper.db.findProcedureProfile(procedureName);
+    if (!mounted || loadId != _verticalProfileLoadId) {
+      return;
+    }
+    final List<_VerticalProfilePoint> profilePoints = points
+        .map((point) => _VerticalProfilePoint(
+              name: point.fixIdentifier,
+              coordinate: point.coordinate,
+              altitudeFt: point.altitudeFt,
+            ))
+        .toList();
+    _updateProfileDistances(profilePoints);
+    setState(() {
+      _verticalProfilePoints
+        ..clear()
+        ..addAll(profilePoints);
+    });
+    _notifyPaint();
+  }
+
+  void _updateProfileDistances(List<_VerticalProfilePoint> points) {
+    if (points.isEmpty) {
+      return;
+    }
+    double cumulative = 0;
+    points[0].distanceNm = 0;
+    for (int index = 1; index < points.length; index++) {
+      final double segmentNm =
+          _profileDistance(points[index - 1].coordinate, points[index].coordinate) *
+              _metersToNm;
+      cumulative += segmentNm;
+      points[index].distanceNm = cumulative;
+    }
+  }
+
   Widget _makeContent(PlatesFuture? future) {
 
     double height = 0;
@@ -343,6 +409,7 @@ class PlateScreenState extends State<PlateScreen> {
         procedureNames.add(prec);
       }
     }
+    _updateSelectedProcedure(procedureNames);
 
     return makePlateView(airports, plates, procedureNames, business, height, _notifier);
   }
@@ -370,6 +437,8 @@ class PlateScreenState extends State<PlateScreen> {
             child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity)),
           )
       ),
+
+      _buildVerticalProfileOverlay(context, notifier),
 
       Positioned(
         child: Align(
@@ -506,7 +575,7 @@ class PlateScreenState extends State<PlateScreen> {
                             width: Constants.screenWidth(context) * 0.75,
                           ),
                           isExpanded: false,
-                          value: procedures[0],
+                          value: procedures.contains(_selectedProcedure) ? _selectedProcedure : procedures[0],
                           items: procedures.map((String item) {
                             return DropdownMenuItem<String>(
                                 value: item,
@@ -525,6 +594,13 @@ class PlateScreenState extends State<PlateScreen> {
                             if(value == null) {
                               return;
                             }
+                            setState(() {
+                              _selectedProcedure = value;
+                              _verticalProfileKey = "${Storage().settings.getCurrentPlateAirport()}|"
+                                  "${Storage().currentPlate}|$value";
+                              _verticalProfilePoints.clear();
+                            });
+                            _loadVerticalProfile(value);
                             MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
                               if(procedure != null) {
                                 Storage().route.addWaypoint(Waypoint(procedure));
@@ -571,6 +647,52 @@ class PlateScreenState extends State<PlateScreen> {
       ),
     )
     ])
+    );
+  }
+
+  Widget _buildVerticalProfileOverlay(BuildContext context, ValueNotifier notifier) {
+    if (_selectedProcedure == null || _verticalProfilePoints.isEmpty) {
+      return Container();
+    }
+    final double screenHeight = Constants.screenHeight(context);
+    final double screenWidth = Constants.screenWidth(context);
+    final double height = max(120, screenHeight * (Constants.isPortrait(context) ? 0.22 : 0.3));
+    final double width = screenWidth * 0.9;
+    final Color background = Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8);
+    final Color textColor = Theme.of(context).colorScheme.onSurface;
+    final Color axisColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
+    final Color lineColor = Theme.of(context).colorScheme.secondary;
+    final Color planeColor = Constants.planeColor.withValues(alpha: 0.9);
+
+    return Positioned(
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: IgnorePointer(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: axisColor),
+              ),
+              child: CustomPaint(
+                painter: _VerticalProfilePainter(
+                  notifier,
+                  _verticalProfilePoints,
+                  label: _selectedProcedure ?? "",
+                  textColor: textColor,
+                  axisColor: axisColor,
+                  lineColor: lineColor,
+                  planeColor: planeColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
   
@@ -772,6 +894,294 @@ class _PlatePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PlatePainter oldDelegate) => true;
+}
+
+class _VerticalProfilePoint {
+  final String name;
+  final LatLng coordinate;
+  final double? altitudeFt;
+  double distanceNm;
+  _VerticalProfilePoint({
+    required this.name,
+    required this.coordinate,
+    required this.altitudeFt,
+    this.distanceNm = 0,
+  });
+}
+
+class _VerticalProfilePainter extends CustomPainter {
+  static const double _earthRadiusNm = 3440.069;
+  final List<_VerticalProfilePoint> points;
+  final String label;
+  final Color textColor;
+  final Paint _axisPaint;
+  final Paint _gridPaint;
+  final Paint _linePaint;
+  final Paint _pointPaint;
+  final Paint _planePaint;
+
+  _VerticalProfilePainter(
+      ValueNotifier repaint,
+      this.points, {
+      required this.label,
+      required this.textColor,
+      required Color axisColor,
+      required Color lineColor,
+      required Color planeColor,
+    }) :
+      _axisPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = axisColor,
+      _gridPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = axisColor.withValues(alpha: 0.3),
+      _linePaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = lineColor,
+      _pointPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = lineColor,
+      _planePaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = planeColor,
+      super(repaint: repaint);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) {
+      return;
+    }
+    final List<_VerticalProfilePoint> altitudePoints =
+        points.where((point) => point.altitudeFt != null).toList();
+    if (altitudePoints.isEmpty) {
+      return;
+    }
+    const double leftPad = 42;
+    const double topPad = 20;
+    const double rightPad = 12;
+    const double bottomPad = 30;
+    final Rect chart = Rect.fromLTRB(
+      leftPad,
+      topPad,
+      size.width - rightPad,
+      size.height - bottomPad,
+    );
+    if (chart.width <= 0 || chart.height <= 0) {
+      return;
+    }
+
+    canvas.drawRect(chart, _axisPaint);
+    _drawText(canvas, label, Offset(chart.left, 2), fontSize: 11, fontWeight: FontWeight.bold);
+
+    double minAlt = altitudePoints
+        .map((point) => point.altitudeFt!)
+        .reduce(min);
+    double maxAlt = altitudePoints
+        .map((point) => point.altitudeFt!)
+        .reduce(max);
+    final double planeAlt = GeoCalculations.convertAltitude(Storage().position.altitude);
+    minAlt = min(minAlt, planeAlt);
+    maxAlt = max(maxAlt, planeAlt);
+    if ((maxAlt - minAlt) < 500) {
+      final double mid = (minAlt + maxAlt) / 2;
+      minAlt = mid - 250;
+      maxAlt = mid + 250;
+    }
+    final double padding = max(100, (maxAlt - minAlt) * 0.1);
+    minAlt = max(0, minAlt - padding);
+    maxAlt = maxAlt + padding;
+
+    double totalDistance = points.last.distanceNm;
+    if (totalDistance <= 0) {
+      totalDistance = 1;
+    }
+
+    final List<double> altTicks = [
+      minAlt,
+      (minAlt + maxAlt) / 2,
+      maxAlt,
+    ];
+    for (final double tick in altTicks) {
+      final double y = _yForAltitude(chart, tick, minAlt, maxAlt);
+      canvas.drawLine(Offset(chart.left, y), Offset(chart.right, y), _gridPaint);
+      _drawText(
+        canvas,
+        "${tick.round()} ft",
+        Offset(chart.left - 6, y - 6),
+        align: TextAlign.right,
+      );
+    }
+
+    _drawText(
+      canvas,
+      "0 nm",
+      Offset(chart.left, chart.bottom + 2),
+    );
+    _drawText(
+      canvas,
+      "${totalDistance.toStringAsFixed(1)} nm",
+      Offset(chart.right, chart.bottom + 2),
+      align: TextAlign.right,
+    );
+
+    final Path path = Path();
+    bool hasStarted = false;
+    for (final point in points) {
+      final double? altitude = point.altitudeFt;
+      if (altitude == null) {
+        hasStarted = false;
+        continue;
+      }
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      final double y = _yForAltitude(chart, altitude, minAlt, maxAlt);
+      if (!hasStarted) {
+        path.moveTo(x, y);
+        hasStarted = true;
+      }
+      else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(path, _linePaint);
+
+    for (final point in points) {
+      if (point.altitudeFt == null) {
+        continue;
+      }
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
+      canvas.drawCircle(Offset(x, y), 2.5, _pointPaint);
+    }
+
+    double lastLabelRight = -double.infinity;
+    for (final point in altitudePoints) {
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      canvas.drawLine(
+        Offset(x, chart.bottom),
+        Offset(x, chart.bottom + 4),
+        _axisPaint,
+      );
+      final String label = point.name;
+      if (label.isEmpty) {
+        continue;
+      }
+      final TextPainter measure = _measureText(label, fontSize: 9);
+      final double clampedX = x
+          .clamp(chart.left + measure.width / 2, chart.right - measure.width / 2)
+          .toDouble();
+      final double left = clampedX - measure.width / 2;
+      final double right = clampedX + measure.width / 2;
+      if (left <= lastLabelRight + 4) {
+        continue;
+      }
+      _drawText(
+        canvas,
+        label,
+        Offset(clampedX, chart.bottom + 14),
+        align: TextAlign.center,
+        fontSize: 9,
+      );
+      lastLabelRight = right;
+    }
+
+    final LatLng plane = Gps.toLatLng(Storage().position);
+    final double? planeDistance = _closestDistanceAlongPath(points, plane);
+    if (planeDistance != null) {
+      final double clampedDistance = planeDistance.clamp(0, totalDistance).toDouble();
+      final double x = _xForDistance(chart, clampedDistance, totalDistance);
+      double y = _yForAltitude(chart, planeAlt, minAlt, maxAlt);
+      y = y.clamp(chart.top, chart.bottom).toDouble();
+      canvas.drawCircle(Offset(x, y), 3.5, _planePaint);
+    }
+  }
+
+  double _xForDistance(Rect chart, double distance, double totalDistance) {
+    return chart.left + (distance / totalDistance) * chart.width;
+  }
+
+  double _yForAltitude(Rect chart, double altitude, double minAlt, double maxAlt) {
+    return chart.bottom - ((altitude - minAlt) / (maxAlt - minAlt)) * chart.height;
+  }
+
+  TextPainter _measureText(String text, {double fontSize = 10, FontWeight fontWeight = FontWeight.normal}) {
+    final TextPainter tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(color: textColor, fontSize: fontSize, fontWeight: fontWeight),
+      ),
+      textAlign: TextAlign.left,
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout();
+    return tp;
+  }
+
+  void _drawText(
+      Canvas canvas,
+      String text,
+      Offset position, {
+      TextAlign align = TextAlign.left,
+      double fontSize = 10,
+      FontWeight fontWeight = FontWeight.normal,
+    }) {
+    final TextPainter tp = _measureText(text, fontSize: fontSize, fontWeight: fontWeight);
+    Offset drawOffset = position;
+    if (align == TextAlign.center) {
+      drawOffset = Offset(position.dx - tp.width / 2, position.dy);
+    }
+    else if (align == TextAlign.right) {
+      drawOffset = Offset(position.dx - tp.width, position.dy);
+    }
+    tp.paint(canvas, drawOffset);
+  }
+
+  double? _closestDistanceAlongPath(List<_VerticalProfilePoint> points, LatLng plane) {
+    if (points.length < 2) {
+      return null;
+    }
+    double bestSq = double.infinity;
+    double? bestAlong;
+    for (int index = 0; index < points.length - 1; index++) {
+      final LatLng a = points[index].coordinate;
+      final LatLng b = points[index + 1].coordinate;
+      final double refLat = GeoCalculations.toRadians((a.latitude + b.latitude) / 2);
+      final Offset aNm = _toLocalNm(a, refLat);
+      final Offset bNm = _toLocalNm(b, refLat);
+      final Offset pNm = _toLocalNm(plane, refLat);
+      final Offset ab = bNm - aNm;
+      final Offset ap = pNm - aNm;
+      final double abLenSq = ab.dx * ab.dx + ab.dy * ab.dy;
+      if (abLenSq == 0) {
+        continue;
+      }
+      double t = (ap.dx * ab.dx + ap.dy * ab.dy) / abLenSq;
+      t = t.clamp(0, 1).toDouble();
+      final Offset proj = Offset(aNm.dx + ab.dx * t, aNm.dy + ab.dy * t);
+      final Offset diff = pNm - proj;
+      final double distSq = diff.dx * diff.dx + diff.dy * diff.dy;
+      if (distSq < bestSq) {
+        bestSq = distSq;
+        final double segmentDistance = points[index + 1].distanceNm - points[index].distanceNm;
+        bestAlong = points[index].distanceNm + segmentDistance * t;
+      }
+    }
+    return bestAlong;
+  }
+
+  Offset _toLocalNm(LatLng point, double refLat) {
+    final double lat = GeoCalculations.toRadians(point.latitude);
+    final double lon = GeoCalculations.toRadians(point.longitude);
+    return Offset(
+      lon * cos(refLat) * _earthRadiusNm,
+      lat * _earthRadiusNm,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_VerticalProfilePainter oldDelegate) => true;
 }
 
 class _PlateTerrainCell {

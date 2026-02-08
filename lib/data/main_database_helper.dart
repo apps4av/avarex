@@ -13,6 +13,17 @@ import 'package:avaremp/place/saa.dart';
 
 import 'db_general.dart';
 
+class ProcedureProfilePoint {
+  final String fixIdentifier;
+  final LatLng coordinate;
+  final double? altitudeFt;
+  const ProcedureProfilePoint({
+    required this.fixIdentifier,
+    required this.coordinate,
+    required this.altitudeFt,
+  });
+}
+
 class MainDatabaseHelper {
   MainDatabaseHelper._();
 
@@ -469,6 +480,116 @@ class MainDatabaseHelper {
       lastId = id;
     }
     return ProcedureDestination.fromMap(procedureName, mapsCombined);
+  }
+
+  Future<List<ProcedureProfilePoint>> findProcedureProfile(String procedureName) async {
+    List<Map<String, dynamic>> maps = [];
+    List<String> segments = procedureName.split(".");
+    if (segments.length < 2) {
+      return [];
+    }
+    if (segments.length < 3) {
+      segments.add("");
+    }
+
+    String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}'"
+        " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'"
+        " and trim(transition_identifier) = '${segments[2].toUpperCase()}'"
+        " order by trim(sequence_number) asc";
+    final db = await database;
+    if (db != null) {
+      maps = await DbGeneral.query(db, qry);
+    }
+    if (maps.isEmpty) {
+      return [];
+    }
+
+    List<ProcedureProfilePoint> points = [];
+    String lastId = "";
+    for (final m in maps) {
+      String id = (m['fix_identifier'] as String).trim();
+      if (id.isEmpty || id == lastId) {
+        continue;
+      }
+      Destination? d;
+      d = await findFix(id);
+      if (d == null) {
+        d = await findNav(id);
+        if (d == null) {
+          AirportDestination? da = await findAirport(segments[0]);
+          if (da != null) {
+            LatLng? ll = await Airport.findCoordinatesFromRunway(da, id);
+            if (ll != null) {
+              d = GpsDestination(locationID: id, type: Destination.typeGps, facilityName: id, coordinate: ll);
+            }
+          }
+        }
+      }
+      if (d == null) {
+        continue;
+      }
+      double? altitudeFt = _parseCifpAltitudeFt(m);
+      points.add(ProcedureProfilePoint(
+        fixIdentifier: id,
+        coordinate: d.coordinate,
+        altitudeFt: altitudeFt,
+      ));
+      lastId = id;
+    }
+
+    return points;
+  }
+
+  static String? _readCifpValue(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      if (!map.containsKey(key)) {
+        continue;
+      }
+      final value = map[key];
+      if (value == null) {
+        continue;
+      }
+      final String text = value.toString().trim();
+      if (text.isNotEmpty) {
+        return text;
+      }
+    }
+    return null;
+  }
+
+  static double? _parseCifpAltitudeFt(Map<String, dynamic> map) {
+    final String? altitude1 = _readCifpValue(map, [
+      'altitude_1',
+      'altitude1',
+      'altitude',
+    ]);
+    final String? altitude2 = _readCifpValue(map, [
+      'altitude_2',
+      'altitude2',
+    ]);
+    final double? alt1 = _parseAltitudeValue(altitude1);
+    final double? alt2 = _parseAltitudeValue(altitude2);
+    return alt1 ?? alt2;
+  }
+
+  static double? _parseAltitudeValue(String? raw) {
+    if (raw == null) {
+      return null;
+    }
+    final String trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    final bool isFlightLevel = trimmed.toUpperCase().contains("FL");
+    final String digits = trimmed.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.isEmpty) {
+      return null;
+    }
+    final double? value = double.tryParse(digits);
+    if (value == null) {
+      return null;
+    }
+    return isFlightLevel ? value * 100 : value;
   }
 
   Future<(double, double)> getGeoInfo(LatLng ll) async {
