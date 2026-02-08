@@ -557,6 +557,20 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
+  void _toggleProfileVisibility() {
+    setState(() {
+      _isProfileVisible = !_isProfileVisible;
+      Storage().settings.setPlateProfileVisible(_isProfileVisible);
+      if (!_isProfileVisible) {
+        _verticalProfilePoints.clear();
+        _verticalProfileKey = "";
+      }
+    });
+    if (_isProfileVisible && _selectedProcedure != null && _verticalProfilePoints.isEmpty) {
+      _loadVerticalProfile(_selectedProcedure!);
+    }
+  }
+
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
@@ -564,7 +578,6 @@ class PlateScreenState extends State<PlateScreen> {
       Storage().business = null;
     }
 
-    final bool canShowProfile = procedures.isNotEmpty && procedures[0].isNotEmpty;
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     final double opacity = layersOpacity[layers.indexOf("Elevation")];
@@ -710,34 +723,6 @@ class PlateScreenState extends State<PlateScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  !canShowProfile ? Container() :
-                  Container(
-                    padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
-                    child: CircleAvatar(
-                      radius: 14,
-                      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        icon: Icon(_isProfileVisible ? Icons.visibility : Icons.visibility_off, size: 16),
-                        onPressed: () {
-                          setState(() {
-                            _isProfileVisible = !_isProfileVisible;
-                            Storage().settings.setPlateProfileVisible(_isProfileVisible);
-                            if (!_isProfileVisible) {
-                              _verticalProfilePoints.clear();
-                              _verticalProfileKey = "";
-                            }
-                          });
-                          if (_isProfileVisible) {
-                            _updateSelectedProcedure(procedures);
-                            if (_selectedProcedure != null && _verticalProfilePoints.isEmpty) {
-                              _loadVerticalProfile(_selectedProcedure!);
-                            }
-                          }
-                        },
-                      ),
-                    ),
-                  ),
                   procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
                   Container(
                     padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
@@ -799,7 +784,7 @@ class PlateScreenState extends State<PlateScreen> {
                         )
                     )
                   ),
-
+ 
                   airports[0].isEmpty ? Container() :
                   Container(
                     padding: EdgeInsets.fromLTRB(5, 5, 15, Constants.bottomPaddingSize(context) + 5),
@@ -836,13 +821,13 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
   Widget _buildVerticalProfileOverlay(BuildContext context, ValueNotifier notifier) {
-    if (!_isProfileVisible || _selectedProcedure == null || _verticalProfilePoints.isEmpty) {
+    if (_selectedProcedure == null) {
       return Container();
     }
     final double screenHeight = Constants.screenHeight(context);
     final double screenWidth = Constants.screenWidth(context);
-    final double height = max(120, screenHeight * (Constants.isPortrait(context) ? 0.22 : 0.3));
-    final double width = screenWidth * 0.9;
+    final double height = screenHeight;
+    final double width = screenWidth * 0.5;
     final Color background = Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8);
     final Color textColor = Theme.of(context).colorScheme.onSurface;
     final Color axisColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
@@ -851,30 +836,49 @@ class PlateScreenState extends State<PlateScreen> {
 
     return Positioned(
       child: Align(
-        alignment: Alignment.bottomCenter,
-        child: IgnorePointer(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
-            child: Container(
-              width: width,
-              height: height,
-              decoration: BoxDecoration(
-                color: background,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: axisColor),
-              ),
-              child: CustomPaint(
-                painter: _VerticalProfilePainter(
-                  notifier,
-                  _verticalProfilePoints,
-                  label: _selectedProcedure ?? "",
-                  textColor: textColor,
-                  axisColor: axisColor,
-                  lineColor: lineColor,
-                  planeColor: planeColor,
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: Stack(
+            children: [
+              if (_isProfileVisible)
+                IgnorePointer(
+                  child: Container(
+                    width: width,
+                    height: height,
+                    decoration: BoxDecoration(
+                      color: background,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: axisColor),
+                    ),
+                    child: CustomPaint(
+                      painter: _VerticalProfilePainter(
+                        notifier,
+                        _verticalProfilePoints,
+                        label: _selectedProcedure ?? "",
+                        textColor: textColor,
+                        axisColor: axisColor,
+                        lineColor: lineColor,
+                        planeColor: planeColor,
+                      ),
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: CircleAvatar(
+                  radius: 14,
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(_isProfileVisible ? Icons.visibility : Icons.visibility_off, size: 16),
+                    onPressed: _toggleProfileVisibility,
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ),
       ),
