@@ -525,6 +525,32 @@ class MainDatabaseHelper {
       return isFlightLevel ? value * 100 : value;
     }
 
+    double? parseCourseValue(String? raw) {
+      if (raw == null) {
+        return null;
+      }
+      final String trimmed = raw.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      final String cleaned = trimmed.replaceAll(RegExp(r'[^0-9\.\-]'), '');
+      if (cleaned.isEmpty) {
+        return null;
+      }
+      double? value = double.tryParse(cleaned);
+      if (value == null) {
+        return null;
+      }
+      if (!cleaned.contains('.') && cleaned.length > 3) {
+        value = value / 10;
+      }
+      value = value % 360;
+      if (value < 0) {
+        value += 360;
+      }
+      return value;
+    }
+
     double? parseCifpAltitudeFt(Map<String, dynamic> map) {
       final String? altitude1 = readCifpValue(map, [
         'altitude_1',
@@ -538,6 +564,17 @@ class MainDatabaseHelper {
       final double? alt1 = parseAltitudeValue(altitude1);
       final double? alt2 = parseAltitudeValue(altitude2);
       return alt1 ?? alt2;
+    }
+
+    double? parseCifpMagneticCourse(Map<String, dynamic> map) {
+      final String? course = readCifpValue(map, [
+        'magnetic_course',
+        'magneticCourse',
+        'course',
+        'magnetic_course_true',
+        'magneticCourseTrue',
+      ]);
+      return parseCourseValue(course);
     }
 
     List<Map<String, dynamic>> maps = [];
@@ -586,10 +623,12 @@ class MainDatabaseHelper {
         continue;
       }
       double? altitudeFt = parseCifpAltitudeFt(m);
+      double? magneticCourseDeg = parseCifpMagneticCourse(m);
       points.add(ProcedureProfilePoint(
         fixIdentifier: id,
         coordinate: d.coordinate,
         altitudeFt: altitudeFt,
+        magneticCourseDeg: magneticCourseDeg,
       ));
       lastId = id;
     }

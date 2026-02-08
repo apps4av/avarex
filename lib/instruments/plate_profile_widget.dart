@@ -101,6 +101,7 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
       name: point.fixIdentifier,
       coordinate: point.coordinate,
       altitudeFt: point.altitudeFt,
+      magneticCourseDeg: point.magneticCourseDeg,
     ))
         .toList();
     final LatLng? runway = await _findRunwayCoordinate(procedureName, profilePoints);
@@ -175,6 +176,7 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
       distancesFromStart[index] = cumulative;
       points[index].distanceNm = cumulative;
     }
+    _updateProfileLaterals(points);
     if (runway == null) {
       return;
     }
@@ -184,6 +186,29 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
     }
     for (int index = 0; index < points.length; index++) {
       points[index].distanceNm = (distancesFromStart[index] - runwayDistance).abs();
+    }
+  }
+
+  void _updateProfileLaterals(List<_VerticalProfilePoint> points) {
+    if (points.isEmpty) {
+      return;
+    }
+    points.first.lateralNm = 0;
+    for (int index = 1; index < points.length; index++) {
+      final double? course = points[index].magneticCourseDeg;
+      if (course == null) {
+        points[index].lateralNm = 0;
+        continue;
+      }
+      final LatLng prev = points[index - 1].coordinate;
+      final LatLng curr = points[index].coordinate;
+      final double refLat = GeoCalculations.toRadians((prev.latitude + curr.latitude) / 2);
+      final Offset prevNm = _toLocalNm(prev, refLat);
+      final Offset currNm = _toLocalNm(curr, refLat);
+      final Offset delta = currNm - prevNm;
+      final double courseRad = course * pi / 180;
+      final Offset dir = Offset(sin(courseRad), cos(courseRad));
+      points[index].lateralNm = delta.dx * dir.dy - delta.dy * dir.dx;
     }
   }
 
@@ -239,11 +264,14 @@ class _VerticalProfilePoint {
   final String name;
   final LatLng coordinate;
   final double? altitudeFt;
+  final double? magneticCourseDeg;
   double distanceNm = 0;
+  double lateralNm = 0;
   _VerticalProfilePoint({
     required this.name,
     required this.coordinate,
     required this.altitudeFt,
+    required this.magneticCourseDeg,
   });
 }
 
@@ -346,6 +374,8 @@ class _VerticalProfilePainter extends CustomPainter {
     if (totalDistance <= 0) {
       totalDistance = 1;
     }
+    final double maxAbsLateral = _maxAbsLateral(points);
+    final Offset depthVector = _depthVector(chart);
 
     for (double tick = minAlt; tick <= maxAlt; tick += 1000) {
       final double y = _yForAltitude(chart, tick, minAlt, maxAlt);
@@ -370,6 +400,17 @@ class _VerticalProfilePainter extends CustomPainter {
       Offset(chart.right, chart.bottom + 2),
       align: TextAlign.right,
     );
+    if (maxAbsLateral > 0.05) {
+      final Offset axisStart = Offset(chart.left + 6, chart.bottom - 6);
+      final Offset axisEnd = axisStart + depthVector;
+      canvas.drawLine(axisStart, axisEnd, _gridPaint);
+      _drawText(
+        canvas,
+        "Lat +/-${maxAbsLateral.toStringAsFixed(1)} nm",
+        axisEnd + const Offset(2, -10),
+        fontSize: 8,
+      );
+    }
 
     final ui.Path path = ui.Path();
     bool hasStarted = false;
@@ -379,14 +420,21 @@ class _VerticalProfilePainter extends CustomPainter {
         hasStarted = false;
         continue;
       }
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
-      final double y = _yForAltitude(chart, altitude, minAlt, maxAlt);
+      final Offset projected = _projectPoint(
+        chart,
+        point,
+        totalDistance,
+        minAlt,
+        maxAlt,
+        depthVector,
+        maxAbsLateral,
+      );
       if (!hasStarted) {
-        path.moveTo(x, y);
+        path.moveTo(projected.dx, projected.dy);
         hasStarted = true;
       }
       else {
-        path.lineTo(x, y);
+        path.lineTo(projected.dx, projected.dy);
       }
     }
     canvas.drawPath(path, _linePaint);
@@ -395,17 +443,31 @@ class _VerticalProfilePainter extends CustomPainter {
       if (point.altitudeFt == null || _isMissedApproachPoint(point.name)) {
         continue;
       }
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
-      final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
-      canvas.drawCircle(Offset(x, y), 2.5, _pointPaint);
+      final Offset projected = _projectPoint(
+        chart,
+        point,
+        totalDistance,
+        minAlt,
+        maxAlt,
+        depthVector,
+        maxAbsLateral,
+      );
+      canvas.drawCircle(projected, 2.5, _pointPaint);
     }
 
     double lastLabelRight = -double.infinity;
     for (final point in labelPoints) {
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
+      final Offset axisBase = _projectAxisPoint(
+        chart,
+        point.distanceNm,
+        point.lateralNm,
+        totalDistance,
+        depthVector,
+        maxAbsLateral,
+      );
       canvas.drawLine(
-        Offset(x, chart.bottom),
-        Offset(x, chart.bottom + 4),
+        axisBase,
+        axisBase + const Offset(0, 4),
         _axisPaint,
       );
       final String label = point.name;
@@ -413,7 +475,7 @@ class _VerticalProfilePainter extends CustomPainter {
         continue;
       }
       final TextPainter measure = _measureText(label, fontSize: 9);
-      final double clampedX = x
+      final double clampedX = axisBase.dx
           .clamp(chart.left + measure.width / 2, chart.right - measure.width / 2)
           .toDouble();
       final double left = clampedX - measure.width / 2;
@@ -424,7 +486,7 @@ class _VerticalProfilePainter extends CustomPainter {
       _drawText(
         canvas,
         label,
-        Offset(clampedX, chart.bottom + 14),
+        Offset(clampedX, axisBase.dy + 14),
         align: TextAlign.center,
         fontSize: 9,
       );
@@ -433,18 +495,34 @@ class _VerticalProfilePainter extends CustomPainter {
 
     final LatLng plane = Gps.toLatLng(Storage().position);
     final _VerticalProfilePoint? landingPoint = _landingPoint(points);
+    final ({double alongNm, double lateralNm})? planeSample =
+        _closestSampleAlongPath(points, plane);
     double? planeDistance;
     if (landingPoint != null) {
       const Distance distanceCalculator = Distance(calculator: Haversine());
       planeDistance = distanceCalculator(plane, landingPoint.coordinate) * _metersToNm;
     }
-    planeDistance ??= _closestDistanceAlongPath(points, plane);
+    planeDistance ??= planeSample?.alongNm;
+    final double planeLateral = planeSample?.lateralNm ?? 0;
     if (planeDistance != null) {
       final double clampedDistance = planeDistance.clamp(0, totalDistance).toDouble();
-      final double x = _xForDistance(chart, clampedDistance, totalDistance, fromLanding: true);
-      double y = _yForAltitude(chart, planeAlt, minAlt, maxAlt);
-      y = y.clamp(chart.top, chart.bottom).toDouble();
-      canvas.drawCircle(Offset(x, y), 3.5, _planePaint);
+      final double clampedAlt = planeAlt.clamp(minAlt, maxAlt).toDouble();
+      final Offset planePoint = _projectLocation(
+        chart,
+        clampedDistance,
+        clampedAlt,
+        totalDistance,
+        minAlt,
+        maxAlt,
+        planeLateral,
+        depthVector,
+        maxAbsLateral,
+      );
+      final Offset clampedPoint = Offset(
+        planePoint.dx.clamp(chart.left, chart.right).toDouble(),
+        planePoint.dy.clamp(chart.top, chart.bottom).toDouble(),
+      );
+      canvas.drawCircle(clampedPoint, 3.5, _planePaint);
     }
   }
 
@@ -495,12 +573,85 @@ class _VerticalProfilePainter extends CustomPainter {
     return name.trim().toUpperCase() == "MAP";
   }
 
-  double? _closestDistanceAlongPath(List<_VerticalProfilePoint> points, LatLng plane) {
+  Offset _depthVector(Rect chart) {
+    final double depth = min(chart.width, chart.height) * 0.12;
+    return Offset(depth, -depth * 0.6);
+  }
+
+  double _depthFactor(double lateralNm, double maxAbsLateral) {
+    if (maxAbsLateral <= 0) {
+      return 0;
+    }
+    return (lateralNm / maxAbsLateral).clamp(-1, 1).toDouble();
+  }
+
+  Offset _projectPoint(
+      Rect chart,
+      _VerticalProfilePoint point,
+      double totalDistance,
+      double minAlt,
+      double maxAlt,
+      Offset depthVector,
+      double maxAbsLateral,
+      ) {
+    final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
+    final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
+    final double depth = _depthFactor(point.lateralNm, maxAbsLateral);
+    return Offset(x + depthVector.dx * depth, y + depthVector.dy * depth);
+  }
+
+  Offset _projectAxisPoint(
+      Rect chart,
+      double distanceNm,
+      double lateralNm,
+      double totalDistance,
+      Offset depthVector,
+      double maxAbsLateral,
+      ) {
+    final double x = _xForDistance(chart, distanceNm, totalDistance, fromLanding: true);
+    final double depth = _depthFactor(lateralNm, maxAbsLateral);
+    return Offset(x + depthVector.dx * depth, chart.bottom + depthVector.dy * depth);
+  }
+
+  Offset _projectLocation(
+      Rect chart,
+      double distanceNm,
+      double altitude,
+      double totalDistance,
+      double minAlt,
+      double maxAlt,
+      double lateralNm,
+      Offset depthVector,
+      double maxAbsLateral,
+      ) {
+    final double x = _xForDistance(chart, distanceNm, totalDistance, fromLanding: true);
+    final double y = _yForAltitude(chart, altitude, minAlt, maxAlt);
+    final double depth = _depthFactor(lateralNm, maxAbsLateral);
+    return Offset(x + depthVector.dx * depth, y + depthVector.dy * depth);
+  }
+
+  double _maxAbsLateral(List<_VerticalProfilePoint> points) {
+    double maxAbs = 0;
+    for (final point in points) {
+      maxAbs = max(maxAbs, point.lateralNm.abs());
+    }
+    return maxAbs;
+  }
+
+  double _bearingBetween(LatLng a, LatLng b) {
+    return GeoCalculations().calculateBearing(a, b);
+  }
+
+  ({double alongNm, double lateralNm})? _closestSampleAlongPath(
+      List<_VerticalProfilePoint> points,
+      LatLng plane,
+      ) {
     if (points.length < 2) {
       return null;
     }
     double bestSq = double.infinity;
     double? bestAlong;
+    double bestLateral = 0;
     for (int index = 0; index < points.length - 1; index++) {
       final LatLng a = points[index].coordinate;
       final LatLng b = points[index + 1].coordinate;
@@ -523,9 +674,16 @@ class _VerticalProfilePainter extends CustomPainter {
         bestSq = distSq;
         final double segmentDistance = points[index + 1].distanceNm - points[index].distanceNm;
         bestAlong = points[index].distanceNm + segmentDistance * t;
+        final double course = points[index + 1].magneticCourseDeg ?? _bearingBetween(a, b);
+        final double courseRad = course * pi / 180;
+        final Offset dir = Offset(sin(courseRad), cos(courseRad));
+        bestLateral = ap.dx * dir.dy - ap.dy * dir.dx;
       }
     }
-    return bestAlong;
+    if (bestAlong == null) {
+      return null;
+    }
+    return (alongNm: bestAlong, lateralNm: bestLateral);
   }
 
   Offset _toLocalNm(LatLng point, double refLat) {
@@ -558,9 +716,11 @@ class ProcedureProfilePoint {
   final String fixIdentifier;
   final LatLng coordinate;
   final double? altitudeFt;
+  final double? magneticCourseDeg;
   const ProcedureProfilePoint({
     required this.fixIdentifier,
     required this.coordinate,
     required this.altitudeFt,
+    required this.magneticCourseDeg,
   });
 }
