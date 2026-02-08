@@ -294,6 +294,9 @@ class _VerticalProfilePainter extends CustomPainter {
     }
     final List<_VerticalProfilePoint> altitudePoints =
     points.where((point) => point.altitudeFt != null).toList();
+    final List<_VerticalProfilePoint> labelPoints = altitudePoints
+        .where((point) => !_isMissedApproachPoint(point.name))
+        .toList();
     if (altitudePoints.isEmpty) {
       return;
     }
@@ -389,7 +392,7 @@ class _VerticalProfilePainter extends CustomPainter {
     canvas.drawPath(path, _linePaint);
 
     for (final point in points) {
-      if (point.altitudeFt == null) {
+      if (point.altitudeFt == null || _isMissedApproachPoint(point.name)) {
         continue;
       }
       final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
@@ -398,7 +401,7 @@ class _VerticalProfilePainter extends CustomPainter {
     }
 
     double lastLabelRight = -double.infinity;
-    for (final point in altitudePoints) {
+    for (final point in labelPoints) {
       final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: true);
       canvas.drawLine(
         Offset(x, chart.bottom),
@@ -486,6 +489,10 @@ class _VerticalProfilePainter extends CustomPainter {
       drawOffset = Offset(position.dx - tp.width, position.dy);
     }
     tp.paint(canvas, drawOffset);
+  }
+
+  bool _isMissedApproachPoint(String name) {
+    return name.trim().toUpperCase() == "MAP";
   }
 
   double? _closestDistanceAlongPath(List<_VerticalProfilePoint> points, LatLng plane) {
