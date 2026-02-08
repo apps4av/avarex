@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
@@ -355,7 +356,8 @@ class PlateScreenState extends State<PlateScreen> {
               altitudeFt: point.altitudeFt,
             ))
         .toList();
-    _updateProfileDistances(profilePoints);
+    final LatLng? runway = await _findRunwayCoordinate(procedureName, profilePoints);
+    _updateProfileDistances(profilePoints, runway);
     setState(() {
       _verticalProfilePoints
         ..clear()
@@ -364,19 +366,125 @@ class PlateScreenState extends State<PlateScreen> {
     _notifyPaint();
   }
 
-  void _updateProfileDistances(List<_VerticalProfilePoint> points) {
+  Future<LatLng?> _findRunwayCoordinate(
+      String procedureName,
+      List<_VerticalProfilePoint> points,
+    ) async {
+    final RegExp runwayExp = RegExp(r'^RW\d+[LRC]?$');
+    for (final point in points) {
+      if (runwayExp.hasMatch(point.name)) {
+        return point.coordinate;
+      }
+    }
+    final List<String> segments = procedureName.split(".");
+    if (segments.isEmpty) {
+      return null;
+    }
+    final String airportId = segments[0].trim().toUpperCase();
+    String runway = "";
+    if (segments.length > 1) {
+      runway = segments[1].toUpperCase().replaceAll(RegExp(r'[^0-9LRC]'), '');
+      if (runway.isNotEmpty) {
+        runway = _normalizeRunwayIdent(runway);
+      }
+    }
+    if (runway.isEmpty) {
+      return null;
+    }
+    final AirportDestination? airport = await MainDatabaseHelper.db.findAirport(airportId);
+    if (airport == null) {
+      return null;
+    }
+    return Airport.findCoordinatesFromRunway(airport, "RW$runway");
+  }
+
+  String _normalizeRunwayIdent(String runway) {
+    final RegExp exp = RegExp(r'^(?<num>\d+)(?<side>[LRC]?)$');
+    final Match? match = exp.firstMatch(runway);
+    if (match == null) {
+      return runway;
+    }
+    String number = match.namedGroup("num") ?? runway;
+    final String side = match.namedGroup("side") ?? "";
+    if (number.length == 1) {
+      number = "0$number";
+    }
+    return "$number$side";
+  }
+
+  void _updateProfileDistances(List<_VerticalProfilePoint> points, LatLng? runway) {
     if (points.isEmpty) {
       return;
     }
     double cumulative = 0;
+    final List<double> distancesFromStart = List.filled(points.length, 0);
+    distancesFromStart[0] = 0;
     points[0].distanceNm = 0;
     for (int index = 1; index < points.length; index++) {
       final double segmentNm =
           _profileDistance(points[index - 1].coordinate, points[index].coordinate) *
               _metersToNm;
       cumulative += segmentNm;
+      distancesFromStart[index] = cumulative;
       points[index].distanceNm = cumulative;
     }
+    if (runway == null) {
+      return;
+    }
+    final double? runwayDistance = _distanceAlongPath(points, distancesFromStart, runway);
+    if (runwayDistance == null) {
+      return;
+    }
+    for (int index = 0; index < points.length; index++) {
+      points[index].distanceNm = (distancesFromStart[index] - runwayDistance).abs();
+    }
+  }
+
+  double? _distanceAlongPath(
+      List<_VerticalProfilePoint> points,
+      List<double> distancesFromStart,
+      LatLng target,
+    ) {
+    if (points.length < 2) {
+      return null;
+    }
+    double bestSq = double.infinity;
+    double? bestDistance;
+    for (int index = 0; index < points.length - 1; index++) {
+      final LatLng a = points[index].coordinate;
+      final LatLng b = points[index + 1].coordinate;
+      final double refLat = GeoCalculations.toRadians((a.latitude + b.latitude) / 2);
+      final Offset aNm = _toLocalNm(a, refLat);
+      final Offset bNm = _toLocalNm(b, refLat);
+      final Offset pNm = _toLocalNm(target, refLat);
+      final Offset ab = bNm - aNm;
+      final Offset ap = pNm - aNm;
+      final double abLenSq = ab.dx * ab.dx + ab.dy * ab.dy;
+      if (abLenSq == 0) {
+        continue;
+      }
+      double t = (ap.dx * ab.dx + ap.dy * ab.dy) / abLenSq;
+      t = t.clamp(0, 1).toDouble();
+      final Offset proj = Offset(aNm.dx + ab.dx * t, aNm.dy + ab.dy * t);
+      final Offset diff = pNm - proj;
+      final double distSq = diff.dx * diff.dx + diff.dy * diff.dy;
+      if (distSq < bestSq) {
+        bestSq = distSq;
+        final double segmentDistance = distancesFromStart[index + 1] - distancesFromStart[index];
+        bestDistance = distancesFromStart[index] + segmentDistance * t;
+      }
+    }
+    return bestDistance;
+  }
+
+  Offset _toLocalNm(LatLng point, double refLat) {
+    const double earthRadiusNm = 3440.069;
+    final double lat = GeoCalculations.toRadians(point.latitude);
+    final double lon = GeoCalculations.toRadians(point.longitude);
+    return Offset(
+      lon * cos(refLat) * earthRadiusNm,
+      lat * earthRadiusNm,
+    );
   }
 
   Widget _makeContent(PlatesFuture? future) {
@@ -993,25 +1101,28 @@ class _VerticalProfilePainter extends CustomPainter {
     final double padding = max(100, (maxAlt - minAlt) * 0.1);
     minAlt = max(0, minAlt - padding);
     maxAlt = maxAlt + padding;
+    minAlt = (minAlt / 100).floor() * 100;
+    maxAlt = (maxAlt / 100).ceil() * 100;
+    if (maxAlt == minAlt) {
+      maxAlt = minAlt + 100;
+    }
 
-    double totalDistance = points.last.distanceNm;
+    double totalDistance = points
+        .map((point) => point.distanceNm)
+        .reduce(max);
     if (totalDistance <= 0) {
       totalDistance = 1;
     }
 
-    final List<double> altTicks = [
-      minAlt,
-      (minAlt + maxAlt) / 2,
-      maxAlt,
-    ];
-    for (final double tick in altTicks) {
+    for (double tick = minAlt; tick <= maxAlt; tick += 100) {
       final double y = _yForAltitude(chart, tick, minAlt, maxAlt);
       canvas.drawLine(Offset(chart.left, y), Offset(chart.right, y), _gridPaint);
       _drawText(
         canvas,
         "${tick.round()} ft",
-        Offset(chart.left - 6, y - 6),
+        Offset(chart.left - 6, y - 5),
         align: TextAlign.right,
+        fontSize: 8,
       );
     }
 
