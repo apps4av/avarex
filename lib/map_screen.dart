@@ -438,6 +438,8 @@ class MapScreenState extends State<MapScreen> {
 
     double opacity = 1.0;
 
+    bool showAltitudeSlider = false;
+
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
 
     //add layers
@@ -604,6 +606,49 @@ class MapScreenState extends State<MapScreen> {
       )));
     }
 
+    lIndex = _layers.indexOf('Ceiling');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      showAltitudeSlider = true;
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().metar.change,
+              builder: (context, value, _) {
+                List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
+                return _ceilingLayer.build(
+                  altitudeFt: Storage().route.altitude,
+                  metarRevision: Storage().metar.change.value,
+                  current: Gps.toLatLng(Storage().position),
+                  metars: metars,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
+    lIndex = _layers.indexOf('Wind Vectors');
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        showAltitudeSlider = true;
+        layers.add(
+          IgnorePointer(
+            child: Opacity(
+              opacity: opacity,
+              child: WindVectorLayer(
+                mapController: _controller,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
     lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
@@ -637,47 +682,6 @@ class MapScreenState extends State<MapScreen> {
 
       layers.add(Opacity(opacity: opacity, child: _makeAirSigmetCluster()));
 
-    }
-
-    lIndex = _layers.indexOf('Ceiling');
-    opacity = _layersOpacity[lIndex];
-    if (opacity > 0) {
-      layers.add(
-        IgnorePointer(
-          child: Opacity(
-            opacity: opacity,
-            child: ValueListenableBuilder<int>(
-              valueListenable: Storage().metar.change,
-              builder: (context, value, _) {
-                List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
-                return _ceilingLayer.build(
-                  altitudeFt: Storage().route.altitude,
-                  metarRevision: Storage().metar.change.value,
-                  current: Gps.toLatLng(Storage().position),
-                  metars: metars,
-                );
-              },
-            ),
-          ),
-        ),
-      );
-    }
-
-    lIndex = _layers.indexOf('Wind Vectors');
-    if (lIndex >= 0) {
-      opacity = _layersOpacity[lIndex];
-      if (opacity > 0) {
-        layers.add(
-          IgnorePointer(
-            child: Opacity(
-              opacity: opacity,
-              child: WindVectorLayer(
-                mapController: _controller,
-              ),
-            ),
-          ),
-        );
-      }
     }
 
     lIndex = _layers.indexOf('TFR');
@@ -1546,7 +1550,20 @@ class MapScreenState extends State<MapScreen> {
                           )
                       )
                   )
-              )
+              ),
+
+              if(showAltitudeSlider)
+                // altitude slider
+                Positioned(child: Align(
+                    alignment: Alignment.centerLeft, child:
+                      RotatedBox(quarterTurns: -1, child:
+                        SizedBox(width: 200, height: 100, child:
+                          Slider(label: "${(Storage().route.altitude / 1000).toInt()}K ft", max: 30000, min: 0, divisions: 30, value: Storage().route.altitude.toDouble(), onChanged: (double value) { setState(() {
+                            Storage().route.altitude = value.toInt();
+                          });}),
+                        )
+                      )
+                )),
             ]
         )
     );
