@@ -841,8 +841,7 @@ class PlateScreenState extends State<PlateScreen> {
     }
     final double screenHeight = Constants.screenHeight(context);
     final double screenWidth = Constants.screenWidth(context);
-    final bool isLandscape = screenWidth > screenHeight;
-    final double height = max(120, screenHeight * (isLandscape ? 0.5 : 0.22));
+    final double height = max(120, screenHeight * (Constants.isPortrait(context) ? 0.22 : 0.3));
     final double width = screenWidth * 0.9;
     final Color background = Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8);
     final Color textColor = Theme.of(context).colorScheme.onSurface;
