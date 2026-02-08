@@ -1101,6 +1101,11 @@ class _VerticalProfilePainter extends CustomPainter {
     final double padding = max(100, (maxAlt - minAlt) * 0.1);
     minAlt = max(0, minAlt - padding);
     maxAlt = maxAlt + padding;
+    minAlt = (minAlt / 1000).floor() * 1000;
+    maxAlt = (maxAlt / 1000).ceil() * 1000;
+    if (maxAlt == minAlt) {
+      maxAlt = minAlt + 1000;
+    }
 
     double totalDistance = points
         .map((point) => point.distanceNm)
@@ -1109,12 +1114,7 @@ class _VerticalProfilePainter extends CustomPainter {
       totalDistance = 1;
     }
 
-    final List<double> altTicks = [
-      minAlt,
-      (minAlt + maxAlt) / 2,
-      maxAlt,
-    ];
-    for (final double tick in altTicks) {
+    for (double tick = minAlt; tick <= maxAlt; tick += 1000) {
       final double y = _yForAltitude(chart, tick, minAlt, maxAlt);
       canvas.drawLine(Offset(chart.left, y), Offset(chart.right, y), _gridPaint);
       _drawText(
