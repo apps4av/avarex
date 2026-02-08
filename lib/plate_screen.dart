@@ -445,7 +445,7 @@ class PlateScreenState extends State<PlateScreen> {
 
     if(iafCoord != null && iafAltitude != null) {
       points.add(_ApproachProfilePoint(
-        label: "IAF",
+        waypointLabel: _buildWaypointLabel("IAF", iafFixId),
         distanceNm: 0,
         altitudeFt: iafAltitude,
         slopeDeg: iafSlope,
@@ -455,7 +455,7 @@ class PlateScreenState extends State<PlateScreen> {
     if(fafCoord != null && fafAltitude != null) {
       cumulative = points.isNotEmpty ? (distanceIafToFaf ?? 0) : 0;
       points.add(_ApproachProfilePoint(
-        label: "FAF",
+        waypointLabel: _buildWaypointLabel("FAF", fafFixId),
         distanceNm: cumulative,
         altitudeFt: fafAltitude,
         slopeDeg: fafSlope,
@@ -474,7 +474,7 @@ class PlateScreenState extends State<PlateScreen> {
     }
 
     points.add(_ApproachProfilePoint(
-      label: "RW",
+      waypointLabel: _buildWaypointLabel("RW", thresholdFixId),
       distanceNm: cumulative,
       altitudeFt: thresholdAltitude,
       slopeDeg: thresholdSlope,
@@ -484,7 +484,7 @@ class PlateScreenState extends State<PlateScreen> {
       return null;
     }
 
-    return _ApproachVerticalProfile(points: points);
+    return _ApproachVerticalProfile(points: points, thresholdCoordinate: thresholdCoord);
   }
 
   static double _toRadians(double degrees) {
@@ -507,6 +507,14 @@ class PlateScreenState extends State<PlateScreen> {
       }
     }
     return "";
+  }
+
+  String _buildWaypointLabel(String role, String fixId) {
+    final String trimmed = fixId.trim();
+    if(trimmed.isEmpty) {
+      return role;
+    }
+    return "$role $trimmed";
   }
 
   bool _isIaf(Map<String, dynamic> map) {
@@ -999,6 +1007,9 @@ class _PlatePainter extends CustomPainter {
     ..style = PaintingStyle.stroke
     ..strokeWidth = 1.5;
 
+  final _paintProfileAircraft = Paint()
+    ..style = PaintingStyle.fill;
+
   _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity, this._approachProfile): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
@@ -1182,6 +1193,7 @@ class _PlatePainter extends CustomPainter {
     _paintProfileLine.color = Colors.cyanAccent.withValues(alpha: 0.9);
     _paintProfileMarker.color = Colors.white;
     _paintProfileCurrent.color = Colors.orangeAccent.withValues(alpha: 0.9);
+    _paintProfileAircraft.color = Colors.orange.withValues(alpha: 0.95);
 
     final List<Offset> points = profile.points.map((p) => Offset(xForDistance(p.distanceNm), yForAlt(p.altitudeFt))).toList();
     for(int i = 0; i < points.length - 1; i++) {
@@ -1194,6 +1206,15 @@ class _PlatePainter extends CustomPainter {
     final double currentY = yForAlt(currentAlt);
     if(currentY >= rect.top && currentY <= rect.bottom) {
       canvas.drawLine(Offset(rect.left, currentY), Offset(rect.right, currentY), _paintProfileCurrent);
+    }
+
+    final LatLng currentPos = Gps.toLatLng(Storage().position);
+    final double distanceToThreshold = GeoCalculations().calculateDistance(currentPos, profile.thresholdCoordinate);
+    double distanceAlong = totalDistance - distanceToThreshold;
+    distanceAlong = distanceAlong.clamp(0.0, totalDistance);
+    final double aircraftX = xForDistance(distanceAlong);
+    if(currentY >= rect.top && currentY <= rect.bottom) {
+      canvas.drawCircle(Offset(aircraftX, currentY), 4, _paintProfileAircraft);
     }
 
     double labelFontSize = min(12, max(8, rect.height * 0.14));
@@ -1224,7 +1245,9 @@ class _PlatePainter extends CustomPainter {
     for(int i = 0; i < profile.points.length; i++) {
       final _ApproachProfilePoint point = profile.points[i];
       final String slopeText = point.slopeDeg == null ? "" : " ${point.slopeDeg!.toStringAsFixed(1)}deg";
-      drawText("${point.label}$slopeText", Offset(points[i].dx, rect.bottom - labelFontSize - 2), align: TextAlign.center);
+      drawText("${point.waypointLabel}$slopeText", Offset(points[i].dx, rect.bottom - labelFontSize - 2), align: TextAlign.center);
+      final double altLabelY = max(rect.top + 2, points[i].dy - labelFontSize - 2);
+      drawText("${point.altitudeFt.round()}ft", Offset(points[i].dx, altLabelY), align: TextAlign.center);
     }
   }
 
@@ -1239,13 +1262,13 @@ class _PlateTerrainCell {
 }
 
 class _ApproachProfilePoint {
-  final String label;
+  final String waypointLabel;
   final double distanceNm;
   final double altitudeFt;
   final double? slopeDeg;
 
   const _ApproachProfilePoint({
-    required this.label,
+    required this.waypointLabel,
     required this.distanceNm,
     required this.altitudeFt,
     required this.slopeDeg,
@@ -1254,8 +1277,9 @@ class _ApproachProfilePoint {
 
 class _ApproachVerticalProfile {
   final List<_ApproachProfilePoint> points;
+  final LatLng thresholdCoordinate;
 
-  const _ApproachVerticalProfile({required this.points});
+  const _ApproachVerticalProfile({required this.points, required this.thresholdCoordinate});
 }
 
 class _RunwayThreshold {
