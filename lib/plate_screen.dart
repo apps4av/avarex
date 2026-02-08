@@ -6,6 +6,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/instruments/plate_profile_widget.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
@@ -379,6 +380,13 @@ class PlateScreenState extends State<PlateScreen> {
         )
       ),
 
+      if(Storage().settings.isPlateProfileVisible())
+      Positioned(
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())
+          )),
+
       // allow user to toggle instruments
       Positioned(
       child: Align(
@@ -429,6 +437,8 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().currentPlate = value ?? plates[0];
+                            Storage().settings.setPlateProfileVisible(true);
+                            Storage().settings.setPlateProfile(value ?? "");
                           });
                         },
                       )
@@ -497,7 +507,7 @@ class PlateScreenState extends State<PlateScreen> {
                     child:DropdownButtonHideUnderline(
                         child:DropdownButton2<String>(
                           isDense: true,// plate selection
-                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.route)),
+                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.add)),
                             buttonStyleData: ButtonStyleData(
                             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
                           ),
@@ -510,29 +520,30 @@ class PlateScreenState extends State<PlateScreen> {
                           items: procedures.map((String item) {
                             return DropdownMenuItem<String>(
                                 value: item,
-                                child: Row(children:[
-                                  Expanded(child:
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),),
-                                    child: Padding(padding: const EdgeInsets.all(5), child:
-                                    AutoSizeText(item, minFontSize: 2, maxLines: 1,)),
-                                  ))
-                                ])
+                                onTap: null,
+                                child: ListTile(
+                                  trailing: TextButton(child: Text("+Plan"),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
+                                        if(procedure != null) {
+                                          Storage().route.addWaypoint(Waypoint(procedure));
+                                          setState(() {
+                                            Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
+                                            // show toast message that the procedure is added to the plan
+                                          });
+                                        }
+                                      });
+                                  },),
+                                  title: Padding(padding: const EdgeInsets.all(5), child:
+                                  AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
                             );
                           }).toList(),
                           onChanged: (value) {
-                            if(value == null) {
-                              return;
-                            }
-                            MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
-                              if(procedure != null) {
-                                Storage().route.addWaypoint(Waypoint(procedure));
-                                setState(() {
-                                  Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
-                                  // show toast message that the procedure is added to the plan
-                                });
-                              }
+                            setState(() {
+                              // set profile
+                              Storage().settings.setPlateProfileVisible(true);
+                              Storage().settings.setPlateProfile(value ?? "");
                             });
                           },
                         )
@@ -561,6 +572,8 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
+                            Storage().settings.setPlateProfileVisible(true);
+                            Storage().settings.setPlateProfile(value ?? "");
                           });
                         },
                       )

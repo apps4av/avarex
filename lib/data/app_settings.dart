@@ -261,4 +261,20 @@ class AppSettings {
     provider.setBool("key-review-never", true);
   }
 
+  bool isPlateProfileVisible() {
+    return provider.getValue("key-plate-profile-visible", defaultValue: false) as bool;
+  }
+
+  void setPlateProfileVisible(bool value) {
+    provider.setBool("key-plate-profile-visible", value);
+  }
+
+  String getPlateProfile() {
+    return provider.getValue("key-plate-profile", defaultValue: "") as String;
+  }
+
+  void setPlateProfile(String value) {
+    provider.setString("key-plate-profile", value);
+  }
+
 }
