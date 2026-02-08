@@ -380,13 +380,6 @@ class PlateScreenState extends State<PlateScreen> {
         )
       ),
 
-      if(Storage().settings.isPlateProfileVisible())
-      Positioned(
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())
-          )),
-
       // allow user to toggle instruments
       Positioned(
       child: Align(
@@ -437,8 +430,6 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().currentPlate = value ?? plates[0];
-                            Storage().settings.setPlateProfileVisible(true);
-                            Storage().settings.setPlateProfile(value ?? "");
                           });
                         },
                       )
@@ -535,16 +526,19 @@ class PlateScreenState extends State<PlateScreen> {
                                         }
                                       });
                                   },),
+                                  leading: TextButton(child: Text("VP"),
+                                    onPressed: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        Storage().settings.setPlateProfileVisible(true);
+                                        Storage().settings.setPlateProfile(item);
+                                      });
+                                    }),
                                   title: Padding(padding: const EdgeInsets.all(5), child:
                                   AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
                             );
                           }).toList(),
                           onChanged: (value) {
-                            setState(() {
-                              // set profile
-                              Storage().settings.setPlateProfileVisible(true);
-                              Storage().settings.setPlateProfile(value ?? "");
-                            });
                           },
                         )
                     )
@@ -582,7 +576,16 @@ class PlateScreenState extends State<PlateScreen> {
             ]
           )
       ),
-    )
+    ),
+    Storage().settings.isPlateProfileVisible() ?
+      Positioned(
+          child: Align(
+              alignment: Alignment.bottomRight,
+              child: IgnorePointer(
+                  child: Padding(
+                      padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
+                      child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())
+          )))) : Container(),
     ])
     );
   }

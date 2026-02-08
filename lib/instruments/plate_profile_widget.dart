@@ -57,13 +57,7 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
     final Color lineColor = Theme.of(context).colorScheme.secondary;
     final Color planeColor = Constants.planeColor.withValues(alpha: 0.9);
 
-    return Positioned(
-      child: Align(
-        alignment: Alignment.bottomRight,
-        child: IgnorePointer(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
-            child: Container(
+    return Container(
               width: width,
               height: height,
               decoration: BoxDecoration(
@@ -82,10 +76,6 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
                   planeColor: planeColor,
                 ),
               ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 
