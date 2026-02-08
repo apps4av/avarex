@@ -1027,7 +1027,7 @@ class _VerticalProfilePainter extends CustomPainter {
       align: TextAlign.right,
     );
 
-    final Path path = Path();
+    final ui.Path path = ui.Path();
     bool hasStarted = false;
     for (final point in points) {
       final double? altitude = point.altitudeFt;
