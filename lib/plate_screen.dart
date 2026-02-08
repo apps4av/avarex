@@ -842,7 +842,7 @@ class PlateScreenState extends State<PlateScreen> {
     final double screenHeight = Constants.screenHeight(context);
     final double screenWidth = Constants.screenWidth(context);
     final double height = max(120, screenHeight * (Constants.isPortrait(context) ? 0.22 : 0.3));
-    final double width = screenWidth * 0.9;
+    final double width = screenWidth * 0.5;
     final Color background = Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8);
     final Color textColor = Theme.of(context).colorScheme.onSurface;
     final Color axisColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
@@ -851,7 +851,7 @@ class PlateScreenState extends State<PlateScreen> {
 
     return Positioned(
       child: Align(
-        alignment: Alignment.bottomCenter,
+        alignment: Alignment.bottomRight,
         child: IgnorePointer(
           child: Padding(
             padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
