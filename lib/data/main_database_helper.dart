@@ -540,6 +540,24 @@ class MainDatabaseHelper {
       return alt1 ?? alt2;
     }
 
+    String? readPathAndTermination(Map<String, dynamic> map) {
+      return readCifpValue(map, [
+        'path_and_termination',
+        'path_and_termination_identifier',
+        'pathAndTermination',
+        'pathAndTerminationIdentifier',
+      ]);
+    }
+
+    bool isExcludedPathTermination(Map<String, dynamic> map) {
+      final String? pathTermination = readPathAndTermination(map);
+      if (pathTermination == null) {
+        return false;
+      }
+      const Set<String> excluded = {'CA', 'HM', 'DF'};
+      return excluded.contains(pathTermination.trim().toUpperCase());
+    }
+
     List<Map<String, dynamic>> maps = [];
     List<String> segments = procedureName.split(".");
     if (segments.length < 2) {
@@ -564,6 +582,9 @@ class MainDatabaseHelper {
     List<ProcedureProfilePoint> points = [];
     String lastId = "";
     for (final m in maps) {
+      if (isExcludedPathTermination(m)) {
+        continue;
+      }
       String id = (m['fix_identifier'] as String).trim();
       if (id.isEmpty || id == lastId) {
         continue;
