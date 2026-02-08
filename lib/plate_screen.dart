@@ -404,83 +404,113 @@ class PlateScreenState extends State<PlateScreen> {
       thresholdIndex = records.length - 1;
     }
 
-    final Map<String, dynamic>? iafRecord = iafIndex >= 0 ? records[iafIndex] : null;
-    final Map<String, dynamic>? fafRecord = fafIndex >= 0 ? records[fafIndex] : null;
-    final Map<String, dynamic>? thresholdRecord = thresholdIndex >= 0 ? records[thresholdIndex] : null;
+    final int startIndex = iafIndex >= 0 ? iafIndex : 0;
+    final int endIndex = thresholdIndex >= 0 ? thresholdIndex : records.length - 1;
 
-    final String iafFixId = iafRecord == null ? "" : _mapValue(iafRecord, const ["fix_identifier", "fixIdentifier"]);
-    final String fafFixId = fafRecord == null ? "" : _mapValue(fafRecord, const ["fix_identifier", "fixIdentifier"]);
-    final String thresholdFixId = thresholdRecord == null ? "" : _mapValue(thresholdRecord, const ["fix_identifier", "fixIdentifier"]);
-
-    final double? iafSlope = iafRecord == null ? null : _parseVerticalAngle(_mapValue(iafRecord, const ["vertical_angle", "verticalAngle"]));
-    final double? fafSlope = fafRecord == null ? null : _parseVerticalAngle(_mapValue(fafRecord, const ["vertical_angle", "verticalAngle"]));
-    final double? thresholdSlope = thresholdRecord == null ? null : _parseVerticalAngle(_mapValue(thresholdRecord, const ["vertical_angle", "verticalAngle"]));
-
+    final Map<String, dynamic> thresholdRecord = records[endIndex];
+    final String thresholdFixId = _mapValue(thresholdRecord, const ["fix_identifier", "fixIdentifier"]);
     final _RunwayThreshold? threshold = _resolveThreshold(airport, thresholdFixId, procedureName);
     final LatLng thresholdCoord = threshold?.coordinate ?? airport.coordinate;
     final double thresholdAltitude = threshold?.elevationFt ?? airport.elevation ?? 0.0;
 
-    final LatLng? iafCoord = iafFixId.isEmpty ? null : await _resolveFixCoordinate(iafFixId, airport);
-    final LatLng? fafCoord = fafFixId.isEmpty ? null : await _resolveFixCoordinate(fafFixId, airport);
+    final List<_ApproachProfileCandidate> candidates = [];
+    String lastFixId = "";
+    for(int i = startIndex; i <= endIndex; i++) {
+      final Map<String, dynamic> record = records[i];
+      final String fixId = _mapValue(record, const ["fix_identifier", "fixIdentifier"]);
+      if(fixId.isEmpty) {
+        continue;
+      }
 
-    final GeoCalculations calc = GeoCalculations();
-    final double? distanceIafToFaf = (iafCoord != null && fafCoord != null) ? calc.calculateDistance(iafCoord, fafCoord) : null;
-    final double? distanceFafToThreshold = (fafCoord != null) ? calc.calculateDistance(fafCoord, thresholdCoord) : null;
-    final double? distanceIafToThreshold = (iafCoord != null) ? calc.calculateDistance(iafCoord, thresholdCoord) : null;
+      final bool isIaf = _isIaf(record);
+      final bool isFaf = _isFaf(record);
+      final bool isRunway = i == endIndex || _isRunwayFix(record);
 
-    final double fallbackSlope = iafSlope ?? fafSlope ?? thresholdSlope ?? 3.0;
-    final double fafSlopeUsed = fafSlope ?? thresholdSlope ?? iafSlope ?? fallbackSlope;
-    final double iafSlopeUsed = iafSlope ?? fafSlopeUsed;
+      LatLng? coord = await _resolveFixCoordinate(fixId, airport);
+      if(coord == null) {
+        if(!isRunway) {
+          continue;
+        }
+        coord = thresholdCoord;
+      }
 
-    final double? fafAltitude = (fafCoord != null && (distanceFafToThreshold ?? 0) > 0)
-        ? thresholdAltitude + tan(_toRadians(fafSlopeUsed)) * _distanceToFeet(distanceFafToThreshold!)
-        : null;
+      if(fixId == lastFixId && !isRunway) {
+        continue;
+      }
 
-    final double? iafAltitude = (iafCoord != null && ((distanceIafToFaf ?? distanceIafToThreshold) ?? 0) > 0)
-        ? (fafAltitude ?? thresholdAltitude) + tan(_toRadians(iafSlopeUsed)) * _distanceToFeet(distanceIafToFaf ?? distanceIafToThreshold!)
-        : null;
+      final double? slope = _parseVerticalAngle(_mapValue(record, const ["vertical_angle", "verticalAngle"]));
+      double? altitude = _parseAltitudeFromRecord(record);
+      if(isRunway) {
+        altitude = thresholdAltitude;
+      }
 
-    final List<_ApproachProfilePoint> points = [];
-    double cumulative = 0;
-
-    if(iafCoord != null && iafAltitude != null) {
-      points.add(_ApproachProfilePoint(
-        waypointLabel: _buildWaypointLabel("IAF", iafFixId),
-        distanceNm: 0,
-        altitudeFt: iafAltitude,
-        slopeDeg: iafSlope,
+      final String labelRole = isRunway ? "RW" : (isFaf ? "FAF" : (isIaf ? "IAF" : ""));
+      final String label = labelRole.isEmpty ? fixId.trim() : _buildWaypointLabel(labelRole, fixId);
+      candidates.add(_ApproachProfileCandidate(
+        coordinate: coord,
+        label: label,
+        slopeDeg: slope,
+        altitudeFt: altitude,
+        isRunway: isRunway,
       ));
+      lastFixId = fixId;
     }
 
-    if(fafCoord != null && fafAltitude != null) {
-      cumulative = points.isNotEmpty ? (distanceIafToFaf ?? 0) : 0;
-      points.add(_ApproachProfilePoint(
-        waypointLabel: _buildWaypointLabel("FAF", fafFixId),
-        distanceNm: cumulative,
-        altitudeFt: fafAltitude,
-        slopeDeg: fafSlope,
-      ));
-    }
-
-    if(points.isEmpty && iafCoord == null && fafCoord == null) {
+    if(candidates.isEmpty) {
       return null;
     }
 
-    if(fafCoord != null) {
-      cumulative += distanceFafToThreshold ?? 0;
-    }
-    else if(iafCoord != null) {
-      cumulative += distanceIafToThreshold ?? 0;
+    if(!candidates.last.isRunway) {
+      candidates.add(_ApproachProfileCandidate(
+        coordinate: thresholdCoord,
+        label: _buildWaypointLabel("RW", thresholdFixId),
+        slopeDeg: _parseVerticalAngle(_mapValue(thresholdRecord, const ["vertical_angle", "verticalAngle"])),
+        altitudeFt: thresholdAltitude,
+        isRunway: true,
+      ));
     }
 
-    points.add(_ApproachProfilePoint(
-      waypointLabel: _buildWaypointLabel("RW", thresholdFixId),
-      distanceNm: cumulative,
-      altitudeFt: thresholdAltitude,
-      slopeDeg: thresholdSlope,
-    ));
+    final List<double> distances = [0];
+    double totalDistance = 0;
+    for(int i = 1; i < candidates.length; i++) {
+      totalDistance += _distanceNmBetween(candidates[i - 1].coordinate, candidates[i].coordinate);
+      distances.add(totalDistance);
+    }
 
-    if(points.length < 2 || points.last.distanceNm <= 0) {
+    if(totalDistance <= 0) {
+      return null;
+    }
+
+    double? defaultSlope;
+    for(final _ApproachProfileCandidate candidate in candidates) {
+      if(candidate.slopeDeg != null) {
+        defaultSlope = candidate.slopeDeg;
+        break;
+      }
+    }
+    defaultSlope ??= 3.0;
+
+    final List<_ApproachProfilePoint> points = [];
+    for(int i = 0; i < candidates.length; i++) {
+      final _ApproachProfileCandidate candidate = candidates[i];
+      double? altitude = candidate.altitudeFt;
+      if(altitude == null) {
+        final double slope = candidate.slopeDeg ?? defaultSlope;
+        final double distanceToThreshold = totalDistance - distances[i];
+        altitude = thresholdAltitude + tan(_toRadians(slope)) * distanceToThreshold * _feetPerNm;
+      }
+      if(altitude < thresholdAltitude) {
+        altitude = thresholdAltitude;
+      }
+      points.add(_ApproachProfilePoint(
+        waypointLabel: candidate.label,
+        distanceNm: distances[i],
+        altitudeFt: altitude,
+        slopeDeg: candidate.slopeDeg,
+      ));
+    }
+
+    if(points.length < 2) {
       return null;
     }
 
@@ -491,8 +521,13 @@ class PlateScreenState extends State<PlateScreen> {
     return degrees * pi / 180.0;
   }
 
-  double _distanceToFeet(double distance) {
-    return distance * Storage().units.toM * Storage().units.mToF;
+  static const double _feetPerNm = 6076.12;
+  static const double _metersPerNm = 1851.9993;
+
+  double _distanceNmBetween(LatLng start, LatLng end) {
+    final double distanceInUnits = GeoCalculations().calculateDistance(start, end);
+    final double meters = distanceInUnits * Storage().units.toM;
+    return meters / _metersPerNm;
   }
 
   String _mapValue(Map<String, dynamic> map, List<String> keys) {
@@ -559,6 +594,39 @@ class PlateScreenState extends State<PlateScreen> {
       return null;
     }
     return value;
+  }
+
+  double? _parseAltitudeFromRecord(Map<String, dynamic> record) {
+    final String altitude1 = _mapValue(record, const ["altitude1", "altitude_1"]);
+    final String altitude2 = _mapValue(record, const ["altitude2", "altitude_2"]);
+    final double? alt1 = _parseAltitudeFt(altitude1);
+    final double? alt2 = _parseAltitudeFt(altitude2);
+    if(alt1 != null && alt2 != null) {
+      return max(alt1, alt2);
+    }
+    return alt1 ?? alt2;
+  }
+
+  double? _parseAltitudeFt(String raw) {
+    final String cleaned = raw.trim();
+    if(cleaned.isEmpty) {
+      return null;
+    }
+    final String numeric = cleaned.replaceAll(RegExp(r"[^0-9]"), "");
+    if(numeric.isEmpty) {
+      return null;
+    }
+    int? value = int.tryParse(numeric);
+    if(value == null || value == 0) {
+      return null;
+    }
+    if(numeric.length <= 3) {
+      value = value * 100;
+    }
+    else if(numeric.length == 4 && value < 2000) {
+      value = value * 10;
+    }
+    return value.toDouble();
   }
 
   Future<LatLng?> _resolveFixCoordinate(String fixId, AirportDestination airport) async {
@@ -1010,6 +1078,8 @@ class _PlatePainter extends CustomPainter {
   final _paintProfileAircraft = Paint()
     ..style = PaintingStyle.fill;
 
+  static const double _metersPerNm = 1851.9993;
+
   _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity, this._approachProfile): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
@@ -1208,8 +1278,14 @@ class _PlatePainter extends CustomPainter {
       canvas.drawLine(Offset(rect.left, currentY), Offset(rect.right, currentY), _paintProfileCurrent);
     }
 
+    double distanceNmBetween(LatLng start, LatLng end) {
+      final double distanceInUnits = GeoCalculations().calculateDistance(start, end);
+      final double meters = distanceInUnits * Storage().units.toM;
+      return meters / _metersPerNm;
+    }
+
     final LatLng currentPos = Gps.toLatLng(Storage().position);
-    final double distanceToThreshold = GeoCalculations().calculateDistance(currentPos, profile.thresholdCoordinate);
+    final double distanceToThreshold = distanceNmBetween(currentPos, profile.thresholdCoordinate);
     double distanceAlong = totalDistance - distanceToThreshold;
     distanceAlong = distanceAlong.clamp(0.0, totalDistance);
     final double aircraftX = xForDistance(distanceAlong);
@@ -1259,6 +1335,22 @@ class _PlateTerrainCell {
   final Rect rect;
   final double elevationFt;
   const _PlateTerrainCell({required this.rect, required this.elevationFt});
+}
+
+class _ApproachProfileCandidate {
+  final LatLng coordinate;
+  final String label;
+  final double? slopeDeg;
+  final double? altitudeFt;
+  final bool isRunway;
+
+  const _ApproachProfileCandidate({
+    required this.coordinate,
+    required this.label,
+    required this.slopeDeg,
+    required this.altitudeFt,
+    required this.isRunway,
+  });
 }
 
 class _ApproachProfilePoint {
