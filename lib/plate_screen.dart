@@ -557,6 +557,35 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
+  void _setProfileFromProcedure(String value) {
+    setState(() {
+      _selectedProcedure = value;
+      _verticalProfileKey = "${Storage().settings.getCurrentPlateAirport()}|"
+          "${Storage().currentPlate}|$value";
+      _verticalProfilePoints.clear();
+      _isProfileVisible = true;
+      Storage().settings.setPlateProfileVisible(true);
+    });
+    Storage().settings.setPlateProfileSelection(
+      Storage().settings.getCurrentPlateAirport(),
+      Storage().currentPlate,
+      value,
+    );
+    _loadVerticalProfile(value);
+  }
+
+  void _addProcedureToPlan(String value) {
+    MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
+      if(procedure != null) {
+        Storage().route.addWaypoint(Waypoint(procedure));
+        setState(() {
+          Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
+          // show toast message that the procedure is added to the plan
+        });
+      }
+    });
+  }
+
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
@@ -786,18 +815,31 @@ class PlateScreenState extends State<PlateScreen> {
                             if (_isProfileVisible) {
                               _loadVerticalProfile(value);
                             }
-                            MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
-                              if(procedure != null) {
-                                Storage().route.addWaypoint(Waypoint(procedure));
-                                setState(() {
-                                  Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
-                                  // show toast message that the procedure is added to the plan
-                                });
-                              }
-                            });
                           },
                         )
                     )
+                  ),
+
+                  procedures.isEmpty || procedures[0].isEmpty ? Container() :
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(5, 5, 0, Constants.bottomPaddingSize(context) + 5),
+                    child: TextButton(
+                      onPressed: _selectedProcedure == null ? null : () {
+                        _setProfileFromProcedure(_selectedProcedure!);
+                      },
+                      child: const Text("Profile"),
+                    ),
+                  ),
+
+                  procedures.isEmpty || procedures[0].isEmpty ? Container() :
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(0, 5, 5, Constants.bottomPaddingSize(context) + 5),
+                    child: TextButton(
+                      onPressed: _selectedProcedure == null ? null : () {
+                        _addProcedureToPlan(_selectedProcedure!);
+                      },
+                      child: const Text("Plan"),
+                    ),
                   ),
 
                   airports[0].isEmpty ? Container() :
@@ -1291,7 +1333,13 @@ class _VerticalProfilePainter extends CustomPainter {
     }
 
     final LatLng plane = Gps.toLatLng(Storage().position);
-    final double? planeDistance = _closestDistanceAlongPath(points, plane);
+    final _VerticalProfilePoint? landingPoint = _landingPoint(points);
+    double? planeDistance;
+    if (landingPoint != null) {
+      const Distance distanceCalculator = Distance(calculator: Haversine());
+      planeDistance = distanceCalculator(plane, landingPoint.coordinate) * _metersToNm;
+    }
+    planeDistance ??= _closestDistanceAlongPath(points, plane);
     if (planeDistance != null) {
       final double clampedDistance = planeDistance.clamp(0, totalDistance).toDouble();
       final double x = _xForDistance(chart, clampedDistance, totalDistance, fromLanding: distanceFromLanding);
@@ -1384,6 +1432,19 @@ class _VerticalProfilePainter extends CustomPainter {
       lon * cos(refLat) * _earthRadiusNm,
       lat * _earthRadiusNm,
     );
+  }
+
+  _VerticalProfilePoint? _landingPoint(List<_VerticalProfilePoint> points) {
+    if (points.isEmpty) {
+      return null;
+    }
+    _VerticalProfilePoint landing = points.first;
+    for (final point in points.skip(1)) {
+      if (point.distanceNm < landing.distanceNm) {
+        landing = point;
+      }
+    }
+    return landing;
   }
 
   @override
