@@ -354,6 +354,10 @@ class PlateScreenState extends State<PlateScreen> {
       Storage().business = null;
     }
 
+    final List<String> layers = Storage().settings.getLayers();
+    final List<double> layersOpacity = Storage().settings.getLayersOpacity();
+    final double opacity = layersOpacity[layers.indexOf("Elevation")];
+
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
       InteractiveViewer(
@@ -363,7 +367,7 @@ class PlateScreenState extends State<PlateScreen> {
           SizedBox(
             height: Constants.screenHeight(context),
             width: Constants.screenWidth(context),
-            child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells)),
+            child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity)),
           )
       ),
 
@@ -607,9 +611,8 @@ class _PlatePainter extends CustomPainter {
   ui.Image? _image;
   ui.Image? _imagePlane;
   double? _variation;
+  double opacity;
   final List<_PlateTerrainCell> _terrainCells;
-
-  static const double _terrainOverlayAlpha = 0.35;
 
   // Define a paint object
   final _paint = Paint()
@@ -636,7 +639,7 @@ class _PlatePainter extends CustomPainter {
   final _paintTerrain = Paint()
     ..style = PaintingStyle.fill;
 
-  _PlatePainter(ValueNotifier repaint, this._terrainCells): super(repaint: repaint);
+  _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
     double lon = ll.longitude;
@@ -756,8 +759,8 @@ class _PlatePainter extends CustomPainter {
     final double altitudeFt = GeoCalculations.convertAltitude(Storage().position.altitude);
     final double warningFloor = altitudeFt - 1000;
     final double cautionFloor = altitudeFt - 500;
-    final Color yellowColor = Colors.yellow.withValues(alpha: _terrainOverlayAlpha);
-    final Color redColor = Colors.red.withValues(alpha: _terrainOverlayAlpha);
+    final Color yellowColor = Colors.yellow.withValues(alpha: opacity);
+    final Color redColor = Colors.red.withValues(alpha: opacity);
     for(final _PlateTerrainCell cell in _terrainCells) {
       if(cell.elevationFt < warningFloor) {
         continue;
