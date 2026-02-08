@@ -471,6 +471,28 @@ class MainDatabaseHelper {
     return ProcedureDestination.fromMap(procedureName, mapsCombined);
   }
 
+  Future<List<Map<String, dynamic>>> findProcedureLines(String procedureName) async {
+    List<String> segments = procedureName.split(".");
+    if(segments.length < 2) {
+      return [];
+    }
+    if(segments.length < 3) {
+      segments.add("");
+    }
+
+    String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}'"
+        " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'"
+        " and trim(transition_identifier) = '${segments[2].toUpperCase()}'"
+        " order by trim(sequence_number) asc";
+
+    final db = await database;
+    if (db == null) {
+      return [];
+    }
+    List<Map<String, Object?>> maps = await DbGeneral.query(db, qry);
+    return maps.map((Map<String, Object?> map) => Map<String, dynamic>.from(map)).toList();
+  }
+
   Future<(double, double)> getGeoInfo(LatLng ll) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
