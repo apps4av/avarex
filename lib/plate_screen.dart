@@ -404,8 +404,8 @@ class PlateScreenState extends State<PlateScreen> {
     if (match == null) {
       return runway;
     }
-    String number = match.group(1) ?? runway;
-    final String side = match.group(2) ?? "";
+    String number = match.namedGroup("num") ?? runway;
+    final String side = match.namedGroup("side") ?? "";
     if (number.length == 1) {
       number = "0$number";
     }
