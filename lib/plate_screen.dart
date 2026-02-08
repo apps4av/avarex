@@ -160,6 +160,15 @@ class PlateScreenState extends State<PlateScreen> {
   String? _selectedProcedure;
   String _verticalProfileKey = "";
   int _verticalProfileLoadId = 0;
+  bool _isProfileVisible = false;
+  String _lastPlateName = "";
+
+  @override
+  void initState() {
+    super.initState();
+    _isProfileVisible = Storage().settings.isPlateProfileVisible();
+    _lastPlateName = Storage().currentPlate;
+  }
 
   @override
   void dispose() {
@@ -328,8 +337,22 @@ class PlateScreenState extends State<PlateScreen> {
       _verticalProfileKey = "";
       return;
     }
+    final String airport = Storage().settings.getCurrentPlateAirport();
+    final String stored = Storage().settings.getPlateProfileSelection(airport, Storage().currentPlate);
+    if (stored.isNotEmpty && procedureNames.contains(stored)) {
+      _selectedProcedure = stored;
+    }
     if (_selectedProcedure == null || !procedureNames.contains(_selectedProcedure)) {
       _selectedProcedure = procedureNames[0];
+    }
+    if (_selectedProcedure != null) {
+      Storage().settings.setPlateProfileSelection(
+          airport, Storage().currentPlate, _selectedProcedure!);
+    }
+    if (!_isProfileVisible) {
+      _verticalProfilePoints.clear();
+      _verticalProfileKey = "";
+      return;
     }
     final String cacheKey = "${Storage().settings.getCurrentPlateAirport()}|"
         "${Storage().currentPlate}|$_selectedProcedure";
@@ -505,6 +528,7 @@ class PlateScreenState extends State<PlateScreen> {
       Storage().currentPlate = plates[0]; // new airport, change to plate 0
     }
 
+    _syncProfileForPlate();
     _loadPlate();
 
     // plate load notification, repaint
@@ -522,6 +546,17 @@ class PlateScreenState extends State<PlateScreen> {
     return makePlateView(airports, plates, procedureNames, business, height, _notifier);
   }
 
+  void _syncProfileForPlate() {
+    if (_lastPlateName != Storage().currentPlate) {
+      _isProfileVisible = false;
+      Storage().settings.setPlateProfileVisible(false);
+      _verticalProfilePoints.clear();
+      _verticalProfileKey = "";
+      _selectedProcedure = null;
+      _lastPlateName = Storage().currentPlate;
+    }
+  }
+
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
@@ -529,6 +564,7 @@ class PlateScreenState extends State<PlateScreen> {
       Storage().business = null;
     }
 
+    final bool canShowProfile = procedures.isNotEmpty && procedures[0].isNotEmpty;
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     final double opacity = layersOpacity[layers.indexOf("Elevation")];
@@ -606,6 +642,12 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().currentPlate = value ?? plates[0];
+                            _isProfileVisible = false;
+                            Storage().settings.setPlateProfileVisible(false);
+                            _verticalProfilePoints.clear();
+                            _verticalProfileKey = "";
+                            _selectedProcedure = null;
+                            _lastPlateName = Storage().currentPlate;
                           });
                         },
                       )
@@ -668,6 +710,34 @@ class PlateScreenState extends State<PlateScreen> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  !canShowProfile ? Container() :
+                  Container(
+                    padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
+                    child: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: Icon(_isProfileVisible ? Icons.visibility : Icons.visibility_off, size: 16),
+                        onPressed: () {
+                          setState(() {
+                            _isProfileVisible = !_isProfileVisible;
+                            Storage().settings.setPlateProfileVisible(_isProfileVisible);
+                            if (!_isProfileVisible) {
+                              _verticalProfilePoints.clear();
+                              _verticalProfileKey = "";
+                            }
+                          });
+                          if (_isProfileVisible) {
+                            _updateSelectedProcedure(procedures);
+                            if (_selectedProcedure != null && _verticalProfilePoints.isEmpty) {
+                              _loadVerticalProfile(_selectedProcedure!);
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  ),
                   procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
                   Container(
                     padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
@@ -708,7 +778,14 @@ class PlateScreenState extends State<PlateScreen> {
                                   "${Storage().currentPlate}|$value";
                               _verticalProfilePoints.clear();
                             });
-                            _loadVerticalProfile(value);
+                            Storage().settings.setPlateProfileSelection(
+                              Storage().settings.getCurrentPlateAirport(),
+                              Storage().currentPlate,
+                              value,
+                            );
+                            if (_isProfileVisible) {
+                              _loadVerticalProfile(value);
+                            }
                             MainDatabaseHelper.db.findProcedure(value).then((ProcedureDestination? procedure) {
                               if(procedure != null) {
                                 Storage().route.addWaypoint(Waypoint(procedure));
@@ -759,7 +836,7 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
   Widget _buildVerticalProfileOverlay(BuildContext context, ValueNotifier notifier) {
-    if (_selectedProcedure == null || _verticalProfilePoints.isEmpty) {
+    if (!_isProfileVisible || _selectedProcedure == null || _verticalProfilePoints.isEmpty) {
       return Container();
     }
     final double screenHeight = Constants.screenHeight(context);

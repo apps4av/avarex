@@ -222,6 +222,26 @@ class AppSettings {
     provider.setBool("key-enable-instruments-plate", value);
   }
 
+  bool isPlateProfileVisible() {
+    return provider.getValue("key-plate-profile-visible", defaultValue: false) as bool;
+  }
+
+  void setPlateProfileVisible(bool value) {
+    provider.setBool("key-plate-profile-visible", value);
+  }
+
+  String getPlateProfileSelection(String airport, String plate) {
+    return provider.getValue(_plateProfileSelectionKey(airport, plate), defaultValue: "") as String;
+  }
+
+  void setPlateProfileSelection(String airport, String plate, String procedure) {
+    provider.setString(_plateProfileSelectionKey(airport, plate), procedure);
+  }
+
+  String _plateProfileSelectionKey(String airport, String plate) {
+    return "key-plate-profile-selection-$airport|$plate";
+  }
+
   double getInstrumentScaleFactor() {
     return provider.getValue("key-instrument-scale-factor", defaultValue: 1.0) as double;
   }
