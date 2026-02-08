@@ -1125,17 +1125,33 @@ class _VerticalProfilePainter extends CustomPainter {
       );
     }
 
-    _drawText(
-      canvas,
-      "0 nm",
-      Offset(chart.left, chart.bottom + 2),
-    );
-    _drawText(
-      canvas,
-      "${totalDistance.toStringAsFixed(1)} nm",
-      Offset(chart.right, chart.bottom + 2),
-      align: TextAlign.right,
-    );
+    const bool distanceFromLanding = true;
+    if (distanceFromLanding) {
+      _drawText(
+        canvas,
+        "${totalDistance.toStringAsFixed(1)} nm",
+        Offset(chart.left, chart.bottom + 2),
+      );
+      _drawText(
+        canvas,
+        "0 nm",
+        Offset(chart.right, chart.bottom + 2),
+        align: TextAlign.right,
+      );
+    }
+    else {
+      _drawText(
+        canvas,
+        "0 nm",
+        Offset(chart.left, chart.bottom + 2),
+      );
+      _drawText(
+        canvas,
+        "${totalDistance.toStringAsFixed(1)} nm",
+        Offset(chart.right, chart.bottom + 2),
+        align: TextAlign.right,
+      );
+    }
 
     final ui.Path path = ui.Path();
     bool hasStarted = false;
@@ -1145,7 +1161,7 @@ class _VerticalProfilePainter extends CustomPainter {
         hasStarted = false;
         continue;
       }
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: distanceFromLanding);
       final double y = _yForAltitude(chart, altitude, minAlt, maxAlt);
       if (!hasStarted) {
         path.moveTo(x, y);
@@ -1161,14 +1177,14 @@ class _VerticalProfilePainter extends CustomPainter {
       if (point.altitudeFt == null) {
         continue;
       }
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: distanceFromLanding);
       final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
       canvas.drawCircle(Offset(x, y), 2.5, _pointPaint);
     }
 
     double lastLabelRight = -double.infinity;
     for (final point in altitudePoints) {
-      final double x = _xForDistance(chart, point.distanceNm, totalDistance);
+      final double x = _xForDistance(chart, point.distanceNm, totalDistance, fromLanding: distanceFromLanding);
       canvas.drawLine(
         Offset(x, chart.bottom),
         Offset(x, chart.bottom + 4),
@@ -1201,15 +1217,18 @@ class _VerticalProfilePainter extends CustomPainter {
     final double? planeDistance = _closestDistanceAlongPath(points, plane);
     if (planeDistance != null) {
       final double clampedDistance = planeDistance.clamp(0, totalDistance).toDouble();
-      final double x = _xForDistance(chart, clampedDistance, totalDistance);
+      final double x = _xForDistance(chart, clampedDistance, totalDistance, fromLanding: distanceFromLanding);
       double y = _yForAltitude(chart, planeAlt, minAlt, maxAlt);
       y = y.clamp(chart.top, chart.bottom).toDouble();
       canvas.drawCircle(Offset(x, y), 3.5, _planePaint);
     }
   }
 
-  double _xForDistance(Rect chart, double distance, double totalDistance) {
-    return chart.left + (distance / totalDistance) * chart.width;
+  double _xForDistance(Rect chart, double distance, double totalDistance, {bool fromLanding = false}) {
+    final double frac = distance / totalDistance;
+    return fromLanding
+        ? chart.right - frac * chart.width
+        : chart.left + frac * chart.width;
   }
 
   double _yForAltitude(Rect chart, double altitude, double minAlt, double maxAlt) {
