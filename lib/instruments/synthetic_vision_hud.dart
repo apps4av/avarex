@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/storage.dart';
@@ -407,7 +408,7 @@ class _OsmTileTextureSampler {
     try {
       final FileInfo? cached = await FileCacheManager().mapCacheManager.getFileFromCache(url);
       final File file = cached?.file ?? await FileCacheManager().mapCacheManager.getSingleFile(url, key: url);
-      final List<int> bytes = await file.readAsBytes();
+      final Uint8List bytes = await file.readAsBytes();
       return img.decodeImage(bytes);
     } catch (_) {
       return null;
