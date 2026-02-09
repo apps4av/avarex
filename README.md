@@ -6,6 +6,12 @@ AvareX is a pilot's all in one electronic flight bag solution.
 
 By Apps4Av.
 
+## User Manual
+
+A comprehensive, code-derived user manual is available at:
+
+- [USER_MANUAL.md](USER_MANUAL.md)
+
 ## Getting Started
 
 
