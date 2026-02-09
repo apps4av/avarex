@@ -16,6 +16,7 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/instruments/synthetic_vision_hud.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
@@ -71,6 +72,9 @@ class MapScreenState extends State<MapScreen> {
   double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
   int _cacheBustElevation = 0;
+  late final SyntheticVisionController _syntheticVisionController;
+  int _lastAhrsUpdateMs = 0;
+  static const int _ahrsSyntheticHeadingTimeoutMs = 4000;
 
   static final List<String> _mesonets = [
     "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
@@ -147,8 +151,29 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
+  void _refreshSyntheticVision() {
+    if (_layersOpacity[_layers.indexOf('PFD')] <= 0) {
+      return;
+    }
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    final bool preferAhrsHeading = (now - _lastAhrsUpdateMs) < _ahrsSyntheticHeadingTimeoutMs;
+    _syntheticVisionController.requestRefresh(
+      position: Storage().position,
+      gpsHeadingTrue: Storage().position.heading,
+      ahrsHeadingMagnetic: Storage().pfdData.yaw,
+      magneticVariation: Storage().area.variation,
+      preferAhrsHeading: preferAhrsHeading,
+    );
+  }
+
+  void _pfdListen() {
+    _lastAhrsUpdateMs = DateTime.now().millisecondsSinceEpoch;
+    _refreshSyntheticVision();
+  }
+
   @override
   void initState() {
+    _syntheticVisionController = SyntheticVisionController();
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
     Storage().metar.change.addListener(_metarListen);
@@ -157,6 +182,8 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.addListener(_airSigmetListen);
     Storage().tfr.change.addListener(_tfrListen);
     Storage().geoParser.change.addListener(_geoJsonListen);
+    Storage().pfdChange.addListener(_pfdListen);
+    _refreshSyntheticVision();
     super.initState();
   }
 
@@ -170,6 +197,8 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.removeListener(_airSigmetListen);
     Storage().tfr.change.removeListener(_tfrListen);
     Storage().geoParser.change.removeListener(_geoJsonListen);
+    Storage().pfdChange.removeListener(_pfdListen);
+    _syntheticVisionController.dispose();
     _previousPosition = null;
     super.dispose();
   }
@@ -238,6 +267,7 @@ class MapScreenState extends State<MapScreen> {
         _cacheBustElevation++;
       });
     }
+    _refreshSyntheticVision();
   }
 
   PolylineLayer? _tfrLayer;
@@ -1216,25 +1246,31 @@ class MapScreenState extends State<MapScreen> {
                 ValueListenableBuilder<int>(
                   valueListenable: Storage().pfdChange,
                   builder: (context, value, _) {
-                    return Positioned(
-                        top: Constants.screenHeightForInstruments(context),
-                        child:Align(
-                            alignment: Alignment.topLeft,
-                            child: SizedBox(
-                                width:width,
-                                height: height,
-                                child: ClipRRect(
-                                    borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
-                                    child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
-                                        child:CustomPaint(
-                                            painter: PfdPainter(
-                                                height: height,
-                                                width: width,
-                                                repaint: Storage().timeChange) // repaint every second
-                                        ))
+                    return ValueListenableBuilder<SyntheticVisionFrame>(
+                      valueListenable: _syntheticVisionController.frame,
+                      builder: (context, syntheticFrame, __) {
+                        return Positioned(
+                            top: Constants.screenHeightForInstruments(context),
+                            child:Align(
+                                alignment: Alignment.topLeft,
+                                child: SizedBox(
+                                    width:width,
+                                    height: height,
+                                    child: ClipRRect(
+                                        borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
+                                        child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
+                                            child:CustomPaint(
+                                                painter: PfdPainter(
+                                                    height: height,
+                                                    width: width,
+                                                    syntheticVisionFrame: syntheticFrame,
+                                                    repaint: Storage().timeChange) // repaint every second
+                                            ))
+                                    )
                                 )
                             )
-                        )
+                        );
+                      },
                     );
                   }
                 ),

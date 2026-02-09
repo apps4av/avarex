@@ -1,18 +1,25 @@
 import 'dart:math';
 
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/instruments/synthetic_vision_hud.dart';
 import 'package:flutter/material.dart';
 
 class PfdPainter extends CustomPainter {
 
 
-  PfdPainter({required ValueNotifier repaint, required height, required width}) : super(repaint: repaint) {
+  PfdPainter({
+    required ValueNotifier repaint,
+    required height,
+    required width,
+    required this.syntheticVisionFrame,
+  }) : super(repaint: repaint) {
     _height = height;
     _width = width;
   }
 
   double _height = 0;
   double _width = 0;
+  final SyntheticVisionFrame syntheticVisionFrame;
 
   TextPainter paintText = TextPainter()
      ..textAlign = TextAlign.left
@@ -100,8 +107,22 @@ class PfdPainter extends CustomPainter {
     paintFill.color = const Color(0xFF0000A0);
     drawRect(_x(-400), _y(pitchDegree * 90), _x(400), _y(0), paintFill);
 
-    paintFill.color = const Color(0xFF624624);
+    paintFill.color = const Color(0xFF2F2418);
     drawRect(_x(-400), _y(0), _x(400), _y(-pitchDegree * 90), paintFill);
+
+    if (syntheticVisionFrame.hasTerrain) {
+      final Path terrainPath = Path();
+      for (final SyntheticVisionQuad quad in syntheticVisionFrame.quads) {
+        terrainPath.reset();
+        terrainPath.moveTo(_x(quad.leftX), _y(quad.nearLeftAngleDeg * pitchDegree));
+        terrainPath.lineTo(_x(quad.rightX), _y(quad.nearRightAngleDeg * pitchDegree));
+        terrainPath.lineTo(_x(quad.rightX), _y(quad.farRightAngleDeg * pitchDegree));
+        terrainPath.lineTo(_x(quad.leftX), _y(quad.farLeftAngleDeg * pitchDegree));
+        terrainPath.close();
+        paintFill.color = quad.color;
+        canvas.drawPath(terrainPath, paintFill);
+      }
+    }
 
     //center attitude degrees
     drawLine(_x(-150), _y(0), _x(150), _y(0), paintStroke);
