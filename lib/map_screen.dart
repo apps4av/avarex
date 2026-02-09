@@ -40,6 +40,7 @@ import 'package:avaremp/destination/destination.dart';
 import 'chart/download_screen.dart';
 import 'io/gps.dart';
 import 'weather/metar.dart';
+import 'package:avaremp/terrain_3d_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -1449,6 +1450,20 @@ class MapScreenState extends State<MapScreen> {
                                     },
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                       child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Theme.of(context).colorScheme.primary))),
+
+                                  IconButton(
+                                      tooltip: "Open 3D terrain view",
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => const Terrain3DScreen(),
+                                          ),
+                                        );
+                                      },
+                                      icon: CircleAvatar(
+                                          radius: iconRadius,
+                                          backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                          child: const Icon(Icons.terrain))),
 
                                   IconButton(
                                       tooltip: "Write a note",
