@@ -1,7 +1,9 @@
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/plan/plan_create_widget.dart';
 import 'package:avaremp/plan/plan_file_widget.dart';
 import 'package:avaremp/plan/plan_load_save_widget.dart';
 import 'package:avaremp/plan/plan_manage_widget.dart';
+import 'package:avaremp/plan/plan_transfer_widget.dart';
 import 'package:flutter/material.dart';
 
 class PlanActionScreen extends StatefulWidget {
@@ -34,11 +36,16 @@ class PlanActionState extends State<PlanActionScreen> {
 
     Widget managePage = const PlanManageWidget();
 
+    Widget transferPage = const PlanTransferWidget();
+
     List<Widget> pages = [];
     pages.add(loadSavePage);
     pages.add(createPage);
     pages.add(filePage);
     pages.add(managePage);
+    if (Constants.shouldShowBluetoothSpp) {
+      pages.add(transferPage);
+    }
 
     return Container(
         padding: const EdgeInsets.all(5),
@@ -76,6 +83,13 @@ class PlanActionState extends State<PlanActionScreen> {
                 child: const Text("Manage"),
                 onPressed: () => setState(() {
                   _current = 3;
+                })
+            ),
+            if (Constants.shouldShowBluetoothSpp)
+              TextButton(
+                child: const Text("Transfer"),
+                onPressed: () => setState(() {
+                  _current = 4;
                 })
             ),
           ])),

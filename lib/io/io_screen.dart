@@ -20,10 +20,13 @@ class IoScreenState extends State<IoScreen> {
   bool isDiscovering = false;
   static BluetoothConnection? connection;
   static BluetoothDevice? connectedDevice;// this should stay in memory, not putting in storage as this is platform specific
-
+  static bool transferInProgress = false;
 
   // send data to remote
   static void sendData(String data) async {
+    if(transferInProgress) {
+      return;
+    }
     // this sends autopilot data
     if(connection == null || (!connection!.isConnected)) {
       return;
