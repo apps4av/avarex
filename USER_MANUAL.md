@@ -1,5 +1,4 @@
-# AvareX User Manual (Code-Derived)
-
+# AvareX User Manual 
 This manual is generated from the current app codebase and focuses on:
 
 - **What features exist**
@@ -865,8 +864,3 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 ---
 
-If you want, this manual can also be split into:
-
-- a **pilot quick-start card** (1–2 pages),
-- an **in-flight reference**,
-- and an **admin/data-management guide**.
