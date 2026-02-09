@@ -751,6 +751,120 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 ---
 
+## 17) Forum-Derived FAQ and Scenarios (Google Groups)
+
+The following FAQs are derived from recent threads in the Apps4Av forum and mapped to the current AvareX workflows.
+
+### FAQ-01: How do I connect an external ADS-B / GPS receiver?
+
+- For Wi-Fi receivers: connect the device to receiver network and AvareX auto-listens on UDP `4000`, `43211`, `49002`.
+- For Bluetooth receivers (Android): `Menu -> IO`, pair/connect, then return to map.
+- Source threads:
+  - GPS source discussion:  
+    `https://groups.google.com/g/apps4av-forum/c/e0ujCJQX1s8`
+  - In-flight ADS-B issues:  
+    `https://groups.google.com/g/apps4av-forum/c/ZP2E9l35Dk8`
+  - Android IO functionality:  
+    `https://groups.google.com/g/apps4av-forum/c/WI-BcDK7rT0`
+
+### FAQ-02: How do I transfer a plan to Garmin?
+
+- Build a route with at least 2 waypoints.
+- On Android, connect device in `Menu -> IO`.
+- Open `PLAN -> Actions -> Transfer`, then **Send to Garmin**.
+- Source threads:
+  - Testing Garmin transfer:  
+    `https://groups.google.com/g/apps4av-forum/c/k958J5yLyR4`
+  - Importing/transfer conversation:  
+    `https://groups.google.com/g/apps4av-forum/c/acmWm72qITY`
+
+### FAQ-03: Where do I enable new wind/ceiling map features?
+
+- `MAP -> Layers`:
+  - enable **Wind Vectors** and/or **Ceiling**
+  - use left altitude slider to change displayed altitude context.
+- Source threads:
+  - New features v83/v84:  
+    `https://groups.google.com/g/apps4av-forum/c/qac4-Bb-gVE`  
+    `https://groups.google.com/g/apps4av-forum/c/Xvhc9yeE42A`
+
+### FAQ-04: My track logs are empty. How do I save valid KML logs?
+
+- Keep `Tracks` layer ON during flight.
+- After flight, turn `Tracks` layer OFF (saves KML to Documents and clears active track buffer).
+- Open `Documents -> User Docs` and verify non-empty KML before sharing.
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/goPy8KQpfik`
+
+### FAQ-05: Where are FBO/business details?
+
+- On `PLATE` screen, when an airport diagram is active and business data is available, use the right-side business selector (`...` style control).
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/oMOR-gaIqis`
+
+### FAQ-06: What are the blue rings on map?
+
+- In the `Circles` layer:
+  - black rings: fixed 2/5/10 NM reference rings
+  - blue ring: speed-based 1-minute range ring
+  - glide circle: aircraft sink-rate based glide estimate
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/VJ0S3ejWPC8`
+
+### FAQ-07: My waypoints appear in wrong order. Can I reorder quickly?
+
+- Yes. In `PLAN`, drag rows to reorder legs.
+- You can also set current leg by tapping a waypoint row.
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/T-m4BWZynMg`
+
+### FAQ-08: How do I enter an ATC reroute quickly?
+
+- Open `PLAN -> Actions -> Create`.
+- Use **Create As Entered** and paste/type reroute string (space-separated waypoints/airways).
+- Then review/reorder in PLAN list if needed.
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/ukaXEEhpvS0`
+
+### FAQ-09: Download/cycle issues - what to try first?
+
+- In `Download` screen:
+  - try **This Cycle** vs **Next Cycle**
+  - try **Main Server** vs **Backup Server**
+  - keep download screen open until completion (exiting can abort incomplete downloads).
+- Source threads:
+  - cycle download issue:  
+    `https://groups.google.com/g/apps4av-forum/c/LS_VaqKEJxw`
+  - background download request:  
+    `https://groups.google.com/g/apps4av-forum/c/XcoQzwpCxlw`
+
+### FAQ-10: FAA IFR preferred route tools not working - what now?
+
+- Ensure app is updated to latest release and internet is available.
+- Confirm your 1800wxbrief-compatible email is configured.
+- Retry via `PLAN -> Actions -> Create` and `Brief & File`.
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/0wHqcJT-WiY`
+
+### FAQ-11: Is Flight Intelligence (AI) available on desktop?
+
+- Current Pro AI workflows are targeted for iOS/Android in this codebase.
+- Access from map account icon -> Pro Services -> Flight Intelligence.
+- Source threads:
+  - AI feature thread:  
+    `https://groups.google.com/g/apps4av-forum/c/wWZUn6TNG1w`
+  - desktop/pro services request:  
+    `https://groups.google.com/g/apps4av-forum/c/XcoQzwpCxlw`
+
+### FAQ-12: Can I use AvareX with X-Plane/simulator feeds?
+
+- AvareX accepts external NMEA/GDL90-like streams via UDP listener ports.
+- For simulator setups, configure simulator/network output accordingly.
+- Source thread:  
+  `https://groups.google.com/g/apps4av-forum/c/QOfnQ-pkT0w`
+
+---
+
 If you want, this manual can also be split into:
 
 - a **pilot quick-start card** (1–2 pages),
