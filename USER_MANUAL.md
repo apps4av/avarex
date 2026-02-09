@@ -588,6 +588,169 @@ Possible issue items:
 
 ---
 
+## 15) Step-by-Step Use Cases (Common Scenarios)
+
+### UC-01: Connect an external ADS-B/GPS receiver over Wi-Fi UDP
+
+Best when your receiver broadcasts GDL90/NMEA over local network.
+
+1. Power on your ADS-B/GPS receiver.
+2. Connect your tablet/phone/computer to the receiver's Wi-Fi network (or same LAN).
+3. Open AvareX and go to `MAP`.
+4. Wait for incoming data on supported UDP ports: `4000`, `43211`, or `49002` (automatic listener).
+5. Turn on useful map layers:
+   - `Traffic`
+   - `Weather`
+   - `Radar` (internet radar)
+6. Verify data:
+   - ownship updates smoothly,
+   - traffic symbols appear (if in range),
+   - weather products populate.
+7. If needed, open warning drawer from red icon and resolve GPS/data warnings.
+
+### UC-02: Connect an external ADS-B/GPS receiver over Bluetooth (Android)
+
+1. Open `MAP → Menu → IO`.
+2. Tap refresh/replay icon to discover devices.
+3. Select your receiver from list.
+4. Pair (if needed), then tap **Connect**.
+5. Confirm status line shows connected device.
+6. Return to map and enable `Traffic` / `Weather` layers as needed.
+7. To disconnect: `IO → Disconnect`.
+
+### UC-03: Rubber-band a route directly on the map
+
+Use this to adjust waypoints graphically.
+
+1. Ensure your route has waypoints (`PLAN` tab or destination popup `+Plan`).
+2. Go to `MAP`.
+3. Tap the **rubber banding** icon (decision arrow) to enable it (icon turns active/red).
+4. Long-press a waypoint marker or label and drag to a new position.
+5. Release to snap/update from database lookup and rebuild route geometry.
+6. Turn rubber banding off when done to avoid accidental edits.
+
+### UC-04: Build a flight plan from scratch (quick VFR workflow)
+
+1. Open `PLAN` tab.
+2. Add waypoints using either:
+   - `FIND` tab → tap item → `+Plan`, or
+   - `MAP` long-press destination popup → `+Plan`.
+3. Reorder legs by drag in `PLAN`.
+4. Tap a leg to make it current.
+5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN`.
+6. Open nav-log (fuel icon) to review:
+   - leg calculations,
+   - winds-aloft field,
+   - terrain profile.
+7. Save the route: `PLAN → Actions → Load & Save → Save`.
+
+### UC-05: Create an IFR route automatically
+
+1. Open `PLAN → Actions → Create`.
+2. In Route field:
+   - enter route text and use **Create As Entered**, or
+   - enter `DEPART DEST` and use **Create IFR Preferred Route**, or
+   - use **Show IFR ATC Routes** to view recent ATC route options.
+3. When route is loaded, return to `PLAN` to review/reorder waypoints.
+
+### UC-06: File a flight plan with the FAA
+
+Prereq: set your 1800wxbrief-compatible email in onboarding.
+
+1. Build/verify your route in `PLAN`.
+2. Open `PLAN → Actions → Brief & File`.
+3. Fill required fields (aircraft ID/type, rule, departure, destination, route, times, fuel, POB, etc.).
+4. Use quick-fill buttons:
+   - planned departure/destination/route,
+   - stored aircraft templates.
+5. Tap:
+   - **Get Email Brief** for briefing email, and/or
+   - **Send to FAA** to file.
+6. Check status indicator/message for success/errors.
+
+### UC-07: Activate, close, or cancel an FAA flight plan
+
+1. Open `PLAN → Actions → Manage`.
+2. Find your plan in the list.
+3. Use action by state:
+   - `PROPOSED`: **Depart** (choose time) to activate,
+   - `ACTIVE`: **Close** after landing,
+   - non-active: **Cancel** if no longer needed.
+
+### UC-08: Quickly divert to a nearby airport
+
+1. On `MAP`, long-press near destination area.
+2. In popup, review nearby list and tap a candidate airport.
+3. Tap `→D` to set Direct-To and center map.
+4. Optional:
+   - tap `Plates` for immediate airport diagrams/procedures,
+   - add to full route with `+Plan`.
+
+### UC-09: Use plates with procedure profile and add procedure to plan
+
+1. Open `PLATE` tab.
+2. Select airport (bottom-right selector).
+3. Select desired plate (bottom-left selector).
+4. Use procedure menu (plus icon):
+   - choose procedure to show profile,
+   - use `+Plan` to append procedure to route.
+5. Keep instruments visible on plate using top-right show/hide toggle.
+
+### UC-10: Save your flown track and retrieve it from Documents
+
+1. In `MAP`, keep `Tracks` layer on during flight.
+2. When done, set `Tracks` layer opacity to `0` in Layers menu.
+3. App saves track automatically as KML in Documents.
+4. Open `MAP → Menu → Documents → User Docs` to access/share file.
+
+### UC-11: Import a GeoJSON overlay and display it on map
+
+1. Open `MAP → Menu → Documents`.
+2. Tap **Import** and select a `.geojson` file.
+3. Open `MAP` and set `GeoJSON` layer opacity > 0.
+4. Imported polygons/markers now draw on the map.
+
+### UC-12: Transfer your plan to a Garmin device (Android)
+
+1. Build your route with at least 2 waypoints.
+2. Connect Garmin device in `MAP → Menu → IO`.
+3. Open `PLAN → Actions → Transfer`.
+4. Confirm connected device label.
+5. Tap **Send to Garmin**.
+6. Wait for success toast/status.
+
+### UC-13: Back up and restore app data (Pro)
+
+1. Open Pro Services from account icon on map.
+2. Sign in and pass entitlement/paywall if required.
+3. Open `Backup/Sync`.
+4. Use:
+   - **Backup** to upload local `user.db`,
+   - **Restore** to overwrite local data from cloud copy.
+5. Confirm prompts carefully (both operations overwrite existing data).
+
+### UC-14: Get flight help from community resources
+
+1. In onboarding or browser, open Apps4Av forum:
+   - `https://groups.google.com/g/apps4av-forum`
+2. Search existing threads for similar workflows/devices.
+3. Post issue details:
+   - platform/device,
+   - receiver type,
+   - what screen/action failed,
+   - any warning drawer messages.
+
+---
+
+## 16) Resources and Support
+
+- Apps4Av Forum (Google Groups):  
+  `https://groups.google.com/g/apps4av-forum`
+- Store links and platform download details: see `README.md`.
+- For in-app issues, always check the MAP warning drawer first (red icon).
+
+---
+
 If you want, this manual can also be split into:
 
 - a **pilot quick-start card** (1–2 pages),
