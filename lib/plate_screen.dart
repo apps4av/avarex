@@ -513,7 +513,7 @@ class PlateScreenState extends State<PlateScreen> {
                                 value: item,
                                 onTap: null,
                                 child: ListTile(
-                                  trailing: TextButton(child: Text("+Plan"),
+                                  leading: TextButton(child: Text("+Plan"),
                                     onPressed: () {
                                       Navigator.pop(context);
                                       MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
@@ -526,19 +526,15 @@ class PlateScreenState extends State<PlateScreen> {
                                         }
                                       });
                                   },),
-                                  leading: TextButton(child: Text("VP"),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      setState(() {
-                                        Storage().settings.setPlateProfileVisible(true);
-                                        Storage().settings.setPlateProfile(item);
-                                      });
-                                    }),
                                   title: Padding(padding: const EdgeInsets.all(5), child:
                                   AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
                             );
                           }).toList(),
                           onChanged: (value) {
+                            setState(() {
+                              Storage().settings.setPlateProfileVisible(true);
+                              Storage().settings.setPlateProfile(value ?? "");
+                            });
                           },
                         )
                     )
@@ -581,11 +577,18 @@ class PlateScreenState extends State<PlateScreen> {
       Positioned(
           child: Align(
               alignment: Alignment.bottomRight,
-              child: IgnorePointer(
-                  child: Padding(
+              child: Padding(
                       padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
-                      child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())
-          )))) : Container(),
+                      child: Stack(alignment: AlignmentGeometry.topRight, children:[
+                        IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
+                        Padding(padding: EdgeInsets.fromLTRB(0, 0, 10, 0), child: IconButton(icon: Icon(Icons.close), onPressed: () {
+                          setState(() {
+                            Storage().settings.setPlateProfileVisible(false);
+                            Storage().settings.setPlateProfile("");
+                          });
+                        },))
+                      ])
+          ))) : Container(),
     ])
     );
   }
