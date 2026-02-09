@@ -49,6 +49,7 @@ class Terrain3DScreenState extends State<Terrain3DScreen> {
   @override
   void dispose() {
     Storage().timeChange.removeListener(_onTimeChange);
+    ChartTextureSampler.clear();
     super.dispose();
   }
 
