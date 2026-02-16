@@ -60,11 +60,13 @@ class Area {
 
     if(Storage().settings.isAudibleAlertsEnabled()) {
       _gpwsAlerts ??= await GpwsAlerts.getAndStartGpwsAlerts();
-      if(null != _gpwsAlerts && elevation != null) {
-        _gpwsAlerts!.checkAltitude(
-          gpsAltitudeFeet: GeoCalculations.convertAltitude(Storage().position.altitude),
-          groundElevationFeet: elevation,
+      if(null != _gpwsAlerts) {
+        await _gpwsAlerts!.checkTerrainAhead(
+          currentPosition: Gps.toLatLng(Storage().position),
+          altitude: GeoCalculations.convertAltitude(Storage().position.altitude),
+          groundElevation: elevation,
           groundSpeed: GeoCalculations.convertSpeed(Storage().position.speed),
+          heading: Storage().position.heading,
         );
       }
     }
