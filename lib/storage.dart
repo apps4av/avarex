@@ -92,6 +92,7 @@ class Storage {
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.fromLatLng(LatLng(0, 0)));
   ImageCache imageCache = ImageCache();
   int myAircraftIcao = 0;
+  bool cachedTrafficLayerOn = false;
   String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
   final PfdData pfdData = PfdData(); // a place to drive PFD

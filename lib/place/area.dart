@@ -1,5 +1,6 @@
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/instruments/gpws_alerts.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -21,6 +22,7 @@ class Area {
   double variation = 0;
   ValueNotifier<int> change = ValueNotifier(0);
   GlideProfile glideProfile = GlideProfile();
+  GpwsAlerts? _gpwsAlerts;
 
   Future<void> update(Position position) async {
     double geo = 0;
@@ -55,6 +57,23 @@ class Area {
     glideProfile.updateGlide();
 
     change.value++;
+
+    if(Storage().settings.isAudibleAlertsEnabled()) {
+      _gpwsAlerts ??= await GpwsAlerts.getAndStartGpwsAlerts();
+      if(null != _gpwsAlerts && elevation != null) {
+        _gpwsAlerts!.checkAltitude(
+          gpsAltitudeFeet: GeoCalculations.convertAltitude(Storage().position.altitude),
+          groundElevationFeet: elevation,
+          groundSpeed: GeoCalculations.convertSpeed(Storage().position.speed),
+        );
+      }
+    }
+    else {
+      if(null != _gpwsAlerts) {
+        await GpwsAlerts.stopGpwsAlerts();
+        _gpwsAlerts = null;
+      }
+    }
   }
 
   (double?, double?) getWind(double altitude) {

@@ -53,7 +53,7 @@ class Traffic {
     return (DateTime.now().millisecondsSinceEpoch - message.time.millisecondsSinceEpoch) * _kMinutesPerMillisecond > 1; // CPU flameshart => optimization
   }
 
-  Widget getIcon(bool isAudibleAlertsEnabled, double angle) {
+  Widget getIcon(double angle) {
     return Row(children:[
           Stack(children: [
             CustomPaint(painter: AlertBoxPainter(this)),
@@ -235,8 +235,9 @@ class TrafficCache {
     if (_audibleAlertsHandling) {
       _audibleAlertsRequested = true;
       return;
-    } 
-    if (Storage().settings.isAudibleAlertsEnabled()) {
+    }
+    // process when traffic layer is on
+    if (Storage().settings.isAudibleAlertsEnabled() && Storage().cachedTrafficLayerOn) {
       _audibleAlertsHandling = true;   
       TrafficAlerts.getAndStartTrafficAlerts().then((alerts) {
         // TODO: Set all of the "pref" settings from new Storage params (which in turn have a config UI?)

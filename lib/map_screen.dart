@@ -441,6 +441,8 @@ class MapScreenState extends State<MapScreen> {
     bool showAltitudeSlider = false;
 
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
+    // this is called many times on the map so we need to be efficient.
+    Storage().cachedTrafficLayerOn = _layersOpacity[_layers.indexOf("Traffic")] > 0;
 
     //add layers
     final List<Widget> layers = [];
@@ -732,7 +734,7 @@ class MapScreenState extends State<MapScreen> {
               Storage().trafficCache.getTraffic().map((e) {
                 return Marker( // our position and heading to destination
                   point: e.getCoordinates(),
-                  child: Transform.rotate(angle: angle * pi / 180, child:e.getIcon(Storage().settings.isAudibleAlertsEnabled(), angle)),
+                  child: Transform.rotate(angle: angle * pi / 180, child:e.getIcon(angle)),
                 );
               }).toList(),
             );
@@ -1263,24 +1265,13 @@ class MapScreenState extends State<MapScreen> {
 
                 ),
               ),
+              if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
               Positioned(
                 child: Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
-                        child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                          // switch audio on off
-                          if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
-                            IconButton(
-                                tooltip: "Mute audible alerts",
-                                onPressed: () {
-                                  setState(() {
-                                    Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
-                                  });
-                                },
-                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                    child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
-                          if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
+                        child:
                             IconButton(
                                 tooltip: "Traffic Volume:\n"
                                     "S: 20 Aircraft, 3000ft, 10NM\n"
@@ -1295,12 +1286,9 @@ class MapScreenState extends State<MapScreen> {
                                 icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                     child: Text(Storage().settings.getTrafficPuckSize()))
                             ),
-
-                        ]
                       )
                     )
-                )
-              ),
+                ),
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomCenter,
@@ -1402,6 +1390,16 @@ class MapScreenState extends State<MapScreen> {
                           child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
+                                  IconButton(
+                                    tooltip: "Mute audible alerts",
+                                    onPressed: () {
+                                      setState(() {
+                                        Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
+                                      });
+                                    },
+                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
+
                                   IconButton(
                                     tooltip: "Measure distances and bearings",
                                     onPressed: () {
@@ -1537,8 +1535,6 @@ class MapScreenState extends State<MapScreen> {
                                                       setState(() {
                                                         _layersOpacity[index] = value; // this is the state for the map
                                                       });
-                                                      // Turn audible alerts off and on depending on traffic layer
-                                                      Storage().settings.setAudibleAlertsEnabled(_layersOpacity[_layers.indexOf("Traffic")] > 0);
                                                     },
                                                   )),
                                                 ])),

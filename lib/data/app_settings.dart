@@ -6,13 +6,11 @@ class AppSettings {
 
   late final SettingsCacheProvider provider;
   // local vars, to prevent constant cache lookups that are showing up in CPU flamechart
-  bool _localAudibleAlertsEnabledSetting = true;  
   String _localUnits = "Maritime";
 
   Future<void> initSettings() async {
     provider = SettingsCacheProvider();
     await provider.init();
-    _localAudibleAlertsEnabledSetting = provider.getValue("key-audible-alerts", defaultValue: _localAudibleAlertsEnabledSetting) as bool;
     _localUnits = provider.getValue("key-units", defaultValue: _localUnits) as String;
   }
 
@@ -205,13 +203,12 @@ class AppSettings {
     return provider.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
-  bool isAudibleAlertsEnabled() { 
-    return _localAudibleAlertsEnabledSetting; // Due to number of times called, using local/memory var results in significant CPU relief
+  bool isAudibleAlertsEnabled() {
+    return provider.getValue("key-audible-alerts", defaultValue: false) as bool;
   }
 
   void setAudibleAlertsEnabled(bool value) {
     provider.setBool("key-audible-alerts", value);
-    _localAudibleAlertsEnabledSetting = value;
   }
 
   bool isInstrumentsVisiblePlate() {
