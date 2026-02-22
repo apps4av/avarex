@@ -321,10 +321,13 @@ Requires configured 1800wxbrief-compatible account email.
   - Depart / activate with chosen time (for proposed)
 
 ### E) Transfer (Android)
-- Garmin Connext transfer workflow
+- Sends flight plan via standard NMEA 0183 RTE/WPL sentences over Bluetooth
 - Requires Bluetooth connection in IO screen
-- Sends current plan to Garmin device via NMEA RTE/WPL sequence
 - Minimum 2 waypoints required
+
+**Compatible devices:** Older handheld GPS units and devices that accept NMEA 0183 waypoint/route input (e.g., some autopilot systems, marine chartplotters, GPSMAP handhelds).
+
+**Not compatible:** Modern Garmin panel-mount avionics (G3X Touch, GTN 650/750, GNS 430W/530W) use Garmin's proprietary Connext protocol, which is only available to Garmin Pilot and ForeFlight. These devices will show "Connected" over Bluetooth but will not import flight plans sent via NMEA RTE/WPL.
 
 ---
 
@@ -709,10 +712,14 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 3. Open `MAP` and set `GeoJSON` layer opacity > 0.
 4. Imported polygons/markers now draw on the map.
 
-### UC-12: Transfer your plan to a Garmin device (Android)
+### UC-12: Transfer your plan to an NMEA-compatible device (Android)
+
+This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
+
+**Note:** Modern Garmin panel-mount avionics (G3X Touch, GTN, GNS series) do NOT support this protocol—they require Garmin's proprietary Connext protocol available only in Garmin Pilot and ForeFlight. For those devices, use Garmin Pilot for flight plan transfer.
 
 1. Build your route with at least 2 waypoints.
-2. Connect Garmin device in `MAP → Menu → IO`.
+2. Connect your NMEA-compatible device in `MAP → Menu → IO`.
 3. Open `PLAN → Actions → Transfer`.
 4. Confirm connected device label.
 5. Tap **Send to Garmin**.
@@ -766,11 +773,16 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
   - Android IO functionality:  
     `https://groups.google.com/g/apps4av-forum/c/WI-BcDK7rT0`
 
-### FAQ-02: How do I transfer a plan to Garmin?
+### FAQ-02: How do I transfer a plan to an external device?
 
 - Build a route with at least 2 waypoints.
 - On Android, connect device in `Menu -> IO`.
 - Open `PLAN -> Actions -> Transfer`, then **Send to Garmin**.
+
+**Important compatibility note:** This feature uses standard NMEA 0183 RTE/WPL sentences. It works with devices that accept NMEA waypoint/route input (older handhelds, some autopilots, marine GPS). 
+
+**It does NOT work with modern Garmin panel-mount avionics** (G3X Touch, GTN 650/750, GNS 430W/530W). These use Garmin's proprietary Connext protocol, which Garmin restricts to their own Garmin Pilot app and ForeFlight. If you have these avionics, use Garmin Pilot (free) to transfer flight plans wirelessly.
+
 - Source threads:
   - Testing Garmin transfer:  
     `https://groups.google.com/g/apps4av-forum/c/k958J5yLyR4`

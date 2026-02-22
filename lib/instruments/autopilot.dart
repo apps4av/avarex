@@ -47,7 +47,33 @@ class AutoPilot {
     if (wp != null) {
       Destination next = wp.destination;
       Destination? prev = Storage().route.getPreviousDestination();
-      String startID = prev?.locationID ?? "";
+      
+      // When on the first leg of a flight plan (no previous waypoint), we need to 
+      // navigate TO the second waypoint using the first waypoint as the origin.
+      // This ensures the autopilot follows the defined course line (purple) between
+      // waypoints, not a direct-to line (brown) from current position.
+      LatLng origin;
+      if (prev != null) {
+        // Normal case: use previous waypoint as origin
+        origin = prev.coordinate;
+      } else if (destinations.length > 1) {
+        // First leg of multi-waypoint plan: origin is first waypoint, 
+        // target is second waypoint
+        int currentIndex = destinations.indexWhere((d) => d == next);
+        if (currentIndex == 0) {
+          // Current waypoint is the first destination - navigate to the second
+          origin = destinations[0].coordinate;
+          next = destinations[1];
+        } else {
+          // Current waypoint is not first, but prev is null (shouldn't happen normally)
+          origin = destinations[0].coordinate;
+        }
+      } else {
+        // True direct-to (single destination) - use current position
+        origin = currentPosition;
+      }
+      
+      String startID = prev?.locationID ?? (destinations.isNotEmpty ? destinations[0].locationID : "");
       String endID = next.locationID;
 
       // Limit our station IDs to 5 chars max so we don't exceed the 80 char
@@ -60,7 +86,6 @@ class AutoPilot {
         endID = "gDST";
       }
 
-      LatLng origin = prev?.coordinate ?? currentPosition;
       double brgOrig = GeoCalculations().calculateBearing(
           origin,
           next.coordinate);

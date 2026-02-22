@@ -81,7 +81,7 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
                   padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
                   alignment: Alignment.centerLeft,
                   child: const Text(
-                      "Send the current flight plan to a Garmin device using Garmin Connext over Bluetooth."))),
+                      "Send flight plan via NMEA 0183 over Bluetooth. Works with NMEA-compatible devices (handhelds, some autopilots). Not compatible with G3X/GTN/GNS panel avionics."))),
           Expanded(
               flex: 1,
               child: Container(
