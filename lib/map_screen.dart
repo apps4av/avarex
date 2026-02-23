@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
 import 'package:avaremp/utils/toast.dart';
+import 'package:avaremp/cap/cap_grid_layer.dart';
 import 'package:avaremp/weather/ceiling_layer.dart';
 import 'package:avaremp/weather/wind_vector_layer.dart';
 import 'package:universal_io/io.dart';
@@ -67,6 +68,7 @@ class MapScreenState extends State<MapScreen> {
   bool _northUp = Storage().settings.getNorthUp();
   final GeoCalculations _calculations = GeoCalculations();
   final CeilingLayer _ceilingLayer = CeilingLayer();
+  final CapGridLayer _capGridLayer = CapGridLayer();
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
@@ -765,6 +767,50 @@ class MapScreenState extends State<MapScreen> {
           },
         ),
       )));
+    }
+
+    lIndex = _layers.indexOf('CAP Grid');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                LatLng center = _controller.camera.center;
+                double zoom = _controller.camera.zoom;
+                var (polylineLayer, _) = _capGridLayer.build(
+                  center: center,
+                  zoom: zoom,
+                );
+                return polylineLayer;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                LatLng center = _controller.camera.center;
+                double zoom = _controller.camera.zoom;
+                var (_, markerLayer) = _capGridLayer.build(
+                  center: center,
+                  zoom: zoom,
+                );
+                return markerLayer;
+              },
+            ),
+          ),
+        ),
+      );
     }
 
     lIndex = _layers.indexOf('Circles');
