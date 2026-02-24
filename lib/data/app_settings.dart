@@ -274,4 +274,12 @@ class AppSettings {
     provider.setString("key-plate-profile", value);
   }
 
+  String getAircraftIcon() {
+    return provider.getValue("key-aircraft-icon", defaultValue: "plane") as String;
+  }
+
+  void setAircraftIcon(String value) {
+    provider.setString("key-aircraft-icon", value);
+  }
+
 }

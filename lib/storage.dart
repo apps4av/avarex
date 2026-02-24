@@ -43,6 +43,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'aircraft/aircraft_screen.dart';
 import 'data/app_settings.dart';
 import 'data/db_general.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -51,7 +52,6 @@ import 'instruments/flight_timer.dart';
 import 'gdl90/message.dart';
 import 'utils/geojson_parser.dart';
 import 'io/gps.dart';
-import 'utils/image_utils.dart';
 import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
@@ -361,6 +361,7 @@ class Storage {
 
     // don't await on this, but set when available, as DB access could take a few ms
     loadAircraftIds();
+    AircraftScreen.reloadAircraftIcon();
 
     // this is a long login process, do not await here
 
@@ -374,9 +375,6 @@ class Storage {
     airep = WeatherCache.make(AirepCache) as AirepCache;
     airSigmet = WeatherCache.make(AirSigmetCache) as AirSigmetCache;
     notam = WeatherCache.make(NotamCache) as NotamCache;
-
-    // plane image
-    imagePlane = await ImageUtils.loadImageFromAssets('plane.png');
 
     // set area
     await area.update(position);

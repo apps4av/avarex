@@ -1,14 +1,24 @@
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/image_utils.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
-import '../constants.dart';
+
+class AircraftIconType {
+  static const List<String> all = ["plane", "helicopter", "canard"];
+}
 
 class AircraftScreen extends StatefulWidget {
   const AircraftScreen({super.key});
   @override
   AircraftScreenState createState() => AircraftScreenState();
+
+  static Future<void> reloadAircraftIcon() async {
+    String iconType = Storage().settings.getAircraftIcon();
+    Storage().imagePlane = await ImageUtils.loadImageFromAssets("$iconType.png");
+  }
 }
 
 class AircraftScreenState extends State<AircraftScreen> {
@@ -149,10 +159,73 @@ class AircraftScreenState extends State<AircraftScreen> {
                     ),
 
 
-                ]))
+                ])),
+                const Divider(),
+                _buildIconSelector(),
             ],
           )
         )
+    );
+  }
+
+  Widget _buildIconSelector() {
+    String currentIcon = Storage().settings.getAircraftIcon();
+
+    return Padding(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text("Map Icon", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(width: 8),
+              const Tooltip(
+                showDuration: Duration(seconds: 30),
+                triggerMode: TooltipTriggerMode.tap,
+                message: "Select the icon that represents your aircraft on the map and plate screens.",
+                child: Icon(Icons.info),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: AircraftIconType.all.map((iconType) {
+              bool isSelected = currentIcon == iconType;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    Storage().settings.setAircraftIcon(iconType);
+                    AircraftScreen.reloadAircraftIcon();
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: isSelected ? Colors.blue : Colors.grey,
+                      width: isSelected ? 3 : 1,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    color: isSelected ? Colors.blue.withValues(alpha: 0.1) : null,
+                  ),
+                  child: Column(
+                    children: [
+                      Image.asset(
+                        'assets/images/$iconType.png',
+                        width: 48,
+                        height: 48,
+                      ),
+                      const SizedBox(height: 4),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
