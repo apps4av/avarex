@@ -382,6 +382,7 @@ class DownloadScreenState extends State<DownloadScreen> {
       _absentColor,
       [
         Chart('DatabasesX', _absentColor, _absentIcon, 'databasesx', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('Vector Map', _absentColor, _absentIcon, 'vectormap', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
         Chart('Business/FBO', _absentColor, _absentIcon, 'databasesBusiness', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), false),
       ],
       false,

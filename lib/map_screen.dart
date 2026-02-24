@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
+import 'package:avaremp/utils/mbtiles_layer.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:avaremp/cap/cap_grid_layer.dart';
 import 'package:avaremp/weather/ceiling_layer.dart';
@@ -57,6 +59,7 @@ class MapScreenState extends State<MapScreen> {
   bool _interacting = false;
   bool _rubberBanding = false;
   final Ruler _ruler = Ruler();
+  final MBTilesLayerManager _mbtilesManager = MBTilesLayerManager();
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
@@ -159,6 +162,9 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.addListener(_airSigmetListen);
     Storage().tfr.change.addListener(_tfrListen);
     Storage().geoParser.change.addListener(_geoJsonListen);
+    // load vector tiles
+    _mbtilesManager.loadMBTiles(PathUtils.getFilePath(Storage().dataDir, PathUtils.getFilePath("maps", "nasr.mbtiles")));
+
     super.initState();
   }
 
@@ -173,6 +179,7 @@ class MapScreenState extends State<MapScreen> {
     Storage().tfr.change.removeListener(_tfrListen);
     Storage().geoParser.change.removeListener(_geoJsonListen);
     _previousPosition = null;
+    _mbtilesManager.close();
     super.dispose();
   }
 
@@ -559,6 +566,60 @@ class MapScreenState extends State<MapScreen> {
       layers.add(Opacity(opacity: opacity, child: chartLayer));
     }
 
+    // MBTiles vector/raster map layer
+    lIndex = _layers.indexOf('Vector Map');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0 && _mbtilesManager.isLoaded) {
+      final mbtilesWidget = _mbtilesManager.buildVectorTileLayer(opacity: opacity);
+      if (mbtilesWidget != null) {
+        layers.add(mbtilesWidget);
+      }
+    }
+
+    lIndex = _layers.indexOf('CAP Grid');
+    opacity = _layersOpacity[lIndex];
+    if (opacity > 0) {
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                LatLng center = _controller.camera.center;
+                double zoom = _controller.camera.zoom;
+                var (polylineLayer, _) = _capGridLayer.build(
+                  center: center,
+                  zoom: zoom,
+                );
+                return polylineLayer;
+              },
+            ),
+          ),
+        ),
+      );
+
+      layers.add(
+        IgnorePointer(
+          child: Opacity(
+            opacity: opacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().timeChange,
+              builder: (context, value, _) {
+                LatLng center = _controller.camera.center;
+                double zoom = _controller.camera.zoom;
+                var (_, markerLayer) = _capGridLayer.build(
+                  center: center,
+                  zoom: zoom,
+                );
+                return markerLayer;
+              },
+            ),
+          ),
+        ),
+      );
+    }
+
     lIndex = _layers.indexOf('Elevation');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
@@ -767,50 +828,6 @@ class MapScreenState extends State<MapScreen> {
           },
         ),
       )));
-    }
-
-    lIndex = _layers.indexOf('CAP Grid');
-    opacity = _layersOpacity[lIndex];
-    if (opacity > 0) {
-      layers.add(
-        IgnorePointer(
-          child: Opacity(
-            opacity: opacity,
-            child: ValueListenableBuilder<int>(
-              valueListenable: Storage().timeChange,
-              builder: (context, value, _) {
-                LatLng center = _controller.camera.center;
-                double zoom = _controller.camera.zoom;
-                var (polylineLayer, _) = _capGridLayer.build(
-                  center: center,
-                  zoom: zoom,
-                );
-                return polylineLayer;
-              },
-            ),
-          ),
-        ),
-      );
-      
-      layers.add(
-        IgnorePointer(
-          child: Opacity(
-            opacity: opacity,
-            child: ValueListenableBuilder<int>(
-              valueListenable: Storage().timeChange,
-              builder: (context, value, _) {
-                LatLng center = _controller.camera.center;
-                double zoom = _controller.camera.zoom;
-                var (_, markerLayer) = _capGridLayer.build(
-                  center: center,
-                  zoom: zoom,
-                );
-                return markerLayer;
-              },
-            ),
-          ),
-        ),
-      );
     }
 
     lIndex = _layers.indexOf('Circles');

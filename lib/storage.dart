@@ -103,7 +103,6 @@ class Storage {
   late UnitConversion units;
   final DownloadManager downloadManager = DownloadManager();
   final GeoJsonParser geoParser = GeoJsonParser();
-
   List<bool> activeChecklistSteps = [];
   String activeChecklistName = "";
   static const gpsSwitchoverTimeMs = 30000; // switch GPS in 30 seconds
@@ -447,6 +446,7 @@ class Storage {
     });
 
     downloadWeather();
+
   }
 
   Future<void> loadAircraftIds() async {
