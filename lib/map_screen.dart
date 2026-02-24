@@ -97,11 +97,6 @@ class MapScreenState extends State<MapScreen> {
     userAgentPackageName: 'com.apps4av.avarex',
     tileProvider: MapNetworkTileProvider());
 
-  final TileLayer _openaipLayer = TileLayer(
-      maxNativeZoom: 16,
-      urlTemplate: "https://api.tiles.openaip.net/api/data/openaip/{z}/{x}/{y}.png?apiKey=@@___openaip_client_id__@@",
-      tileProvider: MapNetworkTileProvider());
-
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
     userAgentPackageName: 'com.apps4av.avarex',
@@ -546,19 +541,6 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(Opacity(opacity: opacity, child: _topoLayer));
-    }
-    lIndex = _layers.indexOf('OpenAIP');
-    opacity = _layersOpacity[lIndex];
-    if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: _openaipLayer));
-      layers.add(
-          Container(padding: EdgeInsets.fromLTRB(
-              0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(
-              alignment: AttributionAlignment.bottomRight,
-              attributions: [TextSourceAttribution('OpenAIP contributors',),],
-            ),
-          ));
     }
     lIndex = _layers.indexOf('Chart');
     opacity = _layersOpacity[lIndex];
@@ -1614,9 +1596,9 @@ class MapScreenState extends State<MapScreen> {
               if(showAltitudeSlider)
                 // altitude slider
                 Positioned(child: Align(
-                    alignment: Alignment.centerLeft, child:
+                    alignment: Alignment.centerRight, child:
                       RotatedBox(quarterTurns: -1, child:
-                        SizedBox(width: 200, height: 100, child:
+                        SizedBox(width: 192, height: 64, child:
                           Slider(label: "${(Storage().route.altitude / 1000).toInt()}K ft", max: 30000, min: 0, divisions: 30, value: Storage().route.altitude.toDouble(), onChanged: (double value) { setState(() {
                             Storage().route.altitude = value.toInt();
                           });}),

@@ -23,24 +23,6 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
-      - name: Find and Replace OpenAIP
-        uses: richardrigutins/replace-in-files@v2
-        with:
-          files: '**/*.dart'
-          search-text: '@@___openaip_client_id__@@'
-          replacement-text: ${{ secrets.OPENAIP_CLIENT_ID }}
-          encoding: 'utf8'
-          max-parallelism: 10
-
-      - name: Find and Replace ASA
-        uses: richardrigutins/replace-in-files@v2
-        with:
-          files: '**/*.dart'
-          search-text: '@@___asa_password__@@'
-          replacement-text: ${{ secrets.ASA_PASSWORD }}
-          encoding: 'utf8'
-          max-parallelism: 10
-
       - name: Update source repo
         run: sudo apt-get update
       - name: Pre-empt libunwind issue for gstreamer

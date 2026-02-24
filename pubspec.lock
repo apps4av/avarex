@@ -1587,6 +1587,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.9.0"
+  sqlite3_flutter_libs:
+    dependency: "direct main"
+    description:
+      name: sqlite3_flutter_libs
+      sha256: "1e800ebe7f85a80a66adacaa6febe4d5f4d8b75f244e9838a27cb2ffc7aec08d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.5.41"
   stack_trace:
     dependency: transitive
     description:
@@ -1884,7 +1892,7 @@ packages:
     source: hosted
     version: "2.2.0"
   vector_tile:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: vector_tile
       sha256: "7ae290246e3a8734422672dbe791d3f7b8ab631734489fc6d405f1cc2080e38c"

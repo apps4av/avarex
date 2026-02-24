@@ -27,7 +27,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
             )
           ),
           Visibility(visible: _getting, child: const CircularProgressIndicator(),),
-          Expanded(flex: 1,
+          Expanded(flex: 4,
             child: Container(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
                 child: Row(children:[

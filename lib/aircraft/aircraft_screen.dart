@@ -161,14 +161,50 @@ class AircraftScreenState extends State<AircraftScreen> {
 
                 ])),
                 const Divider(),
-                _buildIconSelector(),
+                const _AircraftIconSelector(),
             ],
           )
         )
     );
   }
 
-  Widget _buildIconSelector() {
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Aircraft>?>(
+      future: UserDatabaseHelper.db.getAllAircraft(),
+      builder: (BuildContext context, AsyncSnapshot<List<Aircraft>?> snapshot) {
+        if (snapshot.connectionState == ConnectionState.done) {
+          return _makeContent(snapshot.data);
+        } else {
+          return Container();
+        }
+      },
+    );
+  }
+}
+
+class _Entry {
+
+  String name;
+  String map;
+  String value;
+  Widget widget;
+
+  _Entry(this.name, this.map, this.value, this.widget);
+
+}
+
+class _AircraftIconSelector extends StatefulWidget {
+  const _AircraftIconSelector();
+
+  @override
+  State<_AircraftIconSelector> createState() => _AircraftIconSelectorState();
+}
+
+class _AircraftIconSelectorState extends State<_AircraftIconSelector> {
+  @override
+  Widget build(BuildContext context) {
     String currentIcon = Storage().settings.getAircraftIcon();
 
     return Padding(
@@ -228,30 +264,5 @@ class AircraftScreenState extends State<AircraftScreen> {
       ),
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<List<Aircraft>?>(
-      future: UserDatabaseHelper.db.getAllAircraft(),
-      builder: (BuildContext context, AsyncSnapshot<List<Aircraft>?> snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return _makeContent(snapshot.data);
-        } else {
-          return Container();
-        }
-      },
-    );
-  }
-}
-
-class _Entry {
-
-  String name;
-  String map;
-  String value;
-  Widget widget;
-
-  _Entry(this.name, this.map, this.value, this.widget);
-
 }
 
