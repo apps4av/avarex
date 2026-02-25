@@ -29,6 +29,7 @@ class AiScreenState extends State<AiScreen> {
   bool includePlan = false;
   bool includeAircraft = false;
   bool includeLogbook = false;
+  bool includeWeather = false;
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +71,8 @@ class AiScreenState extends State<AiScreen> {
     Widget listOfContext = Row(children:[
       IconButton(tooltip: "Include the last 50 log book entries", onPressed: _isSending ? null :  () {setState(() {includeLogbook = !includeLogbook;});}, icon:Icon(Icons.notes, color: includeLogbook ? Colors.blueAccent : Colors.grey,)),
       IconButton(tooltip: "Include the tail number and the type of aircraft from the first aircraft in the aircraft list", onPressed: _isSending ? null : () {setState(() {includeAircraft = !includeAircraft;});}, icon:Icon(MdiIcons.airplane, color: includeAircraft ? Colors.blueAccent : Colors.grey,)),
-      IconButton(tooltip: "Include the current plan, and the winds aloft from the departure and the destination airports of the plan", onPressed: _isSending ? null : () {setState(() {includePlan = !includePlan;});}, icon:Icon(Icons.route, color: includePlan ? Colors.blueAccent : Colors.grey,)),
+      IconButton(tooltip: "Include the current plan", onPressed: _isSending ? null : () {setState(() {includePlan = !includePlan;});}, icon:Icon(Icons.route, color: includePlan ? Colors.blueAccent : Colors.grey,)),
+      IconButton(tooltip: "Include the winds aloft from the departure and the destination airports of the plan", onPressed: _isSending ? null : () {setState(() {includeWeather = !includeWeather;});}, icon:Icon(Icons.cloud, color: includeWeather ? Colors.blueAccent : Colors.grey,)),
     ]);
 
     Future<String> processQuery() async {
@@ -101,21 +103,28 @@ class AiScreenState extends State<AiScreen> {
           parts.add(TextPart(logText));
         }
       }
-      if(includePlan) {
+      if(includeWeather) {
+        // winds
+        String weatherText = "";
         PlanRoute route = Storage().route;
-        if(route.isNotEmpty) {
-          String planText = "Plan is: ${route.toString()}\n";
-          // winds
+        if (route.isNotEmpty) {
           LatLng start = route.getAllDestinations().first.coordinate;
           LatLng end = route.getAllDestinations().last.coordinate;
           String? windsStart = WindsCache.getWindsAtAll(start, 6);
           String? windsEnd = WindsCache.getWindsAtAll(end, 6);
-          if(windsStart != null) {
-            planText += "Winds at departure:\n$windsStart\n";
+          if (windsStart != null) {
+            weatherText += "Winds at departure:\n$windsStart\n";
           }
-          if(windsEnd != null) {
-            planText += "Winds at destination:\n$windsStart\n";
+          if (windsEnd != null) {
+            weatherText += "Winds at destination:\n$windsStart\n";
           }
+          parts.add(TextPart(weatherText));
+        }
+      }
+      if(includePlan) {
+        PlanRoute route = Storage().route;
+        if(route.isNotEmpty) {
+          String planText = "Plan is: ${route.toString()}\n";
           parts.add(TextPart(planText));
         }
       }
