@@ -92,11 +92,6 @@ class MapScreenState extends State<MapScreen> {
     tileProvider: NetworkTileProvider(),
   );
 
-  final TileLayer _osmLayer = TileLayer(
-    urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    userAgentPackageName: 'com.apps4av.avarex',
-    tileProvider: MapNetworkTileProvider());
-
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
     userAgentPackageName: 'com.apps4av.avarex',
@@ -522,22 +517,7 @@ class MapScreenState extends State<MapScreen> {
       },
     );
 
-    int lIndex = _layers.indexOf('OSM');
-    opacity = _layersOpacity[lIndex];
-    if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: _osmLayer));
-      layers.add( // OSM attribution
-          Container(padding: EdgeInsets.fromLTRB(
-              0, 0, 0, Constants.screenHeight(context) / 2),
-            child: const RichAttributionWidget(
-              alignment: AttributionAlignment.bottomRight,
-              attributions: [
-                TextSourceAttribution('OpenStreetMap contributors',),
-              ],
-            ),
-          ));
-    }
-    lIndex = _layers.indexOf('Topo');
+    int lIndex = _layers.indexOf('Topo');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(Opacity(opacity: opacity, child: _topoLayer));
@@ -1562,18 +1542,6 @@ class MapScreenState extends State<MapScreen> {
                                                             });
                                                           });
                                                         }
-                                                      }
-                                                      if(_layers[index] == "OSM" && value > 0) {
-                                                          _layersOpacity[_layers.indexOf("Topo")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "Topo" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("OSM")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "Chart" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("OpenAIP")] = 0; // save memory by keeping layers to minimum
-                                                      }
-                                                      if(_layers[index] == "OpenAIP" && value > 0) {
-                                                        _layersOpacity[_layers.indexOf("Chart")] = 0; // save memory by keeping layers to minimum
                                                       }
                                                       // now save to settings
                                                       Storage().settings.setLayersOpacity(_layersOpacity);
