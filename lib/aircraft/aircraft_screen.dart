@@ -24,6 +24,7 @@ class AircraftScreen extends StatefulWidget {
 class AircraftScreenState extends State<AircraftScreen> {
 
   String? _selected;
+  String _selectedIcon = Storage().settings.getAircraftIcon();
 
   Widget _makeContent(List<Aircraft>? items) {
 
@@ -41,7 +42,42 @@ class AircraftScreenState extends State<AircraftScreen> {
     return Scaffold(
         appBar: AppBar(
             backgroundColor: Constants.appBarBackgroundColor,
-            title: const Text("Aircraft"),
+            title: Row(
+              children: [
+                const Text("Aircraft"),
+                const SizedBox(width: 16),
+                Tooltip(
+                  message: "Map Icon",
+                  child: DropdownButtonHideUnderline(
+                      child: DropdownButton2<String>(
+                        buttonStyleData: ButtonStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        dropdownStyleData: DropdownStyleData(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        isExpanded: false,
+                        value: _selectedIcon,
+                        items: AircraftIconType.all.map((iconType) => DropdownMenuItem<String>(
+                          value: iconType,
+                          child: Image.asset(
+                            'assets/images/$iconType.png',
+                            width: 32,
+                            height: 32,
+                          ),
+                        )).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedIcon = value!;
+                            Storage().settings.setAircraftIcon(value);
+                            AircraftScreen.reloadAircraftIcon();
+                          });
+                        },
+                      )
+                  ),
+                ),
+              ],
+            ),
             actions: _makeAction(items)
         ),
         body: _makeBody(items)
@@ -55,7 +91,7 @@ class AircraftScreenState extends State<AircraftScreen> {
     return [
       Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
         child: DropdownButtonHideUnderline(
-            child: DropdownButton2<String>( // airport selection
+            child: DropdownButton2<String>(
               buttonStyleData: ButtonStyleData(
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
               ),
@@ -74,7 +110,8 @@ class AircraftScreenState extends State<AircraftScreen> {
               },
             )
         )
-    )];
+      ),
+    ];
   }
 
   Widget _makeBody(List<Aircraft>? items) {
@@ -160,8 +197,6 @@ class AircraftScreenState extends State<AircraftScreen> {
 
 
                 ])),
-                const Divider(),
-                const _AircraftIconSelector(),
             ],
           )
         )
@@ -195,74 +230,4 @@ class _Entry {
 
 }
 
-class _AircraftIconSelector extends StatefulWidget {
-  const _AircraftIconSelector();
-
-  @override
-  State<_AircraftIconSelector> createState() => _AircraftIconSelectorState();
-}
-
-class _AircraftIconSelectorState extends State<_AircraftIconSelector> {
-  @override
-  Widget build(BuildContext context) {
-    String currentIcon = Storage().settings.getAircraftIcon();
-
-    return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text("Map Icon", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              const Tooltip(
-                showDuration: Duration(seconds: 30),
-                triggerMode: TooltipTriggerMode.tap,
-                message: "Select the icon that represents your aircraft on the map and plate screens.",
-                child: Icon(Icons.info),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: AircraftIconType.all.map((iconType) {
-              bool isSelected = currentIcon == iconType;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    Storage().settings.setAircraftIcon(iconType);
-                    AircraftScreen.reloadAircraftIcon();
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isSelected ? Colors.blue : Colors.grey,
-                      width: isSelected ? 3 : 1,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                    color: isSelected ? Colors.blue.withValues(alpha: 0.1) : null,
-                  ),
-                  child: Column(
-                    children: [
-                      Image.asset(
-                        'assets/images/$iconType.png',
-                        width: 48,
-                        height: 48,
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 
@@ -6,10 +7,20 @@ import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:scribble/scribble.dart';
 import 'package:toastification/toastification.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';
+
+enum BackgroundSheet {
+  none('None'),
+  ifrCraft('IFR CRAFT'),
+  vfrAtis('VFR ATIS');
+
+  final String label;
+  const BackgroundSheet(this.label);
+}
 
 class WritingScreen extends StatefulWidget {
   const WritingScreen({super.key});
@@ -19,6 +30,8 @@ class WritingScreen extends StatefulWidget {
 
 class WritingScreenState extends State<WritingScreen> {
   late ScribbleNotifier notifier;
+  BackgroundSheet _selectedSheet = BackgroundSheet.none;
+  final GlobalKey _canvasKey = GlobalKey();
 
   @override
   void initState() {
@@ -56,8 +69,18 @@ class WritingScreenState extends State<WritingScreen> {
               children: [
                 Expanded(child:
                 Stack(children: [
-                  Container(color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black, child:
-                  Scribble(notifier: notifier, drawPen: false, drawEraser: false)
+                  RepaintBoundary(
+                    key: _canvasKey,
+                    child: Container(
+                      color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black,
+                      child: CustomPaint(
+                        painter: _BackgroundSheetPainter(
+                          sheet: _selectedSheet,
+                          isDark: Theme.of(context).brightness == Brightness.dark,
+                        ),
+                        child: Scribble(notifier: notifier, drawPen: false, drawEraser: false),
+                      ),
+                    ),
                   ),
                 ])
                 ),
@@ -75,6 +98,30 @@ class WritingScreenState extends State<WritingScreen> {
 
   List<Widget> _buildActions(BuildContext context) {
     return [
+      PopupMenuButton<BackgroundSheet>(
+        icon: const Icon(Icons.note_alt_outlined),
+        tooltip: "Background Sheet",
+        onSelected: (BackgroundSheet sheet) {
+          setState(() {
+            _selectedSheet = sheet;
+          });
+        },
+        itemBuilder: (context) => BackgroundSheet.values.map((sheet) {
+          return PopupMenuItem<BackgroundSheet>(
+            value: sheet,
+            child: Row(
+              children: [
+                if (_selectedSheet == sheet)
+                  const Icon(Icons.check, size: 18)
+                else
+                  const SizedBox(width: 18),
+                const SizedBox(width: 8),
+                Text(sheet.label),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
       ValueListenableBuilder(
         valueListenable: notifier,
         builder: (context, value, child) => IconButton(
@@ -101,14 +148,25 @@ class WritingScreenState extends State<WritingScreen> {
       IconButton(
           icon: const Icon(Icons.save),
           tooltip: "Save to Documents",
-          onPressed: () {
-            notifier.renderImage().then((image) {
+          onPressed: () async {
+            try {
+              final boundary = _canvasKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+              if (boundary == null) return;
+              
+              final image = await boundary.toImage(pixelRatio: 2.0);
+              final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+              if (byteData == null) return;
+              
               String now = DateTime.now().toIso8601String();
-              File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.jpg')).writeAsBytes(image.buffer.asUint8List());
+              await File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.png')).writeAsBytes(byteData.buffer.asUint8List());
               if(context.mounted) {
-                Toast.showToast(context, "Saved to Documents as notes_$now.jpg", null, 3);
+                Toast.showToast(context, "Saved to Documents as notes_$now.png", null, 3);
               }
-            });
+            } catch (e) {
+              if(context.mounted) {
+                Toast.showToast(context, "Failed to save image", null, 3);
+              }
+            }
           }),
     ];
   }
@@ -205,5 +263,149 @@ class ColorButton extends StatelessWidget {
         icon: child ?? const SizedBox(),
       ),
     );
+  }
+}
+
+class _BackgroundSheetPainter extends CustomPainter {
+  final BackgroundSheet sheet;
+  final bool isDark;
+
+  _BackgroundSheetPainter({required this.sheet, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (sheet == BackgroundSheet.none) return;
+
+    final lineColor = isDark ? Colors.grey.shade600 : Colors.grey.shade400;
+    final textColor = isDark ? Colors.grey.shade500 : Colors.grey.shade600;
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final textStyle = TextStyle(
+      color: textColor,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+    );
+
+    if (sheet == BackgroundSheet.ifrCraft) {
+      _drawIfrCraftSheet(canvas, size, linePaint, textStyle);
+    } else if (sheet == BackgroundSheet.vfrAtis) {
+      _drawVfrAtisSheet(canvas, size, linePaint, textStyle);
+    }
+  }
+
+  void _drawIfrCraftSheet(Canvas canvas, Size size, Paint linePaint, TextStyle textStyle) {
+    final double padding = 16;
+    final double rowHeight = (size.height - padding * 2) / 8;
+    final double labelWidth = 120;
+
+    final labels = [
+      'C - Clearance Limit',
+      'R - Route',
+      'A - Altitude',
+      'F - Frequency',
+      'T - Transponder',
+      'Remarks',
+      'Readback',
+      'Notes',
+    ];
+
+    for (int i = 0; i < labels.length; i++) {
+      final y = padding + i * rowHeight;
+      
+      canvas.drawLine(
+        Offset(padding, y),
+        Offset(size.width - padding, y),
+        linePaint,
+      );
+
+      final textSpan = TextSpan(text: labels[i], style: textStyle);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(padding + 4, y + 4));
+
+      canvas.drawLine(
+        Offset(padding + labelWidth, y),
+        Offset(padding + labelWidth, y + rowHeight),
+        linePaint,
+      );
+    }
+
+    canvas.drawLine(
+      Offset(padding, padding + labels.length * rowHeight),
+      Offset(size.width - padding, padding + labels.length * rowHeight),
+      linePaint,
+    );
+
+    canvas.drawRect(
+      Rect.fromLTWH(padding, padding, size.width - padding * 2, labels.length * rowHeight),
+      linePaint,
+    );
+  }
+
+  void _drawVfrAtisSheet(Canvas canvas, Size size, Paint linePaint, TextStyle textStyle) {
+    final double padding = 16;
+    final double rowHeight = (size.height - padding * 2) / 12;
+    final double labelWidth = 140;
+
+    final labels = [
+      'Airport',
+      'ATIS Letter',
+      'Time (Z)',
+      'Wind',
+      'Visibility',
+      'Sky Condition',
+      'Temperature',
+      'Dewpoint',
+      'Altimeter',
+      'Runway(s) in Use',
+      'NOTAMs',
+      'Remarks',
+    ];
+
+    for (int i = 0; i < labels.length; i++) {
+      final y = padding + i * rowHeight;
+      
+      canvas.drawLine(
+        Offset(padding, y),
+        Offset(size.width - padding, y),
+        linePaint,
+      );
+
+      final textSpan = TextSpan(text: labels[i], style: textStyle);
+      final textPainter = TextPainter(
+        text: textSpan,
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(padding + 4, y + 4));
+
+      canvas.drawLine(
+        Offset(padding + labelWidth, y),
+        Offset(padding + labelWidth, y + rowHeight),
+        linePaint,
+      );
+    }
+
+    canvas.drawLine(
+      Offset(padding, padding + labels.length * rowHeight),
+      Offset(size.width - padding, padding + labels.length * rowHeight),
+      linePaint,
+    );
+
+    canvas.drawRect(
+      Rect.fromLTWH(padding, padding, size.width - padding * 2, labels.length * rowHeight),
+      linePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _BackgroundSheetPainter oldDelegate) {
+    return oldDelegate.sheet != sheet || oldDelegate.isDark != isDark;
   }
 }
