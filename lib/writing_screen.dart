@@ -40,11 +40,27 @@ class WritingScreenState extends State<WritingScreen> {
   late ScribbleNotifier notifier;
   BackgroundSheet _selectedSheet = BackgroundSheet.none;
   final GlobalKey _canvasKey = GlobalKey();
+  bool _showKeypad = false;
+  String _typedText = '';
+  bool _sketchLoaded = false;
 
   @override
   void initState() {
     super.initState();
     notifier = ScribbleNotifier();
+    _loadSketch();
+  }
+
+  Future<void> _loadSketch() async {
+    final sketchData = await UserDatabaseHelper.db.getSketch("Default");
+    if (sketchData.isNotEmpty && mounted) {
+      notifier.setSketch(sketch: Sketch.fromJson(jsonDecode(sketchData)));
+    }
+    if (mounted) {
+      setState(() {
+        _sketchLoaded = true;
+      });
+    }
   }
 
   @override
@@ -55,52 +71,76 @@ class WritingScreenState extends State<WritingScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     notifier.setStrokeWidth(2);
     notifier.setColor(Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white);
-    return FutureBuilder(
-      future: UserDatabaseHelper.db.getSketch("Default"),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          if(snapshot.data!.isNotEmpty) {
-            notifier.setSketch(sketch: Sketch.fromJson(jsonDecode(snapshot.data!)));
-          }
-        }
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text("Notes"),
-            actions: _buildActions(context),
-          ),
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 5),
-            child: Column(
-              children: [
-                Expanded(child:
-                Stack(children: [
-                  RepaintBoundary(
-                    key: _canvasKey,
-                    child: Container(
-                      color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black,
-                      child: CustomPaint(
+    
+    if (!_sketchLoaded) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text("Notes"),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Notes"),
+        actions: _buildActions(context),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Column(
+          children: [
+            Expanded(child:
+            Stack(children: [
+              RepaintBoundary(
+                key: _canvasKey,
+                child: Container(
+                  color: Theme.of(context).brightness == Brightness.light ? Colors.white: Colors.black,
+                  child: Stack(
+                    children: [
+                      CustomPaint(
                         painter: _BackgroundSheetPainter(
                           sheet: _selectedSheet,
                           isDark: Theme.of(context).brightness == Brightness.dark,
                         ),
                         child: Scribble(notifier: notifier, drawPen: false, drawEraser: false),
                       ),
-                    ),
+                      if (_typedText.isNotEmpty)
+                        Positioned(
+                          left: 20,
+                          top: 20,
+                          right: 20,
+                          child: Text(
+                            _typedText,
+                            style: TextStyle(
+                              fontSize: 24,
+                              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            softWrap: true,
+                          ),
+                        ),
+                    ],
                   ),
-                ])
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: _buildColorToolbar(context),
-                )
-              ],
+              ),
+              if (_showKeypad)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: _buildNumberKeypad(context),
+                ),
+            ])
             ),
-          ),
-        );
-      },
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: _buildColorToolbar(context),
+            )
+          ],
+        ),
+      ),
     );
   }
 
@@ -188,7 +228,110 @@ class WritingScreenState extends State<WritingScreen> {
         _buildColorButton(context, color: Colors.red),
         _buildColorButton(context, color: Colors.green),
         _buildEraserButton(context),
+        const SizedBox(width: 16),
+        _buildKeypadButton(context),
       ],
+    );
+  }
+
+  Widget _buildKeypadButton(BuildContext context) {
+    return ColorButton(
+      color: _showKeypad ? Colors.blue : Colors.transparent,
+      outlineColor: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+      isActive: _showKeypad,
+      onPressed: () {
+        setState(() {
+          _showKeypad = !_showKeypad;
+        });
+      },
+      child: const Icon(Icons.dialpad),
+    );
+  }
+
+  Widget _buildNumberKeypad(BuildContext context) {
+    return Card(
+      elevation: 8,
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadKey('1'),
+                _buildKeypadKey('2'),
+                _buildKeypadKey('3'),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadKey('4'),
+                _buildKeypadKey('5'),
+                _buildKeypadKey('6'),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadKey('7'),
+                _buildKeypadKey('8'),
+                _buildKeypadKey('9'),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadKey('.'),
+                _buildKeypadKey('0'),
+                _buildKeypadKey('⌫', isBackspace: true),
+              ],
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadKey(' ', isSpace: true),
+                _buildKeypadKey('↵', isNewline: true),
+                _buildKeypadKey('C', isClear: true),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isClear = false, bool isNewline = false}) {
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: SizedBox(
+        width: isSpace ? 40 : 40,
+        height: 40,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+          ),
+          onPressed: () {
+            setState(() {
+              if (isBackspace) {
+                if (_typedText.isNotEmpty) {
+                  _typedText = _typedText.substring(0, _typedText.length - 1);
+                }
+              } else if (isClear) {
+                _typedText = '';
+              } else if (isSpace) {
+                _typedText += ' ';
+              } else if (isNewline) {
+                _typedText += '\n';
+              } else {
+                _typedText += key;
+              }
+            });
+          },
+          child: Text(isSpace ? '␣' : key, style: const TextStyle(fontSize: 18)),
+        ),
+      ),
     );
   }
 
