@@ -432,6 +432,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
+      await DbGeneral.query(db, "delete from sketch where name = '$name';");
       await DbGeneral.query(db, "insert into sketch (name, jsonData) values ('$name', '$jsonData');");
     }
   }
@@ -440,8 +441,7 @@ class UserDatabaseHelper {
     final db = await database;
     List<Map<String, dynamic>> maps = [];
     if(db != null) {
-      // ignore name for now
-      maps = await DbGeneral.query(db, "select jsonData from sketch;");
+      maps = await DbGeneral.query(db, "select jsonData from sketch where name = '$name';");
     }
     if(maps.isEmpty) {
       return "";

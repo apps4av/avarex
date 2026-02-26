@@ -52,9 +52,24 @@ class WritingScreenState extends State<WritingScreen> {
   }
 
   Future<void> _loadSketch() async {
-    final sketchData = await UserDatabaseHelper.db.getSketch("Default");
-    if (sketchData.isNotEmpty && mounted) {
-      notifier.setSketch(sketch: Sketch.fromJson(jsonDecode(sketchData)));
+    final data = await UserDatabaseHelper.db.getSketch("Default");
+    if (data.isNotEmpty && mounted) {
+      try {
+        final decoded = jsonDecode(data);
+        if (decoded is Map<String, dynamic>) {
+          if (decoded.containsKey('sketch')) {
+            notifier.setSketch(sketch: Sketch.fromJson(decoded['sketch']));
+          } else if (decoded.containsKey('lines')) {
+            // Legacy format - just sketch data
+            notifier.setSketch(sketch: Sketch.fromJson(decoded));
+          }
+          if (decoded.containsKey('typedText')) {
+            _typedText = decoded['typedText'] ?? '';
+          }
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
     }
     if (mounted) {
       setState(() {
@@ -65,7 +80,11 @@ class WritingScreenState extends State<WritingScreen> {
 
   @override
   void dispose() {
-    UserDatabaseHelper.db.saveSketch("Default", jsonEncode(notifier.currentSketch.toJson()));
+    final data = {
+      'sketch': notifier.currentSketch.toJson(),
+      'typedText': _typedText,
+    };
+    UserDatabaseHelper.db.saveSketch("Default", jsonEncode(data));
     super.dispose();
   }
 
