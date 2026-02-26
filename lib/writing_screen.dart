@@ -44,47 +44,68 @@ class WritingScreenState extends State<WritingScreen> {
   String _typedText = '';
   bool _sketchLoaded = false;
 
+  String _getSheetKey(BackgroundSheet sheet) => 'sketch_${sheet.name}';
+
   @override
   void initState() {
     super.initState();
     notifier = ScribbleNotifier();
-    _loadSketch();
+    _loadSketchForSheet(_selectedSheet);
   }
 
-  Future<void> _loadSketch() async {
-    final data = await UserDatabaseHelper.db.getSketch("Default");
-    if (data.isNotEmpty && mounted) {
-      try {
-        final decoded = jsonDecode(data);
-        if (decoded is Map<String, dynamic>) {
-          if (decoded.containsKey('sketch')) {
-            notifier.setSketch(sketch: Sketch.fromJson(decoded['sketch']));
-          } else if (decoded.containsKey('lines')) {
-            // Legacy format - just sketch data
-            notifier.setSketch(sketch: Sketch.fromJson(decoded));
-          }
-          if (decoded.containsKey('typedText')) {
+  Future<void> _loadSketchForSheet(BackgroundSheet sheet) async {
+    final data = await UserDatabaseHelper.db.getSketch(_getSheetKey(sheet));
+    if (mounted) {
+      if (data.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(data);
+          if (decoded is Map<String, dynamic>) {
+            if (decoded.containsKey('sketch')) {
+              notifier.setSketch(sketch: Sketch.fromJson(decoded['sketch']));
+            } else if (decoded.containsKey('lines')) {
+              notifier.setSketch(sketch: Sketch.fromJson(decoded));
+            } else {
+              notifier.clear();
+            }
             _typedText = decoded['typedText'] ?? '';
           }
+        } catch (e) {
+          notifier.clear();
+          _typedText = '';
         }
-      } catch (e) {
-        // Ignore parse errors
+      } else {
+        notifier.clear();
+        _typedText = '';
       }
-    }
-    if (mounted) {
       setState(() {
         _sketchLoaded = true;
       });
     }
   }
 
-  @override
-  void dispose() {
+  void _saveSketchForSheet(BackgroundSheet sheet) {
     final data = {
       'sketch': notifier.currentSketch.toJson(),
       'typedText': _typedText,
     };
-    UserDatabaseHelper.db.saveSketch("Default", jsonEncode(data));
+    UserDatabaseHelper.db.saveSketch(_getSheetKey(sheet), jsonEncode(data));
+  }
+
+  Future<void> _switchSheet(BackgroundSheet newSheet) async {
+    if (newSheet == _selectedSheet) return;
+    
+    _saveSketchForSheet(_selectedSheet);
+    
+    setState(() {
+      _selectedSheet = newSheet;
+    });
+    
+    await _loadSketchForSheet(newSheet);
+  }
+
+  @override
+  void dispose() {
+    _saveSketchForSheet(_selectedSheet);
     super.dispose();
   }
 
@@ -169,9 +190,7 @@ class WritingScreenState extends State<WritingScreen> {
         icon: const Icon(Icons.note_alt_outlined),
         tooltip: "Background Sheet",
         onSelected: (BackgroundSheet sheet) {
-          setState(() {
-            _selectedSheet = sheet;
-          });
+          _switchSheet(sheet);
         },
         itemBuilder: (context) => BackgroundSheet.values.map((sheet) {
           return PopupMenuItem<BackgroundSheet>(
