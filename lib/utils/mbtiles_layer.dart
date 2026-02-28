@@ -166,18 +166,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'B'],
         'paint': {
           'fill-color': '#0000FF',
-          'fill-opacity': 0.2,
-        }
-      },
-      {
-        'id': '${layerName}_class_b_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'B'],
-        'paint': {
-          'line-color': '#0000FF',
-          'line-width': 3,
+          'fill-opacity': 0.35,
         }
       },
       {
@@ -188,18 +177,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'C'],
         'paint': {
           'fill-color': '#FF00FF',
-          'fill-opacity': 0.15,
-        }
-      },
-      {
-        'id': '${layerName}_class_c_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'C'],
-        'paint': {
-          'line-color': '#FF00FF',
-          'line-width': 3,
+          'fill-opacity': 0.3,
         }
       },
       {
@@ -210,40 +188,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'D'],
         'paint': {
           'fill-color': '#0088FF',
-          'fill-opacity': 0.1,
-        }
-      },
-      {
-        'id': '${layerName}_class_d_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'D'],
-        'paint': {
-          'line-color': '#0088FF',
-          'line-width': 2.5,
-        }
-      },
-      {
-        'id': '${layerName}_class_e_fill',
-        'type': 'fill',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'E'],
-        'paint': {
-          'fill-color': '#FF00FF',
-          'fill-opacity': 0.05,
-        }
-      },
-      {
-        'id': '${layerName}_class_e_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'E'],
-        'paint': {
-          'line-color': '#FF00FF',
-          'line-width': 0.5,
+          'fill-opacity': 0.25,
         }
       },
     ];
@@ -260,18 +205,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'MOA'],
         'paint': {
           'fill-color': '#996633',
-          'fill-opacity': 0.1,
-        }
-      },
-      {
-        'id': '${layerName}_moa_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'MOA'],
-        'paint': {
-          'line-color': '#996633',
-          'line-width': 1.5,
+          'fill-opacity': 0.25,
         }
       },
       // Restricted Area - Blue hatched
@@ -283,18 +217,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'RESTRICTED'],
         'paint': {
           'fill-color': '#0066FF',
-          'fill-opacity': 0.15,
-        }
-      },
-      {
-        'id': '${layerName}_restricted_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'RESTRICTED'],
-        'paint': {
-          'line-color': '#0066FF',
-          'line-width': 2,
+          'fill-opacity': 0.3,
         }
       },
       // Warning Area - Blue hatched (offshore)
@@ -306,18 +229,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'WARNING'],
         'paint': {
           'fill-color': '#0088FF',
-          'fill-opacity': 0.1,
-        }
-      },
-      {
-        'id': '${layerName}_warning_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'WARNING'],
-        'paint': {
-          'line-color': '#0088FF',
-          'line-width': 2,
+          'fill-opacity': 0.25,
         }
       },
       // Alert Area - Orange
@@ -329,18 +241,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'ALERT'],
         'paint': {
           'fill-color': '#FF8800',
-          'fill-opacity': 0.1,
-        }
-      },
-      {
-        'id': '${layerName}_alert_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'ALERT'],
-        'paint': {
-          'line-color': '#FF8800',
-          'line-width': 1.5,
+          'fill-opacity': 0.25,
         }
       },
       // Prohibited Area - Red (no-fly zone)
@@ -352,18 +253,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'PROHIBITED'],
         'paint': {
           'fill-color': '#FF0000',
-          'fill-opacity': 0.25,
-        }
-      },
-      {
-        'id': '${layerName}_prohibited_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'PROHIBITED'],
-        'paint': {
-          'line-color': '#FF0000',
-          'line-width': 2,
+          'fill-opacity': 0.35,
         }
       },
       // NSA (National Security Area) - Green
@@ -375,18 +265,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'TYPE', 'NSA'],
         'paint': {
           'fill-color': '#228B22',
-          'fill-opacity': 0.1,
-        }
-      },
-      {
-        'id': '${layerName}_nsa_line',
-        'type': 'line',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'NSA'],
-        'paint': {
-          'line-color': '#228B22',
-          'line-width': 1.5,
+          'fill-opacity': 0.25,
         }
       },
     ];
@@ -403,7 +282,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 12,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -420,7 +298,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 11,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -437,7 +314,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -459,7 +335,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -476,7 +351,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -493,7 +367,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -510,7 +383,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -527,7 +399,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 11,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
@@ -544,7 +415,6 @@ class MBTilesLayerManager {
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
-          'text-font': ['Roboto Regular'],
         },
         'paint': {
           'text-color': '#FFFFFF',
