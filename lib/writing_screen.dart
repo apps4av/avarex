@@ -244,9 +244,11 @@ class WritingScreenState extends State<WritingScreen> {
               if (byteData == null) return;
               
               String now = DateTime.now().toIso8601String();
-              await File(PathUtils.getFilePath(Storage().dataDir, 'notes_$now.png')).writeAsBytes(byteData.buffer.asUint8List());
+              await PathUtils.ensureNotesFolderExists(Storage().dataDir);
+              String notesFolder = PathUtils.getNotesFolder(Storage().dataDir);
+              await File(PathUtils.getFilePath(notesFolder, 'notes_$now.png')).writeAsBytes(byteData.buffer.asUint8List());
               if(context.mounted) {
-                Toast.showToast(context, "Saved to Documents as notes_$now.png", null, 3);
+                Toast.showToast(context, "Saved to Documents/notes as notes_$now.png", null, 3);
               }
             } catch (e) {
               if(context.mounted) {

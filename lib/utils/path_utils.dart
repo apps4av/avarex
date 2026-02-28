@@ -48,6 +48,117 @@ class PathUtils {
     return(ret);
   }
 
+  static Future<List<String>> getFolderNames(String base) async {
+    List<String> ret = [];
+    try {
+      final d = Directory(base);
+      final List<FileSystemEntity> entities = await d.list().toList();
+      for (FileSystemEntity en in entities) {
+        if (en is Directory) {
+          String folderName = filename(en.path);
+          if (!folderName.startsWith('.') && 
+              folderName != 'plates' && 
+              folderName != 'afd' && 
+              folderName != 'tiles' &&
+              folderName != 'maps') {
+            ret.add(en.path);
+          }
+        }
+      }
+    }
+    catch(e) {
+      ret = [];
+    }
+    return ret;
+  }
+
+  static Future<bool> createFolder(String base, String folderName) async {
+    try {
+      final String folderPath = path.join(base, folderName);
+      final dir = Directory(folderPath);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+        return true;
+      }
+      return false;
+    }
+    catch(e) {
+      return false;
+    }
+  }
+
+  static Future<bool> deleteFolder(String folderPath) async {
+    try {
+      final dir = Directory(folderPath);
+      if (await dir.exists()) {
+        await dir.delete(recursive: true);
+        return true;
+      }
+      return false;
+    }
+    catch(e) {
+      return false;
+    }
+  }
+
+  static Future<bool> moveFileToFolder(String filePath, String folderPath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        final newPath = path.join(folderPath, filename(filePath));
+        await file.rename(newPath);
+        return true;
+      }
+      return false;
+    }
+    catch(e) {
+      return false;
+    }
+  }
+
+  static Future<bool> moveFileToBase(String filePath, String basePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        final newPath = path.join(basePath, filename(filePath));
+        await file.rename(newPath);
+        return true;
+      }
+      return false;
+    }
+    catch(e) {
+      return false;
+    }
+  }
+
+  static bool isFolder(String path) {
+    return Directory(path).existsSync();
+  }
+
+  static String getTracksFolder(String base) {
+    return path.join(base, "tracks");
+  }
+
+  static Future<void> ensureTracksFolderExists(String base) async {
+    final tracksPath = getTracksFolder(base);
+    final dir = Directory(tracksPath);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+  }
+
+  static String getNotesFolder(String base) {
+    return path.join(base, "notes");
+  }
+
+  static Future<void> ensureNotesFolderExists(String base) async {
+    final notesPath = getNotesFolder(base);
+    final dir = Directory(notesPath);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+  }
+
   static bool isJSONFile(String url) {
     return path.extension(url).toLowerCase() == ".geojson";
   }
@@ -76,8 +187,10 @@ class PathUtils {
   static Future<String?> writeTrack(String base, String data) async {
     DateTime now = DateTime.now();
     try {
+      final tracksPath = getTracksFolder(base);
+      await ensureTracksFolderExists(base);
       final format = DateFormat('yyyy_MMMM_dd@kk_mm_ss').format(now);
-      final String file = path.join(base, "track_$format.kml");
+      final String file = path.join(tracksPath, "track_$format.kml");
       final File f = File(file);
       await f.writeAsString(data);
       return("track_$format.kml");

@@ -26,6 +26,9 @@ class DocumentsScreen extends StatefulWidget {
 class DocumentsScreenState extends State<DocumentsScreen> {
 
   List<Document> products = [];
+  List<String> folders = [];
+  String currentFolderPath = "";
+  
   static final List<Document> productsStatic = [
     Document("WPC",              "WPC Surface Analysis",   "https://aviationweather.gov/data/products/progs/F000_wpc_sfc.gif"),
     Document("WPC",              "WPC 6HR Prognostic",     "https://aviationweather.gov/data/products/progs/F006_wpc_prog.gif"),
@@ -86,6 +89,16 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     Document("Winds/Temp",       "Winds/Temp 30000 12HR",  "https://aviationweather.gov/data/products/fax/F12_wind_300_b1.gif"),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    currentFolderPath = Storage().dataDir;
+  }
+
+  String get _currentBasePath => currentFolderPath.isEmpty ? Storage().dataDir : currentFolderPath;
+  
+  bool get _isInSubfolder => currentFolderPath != Storage().dataDir && currentFolderPath.isNotEmpty;
+
   Widget _textReader(String path) {
     return FutureBuilder(
         future: File(path).readAsBytes(),
@@ -101,12 +114,157 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 
+  Future<void> _navigateToCreateFolder() async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => CreateFolderScreen(basePath: _currentBasePath),
+      ),
+    );
+    if (result == true && mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _showDeleteFolderDialog(String folderPath) async {
+    String folderName = PathUtils.filename(folderPath);
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Folder'),
+        content: Text('Delete folder "$folderName" and all its contents?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              bool success = await PathUtils.deleteFolder(folderPath);
+              if (mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  Toast.showToast(context, "Folder deleted.", const Icon(Icons.check, color: Colors.green), 3);
+                  setState(() {});
+                } else {
+                  Toast.showToast(context, "Failed to delete folder.", const Icon(Icons.error, color: Colors.red), 3);
+                }
+              }
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _navigateToMoveFile(Document document) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => MoveFileScreen(
+          document: document,
+          currentFolderPath: currentFolderPath,
+          isInSubfolder: _isInSubfolder,
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      setState(() {
+        products.remove(document);
+      });
+    }
+  }
+
+  Widget _buildFolderItem(String folderPath) {
+    String folderName = PathUtils.filename(folderPath);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
+      child: Center(
+        child: Column(
+          children: [
+            SizedBox(
+              width: 256,
+              height: 128,
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          currentFolderPath = folderPath;
+                          Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                        });
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Theme.of(context).colorScheme.primary),
+                          borderRadius: const BorderRadius.all(Radius.circular(10)),
+                        ),
+                        child: SizedBox(
+                          width: Constants.screenWidth(context) / 5,
+                          child: const Icon(Icons.folder, size: 48),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.delete, size: 20),
+                        onPressed: () => _showDeleteFolderDialog(folderPath),
+                        tooltip: "Delete folder",
+                      ),
+                      if (Constants.shouldShare)
+                        IconButton(
+                          icon: const Icon(Icons.ios_share, size: 20),
+                          onPressed: () => _exportFolder(folderPath),
+                          tooltip: "Export folder contents",
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Text(folderName),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportFolder(String folderPath) async {
+    List<String> files = await PathUtils.getDocumentsNames(folderPath);
+    if (files.isEmpty) {
+      if (mounted) {
+        Toast.showToast(context, "Folder is empty.", const Icon(Icons.info, color: Colors.orange), 3);
+      }
+      return;
+    }
+    
+    List<XFile> xFiles = files.map((f) => XFile(f)).toList();
+    final params = ShareParams(
+      files: xFiles,
+      sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
+    );
+    SharePlus.instance.share(params).then((value) {
+      if (mounted) {
+        bool success = value.status == ShareResultStatus.success;
+        Toast.showToast(context, "Export ${success ? "successful" : "failed"}", Icon(Icons.info, color: success ? Colors.green : Colors.red), 3);
+      }
+    });
+  }
+
   Widget _makeActions(Widget main, Document product) {
+    int userDocCount = _isInSubfolder ? products.length : (products.length - productsStatic.length);
+    bool canDelete = (userDocCount > 1 || _isInSubfolder) && (product.name != 'User Data');
+    
     return Column(children:[
       Expanded(flex:2, child: main),
         Row(children:[
-          if(((products.length - productsStatic.length) > 1) && (product.name != 'User Data'))
-            Padding(padding: const EdgeInsets.fromLTRB(30, 5, 15, 5), child: Dismissible(key: GlobalKey(),
+          if(canDelete)
+            Padding(padding: const EdgeInsets.fromLTRB(10, 5, 5, 5), child: Dismissible(key: GlobalKey(),
                 background: const Icon(Icons.delete_forever),
                 direction: DismissDirection.endToStart,
                 onDismissed: (direction) {
@@ -116,11 +274,19 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                   });
                 },
                 child: const Column(children:[
-                  Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))
+                  Icon(Icons.swipe_left, size: 18), Text("Delete", style: TextStyle(fontSize: 8))
                 ])
             )),
-            if(Constants.shouldShare)
-              TextButton(onPressed: () {
+          if(product.type == DocumentsScreen.userDocuments && product.name != 'User Data')
+            IconButton(
+              icon: Icon(Icons.drive_file_move_outline, size: 18),
+              onPressed: () => _navigateToMoveFile(product),
+              tooltip: "Move to folder",
+            ),
+          if(Constants.shouldShare)
+            IconButton(
+              icon: const Icon(Icons.share, size: 18),
+              onPressed: () {
                 final params = ShareParams(
                   files: [XFile(product.url)],
                   sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
@@ -131,7 +297,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                     Toast.showToast(context, "Sharing of file ${success ? "successful" : "failed"}", Icon(Icons.info, color: success ? Colors.green : Colors.red,), 30);
                   }
                 });
-              }, child: const Text("Share")),
+              },
+              tooltip: "Share",
+            ),
         ])
     ]);
   }
@@ -235,13 +403,18 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: PathUtils.getDocumentsNames(Storage().dataDir),
+        future: Future.wait([
+          PathUtils.getDocumentsNames(_currentBasePath),
+          PathUtils.getFolderNames(_currentBasePath),
+        ]),
         builder: (context, snapshot) {
           if (snapshot.hasData) {
-            return _makeContent(snapshot.data);
+            List<String> docs = snapshot.data![0];
+            List<String> foldersList = snapshot.data![1];
+            return _makeContent(docs, foldersList);
           }
           else {
-            return _makeContent(null);
+            return _makeContent(null, null);
           }
         }
     );
@@ -253,68 +426,91 @@ class DocumentsScreenState extends State<DocumentsScreen> {
       String? path = result.files.single.path;
       if(path != null) {
         File file = File(path);
-        // copy now
         file.copy(PathUtils.getFilePath(
-            Storage().dataDir, PathUtils.filename(file.path)));
+            _currentBasePath, PathUtils.filename(file.path)));
       }
     }
   }
 
-  Widget _makeContent(List<String>? docs) {
+  Widget _makeContent(List<String>? docs, List<String>? foldersList) {
 
     if(null == docs) {
       return Container();
     }
 
     String filter = Storage().settings.getDocumentPage();
+    folders = foldersList ?? [];
 
     products = [];
-    products.addAll(productsStatic);
+    
+    if (!_isInSubfolder) {
+      products.addAll(productsStatic);
+    }
 
-    // always show at least one doc
-    Document db = Document(DocumentsScreen.userDocuments, "User Data",
-        PathUtils.getFilePath(Storage().dataDir, "user.db"));
-    products.add(db);
+    if (!_isInSubfolder) {
+      Document db = Document(DocumentsScreen.userDocuments, "User Data",
+          PathUtils.getFilePath(Storage().dataDir, "user.db"));
+      products.add(db);
+    }
 
     for(String doc in docs) {
       products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(doc), doc));
     }
 
-    List<String> ctypes = products.map((e) => e.type).toSet().toList(); // toSet for unique.
-    ctypes.insert(0, DocumentsScreen.allDocuments); // everything shows
+    List<String> ctypes = products.map((e) => e.type).toSet().toList();
+    ctypes.insert(0, DocumentsScreen.allDocuments);
+    
+    String currentFolderName = _isInSubfolder ? PathUtils.filename(currentFolderPath) : "Documents";
+    
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: const Text("Documents"),
+        leading: _isInSubfolder 
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                setState(() {
+                  currentFolderPath = Storage().dataDir;
+                });
+              },
+            )
+          : null,
+        title: Text(currentFolderName),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.create_new_folder),
+              onPressed: _navigateToCreateFolder,
+              tooltip: "Create folder",
+            ),
             TextButton(onPressed: () {
               _pickFile().then((value) => setState(() {
-                Toast.showToast(context, "Import complete.", Icon(Icons.info, color: Colors.green), 3);
+                Toast.showToast(context, "Import complete.", const Icon(Icons.info, color: Colors.green), 3);
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                products.clear(); // rebuild so the doc appears in list immediately.
+                products.clear();
               }));},
               child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: const Text("Import")),
             ),
-            Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
-              DropdownButtonHideUnderline(child:
-                DropdownButton2<String>( // airport selection
-                  buttonStyleData: ButtonStyleData(
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  dropdownStyleData: DropdownStyleData(
-                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                  ),
-                  isExpanded: false,
-                  value: filter,
-                  items: ctypes.map((String e) => DropdownMenuItem<String>(value: e, child: Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
-                    });
-                  },
+            if (!_isInSubfolder)
+              Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
+                DropdownButtonHideUnderline(child:
+                  DropdownButton2<String>(
+                    buttonStyleData: ButtonStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    isExpanded: false,
+                    value: filter,
+                    items: ctypes.map((String e) => DropdownMenuItem<String>(value: e, child: Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
+                      });
+                    },
+                  )
                 )
               )
-            )
           ]
       ),
       body: SingleChildScrollView(
@@ -323,6 +519,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
             shrinkWrap: true,
             crossAxisCount: 2,
             children: <Widget>[
+              for(String folder in folders)
+                if(filter == DocumentsScreen.allDocuments || filter == DocumentsScreen.userDocuments)
+                  _buildFolderItem(folder),
               for(Document p in products)
                 if(p.type == filter || filter == DocumentsScreen.allDocuments)
                   smallImage(p),
@@ -339,5 +538,192 @@ class Document {
   final String url;
   final String type;
   Document(this.type, this.name, this.url);
+}
+
+
+class CreateFolderScreen extends StatefulWidget {
+  final String basePath;
+  
+  const CreateFolderScreen({super.key, required this.basePath});
+  
+  @override
+  State<CreateFolderScreen> createState() => _CreateFolderScreenState();
+}
+
+class _CreateFolderScreenState extends State<CreateFolderScreen> {
+  final TextEditingController _controller = TextEditingController();
+  
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  
+  Future<void> _createFolder() async {
+    if (_controller.text.trim().isNotEmpty) {
+      bool success = await PathUtils.createFolder(widget.basePath, _controller.text.trim());
+      if (mounted) {
+        if (success) {
+          Toast.showToast(context, "Folder created.", const Icon(Icons.check, color: Colors.green), 3);
+          Navigator.pop(context, true);
+        } else {
+          Toast.showToast(context, "Failed to create folder.", const Icon(Icons.error, color: Colors.red), 3);
+        }
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Constants.appBarBackgroundColor,
+        title: const Text('Create Folder'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _controller,
+              decoration: const InputDecoration(
+                labelText: 'Folder name',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+              onSubmitted: (_) => _createFolder(),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _createFolder,
+              child: const Text('Create'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class MoveFileScreen extends StatefulWidget {
+  final Document document;
+  final String currentFolderPath;
+  final bool isInSubfolder;
+  
+  const MoveFileScreen({
+    super.key,
+    required this.document,
+    required this.currentFolderPath,
+    required this.isInSubfolder,
+  });
+  
+  @override
+  State<MoveFileScreen> createState() => _MoveFileScreenState();
+}
+
+class _MoveFileScreenState extends State<MoveFileScreen> {
+  List<String> _folders = [];
+  String? _selectedFolder;
+  bool _loading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadFolders();
+  }
+  
+  Future<void> _loadFolders() async {
+    final folders = await PathUtils.getFolderNames(Storage().dataDir);
+    if (mounted) {
+      setState(() {
+        _folders = folders.where((f) => f != widget.currentFolderPath).toList();
+        _loading = false;
+      });
+    }
+  }
+  
+  Future<void> _moveFile() async {
+    if (_selectedFolder != null) {
+      bool success;
+      if (_selectedFolder == "__ROOT__") {
+        success = await PathUtils.moveFileToBase(widget.document.url, Storage().dataDir);
+      } else {
+        success = await PathUtils.moveFileToFolder(widget.document.url, _selectedFolder!);
+      }
+      if (mounted) {
+        if (success) {
+          Toast.showToast(context, "File moved.", const Icon(Icons.check, color: Colors.green), 3);
+          Navigator.pop(context, true);
+        } else {
+          Toast.showToast(context, "Failed to move file.", const Icon(Icons.error, color: Colors.red), 3);
+        }
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Constants.appBarBackgroundColor,
+        title: Text('Move ${widget.document.name}'),
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Select destination:', style: TextStyle(fontSize: 16)),
+                  const SizedBox(height: 16),
+                  if (widget.isInSubfolder)
+                    ListTile(
+                      leading: const Icon(Icons.folder_open),
+                      title: const Text('User Documents (root)'),
+                      selected: _selectedFolder == "__ROOT__",
+                      onTap: () {
+                        setState(() {
+                          _selectedFolder = "__ROOT__";
+                        });
+                      },
+                    ),
+                  if (_folders.isEmpty && !widget.isInSubfolder)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('No folders available. Create a folder first.'),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _folders.length,
+                        itemBuilder: (context, index) {
+                          final folder = _folders[index];
+                          final folderName = PathUtils.filename(folder);
+                          return ListTile(
+                            leading: const Icon(Icons.folder),
+                            title: Text(folderName),
+                            selected: _selectedFolder == folder,
+                            onTap: () {
+                              setState(() {
+                                _selectedFolder = folder;
+                              });
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _selectedFolder != null ? _moveFile : null,
+                    child: const Text('Move'),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
 }
 
