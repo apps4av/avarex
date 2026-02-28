@@ -133,6 +133,10 @@ class MBTilesLayerManager {
         layers.addAll(_buildClassAirspaceThemeLayers(layerName));
       } else if (layerName == 'sua_airspace') {
         layers.addAll(_buildSuaAirspaceThemeLayers(layerName));
+      } else if (layerName == 'class_airspace_labels') {
+        layers.addAll(_buildClassAirspaceLabelLayers(layerName));
+      } else if (layerName == 'sua_airspace_labels') {
+        layers.addAll(_buildSuaAirspaceLabelLayers(layerName));
       } else {
         layers.addAll(_buildGenericThemeLayers(layerName));
       }
@@ -173,7 +177,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'B'],
         'paint': {
           'line-color': '#0000FF',
-          'line-width': 2,
+          'line-width': 3,
         }
       },
       {
@@ -195,7 +199,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'C'],
         'paint': {
           'line-color': '#FF00FF',
-          'line-width': 2,
+          'line-width': 3,
         }
       },
       {
@@ -217,8 +221,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'D'],
         'paint': {
           'line-color': '#0088FF',
-          'line-width': 1.5,
-          'line-dasharray': [4, 2],
+          'line-width': 2.5,
         }
       },
       {
@@ -240,21 +243,7 @@ class MBTilesLayerManager {
         'filter': ['==', 'CLASS', 'E'],
         'paint': {
           'line-color': '#FF00FF',
-          'line-width': 1,
-          'line-dasharray': [2, 2],
-        }
-      },
-      {
-        'id': '${layerName}_labels',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#333333',
+          'line-width': 0.5,
         }
       },
     ];
@@ -283,7 +272,6 @@ class MBTilesLayerManager {
         'paint': {
           'line-color': '#996633',
           'line-width': 1.5,
-          'line-dasharray': [6, 4],
         }
       },
       // Restricted Area - Blue hatched
@@ -307,7 +295,6 @@ class MBTilesLayerManager {
         'paint': {
           'line-color': '#0066FF',
           'line-width': 2,
-          'line-dasharray': [4, 4],
         }
       },
       // Warning Area - Blue hatched (offshore)
@@ -331,7 +318,6 @@ class MBTilesLayerManager {
         'paint': {
           'line-color': '#0088FF',
           'line-width': 2,
-          'line-dasharray': [4, 4],
         }
       },
       // Alert Area - Orange
@@ -355,7 +341,6 @@ class MBTilesLayerManager {
         'paint': {
           'line-color': '#FF8800',
           'line-width': 1.5,
-          'line-dasharray': [4, 2],
         }
       },
       // Prohibited Area - Red (no-fly zone)
@@ -402,21 +387,169 @@ class MBTilesLayerManager {
         'paint': {
           'line-color': '#228B22',
           'line-width': 1.5,
-          'line-dasharray': [4, 2],
         }
       },
-      // Labels for SUA
+    ];
+  }
+
+  static List<Map<String, dynamic>> _buildClassAirspaceLabelLayers(String layerName) {
+    return [
       {
-        'id': '${layerName}_labels',
+        'id': '${layerName}_class_b',
         'type': 'symbol',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'B'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 12,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#0000FF',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_class_c',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'C'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 11,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#FF00FF',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_class_d',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'D'],
         'layout': {
           'text-field': '{NAME}',
           'text-size': 10,
+          'text-font': ['Roboto Regular'],
         },
         'paint': {
-          'text-color': '#333333',
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#0088FF',
+          'text-halo-width': 2,
+        }
+      },
+    ];
+  }
+
+  static List<Map<String, dynamic>> _buildSuaAirspaceLabelLayers(String layerName) {
+    return [
+      {
+        'id': '${layerName}_moa',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'MOA'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#996633',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_restricted',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'RESTRICTED'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#0066FF',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_warning',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'WARNING'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#0088FF',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_alert',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'ALERT'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#FF8800',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_prohibited',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'PROHIBITED'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 11,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#FF0000',
+          'text-halo-width': 2,
+        }
+      },
+      {
+        'id': '${layerName}_nsa',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'NSA'],
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+          'text-font': ['Roboto Regular'],
+        },
+        'paint': {
+          'text-color': '#FFFFFF',
+          'text-halo-color': '#228B22',
+          'text-halo-width': 2,
         }
       },
     ];
