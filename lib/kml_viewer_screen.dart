@@ -1,0 +1,503 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'package:avaremp/constants.dart';
+import 'package:avaremp/utils/kml_parser.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
+
+class KmlViewerScreen extends StatefulWidget {
+  final String kmlPath;
+
+  const KmlViewerScreen({super.key, required this.kmlPath});
+
+  @override
+  State<KmlViewerScreen> createState() => _KmlViewerScreenState();
+}
+
+class _KmlViewerScreenState extends State<KmlViewerScreen> {
+  KmlTrack? _track;
+  bool _loading = true;
+  String? _error;
+  int _currentView = 0;
+  
+  double _rotationX = 0.5;
+  double _rotationY = 0.3;
+  double _zoom3D = 1.0;
+  double _lastScale = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKml();
+  }
+
+  Future<void> _loadKml() async {
+    try {
+      final track = await KmlParser.parseFile(widget.kmlPath);
+      if (mounted) {
+        setState(() {
+          _track = track;
+          _loading = false;
+          if (track == null) {
+            _error = 'Could not parse KML file or no track data found';
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Error: $e';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Constants.appBarBackgroundColor,
+        title: Text(_track?.name ?? 'Track Viewer'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map),
+            onPressed: () => setState(() => _currentView = 0),
+            tooltip: '2D Map',
+            color: _currentView == 0 ? Colors.blue : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.show_chart),
+            onPressed: () => setState(() => _currentView = 1),
+            tooltip: 'Altitude Profile',
+            color: _currentView == 1 ? Colors.blue : null,
+          ),
+          IconButton(
+            icon: const Icon(Icons.view_in_ar),
+            onPressed: () => setState(() => _currentView = 2),
+            tooltip: '3D View',
+            color: _currentView == 2 ? Colors.blue : null,
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _track == null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        const Text('Failed to load track', style: TextStyle(fontSize: 18)),
+                        if (_error != null) ...[
+                          const SizedBox(height: 8),
+                          Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+                        ],
+                        const SizedBox(height: 8),
+                        Text('Path: ${widget.kmlPath}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                )
+              : _buildCurrentView(),
+    );
+  }
+
+  Widget _buildCurrentView() {
+    switch (_currentView) {
+      case 0:
+        return _build2DMapView();
+      case 1:
+        return _buildAltitudeProfile();
+      case 2:
+        return _build3DView();
+      default:
+        return _build2DMapView();
+    }
+  }
+
+  Widget _build2DMapView() {
+    final track = _track!;
+    final points = track.points.map((p) => p.coordinate).toList();
+
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: track.center,
+        initialZoom: 10,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png',
+          maxNativeZoom: 16,
+          userAgentPackageName: 'com.apps4av.avarex',
+        ),
+        PolylineLayer(
+          polylines: [
+            Polyline(
+              points: points,
+              strokeWidth: 3,
+              color: Colors.blue,
+            ),
+          ],
+        ),
+        MarkerLayer(
+          markers: [
+            if (points.isNotEmpty)
+              Marker(
+                point: points.first,
+                child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 30),
+              ),
+            if (points.length > 1)
+              Marker(
+                point: points.last,
+                child: const Icon(Icons.flight_land, color: Colors.red, size: 30),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAltitudeProfile() {
+    final track = _track!;
+    if (track.points.isEmpty) {
+      return const Center(child: Text('No altitude data'));
+    }
+
+    final spots = <FlSpot>[];
+    double totalDistance = 0;
+    const Distance distanceCalc = Distance();
+
+    for (int i = 0; i < track.points.length; i++) {
+      if (i > 0) {
+        final distanceMeters = distanceCalc.as(
+          LengthUnit.Meter,
+          track.points[i - 1].coordinate,
+          track.points[i].coordinate,
+        );
+        totalDistance += distanceMeters / 1852.0;
+      }
+      final altFeet = track.points[i].altitude * 3.28084;
+      spots.add(FlSpot(totalDistance, altFeet));
+    }
+
+    final minAltFeet = track.minAltitude * 3.28084;
+    final maxAltFeet = track.maxAltitude * 3.28084;
+    final altRange = maxAltFeet - minAltFeet;
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Altitude Profile',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Distance: ${totalDistance.toStringAsFixed(1)} NM  |  '
+            'Alt: ${minAltFeet.toStringAsFixed(0)} - ${maxAltFeet.toStringAsFixed(0)} ft',
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: LineChart(
+              LineChartData(
+                minY: (minAltFeet - altRange * 0.1).clamp(0, double.infinity),
+                maxY: maxAltFeet + altRange * 0.1,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: spots,
+                    isCurved: true,
+                    curveSmoothness: 0.2,
+                    color: Colors.blue,
+                    barWidth: 2,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      color: Colors.blue.withAlpha(50),
+                    ),
+                  ),
+                ],
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    axisNameWidget: const Text('Altitude (ft)'),
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 50,
+                      getTitlesWidget: (value, meta) {
+                        return Text(value.toInt().toString(), style: const TextStyle(fontSize: 10));
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    axisNameWidget: const Text('Distance (NM)'),
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        return Text(value.toStringAsFixed(1), style: const TextStyle(fontSize: 10));
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawHorizontalLine: true,
+                  drawVerticalLine: true,
+                  horizontalInterval: altRange > 0 ? altRange / 5 : 1000,
+                ),
+                borderData: FlBorderData(show: true),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _build3DView() {
+    final track = _track!;
+    if (track.points.isEmpty) {
+      return const Center(child: Text('No track data'));
+    }
+
+    return GestureDetector(
+      onScaleStart: (details) {
+        _lastScale = 1.0;
+      },
+      onScaleUpdate: (details) {
+        setState(() {
+          if (details.pointerCount == 1) {
+            _rotationY += details.focalPointDelta.dx * 0.01;
+            _rotationX += details.focalPointDelta.dy * 0.01;
+            _rotationX = _rotationX.clamp(-1.5, 1.5);
+          } else if (details.scale != _lastScale) {
+            _zoom3D = (_zoom3D * (details.scale / _lastScale)).clamp(0.5, 3.0);
+            _lastScale = details.scale;
+          }
+        });
+      },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Drag to rotate • Pinch to zoom',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+            ),
+          ),
+          Expanded(
+            child: CustomPaint(
+              painter: Track3DPainter(
+                track: track,
+                rotationX: _rotationX,
+                rotationY: _rotationY,
+                zoom: _zoom3D,
+              ),
+              size: Size.infinite,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _rotationX = 0.5;
+                      _rotationY = 0.3;
+                      _zoom3D = 1.0;
+                    });
+                  },
+                  child: const Text('Reset View'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Track3DPainter extends CustomPainter {
+  final KmlTrack track;
+  final double rotationX;
+  final double rotationY;
+  final double zoom;
+
+  Track3DPainter({
+    required this.track,
+    required this.rotationX,
+    required this.rotationY,
+    required this.zoom,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (track.points.isEmpty) return;
+
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+
+    final latRange = track.maxLat - track.minLat;
+    final lonRange = track.maxLon - track.minLon;
+    final altRange = track.maxAltitude - track.minAltitude;
+
+    final scale = math.min(size.width, size.height) * 0.35 * zoom;
+
+    final cosX = math.cos(rotationX);
+    final sinX = math.sin(rotationX);
+    final cosY = math.cos(rotationY);
+    final sinY = math.sin(rotationY);
+
+    Offset project3D(double x, double y, double z) {
+      double x1 = x * cosY - z * sinY;
+      double z1 = x * sinY + z * cosY;
+      double y1 = y * cosX - z1 * sinX;
+      double z2 = y * sinX + z1 * cosX;
+
+      final perspective = 1.0 + z2 * 0.3;
+      final projX = centerX + x1 * scale / perspective;
+      final projY = centerY - y1 * scale / perspective;
+
+      return Offset(projX, projY);
+    }
+
+    _drawGrid(canvas, size, project3D);
+
+    final trackPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+
+    final ui.Path path = ui.Path();
+    final ui.Path shadowPath = ui.Path();
+
+    for (int i = 0; i < track.points.length; i++) {
+      final p = track.points[i];
+
+      final normX = latRange > 0 ? (p.coordinate.latitude - track.minLat) / latRange - 0.5 : 0.0;
+      final normZ = lonRange > 0 ? (p.coordinate.longitude - track.minLon) / lonRange - 0.5 : 0.0;
+      final normY = altRange > 0 ? (p.altitude - track.minAltitude) / altRange : 0.0;
+
+      final point3D = project3D(normX, normY * 0.5, normZ);
+      final groundPoint = project3D(normX, 0, normZ);
+
+      if (i == 0) {
+        path.moveTo(point3D.dx, point3D.dy);
+        shadowPath.moveTo(groundPoint.dx, groundPoint.dy);
+      } else {
+        path.lineTo(point3D.dx, point3D.dy);
+        shadowPath.lineTo(groundPoint.dx, groundPoint.dy);
+      }
+    }
+
+    final shadowPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = Colors.black.withAlpha(50);
+    canvas.drawPath(shadowPath, shadowPaint);
+
+    for (int i = 0; i < track.points.length; i += math.max(1, track.points.length ~/ 20)) {
+      final p = track.points[i];
+      final normX = latRange > 0 ? (p.coordinate.latitude - track.minLat) / latRange - 0.5 : 0.0;
+      final normZ = lonRange > 0 ? (p.coordinate.longitude - track.minLon) / lonRange - 0.5 : 0.0;
+      final normY = altRange > 0 ? (p.altitude - track.minAltitude) / altRange : 0.0;
+
+      final point3D = project3D(normX, normY * 0.5, normZ);
+      final groundPoint = project3D(normX, 0, normZ);
+
+      final dropPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5
+        ..color = Colors.grey.withAlpha(100);
+      canvas.drawLine(groundPoint, point3D, dropPaint);
+    }
+
+    trackPaint.shader = LinearGradient(
+      colors: [Colors.green, Colors.yellow, Colors.orange, Colors.red],
+      stops: const [0.0, 0.33, 0.66, 1.0],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    canvas.drawPath(path, trackPaint);
+
+    if (track.points.isNotEmpty) {
+      final first = track.points.first;
+      final last = track.points.last;
+
+      final firstNormX = latRange > 0 ? (first.coordinate.latitude - track.minLat) / latRange - 0.5 : 0.0;
+      final firstNormZ = lonRange > 0 ? (first.coordinate.longitude - track.minLon) / lonRange - 0.5 : 0.0;
+      final firstNormY = altRange > 0 ? (first.altitude - track.minAltitude) / altRange : 0.0;
+      final firstPoint = project3D(firstNormX, firstNormY * 0.5, firstNormZ);
+
+      final lastNormX = latRange > 0 ? (last.coordinate.latitude - track.minLat) / latRange - 0.5 : 0.0;
+      final lastNormZ = lonRange > 0 ? (last.coordinate.longitude - track.minLon) / lonRange - 0.5 : 0.0;
+      final lastNormY = altRange > 0 ? (last.altitude - track.minAltitude) / altRange : 0.0;
+      final lastPoint = project3D(lastNormX, lastNormY * 0.5, lastNormZ);
+
+      canvas.drawCircle(firstPoint, 8, Paint()..color = Colors.green);
+      canvas.drawCircle(lastPoint, 8, Paint()..color = Colors.red);
+    }
+
+    _drawLegend(canvas, size);
+  }
+
+  void _drawGrid(Canvas canvas, Size size, Offset Function(double, double, double) project3D) {
+    final gridPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5
+      ..color = Colors.grey.withAlpha(80);
+
+    for (double x = -0.5; x <= 0.5; x += 0.25) {
+      final start = project3D(x, 0, -0.5);
+      final end = project3D(x, 0, 0.5);
+      canvas.drawLine(start, end, gridPaint);
+    }
+
+    for (double z = -0.5; z <= 0.5; z += 0.25) {
+      final start = project3D(-0.5, 0, z);
+      final end = project3D(0.5, 0, z);
+      canvas.drawLine(start, end, gridPaint);
+    }
+
+    final axisPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    axisPaint.color = Colors.red.withAlpha(150);
+    canvas.drawLine(project3D(0, 0, 0), project3D(0.3, 0, 0), axisPaint);
+
+    axisPaint.color = Colors.green.withAlpha(150);
+    canvas.drawLine(project3D(0, 0, 0), project3D(0, 0.2, 0), axisPaint);
+
+    axisPaint.color = Colors.blue.withAlpha(150);
+    canvas.drawLine(project3D(0, 0, 0), project3D(0, 0, 0.3), axisPaint);
+  }
+
+  void _drawLegend(Canvas canvas, Size size) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: 'Alt: ${(track.minAltitude * 3.28084).toStringAsFixed(0)} - ${(track.maxAltitude * 3.28084).toStringAsFixed(0)} ft',
+        style: const TextStyle(color: Colors.white, fontSize: 12, backgroundColor: Colors.black54),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(10, size.height - 30));
+  }
+
+  @override
+  bool shouldRepaint(covariant Track3DPainter oldDelegate) {
+    return oldDelegate.rotationX != rotationX ||
+        oldDelegate.rotationY != rotationY ||
+        oldDelegate.zoom != zoom;
+  }
+}

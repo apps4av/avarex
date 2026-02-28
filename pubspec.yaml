@@ -92,6 +92,7 @@ dependencies:
       ref: main   
 
   yaml: any
+  flutter_angle: ^0.3.6
   firebase_core: ^4.2.1
   firebase_auth: ^6.1.2
   firebase_ui_auth: ^3.0.1
