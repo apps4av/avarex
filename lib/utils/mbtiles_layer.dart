@@ -85,23 +85,24 @@ class MBTilesLayerManager {
       return null;
     }
 
+    final minZ = _metadata?.minZoom?.toInt() ?? 0;
+    final maxZ = _metadata?.maxZoom?.toInt() ?? 14;
+
     final provider = MbTilesVectorTileProvider(
       mbtiles: _mbtiles!,
-      maxZoom: _metadata?.maxZoom?.toInt() ?? 14,
-      minZoom: _metadata?.minZoom?.toInt() ?? 0,
+      maxZoom: maxZ,
+      minZoom: minZ,
     );
 
     return Opacity(
       opacity: opacity,
       child: VectorTileLayer(
+        key: const ValueKey('mbtiles_vector_layer'),
         tileProviders: TileProviders({
           'mbtiles': provider,
         }),
         theme: _buildTheme(_layerNames),
-        // Allow overzooming: render at map zoom levels higher than tile data
-        // The provider's maximumZoom (10) limits tile fetching,
-        // but VectorTileLayer's maximumZoom allows rendering at higher map zooms
-        maximumZoom: 20,
+        layerMode: VectorTileLayerMode.vector,
       ),
     );
   }
@@ -128,8 +129,10 @@ class MBTilesLayerManager {
     final List<Map<String, dynamic>> layers = [];
 
     for (final layerName in layerNames) {
-      if (layerName.toLowerCase().contains('airspace')) {
-        layers.addAll(_buildAirspaceThemeLayers(layerName));
+      if (layerName == 'class_airspace') {
+        layers.addAll(_buildClassAirspaceThemeLayers(layerName));
+      } else if (layerName == 'sua_airspace') {
+        layers.addAll(_buildSuaAirspaceThemeLayers(layerName));
       } else {
         layers.addAll(_buildGenericThemeLayers(layerName));
       }
@@ -149,7 +152,7 @@ class MBTilesLayerManager {
     });
   }
 
-  static List<Map<String, dynamic>> _buildAirspaceThemeLayers(String layerName) {
+  static List<Map<String, dynamic>> _buildClassAirspaceThemeLayers(String layerName) {
     return [
       {
         'id': '${layerName}_class_b_fill',
@@ -257,6 +260,168 @@ class MBTilesLayerManager {
     ];
   }
 
+  static List<Map<String, dynamic>> _buildSuaAirspaceThemeLayers(String layerName) {
+    return [
+      // MOA (Military Operations Area) - Magenta/Brown hatched
+      {
+        'id': '${layerName}_moa_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'MOA'],
+        'paint': {
+          'fill-color': '#996633',
+          'fill-opacity': 0.1,
+        }
+      },
+      {
+        'id': '${layerName}_moa_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'MOA'],
+        'paint': {
+          'line-color': '#996633',
+          'line-width': 1.5,
+          'line-dasharray': [6, 4],
+        }
+      },
+      // Restricted Area - Blue hatched
+      {
+        'id': '${layerName}_restricted_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'RESTRICTED'],
+        'paint': {
+          'fill-color': '#0066FF',
+          'fill-opacity': 0.15,
+        }
+      },
+      {
+        'id': '${layerName}_restricted_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'RESTRICTED'],
+        'paint': {
+          'line-color': '#0066FF',
+          'line-width': 2,
+          'line-dasharray': [4, 4],
+        }
+      },
+      // Warning Area - Blue hatched (offshore)
+      {
+        'id': '${layerName}_warning_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'WARNING'],
+        'paint': {
+          'fill-color': '#0088FF',
+          'fill-opacity': 0.1,
+        }
+      },
+      {
+        'id': '${layerName}_warning_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'WARNING'],
+        'paint': {
+          'line-color': '#0088FF',
+          'line-width': 2,
+          'line-dasharray': [4, 4],
+        }
+      },
+      // Alert Area - Orange
+      {
+        'id': '${layerName}_alert_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'ALERT'],
+        'paint': {
+          'fill-color': '#FF8800',
+          'fill-opacity': 0.1,
+        }
+      },
+      {
+        'id': '${layerName}_alert_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'ALERT'],
+        'paint': {
+          'line-color': '#FF8800',
+          'line-width': 1.5,
+          'line-dasharray': [4, 2],
+        }
+      },
+      // Prohibited Area - Red (no-fly zone)
+      {
+        'id': '${layerName}_prohibited_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'PROHIBITED'],
+        'paint': {
+          'fill-color': '#FF0000',
+          'fill-opacity': 0.25,
+        }
+      },
+      {
+        'id': '${layerName}_prohibited_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'PROHIBITED'],
+        'paint': {
+          'line-color': '#FF0000',
+          'line-width': 2,
+        }
+      },
+      // NSA (National Security Area) - Green
+      {
+        'id': '${layerName}_nsa_fill',
+        'type': 'fill',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'NSA'],
+        'paint': {
+          'fill-color': '#228B22',
+          'fill-opacity': 0.1,
+        }
+      },
+      {
+        'id': '${layerName}_nsa_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'TYPE', 'NSA'],
+        'paint': {
+          'line-color': '#228B22',
+          'line-width': 1.5,
+          'line-dasharray': [4, 2],
+        }
+      },
+      // Labels for SUA
+      {
+        'id': '${layerName}_labels',
+        'type': 'symbol',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'layout': {
+          'text-field': '{NAME}',
+          'text-size': 10,
+        },
+        'paint': {
+          'text-color': '#333333',
+        }
+      },
+    ];
+  }
+
   static List<Map<String, dynamic>> _buildGenericThemeLayers(String layerName) {
     return [
       {
@@ -335,7 +500,6 @@ class MbTilesVectorTileProvider extends VectorTileProvider {
     
     final data = mbtiles.getTile(z: tile.z, x: tile.x, y: tmsY);
     if (data == null) {
-      // Return empty tile for missing data (overlays don't cover entire world)
       return Uint8List(0);
     }
     return data;
