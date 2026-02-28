@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/kml_parser.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ class KmlViewerScreen extends StatefulWidget {
 class _KmlViewerScreenState extends State<KmlViewerScreen> {
   KmlTrack? _track;
   bool _loading = true;
+  bool _loadingTerrain = false;
   String? _error;
   int _currentView = 0;
   
@@ -26,6 +28,10 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
   double _rotationY = 0.3;
   double _zoom3D = 1.0;
   double _lastScale = 1.0;
+  
+  List<TerrainPoint>? _terrainGrid;
+  double _terrainMinElev = 0;
+  double _terrainMaxElev = 0;
 
   @override
   void initState() {
@@ -44,6 +50,9 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
             _error = 'Could not parse KML file or no track data found';
           }
         });
+        if (track != null) {
+          _loadTerrain(track);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -52,6 +61,48 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
           _error = 'Error: $e';
         });
       }
+    }
+  }
+
+  Future<void> _loadTerrain(KmlTrack track) async {
+    if (_loadingTerrain) return;
+    _loadingTerrain = true;
+    
+    const int gridSize = 15;
+    final List<TerrainPoint> grid = [];
+    
+    final latStep = (track.maxLat - track.minLat) / (gridSize - 1);
+    final lonStep = (track.maxLon - track.minLon) / (gridSize - 1);
+    
+    double minElev = double.infinity;
+    double maxElev = double.negativeInfinity;
+    
+    for (int i = 0; i < gridSize; i++) {
+      for (int j = 0; j < gridSize; j++) {
+        final lat = track.minLat + i * latStep;
+        final lon = track.minLon + j * lonStep;
+        final elevation = await ElevationCache.getElevation(LatLng(lat, lon));
+        
+        if (elevation != null) {
+          grid.add(TerrainPoint(lat: lat, lon: lon, elevation: elevation));
+          if (elevation < minElev) minElev = elevation;
+          if (elevation > maxElev) maxElev = elevation;
+        } else {
+          grid.add(TerrainPoint(lat: lat, lon: lon, elevation: 0));
+        }
+      }
+    }
+    
+    if (minElev == double.infinity) minElev = 0;
+    if (maxElev == double.negativeInfinity) maxElev = 1000;
+    
+    if (mounted) {
+      setState(() {
+        _terrainGrid = grid;
+        _terrainMinElev = minElev;
+        _terrainMaxElev = maxElev;
+        _loadingTerrain = false;
+      });
     }
   }
 
@@ -294,14 +345,31 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
             ),
           ),
           Expanded(
-            child: CustomPaint(
-              painter: Track3DPainter(
-                track: track,
-                rotationX: _rotationX,
-                rotationY: _rotationY,
-                zoom: _zoom3D,
-              ),
-              size: Size.infinite,
+            child: Stack(
+              children: [
+                CustomPaint(
+                  painter: Track3DPainter(
+                    track: track,
+                    rotationX: _rotationX,
+                    rotationY: _rotationY,
+                    zoom: _zoom3D,
+                    terrainGrid: _terrainGrid,
+                    terrainMinElev: _terrainMinElev,
+                    terrainMaxElev: _terrainMaxElev,
+                  ),
+                  size: Size.infinite,
+                ),
+                if (_loadingTerrain)
+                  const Positioned(
+                    top: 8,
+                    right: 8,
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
@@ -328,17 +396,31 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
   }
 }
 
+class TerrainPoint {
+  final double lat;
+  final double lon;
+  final double elevation;
+  
+  TerrainPoint({required this.lat, required this.lon, required this.elevation});
+}
+
 class Track3DPainter extends CustomPainter {
   final KmlTrack track;
   final double rotationX;
   final double rotationY;
   final double zoom;
+  final List<TerrainPoint>? terrainGrid;
+  final double terrainMinElev;
+  final double terrainMaxElev;
 
   Track3DPainter({
     required this.track,
     required this.rotationX,
     required this.rotationY,
     required this.zoom,
+    this.terrainGrid,
+    this.terrainMinElev = 0,
+    this.terrainMaxElev = 1000,
   });
 
   @override
@@ -351,6 +433,7 @@ class Track3DPainter extends CustomPainter {
     final latRange = track.maxLat - track.minLat;
     final lonRange = track.maxLon - track.minLon;
     final altRange = track.maxAltitude - track.minAltitude;
+    final terrainElevRange = terrainMaxElev - terrainMinElev;
 
     final scale = math.min(size.width, size.height) * 0.35 * zoom;
 
@@ -372,7 +455,11 @@ class Track3DPainter extends CustomPainter {
       return Offset(projX, projY);
     }
 
-    _drawGrid(canvas, size, project3D);
+    if (terrainGrid != null && terrainGrid!.isNotEmpty) {
+      _drawTerrain(canvas, size, project3D, latRange, lonRange, terrainElevRange);
+    } else {
+      _drawGrid(canvas, size, project3D);
+    }
 
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
@@ -482,6 +569,78 @@ class Track3DPainter extends CustomPainter {
     canvas.drawLine(project3D(0, 0, 0), project3D(0, 0, 0.3), axisPaint);
   }
 
+  void _drawTerrain(Canvas canvas, Size size, Offset Function(double, double, double) project3D, 
+      double latRange, double lonRange, double elevRange) {
+    if (terrainGrid == null || terrainGrid!.isEmpty) return;
+    
+    final int gridSize = math.sqrt(terrainGrid!.length).round();
+    if (gridSize < 2) return;
+    
+    const double maxTerrainHeight = 0.15;
+    
+    for (int i = 0; i < gridSize - 1; i++) {
+      for (int j = 0; j < gridSize - 1; j++) {
+        final idx00 = i * gridSize + j;
+        final idx01 = i * gridSize + j + 1;
+        final idx10 = (i + 1) * gridSize + j;
+        final idx11 = (i + 1) * gridSize + j + 1;
+        
+        if (idx11 >= terrainGrid!.length) continue;
+        
+        final p00 = terrainGrid![idx00];
+        final p01 = terrainGrid![idx01];
+        final p10 = terrainGrid![idx10];
+        final p11 = terrainGrid![idx11];
+        
+        final normX00 = latRange > 0 ? (p00.lat - track.minLat) / latRange - 0.5 : 0.0;
+        final normZ00 = lonRange > 0 ? (p00.lon - track.minLon) / lonRange - 0.5 : 0.0;
+        final normY00 = elevRange > 0 ? ((p00.elevation - terrainMinElev) / elevRange) * maxTerrainHeight : 0.0;
+        
+        final normX01 = latRange > 0 ? (p01.lat - track.minLat) / latRange - 0.5 : 0.0;
+        final normZ01 = lonRange > 0 ? (p01.lon - track.minLon) / lonRange - 0.5 : 0.0;
+        final normY01 = elevRange > 0 ? ((p01.elevation - terrainMinElev) / elevRange) * maxTerrainHeight : 0.0;
+        
+        final normX10 = latRange > 0 ? (p10.lat - track.minLat) / latRange - 0.5 : 0.0;
+        final normZ10 = lonRange > 0 ? (p10.lon - track.minLon) / lonRange - 0.5 : 0.0;
+        final normY10 = elevRange > 0 ? ((p10.elevation - terrainMinElev) / elevRange) * maxTerrainHeight : 0.0;
+        
+        final normX11 = latRange > 0 ? (p11.lat - track.minLat) / latRange - 0.5 : 0.0;
+        final normZ11 = lonRange > 0 ? (p11.lon - track.minLon) / lonRange - 0.5 : 0.0;
+        final normY11 = elevRange > 0 ? ((p11.elevation - terrainMinElev) / elevRange) * maxTerrainHeight : 0.0;
+        
+        final pt00 = project3D(normX00, normY00, normZ00);
+        final pt01 = project3D(normX01, normY01, normZ01);
+        final pt10 = project3D(normX10, normY10, normZ10);
+        final pt11 = project3D(normX11, normY11, normZ11);
+        
+        final avgElev = (p00.elevation + p01.elevation + p10.elevation + p11.elevation) / 4;
+        final elevNorm = elevRange > 0 ? (avgElev - terrainMinElev) / elevRange : 0.0;
+        
+        final color = Color.lerp(
+          const Color(0xFF2E7D32),
+          const Color(0xFF8D6E63),
+          elevNorm.clamp(0.0, 1.0),
+        )!.withAlpha(180);
+        
+        final path = ui.Path();
+        path.moveTo(pt00.dx, pt00.dy);
+        path.lineTo(pt01.dx, pt01.dy);
+        path.lineTo(pt11.dx, pt11.dy);
+        path.lineTo(pt10.dx, pt10.dy);
+        path.close();
+        
+        canvas.drawPath(path, Paint()
+          ..color = color
+          ..style = PaintingStyle.fill);
+        
+        canvas.drawPath(path, Paint()
+          ..color = Colors.black.withAlpha(30)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5);
+      }
+    }
+  }
+
   void _drawLegend(Canvas canvas, Size size) {
     final textPainter = TextPainter(
       text: TextSpan(
@@ -492,12 +651,25 @@ class Track3DPainter extends CustomPainter {
     );
     textPainter.layout();
     textPainter.paint(canvas, Offset(10, size.height - 30));
+    
+    if (terrainGrid != null && terrainGrid!.isNotEmpty) {
+      final terrainTextPainter = TextPainter(
+        text: TextSpan(
+          text: 'Terrain: ${terrainMinElev.toStringAsFixed(0)} - ${terrainMaxElev.toStringAsFixed(0)} ft',
+          style: const TextStyle(color: Colors.white, fontSize: 12, backgroundColor: Colors.black54),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      terrainTextPainter.layout();
+      terrainTextPainter.paint(canvas, Offset(10, size.height - 50));
+    }
   }
 
   @override
   bool shouldRepaint(covariant Track3DPainter oldDelegate) {
     return oldDelegate.rotationX != rotationX ||
         oldDelegate.rotationY != rotationY ||
-        oldDelegate.zoom != zoom;
+        oldDelegate.zoom != zoom ||
+        oldDelegate.terrainGrid != terrainGrid;
   }
 }
