@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:http/http.dart' as http;
+import 'package:avaremp/chart/chart.dart';
+import 'package:avaremp/utils/epsg900913.dart';
+import 'package:universal_io/io.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -199,55 +201,99 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
     _loadingTopoImage = true;
     
     try {
-      const double padding = 0.1;
-      double latRange = maxLat - minLat;
-      double lonRange = maxLon - minLon;
+      // Get current chart type
+      final String chartType = Storage().settings.getChartType();
+      final String chartIndex = ChartCategory.chartTypeToIndex(chartType);
+      final String extension = ChartCategory.chartTypeToExtension(chartType);
+      final int maxZoom = ChartCategory.chartTypeToZoom(chartType);
       
-      // Ensure minimum range for valid bbox
-      const double minRange = 0.01;
-      if (latRange < minRange) {
-        final center = (minLat + maxLat) / 2;
-        minLat = center - minRange / 2;
-        maxLat = center + minRange / 2;
-        latRange = minRange;
+      // Use a zoom level that gives good detail but not too many tiles
+      final int zoom = math.min(maxZoom, 9);
+      final double zoomD = zoom.toDouble();
+      
+      // Use Epsg900913 to get tile coordinates (same as the rest of the app)
+      final Epsg900913 projMinMin = Epsg900913.fromLatLon(minLat, minLon, zoomD);
+      final Epsg900913 projMaxMax = Epsg900913.fromLatLon(maxLat, maxLon, zoomD);
+      
+      // Get tile range
+      final int minTileX = math.min(projMinMin.getTilex(), projMaxMax.getTilex());
+      final int maxTileX = math.max(projMinMin.getTilex(), projMaxMax.getTilex());
+      final int minTileY = math.min(projMinMin.getTiley(), projMaxMax.getTiley());
+      final int maxTileY = math.max(projMinMin.getTiley(), projMaxMax.getTiley());
+      
+      final int tilesX = maxTileX - minTileX + 1;
+      final int tilesY = maxTileY - minTileY + 1;
+      
+      // Limit to reasonable number of tiles
+      if (tilesX <= 0 || tilesY <= 0 || tilesX * tilesY > 25) {
+        _loadingTopoImage = false;
+        return;
       }
-      if (lonRange < minRange) {
-        final center = (minLon + maxLon) / 2;
-        minLon = center - minRange / 2;
-        maxLon = center + minRange / 2;
-        lonRange = minRange;
-      }
       
-      // Apply padding
-      final paddedMinLat = minLat - latRange * padding;
-      final paddedMaxLat = maxLat + latRange * padding;
-      final paddedMinLon = minLon - lonRange * padding;
-      final paddedMaxLon = maxLon + lonRange * padding;
+      const int tileSize = 512; // This app uses 512px tiles
+      final int imageWidth = tilesX * tileSize;
+      final int imageHeight = tilesY * tileSize;
       
-      const int imageSize = 512;
-      final bbox = '$paddedMinLon,$paddedMinLat,$paddedMaxLon,$paddedMaxLat';
-      final url = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/export?'
-          'bbox=$bbox&bboxSR=4326&imageSR=4326&size=$imageSize,$imageSize&format=png&f=image';
+      // Create a picture recorder to draw tiles onto
+      final ui.PictureRecorder recorder = ui.PictureRecorder();
+      final Canvas canvas = Canvas(recorder);
       
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
-        final Uint8List bytes = response.bodyBytes;
-        // Check if response is actually an image (not an error JSON)
-        if (bytes.length > 100) {
-          final ui.Codec codec = await ui.instantiateImageCodec(bytes);
-          final ui.FrameInfo frame = await codec.getNextFrame();
-          codec.dispose();
+      // Fill with a default color in case tiles are missing
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight.toDouble()),
+        Paint()..color = const Color(0xFFE8E4D8),
+      );
+      
+      // Load and draw each tile
+      final String basePath = '${Storage().dataDir}/tiles/$chartIndex/$zoom';
+      int tilesLoaded = 0;
+      
+      for (int x = minTileX; x <= maxTileX; x++) {
+        for (int y = minTileY; y <= maxTileY; y++) {
+          final String tilePath = '$basePath/$x/$y.$extension';
+          final File tileFile = File(tilePath);
           
-          if (mounted) {
-            setState(() {
-              _topoImage = frame.image;
-              _loadingTopoImage = false;
-            });
+          if (await tileFile.exists()) {
+            try {
+              final Uint8List bytes = await tileFile.readAsBytes();
+              final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+              final ui.FrameInfo frame = await codec.getNextFrame();
+              
+              // Y is flipped in the image coordinate system
+              final int destX = (x - minTileX) * tileSize;
+              final int destY = (maxTileY - y) * tileSize;
+              
+              canvas.drawImage(
+                frame.image,
+                Offset(destX.toDouble(), destY.toDouble()),
+                Paint(),
+              );
+              
+              tilesLoaded++;
+              frame.image.dispose();
+              codec.dispose();
+            } catch (e) {
+              // Skip failed tiles
+            }
           }
-          return;
         }
       }
-      _loadingTopoImage = false;
+      
+      // Only create image if we loaded at least one tile
+      if (tilesLoaded > 0) {
+        final ui.Picture picture = recorder.endRecording();
+        final ui.Image image = await picture.toImage(imageWidth, imageHeight);
+        picture.dispose();
+        
+        if (mounted) {
+          setState(() {
+            _topoImage = image;
+            _loadingTopoImage = false;
+          });
+        }
+      } else {
+        _loadingTopoImage = false;
+      }
     } catch (e) {
       _loadingTopoImage = false;
     }
