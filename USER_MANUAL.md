@@ -202,7 +202,8 @@ Interactions:
 ### 5.2 Top action buttons
 
 - **→D**: set Direct-To destination, center map there, return to map
-- **+Plan**: insert destination into current plan
+- **+Plan**: insert destination into current plan at the current waypoint position
+- **↓Plan**: append destination to the end of the plan
 - **Plates** (airport only): jump to PLATE tab at that airport
 
 ### 5.3 Information pages (shown when data exists)
@@ -689,8 +690,8 @@ Use this to adjust waypoints graphically.
 
 1. Open `PLAN` tab.
 2. Add waypoints using either:
-   - `FIND` tab → tap item → `+Plan`, or
-   - `MAP` long-press destination popup → `+Plan`.
+   - `FIND` tab → tap item → `+Plan` (insert) or `↓Plan` (append to end), or
+   - `MAP` long-press destination popup → `+Plan` (insert) or `↓Plan` (append to end).
 3. Reorder legs by drag in `PLAN`.
 4. Tap a leg to make it current.
 5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN`.
