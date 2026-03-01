@@ -249,7 +249,15 @@ class LongPressScreenState extends State<LongPressScreen> {
               child: const Text("+Plan"),
               onPressed: () {
                 Storage().route.insertWaypoint(Waypoint(showDestination));
-                Toast.showToast(context, "Added ${showDestination.facilityName} to Plan", null, 3);
+                Toast.showToast(context, "Inserted ${showDestination.facilityName} to Plan", null, 3);
+                Navigator.of(context).pop(); // hide bottom sheet
+              },
+            ),
+            TextButton(
+              child: const Text("\u2193Plan"),
+              onPressed: () {
+                Storage().route.addWaypoint(Waypoint(showDestination));
+                Toast.showToast(context, "Appended ${showDestination.facilityName} to Plan", null, 3);
                 Navigator.of(context).pop(); // hide bottom sheet
               },
             ),
