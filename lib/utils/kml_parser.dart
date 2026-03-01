@@ -27,6 +27,8 @@ class KmlTrack {
   final double maxLat;
   final double minLon;
   final double maxLon;
+  final DateTime? startTime;
+  final DateTime? endTime;
 
   KmlTrack({
     required this.name,
@@ -37,6 +39,8 @@ class KmlTrack {
     required this.maxLat,
     required this.minLon,
     required this.maxLon,
+    this.startTime,
+    this.endTime,
   });
 
   LatLng get center => LatLng((minLat + maxLat) / 2, (minLon + maxLon) / 2);
@@ -63,10 +67,29 @@ class KmlParser {
       
       String name = 'Flight Track';
       List<KmlTrackPoint> points = [];
+      DateTime? documentStartTime;
+      DateTime? documentEndTime;
 
       final nameElements = root.findAllElements('name');
       if (nameElements.isNotEmpty) {
         name = nameElements.first.innerText;
+      }
+      
+      // Parse Document-level ExtendedData for start/end times
+      final docElement = root.findAllElements('Document').firstOrNull;
+      if (docElement != null) {
+        final extData = docElement.findElements('ExtendedData').firstOrNull;
+        if (extData != null) {
+          for (final data in extData.findElements('Data')) {
+            final dataName = data.getAttribute('name');
+            final value = data.findElements('value').firstOrNull?.innerText;
+            if (dataName == 'startTime' && value != null) {
+              documentStartTime = DateTime.tryParse(value);
+            } else if (dataName == 'endTime' && value != null) {
+              documentEndTime = DateTime.tryParse(value);
+            }
+          }
+        }
       }
 
       for (final coordsElement in root.findAllElements('coordinates')) {
@@ -183,6 +206,27 @@ class KmlParser {
           );
         }
       }
+      
+      // Apply Document-level timestamps to first/last points if not already set
+      if (points.isNotEmpty && documentStartTime != null && points.first.time == null) {
+        points[0] = KmlTrackPoint(
+          coordinate: points[0].coordinate,
+          altitude: points[0].altitude,
+          heading: points[0].heading,
+          speed: points[0].speed,
+          time: documentStartTime,
+        );
+      }
+      if (points.length > 1 && documentEndTime != null && points.last.time == null) {
+        final lastIdx = points.length - 1;
+        points[lastIdx] = KmlTrackPoint(
+          coordinate: points[lastIdx].coordinate,
+          altitude: points[lastIdx].altitude,
+          heading: points[lastIdx].heading,
+          speed: points[lastIdx].speed,
+          time: documentEndTime,
+        );
+      }
 
       double minAlt = double.infinity;
       double maxAlt = double.negativeInfinity;
@@ -203,6 +247,10 @@ class KmlParser {
       if (minAlt == double.infinity) minAlt = 0;
       if (maxAlt == double.negativeInfinity) maxAlt = 0;
 
+      // Use document-level times, or fall back to first/last point times
+      final startTime = documentStartTime ?? points.first.time;
+      final endTime = documentEndTime ?? (points.length > 1 ? points.last.time : null);
+
       return KmlTrack(
         name: name,
         points: points,
@@ -212,6 +260,8 @@ class KmlParser {
         maxLat: maxLat,
         minLon: minLon,
         maxLon: maxLon,
+        startTime: startTime,
+        endTime: endTime,
       );
     } catch (e) {
       return null;

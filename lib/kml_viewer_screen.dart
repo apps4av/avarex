@@ -1,7 +1,11 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/place/elevation_cache.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/kml_parser.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -172,43 +176,149 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
     }
   }
 
+  Future<void> _createLogbookEntry() async {
+    final track = _track;
+    if (track == null || track.points.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No track data available')),
+        );
+      }
+      return;
+    }
+
+    final points = track.points;
+    final startCoord = points.first.coordinate;
+    final endCoord = points.last.coordinate;
+
+    final aircraftName = Storage().settings.getAircraft();
+    if (aircraftName.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No aircraft selected. Please select an aircraft first.')),
+        );
+      }
+      return;
+    }
+
+    final aircraft = await UserDatabaseHelper.db.getAircraft(aircraftName);
+
+    final startAirports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(startCoord, 0);
+    final endAirports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(endCoord, 0);
+
+    final startAirport = startAirports.isNotEmpty ? startAirports.first.locationID : 'Unknown';
+    final endAirport = endAirports.isNotEmpty ? endAirports.first.locationID : 'Unknown';
+
+    final route = startAirport == endAirport ? startAirport : '$startAirport-$endAirport';
+
+    double totalFlightTime = 0.0;
+    
+    // Try to calculate from track-level timestamps first, then point timestamps
+    if (track.startTime != null && track.endTime != null) {
+      final duration = track.endTime!.difference(track.startTime!);
+      totalFlightTime = duration.inMinutes / 60.0;
+    } else if (points.length >= 2 && points.first.time != null && points.last.time != null) {
+      final duration = points.last.time!.difference(points.first.time!);
+      totalFlightTime = duration.inMinutes / 60.0;
+    }
+    
+    // If no timestamps available, calculate from track distance
+    if (totalFlightTime <= 0 && points.length >= 2) {
+      const Distance distanceCalc = Distance();
+      double totalDistanceNm = 0;
+      for (int i = 1; i < points.length; i++) {
+        final distanceMeters = distanceCalc.as(
+          LengthUnit.Meter,
+          points[i - 1].coordinate,
+          points[i].coordinate,
+        );
+        totalDistanceNm += distanceMeters / 1852.0;
+      }
+      // Use aircraft's cruise TAS, fallback to 100 knots if not set
+      double groundSpeedKts = double.tryParse(aircraft.cruiseTas) ?? 100.0;
+      if (groundSpeedKts <= 0) {
+        groundSpeedKts = 100.0;
+      }
+      totalFlightTime = totalDistanceNm / groundSpeedKts;
+    }
+
+    DateTime flightDate = track.startTime ?? points.first.time ?? DateTime.now();
+
+    final entry = LogEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      date: flightDate,
+      aircraftMakeModel: aircraft.type,
+      aircraftIdentification: aircraft.tail,
+      route: route,
+      totalFlightTime: totalFlightTime,
+      pilotInCommand: totalFlightTime,
+      dayLandings: 1,
+      remarks: 'Created from track: ${track.name}',
+    );
+
+    await UserDatabaseHelper.db.insertLogbook(entry);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logbook entry created: $route (${totalFlightTime.toStringAsFixed(1)} hrs)'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Widget _build2DMapView() {
     final track = _track!;
     final points = track.points.map((p) => p.coordinate).toList();
 
-    return FlutterMap(
-      options: MapOptions(
-        initialCenter: track.center,
-        initialZoom: 10,
-      ),
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png',
-          maxNativeZoom: 16,
-          userAgentPackageName: 'com.apps4av.avarex',
-        ),
-        PolylineLayer(
-          polylines: [
-            Polyline(
-              points: points,
-              strokeWidth: 3,
-              color: Colors.blue,
+        FlutterMap(
+          options: MapOptions(
+            initialCenter: track.center,
+            initialZoom: 10,
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png',
+              maxNativeZoom: 16,
+              userAgentPackageName: 'com.apps4av.avarex',
+            ),
+            PolylineLayer(
+              polylines: [
+                Polyline(
+                  points: points,
+                  strokeWidth: 3,
+                  color: Colors.blue,
+                ),
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                if (points.isNotEmpty)
+                  Marker(
+                    point: points.first,
+                    child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 30),
+                  ),
+                if (points.length > 1)
+                  Marker(
+                    point: points.last,
+                    child: const Icon(Icons.flight_land, color: Colors.red, size: 30),
+                  ),
+              ],
             ),
           ],
         ),
-        MarkerLayer(
-          markers: [
-            if (points.isNotEmpty)
-              Marker(
-                point: points.first,
-                child: const Icon(Icons.flight_takeoff, color: Colors.green, size: 30),
-              ),
-            if (points.length > 1)
-              Marker(
-                point: points.last,
-                child: const Icon(Icons.flight_land, color: Colors.red, size: 30),
-              ),
-          ],
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: FloatingActionButton.extended(
+            onPressed: _createLogbookEntry,
+            icon: const Icon(Icons.book),
+            label: const Text('Log Flight'),
+            tooltip: 'Create logbook entry from this track',
+          ),
         ),
       ],
     );

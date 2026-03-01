@@ -31,6 +31,14 @@ class GpsRecorder {
     buffer.writeln('<kml xmlns="http://www.opengis.net/kml/2.2">');
     buffer.writeln('<Document>');
     buffer.writeln('<name>$name</name>');
+    
+    // Add track-level timestamps for easy parsing
+    if (points.isNotEmpty) {
+      buffer.writeln('<ExtendedData>');
+      buffer.writeln('<Data name="startTime"><value>${points.first.time.toUtc().toIso8601String()}</value></Data>');
+      buffer.writeln('<Data name="endTime"><value>${points.last.time.toUtc().toIso8601String()}</value></Data>');
+      buffer.writeln('</ExtendedData>');
+    }
 
     // Path LineString
     buffer.writeln('<Placemark>');
