@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:http/http.dart' as http;
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -36,6 +38,8 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
   List<TerrainPoint>? _terrainGrid;
   double _terrainMinElev = 0;
   double _terrainMaxElev = 0;
+  ui.Image? _topoImage;
+  bool _loadingTopoImage = false;
 
   @override
   void initState() {
@@ -107,6 +111,46 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
         _terrainMaxElev = maxElev;
         _loadingTerrain = false;
       });
+      _loadTopoImage(track);
+    }
+  }
+
+  Future<void> _loadTopoImage(KmlTrack track) async {
+    if (_loadingTopoImage) return;
+    _loadingTopoImage = true;
+    
+    try {
+      final padding = 0.1;
+      final latRange = track.maxLat - track.minLat;
+      final lonRange = track.maxLon - track.minLon;
+      final minLat = track.minLat - latRange * padding;
+      final maxLat = track.maxLat + latRange * padding;
+      final minLon = track.minLon - lonRange * padding;
+      final maxLon = track.maxLon + lonRange * padding;
+      
+      const int imageSize = 512;
+      final bbox = '$minLon,$minLat,$maxLon,$maxLat';
+      final url = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/export?'
+          'bbox=$bbox&bboxSR=4326&imageSR=4326&size=$imageSize,$imageSize&format=png&f=image';
+      
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final Uint8List bytes = response.bodyBytes;
+        final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+        final ui.FrameInfo frame = await codec.getNextFrame();
+        codec.dispose();
+        
+        if (mounted) {
+          setState(() {
+            _topoImage = frame.image;
+            _loadingTopoImage = false;
+          });
+        }
+      } else {
+        _loadingTopoImage = false;
+      }
+    } catch (e) {
+      _loadingTopoImage = false;
     }
   }
 
@@ -466,17 +510,28 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
                     terrainGrid: _terrainGrid,
                     terrainMinElev: _terrainMinElev,
                     terrainMaxElev: _terrainMaxElev,
+                    topoImage: _topoImage,
                   ),
                   size: Size.infinite,
                 ),
-                if (_loadingTerrain)
-                  const Positioned(
+                if (_loadingTerrain || _loadingTopoImage)
+                  Positioned(
                     top: 8,
                     right: 8,
-                    child: SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _loadingTerrain ? 'Loading terrain...' : 'Loading topo map...',
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                      ],
                     ),
                   ),
               ],
@@ -522,6 +577,7 @@ class Track3DPainter extends CustomPainter {
   final List<TerrainPoint>? terrainGrid;
   final double terrainMinElev;
   final double terrainMaxElev;
+  final ui.Image? topoImage;
 
   Track3DPainter({
     required this.track,
@@ -531,6 +587,7 @@ class Track3DPainter extends CustomPainter {
     this.terrainGrid,
     this.terrainMinElev = 0,
     this.terrainMaxElev = 1000,
+    this.topoImage,
   });
 
   @override
@@ -687,7 +744,80 @@ class Track3DPainter extends CustomPainter {
     if (gridSize < 2) return;
     
     const double maxTerrainHeight = 0.15;
+    const double padding = 0.1;
     
+    if (topoImage != null) {
+      _drawTexturedTerrain(canvas, size, project3D, latRange, lonRange, elevRange, gridSize, maxTerrainHeight, padding);
+    } else {
+      _drawColoredTerrain(canvas, size, project3D, latRange, lonRange, elevRange, gridSize, maxTerrainHeight);
+    }
+  }
+
+  void _drawTexturedTerrain(Canvas canvas, Size size, Offset Function(double, double, double) project3D,
+      double latRange, double lonRange, double elevRange, int gridSize, double maxTerrainHeight, double padding) {
+    final List<Offset> positions = [];
+    final List<Offset> texCoords = [];
+    final List<int> indices = [];
+    
+    final imgWidth = topoImage!.width.toDouble();
+    final imgHeight = topoImage!.height.toDouble();
+    
+    for (int i = 0; i < gridSize; i++) {
+      for (int j = 0; j < gridSize; j++) {
+        final idx = i * gridSize + j;
+        if (idx >= terrainGrid!.length) continue;
+        
+        final p = terrainGrid![idx];
+        
+        final normX = latRange > 0 ? (p.lat - track.minLat) / latRange - 0.5 : 0.0;
+        final normZ = lonRange > 0 ? (p.lon - track.minLon) / lonRange - 0.5 : 0.0;
+        final normY = elevRange > 0 ? ((p.elevation - terrainMinElev) / elevRange) * maxTerrainHeight : 0.0;
+        
+        final pt = project3D(normX, normY, normZ);
+        positions.add(pt);
+        
+        final texU = (padding + (1.0 - 2.0 * padding) * (p.lon - track.minLon) / lonRange) * imgWidth;
+        final texV = (padding + (1.0 - 2.0 * padding) * (1.0 - (p.lat - track.minLat) / latRange)) * imgHeight;
+        texCoords.add(Offset(texU.clamp(0, imgWidth - 1), texV.clamp(0, imgHeight - 1)));
+      }
+    }
+    
+    for (int i = 0; i < gridSize - 1; i++) {
+      for (int j = 0; j < gridSize - 1; j++) {
+        final idx00 = i * gridSize + j;
+        final idx01 = i * gridSize + j + 1;
+        final idx10 = (i + 1) * gridSize + j;
+        final idx11 = (i + 1) * gridSize + j + 1;
+        
+        if (idx11 >= positions.length) continue;
+        
+        indices.addAll([idx00, idx01, idx11]);
+        indices.addAll([idx00, idx11, idx10]);
+      }
+    }
+    
+    if (positions.isEmpty || indices.isEmpty) return;
+    
+    final vertices = ui.Vertices(
+      ui.VertexMode.triangles,
+      positions,
+      textureCoordinates: texCoords,
+      indices: indices,
+    );
+    
+    final paint = Paint()
+      ..shader = ImageShader(
+        topoImage!,
+        TileMode.clamp,
+        TileMode.clamp,
+        Matrix4.identity().storage,
+      );
+    
+    canvas.drawVertices(vertices, BlendMode.srcOver, paint);
+  }
+
+  void _drawColoredTerrain(Canvas canvas, Size size, Offset Function(double, double, double) project3D,
+      double latRange, double lonRange, double elevRange, int gridSize, double maxTerrainHeight) {
     for (int i = 0; i < gridSize - 1; i++) {
       for (int j = 0; j < gridSize - 1; j++) {
         final idx00 = i * gridSize + j;
@@ -780,6 +910,7 @@ class Track3DPainter extends CustomPainter {
     return oldDelegate.rotationX != rotationX ||
         oldDelegate.rotationY != rotationY ||
         oldDelegate.zoom != zoom ||
-        oldDelegate.terrainGrid != terrainGrid;
+        oldDelegate.terrainGrid != terrainGrid ||
+        oldDelegate.topoImage != topoImage;
   }
 }
