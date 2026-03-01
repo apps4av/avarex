@@ -48,10 +48,11 @@ You can reopen onboarding later from the main drawer header icon.
 | Feature | Availability |
 |---|---|
 | Core app (Map/Plate/Plan/Find, downloads, documents, aircraft, checklist, W&B, logbook) | All supported platforms |
+| Track Viewer (KML files with 2D/3D views) | All supported platforms |
+| Vector map layer with airspace | All supported platforms |
 | Bluetooth IO screen | **Android only** |
 | Plan Transfer to Garmin Connext | **Android only** (through Bluetooth IO) |
 | Pro Services entry (Flight Intelligence + Backup/Sync) | **iOS and Android** |
-| Donate menu item | Not shown on iOS/macOS |
 | PDF viewing in Documents | Not shown on Linux |
 | File sharing from Documents/Logbook export | Not shown on Linux |
 
@@ -83,7 +84,7 @@ Open from MAP with **Menu** button (bottom-left):
 - W&B
 - Log Book
 - IO (Android only)
-- Donate (where available)
+- Help (opens User Manual PDF)
 
 ---
 
@@ -154,7 +155,7 @@ Layer list from settings (with per-layer opacity):
 - **Nav**: route lines, runway depiction, waypoint markers/labels, ownship symbol.
 - **Circles**: range rings (10/5/2 NM), speed ring, glide circle + labels.
 - **Chart**: downloaded chart tiles (offline chart base).
-- **OSM**: OpenStreetMap online base.
+- **Vector**: vector map tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors.
 - **OpenAIP**: OpenAIP online aviation layer.
 - **Topo**: USGS topo online base.
 - **Elevation**: downloaded elevation tiles.
@@ -173,9 +174,8 @@ Layer list from settings (with per-layer opacity):
 
 Notes:
 
-- OSM and Topo are mutually reduced by UI logic (enabling one can disable the other).
-- Chart and OpenAIP are similarly managed for performance.
-- Turning **Tracks** layer OFF saves a KML track file into Documents and clears active track recording.
+- Chart and OpenAIP are managed together for performance.
+- Turning **Tracks** layer OFF saves a KML track file into Documents/tracks and clears active track recording.
 
 ### 4.6 Instrument strip (top-left)
 
@@ -389,11 +389,22 @@ Includes:
 - Built-in weather/prog chart products (WPC, SigWx, AIRMETs, radar, winds/temp, etc.)
 - User documents (imported or generated)
 - User database file (`user.db`) entry
+- Subfolders for organization:
+  - `tracks/` — saved flight tracks (KML files)
+  - `notes/` — saved notes screenshots
+
+**Folder management:**
+
+- **Create folder**: tap folder icon in app bar to create a new subfolder
+- **Delete folder**: use delete icon below folder to remove folder and contents
+- **Move files**: use move icon on user files to relocate to a folder or back to root
+- **Export folder**: use share icon below folder to export all folder contents
 
 Import button supports:
 
 - `.txt`
 - `.geojson`
+- `.kml`
 - `.pdf` (except Linux)
 - `user.db`
 
@@ -402,9 +413,23 @@ Document behavior:
 - Text: in-app text reader
 - PDF: in-app PDF viewer (if supported)
 - GeoJSON: parsed into map shapes (visible when GeoJSON layer is on)
+- KML: opens Track Viewer with 2D map, altitude profile, and 3D terrain view
 - Images: zoomable preview
 - Share button available where supported
 - Swipe delete for user files
+
+#### Track Viewer (KML files)
+
+When you tap a KML file in Documents, the Track Viewer opens with three view modes:
+
+- **2D Map** (map icon): displays the track on a USGS topo background with takeoff (green) and landing (red) markers
+- **Altitude Profile** (chart icon): shows altitude vs. distance graph for the flight
+- **3D View** (AR icon): interactive 3D visualization with terrain, topo map texture, and flight path; drag to rotate, pinch to zoom
+
+The **Log Flight** button on the 2D map view creates a logbook entry from the track, auto-filling:
+- Route (nearest airports to start/end points)
+- Flight time (from track timestamps or calculated from distance and aircraft cruise TAS)
+- Aircraft make/model and tail from selected aircraft profile
 
 ### 9.3 Aircraft
 
@@ -478,11 +503,12 @@ Functions:
 Connected stream feeds external data input into app parser.
 Also used by Plan Transfer (Garmin Connext).
 
-### 9.8 Donate
+### 9.8 Help
 
-Open: **Menu → Donate** (when available)
+Open: **Menu → Help**
 
-- Displays donation URL for browser use.
+- Opens the User Manual PDF for in-app reference.
+- Available on platforms that support PDF viewing.
 
 ---
 
@@ -494,12 +520,36 @@ On MAP tab, tap the notes/pen icon in bottom-right controls.
 
 ### 10.2 Features
 
-- Freehand drawing with color choices
+- Freehand drawing with color choices (black/white, red, green)
 - Eraser mode
 - Undo/Redo
 - Clear canvas
-- Save snapshot to Documents as `notes_<timestamp>.jpg`
+- Save snapshot to Documents/notes as `notes_<timestamp>.png`
 - Current sketch autosaves on exit and reloads next time
+
+### 10.3 Aviation background sheets
+
+Use the sheet icon in the app bar to select a background template for common aviation communications:
+
+| Sheet | Purpose |
+|-------|---------|
+| None | Blank canvas |
+| Cost | Flight times (Hobbs, Tach, Fuel, Oil) |
+| ATIS | VFR ATIS copydown fields |
+| CRAFT | IFR clearance (Clearance limit, Route, Altitude, Frequency, Transponder) |
+| Clearance | VFR flight following clearance |
+| Ground Taxi | Ground control taxi instructions |
+| Tower Takeoff | Tower takeoff clearance |
+| Departure | Departure control contact |
+| Approach | Approach control contact |
+| Tower Landing | Tower arrival/landing |
+| Ground Landed | Ground control after landing |
+
+Each sheet maintains its own saved sketch state. Switching sheets saves the current sheet and loads the new one.
+
+### 10.4 Number keypad
+
+Tap the keypad icon in the toolbar to display an on-screen number pad for typing frequencies, altitudes, headings, or other numeric values. Typed text appears in the top-left of the canvas and is saved with the sheet.
 
 ---
 
@@ -573,6 +623,8 @@ Possible issue items:
 
 - Download charts/data: `MAP → Menu → Download`
 - Read weather docs / import files: `MAP → Menu → Documents`
+- View saved tracks (KML): `MAP → Menu → Documents → tracks folder → tap KML file`
+- Create folder for documents: `MAP → Menu → Documents → folder icon in app bar`
 - Build or modify plan: `PLAN tab`
 - File FAA plan: `PLAN → Actions → Brief & File`
 - Manage filed plans: `PLAN → Actions → Manage`
@@ -585,8 +637,10 @@ Possible issue items:
 - Logbook + dashboard: `MAP → Menu → Log Book`
 - Bluetooth pairing/connection: `MAP → Menu → IO` (Android)
 - Notes/drawing: `MAP → Notes icon`
+- Notes with aviation sheet: `MAP → Notes icon → sheet icon → select template`
 - Pro AI: `MAP top-right account icon → Flight Intelligence`
 - Cloud backup/restore: `MAP top-right account icon → Backup/Sync`
+- User Manual (Help): `MAP → Menu → Help`
 
 ---
 
@@ -702,8 +756,26 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 1. In `MAP`, keep `Tracks` layer on during flight.
 2. When done, set `Tracks` layer opacity to `0` in Layers menu.
-3. App saves track automatically as KML in Documents.
-4. Open `MAP → Menu → Documents → User Docs` to access/share file.
+3. App saves track automatically as KML in Documents/tracks folder.
+4. Open `MAP → Menu → Documents → tracks` to access/share file.
+
+### UC-10a: View a saved track and create a logbook entry
+
+1. Open `MAP → Menu → Documents → tracks`.
+2. Tap a KML file to open the Track Viewer.
+3. Use view icons to switch between 2D Map, Altitude Profile, and 3D View.
+4. In 2D Map view, tap **Log Flight** to create a logbook entry from the track.
+5. The entry auto-fills route, time, and aircraft info from track data and selected aircraft profile.
+
+### UC-10b: Use aviation sheets for IFR clearance copydown
+
+1. On `MAP`, tap the notes/pen icon.
+2. Tap the sheet icon in the app bar.
+3. Select **CRAFT** for IFR clearance fields.
+4. Use the number keypad (dialpad icon) to type frequencies, altitudes, or squawk codes.
+5. Use freehand drawing to fill in route or other notes.
+6. The sheet auto-saves when you exit or switch sheets.
+7. Return anytime to continue where you left off; each sheet maintains its own state.
 
 ### UC-11: Import a GeoJSON overlay and display it on map
 
@@ -802,8 +874,10 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-04: My track logs are empty. How do I save valid KML logs?
 
 - Keep `Tracks` layer ON during flight.
-- After flight, turn `Tracks` layer OFF (saves KML to Documents and clears active track buffer).
-- Open `Documents -> User Docs` and verify non-empty KML before sharing.
+- After flight, turn `Tracks` layer OFF (saves KML to Documents/tracks folder and clears active track buffer).
+- Open `Documents -> tracks` and verify non-empty KML before sharing.
+- Tap the KML file to view it in Track Viewer with 2D map, altitude profile, and 3D terrain views.
+- Use **Log Flight** button to create a logbook entry directly from the track.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/goPy8KQpfik`
 
