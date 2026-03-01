@@ -50,6 +50,11 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
   double _terrainMaxLon = 0;
   ui.Image? _topoImage;
   bool _loadingTopoImage = false;
+  // Actual geographic bounds of the topo image (based on tile boundaries)
+  double _topoMinLat = 0;
+  double _topoMaxLat = 0;
+  double _topoMinLon = 0;
+  double _topoMaxLon = 0;
 
   @override
   void initState() {
@@ -285,9 +290,24 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
         final ui.Image image = await picture.toImage(imageWidth, imageHeight);
         picture.dispose();
         
+        // Calculate the actual geographic bounds of the loaded tiles
+        final Epsg900913 bottomLeftTile = Epsg900913.fromTile(minTileX, minTileY, zoomD);
+        final Epsg900913 topRightTile = Epsg900913.fromTile(maxTileX, maxTileY, zoomD);
+        
+        // Bottom-left tile gives us minLon and minLat (lower-left corner)
+        // Top-right tile gives us maxLon and maxLat (upper-right corner)
+        final double tileMinLon = bottomLeftTile.getLonLowerLeft();
+        final double tileMinLat = bottomLeftTile.getLatLowerLeft();
+        final double tileMaxLon = topRightTile.getLonLowerRight();
+        final double tileMaxLat = topRightTile.getLatUpperLeft();
+        
         if (mounted) {
           setState(() {
             _topoImage = image;
+            _topoMinLat = tileMinLat;
+            _topoMaxLat = tileMaxLat;
+            _topoMinLon = tileMinLon;
+            _topoMaxLon = tileMaxLon;
             _loadingTopoImage = false;
           });
         }
@@ -627,24 +647,28 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
       onScaleUpdate: (details) {
         setState(() {
           if (details.pointerCount == 1) {
-            // Single finger: rotate
-            _rotationY += details.focalPointDelta.dx * 0.01;
-            _rotationX += details.focalPointDelta.dy * 0.01;
-            _rotationX = _rotationX.clamp(-1.5, 1.5);
-          } else if (details.pointerCount >= 2) {
-            // Two fingers: pan and zoom
-            // Handle zoom
-            if (details.scale != _lastScale) {
-              _zoom3D = (_zoom3D * (details.scale / _lastScale)).clamp(0.5, 30.0);
-              _lastScale = details.scale;
-            }
-            // Handle pan
+            // Single finger: pan
             if (_lastFocalPoint != null) {
               final delta = details.focalPoint - _lastFocalPoint!;
               _panX += delta.dx;
               _panY += delta.dy;
             }
             _lastFocalPoint = details.focalPoint;
+          } else if (details.pointerCount >= 2) {
+            // Two fingers: rotate and zoom
+            // Handle zoom - also scale pan to keep content aligned
+            if (details.scale != _lastScale) {
+              final double scaleFactor = details.scale / _lastScale;
+              _zoom3D = (_zoom3D * scaleFactor).clamp(0.5, 30.0);
+              // Scale pan offset by the same factor to maintain alignment
+              _panX *= scaleFactor;
+              _panY *= scaleFactor;
+              _lastScale = details.scale;
+            }
+            // Handle rotation
+            _rotationY += details.focalPointDelta.dx * 0.01;
+            _rotationX += details.focalPointDelta.dy * 0.01;
+            _rotationX = _rotationX.clamp(-1.5, 1.5);
           }
         });
       },
@@ -653,13 +677,6 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
       },
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Drag to rotate • Two fingers to pan/zoom',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-            ),
-          ),
           Expanded(
             child: Stack(
               children: [
@@ -679,6 +696,10 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
                     terrainMinLon: _terrainMinLon,
                     terrainMaxLon: _terrainMaxLon,
                     topoImage: _topoImage,
+                    topoMinLat: _topoMinLat,
+                    topoMaxLat: _topoMaxLat,
+                    topoMinLon: _topoMinLon,
+                    topoMaxLon: _topoMaxLon,
                   ),
                   size: Size.infinite,
                 ),
@@ -754,6 +775,10 @@ class Track3DPainter extends CustomPainter {
   final double terrainMinLon;
   final double terrainMaxLon;
   final ui.Image? topoImage;
+  final double topoMinLat;
+  final double topoMaxLat;
+  final double topoMinLon;
+  final double topoMaxLon;
 
   Track3DPainter({
     required this.track,
@@ -770,6 +795,10 @@ class Track3DPainter extends CustomPainter {
     this.terrainMinLon = 0,
     this.terrainMaxLon = 0,
     this.topoImage,
+    this.topoMinLat = 0,
+    this.topoMaxLat = 0,
+    this.topoMinLon = 0,
+    this.topoMaxLon = 0,
   });
 
   @override
@@ -826,6 +855,9 @@ class Track3DPainter extends CustomPainter {
       _drawGrid(canvas, size, project3D);
     }
 
+    // Draw vertical scale
+    _drawVerticalScale(canvas, size, project3D, overallMinElev, overallElevRange, verticalScale);
+
     final trackPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
@@ -844,8 +876,9 @@ class Track3DPainter extends CustomPainter {
       final normY = overallElevRange > 0 ? ((altFt - overallMinElev) / overallElevRange) * verticalScale : 0.0;
 
       final point3D = project3D(normX, normY, normZ);
-      // Ground at terrain surface
-      final groundY = overallElevRange > 0 ? ((terrainMinElev - overallMinElev) / overallElevRange) * verticalScale : 0.0;
+      // Ground at actual terrain surface (interpolated)
+      final terrainElev = _getTerrainElevationAt(p.coordinate.latitude, p.coordinate.longitude);
+      final groundY = overallElevRange > 0 ? ((terrainElev - overallMinElev) / overallElevRange) * verticalScale : 0.0;
       final groundPoint = project3D(normX, groundY, normZ);
 
       if (i == 0) {
@@ -871,7 +904,9 @@ class Track3DPainter extends CustomPainter {
       final normY = overallElevRange > 0 ? ((altFt - overallMinElev) / overallElevRange) * verticalScale : 0.0;
 
       final point3D = project3D(normX, normY, normZ);
-      final groundY = overallElevRange > 0 ? ((terrainMinElev - overallMinElev) / overallElevRange) * verticalScale : 0.0;
+      // Drop line goes to actual terrain surface
+      final terrainElev = _getTerrainElevationAt(p.coordinate.latitude, p.coordinate.longitude);
+      final groundY = overallElevRange > 0 ? ((terrainElev - overallMinElev) / overallElevRange) * verticalScale : 0.0;
       final groundPoint = project3D(normX, groundY, normZ);
 
       final dropPaint = Paint()
@@ -908,7 +943,6 @@ class Track3DPainter extends CustomPainter {
       canvas.drawCircle(lastPoint, 8, Paint()..color = Colors.red);
     }
 
-    _drawLegend(canvas, size);
   }
 
   void _drawGrid(Canvas canvas, Size size, Offset Function(double, double, double) project3D) {
@@ -943,6 +977,55 @@ class Track3DPainter extends CustomPainter {
     canvas.drawLine(project3D(0, 0, 0), project3D(0, 0, 0.3), axisPaint);
   }
 
+  void _drawVerticalScale(Canvas canvas, Size size, Offset Function(double, double, double) project3D,
+      double overallMinElev, double overallElevRange, double verticalScale) {
+    if (overallElevRange <= 0) return;
+    
+    final scalePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = Colors.grey.shade700;
+    
+    // Position the scale at the back-left corner of the view
+    const double scaleX = -0.5;
+    const double scaleZ = -0.5;
+    
+    // Draw main vertical line
+    final bottom = project3D(scaleX, 0, scaleZ);
+    final top = project3D(scaleX, verticalScale, scaleZ);
+    canvas.drawLine(bottom, top, scalePaint);
+    
+    // Round min elevation down to nearest 1000, max up to nearest 1000
+    final int minElev1k = ((overallMinElev / 1000).floor() * 1000);
+    final int maxElev1k = ((overallMinElev + overallElevRange) / 1000).ceil() * 1000;
+    
+    // Draw tick marks and labels at 1000ft increments
+    for (int elev = minElev1k; elev <= maxElev1k; elev += 1000) {
+      if (elev < overallMinElev || elev > overallMinElev + overallElevRange) continue;
+      
+      final normY = ((elev - overallMinElev) / overallElevRange) * verticalScale;
+      final tickStart = project3D(scaleX, normY, scaleZ);
+      final tickEnd = project3D(scaleX - 0.02, normY, scaleZ);
+      
+      canvas.drawLine(tickStart, tickEnd, scalePaint);
+      
+      // Draw elevation label
+      final label = '${(elev / 1000).round()}k';
+      final textPainter = TextPainter(
+        text: TextSpan(
+          text: label,
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontSize: 8,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(tickEnd.dx - textPainter.width - 2, tickEnd.dy - textPainter.height / 2));
+    }
+  }
+
   void _drawTerrain(Canvas canvas, Size size, Offset Function(double, double, double) project3D, 
       double latRange, double lonRange, double overallMinElev, double overallElevRange, double verticalScale) {
     if (terrainGrid == null || terrainGrid!.isEmpty) return;
@@ -972,6 +1055,10 @@ class Track3DPainter extends CustomPainter {
     final imgWidth = topoImage!.width.toDouble();
     final imgHeight = topoImage!.height.toDouble();
     
+    // Calculate topo image's geographic range
+    final topoLatRange = topoMaxLat - topoMinLat;
+    final topoLonRange = topoMaxLon - topoMinLon;
+    
     for (int i = 0; i < gridSize; i++) {
       for (int j = 0; j < gridSize; j++) {
         final idx = i * gridSize + j;
@@ -988,12 +1075,14 @@ class Track3DPainter extends CustomPainter {
         final pt = project3D(normX, normY, normZ);
         positions.add(pt);
         
-        // Use terrain bounds for texture coordinates
-        final texU = tLonRange > 0 
-            ? (padding + (1.0 - 2.0 * padding) * (p.lon - terrainMinLon) / tLonRange) * imgWidth
+        // Use topo bounds for texture coordinates (the actual geographic extent of loaded tiles)
+        // texU: longitude maps to X (left to right)
+        // texV: latitude maps to Y (top is higher lat, bottom is lower lat)
+        final texU = topoLonRange > 0 
+            ? ((p.lon - topoMinLon) / topoLonRange) * imgWidth
             : imgWidth / 2;
-        final texV = tLatRange > 0 
-            ? (padding + (1.0 - 2.0 * padding) * (1.0 - (p.lat - terrainMinLat) / tLatRange)) * imgHeight
+        final texV = topoLatRange > 0 
+            ? ((topoMaxLat - p.lat) / topoLatRange) * imgHeight
             : imgHeight / 2;
         texCoords.add(Offset(texU.clamp(0, imgWidth - 1), texV.clamp(0, imgHeight - 1)));
       }
@@ -1103,31 +1192,47 @@ class Track3DPainter extends CustomPainter {
     }
   }
 
-  void _drawLegend(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: 'Alt: ${(track.minAltitude * 3.28084).toStringAsFixed(0)} - ${(track.maxAltitude * 3.28084).toStringAsFixed(0)} ft',
-        style: const TextStyle(color: Colors.white, fontSize: 12, backgroundColor: Colors.black54),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(10, size.height - 30));
+  double _getTerrainElevationAt(double lat, double lon) {
+    if (terrainGrid == null || terrainGrid!.isEmpty) return terrainMinElev;
     
-    if (terrainGrid != null && terrainGrid!.isNotEmpty) {
-      final terrainTextPainter = TextPainter(
-        text: TextSpan(
-          text: 'Terrain: ${terrainMinElev.toStringAsFixed(0)} - ${terrainMaxElev.toStringAsFixed(0)} ft',
-          style: const TextStyle(color: Colors.white, fontSize: 12, backgroundColor: Colors.black54),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      terrainTextPainter.layout();
-      terrainTextPainter.paint(canvas, Offset(10, size.height - 50));
-    }
+    final int gridSize = math.sqrt(terrainGrid!.length).round();
+    if (gridSize < 2) return terrainMinElev;
+    
+    final tLatRange = terrainMaxLat - terrainMinLat;
+    final tLonRange = terrainMaxLon - terrainMinLon;
+    
+    if (tLatRange <= 0 || tLonRange <= 0) return terrainMinElev;
+    
+    // Normalize lat/lon to grid coordinates
+    final double normLat = (lat - terrainMinLat) / tLatRange;
+    final double normLon = (lon - terrainMinLon) / tLonRange;
+    
+    // Clamp to grid bounds
+    final double gridX = (normLat * (gridSize - 1)).clamp(0, gridSize - 1.001);
+    final double gridY = (normLon * (gridSize - 1)).clamp(0, gridSize - 1.001);
+    
+    // Get the four surrounding grid points
+    final int x0 = gridX.floor();
+    final int y0 = gridY.floor();
+    final int x1 = (x0 + 1).clamp(0, gridSize - 1);
+    final int y1 = (y0 + 1).clamp(0, gridSize - 1);
+    
+    // Bilinear interpolation weights
+    final double fx = gridX - x0;
+    final double fy = gridY - y0;
+    
+    // Get elevations at four corners
+    final double e00 = terrainGrid![x0 * gridSize + y0].elevation;
+    final double e01 = terrainGrid![x0 * gridSize + y1].elevation;
+    final double e10 = terrainGrid![x1 * gridSize + y0].elevation;
+    final double e11 = terrainGrid![x1 * gridSize + y1].elevation;
+    
+    // Bilinear interpolation
+    final double e0 = e00 * (1 - fy) + e01 * fy;
+    final double e1 = e10 * (1 - fy) + e11 * fy;
+    return e0 * (1 - fx) + e1 * fx;
   }
 
-  @override
   @override
   bool shouldRepaint(covariant Track3DPainter oldDelegate) {
     return oldDelegate.rotationX != rotationX ||

@@ -412,8 +412,8 @@ class Storage {
         gpsNoLock = false;
       }
 
-      if((timeChange.value % 15) == 0) {
-        // update area every 15 seconds
+      if((timeChange.value % 10) == 0) {
+        // update area every 10 seconds
         area.update(position);
       }
 

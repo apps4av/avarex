@@ -1,6 +1,7 @@
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/gpws_alerts.dart';
+import 'package:avaremp/instruments/runway_incursion_alerts.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -23,6 +24,7 @@ class Area {
   ValueNotifier<int> change = ValueNotifier(0);
   GlideProfile glideProfile = GlideProfile();
   GpwsAlerts? _gpwsAlerts;
+  RunwayIncursionAlerts? _runwayIncursionAlerts;
 
   Future<void> update(Position position) async {
     double geo = 0;
@@ -69,11 +71,26 @@ class Area {
           heading: Storage().position.heading,
         );
       }
+
+      // Runway incursion alerts
+      _runwayIncursionAlerts ??= await RunwayIncursionAlerts.getAndStartRunwayIncursionAlerts();
+      if(_runwayIncursionAlerts != null && closestAirport != null && closestAirport is AirportDestination) {
+        await _runwayIncursionAlerts!.checkRunwayIncursion(
+          currentPosition: Gps.toLatLng(Storage().position),
+          heading: Storage().position.heading,
+          groundSpeedMps: Storage().position.speed,
+          airport: closestAirport as AirportDestination,
+        );
+      }
     }
     else {
       if(null != _gpwsAlerts) {
         await GpwsAlerts.stopGpwsAlerts();
         _gpwsAlerts = null;
+      }
+      if(null != _runwayIncursionAlerts) {
+        await RunwayIncursionAlerts.stopRunwayIncursionAlerts();
+        _runwayIncursionAlerts = null;
       }
     }
   }
