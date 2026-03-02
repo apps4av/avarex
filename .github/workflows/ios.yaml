@@ -5,7 +5,7 @@ on: push
 jobs:
 
   build-and-release:
-    runs-on: macos-15
+    runs-on: macos-latest
 
     steps:
 
