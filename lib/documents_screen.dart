@@ -495,7 +495,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear();
               }));},
-              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: const Text("Import")),
+              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), KML (.kml), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: const Text("Import")),
             ),
             if (!_isInSubfolder)
               Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:

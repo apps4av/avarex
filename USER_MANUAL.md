@@ -1,4 +1,5 @@
-# AvareX User Manual 
+# AvareX User Manual
+
 This manual is generated from the current app codebase and focuses on:
 
 - **What features exist**
@@ -36,10 +37,10 @@ On first run, complete onboarding pages:
    - Maritime (NM/knots/feet)
    - Imperial (SM/MPH/feet)
 4. Confirm GPS permissions/settings.
-5. Open **Download** and get at least **Databases** (recommended before use).
+5. Open **Download** and get at least **DatabasesX** (required for core nav data).
 6. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
 
-You can reopen onboarding later from the main drawer header icon.
+You can reopen onboarding later from the drawer header icon.
 
 ---
 
@@ -48,13 +49,15 @@ You can reopen onboarding later from the main drawer header icon.
 | Feature | Availability |
 |---|---|
 | Core app (Map/Plate/Plan/Find, downloads, documents, aircraft, checklist, W&B, logbook) | All supported platforms |
-| Track Viewer (KML files with 2D/3D views) | All supported platforms |
+| Track Viewer with 2D/3D views (KML files) | All supported platforms |
 | Vector map layer with airspace | All supported platforms |
+| CAP Grid layer | All supported platforms |
 | Bluetooth IO screen | **Android only** |
-| Plan Transfer to Garmin Connext | **Android only** (through Bluetooth IO) |
-| Pro Services entry (Flight Intelligence + Backup/Sync) | **iOS and Android** |
-| PDF viewing in Documents | Not shown on Linux |
-| File sharing from Documents/Logbook export | Not shown on Linux |
+| Plan Transfer via NMEA 0183 | **Android only** (through Bluetooth IO) |
+| Pro Services (Flight Intelligence + Backup/Sync) | **iOS and Android only** |
+| PDF viewing in Documents/Help | Not available on Linux |
+| File sharing from Documents/Logbook export | Not available on Linux |
+| Donate screen | Not available on iOS/macOS |
 
 ---
 
@@ -84,7 +87,8 @@ Open from MAP with **Menu** button (bottom-left):
 - W&B
 - Log Book
 - IO (Android only)
-- Help (opens User Manual PDF)
+- Donate (not iOS/macOS)
+- Help (opens User Manual PDF; not available on Linux)
 
 ---
 
@@ -101,39 +105,40 @@ Tap bottom tab **MAP**.
 - Long-press behavior:
   - if ruler mode OFF: opens destination popup near pressed location
   - if ruler mode ON: drops ruler points for distance/bearing measurement
-- Tap/long-press map also dismisses pop-up toasts
+- Single tap dismisses pop-up toasts
 
 ### 4.3 Map controls (buttons and menus)
 
-### Top-right
+#### Top-right
 - **Pro icon** (iOS/Android): opens Pro Services login/paywall flow.
 - **Red warning icon** (if active): opens troubleshooting drawer.
 
-### Bottom center
+#### Bottom center
 - **Center** button:
   - Tap: recenter on ownship (current zoom)
   - Long press: recenter and zoom to chart max zoom
 
-### Bottom-left
+#### Bottom-left
 - **Menu** button: opens drawer list (Download, Documents, etc.)
 
-### Bottom-right control row
-- **Ruler (compass icon)**: toggle measure mode; long-press map to add points.
+#### Bottom-right control row (scrollable)
+- **Mute** (volume icon): toggle audible alerts (traffic, GPWS) on/off.
+- **Ruler** (compass icon): toggle measure mode; long-press map to add points.
 - **North-up / Track-up toggle**: switches orientation mode.
 - **Rubber banding toggle**: enables dragging route waypoints directly on map.
 - **Notes icon**: opens handwriting Notes screen.
 - **Chart type popup**: selects chart source type.
 - **Layers popup**: per-layer on/off via opacity slider.
 
-### Traffic-only controls (show when Traffic layer > 0)
-- **Audio mute/unmute**
-- **Traffic volume puck size** cycles: `S`, `M`, `L`
+#### Traffic-only controls (show when Traffic layer > 0)
+- **Traffic puck size** cycles: `S`, `M`, `L`
   - S: 20 aircraft, 3000 ft, 10 NM
   - M: 200 aircraft, 6000 ft, 50 NM
   - L: 1000 aircraft, 30000 ft, 500 NM
 
-### Altitude slider (left side)
+#### Altitude slider (right side)
 - Appears when **Ceiling** or **Wind Vectors** layer is on.
+- Range: 0 to 30,000 ft (1,000 ft increments).
 - Adjusts planning altitude used by those overlays.
 
 ### 4.4 Map chart types
@@ -150,45 +155,70 @@ Selectable map chart types:
 
 ### 4.5 Map layers and what they do
 
-Layer list from settings (with per-layer opacity):
+Layer list from settings (with per-layer opacity 0-100%):
 
-- **Nav**: route lines, runway depiction, waypoint markers/labels, ownship symbol.
-- **Circles**: range rings (10/5/2 NM), speed ring, glide circle + labels.
-- **Chart**: downloaded chart tiles (offline chart base).
-- **Vector**: vector map tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors.
-- **OpenAIP**: OpenAIP online aviation layer.
-- **Topo**: USGS topo online base.
-- **Elevation**: downloaded elevation tiles.
-- **Weather**: METAR/TAF/AIREP/AIRSIGMET symbols + ADS-B weather overlays.
-- **Radar**: internet radar animation tiles.
-- **TFR**: temporary flight restriction shapes/markers.
-- **Wind Vectors**: wind vector field overlay (altitude-dependent).
-- **Ceiling**: ceiling overlay (altitude-dependent).
-- **Plate**: georeferenced plate overlay on map (when loaded).
-- **Traffic**: traffic symbols, relative orientation; audible alerts integration.
-- **Obstacles**: obstacle markers.
-- **Tape**: distance tape labels from ownship upward.
-- **GeoJSON**: imported user GeoJSON polygons/markers.
-- **PFD**: inset synthetic PFD panel.
-- **Tracks**: ownship breadcrumb/polyline.
+| Layer | Description |
+|-------|-------------|
+| **Nav** | Route lines, runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. |
+| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range) + labels. |
+| **Chart** | Downloaded FAA chart tiles (offline chart base). |
+| **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. |
+| **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., SEA123, DEN456). Only visible at zoom level 9+. |
+| **Topo** | USGS topo online base map. |
+| **Elevation** | Downloaded elevation tiles with color-coded terrain. |
+| **Weather** | METAR/TAF/AIREP/AIRSIGMET symbols + ADS-B weather overlays (NEXRAD from GDL90/FIS-B). |
+| **Radar** | Internet radar animation tiles from Iowa State Mesonet (loops through 5 time frames: -40m, -30m, -20m, -10m, now). |
+| **TFR** | Temporary flight restriction shapes/markers with time validity. |
+| **Wind Vectors** | Animated wind particle field overlay at selected altitude (from Winds Aloft data). |
+| **Ceiling** | Black overlay showing areas where METAR ceiling is below your selected altitude. |
+| **Plate** | Georeferenced plate overlay on map (when loaded). |
+| **Traffic** | Traffic symbols with relative orientation, altitude, vertical trend, callsign; audible alerts integration (AC 20-172 colors: cyan=proximate, orange=advisory, red=resolution). |
+| **Obstacles** | Obstacle markers (red squares) in your vicinity. |
+| **Tape** | Distance tape labels from ownship upward in NM. |
+| **GeoJSON** | Imported user GeoJSON polygons/markers. |
+| **PFD** | Inset Primary Flight Display panel (artificial horizon, speed/altitude tapes, VSI, compass, CDI/VDI, AOA indicator, turn coordinator). |
+| **Tracks** | Ownship breadcrumb/polyline track recording. |
 
 Notes:
 
-- Chart and OpenAIP are managed together for performance.
 - Turning **Tracks** layer OFF saves a KML track file into Documents/tracks and clears active track recording.
+- **PFD** requires AHRS data from GDL90-compatible devices to show attitude.
 
 ### 4.6 Instrument strip (top-left)
 
 Reorderable instrument tiles include:
 
-- GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT, DNT, UTC, SRC, FLT
+| Tile | Description | Tap Action |
+|------|-------------|------------|
+| **GS** | Ground speed (knots/mph) | — |
+| **ALT** | GPS altitude (feet) | — |
+| **MT** | Magnetic track (degrees) | — |
+| **PRV** | Previous waypoint identifier | Jump to previous waypoint |
+| **NXT** | Next waypoint identifier | Jump to next waypoint |
+| **DIS** | Distance to next waypoint (NM/mi) | — |
+| **BRG** | Bearing to next waypoint (magnetic) | — |
+| **GEL** | Ground elevation (requires Elevation charts) | — |
+| **ETA** | Estimated time of arrival (HH:MM) | — |
+| **ETE** | Estimated time en-route (HH:MM) | — |
+| **VSR** | VSI required to arrive 1000ft above destination | — |
+| **UPT** | Up timer (count up) | Start/stop timer |
+| **DNT** | Down timer (count down from 30min) | Start/stop timer |
+| **UTC** | Current UTC time (HH:MM) | — |
+| **SRC** | GPS source (Internal/External) | — |
+| **FLT** | Total flight time in hours | Reset timer |
 
 Interactions:
 
-- PRV/NXT: jump previous/next waypoint
-- UPT/DNT: start/stop timers
-- FLT: reset tracked flight time
-- Dropdown menu allows tile expand/contract and help text
+- Dropdown arrow: expand/contract tile sizes
+- Drag tiles to rearrange order
+- `?` icon: show help with tile descriptions
+
+### 4.7 GPWS (Ground Proximity Warning System)
+
+- Monitors terrain ahead in direction of flight
+- Predicts collisions within 3-minute lookahead
+- Audible "PULL UP" alerts
+- Requires: 30+ knot ground speed, Elevation data downloaded
 
 ---
 
@@ -210,16 +240,16 @@ Interactions:
 
 Possible tabs:
 
-- **Main**: destination summary
-- **AD**: airport diagram/runway depiction
-- **METAR**: METAR + TAF text
-- **NOTAM**: fetched NOTAM list
-- **SUA**: special-use airspace data
-- **Wind**: nearest winds-aloft station data
-- **ST**: sounding chart/image
-- **Business**: nearby business/FBO list (with AI Details button when Pro enabled)
+- **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs)
+- **AD**: airport diagram/runway depiction (interactive viewer with zoom)
+- **METAR**: METAR + TAF text with flight category color indicator
+- **NOTAM**: fetched NOTAM list (downloaded async)
+- **SUA**: special-use airspace data for the area
+- **Wind**: nearest winds-aloft station data at multiple altitudes
+- **ST**: sounding chart/image for the area
+- **Business**: nearby business/FBO list (with AI **Details** button when Pro enabled)
 
-If nearby alternatives exist, a horizontal “Nearby” selector appears.
+If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
 ---
 
@@ -235,25 +265,45 @@ If nearby alternatives exist, a horizontal “Nearby” selector appears.
 - Displays downloaded plates/diagrams/CSUP
 - Draws ownship and heading on georeferenced plates
 - Can overlay selected business/FBO marker on airport diagrams
-- Supports zoom/pan via InteractiveViewer
+- Supports zoom/pan via InteractiveViewer (up to 8x)
 
 ### 6.3 Controls
 
-- **Airport selector** (bottom-right): choose airport
-- **Plate selector** (bottom-left): choose plate within airport
+- **Airport selector** (bottom-right): choose airport from recent airports list
+- **Plate selector** (bottom-left): choose plate within airport (color-coded by type)
 - **Procedure menu** (plus icon near bottom-right):
   - show procedure profile
   - `+Plan` adds procedure waypoint sequence to plan
-- **Instrument strip show/hide** toggle (top-right)
+- **Instrument strip show/hide** toggle (top-right arrow icon)
 - **Profile close (X)** closes procedure profile card
 
-### 6.4 Terrain caution overlay on plates
+### 6.4 Plate type color coding
+
+| Color | Plate Type |
+|-------|------------|
+| Green | Airport Diagram (APD) |
+| Blue | CSUP |
+| Pink | Departure Procedure (DP) |
+| Purple | Instrument Approach (IAP) |
+| Cyan | STAR |
+| Brown | Minimums (MIN) |
+| Red | Hot Spots (HOT), Land and Hold Short (LAH) |
+
+### 6.5 Terrain caution overlay on plates
 
 When map **Elevation** layer has opacity > 0, plate rendering can include colored terrain risk cells:
 
-- yellow/red overlays based on aircraft altitude margins above terrain.
+- **Yellow**: terrain within 500-1000 ft below aircraft
+- **Red**: terrain within 500 ft or above aircraft
 
-### 6.5 Automatic behavior on landing
+### 6.6 Business/FBO selector
+
+On airport diagrams, when business data is available, a right-side selector (three dots icon) allows you to:
+- Select a business/FBO
+- See its location marked on the airport diagram
+- Name label appears next to the marker
+
+### 6.7 Automatic behavior on landing
 
 Flight-state logic can auto-switch plate context to nearest airport diagram after landing (if available).
 
@@ -267,68 +317,87 @@ Tap bottom tab **PLAN**.
 
 ### 7.2 Main plan editor
 
-- Reorderable waypoint list (drag to reorder)
-- Swipe row to delete waypoint
-- Tap row to set current waypoint
-- Header row shows plan-wide calculated totals
+- Reorderable waypoint list (long-press and drag to reorder)
+- Swipe row right-to-left to delete waypoint
+- Tap row to set current waypoint (highlighted in purple)
+- Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
+- Airways and procedures show as expandable items with nested waypoints
 
 Bottom controls:
 
 - **Actions** button opens Plan Actions screen
-- **ASpd** field: true airspeed used in calculations
-- **GPH** field: fuel burn
-- **Alt** field: plan altitude
-- **Forecast horizon** selector: 06H / 12H / 24H
-- **Fuel icon** opens full-screen Navigation Log
+- **ASpd** field: true airspeed used in calculations (knots)
+- **GPH** field: fuel burn (gallons per hour)
+- **Alt** field: plan altitude (feet, default 3000)
+- **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
+- **Fuel icon** (gas station): opens full-screen Navigation Log
 
 ### 7.3 Navigation Log dialog
 
 Includes:
 
-- per-leg log grid
-- wind field diagram en route
-- terrain profile en route
-- copy plan to clipboard button
+- **Per-leg log grid** with columns: FM (from), TO (to), AL (altitude), TC (true course), VR (variation), MC (magnetic course), WD (wind direction@speed), CA (wind correction angle), MH (magnetic heading), DT (distance), GS (ground speed), TM (time), FC (fuel consumption)
+- **Winds aloft en route diagram**: visual heat map showing headwind (red) / tailwind (green) at altitudes 0-18000 ft along route
+- **Terrain profile en route**: altitude chart showing terrain elevation along route with color coding (blue=safe below, orange=at or above planned altitude, magenta=missing data)
+- **Copy plan to clipboard** button (app bar)
 
 ### 7.4 Plan Actions screen
 
-Sub-pages:
+Sub-pages (accessed via bottom navigation buttons):
 
-### A) Load & Save
+#### A) Load & Save
 - Save current plan by name
 - Load saved plan
-- Load reversed
+- Load reversed (loads plan in reverse order)
 - Delete saved plan
 
-### B) Create
-- **Create As Entered**: parse typed route string
-- **Create IFR Preferred Route**: build from preferred route service
-- **Show IFR ATC Routes**: show recent ATC routes between departure/destination
+#### B) Create
+- **Create As Entered**: parse typed route string (space-separated waypoints/airways)
+- **Create IFR Preferred Route**: build from rfinder.asalink.net API
+- **Show IFR ATC Routes**: show recent ATC routes between departure/destination from 1800wxbrief
 
-### C) Brief & File (FAA)
-- Detailed ICAO form fields
+#### C) Brief & File (FAA)
+- Detailed ICAO form fields:
+  - Aircraft ID, Type, Flight Rule (VFR/IFR), Flight Type, Number of Aircraft
+  - Wake Turbulence (LIGHT/MEDIUM/HEAVY)
+  - Aircraft Equipment, Surveillance Equipment
+  - Departure, Departure Date/Time Zulu
+  - Cruising Speed, Altitude, Route
+  - Destination, Total Elapsed Time
+  - Alternate Airports (1 & 2)
+  - Fuel Endurance, People On Board
+  - Aircraft Color, Remarks
+  - Pilot in Command, Pilot Information
 - Quick-fill buttons from current plan and stored aircraft
 - Buttons:
-  - **Get Email Brief**
-  - **Send to FAA**
+  - **Get Email Brief**: sends briefing request to 1800wxbrief (50nm corridor)
+  - **Send to FAA**: files flight plan via LMFS API
+- Status indicator (check mark=success, info icon with tooltip=error)
 
 Requires configured 1800wxbrief-compatible account email.
 
-### D) Manage (FAA)
+#### D) Manage (FAA)
 - Retrieve filed plans
 - State-aware actions:
-  - Cancel (for non-active)
-  - Close (for active)
-  - Depart / activate with chosen time (for proposed)
+  - **Cancel** (for PROPOSED state)
+  - **Close** (for ACTIVE state)
+  - **Depart** / activate with chosen time (for PROPOSED state - opens time picker with sunrise/sunset)
 
-### E) Transfer (Android)
+#### E) Transfer (Android only)
 - Sends flight plan via standard NMEA 0183 RTE/WPL sentences over Bluetooth
 - Requires Bluetooth connection in IO screen
 - Minimum 2 waypoints required
+- Shows connection status and connected device label
+- **Open Bluetooth** button navigates to IO screen
+- **Send to Garmin** button transmits the plan
 
 **Compatible devices:** Older handheld GPS units and devices that accept NMEA 0183 waypoint/route input (e.g., some autopilot systems, marine chartplotters, GPSMAP handhelds).
 
 **Not compatible:** Modern Garmin panel-mount avionics (G3X Touch, GTN 650/750, GNS 430W/530W) use Garmin's proprietary Connext protocol, which is only available to Garmin Pilot and ForeFlight. These devices will show "Connected" over Bluetooth but will not import flight plans sent via NMEA RTE/WPL.
+
+### 7.5 Automatic waypoint passage
+
+When within 2nm of a waypoint and moving away from it, the plan automatically advances to the next waypoint.
 
 ---
 
@@ -340,19 +409,19 @@ Tap bottom tab **FIND**.
 
 ### 8.2 What it does
 
-- Search destinations by text
+- Search destinations by text (airports, navaids, fixes, GPS coordinates)
 - Browse:
-  - Recent
-  - Nearest
-  - Nearest 2K (runway >= 2000)
-  - Nearest 4K (runway >= 4000)
+  - Recent (previously viewed destinations)
+  - Nearest (nearest airports)
+  - Nearest 2K (runway >= 2000 ft)
+  - Nearest 4K (runway >= 4000 ft)
 
 ### 8.3 Row actions
 
 - Tap row: opens destination popup/details
 - Right-side bearing@distance button: centers map on item and switches to MAP
-- Swipe to delete recent entry
-- For GPS-type recents, you can edit custom facility name
+- Swipe right-to-left to delete recent entry
+- For GPS-type recents, tap edit icon to modify custom facility name
 
 ---
 
@@ -364,12 +433,19 @@ Open: **Menu → Download**
 
 Purpose:
 
-- install/update/delete downloadable data sets by chart category and region
-- monitor progress with per-item progress ring and stop button
+- Install/update/delete downloadable data sets by chart category and region
+- Monitor progress with per-item progress ring and stop button
 
 Controls:
 
-- Tap chart item to cycle desired action (download/update/delete/none)
+- Tap chart item to cycle desired action (download/update/delete/none):
+  - Grey `?` = absent, not queued
+  - Grey download icon = absent, queued for download
+  - Green checkmark = current, not queued
+  - Green download icon = current, queued for re-download
+  - Green delete icon = current, queued for delete
+  - Red checkmark = expired, not queued
+  - Red download/delete icons = expired, queued for action
 - **Start** executes queued actions
 - Toggle **This Cycle / Next Cycle**
 - Toggle **Main Server / Backup Server**
@@ -377,9 +453,17 @@ Controls:
 
 Major download categories include:
 
-- Databases (required for core nav data)
-- Sectional, TAC, IFR Low/High/Area, Helicopter, Flyway
-- Plates, CSUP, Elevation
+- **Databases**: DatabasesX (required for core nav data), Business/FBO
+- **Sectional**: Northeast, North Central, Northwest, Southeast, South Central, Southwest, East Central, Alaska, Pacific
+- **TAC**: same regions
+- **IFR Low**: same regions
+- **IFR High**: same regions
+- **IFR Area**: same regions
+- **Helicopter**: same regions
+- **Flyway**: same regions
+- **Plates**: same regions
+- **CSUP**: same regions
+- **Elevation**: same regions
 
 ### 9.2 Documents
 
@@ -387,7 +471,14 @@ Open: **Menu → Documents**
 
 Includes:
 
-- Built-in weather/prog chart products (WPC, SigWx, AIRMETs, radar, winds/temp, etc.)
+- Built-in weather/prog chart products (fetched from aviationweather.gov):
+  - WPC Surface Analysis & Prognostic charts (6/12/18/24/30/36/48/60/72HR)
+  - SigWx Low Level & Mid Level charts (00/06/12/18HR)
+  - Radar & SIGMETs
+  - AIRMET Tango (turbulence), Sierra (mountains/IFR), Zulu (icing) - 00/03/06/09/12HR
+  - Surface Forecast charts (03-18HR)
+  - Clouds Forecast charts (03-18HR)
+  - Winds/Temperature at altitudes 5000-30000ft (06/12HR)
 - User documents (imported or generated)
 - User database file (`user.db`) entry
 - Subfolders for organization:
@@ -399,15 +490,18 @@ Includes:
 - **Create folder**: tap folder icon in app bar to create a new subfolder
 - **Delete folder**: use delete icon below folder to remove folder and contents
 - **Move files**: use move icon on user files to relocate to a folder or back to root
-- **Export folder**: use share icon below folder to export all folder contents
+- **Export folder**: use share icon below folder to export all folder contents (not Linux)
+- **Navigate**: tap folder to enter, use back arrow to go up
+
+**Filter dropdown:** Filter by document category (All Documents, User Docs, WPC, SigWx, etc.)
 
 Import button supports:
 
-- `.txt`
-- `.geojson`
-- `.kml`
+- `.txt` — text files
+- `.geojson` — GeoJSON geographic data
+- `.kml` — KML track files
 - `.pdf` (except Linux)
-- `user.db`
+- `user.db` — user database backup
 
 Document behavior:
 
@@ -416,21 +510,37 @@ Document behavior:
 - GeoJSON: parsed into map shapes (visible when GeoJSON layer is on)
 - KML: opens Track Viewer with 2D map, altitude profile, and 3D terrain view
 - Images: zoomable preview
-- Share button available where supported
-- Swipe delete for user files
+- Share button available where supported (not Linux)
+- Swipe delete for user files (preserves User Data entry)
 
 #### Track Viewer (KML files)
 
-When you tap a KML file in Documents, the Track Viewer opens with three view modes:
+When you tap a KML file in Documents, the Track Viewer opens with three view modes (toggle via app bar icons):
 
-- **2D Map** (map icon): displays the track on a USGS topo background with takeoff (green) and landing (red) markers
-- **Altitude Profile** (chart icon): shows altitude vs. distance graph for the flight
-- **3D View** (AR icon): interactive 3D visualization with terrain, topo map texture, and flight path; drag to rotate, pinch to zoom
+- **2D Map** (map icon): displays the track on a USGS topo background with:
+  - Flight track polyline (blue)
+  - Start marker (green takeoff icon)
+  - End marker (red landing icon)
+  - **Log Flight** FAB button to create logbook entry
 
-The **Log Flight** button on the 2D map view creates a logbook entry from the track, auto-filling:
-- Route (nearest airports to start/end points)
-- Flight time (from track timestamps or calculated from distance and aircraft cruise TAS)
-- Aircraft make/model and tail from selected aircraft profile
+- **Altitude Profile** (chart icon): shows altitude vs. distance graph:
+  - Line chart of altitude (ft) over distance (NM)
+  - Min/max altitude display
+  - Total distance in nautical miles
+
+- **3D View** (AR icon): interactive 3D visualization:
+  - Terrain grid with elevation data (fetched for 20nm buffer)
+  - Topo map texture projected onto terrain mesh
+  - Flight path with color gradient (green→yellow→orange→red)
+  - Drop lines connecting track to terrain surface
+  - Vertical scale with altitude tick marks (1000ft increments)
+  - Drag to pan, two-finger rotate, pinch to zoom
+  - Reset View button
+
+**Auto Logbook Entry Creation (Log Flight button):**
+- Uses nearest airports for route (takeoff and landing)
+- Calculates flight time from track timestamps or from distance/cruise TAS
+- Creates entry with aircraft make/model and tail from selected aircraft profile
 
 ### 9.3 Aircraft
 
@@ -438,21 +548,39 @@ Open: **Menu → Aircraft**
 
 Create/manage aircraft profiles with fields used by planning/filing/identification:
 
-- tail, type, colors/markings, PIC info, home base, mode-S code,
-- cruise TAS, fuel endurance/burn, sink rate,
-- wake category, equipment, surveillance, other ICAO info.
+- **Tail Number**: Aircraft registration (e.g., N172EF)
+- **Type**: Aircraft type (e.g., C172)
+- **Color & Markings**: FAA color codes (A=Amber, B=Blue, BK=Black, R=Red, W=White, etc.)
+- **PIC**: Pilot name
+- **PIC Information**: Contact info (phone, etc.)
+- **Home Base**: Airport code (e.g., KBVY)
+- **Mode S Code**: Hex transponder code from FAA registry
+- **Cruise Speed**: True airspeed in knots
+- **Fuel Endurance**: In decimal hours (5.5 = 5h30m)
+- **Fuel Burn Rate**: Gallons per hour
+- **Sink Rate**: Feet per minute for glide calculations
+- **Wake Turbulence**: LIGHT, MEDIUM, or HEAVY
+- **Navigation/Communications/Approach Aid Equipment**: Standard codes
+- **Surveillance Codes**: Mode S, ADS-B capabilities
+- **Other Information**: STS/, PBN/, NAV/, COM/, DAT/, SUR/, DEP/, DEST/, etc.
 
-Save and select active aircraft from dropdown.
+**Map Icon Selection** (dropdown in app bar):
+- Choose aircraft icon for map display: plane, helicopter, or canard
+- Visual icon previews in dropdown
+
+Save and select active aircraft from dropdown. Swipe left to delete aircraft.
 
 ### 9.4 Check Lists
 
 Open: **Menu → Check Lists**
 
-- Import checklist from `.txt` (first line title, following lines steps)
-- Tick steps with checkbox list
-- Background turns green when all steps complete
+- Import checklist from `.txt` (first line is title, following lines are steps)
+- Interactive checkboxes - tap items to check/uncheck
+- Background turns green when all items are checked
+- Persistent state during session
 - Select checklist from dropdown
 - Swipe delete to remove checklist
+- Info tooltip explaining import format
 
 ### 9.5 W&B (Weight and Balance)
 
@@ -460,15 +588,26 @@ Open: **Menu → W&B**
 
 Functions:
 
-- Build/edit envelope chart bounds and polygon
-- Tap chart in edit mode to add/remove envelope vertices
-- Enter line-item weight/arm rows
-- Auto-calculate moments and total CG
-- CG point color:
-  - green = inside envelope
-  - red = outside envelope
+- **Interactive CG Envelope Chart**:
+  - Scatter plot showing weight (Y-axis) vs arm (X-axis)
+  - Tap chart in edit mode to add/remove envelope boundary points
+  - CG position shown as colored dot:
+    - Green = inside envelope
+    - Red = outside envelope
+  
+- **Chart Configuration** (edit mode):
+  - Arm Min/Max values
+  - Weight Min/Max values
+  - Customizable envelope boundary points
 
-Use **Edit/Save** to modify and persist.
+- **Weight Items Table**:
+  - Item description
+  - Weight value
+  - Arm value
+  - Auto-calculated moment (weight × arm)
+  - Running totals: Total Weight, CG (arm), Total Moment
+
+Use **Edit/Save** toggle to modify and persist. Select W&B profile from dropdown. Swipe left to delete profile.
 
 ### 9.6 Log Book
 
@@ -476,40 +615,64 @@ Open: **Menu → Log Book**
 
 Features:
 
-- Add/edit/delete full logbook entries
-- Total hours summary
-- Import CSV / Export CSV
-- “Details” dashboard with filters and charts
+- **Main Log Book View**:
+  - Total hours summary display
+  - Flight list showing date, hours, aircraft type/tail, route, landings, approaches
+  - Tap entry to edit, or use FAB to add new entry
 
-Dashboard filters include:
+- **Log Entry Form**:
+  - Date (YYYY-MM-DD format)
+  - Aircraft Tail Number & Type
+  - Route
+  - **Time Categories**: Total Flight Time, Solo, Dual Received, Instructor, Examiner, PIC, SIC, Day Time, Night Time, Actual/Simulated Instruments, Cross Country, Holding Procedures, Ground Time, Flight Simulator
+  - **Procedure Counts**: Day Landings, Night Landings, Instrument Approaches
+  - Instructor Name & Certificate
+  - Remarks
 
-- Year
-- Tail number
-- Aircraft type
-- Remarks tags (check ride / IPC / flight review / favorite)
+- **CSV Import/Export**:
+  - Import from CSV file (header row required)
+  - Export to CSV (share via system share sheet, not Linux)
+  - Info tooltip explaining format
 
-Charts include hours by year, tail, aircraft type, hour categories, and procedure counts.
+- **Details Dashboard** (tap Details button):
+  - Filter by Year, Tail Number, Aircraft Type, Remarks (Check Ride, IPC, Flight Review, Favorite)
+  - Bar charts: Hours by Year, Tail Number, Aircraft Type, Time Category
+  - Procedures chart: Day/Night Landings, Approaches
+  - Filtered flight list
 
-### 9.7 IO (Bluetooth) — Android
+### 9.7 IO (Bluetooth) — Android only
 
 Open: **Menu → IO**
 
 Functions:
 
-- Device discovery
-- Pair / unpair
-- Connect / disconnect bonded devices
-- Shows RSSI and connection state
+- **Device Discovery**: auto-discovery starts when screen opens
+- **Device List**: shows device name, address, signal strength (RSSI in dBm)
+  - RSSI color-coded: green = strong, red = weak
+  - Icons indicate connection status: connected (↔), paired/bonded (link icon)
+- **Device Operations** (tap device for dialog):
+  - **Pair**: bond with unpaired device
+  - **Unpair**: remove device bond
+  - **Connect**: establish Bluetooth SPP connection (for paired devices)
+- **Connection Status**: shows currently connected device name/address
+- **Disconnect** button
 
-Connected stream feeds external data input into app parser.
-Also used by Plan Transfer (Garmin Connext).
+Connected stream feeds external data input into app parser for GPS, traffic, weather, AHRS.
+Also used by Plan Transfer for sending plans to devices.
 
-### 9.8 Help
+### 9.8 Donate (not iOS/macOS)
+
+Open: **Menu → Donate**
+
+- Shows donation information and links
+- Supports app development
+
+### 9.9 Help
 
 Open: **Menu → Help**
 
 - Opens the User Manual PDF for in-app reference.
-- Available on platforms that support PDF viewing.
+- Available on platforms that support PDF viewing (not Linux).
 
 ---
 
@@ -517,16 +680,17 @@ Open: **Menu → Help**
 
 ### 10.1 How to access
 
-On MAP tab, tap the notes/pen icon in bottom-right controls.
+On MAP tab, tap the notes/pen (transcribe) icon in bottom-right controls.
 
 ### 10.2 Features
 
-- Freehand drawing with color choices (black/white, red, green)
-- Eraser mode
-- Undo/Redo
-- Clear canvas
-- Save snapshot to Documents/notes as `notes_<timestamp>.png`
-- Current sketch autosaves on exit and reloads next time
+- **Freehand drawing** with finger or stylus
+- **Color choices**: Black/White (theme-adaptive), Red, Green
+- **Eraser mode**: tap cleaning services icon in toolbar
+- **Undo/Redo**: full stroke history
+- **Clear canvas**: eraser icon in app bar
+- **Save snapshot**: saves to Documents/notes as `notes_<timestamp>.png`
+- **Auto-save**: current sketch autosaves on exit and reloads next time
 
 ### 10.3 Aviation background sheets
 
@@ -536,7 +700,7 @@ Use the sheet icon in the app bar to select a background template for common avi
 |-------|---------|
 | None | Blank canvas |
 | Cost | Flight times (Hobbs, Tach, Fuel, Oil) |
-| ATIS | VFR ATIS copydown fields |
+| ATIS | VFR ATIS copydown fields (Airport, ATIS letter, weather, runways, NOTAMs) |
 | CRAFT | IFR clearance (Clearance limit, Route, Altitude, Frequency, Transponder) |
 | Clearance | VFR flight following clearance |
 | Ground Taxi | Ground control taxi instructions |
@@ -550,52 +714,71 @@ Each sheet maintains its own saved sketch state. Switching sheets saves the curr
 
 ### 10.4 Number keypad
 
-Tap the keypad icon in the toolbar to display an on-screen number pad for typing frequencies, altitudes, headings, or other numeric values. Typed text appears in the top-left of the canvas and is saved with the sheet.
+Tap the dialpad icon in the toolbar to display an on-screen number pad:
+- Digits 0-9, decimal point
+- Space, newline, backspace, clear
+- Typed text appears overlaid in the top-left of the canvas
+- Text is saved with the sheet and persists across sessions
 
 ---
 
-## 11) Pro Services (iOS/Android)
+## 11) Pro Services (iOS/Android only)
 
 ### 11.1 Access
 
-From MAP top-right account icon, or by routed requests from some features.
+From MAP top-right account icon, or by routed requests from some features (e.g., AI Details in Business tab).
 
 ### 11.2 Login and subscription flow
 
-- Sign in/register with email auth
+- Sign in/register with email authentication (Firebase)
 - Paywall handled through RevenueCat entitlement (`Pro`)
+- After login, bottom sheet shows available Pro features
 
 ### 11.3 Flight Intelligence (AI)
 
 Screen title: **Flight Intelligence**
 
+Powered by Gemini 2.5 Pro with Google Search integration.
+
 Capabilities:
 
 - Ask free-form aviation/trip questions (internet required)
-- Optional context toggles:
-  - recent logbook entries
-  - selected aircraft
-  - current flight plan + winds
-- Query/answer history drawer:
-  - choose prior query
-  - show prior answer
-  - delete history item
+- Question must be 256 characters or less
+- Context limit: 10,000 tokens
+
+**Context toggles** (tap to highlight, highlighted context sent with question):
+- **Logbook icon**: include your 50 most recent logbook entries
+- **Aircraft icon**: include tail number and type from first aircraft
+- **Route icon**: include current flight plan
+- **Cloud icon**: include winds aloft from departure and destination
+
+**Query/answer workflow**:
+- Type question in text box
+- Tap **Ask** to submit
+- Response appears in text box with disclaimer
+- History drawer (clock icon): view previous questions/answers, choose question, show answer, delete history item
+- **Clear (X)** button clears text box
+
+**Disclaimer**: Responses are generated by an AI model and may not be accurate or reliable. Do not use when life, health, property are at stake.
 
 ### 11.4 Backup/Sync
 
 Screen title: **Backup/Sync**
 
-Cloud operations for `user.db`:
+Cloud operations for `user.db` using Firebase Storage:
 
-- **Backup**: upload local database to cloud storage
-- **Restore**: download cloud backup over local database
-- both actions show confirmation warnings and progress/status
+- **Backup** (upload icon): upload local database to cloud storage
+  - Warning: overwrites existing cloud backup
+- **Restore** (download icon): download cloud backup over local database
+  - Warning: overwrites existing local data
+- Progress indicator shows transfer percentage
+- Both actions show confirmation warnings before proceeding
 
 ---
 
 ## 12) Warnings and Troubleshooting Drawer
 
-When warning state is active, a red alert icon appears on MAP.
+When warning state is active, a red alert icon appears on MAP top-right.
 Tap it to open issues drawer.
 
 Possible issue items:
@@ -605,7 +788,7 @@ Possible issue items:
 - No GPS lock
 - Critical data/charts missing (shortcut to Download)
 - Data expired (shortcut to Download)
-- runtime exception notices
+- Runtime exception notices
 
 ---
 
@@ -613,35 +796,46 @@ Possible issue items:
 
 - Weather downloads refresh periodically (10-minute cycle in storage timer).
 - GPS source auto-switches:
-  - prefers external stream when available
-  - falls back to internal GPS after timeout.
+  - Prefers external stream when available
+  - Falls back to internal GPS after timeout
 - Flight status tracks taxi/airborne transitions and accumulates flight time.
 - External autopilot/NMEA sentence output is generated continuously while app is running and IO connection exists.
+- Track recording continues while Tracks layer is enabled; saves to KML when layer is turned off.
 
 ---
 
 ## 14) Quick Feature Path Index
 
-- Download charts/data: `MAP → Menu → Download`
-- Read weather docs / import files: `MAP → Menu → Documents`
-- View saved tracks (KML): `MAP → Menu → Documents → tracks folder → tap KML file`
-- Create folder for documents: `MAP → Menu → Documents → folder icon in app bar`
-- Build or modify plan: `PLAN tab`
-- File FAA plan: `PLAN → Actions → Brief & File`
-- Manage filed plans: `PLAN → Actions → Manage`
-- Send plan to Garmin: `PLAN → Actions → Transfer` (Android)
-- Destination details: long-press on map or tap FIND result
-- Show plates for airport: destination popup `Plates` or `PLATE tab`
-- Configure aircraft: `MAP → Menu → Aircraft`
-- Checklist operations: `MAP → Menu → Check Lists`
-- Weight and balance: `MAP → Menu → W&B`
-- Logbook + dashboard: `MAP → Menu → Log Book`
-- Bluetooth pairing/connection: `MAP → Menu → IO` (Android)
-- Notes/drawing: `MAP → Notes icon`
-- Notes with aviation sheet: `MAP → Notes icon → sheet icon → select template`
-- Pro AI: `MAP top-right account icon → Flight Intelligence`
-- Cloud backup/restore: `MAP top-right account icon → Backup/Sync`
-- User Manual (Help): `MAP → Menu → Help`
+| Feature | Path |
+|---------|------|
+| Download charts/data | `MAP → Menu → Download` |
+| Read weather docs / import files | `MAP → Menu → Documents` |
+| View saved tracks (KML) | `MAP → Menu → Documents → tracks folder → tap KML file` |
+| Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight` |
+| Create folder for documents | `MAP → Menu → Documents → folder icon in app bar` |
+| Build or modify plan | `PLAN tab` |
+| File FAA plan | `PLAN → Actions → Brief & File` |
+| Manage filed plans | `PLAN → Actions → Manage` |
+| Send plan to device (Android) | `PLAN → Actions → Transfer` |
+| Destination details | Long-press on map or tap FIND result |
+| Show plates for airport | Destination popup `Plates` or `PLATE tab` |
+| Configure aircraft | `MAP → Menu → Aircraft` |
+| Change aircraft map icon | `MAP → Menu → Aircraft → icon dropdown in app bar` |
+| Checklist operations | `MAP → Menu → Check Lists` |
+| Weight and balance | `MAP → Menu → W&B` |
+| Logbook + dashboard | `MAP → Menu → Log Book` |
+| Logbook statistics | `MAP → Menu → Log Book → Details` |
+| Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
+| Notes/drawing | `MAP → Notes icon` |
+| Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template` |
+| Notes number keypad | `MAP → Notes icon → dialpad icon` |
+| Pro AI | `MAP top-right account icon → Flight Intelligence` |
+| Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
+| User Manual (Help) | `MAP → Menu → Help` |
+| Donate | `MAP → Menu → Donate` (not iOS/macOS) |
+| CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
+| Enable wind vectors | `MAP → Layers → Wind Vectors slider > 0` (use altitude slider) |
+| Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider) |
 
 ---
 
@@ -660,15 +854,15 @@ Best when your receiver broadcasts GDL90/NMEA over local network.
    - `Weather`
    - `Radar` (internet radar)
 6. Verify data:
-   - ownship updates smoothly,
-   - traffic symbols appear (if in range),
-   - weather products populate.
+   - Ownship updates smoothly
+   - Traffic symbols appear (if in range)
+   - Weather products populate
 7. If needed, open warning drawer from red icon and resolve GPS/data warnings.
 
 ### UC-02: Connect an external ADS-B/GPS receiver over Bluetooth (Android)
 
 1. Open `MAP → Menu → IO`.
-2. Tap refresh/replay icon to discover devices.
+2. Wait for device discovery to populate the list.
 3. Select your receiver from list.
 4. Pair (if needed), then tap **Connect**.
 5. Confirm status line shows connected device.
@@ -692,22 +886,22 @@ Use this to adjust waypoints graphically.
 2. Add waypoints using either:
    - `FIND` tab → tap item → `+Plan` (insert) or `↓Plan` (append to end), or
    - `MAP` long-press destination popup → `+Plan` (insert) or `↓Plan` (append to end).
-3. Reorder legs by drag in `PLAN`.
+3. Reorder legs by long-press and drag in `PLAN`.
 4. Tap a leg to make it current.
 5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN`.
 6. Open nav-log (fuel icon) to review:
-   - leg calculations,
-   - winds-aloft field,
-   - terrain profile.
+   - Leg calculations
+   - Winds-aloft field (green=tailwind, red=headwind)
+   - Terrain profile (blue=safe, orange=warning)
 7. Save the route: `PLAN → Actions → Load & Save → Save`.
 
 ### UC-05: Create an IFR route automatically
 
 1. Open `PLAN → Actions → Create`.
 2. In Route field:
-   - enter route text and use **Create As Entered**, or
-   - enter `DEPART DEST` and use **Create IFR Preferred Route**, or
-   - use **Show IFR ATC Routes** to view recent ATC route options.
+   - Enter route text and use **Create As Entered**, or
+   - Enter `DEPART DEST` and use **Create IFR Preferred Route**, or
+   - Use **Show IFR ATC Routes** to view recent ATC route options.
 3. When route is loaded, return to `PLAN` to review/reorder waypoints.
 
 ### UC-06: File a flight plan with the FAA
@@ -718,21 +912,21 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. Open `PLAN → Actions → Brief & File`.
 3. Fill required fields (aircraft ID/type, rule, departure, destination, route, times, fuel, POB, etc.).
 4. Use quick-fill buttons:
-   - planned departure/destination/route,
-   - stored aircraft templates.
+   - "Planned" buttons for departure/destination/route from current plan
+   - Aircraft buttons to fill from stored aircraft profiles
 5. Tap:
    - **Get Email Brief** for briefing email, and/or
    - **Send to FAA** to file.
-6. Check status indicator/message for success/errors.
+6. Check status indicator (checkmark=success, info icon=error with tooltip).
 
 ### UC-07: Activate, close, or cancel an FAA flight plan
 
 1. Open `PLAN → Actions → Manage`.
 2. Find your plan in the list.
 3. Use action by state:
-   - `PROPOSED`: **Depart** (choose time) to activate,
-   - `ACTIVE`: **Close** after landing,
-   - non-active: **Cancel** if no longer needed.
+   - `PROPOSED`: **Depart** (choose time with sunrise/sunset reference) to activate
+   - `ACTIVE`: **Close** after landing
+   - Non-active: **Cancel** if no longer needed
 
 ### UC-08: Quickly divert to a nearby airport
 
@@ -740,22 +934,23 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. In popup, review nearby list and tap a candidate airport.
 3. Tap `→D` to set Direct-To and center map.
 4. Optional:
-   - tap `Plates` for immediate airport diagrams/procedures,
-   - add to full route with `+Plan`.
+   - Tap `Plates` for immediate airport diagrams/procedures
+   - Add to full route with `+Plan`
 
 ### UC-09: Use plates with procedure profile and add procedure to plan
 
 1. Open `PLATE` tab.
 2. Select airport (bottom-right selector).
-3. Select desired plate (bottom-left selector).
+3. Select desired plate (bottom-left selector, color-coded by type).
 4. Use procedure menu (plus icon):
-   - choose procedure to show profile,
-   - use `+Plan` to append procedure to route.
+   - Choose procedure to show profile card
+   - Use `+Plan` to append procedure to route.
 5. Keep instruments visible on plate using top-right show/hide toggle.
+6. Close profile card with X button when done.
 
 ### UC-10: Save your flown track and retrieve it from Documents
 
-1. In `MAP`, keep `Tracks` layer on during flight.
+1. In `MAP`, keep `Tracks` layer on during flight (opacity > 0).
 2. When done, set `Tracks` layer opacity to `0` in Layers menu.
 3. App saves track automatically as KML in Documents/tracks folder.
 4. Open `MAP → Menu → Documents → tracks` to access/share file.
@@ -766,7 +961,7 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. Tap a KML file to open the Track Viewer.
 3. Use view icons to switch between 2D Map, Altitude Profile, and 3D View.
 4. In 2D Map view, tap **Log Flight** to create a logbook entry from the track.
-5. The entry auto-fills route, time, and aircraft info from track data and selected aircraft profile.
+5. The entry auto-fills route (nearest airports), time (from timestamps or distance/TAS), and aircraft info from selected profile.
 
 ### UC-10b: Use aviation sheets for IFR clearance copydown
 
@@ -794,19 +989,20 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
 1. Build your route with at least 2 waypoints.
 2. Connect your NMEA-compatible device in `MAP → Menu → IO`.
 3. Open `PLAN → Actions → Transfer`.
-4. Confirm connected device label.
+4. Confirm connected device label and connection status.
 5. Tap **Send to Garmin**.
 6. Wait for success toast/status.
 
 ### UC-13: Back up and restore app data (Pro)
 
-1. Open Pro Services from account icon on map.
+1. Open Pro Services from account icon on MAP (top-right).
 2. Sign in and pass entitlement/paywall if required.
-3. Open `Backup/Sync`.
+3. Open `Backup/Sync` (from bottom buttons after login).
 4. Use:
-   - **Backup** to upload local `user.db`,
-   - **Restore** to overwrite local data from cloud copy.
+   - **Backup** (upload icon) to upload local `user.db`
+   - **Restore** (download icon) to overwrite local data from cloud copy
 5. Confirm prompts carefully (both operations overwrite existing data).
+6. Progress percentage shows during transfer.
 
 ### UC-14: Get flight help from community resources
 
@@ -814,10 +1010,25 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
    - `https://groups.google.com/g/apps4av-forum`
 2. Search existing threads for similar workflows/devices.
 3. Post issue details:
-   - platform/device,
-   - receiver type,
-   - what screen/action failed,
-   - any warning drawer messages.
+   - Platform/device
+   - Receiver type
+   - What screen/action failed
+   - Any warning drawer messages
+
+### UC-15: Use the CAP Grid overlay for search and rescue
+
+1. Go to `MAP → Layers`.
+2. Set **CAP Grid** opacity > 0.
+3. Zoom to level 9 or higher (grid only renders at sufficient zoom).
+4. Grid squares appear with identifiers (e.g., SEA123, DEN456).
+5. Use grid coordinates for communication with ground teams or other aircraft.
+
+### UC-16: Choose a different aircraft icon on the map
+
+1. Open `MAP → Menu → Aircraft`.
+2. In the app bar, tap the aircraft icon dropdown.
+3. Select from: plane, helicopter, or canard.
+4. The map will display your selected icon for ownship.
 
 ---
 
@@ -837,7 +1048,7 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-01: How do I connect an external ADS-B / GPS receiver?
 
 - For Wi-Fi receivers: connect the device to receiver network and AvareX auto-listens on UDP `4000`, `43211`, `49002`.
-- For Bluetooth receivers (Android): `Menu -> IO`, pair/connect, then return to map.
+- For Bluetooth receivers (Android): `Menu → IO`, pair/connect, then return to map.
 - Source threads:
   - GPS source discussion:  
     `https://groups.google.com/g/apps4av-forum/c/e0ujCJQX1s8`
@@ -849,8 +1060,8 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-02: How do I transfer a plan to an external device?
 
 - Build a route with at least 2 waypoints.
-- On Android, connect device in `Menu -> IO`.
-- Open `PLAN -> Actions -> Transfer`, then **Send to Garmin**.
+- On Android, connect device in `Menu → IO`.
+- Open `PLAN → Actions → Transfer`, then **Send to Garmin**.
 
 **Important compatibility note:** This feature uses standard NMEA 0183 RTE/WPL sentences. It works with devices that accept NMEA waypoint/route input (older handhelds, some autopilots, marine GPS). 
 
@@ -864,9 +1075,9 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 ### FAQ-03: Where do I enable new wind/ceiling map features?
 
-- `MAP -> Layers`:
-  - enable **Wind Vectors** and/or **Ceiling**
-  - use left altitude slider to change displayed altitude context.
+- `MAP → Layers`:
+  - Enable **Wind Vectors** and/or **Ceiling**
+  - Use right-side altitude slider to change displayed altitude context
 - Source threads:
   - New features v83/v84:  
     `https://groups.google.com/g/apps4av-forum/c/qac4-Bb-gVE`  
@@ -874,9 +1085,9 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 ### FAQ-04: My track logs are empty. How do I save valid KML logs?
 
-- Keep `Tracks` layer ON during flight.
-- After flight, turn `Tracks` layer OFF (saves KML to Documents/tracks folder and clears active track buffer).
-- Open `Documents -> tracks` and verify non-empty KML before sharing.
+- Keep `Tracks` layer ON (opacity > 0) during flight.
+- After flight, turn `Tracks` layer OFF (opacity = 0) — this saves KML to Documents/tracks folder and clears active track buffer.
+- Open `Documents → tracks` and verify non-empty KML before sharing.
 - Tap the KML file to view it in Track Viewer with 2D map, altitude profile, and 3D terrain views.
 - Use **Log Flight** button to create a logbook entry directly from the track.
 - Source thread:  
@@ -884,29 +1095,30 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 ### FAQ-05: Where are FBO/business details?
 
-- On `PLATE` screen, when an airport diagram is active and business data is available, use the right-side business selector (`...` style control).
+- On `PLATE` screen, when an airport diagram is active and business data is available, use the right-side business selector (three dots icon).
+- In destination popup, the **Business** tab shows nearby businesses with AI **Details** button (Pro feature).
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/oMOR-gaIqis`
 
-### FAQ-06: What are the blue rings on map?
+### FAQ-06: What are the colored rings on map?
 
 - In the `Circles` layer:
-  - black rings: fixed 2/5/10 NM reference rings
-  - blue ring: speed-based 1-minute range ring
-  - glide circle: aircraft sink-rate based glide estimate
+  - **Black rings**: fixed 2/5/10 NM reference rings
+  - **Blue ring**: speed-based 1-minute travel distance
+  - **Purple ring**: glide circle based on aircraft sink rate, winds aloft, terrain, and altitude
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/VJ0S3ejWPC8`
 
 ### FAQ-07: My waypoints appear in wrong order. Can I reorder quickly?
 
-- Yes. In `PLAN`, drag rows to reorder legs.
+- Yes. In `PLAN`, long-press and drag rows to reorder legs.
 - You can also set current leg by tapping a waypoint row.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/T-m4BWZynMg`
 
 ### FAQ-08: How do I enter an ATC reroute quickly?
 
-- Open `PLAN -> Actions -> Create`.
+- Open `PLAN → Actions → Create`.
 - Use **Create As Entered** and paste/type reroute string (space-separated waypoints/airways).
 - Then review/reorder in PLAN list if needed.
 - Source thread:  
@@ -915,39 +1127,53 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-09: Download/cycle issues - what to try first?
 
 - In `Download` screen:
-  - try **This Cycle** vs **Next Cycle**
-  - try **Main Server** vs **Backup Server**
-  - keep download screen open until completion (exiting can abort incomplete downloads).
+  - Try **This Cycle** vs **Next Cycle**
+  - Try **Main Server** vs **Backup Server**
+  - Keep download screen open until completion (exiting can abort incomplete downloads)
 - Source threads:
-  - cycle download issue:  
+  - Cycle download issue:  
     `https://groups.google.com/g/apps4av-forum/c/LS_VaqKEJxw`
-  - background download request:  
+  - Background download request:  
     `https://groups.google.com/g/apps4av-forum/c/XcoQzwpCxlw`
 
 ### FAQ-10: FAA IFR preferred route tools not working - what now?
 
 - Ensure app is updated to latest release and internet is available.
 - Confirm your 1800wxbrief-compatible email is configured.
-- Retry via `PLAN -> Actions -> Create` and `Brief & File`.
+- Retry via `PLAN → Actions → Create` and `Brief & File`.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/0wHqcJT-WiY`
 
 ### FAQ-11: Is Flight Intelligence (AI) available on desktop?
 
-- Current Pro AI workflows are targeted for iOS/Android in this codebase.
-- Access from map account icon -> Pro Services -> Flight Intelligence.
+- Current Pro AI workflows are targeted for iOS/Android only.
+- Access from map account icon → Pro Services → Flight Intelligence.
+- Uses Gemini 2.5 Pro with Google Search integration.
 - Source threads:
   - AI feature thread:  
     `https://groups.google.com/g/apps4av-forum/c/wWZUn6TNG1w`
-  - desktop/pro services request:  
+  - Desktop/pro services request:  
     `https://groups.google.com/g/apps4av-forum/c/XcoQzwpCxlw`
 
 ### FAQ-12: Can I use AvareX with X-Plane/simulator feeds?
 
-- AvareX accepts external NMEA/GDL90-like streams via UDP listener ports.
+- AvareX accepts external NMEA/GDL90-like streams via UDP listener ports (4000, 43211, 49002).
 - For simulator setups, configure simulator/network output accordingly.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/QOfnQ-pkT0w`
 
----
+### FAQ-13: What is the CAP Grid layer?
 
+- Civil Air Patrol grid overlay for search and rescue operations.
+- Shows grid identifiers (e.g., SEA123, DEN456) at zoom level 9+.
+- Enable via `MAP → Layers → CAP Grid` opacity > 0.
+- Covers all US sectional chart areas.
+
+### FAQ-14: How do I view my flight in 3D?
+
+- Record your flight with `Tracks` layer enabled.
+- Turn `Tracks` off to save the KML file.
+- Open `Documents → tracks` and tap the KML file.
+- Use the 3D View icon (AR) to see interactive 3D visualization with terrain and topo map texture.
+
+---
