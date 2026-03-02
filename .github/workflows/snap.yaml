@@ -32,6 +32,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
+      - name: Login to Firebase
+        run: |
+          curl -sL https://firebase.tools | bash
+          echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 -d > key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="key.json"
+          dart pub global activate flutterfire_cli
+          flutterfire configure --project avarex-479ae --platforms android --yes
+
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
 

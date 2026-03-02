@@ -228,7 +228,7 @@ class WritingScreenState extends State<WritingScreen> {
               if (_showKeypad)
                 Positioned(
                   right: 8,
-                  top: 8,
+                  bottom: 8,
                   child: _buildNumberKeypad(context),
                 ),
             ])
@@ -413,29 +413,29 @@ class WritingScreenState extends State<WritingScreen> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
-              .map((k) => _buildKeypadKey(k))
+              .map((k) => _buildKeypadKey(k, small: true))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
-              .map((k) => _buildKeypadKey(k))
+              .map((k) => _buildKeypadKey(k, small: true))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
-              .map((k) => _buildKeypadKey(k))
+              .map((k) => _buildKeypadKey(k, small: true))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey(' ', isSpace: true),
-            _buildKeypadKey('⌫', isBackspace: true),
-            _buildKeypadKey('↵', isNewline: true),
-            _buildClearButton(),
-            _buildSwitchToNumericButton(),
+            _buildKeypadKey(' ', isSpace: true, small: true),
+            _buildKeypadKey('⌫', isBackspace: true, small: true),
+            _buildKeypadKey('↵', isNewline: true, small: true),
+            _buildClearButton(small: true),
+            _buildSwitchToNumericButton(small: true),
           ],
         ),
       ],
@@ -463,12 +463,14 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
-  Widget _buildSwitchToNumericButton() {
+  Widget _buildSwitchToNumericButton({bool small = false}) {
+    final size = small ? 28.0 : 40.0;
+    final fontSize = small ? 10.0 : 12.0;
     return Padding(
       padding: const EdgeInsets.all(2),
       child: SizedBox(
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.zero,
@@ -478,18 +480,20 @@ class WritingScreenState extends State<WritingScreen> {
               _showQwerty = false;
             });
           },
-          child: const Text('123', style: TextStyle(fontSize: 12)),
+          child: Text('123', style: TextStyle(fontSize: fontSize)),
         ),
       ),
     );
   }
 
-  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isNewline = false}) {
+  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isNewline = false, bool small = false}) {
+    final size = small ? 28.0 : 40.0;
+    final fontSize = small ? 14.0 : 18.0;
     return Padding(
       padding: const EdgeInsets.all(2),
       child: SizedBox(
-        width: isSpace ? 40 : 40,
-        height: 40,
+        width: size,
+        height: size,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.zero,
@@ -515,18 +519,20 @@ class WritingScreenState extends State<WritingScreen> {
               }
             });
           },
-          child: Text(isSpace ? '␣' : key, style: const TextStyle(fontSize: 18)),
+          child: Text(isSpace ? '␣' : key, style: TextStyle(fontSize: fontSize)),
         ),
       ),
     );
   }
 
-  Widget _buildClearButton() {
+  Widget _buildClearButton({bool small = false}) {
+    final size = small ? 28.0 : 40.0;
+    final fontSize = small ? 14.0 : 18.0;
     return Padding(
       padding: const EdgeInsets.all(2),
       child: SizedBox(
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.zero,
@@ -540,7 +546,7 @@ class WritingScreenState extends State<WritingScreen> {
               }
             });
           },
-          child: const Text('C', style: TextStyle(fontSize: 18)),
+          child: Text('C', style: TextStyle(fontSize: fontSize)),
         ),
       ),
     );
