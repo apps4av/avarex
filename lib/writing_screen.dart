@@ -62,6 +62,7 @@ class WritingScreenState extends State<WritingScreen> {
   BackgroundSheet _selectedSheet = BackgroundSheet.none;
   final GlobalKey _canvasKey = GlobalKey();
   bool _showKeypad = false;
+  bool _showQwerty = false;
   List<TextEntry> _textEntries = [];
   int _activeEntryIndex = -1;
   bool _sketchLoaded = false;
@@ -351,50 +352,133 @@ class WritingScreenState extends State<WritingScreen> {
       elevation: 8,
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: Column(
+        child: _showQwerty ? _buildQwertyLayout() : _buildNumericLayout(),
+      ),
+    );
+  }
+
+  Widget _buildNumericLayout() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildKeypadKey('1'),
-                _buildKeypadKey('2'),
-                _buildKeypadKey('3'),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildKeypadKey('4'),
-                _buildKeypadKey('5'),
-                _buildKeypadKey('6'),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildKeypadKey('7'),
-                _buildKeypadKey('8'),
-                _buildKeypadKey('9'),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildKeypadKey('.'),
-                _buildKeypadKey('0'),
-                _buildKeypadKey('⌫', isBackspace: true),
-              ],
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildKeypadKey(' ', isSpace: true),
-                _buildKeypadKey('↵', isNewline: true),
-                _buildClearButton(),
-              ],
-            ),
+            _buildKeypadKey('1'),
+            _buildKeypadKey('2'),
+            _buildKeypadKey('3'),
           ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildKeypadKey('4'),
+            _buildKeypadKey('5'),
+            _buildKeypadKey('6'),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildKeypadKey('7'),
+            _buildKeypadKey('8'),
+            _buildKeypadKey('9'),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildKeypadKey('.'),
+            _buildKeypadKey('0'),
+            _buildKeypadKey('⌫', isBackspace: true),
+          ],
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildKeypadKey(' ', isSpace: true),
+            _buildKeypadKey('↵', isNewline: true),
+            _buildClearButton(),
+            _buildSwitchToQwertyButton(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQwertyLayout() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
+              .map((k) => _buildKeypadKey(k))
+              .toList(),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
+              .map((k) => _buildKeypadKey(k))
+              .toList(),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+              .map((k) => _buildKeypadKey(k))
+              .toList(),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildKeypadKey(' ', isSpace: true),
+            _buildKeypadKey('⌫', isBackspace: true),
+            _buildKeypadKey('↵', isNewline: true),
+            _buildClearButton(),
+            _buildSwitchToNumericButton(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSwitchToQwertyButton() {
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+          ),
+          onPressed: () {
+            setState(() {
+              _showQwerty = true;
+            });
+          },
+          child: const Text('ABC', style: TextStyle(fontSize: 12)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchToNumericButton() {
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+          ),
+          onPressed: () {
+            setState(() {
+              _showQwerty = false;
+            });
+          },
+          child: const Text('123', style: TextStyle(fontSize: 12)),
         ),
       ),
     );

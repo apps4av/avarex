@@ -714,10 +714,21 @@ Each sheet maintains its own saved sketch state. Switching sheets saves the curr
 
 ### 10.4 Number keypad
 
-Tap the dialpad icon in the toolbar to display an on-screen number pad:
+Tap the dialpad icon in the toolbar to display an on-screen keypad:
+
+**Number pad (default):**
 - Digits 0-9, decimal point
 - Space, newline, backspace
 - **C** (Clear): removes the last text entry; press repeatedly to remove more
+- **ABC**: switches to QWERTY letter keyboard
+
+**QWERTY keyboard:**
+- Letters A-Z in standard QWERTY layout
+- Space, backspace, newline
+- **C** (Clear): removes the last text entry
+- **123**: switches back to number pad
+
+**General usage:**
 - **Tap anywhere on canvas** while keypad is active to create a new text entry at that location
 - Type to add text at the current location, then tap elsewhere to add text at another spot
 - Supports multiple text entries at different positions on the same sheet
