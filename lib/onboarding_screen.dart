@@ -57,9 +57,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
           children:[
             const Text("Connect this device to the Internet. Internet connection is required to download charts and weather. The connection may be turned off during the flight.\n\n\n"
               "Make sure you are in an area where GPS signals are strong.\n\n"
-              "The app uses the best possible GPS source available on this device.\n"
+              "You can select between Auto, Internal, and External GPS sources.\n"
               " 1) You must provide the app with permissions to access the GPS.\n"
-              " 2) You may connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.\n"),
+              " 2) You may connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.\n"
+              " 3) Tap the SRC widget to cycle modes: Auto, Internal (green), External (blue).\n"),
               Text("$gpsDeniedMessage\n$gpsEnabledMessage\n"),
               Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
               Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),

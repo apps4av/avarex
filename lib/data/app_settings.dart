@@ -86,6 +86,14 @@ class AppSettings {
     return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT") as String;
   }
 
+  void setGpsSourceMode(String mode) {
+    provider.setString("key-gps-source-mode", mode);
+  }
+
+  String getGpsSourceMode() {
+    return provider.getValue("key-gps-source-mode", defaultValue: "Auto") as String;
+  }
+
   void setUnits(String units) {
     provider.setString("key-units", units);
     _localUnits = units;

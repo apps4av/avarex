@@ -59,7 +59,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _utc = "00:00";
   String _eta = "";
   String _ete = "";
-  String _source = "";
+  String _source = "Auto";
   String _vsr = "";
   String _flightTime = "00:00";
   String _gel = "DL";
@@ -276,7 +276,10 @@ class InstrumentListState extends State<InstrumentList> {
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
       _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Colors.red : Theme.of(context).cardColor.withValues(alpha: 0.6);
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
-      _source = Storage().gpsInternal ? "Internal" : "External";
+      _source = Storage().getGpsSourceModeString();
+      // Auto = default tile color, Green = Internal, Blue = External
+      Color defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
+      _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
   }
@@ -332,6 +335,13 @@ class InstrumentListState extends State<InstrumentList> {
   // down timer
   void _resetTacTimer() {
     Storage().flightStatus.resetFlightTime();
+  }
+
+  void _cycleGpsSourceMode() {
+    Storage().cycleGpsSourceMode();
+    setState(() {
+      _source = Storage().getGpsSourceModeString();
+    });
   }
 
   // make an instrument for top line
@@ -395,6 +405,7 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "SRC":
         value = _source;
+        cb = _cycleGpsSourceMode;
         break;
       case "FLT":
         value = _flightTime;
@@ -485,7 +496,7 @@ class InstrumentListState extends State<InstrumentList> {
                       "UPT - Tap to start/stop the up timer.\n"
                       "DNT - Tap to start/stop the down timer.\n"
                       "UTC - Coordinated Universal Time.\n"
-                      "SRC - Source of GPS data.\n"
+                      "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
                       "FLT - Total flight time in hours. Tap to reset.\n",
                       null, 30);
                   },

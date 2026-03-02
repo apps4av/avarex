@@ -114,6 +114,27 @@ class Storage {
   int get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
   int _lastMsExternalSignal = DateTime.now().millisecondsSinceEpoch - gpsSwitchoverTimeMs;
   bool gpsInternal = true;
+  // GPS source mode: "Auto", "Internal", "External"
+  String gpsSourceMode = "Auto";
+  static const List<String> _gpsSourceModes = ["Auto", "Internal", "External"];
+
+  void initGpsSourceMode() {
+    gpsSourceMode = settings.getGpsSourceMode();
+  }
+
+  void cycleGpsSourceMode() {
+    int index = (_gpsSourceModes.indexOf(gpsSourceMode) + 1) % _gpsSourceModes.length;
+    gpsSourceMode = _gpsSourceModes[index];
+    settings.setGpsSourceMode(gpsSourceMode);
+  }
+
+  String getGpsSourceModeString() {
+    // Auto mode shows actual source with -A suffix, others show the mode name
+    if (gpsSourceMode == "Auto") {
+      return gpsInternal ? "Internal-A" : "External-A";
+    }
+    return gpsSourceMode;
+  }
   bool isRollReversed = false;
 
   // gps
@@ -191,6 +212,10 @@ class Storage {
       if (null != message) {
         Message? m = MessageFactory.buildMessage(message);
         if(m != null && m is OwnShipMessage) {
+          // Skip external GPS data when Internal mode is selected
+          if (gpsSourceMode == "Internal") {
+            continue;
+          }
           Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
           if(Gps.isPositionCloseToZero(p)) {
             continue; // skip 0, 0 when GPS is not locked
@@ -216,6 +241,10 @@ class Storage {
       if (null != message) {
         NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
         if(m != null && m is NmeaOwnShipMessage) {
+          // Skip external GPS data when Internal mode is selected
+          if (gpsSourceMode == "Internal") {
+            continue;
+          }
           NmeaOwnShipMessage m0 = m;
           Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
           if(Gps.isPositionCloseToZero(p)) {
@@ -264,6 +293,10 @@ class Storage {
       _gpsStream?.onDone(() {});
       _gpsStream?.onError((obj) {});
       _gpsStream?.onData((data) {
+        // Skip internal GPS data when External mode is selected
+        if (gpsSourceMode == "External") {
+          return;
+        }
         if (gpsInternal) {
           if(Gps.isPositionCloseToZero(data)) {
             return; // skip 0, 0 when GPS is not locked
@@ -336,6 +369,7 @@ class Storage {
     DbGeneral.set(); // set database platform
 
     await settings.initSettings();
+    initGpsSourceMode();
     trafficCache = TrafficCache(settings.getTrafficPuckSize());
     themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
     units = UnitConversion(settings.getUnits());
@@ -402,7 +436,13 @@ class Storage {
 
       route.update(); // change to route
       int now = DateTime.now().millisecondsSinceEpoch;
-      gpsInternal = ((_lastMsExternalSignal + gpsSwitchoverTimeMs) < now);
+
+      // Handle GPS source based on mode
+      if (gpsSourceMode == "Auto") {
+        gpsInternal = ((_lastMsExternalSignal + gpsSwitchoverTimeMs) < now);
+      } else {
+        gpsInternal = (gpsSourceMode == "Internal");
+      }
 
       int diff = now - _lastMsGpsSignal;
       if (diff > 2 * gpsSwitchoverTimeMs) { // no GPS signal from both sources, send warning

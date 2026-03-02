@@ -188,24 +188,24 @@ Notes:
 
 Reorderable instrument tiles include:
 
-| Tile | Description | Tap Action |
-|------|-------------|------------|
-| **GS** | Ground speed (knots/mph) | — |
-| **ALT** | GPS altitude (feet) | — |
-| **MT** | Magnetic track (degrees) | — |
-| **PRV** | Previous waypoint identifier | Jump to previous waypoint |
-| **NXT** | Next waypoint identifier | Jump to next waypoint |
-| **DIS** | Distance to next waypoint (NM/mi) | — |
-| **BRG** | Bearing to next waypoint (magnetic) | — |
-| **GEL** | Ground elevation (requires Elevation charts) | — |
-| **ETA** | Estimated time of arrival (HH:MM) | — |
-| **ETE** | Estimated time en-route (HH:MM) | — |
-| **VSR** | VSI required to arrive 1000ft above destination | — |
-| **UPT** | Up timer (count up) | Start/stop timer |
-| **DNT** | Down timer (count down from 30min) | Start/stop timer |
-| **UTC** | Current UTC time (HH:MM) | — |
-| **SRC** | GPS source (Internal/External) | — |
-| **FLT** | Total flight time in hours | Reset timer |
+| Tile | Description | Tap Action                                                                  |
+|------|-------------|-----------------------------------------------------------------------------|
+| **GS** | Ground speed (knots/mph) | —                                                                           |
+| **ALT** | GPS altitude (feet) | —                                                                           |
+| **MT** | Magnetic track (degrees) | —                                                                           |
+| **PRV** | Previous waypoint identifier | Jump to previous waypoint                                                   |
+| **NXT** | Next waypoint identifier | Jump to next waypoint                                                       |
+| **DIS** | Distance to next waypoint (NM/mi) | —                                                                           |
+| **BRG** | Bearing to next waypoint (magnetic) | —                                                                           |
+| **GEL** | Ground elevation (requires Elevation charts) | —                                                                           |
+| **ETA** | Estimated time of arrival (HH:MM) | —                                                                           |
+| **ETE** | Estimated time en-route (HH:MM) | —                                                                           |
+| **VSR** | VSI required to arrive 1000ft above destination | —                                                                           |
+| **UPT** | Up timer (count up) | Start/stop timer                                                            |
+| **DNT** | Down timer (count down from 30min) | Start/stop timer                                                            |
+| **UTC** | Current UTC time (HH:MM) | —                                                                           |
+| **SRC** | GPS source mode. Shows `Internal`, `External`, `Internal-A`, or `External-A` (A=Auto mode) | Tap to cycle modes: Auto, Internal, External. Green=Internal, Blue=External |
+| **FLT** | Total flight time in hours | Reset timer                                                                 |
 
 Interactions:
 
@@ -798,9 +798,10 @@ Possible issue items:
 ## 13) Data Lifecycle and Auto-Update Behavior
 
 - Weather downloads refresh periodically (10-minute cycle in storage timer).
-- GPS source auto-switches:
-  - Prefers external stream when available
-  - Falls back to internal GPS after timeout
+- GPS source modes (tap `SRC` tile to cycle):
+  - **Auto**: Prefers external GPS when available, falls back to internal after 30s timeout. Shows `Internal-A` or `External-A`.
+  - **Internal**: Uses only internal GPS, discards external GPS data. Shows `Internal` with green background.
+  - **External**: Uses only external GPS, discards internal GPS data. Shows `External` with blue background.
 - Flight status tracks taxi/airborne transitions and accumulates flight time.
 - External autopilot/NMEA sentence output is generated continuously while app is running and IO connection exists.
 - Track recording continues while Tracks layer is enabled; saves to KML when layer is turned off.
@@ -809,36 +810,37 @@ Possible issue items:
 
 ## 14) Quick Feature Path Index
 
-| Feature | Path |
-|---------|------|
-| Download charts/data | `MAP → Menu → Download` |
-| Read weather docs / import files | `MAP → Menu → Documents` |
-| View saved tracks (KML) | `MAP → Menu → Documents → tracks folder → tap KML file` |
-| Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight` |
-| Create folder for documents | `MAP → Menu → Documents → folder icon in app bar` |
-| Build or modify plan | `PLAN tab` |
-| File FAA plan | `PLAN → Actions → Brief & File` |
-| Manage filed plans | `PLAN → Actions → Manage` |
-| Send plan to device (Android) | `PLAN → Actions → Transfer` |
-| Destination details | Long-press on map or tap FIND result |
-| Show plates for airport | Destination popup `Plates` or `PLATE tab` |
-| Configure aircraft | `MAP → Menu → Aircraft` |
-| Change aircraft map icon | `MAP → Menu → Aircraft → icon dropdown in app bar` |
-| Checklist operations | `MAP → Menu → Check Lists` |
-| Weight and balance | `MAP → Menu → W&B` |
-| Logbook + dashboard | `MAP → Menu → Log Book` |
-| Logbook statistics | `MAP → Menu → Log Book → Details` |
-| Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
-| Notes/drawing | `MAP → Notes icon` |
-| Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template` |
-| Notes number keypad | `MAP → Notes icon → dialpad icon` |
-| Pro AI | `MAP top-right account icon → Flight Intelligence` |
-| Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
-| User Manual (Help) | `MAP → Menu → Help` |
-| Donate | `MAP → Menu → Donate` (not iOS/macOS) |
-| CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
+| Feature | Path                                                           |
+|---------|----------------------------------------------------------------|
+| Download charts/data | `MAP → Menu → Download`                                        |
+| Read weather docs / import files | `MAP → Menu → Documents`                                       |
+| View saved tracks (KML) | `MAP → Menu → Documents → tracks folder → tap KML file`        |
+| Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight`           |
+| Create folder for documents | `MAP → Menu → Documents → folder icon in app bar`              |
+| Build or modify plan | `PLAN tab`                                                     |
+| File FAA plan | `PLAN → Actions → Brief & File`                                |
+| Manage filed plans | `PLAN → Actions → Manage`                                      |
+| Send plan to device (Android) | `PLAN → Actions → Transfer`                                    |
+| Destination details | Long-press on map or tap FIND result                           |
+| Show plates for airport | Destination popup `Plates` or `PLATE tab`                      |
+| Configure aircraft | `MAP → Menu → Aircraft`                                        |
+| Change aircraft map icon | `MAP → Menu → Aircraft → icon dropdown in app bar`             |
+| Checklist operations | `MAP → Menu → Check Lists`                                     |
+| Weight and balance | `MAP → Menu → W&B`                                             |
+| Logbook + dashboard | `MAP → Menu → Log Book`                                        |
+| Logbook statistics | `MAP → Menu → Log Book → Details`                              |
+| Bluetooth pairing/connection | `MAP → Menu → IO` (Android)                                    |
+| Notes/drawing | `MAP → Notes icon`                                             |
+| Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template`              |
+| Notes number keypad | `MAP → Notes icon → dialpad icon`                              |
+| Pro AI | `MAP top-right account icon → Flight Intelligence`             |
+| Cloud backup/restore | `MAP top-right account icon → Backup/Sync`                     |
+| User Manual (Help) | `MAP → Menu → Help`                                            |
+| Donate | `MAP → Menu → Donate` (not iOS/macOS)                          |
+| CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+)        |
 | Enable wind vectors | `MAP → Layers → Wind Vectors slider > 0` (use altitude slider) |
-| Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider) |
+| Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider)      |
+| Change GPS source mode | Tap `SRC` tile in instrument bar                               |
 
 ---
 
