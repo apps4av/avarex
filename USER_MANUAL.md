@@ -716,9 +716,12 @@ Each sheet maintains its own saved sketch state. Switching sheets saves the curr
 
 Tap the dialpad icon in the toolbar to display an on-screen number pad:
 - Digits 0-9, decimal point
-- Space, newline, backspace, clear
-- Typed text appears overlaid in the top-left of the canvas
-- Text is saved with the sheet and persists across sessions
+- Space, newline, backspace
+- **C** (Clear): removes the last text entry; press repeatedly to remove more
+- **Tap anywhere on canvas** while keypad is active to create a new text entry at that location
+- Type to add text at the current location, then tap elsewhere to add text at another spot
+- Supports multiple text entries at different positions on the same sheet
+- All text entries are saved with the sheet and persist across sessions
 
 ---
 
@@ -969,9 +972,10 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. Tap the sheet icon in the app bar.
 3. Select **CRAFT** for IFR clearance fields.
 4. Use the number keypad (dialpad icon) to type frequencies, altitudes, or squawk codes.
-5. Use freehand drawing to fill in route or other notes.
-6. The sheet auto-saves when you exit or switch sheets.
-7. Return anytime to continue where you left off; each sheet maintains its own state.
+5. **Tap on the canvas** to position the typed text exactly where you want it (e.g., next to the frequency field).
+6. Use freehand drawing to fill in route or other notes.
+7. The sheet auto-saves when you exit or switch sheets.
+8. Return anytime to continue where you left off; each sheet maintains its own state.
 
 ### UC-11: Import a GeoJSON overlay and display it on map
 

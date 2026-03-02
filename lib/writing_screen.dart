@@ -30,6 +30,27 @@ enum BackgroundSheet {
   const BackgroundSheet(this.label);
 }
 
+class TextEntry {
+  Offset position;
+  String text;
+
+  TextEntry({required this.position, this.text = ''});
+
+  Map<String, dynamic> toJson() => {
+    'x': position.dx,
+    'y': position.dy,
+    'text': text,
+  };
+
+  factory TextEntry.fromJson(Map<String, dynamic> json) => TextEntry(
+    position: Offset(
+      (json['x'] as num).toDouble(),
+      (json['y'] as num).toDouble(),
+    ),
+    text: json['text'] ?? '',
+  );
+}
+
 class WritingScreen extends StatefulWidget {
   const WritingScreen({super.key});
   @override
@@ -41,7 +62,8 @@ class WritingScreenState extends State<WritingScreen> {
   BackgroundSheet _selectedSheet = BackgroundSheet.none;
   final GlobalKey _canvasKey = GlobalKey();
   bool _showKeypad = false;
-  String _typedText = '';
+  List<TextEntry> _textEntries = [];
+  int _activeEntryIndex = -1;
   bool _sketchLoaded = false;
 
   String _getSheetKey(BackgroundSheet sheet) => 'sketch_${sheet.name}';
@@ -67,15 +89,34 @@ class WritingScreenState extends State<WritingScreen> {
             } else {
               notifier.clear();
             }
-            _typedText = decoded['typedText'] ?? '';
+            // Load text entries (new format)
+            if (decoded.containsKey('textEntries')) {
+              final entriesList = decoded['textEntries'] as List;
+              _textEntries = entriesList
+                  .map((e) => TextEntry.fromJson(e as Map<String, dynamic>))
+                  .toList();
+            } else if (decoded.containsKey('typedText') && (decoded['typedText'] as String).isNotEmpty) {
+              // Migrate old format: single text with position
+              final oldText = decoded['typedText'] as String;
+              final oldX = decoded['textPositionX'] as num? ?? 20;
+              final oldY = decoded['textPositionY'] as num? ?? 20;
+              _textEntries = [
+                TextEntry(position: Offset(oldX.toDouble(), oldY.toDouble()), text: oldText)
+              ];
+            } else {
+              _textEntries = [];
+            }
+            _activeEntryIndex = _textEntries.isNotEmpty ? _textEntries.length - 1 : -1;
           }
         } catch (e) {
           notifier.clear();
-          _typedText = '';
+          _textEntries = [];
+          _activeEntryIndex = -1;
         }
       } else {
         notifier.clear();
-        _typedText = '';
+        _textEntries = [];
+        _activeEntryIndex = -1;
       }
       setState(() {
         _sketchLoaded = true;
@@ -84,9 +125,11 @@ class WritingScreenState extends State<WritingScreen> {
   }
 
   void _saveSketchForSheet(BackgroundSheet sheet) {
+    // Filter out empty text entries before saving
+    final nonEmptyEntries = _textEntries.where((e) => e.text.isNotEmpty).toList();
     final data = {
       'sketch': notifier.currentSketch.toJson(),
-      'typedText': _typedText,
+      'textEntries': nonEmptyEntries.map((e) => e.toJson()).toList(),
     };
     UserDatabaseHelper.db.saveSketch(_getSheetKey(sheet), jsonEncode(data));
   }
@@ -147,19 +190,34 @@ class WritingScreenState extends State<WritingScreen> {
                         ),
                         child: Scribble(notifier: notifier, drawPen: false, drawEraser: false),
                       ),
-                      if (_typedText.isNotEmpty)
-                        Positioned(
-                          left: 20,
-                          top: 20,
-                          right: 20,
-                          child: Text(
-                            _typedText,
-                            style: TextStyle(
-                              fontSize: 24,
-                              color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
-                              fontWeight: FontWeight.bold,
+                      // Display all text entries
+                      for (int i = 0; i < _textEntries.length; i++)
+                        if (_textEntries[i].text.isNotEmpty)
+                          Positioned(
+                            left: _textEntries[i].position.dx,
+                            top: _textEntries[i].position.dy,
+                            child: Text(
+                              _textEntries[i].text,
+                              style: TextStyle(
+                                fontSize: 24,
+                                color: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              softWrap: true,
                             ),
-                            softWrap: true,
+                          ),
+                      if (_showKeypad)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapUp: (details) {
+                              setState(() {
+                                // Create a new text entry at the tapped location
+                                _textEntries.add(TextEntry(position: details.localPosition));
+                                _activeEntryIndex = _textEntries.length - 1;
+                              });
+                            },
+                            child: Container(color: Colors.transparent),
                           ),
                         ),
                     ],
@@ -333,7 +391,7 @@ class WritingScreenState extends State<WritingScreen> {
               children: [
                 _buildKeypadKey(' ', isSpace: true),
                 _buildKeypadKey('↵', isNewline: true),
-                _buildKeypadKey('C', isClear: true),
+                _buildClearButton(),
               ],
             ),
           ],
@@ -342,7 +400,7 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
-  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isClear = false, bool isNewline = false}) {
+  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isNewline = false}) {
     return Padding(
       padding: const EdgeInsets.all(2),
       child: SizedBox(
@@ -354,22 +412,51 @@ class WritingScreenState extends State<WritingScreen> {
           ),
           onPressed: () {
             setState(() {
+              // If no active entry, create one at default position
+              if (_activeEntryIndex < 0 || _activeEntryIndex >= _textEntries.length) {
+                _textEntries.add(TextEntry(position: const Offset(20, 20)));
+                _activeEntryIndex = _textEntries.length - 1;
+              }
+              final entry = _textEntries[_activeEntryIndex];
               if (isBackspace) {
-                if (_typedText.isNotEmpty) {
-                  _typedText = _typedText.substring(0, _typedText.length - 1);
+                if (entry.text.isNotEmpty) {
+                  entry.text = entry.text.substring(0, entry.text.length - 1);
                 }
-              } else if (isClear) {
-                _typedText = '';
               } else if (isSpace) {
-                _typedText += ' ';
+                entry.text += ' ';
               } else if (isNewline) {
-                _typedText += '\n';
+                entry.text += '\n';
               } else {
-                _typedText += key;
+                entry.text += key;
               }
             });
           },
           child: Text(isSpace ? '␣' : key, style: const TextStyle(fontSize: 18)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearButton() {
+    return Padding(
+      padding: const EdgeInsets.all(2),
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+          ),
+          onPressed: () {
+            setState(() {
+              // Remove the last text entry
+              if (_textEntries.isNotEmpty) {
+                _textEntries.removeLast();
+                _activeEntryIndex = _textEntries.isNotEmpty ? _textEntries.length - 1 : -1;
+              }
+            });
+          },
+          child: const Text('C', style: TextStyle(fontSize: 18)),
         ),
       ),
     );
