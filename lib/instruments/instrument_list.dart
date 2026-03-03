@@ -274,11 +274,17 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
-      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired() ? Colors.red : Theme.of(context).cardColor.withValues(alpha: 0.6);
+      Color defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
+      // DNT: red when expired, green when counting, default otherwise
+      _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired()
+          ? Colors.red
+          : (Storage().flightDownTimer.isStarted() ? Colors.green : defaultColor);
+      // UPT: green when counting, default otherwise
+      _itemsColors[_items.indexOf("UPT")] = Storage().flightTimer.isStarted() ? Colors.green : defaultColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().getGpsSourceModeString();
       // Auto = default tile color, Green = Internal, Blue = External
-      Color defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
+      defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
@@ -327,7 +333,6 @@ class InstrumentListState extends State<InstrumentList> {
       Storage().flightDownTimer.start();
     }
     setState(() {
-      _itemsColors[_items.indexOf("DNT")] = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
     });
   }

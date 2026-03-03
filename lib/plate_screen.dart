@@ -362,8 +362,9 @@ class PlateScreenState extends State<PlateScreen> {
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
       InteractiveViewer(
-          minScale: 1,
+          minScale: 0.5,
           maxScale: 8,
+          boundaryMargin: const EdgeInsets.all(double.infinity),
           child:
           SizedBox(
             height: Constants.screenHeight(context),
@@ -579,7 +580,7 @@ class PlateScreenState extends State<PlateScreen> {
               alignment: Alignment.bottomRight,
               child: Padding(
                       padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
-                      child: Stack(alignment: AlignmentGeometry.topRight, children:[
+                      child: Stack(children:[
                         IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
                         Padding(padding: EdgeInsets.fromLTRB(0, 0, 10, 0), child: IconButton(icon: Icon(Icons.close), onPressed: () {
                           setState(() {
