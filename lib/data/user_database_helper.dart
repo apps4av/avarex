@@ -406,7 +406,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if(db != null) {
-      DbGeneral.query(db, "insert into settings (key, value) values ('$key', '$value')");
+      await DbGeneral.query(db, "insert into settings (key, value) values ('$key', '$value')");
     }
   }
 

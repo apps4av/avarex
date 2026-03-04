@@ -231,10 +231,10 @@ class LongPressScreenState extends State<LongPressScreen> {
           title: AutoSizeText(label, maxLines: 2, minFontSize: 10, maxFontSize: 16, style: const TextStyle(fontWeight: FontWeight.w700),),
         ),
         body: Column(children: [
-          Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
+          Expanded(flex: 2, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(children: [
             // top action buttons
             TextButton(
-              child: const Text("\u2192D"),
+              child: const Text("\u2192D", style: TextStyle(fontSize: 40),),
               onPressed: () {
                 Storage().setDestination(showDestination);
                 if(showDestination is AirportDestination) {

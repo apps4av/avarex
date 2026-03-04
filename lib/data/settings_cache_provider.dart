@@ -59,40 +59,34 @@ class SettingsCacheProvider {
     return Future.value();
   }
 
-  Future<void> remove(String key) {
+  Future<void> remove(String key) async {
     _settings.remove(key);
-    UserDatabaseHelper.db.deleteSetting(key);
-    return Future.value();
+    await UserDatabaseHelper.db.deleteSetting(key);
   }
 
-  Future<void> setBool(String key, bool? value) {
+  Future<void> setBool(String key, bool? value) async {
     _settings[key] = value.toString();
-    UserDatabaseHelper.db.insertSetting(key, value.toString());
-    return Future.value();
+    await UserDatabaseHelper.db.insertSetting(key, value.toString());
   }
 
-  Future<void> setDouble(String key, double? value) {
+  Future<void> setDouble(String key, double? value) async {
     _settings[key] = value.toString();
-    UserDatabaseHelper.db.insertSetting(key, value.toString());
-    return Future.value();
+    await UserDatabaseHelper.db.insertSetting(key, value.toString());
   }
 
-  Future<void> setInt(String key, int? value) {
+  Future<void> setInt(String key, int? value) async {
     _settings[key] = value.toString();
-    UserDatabaseHelper.db.insertSetting(key, value.toString());
-    return Future.value();
+    await UserDatabaseHelper.db.insertSetting(key, value.toString());
   }
 
-  Future<void> setObject<T>(String key, T? value) {
+  Future<void> setObject<T>(String key, T? value) async {
     _settings[key] = value.toString();
-    UserDatabaseHelper.db.insertSetting(key, value.toString());
-    return Future.value();
+    await UserDatabaseHelper.db.insertSetting(key, value.toString());
   }
 
-  Future<void> setString(String key, String? value) {
+  Future<void> setString(String key, String? value) async {
     _settings[key] = value.toString();
-    UserDatabaseHelper.db.insertSetting(key, value.toString());
-    return Future.value();
+    await UserDatabaseHelper.db.insertSetting(key, value.toString());
   }
 
 
