@@ -26,6 +26,9 @@ class FlightStatus {
 
   // landing switches airport diagram to the airport we landed at, if it has an airport diagram
   static Future<void> _land() async {
+    if (!Storage().settings.isShowAirportDiagramOnLanding()) {
+      return;
+    }
     // on landing, add to recent the airport we landed at, then set it as current airport
     List<Destination> airports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(
         LatLng(Storage().position.latitude, Storage().position.longitude), 0);

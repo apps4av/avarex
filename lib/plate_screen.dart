@@ -153,9 +153,23 @@ class PlateScreenState extends State<PlateScreen> {
   final List<_PlateTerrainCell> _terrainCells = [];
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
+  final TransformationController _transformationController = TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _transformationController.value = Storage().plateTransform;
+    _transformationController.addListener(_onTransformChanged);
+  }
+
+  void _onTransformChanged() {
+    Storage().plateTransform = _transformationController.value.clone();
+  }
 
   @override
   void dispose() {
+    _transformationController.removeListener(_onTransformChanged);
+    _transformationController.dispose();
     super.dispose();
     Storage().plateChange.removeListener(_notifyPaint);
     Storage().gpsChange.removeListener(_notifyPaint);
@@ -330,6 +344,7 @@ class PlateScreenState extends State<PlateScreen> {
 
     if(plates.isNotEmpty && (Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
       Storage().currentPlate = plates[0]; // new airport, change to plate 0
+      _transformationController.value = Matrix4.identity();
     }
 
     _loadPlate();
@@ -362,7 +377,8 @@ class PlateScreenState extends State<PlateScreen> {
     return Scaffold(body: Stack(children: [
       // always return this so to reduce flicker
       InteractiveViewer(
-          minScale: 0.5,
+          transformationController: _transformationController,
+          minScale: 0.1,
           maxScale: 8,
           boundaryMargin: const EdgeInsets.all(double.infinity),
           child:
@@ -393,6 +409,60 @@ class PlateScreenState extends State<PlateScreen> {
           });
         }, icon: Icon(Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft),),),
       )),
+
+      // Show airport diagram on landing toggle (only visible on airport diagrams)
+      if (!notAd)
+        Positioned(
+          top: Constants.screenHeightForInstruments(context) + 5,
+          right: 5,
+          child: CircleAvatar(radius: 14,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+            child: IconButton(
+              onPressed: () {
+                setState(() {
+                  bool show =  Storage().settings.isShowAirportDiagramOnLanding();
+                  if(!show) {
+                    Toast.showToast(context, "Airport diagram will be shown automatically on landing", null, 3);
+                  }
+                  else {
+                    Toast.showToast(context, "Airport diagram auto switch disabled", null, 3);
+                  }
+                  Storage().settings.setShowAirportDiagramOnLanding(!show);
+                });
+              },
+              icon: Icon(size: 14,
+                Storage().settings.isShowAirportDiagramOnLanding() ? Icons.check : Icons.close,
+              ),
+            ),
+          ),
+        ),
+
+      // Center button to reset plate view
+      Positioned(
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 5),
+            child: TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.all(5.0),
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+              ),
+              onPressed: () {
+                // Center at current zoom - preserve scale, reset translation
+                final double currentScale = _transformationController.value.getMaxScaleOnAxis();
+                _transformationController.value = Matrix4.identity()..scaleByDouble(currentScale, currentScale, 1, 1);
+              },
+              onLongPress: () {
+                // Center and fit - reset to identity
+                _transformationController.value = Matrix4.identity();
+              },
+              child: const Text("Center"),
+            )
+          )
+        )
+      ),
+
       plates.isEmpty ? Container() : // nothing to show here if plates is empty
       Positioned(
           child: Align(
@@ -431,6 +501,7 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().currentPlate = value ?? plates[0];
+                            _transformationController.value = Matrix4.identity();
                           });
                         },
                       )
@@ -489,62 +560,62 @@ class PlateScreenState extends State<PlateScreen> {
       Positioned(
           child: Align(
               alignment: Alignment.bottomRight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
-                  Container(
-                    padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
-                    child:DropdownButtonHideUnderline(
-                        child:DropdownButton2<String>(
-                          isDense: true,// plate selection
-                            customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.add)),
-                            buttonStyleData: ButtonStyleData(
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-                          ),
-                          dropdownStyleData: DropdownStyleData(
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                            width: Constants.screenWidth(context) * 0.75,
-                          ),
-                          isExpanded: false,
-                          value: procedures[0],
-                          items: procedures.map((String item) {
-                            return DropdownMenuItem<String>(
-                                value: item,
-                                onTap: null,
-                                child: ListTile(
-                                  leading: TextButton(child: Text("+Plan"),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
-                                        if(procedure != null) {
-                                          Storage().route.addWaypoint(Waypoint(procedure));
-                                          setState(() {
-                                            Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
-                                            // show toast message that the procedure is added to the plan
-                                          });
-                                        }
-                                      });
-                                  },),
-                                  title: Padding(padding: const EdgeInsets.all(5), child:
-                                  AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              Storage().settings.setPlateProfileVisible(true);
-                              Storage().settings.setPlateProfile(value ?? "");
-                            });
-                          },
-                        )
-                    )
-                  ),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: DropdownButtonHideUnderline(
+                          child:DropdownButton2<String>(
+                            isDense: true,// plate selection
+                              customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.add)),
+                              buttonStyleData: ButtonStyleData(
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                            ),
+                            dropdownStyleData: DropdownStyleData(
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+                              width: Constants.screenWidth(context) * 0.75,
+                            ),
+                            isExpanded: false,
+                            value: procedures[0],
+                            items: procedures.map((String item) {
+                              return DropdownMenuItem<String>(
+                                  value: item,
+                                  onTap: null,
+                                  child: ListTile(
+                                    leading: TextButton(child: Text("+Plan"),
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
+                                          if(procedure != null) {
+                                            Storage().route.addWaypoint(Waypoint(procedure));
+                                            setState(() {
+                                              Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
+                                            });
+                                          }
+                                        });
+                                    },),
+                                    title: Padding(padding: const EdgeInsets.all(5), child:
+                                    AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                Storage().settings.setPlateProfileVisible(true);
+                                Storage().settings.setPlateProfile(value ?? "");
+                              });
+                            },
+                          )
+                      )
+                    ),
 
-                  airports[0].isEmpty ? Container() :
-                  Container(
-                    padding: EdgeInsets.fromLTRB(5, 5, 15, Constants.bottomPaddingSize(context) + 5),
-                    child:DropdownButtonHideUnderline(
+                    airports[0].isEmpty ? Container() :
+                    DropdownButtonHideUnderline(
                       child:DropdownButton2<String>( // airport selection
                         buttonStyleData: ButtonStyleData(
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)),
@@ -565,13 +636,14 @@ class PlateScreenState extends State<PlateScreen> {
                             Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
                             Storage().settings.setPlateProfileVisible(true);
                             Storage().settings.setPlateProfile(value ?? "");
+                            _transformationController.value = Matrix4.identity();
                           });
                         },
                       )
-                  )
+                    )
+                  ]
+                )
               )
-            ]
-          )
       ),
     ),
     Storage().settings.isPlateProfileVisible() ?

@@ -100,6 +100,7 @@ class Storage {
   late final FlightTimer flightTimer;
   late final FlightTimer flightDownTimer;
   Destination? plateAirportDestination;
+  Matrix4 plateTransform = Matrix4.identity();
   late UnitConversion units;
   final DownloadManager downloadManager = DownloadManager();
   final GeoJsonParser geoParser = GeoJsonParser();

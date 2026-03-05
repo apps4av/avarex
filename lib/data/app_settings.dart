@@ -229,6 +229,14 @@ class AppSettings {
     provider.setBool("key-enable-instruments-plate", value);
   }
 
+  bool isShowAirportDiagramOnLanding() {
+    return provider.getValue("key-show-airport-diagram-on-landing", defaultValue: false) as bool;
+  }
+
+  void setShowAirportDiagramOnLanding(bool value) {
+    provider.setBool("key-show-airport-diagram-on-landing", value);
+  }
+
   double getInstrumentScaleFactor() {
     return provider.getValue("key-instrument-scale-factor", defaultValue: 1.0) as double;
   }
