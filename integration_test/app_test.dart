@@ -435,16 +435,16 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Documents in drawer
-                fab = find.widgetWithText(ListTile, "Documents");
+                // Tap Documents in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Documents");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
                 await Future.delayed(const Duration(seconds: 1));
                 await tester.pumpAndSettle();
 
-                // Verify Documents screen elements
-                expect(find.text("Documents"), findsOneWidget);
+                // Verify Documents screen elements (title appears in AppBar and drawer)
+                expect(find.text("Documents"), findsWidgets);
                 // Import button is an IconButton with file_download_outlined icon
                 expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
                 
@@ -472,8 +472,8 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Aircraft in drawer
-                fab = find.widgetWithText(ListTile, "Aircraft");
+                // Tap Aircraft in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Aircraft");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -481,7 +481,7 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // Verify Aircraft screen elements
-                expect(find.text("Aircraft"), findsOneWidget);
+                expect(find.text("Aircraft"), findsWidgets);
                 
                 // Test adding aircraft data
                 fab = find.ancestor(
@@ -528,8 +528,8 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Check Lists in drawer
-                fab = find.widgetWithText(ListTile, "Check Lists");
+                // Tap Check Lists in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Check Lists");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -537,7 +537,7 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // Verify Check Lists screen elements
-                expect(find.text("Check Lists"), findsOneWidget);
+                expect(find.text("Check Lists"), findsWidgets);
                 expect(find.widgetWithText(TextButton, "Import"), findsOneWidget);
                 
                 // Verify info tooltip exists
@@ -614,8 +614,8 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap W&B in drawer
-                fab = find.widgetWithText(ListTile, "W&B");
+                // Tap W&B in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Weight & Balance");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -659,8 +659,17 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Log Book in drawer
-                fab = find.widgetWithText(ListTile, "Log Book");
+                // Tap Log Book in drawer (custom InkWell menu item, not ListTile)
+                // May need to scroll drawer to find it
+                fab = find.text("Log Book");
+                if (!tester.any(fab)) {
+                  // Scroll down in the drawer to find Log Book
+                  var listView = find.byType(ListView);
+                  if (tester.any(listView)) {
+                    await tester.drag(listView.first, const Offset(0, -150));
+                    await tester.pumpAndSettle();
+                  }
+                }
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -668,7 +677,7 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // Verify Log Book screen elements
-                expect(find.text("Log Book"), findsOneWidget);
+                expect(find.text("Log Book"), findsWidgets);
                 expect(find.text("Total Hours"), findsOneWidget);
                 // Import/Export are now IconButtons with tooltips
                 expect(find.byTooltip("Import CSV"), findsOneWidget);
@@ -877,8 +886,8 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Download in drawer
-                fab = find.widgetWithText(ListTile, "Download");
+                // Tap Download in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Download");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -886,7 +895,7 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // Verify Download screen elements
-                expect(find.widgetWithText(TextButton, "Download"), findsOneWidget);
+                expect(find.widgetWithText(TextButton, "Download"), findsWidgets);
                 expect(find.widgetWithText(TextButton, "Update"), findsOneWidget);
                 
                 // Verify category expansions exist
@@ -1006,7 +1015,7 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                fab = find.widgetWithText(ListTile, "Documents");
+                fab = find.text("Documents");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -1200,8 +1209,8 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                // Tap Check Lists in drawer
-                fab = find.widgetWithText(ListTile, "Check Lists");
+                // Tap Check Lists in drawer (custom InkWell menu item, not ListTile)
+                fab = find.text("Check Lists");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -1268,7 +1277,7 @@ void main() {
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
 
-                fab = find.widgetWithText(ListTile, "Documents");
+                fab = find.text("Documents");
                 await tester.tap(fab);
                 await tester.pumpAndSettle();
                 
@@ -1276,7 +1285,7 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // Verify Documents screen elements
-                expect(find.text("Documents"), findsOneWidget);
+                expect(find.text("Documents"), findsWidgets);
                 
                 // Verify Import button exists (IconButton with file_download_outlined)
                 expect(find.byIcon(Icons.file_download_outlined), findsOneWidget);
@@ -1302,8 +1311,8 @@ void main() {
                 await tester.pumpAndSettle();
 
                 // IO is only available on platforms with Bluetooth SPP support
-                // Check if IO menu item exists before testing
-                fab = find.widgetWithText(ListTile, "IO");
+                // Check if IO menu item exists before testing (custom InkWell menu item, not ListTile)
+                fab = find.text("IO");
                 if (tester.any(fab)) {
                   await tester.tap(fab);
                   await tester.pumpAndSettle();

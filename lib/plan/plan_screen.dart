@@ -373,12 +373,15 @@ class PlanScreenState extends State<PlanScreen> {
             maxScale: 4.0,
             child: SizedBox(
               width: Constants.screenWidth(context),
-              child: GridView.count(
+              child: GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: DestinationCalculations.columns,
-                childAspectRatio: 2.5,
-                children: values,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: DestinationCalculations.columns,
+                  mainAxisExtent: 28,
+                ),
+                itemCount: values.length,
+                itemBuilder: (context, index) => values[index],
               ),
             ),
           )

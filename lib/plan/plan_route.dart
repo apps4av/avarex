@@ -657,6 +657,13 @@ class PlanRoute {
   void insertWaypoint(Waypoint waypoint, {int? place}) {
     UserDatabaseHelper.db.addRecent(waypoint.destination);
 
+    // in the middle
+    if(place != null && place < _waypoints.length) {
+      _waypoints.insert(place + 1, waypoint);
+      _update(true);
+      return;
+    }
+
     if(Destination.isAirway(waypoint.destination.type) || Destination.isProcedure(waypoint.destination.type) || _waypoints.isEmpty) {
       addWaypoint(waypoint); // airways cannot be added in the middle. that's confusing
       return;
@@ -678,12 +685,6 @@ class PlanRoute {
             selected = index;
           }
         }
-      }
-
-      if(place != null && place < _waypoints.length) {
-        _waypoints.insert(place + 1, waypoint);
-        _update(true);
-        return;
       }
 
       Destination d0 = _waypoints[0].destination;
