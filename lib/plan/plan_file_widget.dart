@@ -117,10 +117,6 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
 
     return Column(
       children: [
-        const Flexible(flex: 1, child: Text("Brief and File (FAA)", style: TextStyle(fontWeight: FontWeight.w800),)),
-
-        const Padding(padding: EdgeInsets.all(10)),
-
         Flexible(flex: 8, child:  GridView.count(
             primary: false,
             crossAxisSpacing: 10,
@@ -686,7 +682,6 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
           const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
           SizedBox(width: 16, height: 16, child: Visibility(visible: _sending, child: const CircularProgressIndicator(),)),
           const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
-          // Show an error and a question mark with error code when error, otherwise show a check mark
           Tooltip(showDuration: const Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: _error, child: _sending ?
           Container() : _error.isEmpty ?
           const Icon(Icons.check, color: Colors.green,) :

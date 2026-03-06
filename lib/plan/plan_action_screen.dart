@@ -57,29 +57,39 @@ class PlanActionState extends State<PlanActionScreen> {
         ),
         child:
         Column(children: [
-          // various info
           Expanded(flex: 8, child: Padding(padding: const EdgeInsets.all(10), child: pages[_current])),
-          // add various buttons that expand to diagram
           Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(mainAxisAlignment: MainAxisAlignment.end, children:[
             TextButton(
+                style: _current == 0 ? TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                ) : null,
                 child: const Text("Load & Save"),
                 onPressed: () => setState(() {
                   _current = 0;
                 })
             ),
             TextButton(
+                style: _current == 1 ? TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                ) : null,
                 child: const Text("Create"),
                 onPressed: () => setState(() {
                   _current = 1;
                 })
             ),
             TextButton(
+                style: _current == 2 ? TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                ) : null,
                 child: const Text("Brief & File"),
                 onPressed: () => setState(() {
                   _current = 2;
                 })
             ),
             TextButton(
+                style: _current == 3 ? TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                ) : null,
                 child: const Text("Manage"),
                 onPressed: () => setState(() {
                   _current = 3;
@@ -87,6 +97,9 @@ class PlanActionState extends State<PlanActionScreen> {
             ),
             if (Constants.shouldShowBluetoothSpp)
               TextButton(
+                style: _current == 4 ? TextButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                ) : null,
                 child: const Text("Transfer"),
                 onPressed: () => setState(() {
                   _current = 4;

@@ -31,9 +31,9 @@ class AircraftScreenState extends State<AircraftScreen> {
     String inStorage = Storage().settings.getAircraft();
 
     if(null != items && items.isNotEmpty) {
-      _selected = items[0].tail; // use first item if nothing in storage
+      _selected = items[0].tail;
       for (Aircraft a in items) {
-        if (a.tail == inStorage) { // found the airplane
+        if (a.tail == inStorage) {
           _selected = a.tail;
         }
       }
@@ -125,81 +125,135 @@ class AircraftScreenState extends State<AircraftScreen> {
       }
     }
 
-    // has a set of value and help
-    List<_Entry> entries = [];
-    entries.add(_Entry("Tail Number",                               "tail",           active.tail,           const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Tail number, for example, N172EF.", child: Icon(Icons.info))));
-    entries.add(_Entry("Type",                                      "type",           active.type,           const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Type, for example, C172.", child: Icon(Icons.info))));
-    entries.add(_Entry("Color & Markings",                          "color",          active.color,          const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Use a combination of the following colors, for example, for white and blue, enter W/B.\nA  = Amber\nB  = Blue\nBE = Beige\nBK = Black\nBR = Brown\nG  = Green\nGD = Gold\nGY = Gray\nM  = Maroon\nO  = Orange\nOD = Olive Drab\nP  = Purple\nPK = Pink\nR  = Red\nS  = Silver\nTQ = Turquoise\nT  = Tan\nV  = Violet\nW  = White\nY  = Yellow\n", child: Icon(Icons.info))));
-    entries.add(_Entry("PIC",                                       "pic",            active.pic,            const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Name of the pilot, for example, John Smith.", child: Icon(Icons.info))));
-    entries.add(_Entry("PIC Information",                           "picInfo",        active.picInfo,        const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Pilot information, for example, phone number.", child: Icon(Icons.info))));
-    entries.add(_Entry("Home Base",                                 "base",           active.base,           const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Where the aircraft is based at, for example, KBVY.", child: Icon(Icons.info))));
-    entries.add(_Entry("Mode S Code",                               "icao",           active.icao,           const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Mode S code in base 16 / hex (registry.faa.gov), for example A12105.", child: Icon(Icons.info))));
-    entries.add(_Entry("Cruise Speed",                              "cruiseTas",      active.cruiseTas,      const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Airspeed in cruise in unit Knots, for example, 110.", child: Icon(Icons.info))));
-    entries.add(_Entry("Fuel Endurance",                            "fuelEndurance",  active.fuelEndurance,  const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Fuel endurance in hours, for example, for 5 hours 30 minutes enter 5.5.", child: Icon(Icons.info))));
-    entries.add(_Entry("Fuel Burn Rate",                            "fuelBurn",       active.fuelBurn,       const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Fuel burn rate in unit per hour, for example, for 10 gallons per hour, enter 10.", child: Icon(Icons.info))));
-    entries.add(_Entry("Sink Rate",                                 "sinkRate",       active.sinkRate,       const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Sink rate in unit feet per minute, for example, 700.", child: Icon(Icons.info))));
-    entries.add(_Entry("Wake Turbulence",                           "wake",           active.wake,           const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Wake turbulence category, enter one of LIGHT, MEDIUM, or HEAVY.", child: Icon(Icons.info))));
-    entries.add(_Entry("Navigation, Communications, Approach Aid",  "equipment",      active.equipment,      const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "A: GBAS landing system\nB: LPV (APCH with SBAS)\nC: LORAN C\nD: DME (Distance Measuring Equipment)\nG: GNSS (Global Navigation Satellite System)\nI: INS (Inertial Navigation System)\nL: ILS (Instrument Landing System)\nO: VOR (VHF Omnidirectional Range)\nR: PBN approved (Performance-Based Navigation)\nS: Standard equipment (ILS, VOR, VHF Comm)\nT: TACAN\nV: VHF Comm\nU: UHF\nW: RVSM (Reduced Vertical Separation Minimum)", child: Icon(Icons.info))));
-    entries.add(_Entry("Surveillance",                              "surveillance",   active.surveillance,   const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "N: No capabilities\nA: Mode A (no Mode C)\nC: Modes A and C\nS: Mode S- ACID and Altitude\nP: Mode S- Altitude, no ACID\nI: Mode S- ACID, no Altitude\nX: Mode S- no ACID, no Altitude\nE: Mode S- ACID, Altitude, Extended Squitter\nH: Mode S- ACID, Altitude, Enhanced Surveillance\nL: Mode S- ACID, Altitude, Enhanced Surveillance\nB1: 1090 MHz “out”\nB2: 1090 MHz “out” and “in”\nU1: UAT “out”\nU2: UAT “out” and “in”\nV1: VDL Mode 4 “out”\nV2: VDL Mode 4 “out” and “in”\nD1: ADS-C FANS 1/A\nG1: ADS-C ATN", child: Icon(Icons.info))));
-    entries.add(_Entry("Other Information",                         "other",          active.other,          const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "STS/ Special Handling\nPBN/ Performance Based Navigation\nNAV/ Other Navigation Capability \nCOM/ Other Communications Capability\nDAT/ Other Data Application\nSUR/ Other Surv. Capability\nDEP/ Non-standard Departure (e.g. MD24)\nDEST/ Non-standard Destination\nDOF/ Date of Flight (YYMMDD, e.g. 121123)\nREG/ Registration (e.g. N123A)\nEET/ Estimated Elapsed Times (e.g. KZNY0124)\nSEL/ SELCAL (e.g. BPAM)\nTYP/ Non-standard AC Type\nCODE/ Aircraft/Mode S address in hex (e.g. A519D9)\nDLE/ Delay (at a fix) (e.g. EXXON0120)\nOPR/ Operator, when not evident from ACID\nORGN/ Flight Plan Originator (e.g. KHOUARCW)\nPER/ Performance Category (e.g. A)\nALTN/ Non-standard Alternate(s) (e.g. 61NC)\nRALT/ Enroute Alternate(s) (e.g. EINN CYYR KDTW)\nTALT/ Take-off Alternate(s) (e.g. KTEB)\nRIF/ Route to revised Destination\nRMK/ Remarks", child: Icon(Icons.info))));
+    List<_Entry> identificationEntries = [
+      _Entry("Tail Number", "tail", active.tail, "Tail number, for example, N172EF."),
+      _Entry("Type", "type", active.type, "Type, for example, C172."),
+      _Entry("Color & Markings", "color", active.color, "Color codes: A=Amber, B=Blue, BE=Beige, BK=Black, BR=Brown, G=Green, GD=Gold, GY=Gray, M=Maroon, O=Orange, P=Purple, R=Red, S=Silver, W=White, Y=Yellow"),
+      _Entry("Mode S Code", "icao", active.icao, "Mode S code in hex (registry.faa.gov), e.g. A12105."),
+    ];
+
+    List<_Entry> pilotEntries = [
+      _Entry("PIC", "pic", active.pic, "Name of the pilot, for example, John Smith."),
+      _Entry("PIC Information", "picInfo", active.picInfo, "Pilot information, for example, phone number."),
+      _Entry("Home Base", "base", active.base, "Where the aircraft is based at, for example, KBVY."),
+    ];
+
+    List<_Entry> performanceEntries = [
+      _Entry("Cruise Speed", "cruiseTas", active.cruiseTas, "Airspeed in cruise in Knots, e.g. 110."),
+      _Entry("Fuel Endurance", "fuelEndurance", active.fuelEndurance, "Fuel endurance in hours, e.g. 5.5 for 5h 30m."),
+      _Entry("Fuel Burn Rate", "fuelBurn", active.fuelBurn, "Fuel burn rate per hour, e.g. 10 gph."),
+      _Entry("Sink Rate", "sinkRate", active.sinkRate, "Sink rate in feet per minute, e.g. 700."),
+      _Entry("Wake Turbulence", "wake", active.wake, "Wake category: LIGHT, MEDIUM, or HEAVY."),
+    ];
+
+    List<_Entry> equipmentEntries = [
+      _Entry("Equipment", "equipment", active.equipment, "Equipment codes: D=DME, G=GNSS, I=INS, L=ILS, O=VOR, R=PBN, S=Standard, T=TACAN, V=VHF, W=RVSM"),
+      _Entry("Surveillance", "surveillance", active.surveillance, "Surveillance codes: N=None, A=Mode A, C=Modes A+C, S=Mode S, B1/B2=1090MHz, U1/U2=UAT"),
+      _Entry("Other Information", "other", active.other, "Additional info: STS/, PBN/, NAV/, COM/, REG/, CODE/, RMK/"),
+    ];
+
+    List<_Entry> allEntries = [...identificationEntries, ...pilotEntries, ...performanceEntries, ...equipmentEntries];
 
     return SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              for(_Entry e in entries)
-                Row(children: [
-                  Flexible(flex: 4, child: TextFormField(
-                      onChanged: (value) {
-                        e.value = value;
-                      },
-                      controller: TextEditingController()..text = e.value,
-                      decoration: InputDecoration(border: const UnderlineInputBorder(), labelText: e.name)
-                  )),
-                  Flexible(flex: 1, child: e.widget),
-                ]),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(children: [
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildSection("Aircraft Identification", Icons.airplanemode_active, identificationEntries),
+          const SizedBox(height: 16),
+          _buildSection("Pilot Information", Icons.person, pilotEntries),
+          const SizedBox(height: 16),
+          _buildSection("Performance", Icons.speed, performanceEntries),
+          const SizedBox(height: 16),
+          _buildSection("Equipment", Icons.settings_input_antenna, equipmentEntries),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(children: [
 
-                    Padding(padding: const EdgeInsets.all(20), child: Dismissible(key: GlobalKey(),
-                        background: const Icon(Icons.delete_forever),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (direction) {
-                          String? entry = _selected;
-                          if(null != entry) {
-                            UserDatabaseHelper.db.deleteAircraft(entry);
-                            Storage().loadAircraftIds();
-                          }
-                          Storage().settings.setChecklist("");
-                          setState(() {
-                            _selected = null;
-                          });
-                        },
-                        child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])
-                    )),
+              Padding(padding: const EdgeInsets.all(20), child: Dismissible(key: GlobalKey(),
+                  background: const Icon(Icons.delete_forever),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    String? entry = _selected;
+                    if(null != entry) {
+                      UserDatabaseHelper.db.deleteAircraft(entry);
+                      Storage().loadAircraftIds();
+                    }
+                    Storage().settings.setAircraft("");
+                    setState(() {
+                      _selected = null;
+                    });
+                  },
+                  child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])
+              )),
 
-                    TextButton(
-                      onPressed: () {
-                        // take all of whats here and save
-                        Map<String, dynamic> mm = { for (var v in entries) v.map : v.value };
-                        Aircraft a = Aircraft.fromMap(mm);
-                        UserDatabaseHelper.db.addAircraft(a).then((value) {
-                          setState(() {
-                            Storage().settings.setAircraft(a.tail);
-                            Storage().loadAircraftIds();
-                          });
-                        });
-                      },
-                      child: const Text("Save")
+              TextButton(
+                onPressed: () {
+                  Map<String, dynamic> mm = { for (var v in allEntries) v.map : v.value };
+                  Aircraft a = Aircraft.fromMap(mm);
+                  UserDatabaseHelper.db.addAircraft(a).then((value) {
+                    setState(() {
+                      Storage().settings.setAircraft(a.tail);
+                      Storage().loadAircraftIds();
+                    });
+                  });
+                },
+                child: const Text("Save")
+              ),
+
+          ])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<_Entry> entries) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            for(_Entry e in entries)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: TextFormField(
+                  onChanged: (value) {
+                    e.value = value;
+                  },
+                  controller: TextEditingController()..text = e.value,
+                  decoration: InputDecoration(
+                    border: const OutlineInputBorder(),
+                    labelText: e.name,
+                    isDense: true,
+                    suffixIcon: Tooltip(
+                      showDuration: const Duration(seconds: 30),
+                      triggerMode: TooltipTriggerMode.tap,
+                      message: e.tooltip,
+                      child: const Icon(Icons.info_outline, size: 20),
                     ),
-
-
-                ])),
-            ],
-          )
-        )
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -220,14 +274,10 @@ class AircraftScreenState extends State<AircraftScreen> {
 }
 
 class _Entry {
-
   String name;
   String map;
   String value;
-  Widget widget;
+  String tooltip;
 
-  _Entry(this.name, this.map, this.value, this.widget);
-
+  _Entry(this.name, this.map, this.value, this.tooltip);
 }
-
-

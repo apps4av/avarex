@@ -15,9 +15,29 @@ class OnBoardingScreen extends StatefulWidget {
   OnBoardingScreenState createState() => OnBoardingScreenState();
 }
 
-class OnBoardingScreenState extends State<OnBoardingScreen> {
+class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerProviderStateMixin {
   final _introKey = GlobalKey<IntroductionScreenState>();
   bool _visibleRegister = false;
+  late AnimationController _bounceController;
+  late Animation<double> _bounceAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _bounceController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    _bounceAnimation = Tween<double>(begin: 0, end: 12).animate(
+      CurvedAnimation(parent: _bounceController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _bounceController.dispose();
+    super.dispose();
+  }
 
   void _onIntroEnd(BuildContext context) {
     Navigator.of(context).pushReplacement(
@@ -33,16 +53,113 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
     return Image.asset('assets/images/$assetName', fit: BoxFit.cover, height: double.infinity, width: double.infinity, alignment: Alignment.center,);
   }
 
+  Widget _buildTermsSection(String title, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withAlpha(30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.yellow,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            content,
+            style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(220)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({required IconData icon, required String title, required String description}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(20),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(30),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGpsOption(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(40),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(text, style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool signed = Storage().settings.isSigned();
     String email = Storage().settings.getEmail();
-    const bodyStyle = TextStyle(fontSize: 19.0);
+    const bodyStyle = TextStyle(fontSize: 17.0, height: 1.4);
 
     const pageDecoration = PageDecoration(
-      titleTextStyle: TextStyle(fontSize: 28.0, fontWeight: FontWeight.w700),
+      titleTextStyle: TextStyle(fontSize: 26.0, fontWeight: FontWeight.bold, color: Colors.white),
       bodyTextStyle: bodyStyle,
-      bodyPadding: EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 16.0),
+      bodyPadding: EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 16.0),
       pageColor: Colors.blueAccent,
       imagePadding: EdgeInsets.zero,
     );
@@ -54,19 +171,102 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
     PageViewModel gpsPage = PageViewModel(
       title: "Internet and GPS",
       bodyWidget: Column(
-          children:[
-            const Text("Connect this device to the Internet. Internet connection is required to download charts and weather. The connection may be turned off during the flight.\n\n\n"
-              "Make sure you are in an area where GPS signals are strong.\n\n"
-              "You can select between Auto, Internal, and External GPS sources.\n"
-              " 1) You must provide the app with permissions to access the GPS.\n"
-              " 2) You may connect your external GPS/ADS-B receiver to UDP port 4000, 43211, or 49002.\n"
-              " 3) Tap the SRC widget to cycle modes: Auto, Internal (green), External (blue).\n"),
-              Text("$gpsDeniedMessage\n$gpsEnabledMessage\n"),
-              Storage().gpsNotPermitted ? TextButton(onPressed: () { Geolocator.openAppSettings(); }, child: const Text("GPS Permissions"),) : Container(),
-              Storage().gpsDisabled ? TextButton(onPressed: () { Geolocator.openLocationSettings(); }, child: const Text("Enable GPS")) : Container(),
-          ]
-      ),
+        children: [
+          _buildInfoCard(
+            icon: Icons.wifi,
+            title: "Internet Connection",
+            description: "Required to download charts and weather. Can be turned off during flight.",
+          ),
+          _buildInfoCard(
+            icon: Icons.gps_fixed,
+            title: "GPS Signal",
+            description: "Make sure you are in an area where GPS signals are strong.",
+          ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(20),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.settings_input_antenna, color: Colors.yellow.shade300),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "GPS Sources",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildGpsOption("1", "Grant GPS permissions to the app"),
+                _buildGpsOption("2", "External GPS/ADS-B via UDP port 4000, 43211, or 49002"),
+                _buildGpsOption("3", "Tap SRC to cycle: Auto → Internal (green) → External (blue)"),
+              ],
+            ),
+          ),
 
+          // GPS status warnings
+          if (Storage().gpsNotPermitted || Storage().gpsDisabled)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade700.withAlpha(150),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  if (gpsDeniedMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.yellow),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(gpsDeniedMessage, style: const TextStyle(color: Colors.white))),
+                        ],
+                      ),
+                    ),
+                  if (gpsEnabledMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.yellow),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(gpsEnabledMessage, style: const TextStyle(color: Colors.white))),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      if (Storage().gpsNotPermitted)
+                        ElevatedButton.icon(
+                          onPressed: () => Geolocator.openAppSettings(),
+                          icon: const Icon(Icons.settings),
+                          label: const Text("GPS Permissions"),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                        ),
+                      if (Storage().gpsDisabled)
+                        ElevatedButton.icon(
+                          onPressed: () => Geolocator.openLocationSettings(),
+                          icon: const Icon(Icons.location_on),
+                          label: const Text("Enable GPS"),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
       decoration: pageDecoration,
     );
 
@@ -79,45 +279,166 @@ class OnBoardingScreenState extends State<OnBoardingScreen> {
         PageViewModel(
           title: "Sign the Terms of Use",
           bodyWidget: Column(children: [
-            const Text(
-                """
-** YOU MUST FULLY READ, AGREE TO, AND SIGN THIS AGREEMENT TO CONTINUE. **\n\n
-This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including devices, related to its use.
+            // Scroll indicator at the top (only if not signed)
+            if (!signed)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade700,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(60),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.touch_app, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            "Scroll down to sign",
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            "Press the Sign button at the bottom to proceed",
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-** What Information We Collect **
-
-The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform. This information is used for internal verification to complete registrations / transactions, ensure appropriate legal use of the service, provide notification to users about updates to the service, provide notification to users about content upgrade, and help provide technical support to our users.
-
-** Sharing Your Personal Information **
-
-We do not sell or share your personal information to third parties for marketing purposes unless you have granted us permission to do so. We will ask for your permission before we use or share your information for any purpose other than the reason you provided it or as otherwise provided by this document. We may also respond to subpoenas, court orders or legal process by disclosing all your information available to us, if required to do so.
-
-** Security **
-
-We utilize generally accepted security measures (such as encryption / HTTPS) to protect against the misuse or unauthorized disclosure of any personal information you submit to us. However, like other Internet sites, we cannot guarantee that it is completely secure from people who might attempt to evade security measures or intercept transmissions over the Internet.
-
-** Enforcement **
-
-If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com and we will act promptly to investigate, correct as appropriate, and advise you of the correction. Please identify the issue as a Privacy Policy concern in your communication to apps4av@gmail.com.
-
-** Register/Sign This Document **
-
-Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking "Tap here to sign" below, you agree to, and sign for ALL the above "Terms, Conditions, and Privacy Policy".
-"""
+            // Terms content in a card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                "This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including devices, related to its use.",
+                style: TextStyle(fontSize: 15, color: Colors.white),
+              ),
             ),
-            Padding(padding: const EdgeInsets.all(20), child:TextButton(
-              onPressed: () {
-                setState(() {
-                  Storage().settings.setSign(true);
-                  Storage().settings.setEmail(email);
-                });
-              },
-              child: const Padding(padding: EdgeInsets.all(20), child:Text("Tap here to sign", style: TextStyle(fontSize: 20, color: Colors.yellow),)),
-            )),
-            if(signed)
-              const Text("You have signed this document. Please continue on to the next screen.", style: TextStyle(color: Colors.yellow, backgroundColor: Colors.black),)
+            const SizedBox(height: 16),
+
+            // Privacy sections
+            _buildTermsSection("What Information We Collect", 
+              "The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform."),
+            _buildTermsSection("Sharing Your Personal Information", 
+              "We do not sell or share your personal information to third parties for marketing purposes unless you have granted us permission to do so."),
+            _buildTermsSection("Security", 
+              "We utilize generally accepted security measures (such as encryption / HTTPS) to protect against the misuse or unauthorized disclosure of any personal information you submit to us."),
+            _buildTermsSection("Enforcement", 
+              "If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com."),
+
+            const SizedBox(height: 24),
+
+            // Sign button with animated pointer
+            if (!signed)
+              AnimatedBuilder(
+                animation: _bounceAnimation,
+                builder: (context, child) {
+                  return Column(
+                    children: [
+                      Transform.translate(
+                        offset: Offset(0, -_bounceAnimation.value),
+                        child: const Icon(Icons.arrow_downward, color: Colors.yellow, size: 32),
+                      ),
+                      const SizedBox(height: 8),
+                      child!,
+                    ],
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.green.shade600, Colors.green.shade800],
+                    ),
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.green.withAlpha(100),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () {
+                        setState(() {
+                          Storage().settings.setSign(true);
+                          Storage().settings.setEmail(email);
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(Icons.check_circle, color: Colors.white, size: 24),
+                            SizedBox(width: 12),
+                            Text(
+                              "I Agree & Sign",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Status indicator
+            if (signed)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade700,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      "Signed! Swipe to continue →",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              )
             else
-              const Text("You have not signed this document.", style: TextStyle(color: Colors.red, backgroundColor: Colors.black),)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade700.withAlpha(200),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  "You must sign to continue",
+                  style: TextStyle(color: Colors.white, fontSize: 13),
+                ),
+              ),
           ]),
           decoration: pageDecoration,
         ),
@@ -125,115 +446,386 @@ Do you agree to ALL the above Terms, Conditions, and Privacy Policy? By clicking
         PageViewModel(
           title: "Welcome to AvareX!",
           bodyWidget: Column(
-            children:[
-              const Text("This introduction will show you the necessary steps to operate the app."),
-              const Padding(padding: EdgeInsets.all(20)),
-              const Text("Select time of day theme"),
-              Row(mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Night"),
-                  Switch(value: Storage().settings.isLightMode(), onChanged: (value) {
-                    setState(() {
-                      Storage().settings.setLightMode(!Storage().settings.isLightMode());
-                      Storage().themeNotifier.value = Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark();
-                    });
-                  }),
-                  const Text("Day"),
-              ]),
-              const Padding(padding: EdgeInsets.fromLTRB(0, 30, 0, 0)),
-              const Text("Select your preferred distance, speed, and elevation units"),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                const Text("NM/Knots/Feet"),
-                Switch(value: Storage().settings.getUnits() == "Imperial", onChanged: (value) {
-                  setState(() {
-                    if(value == false) {
-                      Storage().settings.setUnits("Maritime");
-                    } else {
-                      Storage().settings.setUnits("Imperial");
-                    }
-                    Storage().units = UnitConversion(Storage().settings.getUnits());
-                  });
-                }),
-                const Text("SM/MPH/Feet"),
-              ]
-              )
-          ]),
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  "This introduction will guide you through the necessary steps to get started with the app.",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Theme selection card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withAlpha(40)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.brightness_6, color: Colors.yellow.shade300),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Display Theme",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dark_mode, color: !Storage().settings.isLightMode() ? Colors.yellow : Colors.white54),
+                        const SizedBox(width: 8),
+                        const Text("Night", style: TextStyle(color: Colors.white)),
+                        Switch(
+                          value: Storage().settings.isLightMode(),
+                          activeThumbColor: Colors.yellow,
+                          onChanged: (value) {
+                            setState(() {
+                              Storage().settings.setLightMode(!Storage().settings.isLightMode());
+                              Storage().themeNotifier.value = Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark();
+                            });
+                          },
+                        ),
+                        const Text("Day", style: TextStyle(color: Colors.white)),
+                        const SizedBox(width: 8),
+                        Icon(Icons.light_mode, color: Storage().settings.isLightMode() ? Colors.yellow : Colors.white54),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Units selection card
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withAlpha(40)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.straighten, color: Colors.yellow.shade300),
+                        const SizedBox(width: 8),
+                        const Text(
+                          "Measurement Units",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Column(
+                          children: [
+                            Text(
+                              "NM / Knots",
+                              style: TextStyle(
+                                color: Storage().settings.getUnits() != "Imperial" ? Colors.yellow : Colors.white54,
+                                fontWeight: Storage().settings.getUnits() != "Imperial" ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            Text("(Maritime)", style: TextStyle(fontSize: 10, color: Colors.white54)),
+                          ],
+                        ),
+                        Switch(
+                          value: Storage().settings.getUnits() == "Imperial",
+                          activeThumbColor: Colors.yellow,
+                          onChanged: (value) {
+                            setState(() {
+                              Storage().settings.setUnits(value ? "Imperial" : "Maritime");
+                              Storage().units = UnitConversion(Storage().settings.getUnits());
+                            });
+                          },
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              "SM / MPH",
+                              style: TextStyle(
+                                color: Storage().settings.getUnits() == "Imperial" ? Colors.yellow : Colors.white54,
+                                fontWeight: Storage().settings.getUnits() == "Imperial" ? FontWeight.bold : FontWeight.normal,
+                              ),
+                            ),
+                            Text("(Imperial)", style: TextStyle(fontSize: 10, color: Colors.white54)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           image: _buildFullscreenImage('intro.png'),
           decoration: pageDecoration,
         ),
         gpsPage,
         PageViewModel(
-          title: "Databases and Aviation Maps",
-          bodyWidget: Column(children:[
-            const Text("You must download Databases.\nPress the Download button below, then select Databases to show the download icon. Select any other maps you wish to download.\nPress the Start button on top right. Wait for the selected items to turn green.\nIf you exit the download screen before the downloading is complete, the app will abort all incomplete downloads."),
-            TextButton(onPressed: () {
-                Navigator.pushNamed(context, "/download");
-              },
-              child: const Text("Download"),
-            )
-          ]),
+          title: "Databases and Maps",
+          bodyWidget: Column(
+            children: [
+              _buildInfoCard(
+                icon: Icons.download,
+                title: "Download Required",
+                description: "You must download Databases before using the app.",
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "How to download:",
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.yellow, fontSize: 15),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildGpsOption("1", "Press the Download button below"),
+                    _buildGpsOption("2", "Select Databases and any maps you need"),
+                    _buildGpsOption("3", "Press Download button (top right)"),
+                    _buildGpsOption("4", "Wait for items to turn green"),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, "/download"),
+                icon: const Icon(Icons.download),
+                label: const Text("Open Downloads"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
           image: _buildImage('download.png'),
           decoration: pageDecoration,
         ),
         PageViewModel(
           title: "Keep Warnings in Check",
           image: _buildImage('warning.png'),
-          bodyWidget: const Text("Any time you see this red warning icon in the app, click on it for troubleshooting. The app may not work properly when this icon is visible."),
+          bodyWidget: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.red.withAlpha(60),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.withAlpha(100)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.error, color: Colors.red, size: 32),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "When you see the red warning icon, tap it for troubleshooting. The app may not work properly while warnings are active.",
+                    style: TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
           decoration: pageDecoration,
         ),
         PageViewModel(
-          title: "Turn off the Layers",
+          title: "Optimize Performance",
           image: _buildImage('layers.png'),
-          bodyWidget: const Text("For optimum app performance, turn off unused layers."),
+          bodyWidget: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(20),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.speed, color: Colors.yellow, size: 32),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    "For best app performance, turn off unused map layers. Access layers from the layers icon on the map screen.",
+                    style: TextStyle(color: Colors.white, fontSize: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
           decoration: pageDecoration,
         ),
         PageViewModel(
           title: "File Flight Plans",
-          bodyWidget: Column(children:[
-            const Text("You may optionally choose to register with Apps4Av Inc. here to file flight plans with the FAA (1800wxbrief.com). Use the same email ID that you use at 1800wxbrief.com."),
-            const Padding(padding: EdgeInsets.all(10)),
-            TextFormField(
-                onChanged: (value) {
-                  email = value;
-                },
-                controller: TextEditingController()..text = email,
-                decoration: const InputDecoration(border: UnderlineInputBorder(), labelStyle: TextStyle(color: Colors.yellow), labelText: '1800wxbrief.com Username / Email')
-            ),
-            const Padding(padding: EdgeInsets.all(20)),
-            if(Storage().settings.getEmail().isEmpty)
-              TextButton(onPressed: () {
-                LmfsInterface interface = LmfsInterface();
-                setState(() {
-                  _visibleRegister = true;
-                });
-                interface.register(email).then((value) {
-                  Storage().settings.setEmail(email);
-                  setState(() {
-                    _visibleRegister = false;
-                  });
-                }); // now register with mongodb
-                },
-                child: const Text("Register", style: TextStyle(color: Colors.yellow, fontSize: 20)),),
-            if(Storage().settings.getEmail().isNotEmpty)
-              TextButton(onPressed: () {
-                LmfsInterface interface = LmfsInterface();
-                setState(() {
-                  _visibleRegister = true;
-                });
-                interface.unregister(email).then((value) {
-                  Storage().settings.setEmail("");
-                  setState(() {
-                    _visibleRegister = false;
-                  });
-                });
-              }, child: const Text("Unregister", style: TextStyle(color: Colors.yellow, fontSize: 20),)),
-             Visibility(visible: _visibleRegister, child: const CircularProgressIndicator()),
-          ]),
+          bodyWidget: Column(
+            children: [
+              _buildInfoCard(
+                icon: Icons.flight_takeoff,
+                title: "FAA Flight Plans (Optional)",
+                description: "Register to file flight plans with the FAA via 1800wxbrief.com. Use the same email you use at 1800wxbrief.com.",
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(20),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      onChanged: (value) {
+                        email = value;
+                      },
+                      controller: TextEditingController()..text = email,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.white.withAlpha(100)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: Colors.yellow),
+                        ),
+                        labelStyle: const TextStyle(color: Colors.yellow),
+                        labelText: '1800wxbrief.com Email',
+                        prefixIcon: const Icon(Icons.email, color: Colors.white54),
+                        filled: true,
+                        fillColor: Colors.white.withAlpha(10),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    if (Storage().settings.getEmail().isEmpty)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          LmfsInterface interface = LmfsInterface();
+                          setState(() {
+                            _visibleRegister = true;
+                          });
+                          interface.register(email).then((value) {
+                            Storage().settings.setEmail(email);
+                            setState(() {
+                              _visibleRegister = false;
+                            });
+                          });
+                        },
+                        icon: const Icon(Icons.person_add),
+                        label: const Text("Register"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                    if (Storage().settings.getEmail().isNotEmpty)
+                      Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withAlpha(60),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                SizedBox(width: 8),
+                                Text("Registered", style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () {
+                              LmfsInterface interface = LmfsInterface();
+                              setState(() {
+                                _visibleRegister = true;
+                              });
+                              interface.unregister(email).then((value) {
+                                Storage().settings.setEmail("");
+                                setState(() {
+                                  _visibleRegister = false;
+                                });
+                              });
+                            },
+                            child: const Text("Unregister", style: TextStyle(color: Colors.yellow)),
+                          ),
+                        ],
+                      ),
+                    if (_visibleRegister)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 12),
+                        child: CircularProgressIndicator(color: Colors.yellow),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           decoration: pageDecoration,
         ),
         PageViewModel(
-          title: "Join the Forum",
-          bodyWidget: const SelectableText("For 24/7 help, join our forum at\n\nhttps://groups.google.com/g/apps4av-forum\n"),
+          title: "Join the Community",
+          bodyWidget: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(20),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.forum, color: Colors.yellow, size: 48),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Get 24/7 Help & Support",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Join our community forum for tips, help, and discussions with other pilots.",
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const SelectableText(
+                        "https://groups.google.com/g/apps4av-forum",
+                        style: TextStyle(color: Colors.yellow, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           image: _buildImage('forum.png'),
           decoration: pageDecoration,
         ),

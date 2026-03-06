@@ -366,269 +366,365 @@ class PlateScreenState extends State<PlateScreen> {
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
-    if(notAd) {
+    if (notAd) {
       Storage().business = null;
     }
 
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     final double opacity = layersOpacity[layers.indexOf("Elevation")];
+    final Color overlayBg = Theme.of(context).colorScheme.surface.withAlpha(200);
 
-    return Scaffold(body: Stack(children: [
-      // always return this so to reduce flicker
-      InteractiveViewer(
-          transformationController: _transformationController,
-          minScale: 0.1,
-          maxScale: 8,
-          boundaryMargin: const EdgeInsets.all(double.infinity),
-          child:
-          SizedBox(
-            height: Constants.screenHeight(context),
-            width: Constants.screenWidth(context),
-            child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity)),
-          )
-      ),
+    // Empty state when no airports/plates
+    if (airports.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.map_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
+              const SizedBox(height: 16),
+              Text(
+                "No plates available",
+                style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.outline),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Search for an airport to view plates",
+                style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.outline),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-      Positioned(
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: (Storage().settings.isInstrumentsVisiblePlate()) ?
-            SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList()) : Container(),
-        )
-      ),
+    return Scaffold(
+      body: Stack(
+        children: [
+          InteractiveViewer(
+            transformationController: _transformationController,
+            minScale: 0.1,
+            maxScale: 8,
+            boundaryMargin: const EdgeInsets.all(double.infinity),
+            child: SizedBox(
+              height: Constants.screenHeight(context),
+              width: Constants.screenWidth(context),
+              child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity)),
+            ),
+          ),
 
-      // allow user to toggle instruments
-      Positioned(
-      child: Align(
-        alignment: Alignment.topRight,
-        child: CircleAvatar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-        child: IconButton(onPressed: () {
-          setState(() {
-            Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
-          });
-        }, icon: Icon(Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft),),),
-      )),
+          // Instruments panel (top left)
+          Positioned(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Storage().settings.isInstrumentsVisiblePlate()
+                  ? SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
+                  : Container(),
+            ),
+          ),
 
-      // Show airport diagram on landing toggle (only visible on airport diagrams)
-      if (!notAd)
-        Positioned(
-          top: Constants.screenHeightForInstruments(context) + 5,
-          right: 5,
-          child: CircleAvatar(radius: 14,
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-            child: IconButton(
-              onPressed: () {
-                setState(() {
-                  bool show =  Storage().settings.isShowAirportDiagramOnLanding();
-                  if(!show) {
-                    Toast.showToast(context, "Airport diagram will be shown automatically on landing", null, 3);
-                  }
-                  else {
-                    Toast.showToast(context, "Airport diagram auto switch disabled", null, 3);
-                  }
-                  Storage().settings.setShowAirportDiagramOnLanding(!show);
-                });
-              },
-              icon: Icon(size: 14,
-                Storage().settings.isShowAirportDiagramOnLanding() ? Icons.check : Icons.close,
+          // Instrument toggle button (top right)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: overlayBg,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () {
+                  setState(() {
+                    Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
+                  });
+                },
+                icon: Icon(
+                  Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft,
+                  size: 20,
+                ),
+                tooltip: Storage().settings.isInstrumentsVisiblePlate() ? "Hide instruments" : "Show instruments",
               ),
             ),
           ),
-        ),
 
-      // Center button to reset plate view
-      Positioned(
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 5),
-            child: TextButton(
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.all(5.0),
-                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+          // Auto-show airport diagram toggle (top right, below instruments toggle)
+          if (!notAd)
+            Positioned(
+              top: Constants.screenHeightForInstruments(context) + 12,
+              right: 12,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    bool show = Storage().settings.isShowAirportDiagramOnLanding();
+                    Toast.showToast(
+                      context,
+                      show ? "Airport diagram auto switch disabled" : "Airport diagram will be shown automatically on landing",
+                      null,
+                      3,
+                    );
+                    Storage().settings.setShowAirportDiagramOnLanding(!show);
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: overlayBg,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Storage().settings.isShowAirportDiagramOnLanding() ? Icons.flight_land : Icons.flight_land_outlined,
+                    size: 24,
+                    color: Storage().settings.isShowAirportDiagramOnLanding() ? Theme.of(context).colorScheme.primary : null,
+                  ),
+                ),
               ),
-              onPressed: () {
-                // Center at current zoom - preserve scale, reset translation
-                final double currentScale = _transformationController.value.getMaxScaleOnAxis();
-                _transformationController.value = Matrix4.identity()..scaleByDouble(currentScale, currentScale, 1, 1);
-              },
-              onLongPress: () {
-                // Center and fit - reset to identity
-                _transformationController.value = Matrix4.identity();
-              },
-              child: const Text("Center"),
-            )
-          )
-        )
-      ),
+            ),
 
-      plates.isEmpty ? Container() : // nothing to show here if plates is empty
-      Positioned(
-          child: Align(
-              alignment: Alignment.bottomLeft,
-              child: plates[0].isEmpty ? Container() : Container(
-                  padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
-                  child:DropdownButtonHideUnderline(
-                      child:DropdownButton2<String>(
-                        isDense: true,// plate selection
-                        customButton: CircleAvatar(backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.more_horiz),
+          // Center button (bottom center)
+          Positioned(
+            bottom: Constants.bottomPaddingSize(context) + 8,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: overlayBg,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  ),
+                  onPressed: () {
+                    final double currentScale = _transformationController.value.getMaxScaleOnAxis();
+                    _transformationController.value = Matrix4.identity()..scaleByDouble(currentScale, currentScale, 1, 1);
+                  },
+                  onLongPress: () {
+                    _transformationController.value = Matrix4.identity();
+                  },
+                  child: const Text("Center"),
+                ),
+              ),
+            ),
+          ),
+
+          // Plate selector (bottom left)
+          if (plates.isNotEmpty && plates[0].isNotEmpty)
+            Positioned(
+              bottom: Constants.bottomPaddingSize(context) + 8,
+              left: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: overlayBg,
+                  shape: BoxShape.circle,
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<String>(
+                    isDense: true,
+                    customButton: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.menu, color: Theme.of(context).colorScheme.primary),
+                    ),
+                    buttonStyleData: ButtonStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                      width: Constants.screenWidth(context) * 0.8,
+                      maxHeight: Constants.screenHeight(context) * 0.6,
+                    ),
+                    isExpanded: false,
+                    value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+                    items: plates.map((String item) {
+                      final bool isSelected = item == Storage().currentPlate;
+                      return DropdownMenuItem<String>(
+                        value: item,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _getPlateColor(item).withAlpha(isSelected ? 180 : 100),
+                            borderRadius: BorderRadius.circular(6),
+                            border: isSelected ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : null,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(_getPlateIcon(item), size: 16, color: Colors.white),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: AutoSizeText(
+                                  item,
+                                  minFontSize: 8,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        Storage().currentPlate = value ?? plates[0];
+                        _transformationController.value = Matrix4.identity();
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+          // Business selector (center right, only on airport diagrams)
+          if (business.isNotEmpty && !notAd)
+            Positioned(
+              right: 8,
+              top: Constants.screenHeight(context) / 2 - 20,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: overlayBg,
+                  shape: BoxShape.circle,
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton2<String>(
+                    isDense: true,
+                    customButton: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.business, color: Theme.of(context).colorScheme.primary),
+                    ),
+                    buttonStyleData: ButtonStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                      width: Constants.screenWidth(context) * 0.75,
+                    ),
+                    isExpanded: false,
+                    value: business.contains(Storage().business) ? Storage().business!.facilityName : business[0].facilityName,
+                    items: business.map((Destination item) {
+                      return DropdownMenuItem<String>(
+                        value: item.facilityName,
+                        child: ListTile(
+                          dense: true,
+                          leading: const Icon(Icons.location_on, size: 18),
+                          title: Text(item.facilityName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        Storage().business = value == null
+                            ? business[0]
+                            : business.firstWhere((element) => element.facilityName == value, orElse: () => business[0]);
+                      });
+                    },
+                  ),
+                ),
+              ),
+            ),
+
+          // Airport selector and procedures (bottom right)
+          Positioned(
+            bottom: Constants.bottomPaddingSize(context) + 8,
+            right: 8,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Procedures selector
+                if (procedures.isNotEmpty && procedures[0].isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: overlayBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton2<String>(
+                          isDense: true,
+                          customButton: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(Icons.add_road, color: Theme.of(context).colorScheme.primary),
+                          ),
+                          buttonStyleData: ButtonStyleData(
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                          ),
+                          dropdownStyleData: DropdownStyleData(
+                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                            width: Constants.screenWidth(context) * 0.8,
+                          ),
+                          isExpanded: false,
+                          value: procedures[0],
+                          items: procedures.map((String item) {
+                            return DropdownMenuItem<String>(
+                              value: item,
+                              child: ListTile(
+                                dense: true,
+                                leading: TextButton(
+                                  child: const Text("+Plan"),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
+                                      if (procedure != null) {
+                                        Storage().route.addWaypoint(Waypoint(procedure));
+                                        setState(() {
+                                          Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
+                                        });
+                                      }
+                                    });
+                                  },
+                                ),
+                                title: AutoSizeText(item, minFontSize: 8, maxLines: 1),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              Storage().settings.setPlateProfileVisible(true);
+                              Storage().settings.setPlateProfile(value ?? "");
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Airport selector
+                if (airports.isNotEmpty && airports[0].isNotEmpty)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: overlayBg,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton2<String>(
                         buttonStyleData: ButtonStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), color: Colors.transparent),
                         ),
                         dropdownStyleData: DropdownStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                          width: Constants.screenWidth(context) * 0.75,
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
                         ),
                         isExpanded: false,
-                        value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
-                        items: plates.map((String item) {
+                        value: airports.contains(Storage().settings.getCurrentPlateAirport())
+                            ? Storage().settings.getCurrentPlateAirport()
+                            : airports[0],
+                        items: airports.map((String item) {
+                          final bool isSelected = item == Storage().settings.getCurrentPlateAirport();
                           return DropdownMenuItem<String>(
                             value: item,
-                            child: Row(children:[
-                              Expanded(child:
-                                Container(
-                                  decoration: BoxDecoration(color: _getPlateColor(item),
-                                    borderRadius: BorderRadius.circular(5),),
-                                    child: Padding(padding: const EdgeInsets.all(5), child:
-                                      AutoSizeText(item, minFontSize: 2, maxLines: 1,)),
-                                )
-                              )
-                            ])
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            Storage().currentPlate = value ?? plates[0];
-                            _transformationController.value = Matrix4.identity();
-                          });
-                        },
-                      )
-                  )
-              )
-          )
-      ),
-
-      (business.isEmpty || notAd) ? Container() : // nothing to show here if plates is empty
-      Positioned(
-          child: Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                  padding: EdgeInsets.fromLTRB(15, 5, 5, Constants.bottomPaddingSize(context) + 5),
-                  child:DropdownButtonHideUnderline(
-                      child:DropdownButton2<String>(
-                        isDense: true,// plate selection
-                        customButton: CircleAvatar(backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.more_horiz),
-                        ),
-                        buttonStyleData: ButtonStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-                        ),
-                        dropdownStyleData: DropdownStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                          width: Constants.screenWidth(context) * 0.75,
-                        ),
-                        isExpanded: false,
-                        value: business.contains(Storage().business) ? Storage().business!.facilityName : business[0].facilityName,
-                        items: business.map((Destination item) {
-                          return DropdownMenuItem<String>(
-                              value: item.facilityName,
-                              child: Row(children:[
-                                Expanded(child:
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(5),),
-                                  child: Padding(padding: const EdgeInsets.all(5), child:
-                                  AutoSizeText(item.facilityName, minFontSize: 2, maxLines: 1,)),
-                                )
-                                )
-                              ])
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            Storage().business = value == null ? business[0] : business.firstWhere((element) => element.facilityName == value, orElse: () => business[0]);
-                          });
-                        },
-                      )
-                  )
-              )
-          )
-      ),
-
-      airports.isEmpty ? Container() : // nothing to show here is airports is empty
-      Positioned(
-          child: Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + 5),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    procedures.isEmpty || procedures[0].isEmpty ? Container() : // nothing to show here if plates is empty
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 5),
-                      child: DropdownButtonHideUnderline(
-                          child:DropdownButton2<String>(
-                            isDense: true,// plate selection
-                              customButton: CircleAvatar(radius: 14, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),child: const Icon(Icons.add)),
-                              buttonStyleData: ButtonStyleData(
-                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: Constants.dropDownButtonFontSize,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              ),
                             ),
-                            dropdownStyleData: DropdownStyleData(
-                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                              width: Constants.screenWidth(context) * 0.75,
-                            ),
-                            isExpanded: false,
-                            value: procedures[0],
-                            items: procedures.map((String item) {
-                              return DropdownMenuItem<String>(
-                                  value: item,
-                                  onTap: null,
-                                  child: ListTile(
-                                    leading: TextButton(child: Text("+Plan"),
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                        MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
-                                          if(procedure != null) {
-                                            Storage().route.addWaypoint(Waypoint(procedure));
-                                            setState(() {
-                                              Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
-                                            });
-                                          }
-                                        });
-                                    },),
-                                    title: Padding(padding: const EdgeInsets.all(5), child:
-                                    AutoSizeText(item, minFontSize: 2, maxLines: 1,))),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                Storage().settings.setPlateProfileVisible(true);
-                                Storage().settings.setPlateProfile(value ?? "");
-                              });
-                            },
-                          )
-                      )
-                    ),
-
-                    airports[0].isEmpty ? Container() :
-                    DropdownButtonHideUnderline(
-                      child:DropdownButton2<String>( // airport selection
-                        buttonStyleData: ButtonStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)),
-                        ),
-                        dropdownStyleData: DropdownStyleData(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        isExpanded: false,
-                        value: airports.contains(Storage().settings.getCurrentPlateAirport()) ? Storage().settings.getCurrentPlateAirport() : airports[0],
-                        items: airports.map((String item) {
-                          return DropdownMenuItem<String>(
-                              value: item,
-                              child:Text(item, style: TextStyle(fontSize: Constants.dropDownButtonFontSize))
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -639,31 +735,68 @@ class PlateScreenState extends State<PlateScreen> {
                             _transformationController.value = Matrix4.identity();
                           });
                         },
-                      )
-                    )
-                  ]
-                )
-              )
-      ),
-    ),
-    Storage().settings.isPlateProfileVisible() ?
-      Positioned(
-          child: Align(
-              alignment: Alignment.bottomRight,
-              child: Padding(
-                      padding: EdgeInsets.only(bottom: Constants.bottomPaddingSize(context) + 60),
-                      child: Stack(children:[
-                        IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
-                        Padding(padding: EdgeInsets.fromLTRB(0, 0, 10, 0), child: IconButton(icon: Icon(Icons.close), onPressed: () {
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Plate profile widget
+          if (Storage().settings.isPlateProfileVisible())
+            Positioned(
+              bottom: Constants.bottomPaddingSize(context) + 70,
+              right: 0,
+              child: Stack(
+                children: [
+                  IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
+                  Positioned(
+                    top: 0,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: overlayBg,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        iconSize: 18,
+                        icon: const Icon(Icons.close),
+                        onPressed: () {
                           setState(() {
                             Storage().settings.setPlateProfileVisible(false);
                             Storage().settings.setPlateProfile("");
                           });
-                        },))
-                      ])
-          ))) : Container(),
-    ])
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
+  }
+
+  IconData _getPlateIcon(String name) {
+    if (name.startsWith("APD")) {
+      return Icons.local_airport;
+    } else if (name.startsWith("CSUP")) {
+      return Icons.info;
+    } else if (name.startsWith("DP")) {
+      return Icons.flight_takeoff;
+    } else if (name.startsWith("IAP")) {
+      return Icons.flight_land;
+    } else if (name.startsWith("STAR")) {
+      return Icons.trending_down;
+    } else if (name.startsWith("MIN")) {
+      return Icons.vertical_align_bottom;
+    } else if (name.startsWith("HOT")) {
+      return Icons.warning;
+    } else if (name.startsWith("LAH")) {
+      return Icons.warning;
+    }
+    return Icons.description;
   }
   
   Color _getPlateColor(String name) {

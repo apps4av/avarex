@@ -21,8 +21,8 @@ const Color _absentColor = Constants.chartAbsentColor;
 const Color _currentColor = Constants.chartCurrentColor;
 const Color _expiredColor = Constants.chartExpiredColor;
 
-const IconData _absentIcon = Icons.question_mark;
-const IconData _downloadedIcon = Icons.check;
+const IconData _absentIcon = Icons.cloud_download_outlined;
+const IconData _downloadedIcon = Icons.check_circle;
 const IconData _downloadIcon = Icons.download;
 const IconData _deleteIcon = Icons.delete_forever;
 
@@ -42,7 +42,8 @@ class DownloadScreenState extends State<DownloadScreen> {
     super.initState();
     for (ChartCategory cg in _allCharts) {
       for (Chart chart in cg.charts) {
-        _getChartStateFromLocal(chart); // start with reading from disk async
+        _getChartStateFromLocal(chart);
+        chart.progress.addListener(_progressListener);
       }
     }
     Storage().downloadManager.downloads.addListener(_finishedListener);
@@ -51,19 +52,33 @@ class DownloadScreenState extends State<DownloadScreen> {
   @override
   void dispose() {
     Storage().downloadManager.downloads.removeListener(_finishedListener);
+    for (ChartCategory cg in _allCharts) {
+      for (Chart chart in cg.charts) {
+        chart.progress.removeListener(_progressListener);
+      }
+    }
     super.dispose();
   }
 
-  // this is needed to sync when downloads are complete
+  void _progressListener() {
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _updateCategory();
+          setState(() {});
+        }
+      });
+    }
+  }
+
   void _finishedListener() {
     for (ChartCategory cg in _allCharts) {
       for (Chart chart in cg.charts) {
-        _getChartStateFromLocal(chart); // start with reading from disk async
+        _getChartStateFromLocal(chart);
       }
     }
   }
 
-  // show regions file in a modal dialog using widgetzoom
   void _showMap() {
     showDialog(
       context: context,
@@ -83,49 +98,211 @@ class DownloadScreenState extends State<DownloadScreen> {
     );
   }
 
+  Widget _buildStatusSummary() {
+    int currentCount = 0;
+    int expiredCount = 0;
+    int pendingDownload = 0;
+    int pendingDelete = 0;
+    int activeDownloads = 0;
+
+    for (ChartCategory cg in _allCharts) {
+      for (Chart chart in cg.charts) {
+        if (chart.progress.value > 0 && chart.progress.value < 100) {
+          activeDownloads++;
+        }
+        switch (chart.state) {
+          case _stateCurrentNone:
+            currentCount++;
+            break;
+          case _stateCurrentDownload:
+            currentCount++;
+            pendingDownload++;
+            break;
+          case _stateCurrentDelete:
+            currentCount++;
+            pendingDelete++;
+            break;
+          case _stateExpiredNone:
+            expiredCount++;
+            break;
+          case _stateExpiredDownload:
+            expiredCount++;
+            pendingDownload++;
+            break;
+          case _stateExpiredDelete:
+            expiredCount++;
+            pendingDelete++;
+            break;
+          case _stateAbsentDownload:
+            pendingDownload++;
+            break;
+        }
+      }
+    }
+
+    return Card(
+      margin: const EdgeInsets.all(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatusTile(Icons.check_circle, currentCount, "Current", _currentColor),
+                _buildStatusTile(Icons.warning, expiredCount, "Expired", _expiredColor),
+                _buildStatusTile(Icons.download, pendingDownload, "To Download", Colors.blue),
+                _buildStatusTile(Icons.delete, pendingDelete, "To Delete", Colors.red),
+              ],
+            ),
+            if (activeDownloads > 0 || pendingDownload > 0 || pendingDelete > 0) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              if (activeDownloads > 0)
+                Text(
+                  "Downloading $activeDownloads item${activeDownloads > 1 ? 's' : ''}...",
+                  style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w500),
+                )
+              else
+                Text(
+                  "Tap Download to process ${pendingDownload + pendingDelete} item${(pendingDownload + pendingDelete) > 1 ? 's' : ''}",
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w500),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusTile(IconData icon, int count, String label, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text("$count", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+        Text(label, style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline)),
+      ],
+    );
+  }
+
+  IconData _getCategoryIcon(String title) {
+    switch (title) {
+      default:
+        return Icons.folder;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: Row(children:[const Text("Download"), IconButton(icon: const Icon(Icons.info), onPressed: _showMap )]),
+        title: const Text("Downloads"),
         actions: [
-          Padding(padding: const EdgeInsets.all(10), child: TextButton(onPressed: () => {_start()}, child: const Text("Start"))),
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            tooltip: "View Regions Map",
+            onPressed: _showMap,
+          ),
+          TextButton(
+            onPressed: _download,
+            child: const Text("Download"),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: TextButton(
+              onPressed: _update,
+              child: const Text("Update"),
+            ),
+          ),
         ],
       ),
+      body: Column(
+        children: [
+          _buildStatusSummary(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _allCharts.length,
+              itemBuilder: (context, index) {
+                final category = _allCharts[index];
+                int installedCount = category.charts.where((c) =>
+                  c.state == _stateCurrentNone || c.state == _stateCurrentDownload || c.state == _stateCurrentDelete ||
+                  c.state == _stateExpiredNone || c.state == _stateExpiredDownload || c.state == _stateExpiredDelete
+                ).length;
 
-      body: Column(children:[
-        Expanded(flex: 8, child: ListView.builder(
-          itemCount: _allCharts.length,
-          itemBuilder: (context, index) {
-            return ExpansionTile(
-              title: Text(_allCharts[index].title, style: TextStyle(color: _allCharts[index].color)),
-              children: <Widget>[
-                Column(
-                  children: _buildExpandableContent(index),
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ExpansionTile(
+                    leading: Icon(_getCategoryIcon(category.title), color: category.color),
+                    title: Text(category.title, style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(
+                      "$installedCount / ${category.charts.length} installed",
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                    ),
+                    trailing: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: category.color,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    children: <Widget>[
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Column(
+                          children: _buildExpandableContent(index),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                DropdownButton<bool>(
+                  value: _nextCycle,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(value: false, child: Text("This Cycle")),
+                    DropdownMenuItem(value: true, child: Text("Next Cycle")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _nextCycle = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(width: 16),
+                DropdownButton<bool>(
+                  value: _backupServer,
+                  underline: const SizedBox(),
+                  items: const [
+                    DropdownMenuItem(value: false, child: Text("Main Server")),
+                    DropdownMenuItem(value: true, child: Text("Backup Server")),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _backupServer = value;
+                      });
+                    }
+                  },
                 ),
               ],
-            );
-          },
-        )),
-
-        Expanded(flex: 1, child: Row(children:[
-
-        Padding(padding: const EdgeInsets.all(10), child:TextButton(
-            onPressed: () {
-              setState(() {
-                _nextCycle = !_nextCycle;
-              });
-            },
-            child: _nextCycle ? const Text("Next Cycle") : const Text("This Cycle"))),
-        Padding(padding: const EdgeInsets.all(10), child:TextButton(
-            onPressed: () {
-              setState(() {
-                _backupServer = !_backupServer;
-              });
-            },
-            child: _backupServer ? const Text("Backup Server") : const Text("Main Server")))])),
-      ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -139,30 +316,94 @@ class DownloadScreenState extends State<DownloadScreen> {
             valueListenable: chart.progress,
             builder: (context, value, _) {
             if(value >= 100) {
-              // download success
               chart.progress.value = 0;
               _getChartStateFromLocal(chart);
             }
-            return ListTile(
-              title: Text(chart.name),
-              subtitle: Text(chart.subtitle, style: TextStyle(color: chart.color),),
-              trailing: Stack(alignment: Alignment.center, children: [
-                CircularProgressIndicator(value: value.toDouble() / 100),
-                Visibility(visible: value > 0, child:
-                  IconButton(icon:  const Icon(Icons.stop_circle), onPressed: () { chart.download.cancel();},)),
-              ]),
-              leading: Icon(chart.icon, color:chart.color),
-              enabled: chart.enabled,
-              // change icon on tap
-              onTap: () {
-                setState(() {
-                  _chartTouched(chart);
-                });
-              });
-            })
+
+            bool isDownloading = value > 0;
+            bool isQueued = chart.state == _stateAbsentDownload ||
+                            chart.state == _stateCurrentDownload ||
+                            chart.state == _stateExpiredDownload;
+            bool isDeleting = chart.state == _stateCurrentDelete ||
+                              chart.state == _stateExpiredDelete;
+
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+              decoration: BoxDecoration(
+                color: isQueued ? Colors.blue.withAlpha(20) :
+                       isDeleting ? Colors.red.withAlpha(20) : null,
+                borderRadius: BorderRadius.circular(8),
+                border: isQueued || isDeleting ? Border.all(
+                  color: isQueued ? Colors.blue.withAlpha(100) : Colors.red.withAlpha(100),
+                ) : null,
+              ),
+              child: ListTile(
+                dense: true,
+                title: Text(chart.name, style: TextStyle(fontWeight: isQueued || isDeleting ? FontWeight.w600 : FontWeight.normal)),
+                subtitle: chart.subtitle.isNotEmpty
+                    ? Text(chart.subtitle, style: TextStyle(fontSize: 11, color: chart.color))
+                    : Text("Not installed", style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
+                trailing: isDownloading
+                    ? SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: value.toDouble() / 100,
+                              strokeWidth: 3,
+                              backgroundColor: Theme.of(context).colorScheme.outlineVariant,
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () => chart.download.cancel(),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Icon(chart.icon, color: chart.color, size: 22),
+                leading: _buildActionIndicator(chart),
+                enabled: chart.enabled,
+                onTap: () {
+                  setState(() {
+                    _chartTouched(chart);
+                  });
+                },
+              ),
+            );
+          })
         );
     }
     return columnContent;
+  }
+
+  Widget? _buildActionIndicator(Chart chart) {
+    if (chart.state == _stateAbsentDownload ||
+        chart.state == _stateCurrentDownload ||
+        chart.state == _stateExpiredDownload) {
+      return Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.blue.withAlpha(30),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.download, color: Colors.blue, size: 16),
+      );
+    } else if (chart.state == _stateCurrentDelete ||
+               chart.state == _stateExpiredDelete) {
+      return Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.red.withAlpha(30),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.delete, color: Colors.red, size: 16),
+      );
+    }
+    return null;
   }
 
   void _updateChart(Chart chart) {
@@ -265,17 +506,14 @@ class DownloadScreenState extends State<DownloadScreen> {
     String range = FaaDates.getVersionRange(cycle);
     setState(() {
       if(cycle.isEmpty) {
-        // missing
         chart.state = _stateAbsentNone;
         chart.subtitle = "";
       }
       else if(expired) {
-        // available but expired
         chart.state = _stateExpiredNone;
         chart.subtitle = "$cycle $range";
       }
       else {
-        // current
         chart.state = _stateCurrentNone;
         chart.subtitle = "$cycle $range";
       }
@@ -284,12 +522,15 @@ class DownloadScreenState extends State<DownloadScreen> {
     });
   }
 
-  // update color of category to reflect chart status
   void _updateCategory() {
     for (ChartCategory cg in _allCharts) {
       bool expired = false;
       bool current = false;
+      bool downloading = false;
       for (Chart chart in cg.charts) {
+        if (chart.progress.value > 0 && chart.progress.value < 100) {
+          downloading = true;
+        }
         switch (chart.state) {
           case _stateExpiredNone:
           case _stateExpiredDownload:
@@ -305,7 +546,10 @@ class DownloadScreenState extends State<DownloadScreen> {
         }
       }
 
-      if(expired) {
+      if (downloading) {
+        cg.color = Colors.blue;
+      }
+      else if(expired) {
         cg.color = _expiredColor;
       }
       else if (current) {
@@ -318,11 +562,10 @@ class DownloadScreenState extends State<DownloadScreen> {
     }
   }
 
-  // Do actions on all charts
-  void _start() async {
+  void _download() async {
     if(Storage().downloadManager.total() != 0) {
-      Toast.showToast(context, "Please wait for ${Storage().downloadManager.total()} Downloads/Updates/Uninstalls to finish", null, 3);
-      return; // let DL finish
+      Toast.showToast(context, "Please wait for ${Storage().downloadManager.total()} downloads to finish", null, 3);
+      return;
     }
     for (int category = 0; category < _allCharts.length; category++) {
       for (int chart = 0; chart < _allCharts[category].charts.length; chart++) {
@@ -332,36 +575,56 @@ class DownloadScreenState extends State<DownloadScreen> {
           continue;
         }
         if(ct.name == "DatabasesX" && ct.state == _stateAbsentNone) {
-          // if database is missing, download, there is no need to operate with db
           ct.state = _stateAbsentDownload;
         }
-        // download expired or to-download item
         if (ct.state == _stateAbsentDownload ||
             ct.state == _stateCurrentDownload) {
-          // download this chart
-          Storage().downloadManager.download(ct, _nextCycle, _backupServer);
-        }
-        if (ct.state == _stateExpiredNone ||
-            ct.state == _stateExpiredDownload) {
-          Storage().downloadManager.deleteSilent(ct);
           Storage().downloadManager.download(ct, _nextCycle, _backupServer);
         }
         if (ct.state == _stateCurrentDelete ||
             ct.state == _stateExpiredDelete) {
-          // delete this chart
           Storage().downloadManager.delete(ct);
         }
       }
     }
     if(0 == Storage().downloadManager.total()) {
-      Toast.showToast(context, "Please select items to Download/Update/Install", null, 3);
+      Toast.showToast(context, "Please select items to download", null, 3);
     }
     else {
-      Toast.showToast(context, "Downloading/Updating/Uninstalling ${Storage().downloadManager.total()} items", null, 3);
+      Toast.showToast(context, "Downloading ${Storage().downloadManager.total()} items", null, 3);
     }
   }
 
-  // all chart categories that are downloadable
+  void _update() async {
+    if(Storage().downloadManager.total() != 0) {
+      Toast.showToast(context, "Please wait for ${Storage().downloadManager.total()} downloads to finish", null, 3);
+      return;
+    }
+    int updateCount = 0;
+    for (int category = 0; category < _allCharts.length; category++) {
+      for (int chart = 0; chart < _allCharts[category].charts.length; chart++) {
+        ChartCategory cg = _allCharts[category];
+        Chart ct = cg.charts[chart];
+        if(!ct.enabled) {
+          continue;
+        }
+        if (ct.state == _stateExpiredNone ||
+            ct.state == _stateExpiredDownload ||
+            ct.state == _stateExpiredDelete) {
+          Storage().downloadManager.deleteSilent(ct);
+          Storage().downloadManager.download(ct, _nextCycle, _backupServer);
+          updateCount++;
+        }
+      }
+    }
+    if(updateCount == 0) {
+      Toast.showToast(context, "All charts are up to date", null, 3);
+    }
+    else {
+      Toast.showToast(context, "Updating $updateCount items", null, 3);
+    }
+  }
+
   static List<String> getCategories() {
 
     List<String> ret = [];
@@ -375,7 +638,6 @@ class DownloadScreenState extends State<DownloadScreen> {
     return(ret);
   }
 
-  // ALl that can be downloaded
   static final List<ChartCategory> _allCharts = [
     ChartCategory(
       ChartCategory.databases,

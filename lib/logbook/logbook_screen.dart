@@ -11,8 +11,6 @@ import 'package:share_plus/share_plus.dart';
 import '../data/user_database_helper.dart';
 import 'log_entry.dart';
 
-// this is entirely AI generated code to manage a logbook
-
 class LogbookScreen extends StatefulWidget {
   const LogbookScreen({super.key});
 
@@ -23,6 +21,8 @@ class LogbookScreen extends StatefulWidget {
 class _LogbookScreenState extends State<LogbookScreen> {
   List<LogEntry> entries = [];
   double totalHours = 0.0;
+  int totalLandings = 0;
+  int totalApproaches = 0;
 
   @override
   void initState() {
@@ -35,6 +35,8 @@ class _LogbookScreenState extends State<LogbookScreen> {
     setState(() {
       entries = list;
       totalHours = list.fold(0.0, (sum, e) => sum + (e.totalFlightTime));
+      totalLandings = list.fold(0, (sum, e) => sum + e.dayLandings + e.nightLandings);
+      totalApproaches = list.fold(0, (sum, e) => sum + e.instrumentApproaches);
     });
   }
 
@@ -63,7 +65,6 @@ class _LogbookScreenState extends State<LogbookScreen> {
         final key = headers[i];
         final value = row[i];
 
-        // Safely convert numeric fields
         if ([
           "totalFlightTime",
           "dayTime",
@@ -108,7 +109,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
     if(mounted) {
       if(error) {
         Toast.showToast(context, "Unable to import all or some of the CSV file",
-            Icon(Icons.info, color: Colors.red,), 3); //
+            Icon(Icons.info, color: Colors.red,), 3);
       }
       else {
         Toast.showToast(
@@ -123,7 +124,6 @@ class _LogbookScreenState extends State<LogbookScreen> {
 
     if (entries.isEmpty) return;
 
-    // use keys from toJson() for consistency
     final headers = entries.first.toMap().keys.toList();
     final rows = [
       headers,
@@ -186,30 +186,137 @@ class _LogbookScreenState extends State<LogbookScreen> {
       appBar: AppBar(
         title: const Text("Log Book"),
         actions: [
-          Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "You may import/export a log book from/to a CSV file. The first line of the file must be the header. Use Export to see the format.", child: Icon(Icons.info)),
-          TextButton(onPressed: _importCsv, child: const Text("Import")),
-          TextButton(onPressed: _exportCsv, child: const Text("Export")),
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: "You may import/export a log book from/to a CSV file. The first line of the file must be the header. Use Export to see the format.",
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download),
+            tooltip: "Import CSV",
+            onPressed: _importCsv,
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_upload),
+            tooltip: "Export CSV",
+            onPressed: _exportCsv,
+          ),
         ],
       ),
       body: Column(
         children: [
-          ListTile(
-            title: Row(children: [Padding(padding: EdgeInsets.all(10), child:Text("Total Hours")), Text(totalHours.toStringAsFixed(1), style: const TextStyle(fontSize: 16)), TextButton(onPressed: _openStats, child: const Text("Details"))]),
-          ),
-          const Divider(),
-            Expanded(child: ListView.builder(
-              itemCount: entries.length,
-              itemBuilder: (context, i) {
-                final e = entries[i];
-                return ListTile(
-                  leading: SizedBox(width: 96, child: Text("${e.date.toString().substring(0, 10)}\n${e.totalFlightTime} hrs")),
-                  subtitle: Text(e.route),
-                  trailing: Text("D:${e.dayLandings}\nN:${e.nightLandings}\nIAP:${e.instrumentApproaches}"),
-                  title: Text("${e.aircraftMakeModel} (${e.aircraftIdentification})"),
-                  onTap: () => _openForm(entry: e),
-                );
-              },
+          Card(
+            margin: const EdgeInsets.all(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatColumn("Total Hours", totalHours.toStringAsFixed(1), Icons.access_time),
+                  _buildStatColumn("Landings", totalLandings.toString(), Icons.flight_land),
+                  _buildStatColumn("Approaches", totalApproaches.toString(), Icons.compass_calibration),
+                  IconButton.filled(
+                    onPressed: _openStats,
+                    icon: const Icon(Icons.analytics),
+                    tooltip: "View Details",
+                  ),
+                ],
+              ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Text(
+                  "${entries.length} Entries",
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: entries.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.book_outlined, size: 64, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 16),
+                      Text("No log entries yet", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () => _openForm(),
+                        icon: const Icon(Icons.add),
+                        label: const Text("Add your first entry"),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: entries.length,
+                  itemBuilder: (context, i) {
+                    final e = entries[i];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              e.totalFlightTime.toStringAsFixed(1),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            Text("hrs", style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline)),
+                          ],
+                        ),
+                        title: Text(
+                          "${e.aircraftMakeModel} (${e.aircraftIdentification})",
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today, size: 12, color: Theme.of(context).colorScheme.outline),
+                                const SizedBox(width: 4),
+                                Text(e.date.toString().substring(0, 10), style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline)),
+                              ],
+                            ),
+                            if(e.route.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  Icon(Icons.route, size: 12, color: Theme.of(context).colorScheme.outline),
+                                  const SizedBox(width: 4),
+                                  Expanded(child: Text(e.route, style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                        trailing: Text(
+                          "D:${e.dayLandings} N:${e.nightLandings}\nIAP:${e.instrumentApproaches}",
+                          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          textAlign: TextAlign.end,
+                        ),
+                        onTap: () => _openForm(entry: e),
+                      ),
+                    );
+                  },
+                ),
           ),
         ],
       ),
@@ -220,6 +327,16 @@ class _LogbookScreenState extends State<LogbookScreen> {
     );
   }
 
+  Widget _buildStatColumn(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
+      ],
+    );
+  }
 
 }
 
@@ -238,7 +355,6 @@ class LogEntryForm extends StatefulWidget {
 class _LogEntryFormState extends State<LogEntryForm> {
   final _formKey = GlobalKey<FormState>();
 
-  // --- Controllers for all fields ---
   late TextEditingController _dateController;
   late TextEditingController _aircraftMakeModelController;
   late TextEditingController _aircraftIdController;
@@ -380,82 +496,177 @@ class _LogEntryFormState extends State<LogEntryForm> {
     Navigator.of(context).pop();
   }
 
-  Widget _buildNumberField(String label, TextEditingController controller,
-      {bool isInteger = false}) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(labelText: label),
-      keyboardType: TextInputType.number,
-      validator: (v) {
-        if (v == null || v.isEmpty) return "Required";
-        return isInteger
-            ? (int.tryParse(v) == null ? "Must be integer" : null)
-            : (double.tryParse(v) == null ? "Must be number" : null);
-      },
+  Widget _buildTextField(String label, TextEditingController controller, {bool required = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        validator: required ? (v) => v == null || v.isEmpty ? "Required" : null : null,
+      ),
     );
   }
 
+  Widget _buildNumberField(String label, TextEditingController controller, {bool isInteger = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+          isDense: true,
+        ),
+        keyboardType: TextInputType.number,
+        validator: (v) {
+          if (v == null || v.isEmpty) return "Required";
+          return isInteger
+              ? (int.tryParse(v) == null ? "Must be integer" : null)
+              : (double.tryParse(v) == null ? "Must be number" : null);
+        },
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.entry == null ? "New Log Book Entry" : "Modify Log Book Entry"),
+        title: Text(widget.entry == null ? "New Log Book Entry" : "Edit Log Book Entry"),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(labelText: "Date (YYYY-MM-DD)"),
-                validator: (v) => v == null || v.isEmpty ? "Required" : null,
-              ),
-              TextFormField(
-                controller: _aircraftIdController,
-                decoration: const InputDecoration(labelText: "Aircraft Tail Number"),
-              ),
-              TextFormField(
-                controller: _aircraftMakeModelController,
-                decoration: const InputDecoration(labelText: "Aircraft Type"),
-                validator: (v) => v == null || v.isEmpty ? "Required" : null,
-              ),
-              TextFormField(
-                controller: _routeController,
-                decoration: const InputDecoration(labelText: "Route"),
-              ),
-              _buildNumberField("Total Flight Time (hrs)", _totalTimeController),
-              _buildNumberField("Solo Time (hrs)", _soloTimeController),
-              _buildNumberField("Dual Received (hrs)", _dualReceivedController),
-              _buildNumberField("Instructor (hrs)", _instructorController),
-              _buildNumberField("Examiner (hrs)", _examinerController),
-              _buildNumberField("Pilot In Command (hrs)", _picController),
-              _buildNumberField("Second In Command (hrs)", _copilotController),
-              _buildNumberField("Day Time (hrs)", _dayTimeController),
-              _buildNumberField("Night Time (hrs)", _nightTimeController),
-              _buildNumberField("Actual Instruments (hrs)", _actualInstrumentController),
-              _buildNumberField("Simulated Instruments (hrs)", _simInstrumentController),
-              _buildNumberField("Cross Country (hrs)", _crossCountryController),
-              _buildNumberField("Holding Procedures (hrs)", _holdingController),
-              _buildNumberField("Ground Time (hrs)", _groundTimeController),
-              _buildNumberField("Flight Simulator (hrs)", _simulatorController),
-              _buildNumberField("Day Landings", _dayLandingsController, isInteger: true),
-              _buildNumberField("Night Landings", _nightLandingsController, isInteger: true),
-              _buildNumberField("Instrument Approaches", _approachesController, isInteger: true),
-              TextFormField(
-                controller: _instructorNameController,
-                decoration: const InputDecoration(labelText: "Instructor Name"),
-              ),
-              TextFormField(
-                controller: _instructorCertController,
-                decoration: const InputDecoration(labelText: "Instructor Certificate"),
-              ),
-              TextFormField(
-                controller: _remarksController,
-                decoration: const InputDecoration(labelText: "Remarks"),
-              ),
+              _buildSection("Flight Info", Icons.flight, [
+                _buildTextField("Date (YYYY-MM-DD)", _dateController, required: true),
+                _buildTextField("Aircraft Tail Number", _aircraftIdController),
+                _buildTextField("Aircraft Type", _aircraftMakeModelController, required: true),
+                _buildTextField("Route", _routeController),
+              ]),
+
+              _buildSection("Flight Time", Icons.access_time, [
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Total (hrs)", _totalTimeController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Day (hrs)", _dayTimeController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Night (hrs)", _nightTimeController)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Cross Country", _crossCountryController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Solo", _soloTimeController)),
+                  ],
+                ),
+              ]),
+
+              _buildSection("Pilot Function", Icons.person, [
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("PIC (hrs)", _picController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("SIC (hrs)", _copilotController)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Dual Received", _dualReceivedController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Instructor", _instructorController)),
+                  ],
+                ),
+                _buildNumberField("Examiner (hrs)", _examinerController),
+              ]),
+
+              _buildSection("Instrument", Icons.compass_calibration, [
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Actual IMC", _actualInstrumentController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Simulated", _simInstrumentController)),
+                  ],
+                ),
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Approaches", _approachesController, isInteger: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Holds", _holdingController)),
+                  ],
+                ),
+              ]),
+
+              _buildSection("Landings", Icons.flight_land, [
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Day Landings", _dayLandingsController, isInteger: true)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Night Landings", _nightLandingsController, isInteger: true)),
+                  ],
+                ),
+              ]),
+
+              _buildSection("Training & Simulation", Icons.school, [
+                Row(
+                  children: [
+                    Expanded(child: _buildNumberField("Ground Time", _groundTimeController)),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildNumberField("Simulator", _simulatorController)),
+                  ],
+                ),
+                _buildTextField("Instructor Name", _instructorNameController),
+                _buildTextField("Instructor Certificate", _instructorCertController),
+              ]),
+
+              _buildSection("Remarks", Icons.notes, [
+                TextFormField(
+                  controller: _remarksController,
+                  decoration: const InputDecoration(
+                    labelText: "Remarks",
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                ),
+              ]),
 
               Padding(
                   padding: const EdgeInsets.all(20),
@@ -510,8 +721,7 @@ class LogbookCsv {
 
     return data.map((r) {
       final row = Map<String, dynamic>.fromIterables(header, r);
-      return LogEntry.fromMap(row); // use fromJson
+      return LogEntry.fromMap(row);
     }).toList();
   }
 }
-

@@ -126,38 +126,6 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
-  Future<void> _showDeleteFolderDialog(String folderPath) async {
-    String folderName = PathUtils.filename(folderPath);
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Folder'),
-        content: Text('Delete folder "$folderName" and all its contents?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              bool success = await PathUtils.deleteFolder(folderPath);
-              if (mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  Toast.showToast(context, "Folder deleted.", const Icon(Icons.check, color: Colors.green), 3);
-                  setState(() {});
-                } else {
-                  Toast.showToast(context, "Failed to delete folder.", const Icon(Icons.error, color: Colors.red), 3);
-                }
-              }
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _navigateToMoveFile(Document document) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -178,58 +146,96 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   Widget _buildFolderItem(String folderPath) {
     String folderName = PathUtils.filename(folderPath);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
-      child: Center(
-        child: Column(
-          children: [
-            SizedBox(
-              width: 256,
-              height: 128,
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          currentFolderPath = folderPath;
-                          Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                        });
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.all(10.0),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Theme.of(context).colorScheme.primary),
-                          borderRadius: const BorderRadius.all(Radius.circular(10)),
-                        ),
-                        child: SizedBox(
-                          width: Constants.screenWidth(context) / 5,
-                          child: const Icon(Icons.folder, size: 48),
-                        ),
+      padding: const EdgeInsets.all(8),
+      child: Card(
+        elevation: 2,
+        color: Theme.of(context).colorScheme.primaryContainer.withAlpha(40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            setState(() {
+              currentFolderPath = folderPath;
+              Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+            });
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.folder_rounded,
+                        size: 48,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete, size: 20),
-                        onPressed: () => _showDeleteFolderDialog(folderPath),
-                        tooltip: "Delete folder",
-                      ),
-                      if (Constants.shouldShare)
-                        IconButton(
-                          icon: const Icon(Icons.ios_share, size: 20),
-                          onPressed: () => _exportFolder(folderPath),
-                          tooltip: "Export folder contents",
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  folderName,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: Dismissible(
+                        key: GlobalKey(),
+                        background: const Icon(Icons.delete_forever),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (direction) async {
+                          List<String> files = await PathUtils.getDocumentsNames(folderPath);
+                          List<String> subfolders = await PathUtils.getFolderNames(folderPath);
+                          if (files.isNotEmpty || subfolders.isNotEmpty) {
+                            if (mounted) {
+                              Toast.showToast(context, "Cannot delete non-empty folder.", const Icon(Icons.warning, color: Colors.orange), 3);
+                            }
+                            return false;
+                          }
+                          return true;
+                        },
+                        onDismissed: (direction) async {
+                          await PathUtils.deleteFolder(folderPath);
+                          if (mounted) {
+                            setState(() {});
+                          }
+                        },
+                        child: const Column(
+                          children: [
+                            Icon(Icons.swipe_left, size: 18),
+                            Text("Delete", style: TextStyle(fontSize: 8)),
+                          ],
                         ),
-                    ],
-                  ),
-                ],
-              ),
+                      ),
+                    ),
+                    if (Constants.shouldShare)
+                      IconButton(
+                        icon: const Icon(Icons.ios_share, size: 20),
+                        onPressed: () => _exportFolder(folderPath),
+                        tooltip: "Export folder contents",
+                        visualDensity: VisualDensity.compact,
+                      ),
+                  ],
+                ),
+              ],
             ),
-            Text(folderName),
-          ],
+          ),
         ),
       ),
     );
@@ -315,8 +321,35 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     else if(PathUtils.isJSONFile(product.url)) {
       return const Icon(Icons.map);
     }
+    else if(PathUtils.isKmlFile(product.url)) {
+      return const Icon(Icons.route);
+    }
     else {
       return const Icon(Icons.file_copy);
+    }
+  }
+
+  IconData _getFilterIcon(String filter) {
+    switch (filter) {
+      case DocumentsScreen.allDocuments:
+        return Icons.grid_view;
+      case DocumentsScreen.userDocuments:
+        return Icons.folder;
+      case "WPC":
+        return Icons.cloud;
+      case "SigWx":
+        return Icons.warning_amber;
+      case "Misc.":
+        return Icons.more_horiz;
+      case "Winds/Temp":
+        return Icons.air;
+      default:
+        if (filter.contains("AIRMET")) {
+          return Icons.ac_unit;
+        } else if (filter.contains("Forecast")) {
+          return Icons.wb_sunny;
+        }
+        return Icons.description;
     }
   }
 
@@ -374,11 +407,18 @@ class DocumentsScreenState extends State<DocumentsScreen> {
           }
         },
          child: _makeActions(Container(
-           margin: const EdgeInsets.all(10.0),
            decoration: BoxDecoration(
-             border: Border.all(color: Theme.of(context).colorScheme.primary),
-             borderRadius: const BorderRadius.all(Radius.circular(10)),),
-           child: SizedBox(width: Constants.screenWidth(context) / 5, child: getIcon(product))), product));
+             color: Theme.of(context).colorScheme.primaryContainer.withAlpha(80),
+             borderRadius: BorderRadius.circular(8),
+           ),
+           child: Center(
+             child: Icon(
+               getIcon(product).icon,
+               size: 36,
+               color: Theme.of(context).colorScheme.primary,
+             ),
+           ),
+         ), product));
      }
      else {
        // pictures
@@ -395,15 +435,30 @@ class DocumentsScreenState extends State<DocumentsScreen> {
        widget = _makeActions(WidgetZoom(heroAnimationTag: product.name, zoomWidget: Image.file(File(product.url))), product);
      }
 
-     return Padding(padding: const EdgeInsets.fromLTRB(10, 0, 0, 10),
-      child: Center(
-          child: Column(
-              children: [
-                SizedBox(width: 256, height: 128, child: widget),
-                Text(product.name),
-              ]
-          )),
-    );
+     return Padding(
+       padding: const EdgeInsets.all(8),
+       child: Card(
+         elevation: 1,
+         color: Colors.amber.withAlpha(40),
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+         child: Padding(
+           padding: const EdgeInsets.all(8),
+           child: Column(
+             children: [
+               Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8), child: widget)),
+               const SizedBox(height: 6),
+               Text(
+                 product.name,
+                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                 maxLines: 2,
+                 overflow: TextOverflow.ellipsis,
+                 textAlign: TextAlign.center,
+               ),
+             ],
+           ),
+         ),
+       ),
+     );
   }
   
 
@@ -480,61 +535,122 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                   currentFolderPath = Storage().dataDir;
                 });
               },
+              tooltip: "Back to Documents",
             )
           : null,
         title: Text(currentFolderName),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.create_new_folder),
-              onPressed: _navigateToCreateFolder,
-              tooltip: "Create folder",
-            ),
-            TextButton(onPressed: () {
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.create_new_folder_outlined),
+            onPressed: _navigateToCreateFolder,
+            tooltip: "Create folder",
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined),
+            onPressed: () {
               _pickFile().then((value) => setState(() {
                 Toast.showToast(context, "Import complete.", const Icon(Icons.info, color: Colors.green), 3);
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear();
-              }));},
-              child: Tooltip(message: "Import text (.txt), GeoJSON (.geojson), KML (.kml), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)", child: const Text("Import")),
-            ),
-            if (!_isInSubfolder)
-              Padding(padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child:
-                DropdownButtonHideUnderline(child:
-                  DropdownButton2<String>(
-                    buttonStyleData: ButtonStyleData(
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    dropdownStyleData: DropdownStyleData(
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    isExpanded: false,
-                    value: filter,
-                    items: ctypes.map((String e) => DropdownMenuItem<String>(value: e, child: Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
-                      });
-                    },
-                  )
-                )
-              )
-          ]
-      ),
-      body: SingleChildScrollView(
-          child: GridView.count(
-            primary: false,
-            shrinkWrap: true,
-            crossAxisCount: 2,
-            children: <Widget>[
-              for(String folder in folders)
-                if(filter == DocumentsScreen.allDocuments || filter == DocumentsScreen.userDocuments)
-                  _buildFolderItem(folder),
-              for(Document p in products)
-                if(p.type == filter || filter == DocumentsScreen.allDocuments)
-                  smallImage(p),
-            ],
+              }));
+            },
+            tooltip: "Import text (.txt), GeoJSON (.geojson), KML (.kml), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)",
           ),
+          if (!_isInSubfolder)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton2<String>(
+                  buttonStyleData: ButtonStyleData(
+                    height: 36,
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  dropdownStyleData: DropdownStyleData(
+                    decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  isExpanded: false,
+                  value: filter,
+                  items: ctypes.map((String e) => DropdownMenuItem<String>(
+                    value: e,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(_getFilterIcon(e), size: 16),
+                        const SizedBox(width: 8),
+                        Text(e, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)),
+                      ],
+                    ),
+                  )).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      Storage().settings.setDocumentPage(value ?? DocumentsScreen.allDocuments);
+                    });
+                  },
+                ),
+              ),
+            ),
+        ],
       ),
+      body: _buildBody(filter),
+    );
+  }
+
+  Widget _buildBody(String filter) {
+    final filteredFolders = (filter == DocumentsScreen.allDocuments || filter == DocumentsScreen.userDocuments) ? folders : <String>[];
+    final filteredProducts = products.where((p) => p.type == filter || filter == DocumentsScreen.allDocuments).toList();
+
+    if (filteredFolders.isEmpty && filteredProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.folder_open,
+              size: 64,
+              color: Theme.of(context).colorScheme.outline,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _isInSubfolder ? "This folder is empty" : "No documents found",
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Use Import to add files",
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.9,
+        crossAxisSpacing: 4,
+        mainAxisSpacing: 4,
+      ),
+      itemCount: filteredFolders.length + filteredProducts.length,
+      itemBuilder: (context, index) {
+        if (index < filteredFolders.length) {
+          return _buildFolderItem(filteredFolders[index]);
+        } else {
+          return smallImage(filteredProducts[index - filteredFolders.length]);
+        }
+      },
     );
   }
 }
@@ -585,26 +701,56 @@ class _CreateFolderScreenState extends State<CreateFolderScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: const Text('Create Folder'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.create_new_folder, size: 20),
+            SizedBox(width: 8),
+            Text('Create Folder'),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                labelText: 'Folder name',
-                border: OutlineInputBorder(),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "New Folder",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _controller,
+                      decoration: InputDecoration(
+                        labelText: 'Folder name',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.folder_outlined),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
+                      ),
+                      autofocus: true,
+                      onSubmitted: (_) => _createFolder(),
+                    ),
+                  ],
+                ),
               ),
-              autofocus: true,
-              onSubmitted: (_) => _createFolder(),
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
+            FilledButton.icon(
               onPressed: _createFolder,
-              child: const Text('Create'),
+              icon: const Icon(Icons.add),
+              label: const Text('Create Folder'),
             ),
           ],
         ),
@@ -675,7 +821,14 @@ class _MoveFileScreenState extends State<MoveFileScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: Text('Move ${widget.document.name}'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.drive_file_move, size: 20),
+            SizedBox(width: 8),
+            Text('Move File'),
+          ],
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
@@ -684,23 +837,69 @@ class _MoveFileScreenState extends State<MoveFileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('Select destination:', style: TextStyle(fontSize: 16)),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.description, color: Theme.of(context).colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              widget.document.name,
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
+                  Text(
+                    'Select destination:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   if (widget.isInSubfolder)
-                    ListTile(
-                      leading: const Icon(Icons.folder_open),
-                      title: const Text('User Documents (root)'),
-                      selected: _selectedFolder == "__ROOT__",
-                      onTap: () {
-                        setState(() {
-                          _selectedFolder = "__ROOT__";
-                        });
-                      },
+                    Card(
+                      child: ListTile(
+                        leading: Icon(Icons.folder_open, color: Theme.of(context).colorScheme.primary),
+                        title: const Text('User Documents (root)'),
+                        selected: _selectedFolder == "__ROOT__",
+                        selectedTileColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        trailing: _selectedFolder == "__ROOT__" ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+                        onTap: () {
+                          setState(() {
+                            _selectedFolder = "__ROOT__";
+                          });
+                        },
+                      ),
                     ),
                   if (_folders.isEmpty && !widget.isInSubfolder)
-                    const Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text('No folders available. Create a folder first.'),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        children: [
+                          Icon(Icons.folder_off, size: 48, color: Theme.of(context).colorScheme.outline),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No folders available',
+                            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Create a folder first',
+                            style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+                          ),
+                        ],
+                      ),
                     )
                   else
                     Expanded(
@@ -709,23 +908,31 @@ class _MoveFileScreenState extends State<MoveFileScreen> {
                         itemBuilder: (context, index) {
                           final folder = _folders[index];
                           final folderName = PathUtils.filename(folder);
-                          return ListTile(
-                            leading: const Icon(Icons.folder),
-                            title: Text(folderName),
-                            selected: _selectedFolder == folder,
-                            onTap: () {
-                              setState(() {
-                                _selectedFolder = folder;
-                              });
-                            },
+                          final isSelected = _selectedFolder == folder;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 4),
+                            child: ListTile(
+                              leading: Icon(Icons.folder, color: Theme.of(context).colorScheme.primary),
+                              title: Text(folderName),
+                              selected: isSelected,
+                              selectedTileColor: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              trailing: isSelected ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+                              onTap: () {
+                                setState(() {
+                                  _selectedFolder = folder;
+                                });
+                              },
+                            ),
                           );
                         },
                       ),
                     ),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  FilledButton.icon(
                     onPressed: _selectedFolder != null ? _moveFile : null,
-                    child: const Text('Move'),
+                    icon: const Icon(Icons.drive_file_move),
+                    label: const Text('Move Here'),
                   ),
                 ],
               ),

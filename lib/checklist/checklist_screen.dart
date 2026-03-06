@@ -98,19 +98,15 @@ class ChecklistScreenState extends State<ChecklistScreen> {
     return ret;
   }
 
-  Color _checkRemaining() {
-    Color color = Colors.transparent;
-    int remaining = 0;
-    for(int i = 0; i < Storage().activeChecklistSteps.length; i++) {
-      if(!Storage().activeChecklistSteps[i]) {
-        remaining++;
+  (int, int) _getProgress() {
+    int completed = 0;
+    int total = Storage().activeChecklistSteps.length;
+    for(int i = 0; i < total; i++) {
+      if(Storage().activeChecklistSteps[i]) {
+        completed++;
       }
     }
-    if(remaining == 0) {
-      // all done
-      color = Colors.green.withAlpha(100);
-    }
-    return color;
+    return (completed, total);
   }
 
   Widget _makeBody(List<Checklist>? items) {
@@ -126,49 +122,112 @@ class ChecklistScreenState extends State<ChecklistScreen> {
 
     if(Storage().activeChecklistName != active.name) {
       Storage().activeChecklistName = active.name;
-      // store steps. create an array of size equal to current checklist size
       Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
     }
 
-    Color bg = _checkRemaining();
     return StatefulBuilder(
       builder: (BuildContext context, StateSetter setState1) {
-        return SingleChildScrollView(child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // add list here
-              for(int index = 0; index < active.steps.length; index++)
-                Column(children:[
-                  CheckboxListTile(tileColor: bg, title: Text(active.steps[index]), value: Storage().activeChecklistSteps[index], onChanged: (value) {
-                    setState1(() {
-                      Storage().activeChecklistSteps[index] = value!;
-                      bg = _checkRemaining();
-                    });
-                  }),
-                  const Divider()
-                ]),
-              if(_selected != null)
-                Padding(padding: const EdgeInsets.all(20), child: Dismissible(key: GlobalKey(),
-                    background: const Icon(Icons.delete_forever),
-                    direction: DismissDirection.endToStart,
-                    onDismissed: (direction) {
-                      String? entry = _selected;
-                      if(null != entry) {
-                        UserDatabaseHelper.db.deleteChecklist(entry);
-                      }
-                      Storage().settings.setChecklist("");
-                      setState(() {
-                        _selected = null;
-                      });
-                    },
-                    child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))]))),
-            ],
-          )
-        )
+        var (completed, total) = _getProgress();
+        bool allDone = total > 0 && completed == total;
+
+        return Column(
+          children: [
+            if(total > 0)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                color: allDone ? Colors.green.withAlpha(50) : Theme.of(context).colorScheme.surfaceContainerHighest,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: total > 0 ? completed / total : 0,
+                          minHeight: 8,
+                          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          valueColor: AlwaysStoppedAnimation<Color>(allDone ? Colors.green : Theme.of(context).colorScheme.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "$completed / $total",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: allDone ? Colors.green : null,
+                      ),
+                    ),
+                    if(completed > 0)
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        tooltip: "Reset all",
+                        onPressed: () {
+                          setState1(() {
+                            Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
+                          });
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: active.steps.length + (_selected != null ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if(index < active.steps.length) {
+                    bool isChecked = Storage().activeChecklistSteps[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      color: isChecked ? Colors.green.withAlpha(30) : null,
+                      child: CheckboxListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        title: Text(
+                          active.steps[index],
+                          style: TextStyle(
+                            decoration: isChecked ? TextDecoration.lineThrough : null,
+                            color: isChecked ? Theme.of(context).colorScheme.onSurface.withAlpha(150) : null,
+                          ),
+                        ),
+                        value: isChecked,
+                        activeColor: Colors.green,
+                        onChanged: (value) {
+                          setState1(() {
+                            Storage().activeChecklistSteps[index] = value!;
+                          });
+                        },
+                      ),
+                    );
+                  } else {
+                    return Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Dismissible(
+                        key: GlobalKey(),
+                        background: const Icon(Icons.delete_forever),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (direction) {
+                          String? entry = _selected;
+                          if(null != entry) {
+                            UserDatabaseHelper.db.deleteChecklist(entry);
+                          }
+                          Storage().settings.setChecklist("");
+                          setState(() {
+                            _selected = null;
+                          });
+                        },
+                        child: const Column(children:[Icon(Icons.swipe_left), Text("Delete", style: TextStyle(fontSize: 8))])
+                      ),
+                    );
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
     );
-  });}
+  }
 
   @override
   Widget build(BuildContext context) {

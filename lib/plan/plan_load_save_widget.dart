@@ -23,7 +23,9 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
     UserDatabaseHelper.db.addPlan(_name, route).then((value) {
       setState(() {
         Storage().route.name = _name;
-        _currentItems.insert(0, Storage().route.name);
+        if (!_currentItems.contains(_name)) {
+          _currentItems.insert(0, Storage().route.name);
+        }
       });
     });
   }
@@ -31,93 +33,149 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
   Widget _makeContent() {
     _name = Storage().route.name;
 
-    return Container(padding: const EdgeInsets.all(0),
-          child: Column(children: [
-            Expanded(
-                flex: 1,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0), child: const Text("Load & Save", style: TextStyle(fontWeight: FontWeight.w800),),)),
-            Expanded(
-                flex: 3,
-                child: Container(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                    child: Row(
-                        children: [
-                          Expanded(
-                              flex: 5,
-                              child: TextFormField(
-                                  initialValue: _name ,
-                                  onChanged: (value)  {
-                                    _name = value;
-                                  },
-                                  decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: 'Plan Name',)
-                              )
-                          ),
-                          const Padding(padding: EdgeInsets.all(10)),
-                          Expanded(
-                              flex: 2,
-                              child: TextButton(
-                                  onPressed: () {
-                                    _saveRoute(Storage().route);
-                                  },
-                                  child: const Text("Save")
-                              )
-                          )
-                        ]
-                    )
-                )
+    return Column(
+      children: [
+        Card(
+          margin: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    initialValue: _name,
+                    onChanged: (value) {
+                      _name = value;
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: 'Plan Name',
+                      isDense: true,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                TextButton.icon(
+                  onPressed: () {
+                    _saveRoute(Storage().route);
+                  },
+                  icon: const Icon(Icons.save, size: 18),
+                  label: const Text("Save"),
+                ),
+              ],
             ),
-            Expanded(
-                flex: 10,
-                child: ListView.builder(
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              Text(
+                "Saved Plans",
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                "(${_currentItems.length})",
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _currentItems.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.folder_open, size: 48, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 8),
+                      Text("No saved plans", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                      const SizedBox(height: 4),
+                      Text("Save your current plan above", style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline)),
+                    ],
+                  ),
+                )
+              : ListView.builder(
                   itemCount: _currentItems.length,
                   itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(_currentItems[index].toString()),
-                      trailing: PopupMenuButton(
-                        tooltip: "",
-                        itemBuilder: (BuildContext context)  => <PopupMenuEntry<String>>[
-                          PopupMenuItem<String>(
-                            child: const Text('Load'),
-                            onTap: () {
-                              UserDatabaseHelper.db.getPlan(_currentItems[index], false).then((value) {
-                                Storage().route.copyFrom(value);
-                                Storage().route.setCurrentWaypoint(0);
-                                if(context.mounted) {
-                                  Navigator.pop(context);
-                                }
-                              });
-                            },
+                    final planName = _currentItems[index];
+                    final isCurrentPlan = planName == Storage().route.name;
+                    
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                      color: isCurrentPlan ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100) : null,
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.route,
+                          color: isCurrentPlan ? Theme.of(context).colorScheme.primary : null,
+                        ),
+                        title: Text(
+                          planName,
+                          style: TextStyle(
+                            fontWeight: isCurrentPlan ? FontWeight.bold : FontWeight.normal,
                           ),
-                          PopupMenuItem<String>(
-                            child: const Text('Load Reversed'),
-                            onTap: () {
-                              UserDatabaseHelper.db.getPlan(_currentItems[index], true).then((value) {
-                                if(context.mounted) {
-                                  Navigator.pop(context);
-                                }
-                                Storage().route.copyFrom(value);
-                                Storage().route.setCurrentWaypoint(0);
-                              });
-                            },
-                          ),
-                          PopupMenuItem<String>(
-                            child: const Text('Delete'),
-                            onTap: () {
-                              UserDatabaseHelper.db.deletePlan(_currentItems[index]).then((value) {
-                                setState(() {
-                                  _currentItems.removeAt(index);
+                        ),
+                        subtitle: isCurrentPlan ? Text("Current", style: TextStyle(color: Theme.of(context).colorScheme.primary, fontSize: 12)) : null,
+                        trailing: PopupMenuButton(
+                          tooltip: "",
+                          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                            PopupMenuItem<String>(
+                              child: const Text('Load'),
+                              onTap: () {
+                                UserDatabaseHelper.db.getPlan(planName, false).then((value) {
+                                  Storage().route.copyFrom(value);
+                                  Storage().route.setCurrentWaypoint(0);
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
                                 });
-                              });
-                            },
-                          ),
-                        ],),
+                              },
+                            ),
+                            PopupMenuItem<String>(
+                              child: const Text('Load Reversed'),
+                              onTap: () {
+                                UserDatabaseHelper.db.getPlan(planName, true).then((value) {
+                                  if (context.mounted) {
+                                    Navigator.pop(context);
+                                  }
+                                  Storage().route.copyFrom(value);
+                                  Storage().route.setCurrentWaypoint(0);
+                                });
+                              },
+                            ),
+                            PopupMenuItem<String>(
+                              child: const Text('Delete'),
+                              onTap: () {
+                                UserDatabaseHelper.db.deletePlan(planName).then((value) {
+                                  setState(() {
+                                    _currentItems.removeAt(index);
+                                  });
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () {
+                          UserDatabaseHelper.db.getPlan(planName, false).then((value) {
+                            Storage().route.copyFrom(value);
+                            Storage().route.setCurrentWaypoint(0);
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          });
+                        },
+                      ),
                     );
                   },
-                )
-            ),
-          ],)
-      );
+                ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -125,15 +183,13 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
     return FutureBuilder(
       future: UserDatabaseHelper.db.getPlans(),
       builder: (BuildContext context, AsyncSnapshot<List<String>> snapshot) {
-        if(snapshot.hasData) {
+        if (snapshot.hasData) {
           _currentItems = snapshot.data!;
           return _makeContent();
-        }
-        else {
-          return Container();
+        } else {
+          return const Center(child: CircularProgressIndicator());
         }
       },
     );
   }
 }
-

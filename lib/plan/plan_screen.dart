@@ -30,49 +30,118 @@ class PlanScreenState extends State<PlanScreen> {
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
 
-    double height = 0;
     double bottom = Constants.bottomPaddingSize(context);
 
-    // user can rearrange widgets
-    return Container(padding: EdgeInsets.fromLTRB(5, height + 10, 5, bottom),
-      child: Stack(children:[
-        Column(
-            children: [
-              Expanded(flex: 1,
-                  child: ValueListenableBuilder<int>( // update in plan change
-                      valueListenable: route.change,
-                      builder: (context, value, _) {
-                        return ListTile( // header
-                            key: Key(Storage().getKey()),
-                            leading: const Icon(Icons.add),
-                            title: PlanLineWidgetState.getHeading(),
-                            subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
-                      }
+    return Container(
+      padding: EdgeInsets.fromLTRB(8, 8, 8, bottom),
+      child: Column(
+        children: [
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: ValueListenableBuilder<int>(
+                valueListenable: route.change,
+                builder: (context, value, _) {
+                  return Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.route, size: 20, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                            Text(
+                              "${route.length}",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            PlanLineWidgetState.getHeading(),
+                            const SizedBox(height: 4),
+                            PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+          Expanded(
+            child: route.length == 0
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_location_alt, size: 64, color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(height: 12),
+                        Text(
+                          "No waypoints in plan",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Use Actions to create or load a plan",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
                   )
-              ), // heading for dist, time etc.
-              Expanded(flex: 5, child: ReorderableListView(
-                  scrollDirection: Axis.vertical,
-                  buildDefaultDragHandles: false,
-                  children: <Widget>[
-                    for(int index = 0; index < route.length; index++)
-                      ReorderableDelayedDragStartListener(
+                : ReorderableListView(
+                    scrollDirection: Axis.vertical,
+                    buildDefaultDragHandles: false,
+                    children: <Widget>[
+                      for (int index = 0; index < route.length; index++)
+                        ReorderableDelayedDragStartListener(
                           index: index,
                           key: Key(index.toString()),
-                          child: GestureDetector(child:
-                          Dismissible( // able to delete with swipe
-                              background: Container(alignment:
-                              Alignment.centerRight,child: const Icon(Icons.delete_forever),),
-                              key: Key(Storage().getKey()),
-                              direction: DismissDirection.endToStart,
-                              onDismissed:(direction) {
-                                setState(() {
-                                  route.removeWaypointAt(index);
-                                });
-                              },
-                              child: ValueListenableBuilder<int>( // update in plan change
-                                valueListenable: route.change,
-                                builder: (context, value, _) {
-                                  return PlanItemWidget(
+                          child: Dismissible(
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withAlpha(30),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.delete, color: Colors.red),
+                            ),
+                            key: Key(Storage().getKey()),
+                            direction: DismissDirection.endToStart,
+                            onDismissed: (direction) {
+                              setState(() {
+                                route.removeWaypointAt(index);
+                              });
+                            },
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: route.change,
+                              builder: (context, value, _) {
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 2),
+                                  color: route.isCurrent(index)
+                                      ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
+                                      : null,
+                                  child: PlanItemWidget(
                                     waypoint: route.getWaypointAt(index),
                                     current: route.isCurrent(index),
                                     onTap: () {
@@ -80,122 +149,192 @@ class PlanScreenState extends State<PlanScreen> {
                                         Storage().route.setCurrentWaypoint(index);
                                       });
                                     },
-                                  );
-                                },
-                              )
-                          ))),
-                  ],
-                  onReorder: (int oldIndex, int newIndex) {
-                    setState(() {
-                      if (oldIndex < newIndex) {
-                        newIndex -= 1;
-                      }
-                      route.moveWaypoint(oldIndex, newIndex);
-                    });
-                  })
-              ),
-              Expanded(flex: 1, child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:Row(
-                  children:[ // header
-                    TextButton(
-                      onPressed: () async {
-                        await Navigator.pushNamed(context, "/plan_actions");
-                        setState(() {}); // to update this screen
-                      },
-                      child: const Text("Actions"),),
-                    Padding(padding: const EdgeInsets.all(5), child:SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                        keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                        onChanged: (value) {
-                          double? pValue = double.tryParse(value);
-                          Storage().settings.setTas(pValue ?? Storage().settings.getTas());
-                        },
-                        controller: TextEditingController()..text = Storage().settings.getTas().round().toString(),
-                        decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "ASpd")
-                    ))),
-                    Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                        keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                        onChanged: (value) {
-                          double? pValue = double.tryParse(value);
-                          Storage().settings.setFuelBurn(pValue ?? Storage().settings.getFuelBurn());
-                        },
-                        controller: TextEditingController()..text = Storage().settings.getFuelBurn().toString(),
-                        decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "GPH")
-                    ))),
-                    Padding(padding: const EdgeInsets.all(5), child: SizedBox(width: Constants.screenWidth(context) / 10, child: TextFormField(
-                        keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                        onChanged: (value) {
-                          int? pValue = int.tryParse(value);
-                          pValue ??= 3000;
-                          Storage().route.altitude = pValue;
-                        },
-                        controller: TextEditingController()..text = Storage().route.altitude.toString(),
-                        decoration: const InputDecoration(border: UnderlineInputBorder(), labelText: "Alt")
-                    ))),
-
-                    DropdownButtonHideUnderline(
-                        child:DropdownButton2<String>(
-                          isDense: true,// plate selection
-                          buttonStyleData: ButtonStyleData(
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
-                          dropdownStyleData: DropdownStyleData(
-                            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          isExpanded: false,
-                          value: "${Storage().route.fore.toString().padLeft(2, "0")}H",
-                          items: ["06H", "12H", "24H"].map((String item) {
-                            return DropdownMenuItem<String>(
-                                value: item,
-                                child: Text(item)
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            value ??= ["06H", "12H", "24H"][0];
-                            setState(() {
-                              Storage().route.fore = int.parse(value!.substring(0, 2));
-                            });
-                          },
-                        )
+                        ),
+                    ],
+                    onReorder: (int oldIndex, int newIndex) {
+                      setState(() {
+                        if (oldIndex < newIndex) {
+                          newIndex -= 1;
+                        }
+                        route.moveWaypoint(oldIndex, newIndex);
+                      });
+                    },
+                  ),
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () async {
+                    await Navigator.pushNamed(context, "/plan_actions");
+                    setState(() {});
+                  },
+                  child: const Text("Actions"),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 60,
+                  child: TextFormField(
+                    keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                    onChanged: (value) {
+                      double? pValue = double.tryParse(value);
+                      Storage().settings.setTas(pValue ?? Storage().settings.getTas());
+                    },
+                    controller: TextEditingController()..text = Storage().settings.getTas().round().toString(),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "ASpd",
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
-                    IconButton(icon: const Icon(Icons.local_gas_station_rounded), tooltip: "See navigation log and terrain en route", onPressed: () => showDialog(context: context, builder: (BuildContext context) => Dialog.fullscreen(
-                        child: _makeNavLog()
-                    ))),
-                  ]
-              )
-              ))
-            ]
-        )
-      ]
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 60,
+                  child: TextFormField(
+                    keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                    onChanged: (value) {
+                      double? pValue = double.tryParse(value);
+                      Storage().settings.setFuelBurn(pValue ?? Storage().settings.getFuelBurn());
+                    },
+                    controller: TextEditingController()..text = Storage().settings.getFuelBurn().toString(),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "GPH",
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 70,
+                  child: TextFormField(
+                    keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                    onChanged: (value) {
+                      int? pValue = int.tryParse(value);
+                      pValue ??= 3000;
+                      Storage().route.altitude = pValue;
+                    },
+                    controller: TextEditingController()..text = Storage().route.altitude.toString(),
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: "Alt",
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton2<String>(
+                    isDense: true,
+                    buttonStyleData: ButtonStyleData(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Theme.of(context).colorScheme.outline),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    dropdownStyleData: DropdownStyleData(
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    isExpanded: false,
+                    value: "${Storage().route.fore.toString().padLeft(2, "0")}H",
+                    items: ["06H", "12H", "24H"].map((String item) {
+                      return DropdownMenuItem<String>(
+                        value: item,
+                        child: Text(item),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      value ??= ["06H", "12H", "24H"][0];
+                      setState(() {
+                        Storage().route.fore = int.parse(value!.substring(0, 2));
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.analytics_outlined),
+                  tooltip: "Navigation log and terrain",
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (BuildContext context) => Dialog.fullscreen(child: _makeNavLog()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _makeNavLog() {
-    Widget w = FutureBuilder(
-        future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
-        builder: (BuildContext context, var snapshot) {
-          if(snapshot.hasData) {
-            // draw the altitude profile
-            return Padding(padding: const EdgeInsets.fromLTRB(10, 5, 10, 0), child:SizedBox(width: Constants.screenWidth(context), height: Constants.screenHeight(context) / 4, child: makeChart(context, snapshot.data)));
-          }
-          return const Center(child: CircularProgressIndicator());
+    final List<Destination> destinations = Storage().route.getAllDestinations();
+    final bool hasRoute = destinations.isNotEmpty;
+
+    Widget terrainProfile = FutureBuilder(
+      future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
+      builder: (BuildContext context, var snapshot) {
+        if (snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
+            child: SizedBox(
+              width: Constants.screenWidth(context),
+              height: Constants.screenHeight(context) / 4,
+              child: makeChart(context, snapshot.data),
+            ),
+          );
         }
+        return const Center(child: CircularProgressIndicator());
+      },
     );
 
     List<Widget> values = [];
-    values.addAll(DestinationCalculations.labels.map((String s) =>
-        Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, style: const TextStyle(fontWeight: FontWeight.bold)))));
+    values.addAll(DestinationCalculations.labels.map((String s) => Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+      ),
+      child: AutoSizeText(
+        s,
+        minFontSize: 4,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
+      ),
+    )));
 
-    for (Destination d in Storage().route.getAllDestinations()) {
-      if(d.calculations == null) {
+    bool isEvenRow = true;
+    for (Destination d in destinations) {
+      if (d.calculations == null) {
         continue;
       }
-      values.addAll(d.calculations!.getLog().map((String s) =>
-          Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, ))));
+      final bgColor = isEvenRow
+          ? Theme.of(context).colorScheme.surface
+          : Theme.of(context).colorScheme.surfaceContainerHighest;
+      values.addAll(d.calculations!.getLog().map((String s) => Container(
+        padding: const EdgeInsets.all(4),
+        color: bgColor,
+        child: AutoSizeText(s, minFontSize: 4),
+      )));
+      isEvenRow = !isEvenRow;
     }
 
-    if(Storage().route.totalCalculations != null) {
+    if (Storage().route.totalCalculations != null) {
       List<String> total = Storage().route.totalCalculations!.getLog();
-      // blank out total fields that do not make sense
       total[DestinationCalculations.labels.indexOf("FM")] =
       total[DestinationCalculations.labels.indexOf("TO")] =
       total[DestinationCalculations.labels.indexOf("AL")] =
@@ -206,46 +345,132 @@ class PlanScreenState extends State<PlanScreen> {
       total[DestinationCalculations.labels.indexOf("CA")] =
       total[DestinationCalculations.labels.indexOf("MH")] =
       total[DestinationCalculations.labels.indexOf("GS")] = "";
-      values.addAll(total.map((String s) =>
-          Padding(padding: const EdgeInsets.all(3), child: AutoSizeText(s, minFontSize: 4, style: const TextStyle(fontWeight: FontWeight.bold)))));
+      values.addAll(total.map((String s) => Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.secondaryContainer,
+        ),
+        child: AutoSizeText(
+          s,
+          minFontSize: 4,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSecondaryContainer,
+          ),
+        ),
+      )));
     }
 
-    Widget grid = GridView.count(
-      crossAxisCount: DestinationCalculations.columns,
-      children: values,
-    );
+    Widget grid = hasRoute
+        ? GridView.count(
+            crossAxisCount: DestinationCalculations.columns,
+            childAspectRatio: 2.5,
+            children: values,
+          )
+        : Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.route, size: 48, color: Theme.of(context).colorScheme.outline),
+                const SizedBox(height: 8),
+                Text("No route created", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                const SizedBox(height: 4),
+                Text("Add waypoints to see navigation log", style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.outline)),
+              ],
+            ),
+          );
 
     Widget windDiagram = Padding(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
       child: _makeWindFieldDiagram(),
     );
 
-    return Scaffold(body:
-    Padding(padding: const EdgeInsets.fromLTRB(5, 48, 5, 5), child: Column(children:[
-      Expanded(flex: 4, child:grid),
-      const Row( // nearby destinations
-          children: <Widget>[
-            Expanded(flex: 1, child: Divider()),
-            Text("Winds aloft en route", style: TextStyle(fontSize: 10)),
-            Expanded(flex: 16, child: Divider()),
-          ]
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Navigation Log"),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.copy),
+            tooltip: "Copy plan to clipboard",
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: Storage().route.toString()));
+              Toast.showToast(context, "Copied plan to Clipboard", null, 3);
+            },
+          ),
+          const SizedBox(width: 5),
+        ],
       ),
-      Expanded(flex: 2, child: windDiagram),
-      const Row( // nearby destinations
-          children: <Widget>[
-            Expanded(flex: 1, child: Divider()),
-            Text("Terrain en route", style: TextStyle(fontSize: 10)),
-            Expanded(flex: 16, child: Divider()),
-          ]
+      body: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 4,
+              child: Card(
+                margin: EdgeInsets.zero,
+                clipBehavior: Clip.antiAlias,
+                child: grid,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.air, size: 14, color: Theme.of(context).colorScheme.outline),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Winds Aloft En Route",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              flex: 2,
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: windDiagram,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.terrain, size: 14, color: Theme.of(context).colorScheme.outline),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Terrain En Route",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              flex: 1,
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: terrainProfile,
+              ),
+            ),
+          ],
+        ),
       ),
-      Expanded(flex:1, child: w)])),
-        appBar: AppBar(title: const Text("Navigation Log"),
-            actions: <Widget>[
-              Padding(padding: const EdgeInsets.all(5), child: IconButton(icon: const Icon(Icons.copy), tooltip: "Copy plan to clipboard", onPressed: () {
-                Clipboard.setData(ClipboardData(text: Storage().route.toString()));
-                Toast.showToast(context, "Copied plan to Clipboard", null, 3);
-              },),)
-            ])
     );
   }
 
