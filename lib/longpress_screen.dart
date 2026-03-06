@@ -400,9 +400,24 @@ class LongPressScreenState extends State<LongPressScreen> {
                   TextButton(
                     child: const Text("+Plan"),
                     onPressed: () {
-                      Storage().route.insertWaypoint(Waypoint(showDestination));
-                      Toast.showToast(context, "Inserted ${showDestination.facilityName} to Plan", null, 3);
-                      Navigator.of(context).pop();
+                      if(Storage().planSearchIndex != null) {
+                        Storage().route.insertWaypoint(
+                            Waypoint(showDestination), place: Storage().planSearchIndex);
+                        Toast.showToast(context,
+                            "Inserted ${showDestination.facilityName} to Plan",
+                            null, 3);
+                        Storage().planSearchIndex = null;
+                        Navigator.of(context).pop();
+                        MainScreenState.gotoPlan();
+                      }
+                      else {
+                        Storage().route.insertWaypoint(
+                            Waypoint(showDestination));
+                        Toast.showToast(context,
+                            "Inserted ${showDestination.facilityName} to Plan",
+                            null, 3);
+                        Navigator.of(context).pop();
+                      }
                     },
                   ),
                   TextButton(

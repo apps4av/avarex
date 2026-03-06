@@ -8,8 +8,9 @@ class PlanItemWidget extends StatefulWidget {
   final Waypoint waypoint;
   final bool current;
   final Function onTap;
+  final Function onLongPress;
 
-  const PlanItemWidget({super.key, required this.waypoint, required this.current, required this.onTap});
+  const PlanItemWidget({super.key, required this.waypoint, required this.current, required this.onTap, required this.onLongPress});
 
   @override
   State<StatefulWidget> createState() => PlanItemWidgetState();
@@ -95,6 +96,9 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
             subtitle: PlanLineWidget(destination: widget.waypoint.destination),
             onTap: () {
               widget.onTap();
+            },
+            onLongPress: () {
+              widget.onLongPress();
             },
           );
   }

@@ -133,6 +133,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     navigationBar.onTap!(tabLocationPlates); // go to plate screen
   }
 
+  static void gotoFind() {
+    final BottomNavigationBar navigationBar = Storage()
+        .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
+    navigationBar.onTap!(tabLocationFind); // go to plate screen
+  }
+
   static void gotoPlan() {
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
@@ -297,7 +303,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         context,
                         icon: MdiIcons.fileDocument,
                         title: "Documents",
-                        subtitle: "PDFs, checklists & files",
+                        subtitle: "Weather, manuals, notes, tracks",
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/documents');

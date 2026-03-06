@@ -5,6 +5,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
+import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -62,6 +63,7 @@ class PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
+    Storage().planSearchIndex = null;
 
     double bottom = Constants.bottomPaddingSize(context);
 
@@ -69,53 +71,17 @@ class PlanScreenState extends State<PlanScreen> {
       padding: EdgeInsets.fromLTRB(8, 8, 8, bottom),
       child: Column(
         children: [
-          Card(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: ValueListenableBuilder<int>(
-                valueListenable: route.change,
-                builder: (context, value, _) {
-                  return Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(Icons.route, size: 20, color: Theme.of(context).colorScheme.onPrimaryContainer),
-                            Text(
-                              "${route.length}",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            PlanLineWidgetState.getHeading(),
-                            const SizedBox(height: 4),
-                            PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-          Expanded(
+        Expanded(flex: 1,
+        child: ValueListenableBuilder<int>( // update in plan change
+          valueListenable: route.change,
+          builder: (context, value, _) {
+            return ListTile( // header
+                key: Key(Storage().getKey()),
+                leading: const Icon(Icons.add),
+                title: PlanLineWidgetState.getHeading(),
+                subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
+            })),
+          Expanded(flex: 5,
             child: route.length == 0
                 ? Center(
                     child: Column(
@@ -178,6 +144,10 @@ class PlanScreenState extends State<PlanScreen> {
                                   child: PlanItemWidget(
                                     waypoint: route.getWaypointAt(index),
                                     current: route.isCurrent(index),
+                                    onLongPress: () {
+                                      Storage().planSearchIndex = index;
+                                      MainScreenState.gotoFind();
+                                    },
                                     onTap: () {
                                       setState(() {
                                         Storage().route.setCurrentWaypoint(index);
@@ -691,7 +661,7 @@ class AltitudePainter extends CustomPainter {
     if(data.isEmpty) {
       return;
     }
-    // find axix limits
+    // find axis limits
     for(int count = 0; count < data.length; count++) {
       if(data[count] == null) {
         continue;
@@ -702,6 +672,12 @@ class AltitudePainter extends CustomPainter {
       else if(data[count]! <= minAltitude) {
         minAltitude = data[count]!;
       }
+    }
+    // handle case where no valid altitude data was found
+    if(minAltitude.isInfinite || maxAltitude.isInfinite || minAltitude.isNaN || maxAltitude.isNaN) {
+      minAltitude = 0;
+      maxAltitude = 1000;
+      return;
     }
     // make minimum altitude in increments of 100
     minAltitude = (minAltitude / 100).floor() * 100;
