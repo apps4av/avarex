@@ -1,12 +1,17 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/utils/toast.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:universal_io/io.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
 import 'plan_route.dart';
@@ -24,7 +29,35 @@ class PlanScreen extends StatefulWidget {
 }
 
 class PlanScreenState extends State<PlanScreen> {
+  final ScrollController _scrollController = ScrollController();
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCurrentWaypoint();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToCurrentWaypoint() {
+    final int currentIndex = Storage().route.currentWaypointIndex;
+    if (currentIndex > 0 && _scrollController.hasClients) {
+      const double itemHeight = 72.0;
+      final double targetOffset = currentIndex * itemHeight;
+      final double maxScroll = _scrollController.position.maxScrollExtent;
+      _scrollController.animateTo(
+        targetOffset.clamp(0.0, maxScroll),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +142,7 @@ class PlanScreenState extends State<PlanScreen> {
                     ),
                   )
                 : ReorderableListView(
+                    scrollController: _scrollController,
                     scrollDirection: Axis.vertical,
                     buildDefaultDragHandles: false,
                     children: <Widget>[
@@ -362,10 +396,21 @@ class PlanScreenState extends State<PlanScreen> {
     }
 
     Widget grid = hasRoute
-        ? GridView.count(
-            crossAxisCount: DestinationCalculations.columns,
-            childAspectRatio: 2.5,
-            children: values,
+        ? InteractiveViewer(
+            constrained: false,
+            boundaryMargin: const EdgeInsets.all(20),
+            minScale: 0.5,
+            maxScale: 4.0,
+            child: SizedBox(
+              width: Constants.screenWidth(context),
+              child: GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: DestinationCalculations.columns,
+                childAspectRatio: 2.5,
+                children: values,
+              ),
+            ),
           )
         : Center(
             child: Column(
@@ -390,6 +435,11 @@ class PlanScreenState extends State<PlanScreen> {
         title: const Text("Navigation Log"),
         actions: <Widget>[
           IconButton(
+            icon: const Icon(Icons.image_outlined),
+            tooltip: "Save as PNG image",
+            onPressed: hasRoute ? () => _captureNavLogToPng() : null,
+          ),
+          IconButton(
             icon: const Icon(Icons.copy),
             tooltip: "Copy plan to clipboard",
             onPressed: () {
@@ -400,7 +450,9 @@ class PlanScreenState extends State<PlanScreen> {
           const SizedBox(width: 5),
         ],
       ),
-      body: Padding(
+      body: RepaintBoundary(
+        key: _navLogKey,
+        child: Padding(
         padding: const EdgeInsets.all(8),
         child: Column(
           children: [
@@ -471,7 +523,51 @@ class PlanScreenState extends State<PlanScreen> {
           ],
         ),
       ),
+      ),
     );
+  }
+
+  final GlobalKey _navLogKey = GlobalKey();
+
+  Future<void> _captureNavLogToPng() async {
+    try {
+      RenderRepaintBoundary boundary = _navLogKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 2.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        if (mounted) {
+          Toast.showToast(context, "Failed to capture image", const Icon(Icons.error, color: Colors.red), 3);
+        }
+        return;
+      }
+      
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+      final String routeName = Storage().route.name.isNotEmpty 
+          ? Storage().route.name 
+          : "NavLog";
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String fileName = "${routeName}_$timestamp.png";
+      final String filePath = PathUtils.getFilePath(Storage().dataDir, fileName);
+      
+      final file = File(filePath);
+      await file.writeAsBytes(pngBytes);
+      
+      if (mounted) {
+        if (Constants.shouldShare) {
+          final params = ShareParams(
+            files: [XFile(file.path)],
+            sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
+          );
+          SharePlus.instance.share(params);
+        } else {
+          Toast.showToast(context, "Saved to $fileName", const Icon(Icons.check, color: Colors.green), 3);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Toast.showToast(context, "Error: $e", const Icon(Icons.error, color: Colors.red), 3);
+      }
+    }
   }
 
   Widget _makeWindFieldDiagram() {

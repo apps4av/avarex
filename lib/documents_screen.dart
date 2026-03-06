@@ -149,7 +149,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
       padding: const EdgeInsets.all(8),
       child: Card(
         elevation: 2,
-        color: Theme.of(context).colorScheme.primaryContainer.withAlpha(40),
+        color: Colors.amber.withAlpha(40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -439,9 +439,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
        padding: const EdgeInsets.all(8),
        child: Card(
          elevation: 1,
-         color: Colors.amber.withAlpha(40),
-         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-         child: Padding(
+        color: Theme.of(context).colorScheme.primaryContainer.withAlpha(40),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
            padding: const EdgeInsets.all(8),
            child: Column(
              children: [

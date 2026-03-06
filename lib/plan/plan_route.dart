@@ -475,6 +475,13 @@ class PlanRoute {
     return _waypoints.indexOf(_current!) == index;
   }
 
+  int get currentWaypointIndex {
+    if(_current == null) {
+      return -1;
+    }
+    return _waypoints.indexOf(_current!);
+  }
+
   // convert route to json
   String toJson(String name) {
 
