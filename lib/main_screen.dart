@@ -45,6 +45,88 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     });
   }
 
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: (iconColor ?? Theme.of(context).colorScheme.primary).withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: iconColor ?? Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   static void gotoPlate() {
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
@@ -113,50 +195,213 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         extendBody: true,
         endDrawerEnableOpenDragGesture: false,
         drawerEnableOpenDragGesture: false,
-        drawer: Padding(padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
+        drawer: Padding(
+          padding: EdgeInsets.fromLTRB(0, Constants.screenHeight(context) / 8, 0, Constants.screenHeight(context) / 12),
           child: Drawer(
-            child: ListView(children: [
-              ListTile(
-                title: const Text("AvareX"),
-                subtitle: FutureBuilder( // get version from pubspec.yaml
-                    future: rootBundle.loadString("pubspec.yaml"),
-                    builder: (context, snapshot) {
-                      String version = "Unknown";
-                      if (snapshot.hasData) {
-                        var yaml = loadYaml(snapshot.data!);
-                        version = yaml["version"];
-                      }
-                      return Text('Version: $version');
-                    }),
-                trailing: IconButton(icon: Icon(MdiIcons.exitToApp),
-                  onPressed: () {
-                    Storage().settings.setIntro(true);
-                    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const OnBoardingScreen()),);
-                  },
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.horizontal(right: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.primaryContainer,
+                      ],
+                    ),
+                    borderRadius: const BorderRadius.only(topRight: Radius.circular(20)),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(50),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Image.asset("assets/images/logo.png", width: 40, height: 40),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "AvareX",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                FutureBuilder(
+                                  future: rootBundle.loadString("pubspec.yaml"),
+                                  builder: (context, snapshot) {
+                                    String version = "Unknown";
+                                    if (snapshot.hasData) {
+                                      var yaml = loadYaml(snapshot.data!);
+                                      version = yaml["version"];
+                                    }
+                                    return Text(
+                                      'v$version',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white.withAlpha(200),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(MdiIcons.exitToApp, color: Colors.white.withAlpha(200)),
+                            tooltip: "Show intro screens",
+                            onPressed: () {
+                              Storage().settings.setIntro(true);
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(builder: (_) => const OnBoardingScreen()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                leading: Image.asset("assets/images/logo.png", width: 48, height: 48,), dense: true,),
-              ListTile(title: const Text("Download"), leading: const Icon(Icons.download), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/download');}, dense: true,),
-              ListTile(title: const Text("Documents"), leading: Icon(MdiIcons.fileDocument), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/documents');}, dense: true,),
-              ListTile(title: const Text("Aircraft"), leading: Icon(MdiIcons.airplane), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/aircraft');}, dense: true,),
-              ListTile(title: const Text("Check Lists"), leading: Icon(MdiIcons.check), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/checklists');}, dense: true,),
-              ListTile(title: const Text("W&B"), leading: Icon(MdiIcons.scaleUnbalanced), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/wnb');}, dense: true,),
-              ListTile(title: const Text("Log Book"), leading: Icon(Icons.notes), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/logbook');}, dense: true,),
-              if(Constants.shouldShowBluetoothSpp) ListTile(title: const Text("IO"), leading: const Icon(Icons.compare_arrows_rounded), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/io');}, dense: true,),
-              if(Constants.shouldShowDonation) ListTile(title: const Text("Donate"), leading: const Icon(Icons.celebration), onTap: () {Navigator.pop(context); Navigator.pushNamed(context, '/donate');}, dense: true,),
-              if(Constants.shouldShowPdf) ListTile(title: const Text("Help"), leading: const Icon(Icons.help_outline), onTap: () async {
-                Navigator.pop(context);
-                final String pdfPath = '${Storage().dataDir}/USER_MANUAL.pdf';
-                final File pdfFile = File(pdfPath);
-                if (!await pdfFile.exists()) {
-                  final ByteData data = await rootBundle.load('assets/docs/USER_MANUAL.pdf');
-                  await pdfFile.writeAsBytes(data.buffer.asUint8List());
-                }
-                if (context.mounted) {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (context) => PdfViewer(pdfPath)));
-                }
-              }, dense: true,),
-            ],
-          ))
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      _buildSectionHeader(context, "Data"),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.download,
+                        title: "Download",
+                        subtitle: "Charts & databases",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/download');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.fileDocument,
+                        title: "Documents",
+                        subtitle: "PDFs, checklists & files",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/documents');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSectionHeader(context, "Flight"),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.airplane,
+                        title: "Aircraft",
+                        subtitle: "Manage your aircraft",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/aircraft');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.checkboxMarkedOutline,
+                        title: "Check Lists",
+                        subtitle: "Pre-flight & procedures",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/checklists');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.scaleUnbalanced,
+                        title: "Weight & Balance",
+                        subtitle: "Calculate W&B",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/wnb');
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSectionHeader(context, "Records"),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.notebook,
+                        title: "Log Book",
+                        subtitle: "Flight records",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/logbook');
+                        },
+                      ),
+                      if (Constants.shouldShowBluetoothSpp) ...[
+                        const SizedBox(height: 8),
+                        _buildSectionHeader(context, "Connectivity"),
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.compare_arrows_rounded,
+                          title: "IO",
+                          subtitle: "Bluetooth & connections",
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/io');
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      _buildSectionHeader(context, "Support"),
+                      if (Constants.shouldShowDonation)
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.favorite_outline,
+                          iconColor: Colors.red,
+                          title: "Donate",
+                          subtitle: "Support development",
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/donate');
+                          },
+                        ),
+                      if (Constants.shouldShowPdf)
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.help_outline,
+                          title: "Help",
+                          subtitle: "User manual",
+                          onTap: () async {
+                            Navigator.pop(context);
+                            final String pdfPath = '${Storage().dataDir}/USER_MANUAL.pdf';
+                            final File pdfFile = File(pdfPath);
+                            if (!await pdfFile.exists()) {
+                              final ByteData data = await rootBundle.load('assets/docs/USER_MANUAL.pdf');
+                              await pdfFile.writeAsBytes(data.buffer.asUint8List());
+                            }
+                            if (context.mounted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(builder: (context) => PdfViewer(pdfPath)),
+                              );
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),

@@ -1483,77 +1483,19 @@ class MapScreenState extends State<MapScreen> {
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: Icon(MdiIcons.transcribe))),
 
-                                  PopupMenuButton( // layer selection
+                                  IconButton(
                                     tooltip: "Select the chart type",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                        child: const Icon(Icons.photo_library_rounded)),
-                                    initialValue: _type,
-                                    itemBuilder: (BuildContext context) =>
-                                        List.generate(_charts.length, (int index) => PopupMenuItem(child:
-                                          ListTile(
-                                            onTap: () {
-                                              setState(() {
-                                                Navigator.pop(context);
-                                                _type = _charts[index];
-                                                Storage().settings.setChartType(_charts[index]);
-                                              });
-                                            },
-                                            dense: true,
-                                            title: Text(_charts[index]),
-                                            leading: Visibility(visible: _charts[index] == _type, child: const Icon(Icons.check),),
-                                          ),
-                                        ),)
+                                        child: const Icon(Icons.map)),
+                                    onPressed: () => _showChartSelector(context),
                                   ),
 
-                                  // switch layers on off
-                                  PopupMenuButton( // layer selection
+                                  IconButton(
                                     tooltip: "Select the layers to show on the Map screen",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.layers)),
-                                    initialValue: _layers[0],
-                                    itemBuilder: (BuildContext context) =>
-                                        List.generate(_layers.length, (int index) => PopupMenuItem(
-                                          child: StatefulBuilder(
-                                            builder: (context1, setState1) =>
-                                                ListTile(
-                                                  dense: true,
-                                                  title: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                                    Expanded(flex: 1, child:Text(_layers[index])),
-                                                    Expanded(flex: 2, child:Slider(min: 0, max: 1, divisions: 4, // levels of opacity, 0 is off
-                                                    value: _layersOpacity[index],
-                                                    onChanged: (double value) {
-                                                      double last = _layersOpacity[index];
-                                                      setState1(() {
-                                                        _layersOpacity[index] = value;
-                                                      });
-                                                      if(_layers[index] == "Tracks") {
-                                                        if(value == 0 && last > 0) {
-                                                          // save tracks on turning them off then show user where to get them
-                                                          Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
-                                                          Storage().tracks.saveKml().then((status) {
-                                                            Storage().tracks = GpsRecorder(); // clear
-                                                            setState1(() {
-                                                              if(status != null) {
-                                                                Toast.showToast(context, "Track saved to Documents as $status.", Icon(Icons.info, color: Colors.black,), 3);
-                                                              }
-                                                              else {
-                                                                Toast.showToast(context, "Unable to save tracks due to error.", Icon(Icons.info, color: Colors.black,), 3);
-                                                              }
-                                                            });
-                                                          });
-                                                        }
-                                                      }
-                                                      // now save to settings
-                                                      Storage().settings.setLayersOpacity(_layersOpacity);
-                                                      setState(() {
-                                                        _layersOpacity[index] = value; // this is the state for the map
-                                                      });
-                                                    },
-                                                  )),
-                                                ])),
-                                          ),)
-                                        ),
-                                    ),
+                                    onPressed: () => _showLayerSelector(context),
+                                  ),
                                 ]
                               ),
                           )
@@ -1575,6 +1517,101 @@ class MapScreenState extends State<MapScreen> {
                 )),
             ]
         )
+    );
+  }
+
+  IconData _getChartIcon(String chartType) {
+    if (chartType.contains("Sectional")) return MdiIcons.mapOutline;
+    if (chartType.contains("IFR Low")) return MdiIcons.airplaneLanding;
+    if (chartType.contains("IFR High")) return MdiIcons.airplane;
+    if (chartType.contains("IFR Area")) return MdiIcons.mapMarkerRadius;
+    if (chartType.contains("Helicopter")) return MdiIcons.helicopter;
+    if (chartType.contains("TAC")) return MdiIcons.cityVariantOutline;
+    if (chartType.contains("Flyway")) return MdiIcons.roadVariant;
+    if (chartType.contains("Caribbean")) return MdiIcons.island;
+    if (chartType.contains("Atlantic")) return MdiIcons.waves;
+    if (chartType.contains("Pacific")) return MdiIcons.waves;
+    return Icons.map;
+  }
+
+  void _showChartSelector(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black26,
+        pageBuilder: (context, _, __) => _ChartSelectorOverlay(
+          charts: _charts,
+          currentType: _type,
+          getChartIcon: _getChartIcon,
+          onSelect: (chart) {
+            setState(() {
+              _type = chart;
+              Storage().settings.setChartType(chart);
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  IconData _getLayerIcon(String layer) {
+    switch (layer) {
+      case "Chart": return Icons.map;
+      case "Topo": return MdiIcons.terrain;
+      case "Vector Map": return MdiIcons.vectorPolyline;
+      case "Radar": return MdiIcons.radar;
+      case "Weather": return Icons.cloud;
+      case "TFR": return MdiIcons.clockAlert;
+      case "Traffic": return MdiIcons.airplaneTakeoff;
+      case "Nav": return MdiIcons.navigation;
+      case "Plate": return MdiIcons.fileDocument;
+      case "PFD": return MdiIcons.airplaneCog;
+      case "Tracks": return MdiIcons.mapMarkerPath;
+      case "Circles": return MdiIcons.circleDouble;
+      case "Tape": return MdiIcons.ruler;
+      case "Obstacles": return MdiIcons.alertBox;
+      case "GeoJSON": return MdiIcons.mapMarkerMultiple;
+      case "CAP Grid": return MdiIcons.grid;
+      case "Elevation": return MdiIcons.elevator;
+      case "Ceiling": return MdiIcons.weatherCloudy;
+      case "Wind Vectors": return MdiIcons.weatherWindy;
+      default: return Icons.layers;
+    }
+  }
+
+  void _showLayerSelector(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black26,
+        pageBuilder: (context, _, __) => _LayerSelectorOverlay(
+          layers: _layers,
+          layersOpacity: _layersOpacity,
+          getLayerIcon: _getLayerIcon,
+          onLayerChange: (index, value) {
+            double last = _layersOpacity[index];
+            if (_layers[index] == "Tracks") {
+              if (value == 0 && last > 0) {
+                Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
+                Storage().tracks.saveKml().then((status) {
+                  Storage().tracks = GpsRecorder();
+                  if (status != null) {
+                    Toast.showToast(context, "Track saved to Documents as $status.", const Icon(Icons.info, color: Colors.black), 3);
+                  } else {
+                    Toast.showToast(context, "Unable to save tracks due to error.", const Icon(Icons.info, color: Colors.black), 3);
+                  }
+                });
+              }
+            }
+            setState(() {
+              _layersOpacity[index] = value;
+            });
+            Storage().settings.setLayersOpacity(_layersOpacity);
+          },
+        ),
+      ),
     );
   }
 
@@ -1694,5 +1731,334 @@ class ChartTileProvider extends TileProvider {
       return assetImage;
     }
     return AssetImage("assets/images/dl_$name.png");
+  }
+}
+
+class _ChartSelectorOverlay extends StatelessWidget {
+  final List<String> charts;
+  final String currentType;
+  final IconData Function(String) getChartIcon;
+  final void Function(String) onSelect;
+
+  const _ChartSelectorOverlay({
+    required this.charts,
+    required this.currentType,
+    required this.getChartIcon,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: 8,
+          top: Constants.screenHeightForInstruments(context) + 50,
+          bottom: Constants.bottomPaddingSize(context) + 60,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 220,
+            constraints: BoxConstraints(
+              maxHeight: Constants.screenHeight(context) * 0.6,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50),
+                  blurRadius: 12,
+                  offset: const Offset(-2, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.map, size: 20, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Chart Type",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, size: 20, color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    shrinkWrap: true,
+                    itemCount: charts.length,
+                    itemBuilder: (context, index) {
+                      final isSelected = charts[index] == currentType;
+                      return InkWell(
+                        onTap: () {
+                          onSelect(charts[index]);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.primaryContainer.withAlpha(150)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                getChartIcon(charts[index]),
+                                size: 18,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  charts[index],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 18,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LayerSelectorOverlay extends StatefulWidget {
+  final List<String> layers;
+  final List<double> layersOpacity;
+  final IconData Function(String) getLayerIcon;
+  final void Function(int, double) onLayerChange;
+
+  const _LayerSelectorOverlay({
+    required this.layers,
+    required this.layersOpacity,
+    required this.getLayerIcon,
+    required this.onLayerChange,
+  });
+
+  @override
+  State<_LayerSelectorOverlay> createState() => _LayerSelectorOverlayState();
+}
+
+class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
+  late List<double> _localOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _localOpacity = List.from(widget.layersOpacity);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: 8,
+          top: Constants.screenHeightForInstruments(context) + 50,
+          bottom: Constants.bottomPaddingSize(context) + 60,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 280,
+            constraints: BoxConstraints(
+              maxHeight: Constants.screenHeight(context) * 0.7,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50),
+                  blurRadius: 12,
+                  offset: const Offset(-2, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.layers, size: 20, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Map Layers",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, size: 20, color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    shrinkWrap: true,
+                    itemCount: widget.layers.length,
+                    itemBuilder: (context, index) {
+                      final isOn = _localOpacity[index] > 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                double newValue = isOn ? 0.0 : 1.0;
+                                setState(() {
+                                  _localOpacity[index] = newValue;
+                                });
+                                widget.onLayerChange(index, newValue);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: isOn
+                                      ? Theme.of(context).colorScheme.primaryContainer
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  widget.getLayerIcon(widget.layers[index]),
+                                  size: 18,
+                                  color: isOn
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: GestureDetector(
+                                onTap: () {
+                                  double newValue = isOn ? 0.0 : 1.0;
+                                  setState(() {
+                                    _localOpacity[index] = newValue;
+                                  });
+                                  widget.onLayerChange(index, newValue);
+                                },
+                                child: Text(
+                                  widget.layers[index],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isOn ? FontWeight.w600 : FontWeight.normal,
+                                    color: isOn
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Theme.of(context).colorScheme.outline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: SliderTheme(
+                                data: SliderThemeData(
+                                  trackHeight: 3,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                                  inactiveTrackColor: Theme.of(context).colorScheme.outline.withAlpha(40),
+                                  thumbColor: Theme.of(context).colorScheme.primary,
+                                ),
+                                child: Slider(
+                                  min: 0,
+                                  max: 1,
+                                  divisions: 4,
+                                  value: _localOpacity[index],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _localOpacity[index] = value;
+                                    });
+                                    widget.onLayerChange(index, value);
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 32,
+                              child: Text(
+                                "${(_localOpacity[index] * 100).round()}%",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(context).colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
