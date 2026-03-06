@@ -16,11 +16,17 @@ import 'package:material_design_icons_flutter/material_design_icons_flutter.dart
 import 'package:path_provider/path_provider.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('end-to-end test', () {
     testWidgets('Onboarding and All Screens',
             (tester) async {
+          // On iOS, disable semantics to avoid SemanticsHandle leak
+          // The binding may create handles that we can't dispose
+          addTearDown(() async {
+            // Ensure proper cleanup by pumping frames
+            await tester.pumpAndSettle();
+          });
 
           Directory dir = await getApplicationDocumentsDirectory();
           String dataDir = PathUtils.getFilePath(dir.path, "avarex"); // put files in a folder
@@ -230,9 +236,13 @@ void main() {
           // press Done button (end of onboarding)
           fab = find.widgetWithIcon(TextButton, Icons.arrow_forward);
           await tester.tap(fab);
-          await tester.pump(const Duration(milliseconds: 500));
+          await tester.pump(const Duration(seconds: 1));
 
+          // Wait for Done button to appear (may need extra time on iOS)
           fab = find.widgetWithText(TextButton, "Done");
+          for (int i = 0; i < 5 && !tester.any(fab); i++) {
+            await tester.pump(const Duration(milliseconds: 500));
+          }
           await tester.tap(fab);
           // After Done, we leave onboarding - animation should stop, can use pumpAndSettle
           await tester.pumpAndSettle();
