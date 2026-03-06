@@ -1760,7 +1760,7 @@ class _ChartSelectorOverlay extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 220,
+            width: 280,
             constraints: BoxConstraints(
               maxHeight: Constants.screenHeight(context) * 0.6,
             ),
@@ -1779,19 +1779,19 @@ class _ChartSelectorOverlay extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.map, size: 20, color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 10),
+                      Icon(Icons.map, size: 24, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
                       Text(
                         "Chart Type",
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -1799,14 +1799,14 @@ class _ChartSelectorOverlay extends StatelessWidget {
                       const Spacer(),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: Icon(Icons.close, size: 20, color: Theme.of(context).colorScheme.outline),
+                        child: Icon(Icons.close, size: 24, color: Theme.of(context).colorScheme.outline),
                       ),
                     ],
                   ),
                 ),
                 Flexible(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     shrinkWrap: true,
                     itemCount: charts.length,
                     itemBuilder: (context, index) {
@@ -1817,29 +1817,29 @@ class _ChartSelectorOverlay extends StatelessWidget {
                           Navigator.pop(context);
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? Theme.of(context).colorScheme.primaryContainer.withAlpha(150)
                                 : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
                               Icon(
                                 getChartIcon(charts[index]),
-                                size: 18,
+                                size: 24,
                                 color: isSelected
                                     ? Theme.of(context).colorScheme.primary
                                     : Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   charts[index],
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 16,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                                     color: isSelected
                                         ? Theme.of(context).colorScheme.primary
@@ -1850,7 +1850,7 @@ class _ChartSelectorOverlay extends StatelessWidget {
                               if (isSelected)
                                 Icon(
                                   Icons.check_circle,
-                                  size: 18,
+                                  size: 22,
                                   color: Theme.of(context).colorScheme.primary,
                                 ),
                             ],
@@ -1908,7 +1908,7 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 280,
+            width: 340,
             constraints: BoxConstraints(
               maxHeight: Constants.screenHeight(context) * 0.7,
             ),
@@ -1927,19 +1927,19 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.layers, size: 20, color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 10),
+                      Icon(Icons.layers, size: 24, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
                       Text(
                         "Map Layers",
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Theme.of(context).colorScheme.onSurface,
                         ),
@@ -1947,20 +1947,20 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                       const Spacer(),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
-                        child: Icon(Icons.close, size: 20, color: Theme.of(context).colorScheme.outline),
+                        child: Icon(Icons.close, size: 24, color: Theme.of(context).colorScheme.outline),
                       ),
                     ],
                   ),
                 ),
                 Flexible(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     shrinkWrap: true,
                     itemCount: widget.layers.length,
                     itemBuilder: (context, index) {
                       final isOn = _localOpacity[index] > 0;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                         child: Row(
                           children: [
                             GestureDetector(
@@ -1972,23 +1972,23 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                                 widget.onLayerChange(index, newValue);
                               },
                               child: Container(
-                                padding: const EdgeInsets.all(6),
+                                padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
                                   color: isOn
                                       ? Theme.of(context).colorScheme.primaryContainer
                                       : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
                                   widget.getLayerIcon(widget.layers[index]),
-                                  size: 18,
+                                  size: 22,
                                   color: isOn
                                       ? Theme.of(context).colorScheme.primary
                                       : Theme.of(context).colorScheme.outline,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
                               flex: 2,
                               child: GestureDetector(
@@ -2002,7 +2002,7 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                                 child: Text(
                                   widget.layers[index],
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 16,
                                     fontWeight: isOn ? FontWeight.w600 : FontWeight.normal,
                                     color: isOn
                                         ? Theme.of(context).colorScheme.onSurface
@@ -2015,9 +2015,9 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                               flex: 3,
                               child: SliderTheme(
                                 data: SliderThemeData(
-                                  trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
+                                  trackHeight: 4,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
                                   activeTrackColor: Theme.of(context).colorScheme.primary,
                                   inactiveTrackColor: Theme.of(context).colorScheme.outline.withAlpha(40),
                                   thumbColor: Theme.of(context).colorScheme.primary,
@@ -2037,11 +2037,11 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                               ),
                             ),
                             SizedBox(
-                              width: 32,
+                              width: 40,
                               child: Text(
                                 "${(_localOpacity[index] * 100).round()}%",
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 14,
                                   color: Theme.of(context).colorScheme.outline,
                                 ),
                                 textAlign: TextAlign.right,
