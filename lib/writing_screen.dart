@@ -347,107 +347,134 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
+  double _getKeypadScale(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final shortestSide = mediaQuery.size.shortestSide;
+    final devicePixelRatio = mediaQuery.devicePixelRatio;
+    
+    // Base scale on shortest side of screen
+    // Phone (~360-400dp): scale 1.0
+    // Small tablet (~600dp): scale 1.3
+    // Large tablet (~800dp+): scale 1.6
+    double sizeScale = 1.0;
+    if (shortestSide >= 800) {
+      sizeScale = 1.6;
+    } else if (shortestSide >= 600) {
+      sizeScale = 1.3;
+    } else if (shortestSide >= 480) {
+      sizeScale = 1.15;
+    }
+    
+    // Also boost slightly for high density screens (>2.0 ratio)
+    double densityBoost = devicePixelRatio > 2.5 ? 1.1 : (devicePixelRatio > 2.0 ? 1.05 : 1.0);
+    
+    return sizeScale * densityBoost;
+  }
+
   Widget _buildNumberKeypad(BuildContext context) {
+    final scale = _getKeypadScale(context);
     return Card(
       elevation: 8,
       child: Padding(
-        padding: const EdgeInsets.all(8),
-        child: _showQwerty ? _buildQwertyLayout() : _buildNumericLayout(),
+        padding: EdgeInsets.all(8 * scale),
+        child: _showQwerty ? _buildQwertyLayout(scale) : _buildNumericLayout(scale),
       ),
     );
   }
 
-  Widget _buildNumericLayout() {
+  Widget _buildNumericLayout(double scale) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey('1'),
-            _buildKeypadKey('2'),
-            _buildKeypadKey('3'),
+            _buildKeypadKey('1', scale: scale),
+            _buildKeypadKey('2', scale: scale),
+            _buildKeypadKey('3', scale: scale),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey('4'),
-            _buildKeypadKey('5'),
-            _buildKeypadKey('6'),
+            _buildKeypadKey('4', scale: scale),
+            _buildKeypadKey('5', scale: scale),
+            _buildKeypadKey('6', scale: scale),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey('7'),
-            _buildKeypadKey('8'),
-            _buildKeypadKey('9'),
+            _buildKeypadKey('7', scale: scale),
+            _buildKeypadKey('8', scale: scale),
+            _buildKeypadKey('9', scale: scale),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey('.'),
-            _buildKeypadKey('0'),
-            _buildKeypadKey('⌫', isBackspace: true),
+            _buildKeypadKey('.', scale: scale),
+            _buildKeypadKey('0', scale: scale),
+            _buildKeypadKey('⌫', isBackspace: true, scale: scale),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey(' ', isSpace: true),
-            _buildKeypadKey('↵', isNewline: true),
-            _buildClearButton(),
-            _buildSwitchToQwertyButton(),
+            _buildKeypadKey(' ', isSpace: true, scale: scale),
+            _buildKeypadKey('↵', isNewline: true, scale: scale),
+            _buildClearButton(scale: scale),
+            _buildSwitchToQwertyButton(scale: scale),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildQwertyLayout() {
+  Widget _buildQwertyLayout(double scale) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P']
-              .map((k) => _buildKeypadKey(k, small: true))
+              .map((k) => _buildKeypadKey(k, small: true, scale: scale))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L']
-              .map((k) => _buildKeypadKey(k, small: true))
+              .map((k) => _buildKeypadKey(k, small: true, scale: scale))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
-              .map((k) => _buildKeypadKey(k, small: true))
+              .map((k) => _buildKeypadKey(k, small: true, scale: scale))
               .toList(),
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildKeypadKey(' ', isSpace: true, small: true),
-            _buildKeypadKey('⌫', isBackspace: true, small: true),
-            _buildKeypadKey('↵', isNewline: true, small: true),
-            _buildClearButton(small: true),
-            _buildSwitchToNumericButton(small: true),
+            _buildKeypadKey(' ', isSpace: true, small: true, scale: scale),
+            _buildKeypadKey('⌫', isBackspace: true, small: true, scale: scale),
+            _buildKeypadKey('↵', isNewline: true, small: true, scale: scale),
+            _buildClearButton(small: true, scale: scale),
+            _buildSwitchToNumericButton(small: true, scale: scale),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildSwitchToQwertyButton() {
+  Widget _buildSwitchToQwertyButton({double scale = 1.0}) {
+    final size = 40.0 * scale;
+    final fontSize = 12.0 * scale;
     return Padding(
-      padding: const EdgeInsets.all(2),
+      padding: EdgeInsets.all(2 * scale),
       child: SizedBox(
-        width: 40,
-        height: 40,
+        width: size,
+        height: size,
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
             padding: EdgeInsets.zero,
@@ -457,17 +484,17 @@ class WritingScreenState extends State<WritingScreen> {
               _showQwerty = true;
             });
           },
-          child: const Text('ABC', style: TextStyle(fontSize: 12)),
+          child: Text('ABC', style: TextStyle(fontSize: fontSize)),
         ),
       ),
     );
   }
 
-  Widget _buildSwitchToNumericButton({bool small = false}) {
-    final size = small ? 28.0 : 40.0;
-    final fontSize = small ? 10.0 : 12.0;
+  Widget _buildSwitchToNumericButton({bool small = false, double scale = 1.0}) {
+    final size = (small ? 28.0 : 40.0) * scale;
+    final fontSize = (small ? 10.0 : 12.0) * scale;
     return Padding(
-      padding: const EdgeInsets.all(2),
+      padding: EdgeInsets.all(2 * scale),
       child: SizedBox(
         width: size,
         height: size,
@@ -486,11 +513,11 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
-  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isNewline = false, bool small = false}) {
-    final size = small ? 28.0 : 40.0;
-    final fontSize = small ? 14.0 : 18.0;
+  Widget _buildKeypadKey(String key, {bool isBackspace = false, bool isSpace = false, bool isNewline = false, bool small = false, double scale = 1.0}) {
+    final size = (small ? 28.0 : 40.0) * scale;
+    final fontSize = (small ? 14.0 : 18.0) * scale;
     return Padding(
-      padding: const EdgeInsets.all(2),
+      padding: EdgeInsets.all(2 * scale),
       child: SizedBox(
         width: size,
         height: size,
@@ -525,11 +552,11 @@ class WritingScreenState extends State<WritingScreen> {
     );
   }
 
-  Widget _buildClearButton({bool small = false}) {
-    final size = small ? 28.0 : 40.0;
-    final fontSize = small ? 14.0 : 18.0;
+  Widget _buildClearButton({bool small = false, double scale = 1.0}) {
+    final size = (small ? 28.0 : 40.0) * scale;
+    final fontSize = (small ? 14.0 : 18.0) * scale;
     return Padding(
-      padding: const EdgeInsets.all(2),
+      padding: EdgeInsets.all(2 * scale),
       child: SizedBox(
         width: size,
         height: size,
