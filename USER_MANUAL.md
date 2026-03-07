@@ -344,7 +344,8 @@ Tap bottom tab **PLAN**.
 - Reorderable waypoint list (long-press and drag to reorder)
 - Swipe row right-to-left to delete waypoint
 - Tap row to set current waypoint (highlighted in purple with "ACTIVE" badge)
-- **Long-press** row to insert a waypoint after that position (opens FIND tab; next selection inserts after the long-pressed waypoint)
+- **Insert waypoint**: tap a waypoint to select it, then press the **+** button to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
+- Long press (grab) a waypoint to move it up and down
 - Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
 - Airways and procedures show as expandable items with nested waypoints
 
