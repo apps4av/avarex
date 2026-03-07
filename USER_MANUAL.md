@@ -344,6 +344,7 @@ Tap bottom tab **PLAN**.
 - Reorderable waypoint list (long-press and drag to reorder)
 - Swipe row right-to-left to delete waypoint
 - Tap row to set current waypoint (highlighted in purple with "ACTIVE" badge)
+- **Long-press** row to insert a waypoint after that position (opens FIND tab; next selection inserts after the long-pressed waypoint)
 - Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
 - Airways and procedures show as expandable items with nested waypoints
 
@@ -361,8 +362,19 @@ Bottom controls:
 Includes:
 
 - **Per-leg log grid** with columns: FM (from), TO (to), AL (altitude), TC (true course), VR (variation), MC (magnetic course), WD (wind direction@speed), CA (wind correction angle), MH (magnetic heading), DT (distance), GS (ground speed), TM (time), FC (fuel consumption)
-- **Winds aloft en route diagram**: visual heat map showing headwind (red) / tailwind (green) at altitudes 0-18000 ft along route (up to 40 sample columns)
-- **Terrain profile en route**: altitude chart showing terrain elevation along route at 1nm resolution with color coding (blue=safe below, orange=at or above planned altitude, magenta=missing data)
+  - Grid is zoomable/pannable; **double-tap** to reset zoom
+- **Winds & Terrain En Route diagram**: combined visualization showing wind components and terrain profile:
+  - **Wind heat map**: color-coded cells at altitudes 0-18000 ft along route (green = tailwind, red = headwind, darker = lighter winds, brighter = stronger winds up to 50 kt scale)
+  - **Plan altitude line**: cyan horizontal line showing your planned altitude
+  - **Terrain profile overlay**: terrain elevation curve with color coding (green = safe below plan altitude, red = at or above plan altitude)
+  - **Waypoint markers**: cyan tick marks at the bottom showing waypoint positions along the route
+  - **Interactive tap**: tap anywhere on the diagram to display a tooltip with:
+    - Nearest waypoint (if within 5% of route position)
+    - Altitude at tap position (snaps to altitude bands: 0, 3000, 6000, 9000, 12000, 18000 ft)
+    - Terrain elevation at that point
+    - Course direction
+    - Wind direction and speed
+    - Tailwind/headwind component in knots
 - **Copy plan to clipboard** button (app bar)
 
 ### 7.4 Plan Actions screen
@@ -926,6 +938,8 @@ Possible issue items:
 | Change GPS source mode | Tap `SRC` tile in instrument bar |
 | Measure distances | `MAP → Ruler icon → long-press map to add points` |
 | Rubber band waypoints | `MAP → Rubber banding icon → long-press and drag waypoints` |
+| Insert waypoint at position | `PLAN → long-press waypoint row → FIND → select destination` |
+| View winds & terrain analysis | `PLAN → analytics icon → tap diagram for details` |
 
 ---
 
@@ -975,14 +989,15 @@ Use this to adjust waypoints graphically.
 1. Open `PLAN` tab.
 2. Add waypoints using either:
    - `FIND` tab → tap item → `+Plan` (insert) or `↓Plan` (append to end), or
-   - `MAP` long-press destination popup → `+Plan` (insert) or `↓Plan` (append to end).
+   - `MAP` long-press destination popup → `+Plan` (insert) or `↓Plan` (append to end), or
+   - **Long-press** an existing waypoint row in `PLAN` to insert after it (opens FIND; next selection inserts after that waypoint).
 3. Reorder legs by long-press and drag in `PLAN`.
 4. Tap a leg to make it current.
 5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN`.
 6. Open nav-log (analytics icon) to review:
-   - Leg calculations
-   - Winds-aloft field (green=tailwind, red=headwind)
-   - Terrain profile (blue=safe, orange=warning)
+   - Leg calculations (double-tap grid to reset zoom)
+   - Combined winds & terrain diagram (green=tailwind/safe, red=headwind/terrain warning)
+   - Tap on diagram for detailed info at any point
 7. Save the route: `PLAN → Actions → Load & Save → Save`.
 
 ### UC-05: Create an IFR route automatically
@@ -1147,6 +1162,33 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
 4. Distance (NM) and bearing (degrees) are shown between points.
 5. Tap the Ruler icon again to disable and clear measurements.
 
+### UC-20: Insert a waypoint at a specific position in your plan
+
+1. Open `PLAN` tab with an existing route.
+2. Find the waypoint you want to insert after.
+3. **Long-press** that waypoint row.
+4. The app switches to `FIND` tab.
+5. Search for or select the waypoint you want to insert.
+6. Tap `+Plan` or `↓Plan` — the new waypoint inserts after the long-pressed position.
+
+### UC-21: Analyze winds and terrain along your route
+
+1. Open `PLAN` tab and ensure you have a route with at least 2 waypoints.
+2. Set your planned altitude using the `Alt` field at the bottom.
+3. Tap the analytics icon (chart) to open the Navigation Log.
+4. View the **Winds & Terrain En Route** diagram:
+   - Green cells = tailwind at that altitude/position
+   - Red cells = headwind at that altitude/position
+   - Cyan horizontal line = your planned altitude
+   - Green terrain line = terrain safely below your altitude
+   - Red terrain line = terrain at or above your altitude (warning)
+5. **Tap anywhere** on the diagram to see detailed info:
+   - Wind direction and speed
+   - Headwind/tailwind component
+   - Terrain elevation
+   - Course at that point
+6. Use waypoint tick marks at the bottom to identify positions along your route.
+
 ---
 
 ## 16) Resources and Support
@@ -1226,10 +1268,11 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/VJ0S3ejWPC8`
 
-### FAQ-07: My waypoints appear in wrong order. Can I reorder quickly?
+### FAQ-07: My waypoints appear in wrong order. Can I reorder or insert quickly?
 
-- Yes. In `PLAN`, long-press and drag rows to reorder legs.
-- You can also set current leg by tapping a waypoint row.
+- **Reorder**: In `PLAN`, long-press and drag rows to reorder legs.
+- **Insert at specific position**: Long-press a waypoint row to insert after it (opens FIND; next selection inserts after that waypoint).
+- **Set current leg**: Tap a waypoint row.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/T-m4BWZynMg`
 
