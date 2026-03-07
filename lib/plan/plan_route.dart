@@ -133,6 +133,12 @@ class PlanRoute {
       List<LatLng> routeIntermediate;
       // 1 mile segments if fine points
       routeIntermediate = fine ? calc.findPoints(destination1, destination2, 1) : calc.findPoints(destination1, destination2);
+      // Skip first point of subsequent legs to avoid duplicates at waypoint junctions.
+      // findPoints includes both endpoints, so consecutive legs would have the shared
+      // waypoint appearing twice, causing bearing calculations to return 0 (undefined).
+      if(index > 0 && routeIntermediate.isNotEmpty) {
+        routeIntermediate = routeIntermediate.sublist(1);
+      }
       points.addAll(routeIntermediate);
     }
     return points;
@@ -654,12 +660,12 @@ class PlanRoute {
   }
 
   // for rubber banding
-  void insertWaypoint(Waypoint waypoint, {int? place}) {
+  void insertWaypoint(Waypoint waypoint) {
     UserDatabaseHelper.db.addRecent(waypoint.destination);
 
     // in the middle
-    if(place != null && place < _waypoints.length) {
-      _waypoints.insert(place + 1, waypoint);
+    if(Storage().planSearch) {
+      _waypoints.insert(currentWaypointIndex + 1, waypoint);
       _update(true);
       return;
     }

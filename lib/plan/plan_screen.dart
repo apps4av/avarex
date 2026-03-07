@@ -63,7 +63,7 @@ class PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
-    Storage().planSearchIndex = null;
+    Storage().planSearch = false;
 
     double bottom = Constants.bottomPaddingSize(context);
 
@@ -77,7 +77,10 @@ class PlanScreenState extends State<PlanScreen> {
           builder: (context, value, _) {
             return ListTile( // header
                 key: Key(Storage().getKey()),
-                leading: const Icon(Icons.add),
+                leading: GestureDetector(child: Icon(Icons.add), onTap: () {
+                  Storage().planSearch = true;
+                  MainScreenState.gotoFind();
+                },),
                 title: PlanLineWidgetState.getHeading(),
                 subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
             })),
@@ -144,10 +147,6 @@ class PlanScreenState extends State<PlanScreen> {
                                   child: PlanItemWidget(
                                     waypoint: route.getWaypointAt(index),
                                     current: route.isCurrent(index),
-                                    onLongPress: () {
-                                      Storage().planSearchIndex = index;
-                                      MainScreenState.gotoFind();
-                                    },
                                     onTap: () {
                                       setState(() {
                                         Storage().route.setCurrentWaypoint(index);

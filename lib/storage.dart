@@ -206,7 +206,7 @@ class Storage {
   StreamSubscription<Uint8List>? _btStream;
 
   // for transition from plan to find for waypoint insert at a specific index
-  int? planSearchIndex;
+  bool planSearch = false;
 
   void _processData() {
     // gdl90

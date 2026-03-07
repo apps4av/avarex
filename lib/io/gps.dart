@@ -40,7 +40,7 @@ class Gps {
   // for testing
   static double _countTest = 0;
   StreamSubscription<Position> getStreamMock() {
-    final List<LatLng> mockPositions = GeoCalculations().findPoints(const LatLng(42.584, -70.916), const LatLng(42.584 + 0.75, -70.916), 1);
+    final List<LatLng> mockPositions = GeoCalculations().findPoints(const LatLng(40.75, -112), const LatLng(42.75 + 0.75, -112), 1);
     mockPositions.addAll(mockPositions.reversed.toList()); // come back
     mockPositions.addAll(List.generate(90, (int index) {return const LatLng(42.584, -70.916);})); // stay at start for 90 seconds
     return Stream.periodic(const Duration(seconds: 1), (_) {
@@ -53,7 +53,7 @@ class Gps {
       }
 
       // change altitude to simulate takeoff and landing, to 1000 meters, and one cycle in 180 seconds
-      double altitude = sin(((_countTest * 2) % 360) * pi / 180) * 1000;
+      double altitude = sin(((_countTest * 2) % 360) * pi / 180) * 1000 + 2000;
       if(altitude < 0) {
         altitude = 0;
       }
@@ -65,7 +65,7 @@ class Gps {
         accuracy: 0,
         altitude: altitude,
         altitudeAccuracy: 0,
-        heading: _countTest % 90,
+        heading: 0,
         headingAccuracy: 0,
         speed: speed,
         speedAccuracy: 0,
