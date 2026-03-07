@@ -285,25 +285,38 @@ class PlanScreenState extends State<PlanScreen> {
   }
 
   Widget _makeNavLog() {
+    return _NavLogContent();
+  }
+}
+
+class _NavLogContent extends StatefulWidget {
+  const _NavLogContent();
+
+  @override
+  State<_NavLogContent> createState() => _NavLogContentState();
+}
+
+class _NavLogContentState extends State<_NavLogContent> {
+  Offset? _tapPosition;
+  List<double?>? _cachedElevationData;
+  Future<List<double?>?>? _elevationFuture;
+  final GlobalKey _navLogKey = GlobalKey();
+  final TransformationController _tableZoomController = TransformationController();
+
+  @override
+  void dispose() {
+    _tableZoomController.dispose();
+    super.dispose();
+  }
+
+  void _resetTableZoom() {
+    _tableZoomController.value = Matrix4.identity();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final List<Destination> destinations = Storage().route.getAllDestinations();
     final bool hasRoute = destinations.isNotEmpty;
-
-    Widget terrainProfile = FutureBuilder(
-      future: AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution()),
-      builder: (BuildContext context, var snapshot) {
-        if (snapshot.hasData) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
-            child: SizedBox(
-              width: Constants.screenWidth(context),
-              height: Constants.screenHeight(context) / 4,
-              child: makeChart(context, snapshot.data),
-            ),
-          );
-        }
-        return const Center(child: CircularProgressIndicator());
-      },
-    );
 
     List<Widget> values = [];
     values.addAll(DestinationCalculations.labels.map((String s) => Container(
@@ -366,22 +379,26 @@ class PlanScreenState extends State<PlanScreen> {
     }
 
     Widget grid = hasRoute
-        ? InteractiveViewer(
-            constrained: false,
-            boundaryMargin: const EdgeInsets.all(20),
-            minScale: 0.5,
-            maxScale: 4.0,
-            child: SizedBox(
-              width: Constants.screenWidth(context),
-              child: GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: DestinationCalculations.columns,
-                  mainAxisExtent: 28,
+        ? GestureDetector(
+            onDoubleTap: _resetTableZoom,
+            child: InteractiveViewer(
+              transformationController: _tableZoomController,
+              constrained: false,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.3,
+              maxScale: 4.0,
+              child: SizedBox(
+                width: Constants.screenWidth(context),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: DestinationCalculations.columns,
+                    mainAxisExtent: 28,
+                  ),
+                  itemCount: values.length,
+                  itemBuilder: (context, index) => values[index],
                 ),
-                itemCount: values.length,
-                itemBuilder: (context, index) => values[index],
               ),
             ),
           )
@@ -398,9 +415,20 @@ class PlanScreenState extends State<PlanScreen> {
             ),
           );
 
-    Widget windDiagram = Padding(
-      padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
-      child: _makeWindFieldDiagram(),
+    // Cache the elevation future to avoid re-fetching on each rebuild
+    _elevationFuture ??= AltitudeProfile.getAltitudeProfile(Storage().route.getPathNextHighResolution());
+    
+    Widget windDiagram = FutureBuilder<List<double?>?>(
+      future: _elevationFuture,
+      builder: (BuildContext context, var snapshot) {
+        if (snapshot.hasData) {
+          _cachedElevationData = snapshot.data;
+        }
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(10, 5, 10, 0),
+          child: _makeWindFieldDiagram(elevationData: _cachedElevationData),
+        );
+      },
     );
 
     return Scaffold(
@@ -445,7 +473,7 @@ class PlanScreenState extends State<PlanScreen> {
                   Icon(Icons.air, size: 14, color: Theme.of(context).colorScheme.outline),
                   const SizedBox(width: 4),
                   Text(
-                    "Winds Aloft En Route",
+                    "Winds & Terrain En Route",
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -459,38 +487,43 @@ class PlanScreenState extends State<PlanScreen> {
             ),
             const SizedBox(height: 4),
             Expanded(
-              flex: 2,
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: windDiagram,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
+              flex: 3,
+              child: Stack(
                 children: [
-                  Icon(Icons.terrain, size: 14, color: Theme.of(context).colorScheme.outline),
-                  const SizedBox(width: 4),
-                  Text(
-                    "Terrain En Route",
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.outline,
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: windDiagram,
+                  ),
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTapDown: (details) {
+                        // Adjust for padding inside windDiagram (10, 5, 10, 0)
+                        final adjustedPosition = Offset(
+                          details.localPosition.dx - 10,
+                          details.localPosition.dy - 5,
+                        );
+                        setState(() {
+                          _tapPosition = adjustedPosition;
+                        });
+                      },
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  const Expanded(child: Divider()),
+                  if (_tapPosition != null)
+                    Positioned(
+                      left: _tapPosition!.dx + 10 - 6,
+                      top: _tapPosition!.dy + 5 - 6,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.yellow.withAlpha(150),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.yellow, width: 1),
+                        ),
+                      ),
+                    ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Expanded(
-              flex: 1,
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: terrainProfile,
               ),
             ),
           ],
@@ -499,8 +532,6 @@ class PlanScreenState extends State<PlanScreen> {
       ),
     );
   }
-
-  final GlobalKey _navLogKey = GlobalKey();
 
   Future<void> _captureNavLogToPng() async {
     try {
@@ -543,7 +574,7 @@ class PlanScreenState extends State<PlanScreen> {
     }
   }
 
-  Widget _makeWindFieldDiagram() {
+  Widget _makeWindFieldDiagram({List<double?>? elevationData}) {
     final List<LatLng> path = Storage().route.getPathNextHighResolution();
     if(path.length < 2) {
       return const Center(child: Text("No route for winds aloft"));
@@ -557,6 +588,12 @@ class PlanScreenState extends State<PlanScreen> {
 
     final Color textColor = Theme.of(context).colorScheme.onSurface;
     final Color gridColor = textColor.withAlpha(50);
+    final int planAltitude = Storage().route.altitude;
+    final int fore = Storage().route.fore;
+    
+    // Get waypoints with their positions along the route
+    final List<(String, double)> waypoints = _getWaypointPositions(path);
+    
     return SizedBox.expand(
       child: CustomPaint(
         painter: _WindFieldDiagramPainter(
@@ -565,9 +602,52 @@ class PlanScreenState extends State<PlanScreen> {
           altitudes: altitudes,
           textColor: textColor,
           gridColor: gridColor,
+          elevationData: elevationData,
+          planAltitude: planAltitude,
+          tapPosition: _tapPosition,
+          path: path,
+          fore: fore,
+          waypoints: waypoints,
         ),
       ),
     );
+  }
+  
+  List<(String, double)> _getWaypointPositions(List<LatLng> path) {
+    final List<(String, double)> result = [];
+    final List<Destination> destinations = Storage().route.getAllDestinations();
+    if (destinations.isEmpty || path.isEmpty) return result;
+    
+    // Calculate total path length
+    double totalLength = 0;
+    final List<double> cumulativeDistances = [0];
+    for (int i = 1; i < path.length; i++) {
+      totalLength += GeoCalculations().calculateDistance(path[i - 1], path[i]);
+      cumulativeDistances.add(totalLength);
+    }
+    if (totalLength == 0) return result;
+    
+    // Find position of each waypoint along the path
+    for (final Destination dest in destinations) {
+      final LatLng coord = dest.coordinate;
+      
+      // Find the closest point on the path to this waypoint
+      double minDist = double.infinity;
+      int closestIndex = 0;
+      for (int i = 0; i < path.length; i++) {
+        final double dist = GeoCalculations().calculateDistance(path[i], coord);
+        if (dist < minDist) {
+          minDist = dist;
+          closestIndex = i;
+        }
+      }
+      
+      // Calculate position as fraction (0.0 to 1.0)
+      final double position = cumulativeDistances[closestIndex] / totalLength;
+      result.add((dest.locationID, position));
+    }
+    
+    return result;
   }
 
   List<int> _windFieldAltitudes() {
@@ -599,19 +679,27 @@ class PlanScreenState extends State<PlanScreen> {
       final LatLng coordinate = path[index];
       final double course = _courseAtPathIndex(path, index);
       for(final int altitude in altitudes) {
-        double? wd;
-        double? ws;
-        (wd, ws) = WindsCache.getWindsAt(
+        double? windFrom;
+        double? windSpeed;
+        (windFrom, windSpeed) = WindsCache.getWindsAt(
             coordinate, altitude.toDouble(), fore);
-        if(wd == null || ws == null) {
+        if(windFrom == null || windSpeed == null) {
           continue;
         }
-        final double angleRad = (wd - course) * math.pi / 180;
-        final double headwindComponent = ws * math.cos(angleRad);
+        
+        // Calculate tailwind component (positive = tailwind, negative = headwind)
+        // windFrom = direction wind is coming FROM (aviation standard)
+        // Wind blows TO direction: windFrom + 180
+        // course = direction aircraft is flying TO
+        // Component = windSpeed * cos(windBlowsTo - course)
+        final double windBlowsTo = windFrom + 180;
+        final double angleRad = (windBlowsTo - course) * math.pi / 180;
+        final double tailwindComponent = windSpeed * math.cos(angleRad);
+        
         samples.add(_WindFieldSample(
           column: column,
           altitude: altitude,
-          component: headwindComponent,
+          component: tailwindComponent,
         ));
       }
     }
@@ -634,143 +722,6 @@ class PlanScreenState extends State<PlanScreen> {
     }
     return GeoCalculations().calculateBearing(path[startIndex], path[endIndex]);
   }
-
-  Widget makeChart(BuildContext context, List<double?>? data) {
-    if(data == null) {
-      return const Center(child: Text("Elevation charts not downloaded"));
-    }
-    return CustomPaint(painter: AltitudePainter(context, data),);
-  }
-
-}
-
-
-class AltitudePainter extends CustomPainter {
-
-  final BuildContext context;
-  final List<double?> data;
-  double maxAltitude = double.negativeInfinity;
-  double minAltitude = double.infinity;
-  final double altitudeOfPlan = Storage().route.altitude.toDouble();
-  List<Destination> destinations = Storage().route.getNextDestinations();
-  int length = 0;
-  final _paint = Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 3
-    ..strokeCap = StrokeCap.round
-    ..color = Colors.green;
-
-  AltitudePainter(this.context, this.data) {
-    if(data.isEmpty) {
-      return;
-    }
-    // find axis limits
-    for(int count = 0; count < data.length; count++) {
-      if(data[count] == null) {
-        continue;
-      }
-      else if(data[count]! > maxAltitude) {
-        maxAltitude = data[count]!;
-      }
-      else if(data[count]! <= minAltitude) {
-        minAltitude = data[count]!;
-      }
-    }
-    // handle case where no valid altitude data was found
-    if(minAltitude.isInfinite || maxAltitude.isInfinite || minAltitude.isNaN || maxAltitude.isNaN) {
-      minAltitude = 0;
-      maxAltitude = 1000;
-      return;
-    }
-    // make minimum altitude in increments of 100
-    minAltitude = (minAltitude / 100).floor() * 100;
-    // make maximum altitude in increments of 100
-    maxAltitude = (maxAltitude / 100).ceil() * 100;
-    length = data.length;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    Color textColor = Colors.white;
-    Color textBackColor = Colors.black;
-    if(length == 0) {
-      return;
-    }
-
-    // find width needed to display max altitude
-    TextSpan span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: "88888");
-    TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-    tp.layout();
-    double margin = tp.width;
-
-    double width = size.width - margin;
-    double height = size.height;
-    double step = width / (length - 1);
-    double stepY = height / (maxAltitude - minAltitude);
-
-    List<Offset> points = [];
-    for (int i = 0; i < length; i++) {
-      double x = i * step;
-      double y = data[i] == null ?
-      double.nan : // treat nulls as minimum altitude
-      height - (data[i]! - minAltitude) * stepY;
-      points.add(Offset(x, y));
-    }
-
-    double topAltitude = height - (altitudeOfPlan - minAltitude) * stepY;
-    for (int i = 0; i < length - 1; i++) {
-      // all areas into terrain mark red
-      if(points[i].dy.isNaN) {
-        points[i] = Offset(points[i].dx, height);
-        _paint.color = Color.fromARGB(255, 255, 0, 255); // magenta for nulls
-      }
-      else {
-        _paint.color =
-        topAltitude < points[i].dy || topAltitude < points[i + 1].dy ? Colors
-            .blue : Colors.orange;
-      }
-      if(points[i + 1].dy.isNaN) {
-        points[i + 1] = Offset(points[i + 1].dx, height);
-        _paint.color = Color.fromARGB(255, 255, 0, 255); // magenta for nulls
-      }
-      canvas.drawLine(points[i], points[i + 1], _paint);
-    }
-
-    // label text
-    span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: maxAltitude.round().toString().padLeft(5, " "));
-    tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, Offset(width, 0));
-
-    span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor), text: minAltitude.round().toString().padLeft(5, " "));
-    tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, Offset(width, height - tp.height));
-
-    // choose destinations based on width with one destination per 1/5 screen pixels
-    double xx = 0;
-    // draw no more than 5 points on screen
-    double last = -width / 5;
-    for(int index = 0; index < destinations.length; index++) {
-      if(destinations[index].calculations == null) {
-        continue;
-      }
-      double inc = destinations[index].calculations!.distance * step;
-      xx += inc;
-      if((xx - last) > (width / 5)) {
-        last = xx;
-        span = TextSpan(style: TextStyle(fontSize: 10, color: textColor, backgroundColor: textBackColor),
-            text: destinations[index].locationID);
-        tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-        tp.layout();
-        tp.paint(canvas, Offset(xx, height - tp.height));
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(oldDelegate) => false;
-
 
 }
 
@@ -799,6 +750,12 @@ class _WindFieldDiagramPainter extends CustomPainter {
   final List<int> altitudes;
   final Color textColor;
   final Color gridColor;
+  final List<double?>? elevationData;
+  final int planAltitude;
+  final Offset? tapPosition;
+  final List<LatLng>? path;
+  final int fore;
+  final List<(String, double)> waypoints;
 
   const _WindFieldDiagramPainter({
     required this.samples,
@@ -806,6 +763,12 @@ class _WindFieldDiagramPainter extends CustomPainter {
     required this.altitudes,
     required this.textColor,
     required this.gridColor,
+    this.elevationData,
+    this.planAltitude = 0,
+    this.tapPosition,
+    this.path,
+    this.fore = 0,
+    this.waypoints = const [],
   });
 
   @override
@@ -892,9 +855,31 @@ class _WindFieldDiagramPainter extends CustomPainter {
     for(final _WindFieldSample sample in samples) {
       final (double bandTop, double bandBottom) = altitudeBands[sample.altitude] ??
           (topPadding, topPadding + chartHeight);
-      final double intensity = (sample.component.abs() / maxComponent).clamp(0.0, 1.0);
-      final Color target = sample.component >= 0 ? Colors.red : Colors.green;
-      final Color color = Color.lerp(Colors.black, target, intensity) ?? target;
+      // Use a fixed scale for consistent colors (50 knots = full color)
+      const double maxWindScale = 50.0;
+      final double intensity = (sample.component.abs() / maxWindScale).clamp(0.0, 1.0);
+      
+      // Positive component = tailwind (wind pushing from behind) = green
+      // Negative component = headwind (wind pushing against) = red
+      Color color;
+      if (sample.component > 0) {
+        // Tailwind: dark -> bright green
+        color = Color.lerp(
+          const Color(0xFF1A1A1A),
+          const Color(0xFF00E676),
+          intensity,
+        ) ?? Colors.green;
+      } else if (sample.component < 0) {
+        // Headwind: dark -> bright red
+        color = Color.lerp(
+          const Color(0xFF1A1A1A),
+          const Color(0xFFFF5252),
+          intensity,
+        ) ?? Colors.red;
+      } else {
+        // No wind component: neutral gray
+        color = const Color(0xFF1A1A1A);
+      }
       final Paint cellPaint = Paint()
         ..color = color
         ..style = PaintingStyle.fill;
@@ -903,6 +888,297 @@ class _WindFieldDiagramPainter extends CustomPainter {
         Rect.fromLTWH(x, bandTop, cellWidth, bandBottom - bandTop),
         cellPaint,
       );
+    }
+
+    // Draw plan altitude line
+    if(planAltitude > 0) {
+      final double planY = topPadding + (maxAltitude - planAltitude) /
+          (maxAltitude - minAltitude) * chartHeight;
+      if(planY >= topPadding && planY <= topPadding + chartHeight) {
+        final Paint planLinePaint = Paint()
+          ..color = Colors.cyan
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
+        canvas.drawLine(
+          Offset(leftPadding, planY),
+          Offset(leftPadding + chartWidth, planY),
+          planLinePaint,
+        );
+      }
+    }
+
+    // Draw elevation curve overlay with color based on plan altitude
+    if(elevationData != null && elevationData!.isNotEmpty) {
+      final int length = elevationData!.length;
+      final double step = chartWidth / (length - 1);
+      
+      final Paint elevationPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
+      
+      // Draw segments colored by whether terrain is above or below plan altitude
+      double? lastX;
+      double? lastY;
+      double? lastElevation;
+      
+      for(int i = 0; i < length; i++) {
+        final double? elevation = elevationData![i];
+        if(elevation == null) continue;
+        
+        final double x = leftPadding + i * step;
+        final double y = topPadding + (maxAltitude - elevation) /
+            (maxAltitude - minAltitude) * chartHeight;
+        final double clampedY = y.clamp(topPadding, topPadding + chartHeight);
+        
+        if(lastX != null && lastY != null && lastElevation != null) {
+          // Color based on whether terrain is above or below plan altitude
+          // Red if terrain is at or above plan altitude (dangerous)
+          // Green if terrain is below plan altitude (safe)
+          final bool currentAbove = elevation >= planAltitude;
+          final bool lastAbove = lastElevation >= planAltitude;
+          
+          if(currentAbove || lastAbove) {
+            elevationPaint.color = Colors.red;
+          } else {
+            elevationPaint.color = Colors.green;
+          }
+          
+          canvas.drawLine(Offset(lastX, lastY), Offset(x, clampedY), elevationPaint);
+        }
+        
+        lastX = x;
+        lastY = clampedY;
+        lastElevation = elevation;
+      }
+    }
+
+    // Draw waypoint labels at the bottom
+    _drawWaypoints(canvas, leftPadding, topPadding, chartWidth, chartHeight);
+
+    // Draw tap indicator and tooltip
+    _drawTapTooltip(canvas, size, leftPadding, topPadding, chartWidth, chartHeight, minAltitude, maxAltitude);
+  }
+  
+  void _drawWaypoints(Canvas canvas, double leftPadding, double topPadding, 
+      double chartWidth, double chartHeight) {
+    if (waypoints.isEmpty) return;
+    
+    final double bottomY = topPadding + chartHeight;
+    
+    for (final (String _, double position) in waypoints) {
+      final double x = leftPadding + position * chartWidth;
+      
+      // Draw vertical tick mark at waypoint position
+      final Paint tickPaint = Paint()
+        ..color = Colors.cyan
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawLine(
+        Offset(x, bottomY - 8),
+        Offset(x, bottomY + 4),
+        tickPaint,
+      );
+    }
+  }
+
+  void _drawTapTooltip(Canvas canvas, Size size, double leftPadding, double topPadding, 
+      double chartWidth, double chartHeight, double minAltitude, double maxAltitude) {
+    if(tapPosition == null) return;
+    
+    final double tapX = tapPosition!.dx;
+    final double tapY = tapPosition!.dy;
+    
+    // Check if path is valid for detailed tooltip
+    if(path == null || path!.length < 2) return;
+    
+    // Check if tap is within chart area for detailed info
+    if(tapX < leftPadding || tapX > leftPadding + chartWidth ||
+       tapY < topPadding || tapY > topPadding + chartHeight) {
+      return;
+    }
+    
+    // Calculate which column was tapped (same indexing as chart drawing)
+    final double cellWidth = chartWidth / columns;
+    final int tappedColumn = ((tapX - leftPadding) / cellWidth).floor().clamp(0, columns - 1);
+    
+    // Calculate path index using the same formula as _buildWindFieldData
+    final int lastIndex = path!.length - 1;
+    final double step = columns > 1 ? lastIndex / (columns - 1) : 0;
+    final int pathIndex = columns == 1 ? 0 : (tappedColumn * step).round().clamp(0, lastIndex);
+    final LatLng coordinate = path![pathIndex];
+    
+    // Calculate altitude at tap position and snap to nearest altitude band
+    final double rawAltitude = maxAltitude - (tapY - topPadding) / chartHeight * (maxAltitude - minAltitude);
+    
+    // Snap to nearest altitude from the altitude list (0, 3000, 6000, 9000, 12000, 18000)
+    const List<int> altitudeLevels = [0, 3000, 6000, 9000, 12000, 18000];
+    int altitudeAtTap = altitudeLevels[0];
+    double minDiff = (rawAltitude - altitudeLevels[0]).abs();
+    for (final int alt in altitudeLevels) {
+      final double diff = (rawAltitude - alt).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        altitudeAtTap = alt;
+      }
+    }
+    
+    // Get terrain elevation at this position
+    double? terrainElevation;
+    if(elevationData != null && elevationData!.isNotEmpty) {
+      final double progress = (tapX - leftPadding) / chartWidth;
+      final int elevIndex = (progress * (elevationData!.length - 1)).round().clamp(0, elevationData!.length - 1);
+      terrainElevation = elevationData![elevIndex];
+    }
+    
+    // Get wind at this position and altitude (use the snapped altitude)
+    double? windDir;
+    double? windSpeed;
+    (windDir, windSpeed) = WindsCache.getWindsAt(coordinate, altitudeAtTap.toDouble(), fore);
+    
+    // Calculate tailwind component using the same formula as _buildWindFieldData
+    double? windComponent;
+    double? course;
+    if (windDir != null && windSpeed != null && path!.length >= 2) {
+      // Calculate course at this position (same as _courseAtPathIndex)
+      int startIdx = pathIndex;
+      int endIdx = pathIndex + 1;
+      if (endIdx >= path!.length) {
+        endIdx = pathIndex;
+        startIdx = pathIndex - 1;
+      }
+      if (startIdx < 0 || startIdx == endIdx) {
+        startIdx = 0;
+        endIdx = 1;
+      }
+      course = GeoCalculations().calculateBearing(path![startIdx], path![endIdx]);
+      
+      // Calculate tailwind component (positive = tailwind, negative = headwind)
+      // windDir = direction wind is coming FROM
+      // Wind blows TO direction: windDir + 180
+      final double windBlowsTo = windDir + 180;
+      final double angleRad = (windBlowsTo - course) * math.pi / 180;
+      windComponent = windSpeed * math.cos(angleRad);
+    }
+    
+    // Draw vertical line at tap position
+    final Paint linePaint = Paint()
+      ..color = Colors.white.withAlpha(150)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawLine(
+      Offset(tapX, topPadding),
+      Offset(tapX, topPadding + chartHeight),
+      linePaint,
+    );
+    
+    // Draw horizontal line at tap altitude
+    canvas.drawLine(
+      Offset(leftPadding, tapY),
+      Offset(leftPadding + chartWidth, tapY),
+      linePaint,
+    );
+    
+    // Draw crosshair circle
+    final Paint circlePaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawCircle(Offset(tapX, tapY), 6, circlePaint);
+    
+    // Find nearest waypoint to tap position
+    String? nearestWaypoint;
+    if (waypoints.isNotEmpty) {
+      final double tapProgress = (tapX - leftPadding) / chartWidth;
+      double minWaypointDist = 0.05; // Must be within 5% of route length
+      for (final (String name, double position) in waypoints) {
+        final double dist = (position - tapProgress).abs();
+        if (dist < minWaypointDist) {
+          minWaypointDist = dist;
+          nearestWaypoint = name;
+        }
+      }
+    }
+    
+    // Build tooltip text
+    final List<String> tooltipLines = [];
+    if (nearestWaypoint != null) {
+      tooltipLines.add("Waypoint: $nearestWaypoint");
+    }
+    tooltipLines.add("Alt: $altitudeAtTap ft");
+    if(terrainElevation != null) {
+      tooltipLines.add("Terrain: ${terrainElevation.round()} ft");
+    }
+    if(course != null) {
+      tooltipLines.add("Course: ${course.round()}°");
+    }
+    if(windDir != null && windSpeed != null) {
+      tooltipLines.add("Wind: ${windDir.round()}° @ ${windSpeed.round()} kt");
+    }
+    if(windComponent != null) {
+      if(windComponent > 0) {
+        tooltipLines.add("Tailwind: ${windComponent.round()} kt");
+      } else if(windComponent < 0) {
+        tooltipLines.add("Headwind: ${(-windComponent).round()} kt");
+      } else {
+        tooltipLines.add("Crosswind only");
+      }
+    }
+    
+    // Draw tooltip background
+    final TextStyle tooltipStyle = TextStyle(fontSize: 11, color: Colors.white);
+    double maxTextWidth = 0;
+    double totalTextHeight = 0;
+    final List<TextPainter> painters = [];
+    
+    for(final String line in tooltipLines) {
+      final TextPainter tp = TextPainter(
+        text: TextSpan(text: line, style: tooltipStyle),
+        textAlign: TextAlign.left,
+        textDirection: TextDirection.ltr,
+      )..layout();
+      painters.add(tp);
+      if(tp.width > maxTextWidth) maxTextWidth = tp.width;
+      totalTextHeight += tp.height;
+    }
+    
+    const double padding = 6;
+    const double spacing = 2;
+    final double tooltipWidth = maxTextWidth + padding * 2;
+    final double tooltipHeight = totalTextHeight + padding * 2 + spacing * (tooltipLines.length - 1);
+    
+    // Position tooltip to avoid going off screen
+    double tooltipX = tapX + 10;
+    double tooltipY = tapY - tooltipHeight - 10;
+    if(tooltipX + tooltipWidth > size.width) {
+      tooltipX = tapX - tooltipWidth - 10;
+    }
+    if(tooltipY < 0) {
+      tooltipY = tapY + 10;
+    }
+    
+    // Draw tooltip box
+    final Paint bgPaint = Paint()
+      ..color = Colors.black.withAlpha(200)
+      ..style = PaintingStyle.fill;
+    final RRect tooltipRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(tooltipX, tooltipY, tooltipWidth, tooltipHeight),
+      const Radius.circular(4),
+    );
+    canvas.drawRRect(tooltipRect, bgPaint);
+    
+    // Draw tooltip border
+    final Paint borderPaint = Paint()
+      ..color = Colors.white.withAlpha(100)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawRRect(tooltipRect, borderPaint);
+    
+    // Draw tooltip text
+    double textY = tooltipY + padding;
+    for(final TextPainter tp in painters) {
+      tp.paint(canvas, Offset(tooltipX + padding, textY));
+      textY += tp.height + spacing;
     }
   }
 
@@ -914,8 +1190,12 @@ class _WindFieldDiagramPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return false;
+  bool shouldRepaint(covariant _WindFieldDiagramPainter oldDelegate) {
+    return oldDelegate.elevationData != elevationData ||
+           oldDelegate.planAltitude != planAltitude ||
+           oldDelegate.samples != samples ||
+           oldDelegate.columns != columns ||
+           oldDelegate.tapPosition != tapPosition;
   }
 }
 
