@@ -313,16 +313,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       _buildSectionHeader(context, "Flight"),
                       _buildMenuItem(
                         context,
-                        icon: MdiIcons.airplane,
-                        title: "Aircraft",
-                        subtitle: "Manage your aircraft",
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pushNamed(context, '/aircraft');
-                        },
-                      ),
-                      _buildMenuItem(
-                        context,
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",
@@ -333,12 +323,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       _buildMenuItem(
                         context,
-                        icon: MdiIcons.scaleUnbalanced,
-                        title: "Weight & Balance",
-                        subtitle: "Calculate W&B",
+                        icon: MdiIcons.airplane,
+                        title: "Aircraft & Performance",
+                        subtitle: "Aircraft, W&B, takeoff, landing, cruise",
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.pushNamed(context, '/wnb');
+                          Navigator.pushNamed(context, '/performance');
                         },
                       ),
                       const SizedBox(height: 8),

@@ -5,13 +5,12 @@ import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
-import 'package:avaremp/wnb/wnb_screen.dart';
 import 'package:avaremp/writing_screen.dart';
+import 'aircraft/aircraft_performance_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 import 'ai/ai_screen.dart';
-import 'aircraft/aircraft_screen.dart';
 import 'checklist/checklist_screen.dart';
 import 'constants.dart';
 import 'destination/destination.dart';
@@ -69,9 +68,8 @@ class MainApp extends StatelessWidget {
                   : const MainScreen(),
               '/download': (context) => const DownloadScreen(),
               '/documents': (context) => const DocumentsScreen(),
-              '/aircraft': (context) => const AircraftScreen(),
               '/checklists': (context) => const ChecklistScreen(),
-              '/wnb': (context) => const WnbScreen(),
+              '/performance': (context) => const AircraftPerformanceScreen(),
               '/logbook': (context) => const LogbookScreen(),
               '/pro': (context) => const LoginScreen(),
               '/donate': (context) => const DonateScreen(),

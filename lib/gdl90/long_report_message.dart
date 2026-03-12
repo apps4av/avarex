@@ -33,15 +33,15 @@ class LongReportMessage extends TrafficReportMessage {
   }
 
   @override
-  void parse(Uint8List msg) {
+  void parse(Uint8List message) {
     // clear previous values
     callSign = '';
 
     // time of reception is 3 bytes (little-endian in original code)
     int timeOfReception = 0;
-    timeOfReception = (msg[2] & 0xFF) << 16;
-    timeOfReception += (msg[1] & 0xFF) << 8;
-    timeOfReception += (msg[0] & 0xFF);
+    timeOfReception = (message[2] & 0xFF) << 16;
+    timeOfReception += (message[1] & 0xFF) << 8;
+    timeOfReception += (message[0] & 0xFF);
 
     double hours = timeOfReception * 0.00008 / 3600.0;
     double minutes = (hours - hours.floorToDouble()) * 60.0;
@@ -51,7 +51,7 @@ class LongReportMessage extends TrafficReportMessage {
     min = minutes.toInt();
     sec = seconds.toInt();
 
-    int payloadTypeCode = ((msg[3] & 0xF8) >> 3);
+    int payloadTypeCode = ((message[3] & 0xF8) >> 3);
 
     switch (payloadTypeCode) {
       case 0:
@@ -122,19 +122,19 @@ class LongReportMessage extends TrafficReportMessage {
         break;
     }
 
-    addressQualifier = msg[3] & 0x07;
+    addressQualifier = message[3] & 0x07;
 
-    icao = (msg[4] & 0xFF) << 16;
-    icao += (msg[5] & 0xFF) << 8;
-    icao += (msg[6] & 0xFF);
+    icao = (message[4] & 0xFF) << 16;
+    icao += (message[5] & 0xFF) << 8;
+    icao += (message[6] & 0xFF);
 
     // bytes [7-9]: 23 bits of latitude info (does not include bit 8 of byte 9)
     int tmp = 0;
-    tmp = (msg[7] & 0xFF);
+    tmp = (message[7] & 0xFF);
     tmp <<= 8;
-    tmp += (msg[8] & 0xFF);
+    tmp += (message[8] & 0xFF);
     tmp <<= 8;
-    tmp += (msg[9] & 0xFE);
+    tmp += (message[9] & 0xFE);
     tmp >>= 1;
 
     bool isSouth = (tmp & 0x800000) > 0;
@@ -145,14 +145,14 @@ class LongReportMessage extends TrafficReportMessage {
 
     // bytes [9-12]: 24 bits of longitude info (starts with bit 8 of byte 9)
     tmp = 0;
-    tmp = (msg[10] & 0xFF);
+    tmp = (message[10] & 0xFF);
     tmp <<= 8;
-    tmp |= (msg[11] & 0xFF);
+    tmp |= (message[11] & 0xFF);
     tmp <<= 8;
-    tmp |= (msg[12] & 0xFE);
+    tmp |= (message[12] & 0xFE);
     tmp >>= 1;
 
-    if ((msg[9] & 1) == 1) {
+    if ((message[9] & 1) == 1) {
       tmp += 0x800000;
     }
 
@@ -164,14 +164,14 @@ class LongReportMessage extends TrafficReportMessage {
 
     // byte [12], bit 8: altitude type (ignored in original)
     int codedAltitude = 0;
-    codedAltitude = (msg[13] & 0xFF) << 4;
-    codedAltitude += (msg[14] & 0xF0) >> 4;
+    codedAltitude = (message[13] & 0xFF) << 4;
+    codedAltitude += (message[14] & 0xF0) >> 4;
     altitude = (codedAltitude * 25) - 1025;
 
-    nic = msg[14] & 0x04;
+    nic = message[14] & 0x04;
 
-    airborne = !(((msg[15] & 0x80) > 0));
-    bool supersonic = ((msg[15] & 0x40) > 0);
+    airborne = !(((message[15] & 0x80) > 0));
+    bool supersonic = ((message[15] & 0x40) > 0);
 
     bool horizVelocityIsSoutherly;
     bool horizVelocityIsWesterly;
@@ -188,9 +188,9 @@ class LongReportMessage extends TrafficReportMessage {
         multiplier = 4;
       }
 
-      vel = (msg[15] & 0x0F) << 6;
-      vel += (msg[16] & 0xFD) >> 2;
-      horizVelocityIsSoutherly = ((msg[15] & 0x10) > 0);
+      vel = (message[15] & 0x0F) << 6;
+      vel += (message[16] & 0xFD) >> 2;
+      horizVelocityIsSoutherly = ((message[15] & 0x10) > 0);
       northVelocityMagnitude = (vel * multiplier) - multiplier;
 
       if (horizVelocityIsSoutherly) {
@@ -199,14 +199,14 @@ class LongReportMessage extends TrafficReportMessage {
       northerlyVelocity = northVelocityMagnitude;
 
       vel = 0;
-      if ((msg[16] & 1) > 0) {
+      if ((message[16] & 1) > 0) {
         vel = 0x200;
       }
-      vel |= (msg[17] & 0xFF) << 1;
-      if ((msg[18] & 0x80) > 0) {
+      vel |= (message[17] & 0xFF) << 1;
+      if ((message[18] & 0x80) > 0) {
         vel |= 0x01;
       }
-      horizVelocityIsWesterly = ((msg[16] & 0x02) > 0);
+      horizVelocityIsWesterly = ((message[16] & 0x02) > 0);
 
       eastVelocityMagnitude = (vel * multiplier) - multiplier;
 
@@ -227,23 +227,23 @@ class LongReportMessage extends TrafficReportMessage {
 
       // vertical velocity
       int verticalRate = 0;
-      verticalRate = (msg[18] & 0x1F) << 4;
-      verticalRate += (msg[19] & 0xF0) >> 4;
+      verticalRate = (message[18] & 0x1F) << 4;
+      verticalRate += (message[19] & 0xF0) >> 4;
       verticalSpeed = (verticalRate * 64) - 64;
     } else {
       // object is on the ground
-      vel = (msg[15] & 0x0F) << 6;
-      vel += (msg[16] & 0xFD) >> 2;
+      vel = (message[15] & 0x0F) << 6;
+      vel += (message[16] & 0xFD) >> 2;
       velocity = ((vel * multiplier) - multiplier).toDouble();
 
-      tracking = (msg[17] & 0xFF) << 1;
-      if ((msg[18] & 0x80) > 0) {
+      tracking = (message[17] & 0xFF) << 1;
+      if ((message[18] & 0x80) > 0) {
         tracking += 1;
       }
 
       heading = tracking * 0.703125;
 
-      tahType = msg[16] & 0x02;
+      tahType = message[16] & 0x02;
 
       switch (tahType) {
         case 1:

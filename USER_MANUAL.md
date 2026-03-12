@@ -48,7 +48,7 @@ You can reopen onboarding later from the drawer header icon.
 
 | Feature | Availability |
 |---|---|
-| Core app (Map/Plate/Plan/Find, downloads, documents, aircraft, checklist, W&B, logbook) | All supported platforms |
+| Core app (Map/Plate/Plan/Find, downloads, documents, aircraft & performance, checklist, logbook) | All supported platforms |
 | Track Viewer with 2D/3D views (KML files) | All supported platforms |
 | Vector map layer with airspace | All supported platforms |
 | CAP Grid layer | All supported platforms |
@@ -82,9 +82,8 @@ Open from MAP with **Menu** button (bottom-left):
 
 - Download
 - Documents
-- Aircraft
+- Aircraft & Performance
 - Check Lists
-- W&B
 - Log Book
 - IO (Android only)
 - Donate (not iOS/macOS)
@@ -596,40 +595,128 @@ When you tap a KML file in Documents, the Track Viewer opens with three view mod
 - Calculates flight time from track timestamps or from distance/cruise TAS
 - Creates entry with aircraft make/model and tail from selected aircraft profile
 
-### 9.3 Aircraft
+### 9.3 Aircraft & Performance
 
-Open: **Menu → Aircraft**
+Open: **Menu → Aircraft & Performance**
 
-Create/manage aircraft profiles with fields used by planning/filing/identification:
+A unified screen with tabs for managing aircraft profiles, performance calculations, and weight & balance:
 
-**Identification:**
-- **Tail Number**: Aircraft registration (e.g., N172EF)
-- **Type**: Aircraft type (e.g., C172)
-- **Color & Markings**: FAA color codes (A=Amber, B=Blue, BK=Black, R=Red, W=White, etc.)
-- **Mode S Code**: Hex transponder code from FAA registry
+#### Tabs Overview
+
+| Tab | Purpose |
+|-----|---------|
+| **Takeoff** | Calculate takeoff ground roll and 50ft obstacle clearance distances |
+| **Landing** | Calculate landing ground roll and 50ft obstacle clearance distances |
+| **Cruise** | Calculate cruise performance (TAS, fuel flow) at altitude/power settings |
+| **Fuel** | Calculate fuel required for distance, reserves, and endurance |
+| **W&B** | Weight and balance calculations with CG envelope |
+| **Custom** | Create and manage custom aircraft profiles |
+
+#### Aircraft Selection
+
+Use the dropdown at the top to select from:
+- **Built-in aircraft**: C152, C172S, C182T, PA-28-181, PA-28-161, PA-44, Beech A36, Cirrus SR22, Diamond DA40
+- **Custom aircraft**: User-created profiles with custom performance data
+
+#### Takeoff Tab
+
+Enter conditions to calculate takeoff performance:
+- **Pressure Altitude** (ft)
+- **Temperature** (°C)
+- **Weight** (lbs)
+- **Headwind** (kts, negative for tailwind)
+
+Results show:
+- Ground Roll distance (ft)
+- Distance to clear 50ft obstacle (ft)
+- Soft field adjustments (if configured)
+
+#### Landing Tab
+
+Enter conditions to calculate landing performance:
+- **Pressure Altitude** (ft)
+- **Temperature** (°C)
+- **Weight** (lbs)
+- **Headwind** (kts, negative for tailwind)
+
+Results show:
+- Ground Roll distance (ft)
+- Distance to clear 50ft obstacle (ft)
+- Soft field adjustments (if configured)
+
+#### Cruise Tab
+
+Enter cruise conditions:
+- **Altitude** (ft)
+- **Temperature deviation** (°C from standard)
+- **Power setting** (%)
+
+Results show:
+- True Airspeed (KTAS)
+- Fuel Flow (GPH)
+
+#### Fuel Tab
+
+Calculate fuel requirements:
+- **Distance** (NM)
+- **Ground Speed** (kts)
+- **Fuel Flow** (GPH)
+- **Reserve** (minutes)
+- **Taxi fuel** (gal)
+
+Results show:
+- Flight time
+- Fuel required
+- Total with reserves
+
+#### W&B Tab
+
+**Status Card**: Shows green "Within Limits" or red "Outside Limits" indicator with CG position and total weight.
+
+**Interactive CG Envelope Chart**:
+- Scatter plot showing weight (Y-axis) vs arm (X-axis)
+- Blue dots: envelope boundary points
+- Large dot: current CG position (green if inside, red if outside)
+- For custom aircraft: tap chart in edit mode to add/remove envelope points
+
+**Weight Stations Table**:
+- Editable weight entries for each station
+- Name, weight (lbs), arm (inches)
+- Auto-calculated moment (weight × arm)
+- Running totals displayed
+
+For **custom aircraft**: Use **Edit/Save** button to modify envelope points and station definitions.
+
+For **built-in aircraft**: W&B data is from POH (read-only envelope, editable weights).
+
+#### Custom Tab
+
+Create and manage custom aircraft profiles:
+
+**Aircraft List**: Shows all custom aircraft with tap to select, swipe to delete.
+
+**New/Edit Aircraft**: Tap to create based on currently selected aircraft.
+
+**Aircraft Identification:**
+- Tail Number, Type, Wake Turbulence
+- Color & Markings, Mode S Code
+- Map icon selection (plane, helicopter, canard)
 
 **Pilot Information:**
-- **PIC**: Pilot name
-- **PIC Information**: Contact info (phone, etc.)
-- **Home Base**: Airport code (e.g., KBVY)
+- PIC name and contact info
+- Home Base
 
-**Performance:**
-- **Cruise Speed**: True airspeed in knots
-- **Fuel Endurance**: In decimal hours (5.5 = 5h30m)
-- **Fuel Burn Rate**: Gallons per hour
-- **Sink Rate**: Feet per minute for glide calculations
-- **Wake Turbulence**: LIGHT, MEDIUM, or HEAVY
+**Flight Plan Fields:**
+- Equipment codes, Surveillance codes
+- Cruise Speed, Fuel Endurance
+- Other Information
 
-**Equipment:**
-- **Equipment codes**: D, G, I, L, O, R, S, T, V, W
-- **Surveillance codes**: N, A, C, S, B1/B2, U1/U2
-- **Other Information**: STS/, PBN/, NAV/, COM/, DAT/, SUR/, DEP/, DEST/, etc.
+**Performance Data:**
+- Max Gross Weight, Usable Fuel, Empty Weight
+- Takeoff/Landing correction factors (headwind %, tailwind %, soft field %)
+- Custom performance tables (altitude, temperature, weight entries)
 
-**Map Icon Selection** (dropdown in app bar):
-- Choose aircraft icon for map display: plane, helicopter, or canard
-- Visual icon previews in dropdown
-
-Save and select active aircraft from dropdown. Swipe left to delete aircraft.
+**Performance Tables**: Add rows for takeoff, landing, and cruise performance at various conditions. The app interpolates between entries for accurate calculations.
 
 ### 9.4 Check Lists
 
@@ -647,35 +734,7 @@ Open: **Menu → Check Lists**
 - Info tooltip explaining import format
 - Persistent state during session
 
-### 9.5 W&B (Weight and Balance)
-
-Open: **Menu → W&B**
-
-Functions:
-
-- **Status Card**: green "Within Limits" or red "Outside Limits" indicator with CG position and total weight
-
-- **Interactive CG Envelope Chart**:
-  - Scatter plot showing weight (Y-axis) vs arm (X-axis)
-  - Blue dots: envelope boundary points
-  - Large dot: current CG position (green if inside, red if outside)
-  - Tap chart in edit mode to add/remove envelope boundary points
-  
-- **Chart Configuration** (edit mode):
-  - Arm Min/Max values
-  - Weight Min/Max values
-  - Customizable envelope boundary points
-
-- **Weight Items Table**:
-  - 20 editable weight entries
-  - Item description, weight (lbs), arm (inches)
-  - Auto-calculated moment (weight × arm)
-  - Running totals: Total Weight, CG (arm), Total Moment
-  - Color-coded border (green/red based on limits)
-
-Use **Edit/Save** toggle to modify and persist. Select W&B profile from dropdown. Swipe left to delete profile.
-
-### 9.6 Log Book
+### 9.5 Log Book
 
 Open: **Menu → Log Book**
 
@@ -720,7 +779,7 @@ Open by tapping **Details** button:
   - Landings & Approaches
 - **Filtered flight list**: scrollable list of filtered entries
 
-### 9.7 IO (Bluetooth) — Android only
+### 9.6 IO (Bluetooth) — Android only
 
 Open: **Menu → IO**
 
@@ -739,7 +798,7 @@ Functions:
 Connected stream feeds external data input into app parser for GPS, traffic, weather, AHRS.
 Also used by Plan Transfer for sending plans to devices and autopilot output for navigation data.
 
-### 9.8 Donate (not iOS/macOS)
+### 9.7 Donate (not iOS/macOS)
 
 Open: **Menu → Donate**
 
@@ -747,7 +806,7 @@ Open: **Menu → Donate**
 - Selectable donation URL: apps4av.com/donate
 - Supports app development
 
-### 9.9 Help
+### 9.8 Help
 
 Open: **Menu → Help**
 
@@ -918,10 +977,14 @@ Possible issue items:
 | Send plan to device (Android) | `PLAN → Actions → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
-| Configure aircraft | `MAP → Menu → Aircraft` |
-| Change aircraft map icon | `MAP → Menu → Aircraft → icon dropdown in app bar` |
+| Configure aircraft | `MAP → Menu → Aircraft & Performance → Custom tab` |
+| Change aircraft map icon | `MAP → Menu → Aircraft & Performance → Custom tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
-| Weight and balance | `MAP → Menu → W&B` |
+| Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
+| Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` |
+| Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` |
+| Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` |
+| Fuel planning | `MAP → Menu → Aircraft & Performance → Fuel tab` |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
@@ -1132,10 +1195,12 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
 
 ### UC-16: Choose a different aircraft icon on the map
 
-1. Open `MAP → Menu → Aircraft`.
-2. In the app bar, tap the aircraft icon dropdown.
-3. Select from: plane, helicopter, or canard.
-4. The map will display your selected icon for ownship.
+1. Open `MAP → Menu → Aircraft & Performance`.
+2. Go to the **Custom** tab.
+3. Select or create an aircraft profile.
+4. Use the icon dropdown to select from: plane, helicopter, or canard.
+5. Save the aircraft profile.
+6. The map will display your selected icon for ownship.
 
 ### UC-17: Load a plan in reverse order for a return flight
 
@@ -1182,6 +1247,31 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
    - Red cells = headwind at that altitude/position
    - Cyan horizontal line = your planned altitude
    - Green terrain line = terrain safely below your altitude
+
+### UC-22: Calculate takeoff and landing performance
+
+1. Open `MAP → Menu → Aircraft & Performance`.
+2. Select your aircraft from the dropdown (built-in or custom).
+3. Go to the **Takeoff** tab.
+4. Enter current conditions:
+   - Pressure altitude (ft)
+   - Temperature (°C)
+   - Aircraft weight (lbs)
+   - Headwind component (kts, use negative for tailwind)
+5. View calculated ground roll and 50ft obstacle clearance distances.
+6. Go to the **Landing** tab and repeat for landing performance.
+7. Results account for aircraft POH data and configured correction factors.
+
+### UC-23: Check weight and balance before flight
+
+1. Open `MAP → Menu → Aircraft & Performance`.
+2. Select your aircraft from the dropdown.
+3. Go to the **W&B** tab.
+4. Enter weights for each station (passengers, baggage, fuel).
+5. View the status card showing "Within Limits" (green) or "Outside Limits" (red).
+6. Check the CG envelope chart to visualize your CG position.
+7. Adjust loading as needed to stay within the envelope.
+8. For custom aircraft, use **Edit** to modify envelope points and station definitions.
    - Red terrain line = terrain at or above your altitude (warning)
 5. **Tap anywhere** on the diagram to see detailed info:
    - Wind direction and speed

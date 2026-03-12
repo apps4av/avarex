@@ -43,7 +43,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
-import 'aircraft/aircraft_screen.dart';
 import 'data/app_settings.dart';
 import 'data/db_general.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -397,7 +396,7 @@ class Storage {
 
     // don't await on this, but set when available, as DB access could take a few ms
     loadAircraftIds();
-    AircraftScreen.reloadAircraftIcon();
+    Aircraft.reloadAircraftIcon();
 
     // this is a long login process, do not await here
 

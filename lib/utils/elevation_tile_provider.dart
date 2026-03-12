@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:avaremp/utils/epsg900913.dart';
 import 'package:avaremp/utils/geo_calculations.dart';

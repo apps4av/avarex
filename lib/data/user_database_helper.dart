@@ -80,18 +80,40 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 6,
+          version: 7,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
-
             if (oldVersion <= 4 && newVersion > 4) {
               await db.execute("create table aiQueries("
                   "id           integer primary key autoincrement, "
                   "query        text);");
-              await db.execute("insert into aiQueries(query) values ${typicalAiQueries.map((e) => "('$e')").toList().join(",")};");
+              await db.execute(
+                  "insert into aiQueries(query) values ${typicalAiQueries.map((
+                      e) => "('$e')").toList().join(",")};");
             }
 
-            if(oldVersion <= 5 && newVersion > 5) {
-              await db.execute("alter table aiQueries add column answer text default '';");
+            if (oldVersion <= 5 && newVersion > 5) {
+              await db.execute(
+                  "alter table aiQueries add column answer text default '';");
+            }
+
+            // Migration to version 7: Add performance data columns to aircraft table
+            if (oldVersion <= 6 && newVersion > 6) {
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN maxGrossWeight REAL DEFAULT 0;");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN usableFuel REAL DEFAULT 0;");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN emptyWeight REAL DEFAULT 0;");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN takeoffData TEXT DEFAULT '';");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN landingData TEXT DEFAULT '';");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN cruiseData TEXT DEFAULT '';");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN icon TEXT DEFAULT 'plane';");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN wnbData TEXT DEFAULT '';");
             }
           },
 
@@ -194,6 +216,14 @@ class UserDatabaseHelper {
                 "fuelBurn     text, "
                 "base         text, "
                 "other        text, "
+                "icon         text default 'plane', "
+                "maxGrossWeight real default 0, "
+                "usableFuel   real default 0, "
+                "emptyWeight  real default 0, "
+                "takeoffData  text default '', "
+                "landingData  text default '', "
+                "cruiseData   text default '', "
+                "wnbData  text default '', "
                 "unique(tail) on conflict replace);");
           },
           onOpen: (db) {});

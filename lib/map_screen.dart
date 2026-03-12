@@ -1598,9 +1598,17 @@ class MapScreenState extends State<MapScreen> {
                 Storage().tracks.saveKml().then((status) {
                   Storage().tracks = GpsRecorder();
                   if (status != null) {
-                    Toast.showToast(context, "Track saved to Documents as $status.", const Icon(Icons.info, color: Colors.black), 3);
+                    if(context.mounted) {
+                      Toast.showToast(
+                          context, "Track saved to Documents as $status.",
+                          const Icon(Icons.info, color: Colors.black), 3);
+                    }
                   } else {
-                    Toast.showToast(context, "Unable to save tracks due to error.", const Icon(Icons.info, color: Colors.black), 3);
+                    if(context.mounted) {
+                      Toast.showToast(
+                          context, "Unable to save tracks due to error.",
+                          const Icon(Icons.info, color: Colors.black), 3);
+                    }
                   }
                 });
               }
