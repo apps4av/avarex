@@ -1341,11 +1341,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   
   Widget _buildWnbLimitField(String label, double value, Function(double) onChanged) {
     return TextFormField(
-      controller: TextEditingController()..text = value.toString(),
+      initialValue: value.toString(),
       decoration: InputDecoration(
         border: const OutlineInputBorder(),
         labelText: label,
         isDense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       ),
       keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
       onChanged: (v) {
@@ -1398,8 +1399,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: TextFormField(
                     enabled: _wnbEditing,
-                    controller: TextEditingController()..text = station.name,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                    initialValue: station.name,
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12)),
                     style: const TextStyle(fontSize: 13),
                     onChanged: (value) => station.name = value,
                   ),
@@ -1410,9 +1411,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: TextFormField(
-                    controller: TextEditingController()..text = station.weight.toStringAsFixed(1),
+                    initialValue: station.weight.toStringAsFixed(1),
                     keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12)),
                     style: const TextStyle(fontSize: 13),
                     onChanged: (value) {
                       try {
@@ -1430,9 +1431,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: TextFormField(
                     enabled: _wnbEditing,
-                    controller: TextEditingController()..text = station.arm.toStringAsFixed(1),
+                    initialValue: station.arm.toStringAsFixed(1),
                     keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
+                    decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12)),
                     style: const TextStyle(fontSize: 13),
                     onChanged: (value) {
                       try {
@@ -1826,8 +1827,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.altitude.toStringAsFixed(0),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(4)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.altitude = double.tryParse(v) ?? 0,
             ),
           ),
@@ -1837,8 +1838,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.temp.toStringAsFixed(0),
               keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(4)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.temp = double.tryParse(v) ?? 15,
             ),
           ),
@@ -1848,8 +1849,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.weight.toStringAsFixed(0),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(4)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.weight = double.tryParse(v) ?? 2400,
             ),
           ),
@@ -1859,8 +1860,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.groundRoll.toStringAsFixed(0),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(4)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.groundRoll = double.tryParse(v) ?? 0,
             ),
           ),
@@ -1870,8 +1871,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.over50ft.toStringAsFixed(0),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(4)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.over50ft = double.tryParse(v) ?? 0,
             ),
           ),
@@ -1949,8 +1950,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.altitude.toString(),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(6)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.altitude = int.tryParse(v) ?? 8000,
             ),
           ),
@@ -1960,8 +1961,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.temp.toString(),
               keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(6)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.temp = int.tryParse(v) ?? 0,
             ),
           ),
@@ -1971,8 +1972,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.powerPercent.toString(),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(6)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.powerPercent = int.tryParse(v) ?? 65,
             ),
           ),
@@ -1982,8 +1983,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.ktas.toStringAsFixed(0),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(6)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.ktas = double.tryParse(v) ?? 110,
             ),
           ),
@@ -1993,8 +1994,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: TextFormField(
               initialValue: entry.gph.toStringAsFixed(1),
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.all(6)),
-              style: const TextStyle(fontSize: 11),
+              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+              style: const TextStyle(fontSize: 12),
               onChanged: (v) => entry.gph = double.tryParse(v) ?? 8.5,
             ),
           ),
@@ -2451,6 +2452,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
           border: const OutlineInputBorder(),
           labelText: label,
           isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           suffixIcon: tooltip != null ? Tooltip(
             showDuration: const Duration(seconds: 30),
             triggerMode: TooltipTriggerMode.tap,
