@@ -83,8 +83,7 @@ class _WnbStation {
   Map<String, dynamic> toMap() => {'name': name, 'arm': arm, 'weight': weight};
 }
 
-class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   AircraftPerformanceData _selectedAircraft = CommonAircraftData.cessna172sp;
 
   // Takeoff inputs
@@ -158,10 +157,13 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> w
   double _wnbMaxWeight = 2800;
   bool _wnbEditing = false;
 
+  // Page navigation
+  int _pageIndex = 0;
+  static const List<String> _pageLabels = ['Takeoff', 'Landing', 'Cruise', 'Fuel', 'W&B', 'Custom'];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
     _takeoffWeightController.text = _selectedAircraft.maxGrossWeight.toStringAsFixed(0);
     _loadCustomAircraft();
     _initializeDefaultEntries();
@@ -733,7 +735,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> w
 
   @override
   void dispose() {
-    _tabController.dispose();
     _takeoffPressureAltController.dispose();
     _takeoffTempController.dispose();
     _takeoffWeightController.dispose();
@@ -778,6 +779,15 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> w
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> pages = [
+      _buildTakeoffTab(),
+      _buildLandingTab(),
+      _buildCruiseTab(),
+      _buildFuelTab(),
+      _buildWnbTab(),
+      _buildCustomTab(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
@@ -817,28 +827,29 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> w
             ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabs: [
-            Tab(icon: Icon(MdiIcons.airplaneTakeoff), text: 'Takeoff'),
-            Tab(icon: Icon(MdiIcons.airplaneLanding), text: 'Landing'),
-            Tab(icon: Icon(MdiIcons.airplane), text: 'Cruise'),
-            Tab(icon: Icon(MdiIcons.fuel), text: 'Fuel'),
-            Tab(icon: Icon(MdiIcons.scaleBalance), text: 'W&B'),
-            const Tab(icon: Icon(Icons.edit_note), text: 'Custom'),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _buildTakeoffTab(),
-          _buildLandingTab(),
-          _buildCruiseTab(),
-          _buildFuelTab(),
-          _buildWnbTab(),
-          _buildCustomTab(),
+          Expanded(child: pages[_pageIndex]),
+          Padding(
+            padding: const EdgeInsets.all(5),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (int i = 0; i < _pageLabels.length; i++)
+                    TextButton(
+                      style: _pageIndex == i
+                          ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
+                          : null,
+                      onPressed: () => setState(() => _pageIndex = i),
+                      child: Text(_pageLabels[i]),
+                    ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -2027,7 +2038,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> w
       onTap: () {
         setState(() {
           _selectedAircraft = aircraft;
-          _tabController.animateTo(0);
+          _pageIndex = 0;
         });
         _saveSelectedAircraft();
         _loadWnbForAircraft();
