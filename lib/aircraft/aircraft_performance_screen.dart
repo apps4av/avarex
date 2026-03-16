@@ -311,7 +311,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _customFuelEnduranceController.clear();
       _customSinkRateController.clear();
     }
-    
+
     if (a.hasRawEntries) {
       _customTakeoffEntries = _convertRawToEntries(
         a.rawTakeoffRollEntries ?? [], a.rawTakeoff50ftEntries ?? []);
@@ -437,7 +437,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         .where((a) => a.hasPerformanceData)
         .map((a) => _aircraftToPerformanceData(a))
         .toList();
-    
+
     // Also load legacy custom aircraft from settings (for migration)
     await _migrateLegacyCustomAircraft();
     
@@ -1676,8 +1676,15 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             'TAKEOFF PERFORMANCE',
             'Enter ground roll and 50ft obstacle distances from POH',
             _customTakeoffEntries,
-            () => setState(() => _customTakeoffEntries.add(_TakeoffLandingEntry(
-              altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500))),
+            () => setState(() {
+                try {
+                  _customTakeoffEntries.add(_customTakeoffEntries[_customTakeoffEntries.length - 1]);
+                }
+                catch (e) {
+                  _customTakeoffEntries.add(_TakeoffLandingEntry(altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500));
+                }
+              }
+            ),
           ),
           const SizedBox(height: 8),
           Card(
@@ -1712,8 +1719,15 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             'LANDING PERFORMANCE',
             'Enter ground roll and 50ft obstacle distances from POH',
             _customLandingEntries,
-            () => setState(() => _customLandingEntries.add(_TakeoffLandingEntry(
-              altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300))),
+            () => setState(() {
+                try {
+                  _customLandingEntries.add(_customLandingEntries[_customLandingEntries.length - 1]);
+                }
+                catch (e) {
+                  _customLandingEntries.add(_TakeoffLandingEntry(altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300));
+                }
+              }
+            ),
           ),
           const SizedBox(height: 8),
           Card(
@@ -1911,7 +1925,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 IconButton(
                   icon: const Icon(Icons.add_circle, color: Colors.green),
                   tooltip: 'Add cruise entry',
-                  onPressed: () => setState(() => _customCruiseEntries.add(_CruiseEntry())),
+                  onPressed: () => setState(() {
+                    try {
+                      _customCruiseEntries.add(_customCruiseEntries[_customCruiseEntries.length - 1]);
+                    }
+                    catch (e) {
+                      _customCruiseEntries.add(_CruiseEntry());
+                    }
+                  }),
                 ),
               ],
             ),
