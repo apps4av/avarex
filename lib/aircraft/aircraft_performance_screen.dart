@@ -311,7 +311,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _customFuelEnduranceController.clear();
       _customSinkRateController.clear();
     }
-    
+
     if (a.hasRawEntries) {
       _customTakeoffEntries = _convertRawToEntries(
         a.rawTakeoffRollEntries ?? [], a.rawTakeoff50ftEntries ?? []);
@@ -1810,14 +1810,23 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 ],
               ),
             ),
-            ...entries.asMap().entries.map((e) => _buildCombinedEntryRow(e.key, e.value, entries)),
+            ListView.builder(
+              shrinkWrap: true,
+              key: Key(entries.length.toString()),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: entries.length,
+              itemBuilder: (context, index) {
+                return _buildCombinedEntryRow(index, entries);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCombinedEntryRow(int index, _TakeoffLandingEntry entry, List<_TakeoffLandingEntry> list) {
+  Widget _buildCombinedEntryRow(int index, List<_TakeoffLandingEntry> list) {
+    _TakeoffLandingEntry entry = list[index];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -1933,14 +1942,23 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 ],
               ),
             ),
-            ..._customCruiseEntries.asMap().entries.map((e) => _buildCruiseEntryRow(e.key, e.value)),
+            ListView.builder(
+              shrinkWrap: true,
+              key: Key(_customCruiseEntries.length.toString()),
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _customCruiseEntries.length,
+              itemBuilder: (context, index) {
+                return _buildCruiseEntryRow(index);
+              },
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCruiseEntryRow(int index, _CruiseEntry entry) {
+  Widget _buildCruiseEntryRow(int index) {
+    _CruiseEntry entry = _customCruiseEntries[index];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -2005,7 +2023,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
               padding: EdgeInsets.zero,
               onPressed: _customCruiseEntries.length > 1 
-                  ? () => setState(() => _customCruiseEntries.removeAt(index)) 
+                  ? () => setState(() => _customCruiseEntries.removeAt(index))
                   : null,
             ),
           ),
