@@ -1022,6 +1022,13 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             [
               _buildTextField('Cruise Altitude (ft)', _cruiseAltitudeController, keyboard: TextInputType.number),
               _buildTextField('Temperature deviation from std (°C)', _cruiseTempController, keyboard: const TextInputType.numberWithOptions(signed: true)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  '${PerformanceCalculator.densityAltitudeFromIsaDeviation(altitude.toDouble(), temp.toDouble()).round()} ft',
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                ),
+              ),
               _buildPowerSlider(),
             ],
           ),
@@ -1874,71 +1881,90 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   }
 
   Widget _buildCombinedEntryRow(_TakeoffLandingEntry entry, List<_TakeoffLandingEntry> list) {
+    final double daFt = PerformanceCalculator.calculateDensityAltitude(entry.altitude, entry.temp);
     return Padding(
       key: ObjectKey(entry),
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.altitude.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.altitude = double.tryParse(v) ?? 0,
-            ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.altitude.toStringAsFixed(0),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) {
+                    entry.altitude = double.tryParse(v) ?? 0;
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.temp.toStringAsFixed(0),
+                  keyboardType: const TextInputType.numberWithOptions(signed: true),
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) {
+                    entry.temp = double.tryParse(v) ?? 15;
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.weight.toStringAsFixed(0),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.weight = double.tryParse(v) ?? 2400,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.groundRoll.toStringAsFixed(0),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.groundRoll = double.tryParse(v) ?? 0,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.over50ft.toStringAsFixed(0),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.over50ft = double.tryParse(v) ?? 0,
+                ),
+              ),
+              SizedBox(
+                width: 36,
+                child: IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
+                  padding: EdgeInsets.zero,
+                  onPressed: list.length > 1 ? () => setState(() => list.remove(entry)) : null,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.temp.toStringAsFixed(0),
-              keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.temp = double.tryParse(v) ?? 15,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.weight.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.weight = double.tryParse(v) ?? 2400,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.groundRoll.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.groundRoll = double.tryParse(v) ?? 0,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.over50ft.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.over50ft = double.tryParse(v) ?? 0,
-            ),
-          ),
-          SizedBox(
-            width: 36,
-            child: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
-              padding: EdgeInsets.zero,
-              onPressed: list.length > 1 ? () => setState(() => list.remove(entry)) : null,
+          Padding(
+            padding: const EdgeInsets.only(left: 2, top: 2),
+            child: Text(
+              '${daFt.round()} ft',
+              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
             ),
           ),
         ],
@@ -2004,73 +2030,95 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   }
 
   Widget _buildCruiseEntryRow(_CruiseEntry entry) {
+    final double daFt = PerformanceCalculator.densityAltitudeFromIsaDeviation(
+      entry.altitude.toDouble(),
+      entry.temp.toDouble(),
+    );
     return Padding(
       key: ObjectKey(entry),
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.altitude.toString(),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.altitude = int.tryParse(v) ?? 8000,
-            ),
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.altitude.toString(),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) {
+                    entry.altitude = int.tryParse(v) ?? 8000;
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.temp.toString(),
+                  keyboardType: const TextInputType.numberWithOptions(signed: true),
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) {
+                    entry.temp = int.tryParse(v) ?? 0;
+                    setState(() {});
+                  },
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.powerPercent.toString(),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.powerPercent = int.tryParse(v) ?? 65,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.ktas.toStringAsFixed(0),
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.ktas = double.tryParse(v) ?? 110,
+                ),
+              ),
+              const SizedBox(width: 3),
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: entry.gph.toStringAsFixed(1),
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
+                  style: const TextStyle(fontSize: 12),
+                  onChanged: (v) => entry.gph = double.tryParse(v) ?? 8.5,
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                child: IconButton(
+                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
+                  padding: EdgeInsets.zero,
+                  onPressed: _customCruiseEntries.length > 1
+                      ? () => setState(() => _customCruiseEntries.remove(entry))
+                      : null,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.temp.toString(),
-              keyboardType: const TextInputType.numberWithOptions(signed: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.temp = int.tryParse(v) ?? 0,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.powerPercent.toString(),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.powerPercent = int.tryParse(v) ?? 65,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.ktas.toStringAsFixed(0),
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.ktas = double.tryParse(v) ?? 110,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Expanded(
-            flex: 2,
-            child: TextFormField(
-              initialValue: entry.gph.toStringAsFixed(1),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10)),
-              style: const TextStyle(fontSize: 12),
-              onChanged: (v) => entry.gph = double.tryParse(v) ?? 8.5,
-            ),
-          ),
-          SizedBox(
-            width: 40,
-            child: IconButton(
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-              padding: EdgeInsets.zero,
-              onPressed: _customCruiseEntries.length > 1
-                  ? () => setState(() => _customCruiseEntries.remove(entry))
-                  : null,
+          Padding(
+            padding: const EdgeInsets.only(left: 2, top: 2),
+            child: Text(
+              '${daFt.round()} ft',
+              style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
             ),
           ),
         ],

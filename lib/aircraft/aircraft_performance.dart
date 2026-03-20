@@ -726,10 +726,23 @@ class AircraftPerformanceData {
 }
 
 class PerformanceCalculator {
-  static double calculateDensityAltitude(double pressureAltitude, double tempCelsius) {
-    double stdTemp = 15 - (pressureAltitude / 1000) * 1.98;
-    double isaDeviation = tempCelsius - stdTemp;
-    return pressureAltitude + (120 * isaDeviation);
+  /// ISA standard temperature at sea level (°C).
+  static const double isaSeaLevelCelsius = 15.0;
+
+  /// ISA standard temperature (°C) at [pressureAltitudeFt]: 15 at sea level, −2°C per 1000 ft PA.
+  static double isaTemperatureCelsius(double pressureAltitudeFt) {
+    return isaSeaLevelCelsius - 2.0 * (pressureAltitudeFt / 1000.0);
+  }
+
+  /// Density altitude (ft) = PA + 120 × (OAT − ISA temperature at PA), with ISA from [isaSeaLevelCelsius].
+  static double calculateDensityAltitude(double pressureAltitudeFt, double oatCelsius) {
+    return pressureAltitudeFt + 120.0 * (oatCelsius - isaTemperatureCelsius(pressureAltitudeFt));
+  }
+
+  /// Cruise POH-style [isaDeviationCelsius]: (OAT − ISA at [pressureAltitudeFt]).
+  /// Equivalent to PA + 120 × deviation.
+  static double densityAltitudeFromIsaDeviation(double pressureAltitudeFt, double isaDeviationCelsius) {
+    return pressureAltitudeFt + 120.0 * isaDeviationCelsius;
   }
 
   static double calculatePressureAltitude(double fieldElevation, double altimeterSetting) {

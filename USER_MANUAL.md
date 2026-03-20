@@ -629,6 +629,7 @@ Enter conditions to calculate takeoff performance:
 Results show:
 - Ground Roll distance (ft)
 - Distance to clear 50ft obstacle (ft)
+- Density altitude (ft) — computed as pressure altitude plus 120 × (OAT − ISA temperature), with ISA 15°C at sea level and −2°C per 1000 ft pressure altitude
 - Soft field adjustments (if configured)
 
 #### Landing Tab
@@ -642,6 +643,7 @@ Enter conditions to calculate landing performance:
 Results show:
 - Ground Roll distance (ft)
 - Distance to clear 50ft obstacle (ft)
+- Density altitude (ft) — same formula as takeoff (OAT vs ISA at that pressure altitude)
 - Soft field adjustments (if configured)
 
 #### Cruise Tab
@@ -650,6 +652,8 @@ Enter cruise conditions:
 - **Altitude** (ft)
 - **Temperature deviation** (°C from standard)
 - **Power setting** (%)
+
+Below altitude and temperature deviation, the screen shows **density altitude** (ft) for those inputs (read-only).
 
 Results show:
 - True Airspeed (KTAS)
@@ -716,7 +720,7 @@ Create and manage your saved aircraft profiles:
 - Takeoff/Landing correction factors (headwind %, tailwind %, soft field %)
 - Custom performance tables (altitude, temperature, weight entries)
 
-**Performance Tables**: Add rows for takeoff, landing, and cruise performance at various conditions. The app interpolates between entries for accurate calculations.
+**Performance Tables**: Add rows for takeoff, landing, and cruise performance at various conditions. The app interpolates between entries for accurate calculations. Under each row, a read-only **density altitude** (ft) is shown from that row’s altitude and temperature (takeoff/landing use °C OAT; cruise uses the same ISA temperature deviation convention as the Cruise tab).
 
 ### 9.4 Check Lists
 
