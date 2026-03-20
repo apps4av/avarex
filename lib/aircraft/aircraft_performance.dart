@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
@@ -1708,22 +1709,85 @@ class WnbData {
   }
   
   String toJson() {
-    return '{"stations":${stations.map((s) => '{"name":"${s.name}","arm":${s.arm},"defaultWeight":${s.defaultWeight}}').toList()},'
-        '"envelopePoints":${envelopePoints.map((p) => '{"x":${p.dx},"y":${p.dy}}').toList()},'
-        '"minArm":$minArm,"maxArm":$maxArm,"minWeight":$minWeight,"maxWeight":$maxWeight}';
+    return jsonEncode({
+      'stations': stations.map((s) => s.toMap()).toList(),
+      'envelopePoints': envelopePoints.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
+      'minArm': minArm,
+      'maxArm': maxArm,
+      'minWeight': minWeight,
+      'maxWeight': maxWeight,
+    });
   }
-  
+
   factory WnbData.fromJson(String json) {
+    final String trimmed = json.trim();
+    if (trimmed.isEmpty) {
+      return WnbData.defaultData();
+    }
+    try {
+      final dynamic decoded = jsonDecode(trimmed);
+      if (decoded is Map<String, dynamic>) {
+        return WnbData._fromDecodedMap(decoded);
+      }
+      if (decoded is Map) {
+        return WnbData._fromDecodedMap(Map<String, dynamic>.from(decoded));
+      }
+    } catch (_) {
+      // try legacy format below
+    }
+    return WnbData._fromJsonLegacyRegex(trimmed);
+  }
+
+  static WnbData _fromDecodedMap(Map<String, dynamic> m) {
+    List<WnbStationDef> stations = [];
+    final stationsRaw = m['stations'];
+    if (stationsRaw is List) {
+      for (final e in stationsRaw) {
+        if (e is Map<String, dynamic>) {
+          stations.add(WnbStationDef.fromMap(e));
+        } else if (e is Map) {
+          stations.add(WnbStationDef.fromMap(Map<String, dynamic>.from(e)));
+        }
+      }
+    }
+    List<Offset> envelopePoints = [];
+    final pts = m['envelopePoints'];
+    if (pts is List) {
+      for (final e in pts) {
+        if (e is Map) {
+          final em = Map<String, dynamic>.from(e);
+          final Object? x = em['x'];
+          final Object? y = em['y'];
+          if (x != null && y != null) {
+            envelopePoints.add(Offset(
+              (x as num).toDouble(),
+              (y as num).toDouble(),
+            ));
+          }
+        }
+      }
+    }
+    return WnbData(
+      stations: stations,
+      envelopePoints: envelopePoints,
+      minArm: (m['minArm'] as num?)?.toDouble() ?? 35,
+      maxArm: (m['maxArm'] as num?)?.toDouble() ?? 50,
+      minWeight: (m['minWeight'] as num?)?.toDouble() ?? 1000,
+      maxWeight: (m['maxWeight'] as num?)?.toDouble() ?? 2800,
+    );
+  }
+
+  /// Older app versions wrote a non-standard JSON-like string; keep best-effort parse for migration.
+  static WnbData _fromJsonLegacyRegex(String json) {
     try {
       json = json.replaceAll(RegExp(r'\s'), '');
-      
-      // Parse stations
+
       List<WnbStationDef> stations = [];
       RegExp stationsRegex = RegExp(r'"stations":\[(.*?)\]');
       Match? stationsMatch = stationsRegex.firstMatch(json);
       if (stationsMatch != null) {
         String stationsStr = stationsMatch.group(1) ?? '';
-        RegExp stationRegex = RegExp(r'\{"name":"([^"]+)","arm":([\d.]+),"defaultWeight":([\d.]+)\}');
+        RegExp stationRegex = RegExp(r'\{"name":"([^"]+)","arm":([\d.-]+),"defaultWeight":([\d.-]+)\}');
         for (Match m in stationRegex.allMatches(stationsStr)) {
           stations.add(WnbStationDef(
             name: m.group(1) ?? '',
@@ -1732,14 +1796,13 @@ class WnbData {
           ));
         }
       }
-      
-      // Parse envelope points
+
       List<Offset> envelopePoints = [];
       RegExp pointsRegex = RegExp(r'"envelopePoints":\[(.*?)\]');
       Match? pointsMatch = pointsRegex.firstMatch(json);
       if (pointsMatch != null) {
         String pointsStr = pointsMatch.group(1) ?? '';
-        RegExp pointRegex = RegExp(r'\{"x":([\d.]+),"y":([\d.]+)\}');
+        RegExp pointRegex = RegExp(r'\{"x":([\d.-]+),"y":([\d.-]+)\}');
         for (Match m in pointRegex.allMatches(pointsStr)) {
           envelopePoints.add(Offset(
             double.tryParse(m.group(1) ?? '0') ?? 0,
@@ -1747,13 +1810,12 @@ class WnbData {
           ));
         }
       }
-      
-      // Parse limits
-      double minArm = double.tryParse(RegExp(r'"minArm":([\d.]+)').firstMatch(json)?.group(1) ?? '35') ?? 35;
-      double maxArm = double.tryParse(RegExp(r'"maxArm":([\d.]+)').firstMatch(json)?.group(1) ?? '50') ?? 50;
-      double minWeight = double.tryParse(RegExp(r'"minWeight":([\d.]+)').firstMatch(json)?.group(1) ?? '1000') ?? 1000;
-      double maxWeight = double.tryParse(RegExp(r'"maxWeight":([\d.]+)').firstMatch(json)?.group(1) ?? '2800') ?? 2800;
-      
+
+      double minArm = double.tryParse(RegExp(r'"minArm":([\d.-]+)').firstMatch(json)?.group(1) ?? '35') ?? 35;
+      double maxArm = double.tryParse(RegExp(r'"maxArm":([\d.-]+)').firstMatch(json)?.group(1) ?? '50') ?? 50;
+      double minWeight = double.tryParse(RegExp(r'"minWeight":([\d.-]+)').firstMatch(json)?.group(1) ?? '1000') ?? 1000;
+      double maxWeight = double.tryParse(RegExp(r'"maxWeight":([\d.-]+)').firstMatch(json)?.group(1) ?? '2800') ?? 2800;
+
       return WnbData(
         stations: stations,
         envelopePoints: envelopePoints,

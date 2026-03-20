@@ -3,6 +3,7 @@ import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,17 @@ class _TakeoffLandingEntry {
       over50ft: (map['over50ft'] ?? 0).toDouble(),
     );
   }
+
+  /// New row with same numbers as [other] (not the same object — safe to edit independently).
+  factory _TakeoffLandingEntry.copyOf(_TakeoffLandingEntry other) {
+    return _TakeoffLandingEntry(
+      altitude: other.altitude,
+      temp: other.temp,
+      weight: other.weight,
+      groundRoll: other.groundRoll,
+      over50ft: other.over50ft,
+    );
+  }
 }
 
 class _CruiseEntry {
@@ -67,6 +79,16 @@ class _CruiseEntry {
       powerPercent: (map['powerPercent'] ?? 65).toInt(),
       ktas: (map['ktas'] ?? 110).toDouble(),
       gph: (map['gph'] ?? 8.5).toDouble(),
+    );
+  }
+
+  factory _CruiseEntry.copyOf(_CruiseEntry other) {
+    return _CruiseEntry(
+      altitude: other.altitude,
+      temp: other.temp,
+      powerPercent: other.powerPercent,
+      ktas: other.ktas,
+      gph: other.gph,
     );
   }
 }
@@ -112,8 +134,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   final _fuelReserveController = TextEditingController(text: '45');
   final _fuelTaxiController = TextEditingController(text: '1.0');
 
-  // Custom aircraft inputs
+  // My Aircraft (custom profiles)
   bool _showCustomEntry = false;
+  String? _editingExistingTail;
   final _customNameController = TextEditingController();
   final _customIcaoController = TextEditingController();
   final _customMaxWeightController = TextEditingController(text: '2400');
@@ -159,15 +182,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 
   // Page navigation
   int _pageIndex = 0;
-  static const List<String> _pageLabels = ['Takeoff', 'Landing', 'Cruise', 'Fuel', 'W&B', 'Custom'];
+  static const List<String> _pageLabels = ['My Aircraft', 'T/O', 'L/D', 'Cruise', 'Fuel', 'W&B'];
 
   @override
   void initState() {
     super.initState();
     _takeoffWeightController.text = _selectedAircraft.maxGrossWeight.toStringAsFixed(0);
-    _loadCustomAircraft();
     _initializeDefaultEntries();
-    _loadWnbForAircraft();
+    _loadCustomAircraft();
   }
 
   void _initializeDefaultEntries() {
@@ -193,27 +215,24 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     ];
   }
 
-  void _loadWnbForAircraft() async {
+  Future<void> _loadWnbForAircraft() async {
     WnbData? wnbData;
-    
-    // For predefined aircraft, always use POH data (not database)
-    wnbData = CommonWnbData.getWnbData(_selectedAircraft.name);
-    
-    // For custom aircraft, try to get from database
-    if (wnbData == null) {
-      try {
-        Aircraft aircraft = await UserDatabaseHelper.db.getAircraft(_selectedAircraft.name);
-        if (aircraft.wnbData.isNotEmpty) {
-          wnbData = WnbData.fromJson(aircraft.wnbData);
-        }
-      } catch (e) {
-        // Not in database
+
+    try {
+      final Aircraft aircraft = await UserDatabaseHelper.db.getAircraft(_selectedAircraft.name);
+      if (aircraft.wnbData.isNotEmpty) {
+        wnbData = WnbData.fromJson(aircraft.wnbData);
       }
+    } catch (e) {
+      // No row or query failed
     }
-    
-    // If still null, use defaults
+
+    wnbData ??= CommonWnbData.getWnbData(_selectedAircraft.name);
     wnbData ??= WnbData.defaultData();
-    
+
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _wnbStations = wnbData!.stations.map((s) => _WnbStation(name: s.name, arm: s.arm, weight: s.defaultWeight)).toList();
       _wnbEnvelopePoints = List<Offset>.from(wnbData.envelopePoints);
@@ -221,7 +240,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _wnbMaxArm = wnbData.maxArm;
       _wnbMinWeight = wnbData.minWeight;
       _wnbMaxWeight = wnbData.maxWeight;
-      // Reset editing state when switching aircraft (especially for predefined)
       _wnbEditing = false;
     });
   }
@@ -264,7 +282,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     return _customAircraft.any((a) => a.name == _selectedAircraft.name);
   }
 
-  void _populateFromSelectedAircraft() async {
+  Future<void> _populateFromSelectedAircraft() async {
     AircraftPerformanceData a = _selectedAircraft;
     
     _customNameController.text = a.name;
@@ -327,6 +345,20 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     }
     
     setState(() {});
+  }
+
+  Future<void> _beginEditCustomAircraft(AircraftPerformanceData perf) async {
+    setState(() {
+      _selectedAircraft = perf;
+    });
+    await _populateFromSelectedAircraft();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _editingExistingTail = perf.name;
+      _showCustomEntry = true;
+    });
   }
 
   List<_TakeoffLandingEntry> _convertRawToEntries(
@@ -451,6 +483,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       CruiseResult cruise = _selectedAircraft.getCruisePerformance(8000, 65);
       _fuelFlowController.text = cruise.gph.toStringAsFixed(1);
     });
+
+    await _loadWnbForAircraft();
   }
   
   Future<void> _migrateLegacyCustomAircraft() async {
@@ -533,7 +567,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     )).toList();
     
     return AircraftPerformanceData(
-      name: aircraft.tail.isNotEmpty ? aircraft.tail : 'Custom',
+      name: aircraft.tail.isNotEmpty ? aircraft.tail : 'MY AIRCRAFT',
       icaoType: aircraft.type,
       maxGrossWeight: aircraft.maxGrossWeight > 0 ? aircraft.maxGrossWeight : 2400,
       usableFuel: aircraft.usableFuel > 0 ? aircraft.usableFuel : 48,
@@ -683,7 +717,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     )).toList();
 
     return AircraftPerformanceData(
-      name: map['name'] ?? 'Custom',
+      name: map['name'] ?? 'MY AIRCRAFT',
       icaoType: map['icaoType'] ?? '',
       maxGrossWeight: (map['maxGrossWeight'] ?? 2400).toDouble(),
       usableFuel: (map['usableFuel'] ?? 48).toDouble(),
@@ -780,12 +814,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   @override
   Widget build(BuildContext context) {
     List<Widget> pages = [
+      _buildCustomTab(),
       _buildTakeoffTab(),
       _buildLandingTab(),
       _buildCruiseTab(),
       _buildFuelTab(),
       _buildWnbTab(),
-      _buildCustomTab(),
     ];
 
     return Scaffold(
@@ -1385,11 +1419,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
     
     for (int i = 0; i < _wnbStations.length; i++) {
-      var station = _wnbStations[i];
+      final _WnbStation station = _wnbStations[i];
       totalMoment += station.moment;
-      
+
       rows.add(
         Container(
+          key: ObjectKey(station),
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
@@ -1468,7 +1503,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                   width: 40,
                   child: IconButton(
                     icon: const Icon(Icons.remove_circle_outline, size: 20),
-                    onPressed: () => setState(() => _wnbStations.removeAt(i)),
+                    onPressed: () => setState(() => _wnbStations.remove(station)),
                   ),
                 ),
             ],
@@ -1570,7 +1605,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       Icon(Icons.airplanemode_active, size: 20, color: Theme.of(context).colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'Custom Aircraft Profiles',
+                        'My Aircraft',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -1585,7 +1620,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       child: Padding(
                         padding: EdgeInsets.all(32),
                         child: Text(
-                          'No custom aircraft profiles.\nEnter POH data to add one.',
+                          'No saved aircraft profiles yet.\nUse Add from template or Edit on a profile after you create one.',
                           textAlign: TextAlign.center,
                         ),
                       ),
@@ -1598,12 +1633,15 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: () {
-              _populateFromSelectedAircraft();
-              setState(() => _showCustomEntry = true);
+            onPressed: () async {
+              _editingExistingTail = null;
+              await _populateFromSelectedAircraft();
+              if (mounted) {
+                setState(() => _showCustomEntry = true);
+              }
             },
             icon: const Icon(Icons.add),
-            label: Text('Customize ${_selectedAircraft.name.split(' ').first}'),
+            label: Text('Add from ${_selectedAircraft.name.split(' ').first}'),
           ),
           const SizedBox(height: 32),
           _buildAircraftSpecsCard(),
@@ -1676,8 +1714,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             'TAKEOFF PERFORMANCE',
             'Enter ground roll and 50ft obstacle distances from POH',
             _customTakeoffEntries,
-            () => setState(() => _customTakeoffEntries.add(_TakeoffLandingEntry(
-              altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500))),
+            () => setState(() {
+              if (_customTakeoffEntries.isEmpty) {
+                _customTakeoffEntries.add(_TakeoffLandingEntry(
+                    altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500));
+              } else {
+                _customTakeoffEntries.add(_TakeoffLandingEntry.copyOf(_customTakeoffEntries.last));
+              }
+            }),
           ),
           const SizedBox(height: 8),
           Card(
@@ -1712,8 +1756,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             'LANDING PERFORMANCE',
             'Enter ground roll and 50ft obstacle distances from POH',
             _customLandingEntries,
-            () => setState(() => _customLandingEntries.add(_TakeoffLandingEntry(
-              altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300))),
+            () => setState(() {
+              if (_customLandingEntries.isEmpty) {
+                _customLandingEntries.add(_TakeoffLandingEntry(
+                    altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300));
+              } else {
+                _customLandingEntries.add(_TakeoffLandingEntry.copyOf(_customLandingEntries.last));
+              }
+            }),
           ),
           const SizedBox(height: 8),
           Card(
@@ -1751,13 +1801,16 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: () => setState(() => _showCustomEntry = false),
+                onPressed: () => setState(() {
+                  _showCustomEntry = false;
+                  _editingExistingTail = null;
+                }),
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 8),
               ElevatedButton(
-                onPressed: _saveCustomAircraftEntry,
-                child: const Text('Save Aircraft'),
+                onPressed: () => _saveCustomAircraftEntry(),
+                child: Text(_editingExistingTail != null ? 'Save changes' : 'Save aircraft'),
               ),
             ],
           ),
@@ -1810,15 +1863,16 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 ],
               ),
             ),
-            ...entries.asMap().entries.map((e) => _buildCombinedEntryRow(e.key, e.value, entries)),
+            ...entries.map((e) => _buildCombinedEntryRow(e, entries)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCombinedEntryRow(int index, _TakeoffLandingEntry entry, List<_TakeoffLandingEntry> list) {
+  Widget _buildCombinedEntryRow(_TakeoffLandingEntry entry, List<_TakeoffLandingEntry> list) {
     return Padding(
+      key: ObjectKey(entry),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
@@ -1881,7 +1935,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: IconButton(
               icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 18),
               padding: EdgeInsets.zero,
-              onPressed: list.length > 1 ? () => setState(() => list.removeAt(index)) : null,
+              onPressed: list.length > 1 ? () => setState(() => list.remove(entry)) : null,
             ),
           ),
         ],
@@ -1911,7 +1965,13 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 IconButton(
                   icon: const Icon(Icons.add_circle, color: Colors.green),
                   tooltip: 'Add cruise entry',
-                  onPressed: () => setState(() => _customCruiseEntries.add(_CruiseEntry())),
+                  onPressed: () => setState(() {
+                    if (_customCruiseEntries.isEmpty) {
+                      _customCruiseEntries.add(_CruiseEntry());
+                    } else {
+                      _customCruiseEntries.add(_CruiseEntry.copyOf(_customCruiseEntries.last));
+                    }
+                  }),
                 ),
               ],
             ),
@@ -1933,15 +1993,16 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 ],
               ),
             ),
-            ..._customCruiseEntries.asMap().entries.map((e) => _buildCruiseEntryRow(e.key, e.value)),
+            ..._customCruiseEntries.map(_buildCruiseEntryRow),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCruiseEntryRow(int index, _CruiseEntry entry) {
+  Widget _buildCruiseEntryRow(_CruiseEntry entry) {
     return Padding(
+      key: ObjectKey(entry),
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
@@ -2004,8 +2065,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             child: IconButton(
               icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
               padding: EdgeInsets.zero,
-              onPressed: _customCruiseEntries.length > 1 
-                  ? () => setState(() => _customCruiseEntries.removeAt(index)) 
+              onPressed: _customCruiseEntries.length > 1
+                  ? () => setState(() => _customCruiseEntries.remove(entry))
                   : null,
             ),
           ),
@@ -2019,22 +2080,33 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       leading: Icon(MdiIcons.airplane),
       title: Text(aircraft.name),
       subtitle: Text(aircraft.icaoType),
-      trailing: IconButton(
-        icon: const Icon(Icons.delete_outline),
-        onPressed: () {
-          bool wasSelected = _selectedAircraft.name == aircraft.name;
-          setState(() {
-            _customAircraft.removeWhere((a) => a.name == aircraft.name);
-            if (wasSelected) {
-              _selectedAircraft = CommonAircraftData.cessna172sp;
-              _saveSelectedAircraft();
-            }
-          });
-          _deleteCustomAircraftFromDb(aircraft.name);
-          if (wasSelected) {
-            _loadWnbForAircraft();
-          }
-        },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit profile',
+            onPressed: () => _beginEditCustomAircraft(aircraft),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Delete profile',
+            onPressed: () {
+              bool wasSelected = _selectedAircraft.name == aircraft.name;
+              setState(() {
+                _customAircraft.removeWhere((a) => a.name == aircraft.name);
+                if (wasSelected) {
+                  _selectedAircraft = CommonAircraftData.cessna172sp;
+                  _saveSelectedAircraft();
+                }
+              });
+              _deleteCustomAircraftFromDb(aircraft.name);
+              if (wasSelected) {
+                _loadWnbForAircraft();
+              }
+            },
+          ),
+        ],
       ),
       onTap: () {
         setState(() {
@@ -2047,19 +2119,35 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
   }
 
-  void _saveCustomAircraftEntry() {
+  Future<void> _saveCustomAircraftEntry() async {
     String tailNumber = _customNameController.text.trim().toUpperCase();
     if (tailNumber.isEmpty) {
-      tailNumber = 'CUSTOM';
+      tailNumber = _editingExistingTail ?? 'CUSTOM';
     }
-    
-    // Ensure unique tail number
-    String baseName = tailNumber;
-    int suffix = 1;
-    while (_allAircraft.any((a) => a.name == tailNumber)) {
-      suffix++;
-      tailNumber = '$baseName$suffix';
+
+    final String? editingTail = _editingExistingTail;
+
+    if (editingTail == null) {
+      String baseName = tailNumber;
+      int suffix = 1;
+      while (_allAircraft.any((a) => a.name == tailNumber)) {
+        suffix++;
+        tailNumber = '$baseName$suffix';
+      }
+    } else {
+      if (tailNumber != editingTail && _allAircraft.any((a) => a.name == tailNumber)) {
+        if (mounted) {
+          Toast.showToast(context, 'That tail number is already in use', const Icon(Icons.error, color: Colors.red), 3);
+        }
+        return;
+      }
     }
+
+    String preservedWnb = '';
+    try {
+      final Aircraft ex = await UserDatabaseHelper.db.getAircraft(editingTail ?? tailNumber);
+      preservedWnb = ex.wnbData;
+    } catch (_) {}
 
     double maxWeight = double.tryParse(_customMaxWeightController.text) ?? 2400;
     double usableFuel = double.tryParse(_customUsableFuelController.text) ?? 48;
@@ -2072,7 +2160,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     double ldTailwindPct = double.tryParse(_customLdTailwindController.text) ?? 10.0;
     double ldSoftFieldPct = double.tryParse(_customLdSoftFieldController.text) ?? 20.0;
 
-    // Build Aircraft object with all settings
     Aircraft aircraft = Aircraft(
       tail: tailNumber,
       type: _customIcaoController.text.toUpperCase().trim(),
@@ -2086,8 +2173,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       pic: _customPicController.text.toUpperCase().trim(),
       picInfo: _customPicInfoController.text.toUpperCase().trim(),
       sinkRate: _customSinkRateController.text.trim(),
-      fuelBurn: usableFuel > 0 && _customCruiseEntries.isNotEmpty 
-          ? _customCruiseEntries.first.gph.toStringAsFixed(1) : '',
+      fuelBurn: usableFuel > 0 && _customCruiseEntries.isNotEmpty
+          ? _customCruiseEntries.first.gph.toStringAsFixed(1)
+          : '',
       base: _customBaseController.text.toUpperCase().trim(),
       other: _customOtherController.text.toUpperCase().trim(),
       icon: _customIcon,
@@ -2107,28 +2195,31 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         'softFieldPct': ldSoftFieldPct,
       }),
       cruiseData: jsonEncode(_customCruiseEntries.map((e) => e.toMap()).toList()),
+      wnbData: preservedWnb,
     );
 
-    // Build performance data for UI
     List<Performance3DEntry> rawToRoll = _customTakeoffEntries.map((e) => Performance3DEntry(
       altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.groundRoll,
     )).toList();
-    
+
     List<Performance3DEntry> rawTo50 = _customTakeoffEntries.map((e) => Performance3DEntry(
       altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.over50ft,
     )).toList();
-    
+
     List<Performance3DEntry> rawLdRoll = _customLandingEntries.map((e) => Performance3DEntry(
       altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.groundRoll,
     )).toList();
-    
+
     List<Performance3DEntry> rawLd50 = _customLandingEntries.map((e) => Performance3DEntry(
       altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.over50ft,
     )).toList();
-    
+
     List<Cruise3DEntry> rawCruise = _customCruiseEntries.map((e) => Cruise3DEntry(
-      altitude: e.altitude.toDouble(), temp: e.temp.toDouble(),
-      powerPercent: e.powerPercent.toDouble(), ktas: e.ktas, gph: e.gph,
+      altitude: e.altitude.toDouble(),
+      temp: e.temp.toDouble(),
+      powerPercent: e.powerPercent.toDouble(),
+      ktas: e.ktas,
+      gph: e.gph,
     )).toList();
 
     AircraftPerformanceData custom = AircraftPerformanceData(
@@ -2155,19 +2246,33 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       landingSoftFieldPct: ldSoftFieldPct,
     );
 
+    if (editingTail != null && editingTail != tailNumber) {
+      await _deleteCustomAircraftFromDb(editingTail);
+    }
+
+    await _saveCustomAircraftToDb(aircraft);
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
+      if (editingTail != null) {
+        _customAircraft.removeWhere((a) => a.name == editingTail);
+      }
       _customAircraft.add(custom);
       _showCustomEntry = false;
       _selectedAircraft = custom;
+      _editingExistingTail = null;
     });
 
-    _saveCustomAircraftToDb(aircraft);
-    _saveSelectedAircraft();
+    await _saveSelectedAircraft();
     _loadWnbForAircraft();
     _resetCustomForm();
   }
   
   void _resetCustomForm() {
+    _editingExistingTail = null;
     _customNameController.clear();
     _customIcaoController.clear();
     _customMaxWeightController.text = '2400';

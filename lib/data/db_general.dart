@@ -32,6 +32,14 @@ class DbGeneral {
     return ret;
   }
 
+  static Future<int> replace(Database db, String table, Map<String, Object?> values) async {
+    var ret = db.insert(table, values, conflictAlgorithm: ConflictAlgorithm.replace).onError((error, stackTrace) {
+      return -1;
+    }
+    );
+    return ret;
+  }
+
   static Future<void> deleteAndInsertBatch(Database db, String table, List<dynamic> values) async {
     await db.transaction((txn) async {
       Batch batch = txn.batch();

@@ -406,7 +406,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await DbGeneral.insert(db, "aircraft", aircraft.toMap());
+      await DbGeneral.replace(db, "aircraft", aircraft.toMap());
     }
   }
 

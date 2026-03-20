@@ -140,8 +140,9 @@ class Aircraft {
     };
   }
   
-  /// Returns true if this aircraft has custom performance data
-  bool get hasPerformanceData => takeoffData.isNotEmpty || landingData.isNotEmpty || cruiseData.isNotEmpty;
+  /// Returns true if this aircraft has custom performance or saved W&B data
+  bool get hasPerformanceData =>
+      takeoffData.isNotEmpty || landingData.isNotEmpty || cruiseData.isNotEmpty || wnbData.isNotEmpty;
   
   /// Create a copy with updated fields
   Aircraft copyWith({

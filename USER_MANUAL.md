@@ -603,20 +603,20 @@ A unified screen with tabs for managing aircraft profiles, performance calculati
 
 #### Tabs Overview
 
-| Tab | Purpose |
-|-----|---------|
-| **Takeoff** | Calculate takeoff ground roll and 50ft obstacle clearance distances |
-| **Landing** | Calculate landing ground roll and 50ft obstacle clearance distances |
-| **Cruise** | Calculate cruise performance (TAS, fuel flow) at altitude/power settings |
-| **Fuel** | Calculate fuel required for distance, reserves, and endurance |
-| **W&B** | Weight and balance calculations with CG envelope |
-| **Custom** | Create and manage custom aircraft profiles |
+| Tab             | Purpose |
+|-----------------|---------|
+| **My Aircraft** | Create, edit, and save your own aircraft profiles (POH-style tables and flight-plan fields) |
+| **T/O**         | Calculate takeoff ground roll and 50ft obstacle clearance distances |
+| **L/D**         | Calculate landing ground roll and 50ft obstacle clearance distances |
+| **Cruise**      | Calculate cruise performance (TAS, fuel flow) at altitude/power settings |
+| **Fuel**        | Calculate fuel required for distance, reserves, and endurance |
+| **W&B**         | Weight and balance calculations with CG envelope |
 
 #### Aircraft Selection
 
 Use the dropdown at the top to select from:
 - **Built-in aircraft**: C152, C172S, C182T, PA-28-181, PA-28-161, PA-44, Beech A36, Cirrus SR22, Diamond DA40
-- **Custom aircraft**: User-created profiles with custom performance data
+- **My Aircraft profiles**: User-created profiles saved in your database (same list as in **My Aircraft** tab)
 
 #### Takeoff Tab
 
@@ -689,13 +689,13 @@ For **custom aircraft**: Use **Edit/Save** button to modify envelope points and 
 
 For **built-in aircraft**: W&B data is from POH (read-only envelope, editable weights).
 
-#### Custom Tab
+#### My Aircraft tab
 
-Create and manage custom aircraft profiles:
+Create and manage your saved aircraft profiles:
 
-**Aircraft List**: Shows all custom aircraft with tap to select, swipe to delete.
+**Aircraft list**: Tap a row to select that profile for the other tabs. Use the **edit** (pencil) icon to change an existing profile and **Save changes**; use **delete** to remove it from the database.
 
-**New/Edit Aircraft**: Tap to create based on currently selected aircraft.
+**Add from template**: Starts a new profile using the currently selected built-in or saved aircraft as a starting point, then **Save aircraft** to store it.
 
 **Aircraft Identification:**
 - Tail Number, Type, Wake Turbulence
@@ -977,8 +977,8 @@ Possible issue items:
 | Send plan to device (Android) | `PLAN → Actions → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
-| Configure aircraft | `MAP → Menu → Aircraft & Performance → Custom tab` |
-| Change aircraft map icon | `MAP → Menu → Aircraft & Performance → Custom tab → icon dropdown` |
+| Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
+| Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
 | Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` |
