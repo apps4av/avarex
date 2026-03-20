@@ -1291,7 +1291,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       const Spacer(),
                       if (_wnbEditing)
                         IconButton(
-                          icon: const Icon(Icons.add_circle_outline),
+                          icon: const Icon(Icons.add_circle, color: Colors.green),
+                          tooltip: 'Add station',
                           onPressed: () {
                             setState(() {
                               _wnbStations.add(_WnbStation(name: 'New Station', arm: 40, weight: 0));
@@ -1502,7 +1503,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 SizedBox(
                   width: 40,
                   child: IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, size: 20),
+                    icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
+                    tooltip: 'Remove station',
+                    padding: EdgeInsets.zero,
                     onPressed: () => setState(() => _wnbStations.remove(station)),
                   ),
                 ),
