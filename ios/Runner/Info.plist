@@ -45,6 +45,8 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>This app does not use the microphone for any purpose, but an SDK used for developing this app may contain calls to the microphone API.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
