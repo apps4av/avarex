@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:ui';
 
+import 'package:avaremp/aircraft/aircraft.dart';
+
 class Performance3DEntry {
   final double altitude;
   final double temp;
@@ -551,6 +553,9 @@ class CruiseResult {
   CruiseResult({required this.ktas, required this.gph, this.percentPower = 0});
 }
 
+/// Rounds fuel flow to one decimal place (e.g. interpolated POH values).
+double gphOneDecimal(double gph) => (gph * 10).round() / 10.0;
+
 class AircraftPerformanceData {
   final String name;
   final String icaoType;
@@ -713,15 +718,22 @@ class AircraftPerformanceData {
   }
 
   CruiseResult getCruisePerformance(int altitude, int percentPower, [int temp = 0]) {
+    final CruiseResult r;
     if (rawCruiseEntries != null && rawCruiseEntries!.isNotEmpty) {
-      return Interpolator3D.interpolateCruise(
-        rawCruiseEntries!, 
-        altitude.toDouble(), 
-        temp.toDouble(), 
-        percentPower.toDouble()
+      r = Interpolator3D.interpolateCruise(
+        rawCruiseEntries!,
+        altitude.toDouble(),
+        temp.toDouble(),
+        percentPower.toDouble(),
       );
+    } else {
+      r = cruiseTable.interpolate(altitude, percentPower, temp);
     }
-    return cruiseTable.interpolate(altitude, percentPower, temp);
+    return CruiseResult(
+      ktas: r.ktas,
+      gph: gphOneDecimal(r.gph),
+      percentPower: percentPower,
+    );
   }
 }
 
@@ -747,43 +759,6 @@ class PerformanceCalculator {
 
   static double calculatePressureAltitude(double fieldElevation, double altimeterSetting) {
     return fieldElevation + (29.92 - altimeterSetting) * 1000;
-  }
-}
-
-class FuelCalculation {
-  final double tripFuel;
-  final double reserveFuel;
-  final double taxiFuel;
-  final double totalFuel;
-  final Duration flightTime;
-
-  FuelCalculation({
-    required this.tripFuel,
-    required this.reserveFuel,
-    required this.taxiFuel,
-    required this.totalFuel,
-    required this.flightTime,
-  });
-
-  static FuelCalculation calculate({
-    required double distance,
-    required double groundSpeed,
-    required double fuelFlowGph,
-    required double reserveMinutes,
-    double taxiFuel = 1.0,
-  }) {
-    double flightTimeHours = distance / groundSpeed;
-    double tripFuel = flightTimeHours * fuelFlowGph;
-    double reserveFuel = (reserveMinutes / 60) * fuelFlowGph;
-    double totalFuel = tripFuel + reserveFuel + taxiFuel;
-    
-    return FuelCalculation(
-      tripFuel: tripFuel,
-      reserveFuel: reserveFuel,
-      taxiFuel: taxiFuel,
-      totalFuel: totalFuel,
-      flightTime: Duration(minutes: (flightTimeHours * 60).round()),
-    );
   }
 }
 
@@ -1660,6 +1635,153 @@ class CommonAircraftData {
     } catch (e) {
       return null;
     }
+  }
+}
+
+PerformanceTable _planPlaceholderPerformanceTable() {
+  return const PerformanceTable(
+    pressureAltitudes: [0],
+    temperatures: [15],
+    values: [
+      [1000.0],
+    ],
+  );
+}
+
+/// POH-style performance from a saved [Aircraft] row (My Aircraft JSON). Used by [PlanPerformanceHelper].
+AircraftPerformanceData aircraftPerformanceDataFromAircraft(Aircraft aircraft) {
+  List<Performance3DEntry> rawToRoll = [];
+  List<Performance3DEntry> rawTo50 = [];
+  List<Performance3DEntry> rawLdRoll = [];
+  List<Performance3DEntry> rawLd50 = [];
+  List<Cruise3DEntry> rawCruise = [];
+  double toHeadwindPct = 1.5, toTailwindPct = 10.0, toSoftFieldPct = 15.0;
+  double ldHeadwindPct = 1.5, ldTailwindPct = 10.0, ldSoftFieldPct = 20.0;
+
+  if (aircraft.takeoffData.isNotEmpty) {
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(aircraft.takeoffData) as Map<String, dynamic>;
+      final List<dynamic> list = decoded['entries'] ?? [];
+      for (final dynamic e in list) {
+        final Map<String, dynamic> m = Map<String, dynamic>.from(e as Map);
+        rawToRoll.add(Performance3DEntry(
+          altitude: (m['altitude'] ?? 0).toDouble(),
+          temp: (m['temp'] ?? 15).toDouble(),
+          weight: (m['weight'] ?? 2400).toDouble(),
+          value: (m['groundRoll'] ?? 0).toDouble(),
+        ));
+        rawTo50.add(Performance3DEntry(
+          altitude: (m['altitude'] ?? 0).toDouble(),
+          temp: (m['temp'] ?? 15).toDouble(),
+          weight: (m['weight'] ?? 2400).toDouble(),
+          value: (m['over50ft'] ?? 0).toDouble(),
+        ));
+      }
+      toHeadwindPct = (decoded['headwindPct'] ?? 1.5).toDouble();
+      toTailwindPct = (decoded['tailwindPct'] ?? 10.0).toDouble();
+      toSoftFieldPct = (decoded['softFieldPct'] ?? 15.0).toDouble();
+    } catch (_) {}
+  }
+
+  if (aircraft.landingData.isNotEmpty) {
+    try {
+      final Map<String, dynamic> decoded = jsonDecode(aircraft.landingData) as Map<String, dynamic>;
+      final List<dynamic> list = decoded['entries'] ?? [];
+      for (final dynamic e in list) {
+        final Map<String, dynamic> m = Map<String, dynamic>.from(e as Map);
+        rawLdRoll.add(Performance3DEntry(
+          altitude: (m['altitude'] ?? 0).toDouble(),
+          temp: (m['temp'] ?? 15).toDouble(),
+          weight: (m['weight'] ?? 2400).toDouble(),
+          value: (m['groundRoll'] ?? 0).toDouble(),
+        ));
+        rawLd50.add(Performance3DEntry(
+          altitude: (m['altitude'] ?? 0).toDouble(),
+          temp: (m['temp'] ?? 15).toDouble(),
+          weight: (m['weight'] ?? 2400).toDouble(),
+          value: (m['over50ft'] ?? 0).toDouble(),
+        ));
+      }
+      ldHeadwindPct = (decoded['headwindPct'] ?? 1.5).toDouble();
+      ldTailwindPct = (decoded['tailwindPct'] ?? 10.0).toDouble();
+      ldSoftFieldPct = (decoded['softFieldPct'] ?? 20.0).toDouble();
+    } catch (_) {}
+  }
+
+  if (aircraft.cruiseData.isNotEmpty) {
+    try {
+      final List<dynamic> list = jsonDecode(aircraft.cruiseData) as List<dynamic>;
+      rawCruise = list.map((e) => Cruise3DEntry.fromMap(Map<String, dynamic>.from(e as Map))).toList();
+    } catch (_) {}
+  }
+
+  return AircraftPerformanceData(
+    name: aircraft.tail.isNotEmpty ? aircraft.tail : 'MY AIRCRAFT',
+    icaoType: aircraft.type,
+    maxGrossWeight: aircraft.maxGrossWeight > 0 ? aircraft.maxGrossWeight : 2400,
+    usableFuel: aircraft.usableFuel > 0 ? aircraft.usableFuel : 48,
+    emptyWeight: aircraft.emptyWeight > 0 ? aircraft.emptyWeight : 1500,
+    takeoffGroundRoll: _planPlaceholderPerformanceTable(),
+    takeoffOver50ft: _planPlaceholderPerformanceTable(),
+    landingGroundRoll: _planPlaceholderPerformanceTable(),
+    landingOver50ft: _planPlaceholderPerformanceTable(),
+    cruiseTable: CruisePerformanceTable(entries: []),
+    rawTakeoffRollEntries: rawToRoll.isEmpty ? null : rawToRoll,
+    rawTakeoff50ftEntries: rawTo50.isEmpty ? null : rawTo50,
+    rawLandingRollEntries: rawLdRoll.isEmpty ? null : rawLdRoll,
+    rawLanding50ftEntries: rawLd50.isEmpty ? null : rawLd50,
+    rawCruiseEntries: rawCruise.isEmpty ? null : rawCruise,
+    takeoffHeadwindPct: toHeadwindPct,
+    takeoffTailwindPct: toTailwindPct,
+    takeoffSoftFieldPct: toSoftFieldPct,
+    landingHeadwindPct: ldHeadwindPct,
+    landingTailwindPct: ldTailwindPct,
+    landingSoftFieldPct: ldSoftFieldPct,
+  );
+}
+
+/// Cruise KTAS/GPH for Plan using the same aircraft and interpolation as Aircraft & Performance.
+class PlanPerformanceHelper {
+  PlanPerformanceHelper._();
+
+  /// Custom cruise table from DB if present and non-empty; otherwise built-in POH for [Aircraft.type] (e.g. C172).
+  static AircraftPerformanceData? performanceDataForAircraft(Aircraft aircraft) {
+    if (aircraft.cruiseData.isNotEmpty) {
+      try {
+        final AircraftPerformanceData data = aircraftPerformanceDataFromAircraft(aircraft);
+        if (data.rawCruiseEntries != null && data.rawCruiseEntries!.isNotEmpty) {
+          return data;
+        }
+      } catch (_) {}
+    }
+    return CommonAircraftData.getByIcao(aircraft.type.trim());
+  }
+
+  /// Interpolated cruise at [altitudeFt] (plan cruise altitude). [powerPercent] defaults to 65; [isaTempDeviationC] to 0 (standard day).
+  static CruiseResult? cruiseAtPlanAltitude(
+    Aircraft aircraft,
+    int altitudeFt, {
+    int powerPercent = 65,
+    int isaTempDeviationC = 0,
+  }) {
+    final AircraftPerformanceData? perf = performanceDataForAircraft(aircraft);
+    if (perf == null) return null;
+    return perf.getCruisePerformance(altitudeFt, powerPercent, isaTempDeviationC);
+  }
+
+  /// Built-in POH entry whose [AircraftPerformanceData.name] matches (e.g. dropdown label from Performance screen).
+  static CruiseResult? cruiseForBuiltInDisplayName(
+    String aircraftPerformanceName,
+    int altitudeFt, {
+    int powerPercent = 65,
+    int isaTempDeviationC = 0,
+  }) {
+    for (final AircraftPerformanceData a in CommonAircraftData.all) {
+      if (a.name == aircraftPerformanceName) {
+        return a.getCruisePerformance(altitudeFt, powerPercent, isaTempDeviationC);
+      }
+    }
+    return null;
   }
 }
 

@@ -181,6 +181,24 @@ class AppSettings {
     provider.setDouble("key-airplane-fuel-burn-v3", value);
   }
 
+  /// Cruise power % (45–85) from Aircraft & Performance; persisted in app settings, not user.db.
+  int getPerformanceCruisePowerPercent() {
+    return provider.getValue("key-performance-cruise-power-pct-v1", defaultValue: 65) as int;
+  }
+
+  void setPerformanceCruisePowerPercent(int value) {
+    provider.setInt("key-performance-cruise-power-pct-v1", value);
+  }
+
+  /// Last aircraft selected on Aircraft & Performance (tail / display name).
+  void setLastPerformanceAircraft(String name) {
+    provider.setString("key-last-performance-aircraft-v1", name);
+  }
+
+  String getLastPerformanceAircraft() {
+    return provider.getValue("key-last-performance-aircraft-v1", defaultValue: "") as String;
+  }
+
   bool isSigned() {
     return provider.getValue("key-signed", defaultValue: false) as bool;
   }

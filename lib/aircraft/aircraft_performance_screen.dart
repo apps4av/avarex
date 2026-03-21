@@ -3,6 +3,7 @@ import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -122,17 +123,10 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   final _landingHeadwindController = TextEditingController(text: '0');
   bool _landingSoftField = false;
 
-  // Cruise inputs
-  final _cruiseAltitudeController = TextEditingController(text: '8000');
+  // Cruise inputs (altitude text synced from plan altitude on init and when opening Cruise tab)
+  final _cruiseAltitudeController = TextEditingController();
   final _cruiseTempController = TextEditingController(text: '0');
   int _cruisePowerPercent = 65;
-
-  // Fuel inputs
-  final _fuelDistanceController = TextEditingController(text: '200');
-  final _fuelGroundSpeedController = TextEditingController(text: '110');
-  final _fuelFlowController = TextEditingController(text: '8.5');
-  final _fuelReserveController = TextEditingController(text: '45');
-  final _fuelTaxiController = TextEditingController(text: '1.0');
 
   // My Aircraft (custom profiles)
   bool _showCustomEntry = false;
@@ -182,11 +176,16 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 
   // Page navigation
   int _pageIndex = 0;
-  static const List<String> _pageLabels = ['My Aircraft', 'T/O', 'L/D', 'Cruise', 'Fuel', 'W&B'];
+  static const List<String> _pageLabels = ['My Aircraft', 'T/O', 'L/D', 'Cruise', 'W&B'];
+
+  void _syncCruiseAltitudeFromPlan() {
+    _cruiseAltitudeController.text = Storage().route.altitude.toString();
+  }
 
   @override
   void initState() {
     super.initState();
+    _syncCruiseAltitudeFromPlan();
     _takeoffWeightController.text = _selectedAircraft.maxGrossWeight.toStringAsFixed(0);
     _initializeDefaultEntries();
     _loadCustomAircraft();
@@ -474,14 +473,13 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     await _migrateLegacyCustomAircraft();
     
     // Load last used aircraft
-    await _loadSelectedAircraft();
-    
+    _loadSelectedAircraft();
+    _cruisePowerPercent = Storage().settings.getPerformanceCruisePowerPercent();
+
     setState(() {
       _ensureSelectedAircraftInList();
       _takeoffWeightController.text = _selectedAircraft.maxGrossWeight.toStringAsFixed(0);
       _landingWeightController.text = (_selectedAircraft.maxGrossWeight * 0.9).toStringAsFixed(0);
-      CruiseResult cruise = _selectedAircraft.getCruisePerformance(8000, 65);
-      _fuelFlowController.text = cruise.gph.toStringAsFixed(1);
     });
 
     await _loadWnbForAircraft();
@@ -510,85 +508,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   }
   
   AircraftPerformanceData _aircraftToPerformanceData(Aircraft aircraft) {
-    List<_TakeoffLandingEntry> takeoffEntries = [];
-    List<_TakeoffLandingEntry> landingEntries = [];
-    List<_CruiseEntry> cruiseEntries = [];
-    double toHeadwindPct = 1.5, toTailwindPct = 10.0, toSoftFieldPct = 15.0;
-    double ldHeadwindPct = 1.5, ldTailwindPct = 10.0, ldSoftFieldPct = 20.0;
-    
-    if (aircraft.takeoffData.isNotEmpty) {
-      try {
-        Map<String, dynamic> decoded = jsonDecode(aircraft.takeoffData);
-        List<dynamic> list = decoded['entries'] ?? [];
-        takeoffEntries = list.map((e) => _TakeoffLandingEntry.fromMap(e)).toList();
-        toHeadwindPct = (decoded['headwindPct'] ?? 1.5).toDouble();
-        toTailwindPct = (decoded['tailwindPct'] ?? 10.0).toDouble();
-        toSoftFieldPct = (decoded['softFieldPct'] ?? 15.0).toDouble();
-      } catch (e) { /* ignore */ }
-    }
-    
-    if (aircraft.landingData.isNotEmpty) {
-      try {
-        Map<String, dynamic> decoded = jsonDecode(aircraft.landingData);
-        List<dynamic> list = decoded['entries'] ?? [];
-        landingEntries = list.map((e) => _TakeoffLandingEntry.fromMap(e)).toList();
-        ldHeadwindPct = (decoded['headwindPct'] ?? 1.5).toDouble();
-        ldTailwindPct = (decoded['tailwindPct'] ?? 10.0).toDouble();
-        ldSoftFieldPct = (decoded['softFieldPct'] ?? 20.0).toDouble();
-      } catch (e) { /* ignore */ }
-    }
-    
-    if (aircraft.cruiseData.isNotEmpty) {
-      try {
-        List<dynamic> list = jsonDecode(aircraft.cruiseData);
-        cruiseEntries = list.map((e) => _CruiseEntry.fromMap(e)).toList();
-      } catch (e) { /* ignore */ }
-    }
-    
-    List<Performance3DEntry> rawToRoll = takeoffEntries.map((e) => Performance3DEntry(
-      altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.groundRoll,
-    )).toList();
-    
-    List<Performance3DEntry> rawTo50 = takeoffEntries.map((e) => Performance3DEntry(
-      altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.over50ft,
-    )).toList();
-    
-    List<Performance3DEntry> rawLdRoll = landingEntries.map((e) => Performance3DEntry(
-      altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.groundRoll,
-    )).toList();
-    
-    List<Performance3DEntry> rawLd50 = landingEntries.map((e) => Performance3DEntry(
-      altitude: e.altitude, temp: e.temp, weight: e.weight, value: e.over50ft,
-    )).toList();
-    
-    List<Cruise3DEntry> rawCruise = cruiseEntries.map((e) => Cruise3DEntry(
-      altitude: e.altitude.toDouble(), temp: e.temp.toDouble(),
-      powerPercent: e.powerPercent.toDouble(), ktas: e.ktas, gph: e.gph,
-    )).toList();
-    
-    return AircraftPerformanceData(
-      name: aircraft.tail.isNotEmpty ? aircraft.tail : 'MY AIRCRAFT',
-      icaoType: aircraft.type,
-      maxGrossWeight: aircraft.maxGrossWeight > 0 ? aircraft.maxGrossWeight : 2400,
-      usableFuel: aircraft.usableFuel > 0 ? aircraft.usableFuel : 48,
-      emptyWeight: aircraft.emptyWeight > 0 ? aircraft.emptyWeight : 1500,
-      takeoffGroundRoll: _buildDummyTable(),
-      takeoffOver50ft: _buildDummyTable(),
-      landingGroundRoll: _buildDummyTable(),
-      landingOver50ft: _buildDummyTable(),
-      cruiseTable: CruisePerformanceTable(entries: []),
-      rawTakeoffRollEntries: rawToRoll,
-      rawTakeoff50ftEntries: rawTo50,
-      rawLandingRollEntries: rawLdRoll,
-      rawLanding50ftEntries: rawLd50,
-      rawCruiseEntries: rawCruise,
-      takeoffHeadwindPct: toHeadwindPct,
-      takeoffTailwindPct: toTailwindPct,
-      takeoffSoftFieldPct: toSoftFieldPct,
-      landingHeadwindPct: ldHeadwindPct,
-      landingTailwindPct: ldTailwindPct,
-      landingSoftFieldPct: ldSoftFieldPct,
-    );
+    return aircraftPerformanceDataFromAircraft(aircraft);
   }
   
   Aircraft _performanceDataToAircraft(AircraftPerformanceData perfData, [Map<String, dynamic>? legacyMap]) {
@@ -637,25 +557,24 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
   }
   
-  Future<void> _loadSelectedAircraft() async {
-    List<Map<String, dynamic>> settings = await UserDatabaseHelper.db.getAllSettings();
-    for (var s in settings) {
-      if (s['key'] == 'lastPerformanceAircraft') {
-        String name = s['value'] ?? '';
-        AircraftPerformanceData? match = _allAircraft.cast<AircraftPerformanceData?>().firstWhere(
-          (a) => a!.name == name,
-          orElse: () => null,
-        );
-        if (match != null) {
-          _selectedAircraft = match;
-        }
-        break;
-      }
+  void _loadSelectedAircraft() {
+    final String name = Storage().settings.getLastPerformanceAircraft();
+    if (name.isEmpty) return;
+    final AircraftPerformanceData? match = _allAircraft.cast<AircraftPerformanceData?>().firstWhere(
+      (a) => a!.name == name,
+      orElse: () => null,
+    );
+    if (match != null) {
+      _selectedAircraft = match;
     }
   }
   
-  Future<void> _saveSelectedAircraft() async {
-    await UserDatabaseHelper.db.insertSetting('lastPerformanceAircraft', _selectedAircraft.name);
+  void _saveSelectedAircraft() {
+    Storage().settings.setLastPerformanceAircraft(_selectedAircraft.name);
+  }
+
+  void _saveCruisePowerPercent() {
+    Storage().settings.setPerformanceCruisePowerPercent(_cruisePowerPercent);
   }
 
   void _ensureSelectedAircraftInList() {
@@ -779,11 +698,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     _landingHeadwindController.dispose();
     _cruiseAltitudeController.dispose();
     _cruiseTempController.dispose();
-    _fuelDistanceController.dispose();
-    _fuelGroundSpeedController.dispose();
-    _fuelFlowController.dispose();
-    _fuelReserveController.dispose();
-    _fuelTaxiController.dispose();
     _customNameController.dispose();
     _customIcaoController.dispose();
     _customMaxWeightController.dispose();
@@ -818,7 +732,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _buildTakeoffTab(),
       _buildLandingTab(),
       _buildCruiseTab(),
-      _buildFuelTab(),
       _buildWnbTab(),
     ];
 
@@ -850,8 +763,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       _selectedAircraft = value;
                       _takeoffWeightController.text = value.maxGrossWeight.toStringAsFixed(0);
                       _landingWeightController.text = (value.maxGrossWeight * 0.9).toStringAsFixed(0);
-                      CruiseResult cruise = value.getCruisePerformance(8000, 65);
-                      _fuelFlowController.text = cruise.gph.toStringAsFixed(1);
                     });
                     _saveSelectedAircraft();
                     _loadWnbForAircraft();
@@ -877,7 +788,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       style: _pageIndex == i
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
-                      onPressed: () => setState(() => _pageIndex = i),
+                      onPressed: () => setState(() {
+                        if (_pageLabels[i] == 'Cruise') {
+                          _syncCruiseAltitudeFromPlan();
+                        }
+                        _pageIndex = i;
+                      }),
                       child: Text(_pageLabels[i]),
                     ),
                 ],
@@ -988,7 +904,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   }
 
   Widget _buildCruiseTab() {
-    int altitude = int.tryParse(_cruiseAltitudeController.text) ?? 8000;
+    int altitude = int.tryParse(_cruiseAltitudeController.text) ?? Storage().route.altitude;
     int temp = int.tryParse(_cruiseTempController.text) ?? 0;
 
     CruiseResult performance = _selectedAircraft.getCruisePerformance(altitude, _cruisePowerPercent, temp);
@@ -1014,13 +930,16 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             Colors.blue,
           ),
           const SizedBox(height: 16),
-          _buildCruiseTableCard(),
-          const SizedBox(height: 16),
           _buildInputCard(
             'Input Parameters',
             Icons.tune,
             [
-              _buildTextField('Cruise Altitude (ft)', _cruiseAltitudeController, keyboard: TextInputType.number),
+              _buildTextField(
+                'Cruise Altitude (ft)',
+                _cruiseAltitudeController,
+                keyboard: TextInputType.number,
+                tooltip: 'Prefilled from PLAN tab altitude when you open this tab; you can edit for what-if.',
+              ),
               _buildTextField('Temperature deviation from std (°C)', _cruiseTempController, keyboard: const TextInputType.numberWithOptions(signed: true)),
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -1030,78 +949,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 ),
               ),
               _buildPowerSlider(),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFuelTab() {
-    double distance = double.tryParse(_fuelDistanceController.text) ?? 200;
-    double groundSpeed = double.tryParse(_fuelGroundSpeedController.text) ?? 110;
-    double fuelFlow = double.tryParse(_fuelFlowController.text) ?? 8.5;
-    double reserve = double.tryParse(_fuelReserveController.text) ?? 45;
-    double taxi = double.tryParse(_fuelTaxiController.text) ?? 1.0;
-
-    FuelCalculation calc = FuelCalculation.calculate(
-      distance: distance,
-      groundSpeed: groundSpeed,
-      fuelFlowGph: fuelFlow,
-      reserveMinutes: reserve,
-      taxiFuel: taxi,
-    );
-
-    bool fuelOk = calc.totalFuel <= _selectedAircraft.usableFuel;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildResultCard(
-            'Fuel Requirements',
-            MdiIcons.fuel,
-            [
-              _ResultRow('Flight Time', '${calc.flightTime.inHours}h ${calc.flightTime.inMinutes % 60}m'),
-              _ResultRow('Trip Fuel', '${calc.tripFuel.toStringAsFixed(1)} gal'),
-              _ResultRow('Reserve Fuel', '${calc.reserveFuel.toStringAsFixed(1)} gal'),
-              _ResultRow('Taxi Fuel', '${calc.taxiFuel.toStringAsFixed(1)} gal'),
-              _ResultRow('Total Required', '${calc.totalFuel.toStringAsFixed(1)} gal', bold: true),
-              _ResultRow('Usable Fuel', '${_selectedAircraft.usableFuel.toStringAsFixed(1)} gal'),
-            ],
-            fuelOk ? Colors.green : Colors.red,
-          ),
-          const SizedBox(height: 16),
-          if (!fuelOk)
-            Card(
-              color: Colors.red.withAlpha(30),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.red),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Insufficient fuel! Need ${(calc.totalFuel - _selectedAircraft.usableFuel).toStringAsFixed(1)} gal more than usable capacity.',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-          _buildInputCard(
-            'Input Parameters',
-            Icons.tune,
-            [
-              _buildTextField('Distance (nm)', _fuelDistanceController, keyboard: TextInputType.number),
-              _buildTextField('Ground Speed (kts)', _fuelGroundSpeedController, keyboard: TextInputType.number),
-              _buildTextField('Fuel Flow (gph)', _fuelFlowController, keyboard: const TextInputType.numberWithOptions(decimal: true)),
-              _buildTextField('Reserve (minutes)', _fuelReserveController, keyboard: TextInputType.number),
-              _buildTextField('Taxi Fuel (gal)', _fuelTaxiController, keyboard: const TextInputType.numberWithOptions(decimal: true)),
             ],
           ),
         ],
@@ -2317,7 +2164,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _editingExistingTail = null;
     });
 
-    await _saveSelectedAircraft();
+    _saveSelectedAircraft();
     _loadWnbForAircraft();
     _resetCustomForm();
   }
@@ -2348,81 +2195,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     _customCruiseTasController.clear();
     _customFuelEnduranceController.clear();
     _customSinkRateController.clear();
-  }
-
-  Widget _buildCruiseTableCard() {
-    List<CruiseTableEntry> entries = _selectedAircraft.cruiseTable.entries;
-    int targetAlt = int.tryParse(_cruiseAltitudeController.text) ?? 8000;
-    
-    Set<int> altitudes = entries.map((e) => e.altitude).toSet();
-    List<int> sortedAlts = altitudes.toList()..sort();
-    
-    int displayAlt = targetAlt;
-    if (!altitudes.contains(targetAlt) && sortedAlts.isNotEmpty) {
-      displayAlt = sortedAlts.reduce((a, b) => (a - targetAlt).abs() < (b - targetAlt).abs() ? a : b);
-    }
-    
-    List<CruiseTableEntry> atAlt = entries.where((e) => e.altitude == displayAlt).toList();
-    atAlt.sort((a, b) => b.percentPower.compareTo(a.percentPower));
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.table_chart, size: 20, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'POH Cruise Table @ $displayAlt ft',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if (sortedAlts.length > 1) ...[
-              const SizedBox(height: 8),
-              Text('Available altitudes: ${sortedAlts.join(", ")} ft',
-                   style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
-            ],
-            const SizedBox(height: 12),
-            Table(
-              columnWidths: const {
-                0: FlexColumnWidth(1),
-                1: FlexColumnWidth(1),
-                2: FlexColumnWidth(1),
-              },
-              children: [
-                TableRow(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  ),
-                  children: const [
-                    Padding(padding: EdgeInsets.all(8), child: Text('Power', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(8), child: Text('KTAS', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                    Padding(padding: EdgeInsets.all(8), child: Text('GPH', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
-                  ],
-                ),
-                ...atAlt.map((s) => TableRow(
-                  children: [
-                    Padding(padding: const EdgeInsets.all(8), child: Text('${s.percentPower}%', textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(8), child: Text('${s.ktas.round()}', textAlign: TextAlign.center)),
-                    Padding(padding: const EdgeInsets.all(8), child: Text(s.gph.toStringAsFixed(1), textAlign: TextAlign.center)),
-                  ],
-                )),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildPohNoteCard() {
@@ -2506,6 +2278,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             setState(() {
               _cruisePowerPercent = value.round();
             });
+            _saveCruisePowerPercent();
           },
         ),
       ],
@@ -2550,13 +2323,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 children: [
                   Text(r.label, style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: r.bold ? FontWeight.bold : FontWeight.normal,
                   )),
                   Text(
                     r.value,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: r.bold ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                       color: statusColor,
                     ),
                   ),
@@ -2731,7 +2503,6 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 class _ResultRow {
   final String label;
   final String value;
-  final bool bold;
 
-  _ResultRow(this.label, this.value, {this.bold = false});
+  _ResultRow(this.label, this.value);
 }

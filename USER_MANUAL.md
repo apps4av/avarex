@@ -354,6 +354,7 @@ Bottom controls:
 - **ASpd** field: true airspeed used in calculations (knots)
 - **GPH** field: fuel burn (gallons per hour)
 - **Alt** field: plan altitude (feet, default 3000)
+- **Aircraft icon** (next to Alt): loads **ASpd** and **GPH** using the same aircraft as the **Performance** screen app-bar **dropdown** (latest selection), interpolated at the plan **Alt** using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
 - **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
 - **Analytics icon** (chart): opens full-screen Navigation Log
 
@@ -609,7 +610,6 @@ A unified screen with tabs for managing aircraft profiles, performance calculati
 | **T/O**         | Calculate takeoff ground roll and 50ft obstacle clearance distances |
 | **L/D**         | Calculate landing ground roll and 50ft obstacle clearance distances |
 | **Cruise**      | Calculate cruise performance (TAS, fuel flow) at altitude/power settings |
-| **Fuel**        | Calculate fuel required for distance, reserves, and endurance |
 | **W&B**         | Weight and balance calculations with CG envelope |
 
 #### Aircraft Selection
@@ -649,29 +649,15 @@ Results show:
 #### Cruise Tab
 
 Enter cruise conditions:
-- **Altitude** (ft)
+- **Altitude** (ft) — prefilled from the **PLAN** tab **Alt** when you open the Cruise tab (or open Aircraft & Performance); you can still edit it for what-if
 - **Temperature deviation** (°C from standard)
-- **Power setting** (%)
+- **Power setting** (%) — remembered between app sessions via **app settings** (same preference store as **ASpd** / **GPH** on the Plan tab), not the aircraft database table
 
 Below altitude and temperature deviation, the screen shows **density altitude** (ft) for those inputs (read-only).
 
 Results show:
 - True Airspeed (KTAS)
 - Fuel Flow (GPH)
-
-#### Fuel Tab
-
-Calculate fuel requirements:
-- **Distance** (NM)
-- **Ground Speed** (kts)
-- **Fuel Flow** (GPH)
-- **Reserve** (minutes)
-- **Taxi fuel** (gal)
-
-Results show:
-- Flight time
-- Fuel required
-- Total with reserves
 
 #### W&B Tab
 
@@ -988,7 +974,7 @@ Possible issue items:
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` |
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` |
-| Fuel planning | `MAP → Menu → Aircraft & Performance → Fuel tab` |
+| Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
@@ -1061,7 +1047,7 @@ Use this to adjust waypoints graphically.
    - **Long-press** an existing waypoint row in `PLAN` to insert after it (opens FIND; next selection inserts after that waypoint).
 3. Reorder legs by long-press and drag in `PLAN`.
 4. Tap a leg to make it current.
-5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN`.
+5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN` (optional: tap the aircraft icon to fill speed and fuel burn from performance data).
 6. Open nav-log (analytics icon) to review:
    - Leg calculations (double-tap grid to reset zoom)
    - Combined winds & terrain diagram (green=tailwind/safe, red=headwind/terrain warning)

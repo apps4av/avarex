@@ -2,11 +2,14 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/main_screen.dart';
-import 'package:avaremp/utils/toast.dart';
+import 'package:avaremp/utils/toast.dart' show Toast;
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/rendering.dart';
@@ -208,7 +211,8 @@ class PlanScreenState extends State<PlanScreen> {
                       double? pValue = double.tryParse(value);
                       Storage().settings.setFuelBurn(pValue ?? Storage().settings.getFuelBurn());
                     },
-                    controller: TextEditingController()..text = Storage().settings.getFuelBurn().toString(),
+                    controller: TextEditingController()
+                      ..text = Storage().settings.getFuelBurn().toStringAsFixed(1),
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
                       labelText: "GPH",
@@ -236,7 +240,60 @@ class PlanScreenState extends State<PlanScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.flight),
+                  tooltip: 'Load ASpd and GPH from Aircraft & Performance (selected aircraft)',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: () async {
+                    final String lastPerf = Storage().settings.getLastPerformanceAircraft().trim();
+                    if (!context.mounted) return;
+                    String selector = lastPerf.isNotEmpty
+                        ? lastPerf
+                        : Storage().settings.getAircraft().trim();
+                    if (selector.isEmpty) {
+                      Toast.showToast(
+                        context,
+                        'Select an aircraft in Menu → Aircraft & Performance (dropdown)',
+                        const Icon(Icons.info_outline),
+                        4,
+                      );
+                      return;
+                    }
+                    try {
+                      final int alt = Storage().route.altitude;
+                      final int powerPct = Storage().settings.getPerformanceCruisePowerPercent();
+                      CruiseResult? r;
+                      try {
+                        final Aircraft dbAc = await UserDatabaseHelper.db.getAircraft(selector);
+                        r = PlanPerformanceHelper.cruiseAtPlanAltitude(dbAc, alt, powerPercent: powerPct);
+                      } catch (_) {}
+                      if (!context.mounted) return;
+                      r ??= PlanPerformanceHelper.cruiseForBuiltInDisplayName(selector, alt, powerPercent: powerPct);
+                      if (r == null) {
+                        Toast.showToast(
+                          context,
+                          'No cruise data: set aircraft Type (e.g. C172) or add a cruise table in My Aircraft',
+                          const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                          5,
+                        );
+                        return;
+                      }
+                      Storage().settings.setTas(r.ktas);
+                      Storage().settings.setFuelBurn(r.gph);
+                      setState(() {});
+                      Toast.showToast(
+                        context,
+                        'Loaded ASpd ${r.ktas.round()}, GPH ${r.gph.toStringAsFixed(1)} for $selector',
+                        const Icon(Icons.check_circle, color: Colors.green),
+                        3,
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      Toast.showToast(context, 'Could not load aircraft: $e', const Icon(Icons.error, color: Colors.red), 4);
+                    }
+                  },
+                ),
                 DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
                     isDense: true,
