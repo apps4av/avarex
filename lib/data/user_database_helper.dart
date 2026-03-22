@@ -38,6 +38,16 @@ class UserDatabaseHelper {
     return path;
   }
 
+  /// Close the cached connection after [user.db] was replaced on disk (e.g. cloud restore)
+  /// so the next open uses the new file.
+  static Future<void> invalidateConnection() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+    }
+  }
+
   Future<Database> _initDB() async {
     String path = getPath();
     final List<String> typicalAiQueries = [

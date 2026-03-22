@@ -462,12 +462,16 @@ class BackupScreenState extends State<BackupScreen> {
   Future<void> _performRestore() async {
     final dbFile = File(UserDatabaseHelper.getPath());
     try {
+      await UserDatabaseHelper.invalidateConnection();
       setState(() {
         _isDownloading = true;
         _progress = 0;
       });
       
-      files[dbRefUserDb]!.writeToFile(dbFile).snapshotEvents.listen((taskSnapshot) {
+      files[dbRefUserDb]!.writeToFile(dbFile).snapshotEvents.listen((taskSnapshot) async {
+        if (taskSnapshot.state == TaskState.success && _isDownloading) {
+          await UserDatabaseHelper.invalidateConnection();
+        }
         if (mounted) {
           setState(() {
             _setStatus(taskSnapshot);

@@ -39,6 +39,16 @@ class MainDatabaseHelper {
       await openDatabase(path, onOpen: (db) {});
   }
 
+  /// Close the cached connection after [main.db] was replaced or removed on disk
+  /// (e.g. DatabasesX download/delete) so the next open uses the new file.
+  static Future<void> invalidateConnection() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+    }
+  }
+
   Future<List<LatLng>> findObstacles(LatLng point, double altitude) async {
     final db = await database;
     if (db != null) {

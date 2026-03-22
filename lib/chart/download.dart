@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:core';
 import 'package:universal_io/io.dart';
+import 'package:avaremp/data/business_database_helper.dart';
+import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/utils/faa_dates.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -13,6 +15,12 @@ class Download {
 
   String _currentCycle = "";
   bool _cancelDownloadAndDelete = false;
+
+  // download close db
+  static Future<void> _invalidateSqlite() async {
+      await MainDatabaseHelper.invalidateConnection();
+      await BusinessDatabaseHelper.invalidateConnection();
+  }
 
   static Future<void> _deleteZipFile(File file) async {
     bool exists = await file.exists();
@@ -87,6 +95,8 @@ class Download {
       return;
     }
 
+    await _invalidateSqlite();
+
     double progress = 0;
     double lastProgress = 0;
 
@@ -120,6 +130,8 @@ class Download {
 
     await Storage().checkChartsExist();
     await Storage().checkDataExpiry();
+
+    await _invalidateSqlite();
 
     if(null != callback) {
       callback(chart, 100); // done
@@ -187,6 +199,8 @@ class Download {
       return;
     }
 
+    await _invalidateSqlite();
+
     try {
       final inputStream = InputFileStream(
           PathUtils.getLocalFilePath(Storage().dataDir, chart.filename));
@@ -216,6 +230,7 @@ class Download {
       inputStream.close();
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
+      await _invalidateSqlite();
       callback(chart, 100); // done
     } catch (e) {
       callback(chart, -1);

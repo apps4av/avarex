@@ -31,6 +31,16 @@ class BusinessDatabaseHelper {
       await openDatabase(path, onOpen: (db) {});
   }
 
+  /// Close the cached connection after [business.db] was replaced or removed on disk
+  /// (e.g. Business/FBO chart download/delete) so the next open uses the new file.
+  static Future<void> invalidateConnection() async {
+    final db = _database;
+    if (db != null) {
+      await db.close();
+      _database = null;
+    }
+  }
+
   Future<List<Destination>> findBusinesses(Destination airport) async {
     final db = await database;
     num corrFactor = pow(cos(airport.coordinate.latitude * pi / 180.0), 2);
