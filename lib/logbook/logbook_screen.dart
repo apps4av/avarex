@@ -136,6 +136,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
     if(path != null) {
       final params = ShareParams(
         files: [XFile(path)],
+        title: PathUtils.filename(path),
         sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
       );
       SharePlus.instance.share(params);

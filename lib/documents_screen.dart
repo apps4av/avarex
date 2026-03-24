@@ -13,6 +13,11 @@ import 'package:widget_zoom/widget_zoom.dart';
 
 import 'constants.dart';
 
+/// [ShareResultStatus.unavailable] is returned on Windows (and anywhere the OS
+/// does not report an outcome). Only [ShareResultStatus.dismissed] means failure.
+bool _shareSheetNotCancelled(ShareResult result) =>
+    result.status != ShareResultStatus.dismissed;
+
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
 
@@ -253,12 +258,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     List<XFile> xFiles = files.map((f) => XFile(f)).toList();
     final params = ShareParams(
       files: xFiles,
+      title: PathUtils.filename(folderPath),
       sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
     );
     SharePlus.instance.share(params).then((value) {
       if (mounted) {
-        bool success = value.status == ShareResultStatus.success;
-        Toast.showToast(context, "Export ${success ? "successful" : "failed"}", Icon(Icons.info, color: success ? Colors.green : Colors.red), 3);
+        final ok = _shareSheetNotCancelled(value);
+        Toast.showToast(context, "Export ${ok ? "successful" : "failed"}", Icon(Icons.info, color: ok ? Colors.green : Colors.red), 3);
       }
     });
   }
@@ -296,12 +302,13 @@ class DocumentsScreenState extends State<DocumentsScreen> {
               onPressed: () {
                 final params = ShareParams(
                   files: [XFile(product.url)],
+                  title: product.name,
                   sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
                 );
                 SharePlus.instance.share(params).then((value) {
                   if(mounted) {
-                    bool success = value.status == ShareResultStatus.success;
-                    Toast.showToast(context, "Sharing of file ${success ? "successful" : "failed"}", Icon(Icons.info, color: success ? Colors.green : Colors.red,), 30);
+                    final ok = _shareSheetNotCancelled(value);
+                    Toast.showToast(context, "Sharing of file ${ok ? "successful" : "failed"}", Icon(Icons.info, color: ok ? Colors.green : Colors.red,), 30);
                   }
                 });
               },

@@ -616,6 +616,7 @@ class _NavLogContentState extends State<_NavLogContent> {
         if (Constants.shouldShare) {
           final params = ShareParams(
             files: [XFile(file.path)],
+            title: fileName,
             sharePositionOrigin: const Rect.fromLTWH(128, 128, 1, 1),
           );
           SharePlus.instance.share(params);
