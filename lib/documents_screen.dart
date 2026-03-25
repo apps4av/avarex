@@ -1,3 +1,4 @@
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 import 'package:avaremp/utils/path_utils.dart';
@@ -489,15 +490,64 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     );
   }
 
-  Future<void> _pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      String? path = result.files.single.path;
-      if(path != null) {
-        File file = File(path);
-        file.copy(PathUtils.getFilePath(
-            _currentBasePath, PathUtils.filename(file.path)));
+  /// Returns true if a file was copied into [_currentBasePath]. The source
+  /// [File.copy] future must be awaited; otherwise the UI refresh can run before
+  /// the write finishes (often seen on Windows).
+  Future<bool> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles();
+      if (result == null || result.files.isEmpty) {
+        return false;
       }
+
+      final picked = result.files.single;
+      final String destPath =
+          PathUtils.getFilePath(_currentBasePath, picked.name);
+
+      final srcPath = picked.path;
+      final sameAsDest = srcPath != null &&
+          srcPath.isNotEmpty &&
+          PathUtils.sameFilePath(srcPath, destPath);
+      if (sameAsDest) {
+        return true;
+      }
+
+      final replacesUserDb =
+          PathUtils.filename(destPath).toLowerCase() == 'user.db';
+      if (replacesUserDb) {
+        await UserDatabaseHelper.invalidateConnection();
+        final existing = File(destPath);
+        if (await existing.exists()) {
+          await existing.delete();
+        }
+      }
+
+      if (picked.path != null && picked.path!.isNotEmpty) {
+        await File(picked.path!).copy(destPath);
+      } else if (picked.bytes != null) {
+        await File(destPath).writeAsBytes(picked.bytes!, flush: true);
+      } else {
+        if (mounted) {
+          Toast.showToast(
+            context,
+            "Could not access file contents.",
+            const Icon(Icons.warning, color: Colors.orange),
+            3,
+          );
+        }
+        return false;
+      }
+      return true;
+    } catch (e) {
+      if (mounted) {
+        Toast.showToast(
+          context,
+          "Import failed: $e",
+          const Icon(Icons.error, color: Colors.red),
+          5,
+        );
+      }
+      return false;
     }
   }
 
@@ -554,12 +604,14 @@ class DocumentsScreenState extends State<DocumentsScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
-            onPressed: () {
-              _pickFile().then((value) => setState(() {
+            onPressed: () async {
+              final ok = await _pickFile();
+              if (!mounted || !ok) return;
+              setState(() {
                 Toast.showToast(context, "Import complete.", const Icon(Icons.info, color: Colors.green), 3);
                 Storage().settings.setDocumentPage(DocumentsScreen.userDocuments);
                 products.clear();
-              }));
+              });
             },
             tooltip: "Import text (.txt), GeoJSON (.geojson), KML (.kml), ${Constants.shouldShowPdf ? "PDF documents (.pdf), " : ""}user data (user.db)",
           ),

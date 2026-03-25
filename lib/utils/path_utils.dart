@@ -31,6 +31,11 @@ class PathUtils {
     return path.split(url).last;
   }
 
+  /// Same file path as the other (normalizes segments; case-insensitive on Windows).
+  static bool sameFilePath(String a, String b) {
+    return path.equals(path.normalize(a), path.normalize(b));
+  }
+
   static Future<List<String>> getDocumentsNames(String base) async {
     List<String> ret = [];
     try {

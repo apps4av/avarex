@@ -7,7 +7,6 @@ import 'main_screen.dart';
 
 import 'package:introduction_screen/introduction_screen.dart';
 
-
 class OnBoardingScreen extends StatefulWidget {
   const OnBoardingScreen({super.key});
 
@@ -15,7 +14,8 @@ class OnBoardingScreen extends StatefulWidget {
   OnBoardingScreenState createState() => OnBoardingScreenState();
 }
 
-class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerProviderStateMixin {
+class OnBoardingScreenState extends State<OnBoardingScreen>
+    with SingleTickerProviderStateMixin {
   final _introKey = GlobalKey<IntroductionScreenState>();
   bool _visibleRegister = false;
   late AnimationController _bounceController;
@@ -50,13 +50,21 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
   }
 
   Widget _buildFullscreenImage(String assetName) {
-    return Image.asset('assets/images/$assetName', fit: BoxFit.cover, height: double.infinity, width: double.infinity, alignment: Alignment.center,);
+    return Image.asset(
+      'assets/images/$assetName',
+      fit: BoxFit.cover,
+      height: double.infinity,
+      width: double.infinity,
+      alignment: Alignment.center,
+    );
   }
 
   Widget _buildTermsSection(String title, String content) {
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
+      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: Colors.white.withAlpha(15),
         borderRadius: BorderRadius.circular(8),
@@ -67,6 +75,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
         children: [
           Text(
             title,
+            textAlign: TextAlign.left,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -76,6 +85,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
           const SizedBox(height: 6),
           Text(
             content,
+            textAlign: TextAlign.left,
             style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(220)),
           ),
         ],
@@ -83,7 +93,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
     );
   }
 
-  Widget _buildInfoCard({required IconData icon, required String title, required String description}) {
+  Widget _buildInfoCard(
+      {required IconData icon,
+      required String title,
+      required String description}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -109,12 +122,16 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.white),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: TextStyle(fontSize: 13, color: Colors.white.withAlpha(200)),
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.white.withAlpha(200)),
                 ),
               ],
             ),
@@ -138,12 +155,18 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Text(number, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              child: Text(number,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12)),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(text, style: TextStyle(color: Colors.white.withAlpha(220), fontSize: 13)),
+            child: Text(text,
+                style: TextStyle(
+                    color: Colors.white.withAlpha(220), fontSize: 13)),
           ),
         ],
       ),
@@ -157,15 +180,20 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
     const bodyStyle = TextStyle(fontSize: 17.0, height: 1.4);
 
     const pageDecoration = PageDecoration(
-      titleTextStyle: TextStyle(fontSize: 26.0, fontWeight: FontWeight.bold, color: Colors.white),
+      titleTextStyle: TextStyle(
+          fontSize: 26.0, fontWeight: FontWeight.bold, color: Colors.white),
       bodyTextStyle: bodyStyle,
       bodyPadding: EdgeInsets.fromLTRB(20.0, 0.0, 20.0, 16.0),
       pageColor: Colors.blueAccent,
       imagePadding: EdgeInsets.zero,
     );
 
-    String gpsEnabledMessage = Storage().gpsDisabled ? "Make sure the GPS is enabled on this device." : "";
-    String gpsDeniedMessage = Storage().gpsNotPermitted ? "Make sure the app has permissions to use this device's GPS." : "";
+    String gpsEnabledMessage = Storage().gpsDisabled
+        ? "Make sure the GPS is enabled on this device."
+        : "";
+    String gpsDeniedMessage = Storage().gpsNotPermitted
+        ? "Make sure the app has permissions to use this device's GPS."
+        : "";
 
     // make GPS page, this requires logic.
     PageViewModel gpsPage = PageViewModel(
@@ -175,12 +203,14 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
           _buildInfoCard(
             icon: Icons.wifi,
             title: "Internet Connection",
-            description: "Required to download charts and weather. Can be turned off during flight.",
+            description:
+                "Required to download charts and weather. Can be turned off during flight.",
           ),
           _buildInfoCard(
             icon: Icons.gps_fixed,
             title: "GPS Signal",
-            description: "Make sure you are in an area where GPS signals are strong.",
+            description:
+                "Make sure you are in an area where GPS signals are strong.",
           ),
           Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -194,18 +224,24 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
               children: [
                 Row(
                   children: [
-                    Icon(Icons.settings_input_antenna, color: Colors.yellow.shade300),
+                    Icon(Icons.settings_input_antenna,
+                        color: Colors.yellow.shade300),
                     const SizedBox(width: 8),
                     const Text(
                       "GPS Sources",
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.white),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                          color: Colors.white),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 _buildGpsOption("1", "Grant GPS permissions to the app"),
-                _buildGpsOption("2", "External GPS/ADS-B via UDP port 4000, 43211, or 49002"),
-                _buildGpsOption("3", "Tap SRC to cycle: Auto → Internal (green) → External (blue)"),
+                _buildGpsOption("2",
+                    "External GPS/ADS-B via UDP port 4000, 43211, or 49002"),
+                _buildGpsOption("3",
+                    "Tap SRC to cycle: Auto → Internal (green) → External (blue)"),
               ],
             ),
           ),
@@ -227,7 +263,9 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         children: [
                           const Icon(Icons.warning, color: Colors.yellow),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(gpsDeniedMessage, style: const TextStyle(color: Colors.white))),
+                          Expanded(
+                              child: Text(gpsDeniedMessage,
+                                  style: const TextStyle(color: Colors.white))),
                         ],
                       ),
                     ),
@@ -238,7 +276,9 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         children: [
                           const Icon(Icons.warning, color: Colors.yellow),
                           const SizedBox(width: 8),
-                          Expanded(child: Text(gpsEnabledMessage, style: const TextStyle(color: Colors.white))),
+                          Expanded(
+                              child: Text(gpsEnabledMessage,
+                                  style: const TextStyle(color: Colors.white))),
                         ],
                       ),
                     ),
@@ -251,14 +291,16 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                           onPressed: () => Geolocator.openAppSettings(),
                           icon: const Icon(Icons.settings),
                           label: const Text("GPS Permissions"),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white),
                         ),
                       if (Storage().gpsDisabled)
                         ElevatedButton.icon(
                           onPressed: () => Geolocator.openLocationSettings(),
                           icon: const Icon(Icons.location_on),
                           label: const Text("Enable GPS"),
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white),
                         ),
                     ],
                   ),
@@ -278,12 +320,14 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
       pages: [
         PageViewModel(
           title: "Sign the Terms of Use",
-          bodyWidget: Column(children: [
+          bodyWidget:
+              Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             // Scroll indicator at the top (only if not signed)
             if (!signed)
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.orange.shade700,
                   borderRadius: BorderRadius.circular(12),
@@ -296,22 +340,28 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                   ],
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(Icons.touch_app, color: Colors.white, size: 24),
                     const SizedBox(width: 12),
                     Flexible(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: const [
                           Text(
                             "Scroll down to sign",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16),
                           ),
                           SizedBox(height: 2),
                           Text(
                             "Press the Sign button at the bottom to proceed",
-                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                            textAlign: TextAlign.center,
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
                           ),
                         ],
                       ),
@@ -322,82 +372,95 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
 
             // Terms content in a card
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(16),
+              alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(20),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
                 "This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including devices, related to its use.",
+                textAlign: TextAlign.left,
                 style: TextStyle(fontSize: 15, color: Colors.white),
               ),
             ),
             const SizedBox(height: 16),
 
             // Privacy sections
-            _buildTermsSection("What Information We Collect", 
-              "The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform."),
-            _buildTermsSection("Sharing Your Personal Information", 
-              "We do not sell or share your personal information to third parties for marketing purposes unless you have granted us permission to do so."),
-            _buildTermsSection("Security", 
-              "We utilize generally accepted security measures (such as encryption / HTTPS) to protect against the misuse or unauthorized disclosure of any personal information you submit to us."),
-            _buildTermsSection("Enforcement", 
-              "If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com."),
+            _buildTermsSection("What Information We Collect",
+                "The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform."),
+            _buildTermsSection("Sharing Your Personal Information",
+                "We do not sell or share your personal information to third parties for marketing purposes unless you have granted us permission to do so."),
+            _buildTermsSection("Security",
+                "We utilize generally accepted security measures (such as encryption / HTTPS) to protect against the misuse or unauthorized disclosure of any personal information you submit to us."),
+            _buildTermsSection("Enforcement",
+                "If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com."),
 
             const SizedBox(height: 24),
 
             // Sign button with animated pointer
             if (!signed)
-              AnimatedBuilder(
-                animation: _bounceAnimation,
-                builder: (context, child) {
-                  return Column(
-                    children: [
-                      Transform.translate(
-                        offset: Offset(0, -_bounceAnimation.value),
-                        child: const Icon(Icons.arrow_downward, color: Colors.yellow, size: 32),
+              Center(
+                child: AnimatedBuilder(
+                  animation: _bounceAnimation,
+                  builder: (context, child) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Transform.translate(
+                          offset: Offset(0, -_bounceAnimation.value),
+                          child: const Icon(Icons.arrow_downward,
+                              color: Colors.yellow, size: 32),
+                        ),
+                        const SizedBox(height: 8),
+                        child!,
+                      ],
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade600, Colors.green.shade800],
                       ),
-                      const SizedBox(height: 8),
-                      child!,
-                    ],
-                  );
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.green.shade600, Colors.green.shade800],
-                    ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.green.withAlpha(100),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
                       borderRadius: BorderRadius.circular(30),
-                      onTap: () {
-                        setState(() {
-                          Storage().settings.setSign(true);
-                          Storage().settings.setEmail(email);
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.check_circle, color: Colors.white, size: 24),
-                            SizedBox(width: 12),
-                            Text(
-                              "I Agree & Sign",
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                            ),
-                          ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withAlpha(100),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(30),
+                        onTap: () {
+                          setState(() {
+                            Storage().settings.setSign(true);
+                            Storage().settings.setEmail(email);
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 32, vertical: 16),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.check_circle,
+                                  color: Colors.white, size: 24),
+                              SizedBox(width: 12),
+                              Text(
+                                "I Agree & Sign",
+                                style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -410,7 +473,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
             // Status indicator
             if (signed)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.green.shade700,
                   borderRadius: BorderRadius.circular(12),
@@ -422,27 +486,31 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                     SizedBox(width: 8),
                     Text(
                       "Signed! Swipe to continue →",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               )
             else
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade700.withAlpha(200),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  "You must sign to continue",
-                  style: TextStyle(color: Colors.white, fontSize: 13),
+              Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade700.withAlpha(200),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    "You must sign to continue",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
                 ),
               ),
           ]),
           decoration: pageDecoration,
         ),
-
         PageViewModel(
           title: "Welcome to AvareX!",
           bodyWidget: Column(
@@ -477,7 +545,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         const SizedBox(width: 8),
                         const Text(
                           "Display Theme",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white),
                         ),
                       ],
                     ),
@@ -485,22 +556,34 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.dark_mode, color: !Storage().settings.isLightMode() ? Colors.yellow : Colors.white54),
+                        Icon(Icons.dark_mode,
+                            color: !Storage().settings.isLightMode()
+                                ? Colors.yellow
+                                : Colors.white54),
                         const SizedBox(width: 8),
-                        const Text("Night", style: TextStyle(color: Colors.white)),
+                        const Text("Night",
+                            style: TextStyle(color: Colors.white)),
                         Switch(
                           value: Storage().settings.isLightMode(),
                           activeThumbColor: Colors.yellow,
                           onChanged: (value) {
                             setState(() {
-                              Storage().settings.setLightMode(!Storage().settings.isLightMode());
-                              Storage().themeNotifier.value = Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark();
+                              Storage().settings.setLightMode(
+                                  !Storage().settings.isLightMode());
+                              Storage().themeNotifier.value =
+                                  Storage().settings.isLightMode()
+                                      ? ThemeData.light()
+                                      : ThemeData.dark();
                             });
                           },
                         ),
-                        const Text("Day", style: TextStyle(color: Colors.white)),
+                        const Text("Day",
+                            style: TextStyle(color: Colors.white)),
                         const SizedBox(width: 8),
-                        Icon(Icons.light_mode, color: Storage().settings.isLightMode() ? Colors.yellow : Colors.white54),
+                        Icon(Icons.light_mode,
+                            color: Storage().settings.isLightMode()
+                                ? Colors.yellow
+                                : Colors.white54),
                       ],
                     ),
                   ],
@@ -525,7 +608,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         const SizedBox(width: 8),
                         const Text(
                           "Measurement Units",
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.white),
                         ),
                       ],
                     ),
@@ -538,11 +624,19 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                             Text(
                               "NM / Knots",
                               style: TextStyle(
-                                color: Storage().settings.getUnits() != "Imperial" ? Colors.yellow : Colors.white54,
-                                fontWeight: Storage().settings.getUnits() != "Imperial" ? FontWeight.bold : FontWeight.normal,
+                                color:
+                                    Storage().settings.getUnits() != "Imperial"
+                                        ? Colors.yellow
+                                        : Colors.white54,
+                                fontWeight:
+                                    Storage().settings.getUnits() != "Imperial"
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
                             ),
-                            Text("(Maritime)", style: TextStyle(fontSize: 10, color: Colors.white54)),
+                            Text("(Maritime)",
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.white54)),
                           ],
                         ),
                         Switch(
@@ -550,8 +644,11 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                           activeThumbColor: Colors.yellow,
                           onChanged: (value) {
                             setState(() {
-                              Storage().settings.setUnits(value ? "Imperial" : "Maritime");
-                              Storage().units = UnitConversion(Storage().settings.getUnits());
+                              Storage()
+                                  .settings
+                                  .setUnits(value ? "Imperial" : "Maritime");
+                              Storage().units =
+                                  UnitConversion(Storage().settings.getUnits());
                             });
                           },
                         ),
@@ -560,11 +657,19 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                             Text(
                               "SM / MPH",
                               style: TextStyle(
-                                color: Storage().settings.getUnits() == "Imperial" ? Colors.yellow : Colors.white54,
-                                fontWeight: Storage().settings.getUnits() == "Imperial" ? FontWeight.bold : FontWeight.normal,
+                                color:
+                                    Storage().settings.getUnits() == "Imperial"
+                                        ? Colors.yellow
+                                        : Colors.white54,
+                                fontWeight:
+                                    Storage().settings.getUnits() == "Imperial"
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
                             ),
-                            Text("(Imperial)", style: TextStyle(fontSize: 10, color: Colors.white54)),
+                            Text("(Imperial)",
+                                style: TextStyle(
+                                    fontSize: 10, color: Colors.white54)),
                           ],
                         ),
                       ],
@@ -585,7 +690,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
               _buildInfoCard(
                 icon: Icons.download,
                 title: "Download Required",
-                description: "You must download Databases before using the app.",
+                description:
+                    "You must download Databases before using the app.",
               ),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -598,11 +704,15 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                   children: [
                     const Text(
                       "How to download:",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.yellow, fontSize: 15),
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.yellow,
+                          fontSize: 15),
                     ),
                     const SizedBox(height: 12),
                     _buildGpsOption("1", "Press the Download button below"),
-                    _buildGpsOption("2", "Select Databases and any maps you need"),
+                    _buildGpsOption(
+                        "2", "Select Databases and any maps you need"),
                     _buildGpsOption("3", "Press Download button (top right)"),
                     _buildGpsOption("4", "Wait for items to turn green"),
                   ],
@@ -616,7 +726,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
             ],
@@ -680,7 +791,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
               _buildInfoCard(
                 icon: Icons.flight_takeoff,
                 title: "FAA Flight Plans (Optional)",
-                description: "Register to file flight plans with the FAA via 1800wxbrief.com. Use the same email you use at 1800wxbrief.com.",
+                description:
+                    "Register to file flight plans with the FAA via 1800wxbrief.com. Use the same email you use at 1800wxbrief.com.",
               ),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -697,10 +809,12 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                       controller: TextEditingController()..text = email,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.white.withAlpha(100)),
+                          borderSide:
+                              BorderSide(color: Colors.white.withAlpha(100)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -708,7 +822,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         ),
                         labelStyle: const TextStyle(color: Colors.yellow),
                         labelText: '1800wxbrief.com Email',
-                        prefixIcon: const Icon(Icons.email, color: Colors.white54),
+                        prefixIcon:
+                            const Icon(Icons.email, color: Colors.white54),
                         filled: true,
                         fillColor: Colors.white.withAlpha(10),
                       ),
@@ -733,14 +848,16 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
                         ),
                       ),
                     if (Storage().settings.getEmail().isNotEmpty)
                       Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               color: Colors.green.withAlpha(60),
                               borderRadius: BorderRadius.circular(8),
@@ -748,9 +865,11 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: const [
-                                Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                Icon(Icons.check_circle,
+                                    color: Colors.green, size: 18),
                                 SizedBox(width: 8),
-                                Text("Registered", style: TextStyle(color: Colors.white)),
+                                Text("Registered",
+                                    style: TextStyle(color: Colors.white)),
                               ],
                             ),
                           ),
@@ -768,7 +887,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                                 });
                               });
                             },
-                            child: const Text("Unregister", style: TextStyle(color: Colors.yellow)),
+                            child: const Text("Unregister",
+                                style: TextStyle(color: Colors.yellow)),
                           ),
                         ],
                       ),
@@ -800,7 +920,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
                     const SizedBox(height: 16),
                     const Text(
                       "Get 24/7 Help & Support",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                     const SizedBox(height: 8),
                     const Text(
@@ -864,4 +987,3 @@ class OnBoardingScreenState extends State<OnBoardingScreen> with SingleTickerPro
     );
   }
 }
-
