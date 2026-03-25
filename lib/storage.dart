@@ -210,27 +210,39 @@ class Storage {
   void _processData() {
     // gdl90
     while(true) {
-      Uint8List? message = _gdl90Buffer.get();
+      Uint8List? message;
+      try {
+        message = _gdl90Buffer.get();
+      } catch (e, st) {
+        setException("ADS-B data error");
+        AppLog.logMessage("GDL90 data error: $e\n$st");
+        break;
+      }
       if (null != message) {
-        Message? m = MessageFactory.buildMessage(message);
-        if(m != null && m is OwnShipMessage) {
-          // Skip external GPS data when Internal mode is selected
-          if (gpsSourceMode == "Internal") {
-            continue;
+        try {
+          Message? m = MessageFactory.buildMessage(message);
+          if(m != null && m is OwnShipMessage) {
+            // Skip external GPS data when Internal mode is selected
+            if (gpsSourceMode == "Internal") {
+              continue;
+            }
+            Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
+            if(Gps.isPositionCloseToZero(p)) {
+              continue; // skip 0, 0 when GPS is not locked
+            }
+            ownshipMessageIcao = m.icao;
+            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+            _gpsStack.push(p);
+            // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
+            vSpeed = m.verticalSpeed;
+            airborne = m.airborne;
+            // record waypoints for tracks.
+            tracks.add(p);
           }
-          Position p = Position(longitude: m.coordinates.longitude, latitude: m.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m.altitude, altitudeAccuracy: 0, heading: m.heading, headingAccuracy: 0, speed: m.velocity, speedAccuracy: 0);
-          if(Gps.isPositionCloseToZero(p)) {
-            continue; // skip 0, 0 when GPS is not locked
-          }
-          ownshipMessageIcao = m.icao;
-          _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-          _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
-          _gpsStack.push(p);
-          // Record additional ownship settings for audible alerts (among other interested parties)--or perhaps these can just reside here in Storage?
-          vSpeed = m.verticalSpeed;
-          airborne = m.airborne;
-          // record waypoints for tracks.
-          tracks.add(p);
+        } catch (e, st) {
+          setException("ADS-B parse error");
+          AppLog.logMessage("GDL90 parse error: $e\n$st");
         }
       }
       else {
@@ -239,26 +251,38 @@ class Storage {
     }
     // nmea
     while(true) {
-      Uint8List? message = _nmeaBuffer.get();
+      Uint8List? message;
+      try {
+        message = _nmeaBuffer.get();
+      } catch (e, st) {
+        setException("NMEA data error");
+        AppLog.logMessage("NMEA data error: $e\n$st");
+        break;
+      }
       if (null != message) {
-        NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
-        if(m != null && m is NmeaOwnShipMessage) {
-          // Skip external GPS data when Internal mode is selected
-          if (gpsSourceMode == "Internal") {
-            continue;
+        try {
+          NmeaMessage? m = NmeaMessageFactory.buildMessage(message);
+          if(m != null && m is NmeaOwnShipMessage) {
+            // Skip external GPS data when Internal mode is selected
+            if (gpsSourceMode == "Internal") {
+              continue;
+            }
+            NmeaOwnShipMessage m0 = m;
+            Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
+            if(Gps.isPositionCloseToZero(p)) {
+              continue; // skip 0, 0 when GPS is not locked
+            }
+            ownshipMessageIcao = m0.icao;
+            _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
+            _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
+            vSpeed = m0.verticalSpeed;
+            airborne = m0.altitude > 100;
+            _gpsStack.push(p);
+            tracks.add(p);
           }
-          NmeaOwnShipMessage m0 = m;
-          Position p = Position(longitude: m0.coordinates.longitude, latitude: m0.coordinates.latitude, timestamp: DateTime.timestamp(), accuracy: 0, altitude: m0.altitude, altitudeAccuracy: 0, heading: m0.heading, headingAccuracy: 0, speed: m0.velocity, speedAccuracy: 0);
-          if(Gps.isPositionCloseToZero(p)) {
-            continue; // skip 0, 0 when GPS is not locked
-          }
-          ownshipMessageIcao = m0.icao;
-          _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
-          _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
-          vSpeed = m0.verticalSpeed;
-          airborne = m0.altitude > 100;
-          _gpsStack.push(p);
-          tracks.add(p);
+        } catch (e, st) {
+          setException("NMEA parse error");
+          AppLog.logMessage("NMEA parse error: $e\n$st");
         }
       }
       else {

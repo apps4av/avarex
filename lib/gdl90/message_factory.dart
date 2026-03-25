@@ -22,6 +22,10 @@ class MessageFactory
     if (null == processedDataIn) {
       return null;
     }
+    // Need type byte + at least 0 payload bytes + 2 CRC bytes (sublist end must be >= start)
+    if (processedDataIn.length < 3) {
+      return null;
+    }
     int type = (processedDataIn.elementAt(0) & 0xFF);
     // get rid of type and CRC at end
     Uint8List data = processedDataIn.sublist(1, processedDataIn.length - 2);
@@ -89,7 +93,7 @@ class MessageFactory
       length++;
       index++;
     }
-    if (length < 2) {
+    if (length < 3) {
       return null;
     }
     int msb = (msgCrc.elementAt(length - 1).toInt() & 0xFF);

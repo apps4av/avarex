@@ -8,9 +8,8 @@ class Gdl90Buffer {
 
   // not thread safe
   void put(Uint8List data) {
-    if(_buffer.length > _maxLength) {
-      _buffer.clear(); // this should not happen
-      return;
+    if (_buffer.length > _maxLength) {
+      _buffer.clear(); // sync lost; keep processing new bytes
     }
     _buffer.addAll(data);
   }

@@ -34,6 +34,9 @@ class LongReportMessage extends TrafficReportMessage {
 
   @override
   void parse(Uint8List message) {
+    if (message.length < 20) {
+      return;
+    }
     // clear previous values
     callSign = '';
 

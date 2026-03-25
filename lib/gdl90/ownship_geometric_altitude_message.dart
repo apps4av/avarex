@@ -11,6 +11,9 @@ class OwnShipGeometricAltitudeMessage extends Message {
 
   @override
   void parse(Uint8List message) {
+    if (message.length < 2) {
+      return;
+    }
 
     /*
      *  bytes 0-1 are the altitude

@@ -19,6 +19,9 @@ class UplinkMessage extends Message {
      * Rest of 424 is payload
      *
      */
+    if (message.length < 11) {
+      return;
+    }
     int skip = 3;
     int lat = 0;
     lat += (message[skip + 0].toInt()) & 0xFF;

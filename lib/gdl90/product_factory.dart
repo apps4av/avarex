@@ -15,6 +15,9 @@ class ProductFactory {
   static Map<int, List<Product>> segmentedProducts = {};
 
   static Product? buildProduct(Uint8List fis, LatLng? coordinate) {
+    if (fis.isEmpty) {
+      return null;
+    }
     BitInputStream s = BitInputStream(fis);
 
     bool flagAppMethod = s.getBits(1) != 0;
@@ -101,7 +104,7 @@ class ProductFactory {
     }
 
     if (null != p) {
-      if(p.segFlag && p.apduNumber != 0 && p.apduNumber <= p.productFileLength && p.productFileLength != 0) {
+      if(p.segFlag && p.apduNumber != 0 && p.apduNumber <= p.productFileLength && p.productFileLength > 0) {
         // based on productFieldId, collect all segments in segmented products, where location in the list of a particular productFieldId is apduNumber-1
         int index = p.apduNumber - 1;
         List<Product>? list = segmentedProducts[productFileId];

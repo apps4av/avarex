@@ -20,6 +20,9 @@ class TrafficReportMessage extends Message {
 
   @override
   void parse(Uint8List message) {
+    if (message.length < 26) {
+      return;
+    }
 
     icao = (((message[1]).toInt() & 0xFF) << 16) + ((((message[2].toInt()) & 0xFF) << 8)) + (((message[3].toInt()) & 0xFF));
     double lat = OwnShipMessage.calculateDegrees((message[4].toInt() & 0xFF), (message[5].toInt() & 0xFF), (message[6].toInt() & 0xFF));

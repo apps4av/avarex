@@ -59,6 +59,9 @@ class AhrsMessage extends Message {
 
   @override
   void parse(Uint8List message) {
+    if (message.length < 2) {
+      return;
+    }
 
     if (0x45 == message[0]) { // iLevil
 
