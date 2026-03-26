@@ -15,6 +15,7 @@ while True:
     while True:
         data = file.read(256)
         if len(data) == 0:
+            print("rewind")
             break;
         sock.sendto(data, ("127.0.0.1", 43211))
         time.sleep(0.01)

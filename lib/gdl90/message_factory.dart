@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/basic_report_message.dart';
 import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
@@ -15,6 +16,8 @@ class MessageFactory
   static Message? buildMessage(Uint8List dataIn)
   {
     if (dataIn.length < 3) {
+      AppLog.logMessage(
+          'GDL90 message too short (${dataIn.length} bytes)');
       return null;
     }
     // remove 7e at start and end
@@ -24,6 +27,8 @@ class MessageFactory
     }
     // Need type byte + at least 0 payload bytes + 2 CRC bytes (sublist end must be >= start)
     if (processedDataIn.length < 3) {
+      AppLog.logMessage(
+          'GDL90 processed frame too short (${processedDataIn.length} bytes)');
       return null;
     }
     int type = (processedDataIn.elementAt(0) & 0xFF);
@@ -94,12 +99,17 @@ class MessageFactory
       index++;
     }
     if (length < 3) {
+      AppLog.logMessage(
+          'GDL90 frame too short after unescape ($length bytes)');
       return null;
     }
     int msb = (msgCrc.elementAt(length - 1).toInt() & 0xFF);
     int lsb = (msgCrc.elementAt(length - 2).toInt() & 0xFF);
     int inCrc = ((msb << 8) + lsb);
     if (!Crc.checkCrc(msgCrc, length - 2, inCrc)) {
+      final int id = msgCrc.elementAt(0) & 0xFF;
+      AppLog.logMessage(
+          'GDL90 CRC check failed (${MessageType.describe(id)})');
       return null;
     }
     Uint8List ret = msgCrc.sublist(0, length);
@@ -118,6 +128,34 @@ class MessageType {
   static const int ahrsReport = 0x4C;
   static const int deviceReport = 0x7A;
   static const int rollReverse = 0xCC;
+
+  static String describe(int id) {
+    final String hex = '0x${id.toRadixString(16).padLeft(2, '0')}';
+    switch (id) {
+      case heartBeat:
+        return 'heartBeat ($hex)';
+      case uplink:
+        return 'uplink ($hex)';
+      case ownShip:
+        return 'ownShip ($hex)';
+      case ownShipGeometricAltitude:
+        return 'ownShipGeometricAltitude ($hex)';
+      case trafficReport:
+        return 'trafficReport ($hex)';
+      case basicReport:
+        return 'basicReport ($hex)';
+      case longReport:
+        return 'longReport ($hex)';
+      case ahrsReport:
+        return 'ahrsReport ($hex)';
+      case deviceReport:
+        return 'deviceReport ($hex)';
+      case rollReverse:
+        return 'rollReverse ($hex)';
+      default:
+        return 'unknown ($hex)';
+    }
+  }
 }
 
 class Crc {

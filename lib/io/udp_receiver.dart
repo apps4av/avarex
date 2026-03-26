@@ -17,8 +17,13 @@ class UdpReceiver {
           RawDatagramSocket socket) {
         socket.broadcastEnabled = broadcast;
         socket.listen((e) {
-          Datagram? dg = socket.receive();
-          if (dg != null) {
+          // Drain the kernel queue: one listen event can signal multiple datagrams.
+          // A single receive() drops the rest and corrupts GDL90 byte alignment (bad 0x7E framing → CRC failures).
+          while (true) {
+            Datagram? dg = socket.receive();
+            if (dg == null) {
+              break;
+            }
             _controller.add(dg.data);
           }
         });
