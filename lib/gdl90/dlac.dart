@@ -27,7 +27,10 @@ class Dlac {
   static String format(String input) {
     if (input.isNotEmpty) {
       input = input.split("\u001E")[0];
-      input = input.replaceAll("\n\t[A-Z]{1}", "\n"); /* remove invalid chars after newline */
+      // FIS-B continuation: LF/CRLF + optional TAB + single letter (often 'E'); must use RegExp —
+      // String.replaceAll does not interpret [A-Z] as a character class.
+      input = input.replaceAll(RegExp(r'\r?\n\t[A-Z]'), '\n');
+      input = input.replaceAll(RegExp(r'\r?\nE(?=[A-Z])'), '\n');
     }
     return input;
   }
