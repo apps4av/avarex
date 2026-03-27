@@ -1788,16 +1788,29 @@ class PlanPerformanceHelper {
 class WnbStationDef {
   final String name;
   final double arm;
+  /// Lateral arm (inches from aircraft centerline); used for helicopter W&B.
+  final double armLateral;
   final double defaultWeight;
-  
-  const WnbStationDef({required this.name, required this.arm, this.defaultWeight = 0});
-  
-  Map<String, dynamic> toMap() => {'name': name, 'arm': arm, 'defaultWeight': defaultWeight};
-  
+
+  const WnbStationDef({
+    required this.name,
+    required this.arm,
+    this.armLateral = 0,
+    this.defaultWeight = 0,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'arm': arm,
+    'armLateral': armLateral,
+    'defaultWeight': defaultWeight,
+  };
+
   factory WnbStationDef.fromMap(Map<String, dynamic> map) {
     return WnbStationDef(
       name: (map['name'] ?? '') as String,
       arm: (map['arm'] ?? 0).toDouble(),
+      armLateral: (map['armLateral'] as num?)?.toDouble() ?? 0,
       defaultWeight: (map['defaultWeight'] ?? 0).toDouble(),
     );
   }
@@ -1810,7 +1823,11 @@ class WnbData {
   final double maxArm;
   final double minWeight;
   final double maxWeight;
-  
+  /// Lateral CG envelope: x = inches from centerline, y = weight (lbs).
+  final List<Offset> envelopePointsLateral;
+  final double minArmLat;
+  final double maxArmLat;
+
   const WnbData({
     required this.stations,
     required this.envelopePoints,
@@ -1818,8 +1835,21 @@ class WnbData {
     required this.maxArm,
     required this.minWeight,
     required this.maxWeight,
+    this.envelopePointsLateral = const [],
+    this.minArmLat = -10,
+    this.maxArmLat = 10,
   });
-  
+
+  /// Default lateral envelope polygon for helicopter mode when none is stored.
+  static List<Offset> defaultLateralEnvelopePoints(double minW, double maxW) {
+    return [
+      Offset(-6, minW),
+      Offset(6, minW),
+      Offset(6, maxW),
+      Offset(-6, maxW),
+    ];
+  }
+
   factory WnbData.defaultData() {
     return WnbData(
       stations: [
@@ -1828,6 +1858,7 @@ class WnbData {
         WnbStationDef(name: 'Rear Passengers', arm: 73, defaultWeight: 0),
         WnbStationDef(name: 'Baggage', arm: 95, defaultWeight: 0),
         WnbStationDef(name: 'Fuel (lbs)', arm: 48, defaultWeight: 288),
+        WnbStationDef(name: 'Landing fuel (lbs)', arm: 48, defaultWeight: 0),
       ],
       envelopePoints: [
         const Offset(35, 1500),
@@ -1840,9 +1871,12 @@ class WnbData {
       maxArm: 50,
       minWeight: 1400,
       maxWeight: 2600,
+      envelopePointsLateral: defaultLateralEnvelopePoints(1400, 2600),
+      minArmLat: -8,
+      maxArmLat: 8,
     );
   }
-  
+
   String toJson() {
     return jsonEncode({
       'stations': stations.map((s) => s.toMap()).toList(),
@@ -1851,6 +1885,9 @@ class WnbData {
       'maxArm': maxArm,
       'minWeight': minWeight,
       'maxWeight': maxWeight,
+      'envelopePointsLateral': envelopePointsLateral.map((p) => {'x': p.dx, 'y': p.dy}).toList(),
+      'minArmLat': minArmLat,
+      'maxArmLat': maxArmLat,
     });
   }
 
@@ -1902,6 +1939,23 @@ class WnbData {
         }
       }
     }
+    List<Offset> envelopePointsLateral = [];
+    final latPts = m['envelopePointsLateral'];
+    if (latPts is List) {
+      for (final e in latPts) {
+        if (e is Map) {
+          final em = Map<String, dynamic>.from(e);
+          final Object? x = em['x'];
+          final Object? y = em['y'];
+          if (x != null && y != null) {
+            envelopePointsLateral.add(Offset(
+              (x as num).toDouble(),
+              (y as num).toDouble(),
+            ));
+          }
+        }
+      }
+    }
     return WnbData(
       stations: stations,
       envelopePoints: envelopePoints,
@@ -1909,6 +1963,9 @@ class WnbData {
       maxArm: (m['maxArm'] as num?)?.toDouble() ?? 50,
       minWeight: (m['minWeight'] as num?)?.toDouble() ?? 1000,
       maxWeight: (m['maxWeight'] as num?)?.toDouble() ?? 2800,
+      envelopePointsLateral: envelopePointsLateral,
+      minArmLat: (m['minArmLat'] as num?)?.toDouble() ?? -8,
+      maxArmLat: (m['maxArmLat'] as num?)?.toDouble() ?? 8,
     );
   }
 
@@ -1958,6 +2015,9 @@ class WnbData {
         maxArm: maxArm,
         minWeight: minWeight,
         maxWeight: maxWeight,
+        envelopePointsLateral: WnbData.defaultLateralEnvelopePoints(minWeight, maxWeight),
+        minArmLat: -8,
+        maxArmLat: 8,
       );
     } catch (e) {
       return WnbData.defaultData();

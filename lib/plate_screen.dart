@@ -173,6 +173,7 @@ class PlateScreenState extends State<PlateScreen> {
     super.dispose();
     Storage().plateChange.removeListener(_notifyPaint);
     Storage().gpsChange.removeListener(_notifyPaint);
+    Storage().planeIconChange.removeListener(_notifyPaint);
   }
 
   @override
@@ -352,6 +353,7 @@ class PlateScreenState extends State<PlateScreen> {
     // plate load notification, repaint
     Storage().plateChange.addListener(_notifyPaint);
     Storage().gpsChange.addListener(_notifyPaint);
+    Storage().planeIconChange.addListener(_notifyPaint);
 
     List<String> procedureNames = [];
     for(String prec in procedures) {

@@ -70,6 +70,8 @@ class Storage {
   final gpsChange = ValueNotifier<Position>(Gps.fromLatLng(LatLng(0, 0)));
   // when plate changes
   final plateChange = ValueNotifier<int>(0);
+  /// Ownship map/plate icon image changed ([imagePlane] replaced).
+  final planeIconChange = ValueNotifier<int>(0);
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
   final timeRadarChange = ValueNotifier<int>(0);

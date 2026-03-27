@@ -661,19 +661,23 @@ Results show:
 
 #### W&B Tab
 
-**Status Card**: Shows green "Within Limits" or red "Outside Limits" indicator with CG position and total weight.
+**Status Card**: Green "Within Limits" only when **both** ramp and landing CG are inside the envelope; otherwise red "Outside Limits". Shows ramp and landing lines (CG in inches, weight in lbs, each with ✓ or ✗).
+
+**Helicopter map icon**: If the aircraft’s **map icon** is set to helicopter (per-aircraft in **My Aircraft**, or the app default in settings when no saved profile applies), the W&B tab adds **lateral** CG alongside **longitudinal**: a second status line for ramp and landing, a **Lateral CG** scatter chart (weight vs inches from centerline), and extra table columns (**Lateral** arm, **Longitudinal moment**, **Lateral moment**). Longitudinal behavior is unchanged. "Within limits" requires **all four** checks (ramp longitudinal, ramp lateral, landing longitudinal, landing lateral). Re-open the **W&B** tab after changing the icon so the layout refreshes.
 
 **Interactive CG Envelope Chart**:
-- Scatter plot showing weight (Y-axis) vs arm (X-axis)
+- Scatter plot showing weight (Y-axis) vs arm (X-axis); helicopter mode labels this chart **Longitudinal CG**
 - Blue dots: envelope boundary points
-- Large dot: current CG position (green if inside, red if outside)
-- For custom aircraft: tap chart in edit mode to add/remove envelope points
+- Large **green/red** dot: ramp / takeoff CG (uses all stations except **Landing fuel**)
+- Large **orange/purple** dot: landing CG (uses **Landing fuel** instead of **Fuel (lbs)**)
+- For custom aircraft: tap chart in edit mode to add/remove envelope points (CG dots are not removable)
 
 **Weight Stations Table**:
 - Editable weight entries for each station
-- Name, weight (lbs), arm (inches)
-- Auto-calculated moment (weight × arm)
-- Running totals displayed
+- Name, weight (lbs), arm (inches); helicopter mode also **Lateral** (lateral arm, inches from centerline) and a **Longitudinal** column for longitudinal arm
+- **Landing fuel (lbs)**: expected fuel remaining at landing (same fuel arms as **Fuel (lbs)** by default); excluded from ramp totals
+- Auto-calculated **longitudinal** moment (weight × longitudinal arm); helicopter mode also **lateral** moment (weight × lateral arm)
+- **TOTAL (ramp)** and **TOTAL (landing)** rows with weight, CG arm(s), and summed moment(s)
 
 For **custom aircraft**: Use **Edit/Save** button to modify envelope points and station definitions.
 
@@ -1262,13 +1266,7 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
 6. Check the CG envelope chart to visualize your CG position.
 7. Adjust loading as needed to stay within the envelope.
 8. For custom aircraft, use **Edit** to modify envelope points and station definitions.
-   - Red terrain line = terrain at or above your altitude (warning)
-5. **Tap anywhere** on the diagram to see detailed info:
-   - Wind direction and speed
-   - Headwind/tailwind component
-   - Terrain elevation
-   - Course at that point
-6. Use waypoint tick marks at the bottom to identify positions along your route.
+9. If your aircraft uses the **helicopter** map icon, check the lateral CG chart and lateral columns as well; all four CG checks must pass for a green status.
 
 ---
 

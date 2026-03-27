@@ -1146,38 +1146,43 @@ class MapScreenState extends State<MapScreen> {
       layers.add(
         // aircraft layer
         // dont want this layer to be touchable so we ignore pointer so it does not get in the way of map interaction
-        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
-          valueListenable: Storage().gpsChange,
-          builder: (context, value, _) {
-            LatLng current = LatLng(value.latitude, value.longitude);
-            double? ws;
-            double? wd;
-            (wd, ws) = Storage().area.getWind(GeoCalculations.convertAltitude(value.altitude));
-            return MarkerLayer(
-              markers: [
-                Marker( // our position and heading to destination
-                    width: 48,
-                    height: (Constants.screenWidth(context) +
-                        Constants.screenHeight(context)) / 2,
-                    point: current,
-                    child: Transform.rotate(angle: value.heading * pi / 180,
-                        child: CustomPaint(painter: Plane())
-                    )
-                ),
-                if(wd != null && ws != null)
-                  Marker( // our position and heading to destination
-                      width: 64,
-                      height: 64,
-                      point: current,
-                      child: CustomPaint(painter: WindBarbPainter(ws, wd))
-                  ),
-                Marker( // variation
-                    width: 48,
-                    height: 48,
-                    point: current,
-                    child: CustomPaint(painter: NorthPainter(Storage().area.variation))
-                ),
-              ],
+        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+          valueListenable: Storage().planeIconChange,
+          builder: (context, _, __) {
+            return ValueListenableBuilder<Position>(
+              valueListenable: Storage().gpsChange,
+              builder: (context, value, _) {
+                LatLng current = LatLng(value.latitude, value.longitude);
+                double? ws;
+                double? wd;
+                (wd, ws) = Storage().area.getWind(GeoCalculations.convertAltitude(value.altitude));
+                return MarkerLayer(
+                  markers: [
+                    Marker( // our position and heading to destination
+                        width: 48,
+                        height: (Constants.screenWidth(context) +
+                            Constants.screenHeight(context)) / 2,
+                        point: current,
+                        child: Transform.rotate(angle: value.heading * pi / 180,
+                            child: CustomPaint(painter: Plane(Storage().imagePlane)),
+                        ),
+                    ),
+                    if (wd != null && ws != null)
+                      Marker( // our position and heading to destination
+                          width: 64,
+                          height: 64,
+                          point: current,
+                          child: CustomPaint(painter: WindBarbPainter(ws, wd)),
+                      ),
+                    Marker( // variation
+                        width: 48,
+                        height: 48,
+                        point: current,
+                        child: CustomPaint(painter: NorthPainter(Storage().area.variation)),
+                    ),
+                  ],
+                );
+              },
             );
           },
         ),
@@ -1632,6 +1637,9 @@ class MapScreenState extends State<MapScreen> {
 }
 
 class Plane extends CustomPainter {
+  final ui.Image? image;
+
+  Plane(this.image);
 
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
@@ -1641,16 +1649,19 @@ class Plane extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // draw plane
+    final ui.Image? img = image;
+    if (img == null) {
+      return;
+    }
     paintImage(canvas: canvas, rect:
-      Rect.fromLTWH(0, size.height / 2 - size.width / 2, size.width, size.width), image: Storage().imagePlane!);
+      Rect.fromLTWH(0, size.height / 2 - size.width / 2, size.width, size.width), image: img);
     _paintCenter.shader = ui.Gradient.linear(Offset(size.width / 2, size.height / 2 - size.width * 3 / 4), Offset(size.width / 2, 0), [Colors.red, Colors.white]);
     canvas.drawLine(Offset(size.width / 2, size.height / 2 - size.width * 3 / 4), Offset(size.width / 2, 0), _paintCenter);
     _paintCenter.shader = null;
   }
 
   @override
-  bool shouldRepaint(Plane oldDelegate) => false;
+  bool shouldRepaint(Plane oldDelegate) => !identical(oldDelegate.image, image);
 }
 
 // for scale measurement

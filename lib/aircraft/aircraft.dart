@@ -1,3 +1,4 @@
+import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/image_utils.dart';
 
@@ -6,9 +7,30 @@ class AircraftIconType {
 }
 
 class Aircraft {
+  /// Loads [Storage.imagePlane] from the **selected** aircraft when present in
+  /// `user.db` (last Performance dropdown tail, then **My Aircraft** profile tail),
+  /// otherwise from app setting `key-aircraft-icon`.
   static Future<void> reloadAircraftIcon() async {
     String iconType = Storage().settings.getAircraftIcon();
+    final List<String> tails = [
+      Storage().settings.getLastPerformanceAircraft().trim(),
+      Storage().settings.getAircraft().trim(),
+    ];
+    final seen = <String>{};
+    for (final String tail in tails) {
+      if (tail.isEmpty || !seen.add(tail)) {
+        continue;
+      }
+      try {
+        final Aircraft ac = await UserDatabaseHelper.db.getAircraft(tail);
+        if (ac.icon.isNotEmpty && AircraftIconType.all.contains(ac.icon)) {
+          iconType = ac.icon;
+          break;
+        }
+      } catch (_) {}
+    }
     Storage().imagePlane = await ImageUtils.loadImageFromAssets("$iconType.png");
+    Storage().planeIconChange.value++;
   }
 
   // Basic identification

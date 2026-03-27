@@ -97,13 +97,15 @@ class _CruiseEntry {
 class _WnbStation {
   String name;
   double arm;
+  double armLateral;
   double weight;
-  
-  _WnbStation({this.name = '', this.arm = 0, this.weight = 0});
-  
+
+  _WnbStation({this.name = '', this.arm = 0, this.armLateral = 0, this.weight = 0});
+
   double get moment => weight * arm;
-  
-  Map<String, dynamic> toMap() => {'name': name, 'arm': arm, 'weight': weight};
+  double get momentLat => weight * armLateral;
+
+  Map<String, dynamic> toMap() => {'name': name, 'arm': arm, 'armLateral': armLateral, 'weight': weight};
 }
 
 class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
@@ -172,6 +174,11 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   double _wnbMaxArm = 50;
   double _wnbMinWeight = 1000;
   double _wnbMaxWeight = 2800;
+  List<Offset> _wnbEnvelopePointsLat = [];
+  double _wnbMinArmLat = -8;
+  double _wnbMaxArmLat = 8;
+  /// True when the aircraft icon is helicopter (per-aircraft DB icon, else app default).
+  bool _wnbHelicopterLayout = false;
   bool _wnbEditing = false;
 
   // Page navigation
@@ -216,9 +223,13 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 
   Future<void> _loadWnbForAircraft() async {
     WnbData? wnbData;
+    String icon = Storage().settings.getAircraftIcon();
 
     try {
       final Aircraft aircraft = await UserDatabaseHelper.db.getAircraft(_selectedAircraft.name);
+      if (aircraft.icon.isNotEmpty) {
+        icon = aircraft.icon;
+      }
       if (aircraft.wnbData.isNotEmpty) {
         wnbData = WnbData.fromJson(aircraft.wnbData);
       }
@@ -229,24 +240,92 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     wnbData ??= CommonWnbData.getWnbData(_selectedAircraft.name);
     wnbData ??= WnbData.defaultData();
 
+    final bool heli = icon == 'helicopter';
+    List<Offset> envLat = List<Offset>.from(wnbData.envelopePointsLateral);
+    if (heli && envLat.length < 3) {
+      envLat = List<Offset>.from(WnbData.defaultLateralEnvelopePoints(wnbData.minWeight, wnbData.maxWeight));
+    }
+
     if (!mounted) {
       return;
     }
     setState(() {
-      _wnbStations = wnbData!.stations.map((s) => _WnbStation(name: s.name, arm: s.arm, weight: s.defaultWeight)).toList();
+      _wnbHelicopterLayout = heli;
+      _wnbStations = wnbData!.stations
+          .map((s) => _WnbStation(name: s.name, arm: s.arm, armLateral: s.armLateral, weight: s.defaultWeight))
+          .toList();
+      _ensureLandingFuelStation();
       _wnbEnvelopePoints = List<Offset>.from(wnbData.envelopePoints);
+      _wnbEnvelopePointsLat = envLat;
       _wnbMinArm = wnbData.minArm;
       _wnbMaxArm = wnbData.maxArm;
       _wnbMinWeight = wnbData.minWeight;
       _wnbMaxWeight = wnbData.maxWeight;
+      _wnbMinArmLat = wnbData.minArmLat;
+      _wnbMaxArmLat = wnbData.maxArmLat;
       _wnbEditing = false;
     });
   }
 
+  /// Fuel remaining at landing; excluded from ramp/takeoff totals and CG.
+  bool _isLandingFuelRow(_WnbStation s) {
+    return s.name.toLowerCase().contains('landing fuel');
+  }
+
+  /// Ramp/takeoff fuel (typical POH row); excluded from landing CG in favor of [Landing fuel].
+  bool _isRampFuelRow(_WnbStation s) {
+    if (_isLandingFuelRow(s)) return false;
+    final n = s.name.toLowerCase();
+    return n.contains('fuel (lbs)') || n == 'fuel';
+  }
+
+  void _ensureLandingFuelStation() {
+    if (_wnbStations.any(_isLandingFuelRow)) {
+      return;
+    }
+    var insertAt = _wnbStations.length;
+    var arm = 48.0;
+    var armLateral = 0.0;
+    for (var i = 0; i < _wnbStations.length; i++) {
+      if (_isRampFuelRow(_wnbStations[i])) {
+        arm = _wnbStations[i].arm;
+        armLateral = _wnbStations[i].armLateral;
+        insertAt = i + 1;
+        break;
+      }
+    }
+    _wnbStations.insert(
+      insertAt,
+      _WnbStation(name: 'Landing fuel (lbs)', arm: arm, armLateral: armLateral, weight: 0),
+    );
+  }
+
+  /// Ramp / takeoff weight & CG (excludes landing-fuel row).
   Offset _calculateCG() {
     double totalWeight = 0;
     double totalMoment = 0;
     for (var station in _wnbStations) {
+      if (_isLandingFuelRow(station)) {
+        continue;
+      }
+      totalWeight += station.weight;
+      totalMoment += station.moment;
+    }
+    if (totalWeight == 0) return const Offset(0, 0);
+    return Offset(totalMoment / totalWeight, totalWeight);
+  }
+
+  /// Landing weight & CG: same load except ramp fuel row replaced by landing fuel row.
+  Offset _calculateLandingCG() {
+    if (!_wnbStations.any(_isLandingFuelRow)) {
+      return _calculateCG();
+    }
+    double totalWeight = 0;
+    double totalMoment = 0;
+    for (var station in _wnbStations) {
+      if (_isRampFuelRow(station)) {
+        continue;
+      }
       totalWeight += station.weight;
       totalMoment += station.moment;
     }
@@ -259,7 +338,58 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     Offset cg = _calculateCG();
     return _isPointInPolygon(cg.dx, cg.dy, _wnbEnvelopePoints);
   }
-  
+
+  bool _isLandingCGWithinLimits() {
+    if (_wnbEnvelopePoints.length < 3) return false;
+    Offset cg = _calculateLandingCG();
+    return _isPointInPolygon(cg.dx, cg.dy, _wnbEnvelopePoints);
+  }
+
+  Offset _calculateCGLateral() {
+    double totalWeight = 0;
+    double totalMoment = 0;
+    for (var station in _wnbStations) {
+      if (_isLandingFuelRow(station)) {
+        continue;
+      }
+      totalWeight += station.weight;
+      totalMoment += station.momentLat;
+    }
+    if (totalWeight == 0) return const Offset(0, 0);
+    return Offset(totalMoment / totalWeight, totalWeight);
+  }
+
+  Offset _calculateLandingCGLateral() {
+    if (!_wnbStations.any(_isLandingFuelRow)) {
+      return _calculateCGLateral();
+    }
+    double totalWeight = 0;
+    double totalMoment = 0;
+    for (var station in _wnbStations) {
+      if (_isRampFuelRow(station)) {
+        continue;
+      }
+      totalWeight += station.weight;
+      totalMoment += station.momentLat;
+    }
+    if (totalWeight == 0) return const Offset(0, 0);
+    return Offset(totalMoment / totalWeight, totalWeight);
+  }
+
+  bool _isCGLateralWithinLimits() {
+    if (!_wnbHelicopterLayout) return true;
+    if (_wnbEnvelopePointsLat.length < 3) return false;
+    Offset cg = _calculateCGLateral();
+    return _isPointInPolygon(cg.dx, cg.dy, _wnbEnvelopePointsLat);
+  }
+
+  bool _isLandingCGLateralWithinLimits() {
+    if (!_wnbHelicopterLayout) return true;
+    if (_wnbEnvelopePointsLat.length < 3) return false;
+    Offset cg = _calculateLandingCGLateral();
+    return _isPointInPolygon(cg.dx, cg.dy, _wnbEnvelopePointsLat);
+  }
+
   bool _isPointInPolygon(double x, double y, List<Offset> polygon) {
     int n = polygon.length;
     bool inside = false;
@@ -483,8 +613,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     });
 
     await _loadWnbForAircraft();
+    await Aircraft.reloadAircraftIcon();
   }
-  
+
   Future<void> _migrateLegacyCustomAircraft() async {
     String? data = await _getCustomAircraftData();
     if (data != null && data.isNotEmpty) {
@@ -766,6 +897,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                     });
                     _saveSelectedAircraft();
                     _loadWnbForAircraft();
+                    Aircraft.reloadAircraftIcon();
                   }
                 },
               ),
@@ -788,12 +920,17 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       style: _pageIndex == i
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
-                      onPressed: () => setState(() {
-                        if (_pageLabels[i] == 'Cruise') {
-                          _syncCruiseAltitudeFromPlan();
+                      onPressed: () {
+                        setState(() {
+                          if (_pageLabels[i] == 'Cruise') {
+                            _syncCruiseAltitudeFromPlan();
+                          }
+                          _pageIndex = i;
+                        });
+                        if (_pageLabels[i] == 'W&B') {
+                          _loadWnbForAircraft();
                         }
-                        _pageIndex = i;
-                      }),
+                      },
                       child: Text(_pageLabels[i]),
                     ),
                 ],
@@ -956,37 +1093,244 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
   }
 
-  Widget _buildWnbTab() {
-    Offset cg = _calculateCG();
-    bool isInside = _isCGWithinLimits();
-    
-    FlDotPainter getDotPainter(double size, Color color) {
+  Widget _buildWnbScatterEnvelopeCard({
+    required String title,
+    required String bottomAxisLabel,
+    required List<Offset> envelopePoints,
+    required double minX,
+    required double maxX,
+    required Offset cgRamp,
+    required Offset cgLand,
+    required bool rampInside,
+    required bool landingInside,
+    required bool lateralChart,
+    required bool showWeightLimitFields,
+  }) {
+    FlDotPainter dotPainter(double size, Color color) {
       return FlDotCirclePainter(color: color, radius: size);
     }
-    
+
     List<ScatterSpot> makeSpotData() {
-      List<ScatterSpot> spots = _wnbEnvelopePoints.asMap().entries.map((e) {
-        return ScatterSpot(e.value.dx, e.value.dy, dotPainter: getDotPainter(4, Colors.blueAccent));
+      List<ScatterSpot> spots = envelopePoints.asMap().entries.map((e) {
+        return ScatterSpot(e.value.dx, e.value.dy, dotPainter: dotPainter(4, Colors.blueAccent));
       }).toList();
-      spots.insert(0, ScatterSpot(cg.dx, cg.dy, dotPainter: getDotPainter(8, isInside ? Colors.green : Colors.red)));
+      spots.insert(
+        0,
+        ScatterSpot(
+          cgLand.dx,
+          cgLand.dy,
+          dotPainter: dotPainter(8, landingInside ? Colors.orange : Colors.deepPurple),
+        ),
+      );
+      spots.insert(
+        0,
+        ScatterSpot(
+          cgRamp.dx,
+          cgRamp.dy,
+          dotPainter: dotPainter(8, rampInside ? Colors.green : Colors.red),
+        ),
+      );
       return spots;
     }
-    
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.show_chart, size: 20, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+                if (_wnbEditing)
+                  Text("Tap to add/remove", style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                "Dots: ramp (green/red) • landing (orange/purple)",
+                style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_wnbEditing && !lateralChart) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildWnbLimitField(
+                      _wnbHelicopterLayout ? "Longitudinal min" : "Arm Min",
+                      _wnbMinArm,
+                      (v) => setState(() => _wnbMinArm = v),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildWnbLimitField(
+                      _wnbHelicopterLayout ? "Longitudinal max" : "Arm Max",
+                      _wnbMaxArm,
+                      (v) => setState(() => _wnbMaxArm = v),
+                    ),
+                  ),
+                  if (showWeightLimitFields) ...[
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildWnbLimitField("Wt Min", _wnbMinWeight, (v) => setState(() => _wnbMinWeight = v))),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildWnbLimitField("Wt Max", _wnbMaxWeight, (v) => setState(() => _wnbMaxWeight = v))),
+                  ],
+                ],
+              ),
+              if (!showWeightLimitFields) ...[
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _buildWnbLimitField("Wt Min", _wnbMinWeight, (v) => setState(() => _wnbMinWeight = v))),
+                    const SizedBox(width: 8),
+                    Expanded(child: _buildWnbLimitField("Wt Max", _wnbMaxWeight, (v) => setState(() => _wnbMaxWeight = v))),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 16),
+            ],
+            if (_wnbEditing && lateralChart) ...[
+              Row(
+                children: [
+                  Expanded(child: _buildWnbLimitField("Lateral min", _wnbMinArmLat, (v) => setState(() => _wnbMinArmLat = v))),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildWnbLimitField("Lateral max", _wnbMaxArmLat, (v) => setState(() => _wnbMaxArmLat = v))),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+            AspectRatio(
+              aspectRatio: 1.2,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double reservedSize = 44 + 16;
+                  Offset pixelToCoordinate(Offset offset, BoxConstraints c) {
+                    return Offset(
+                      minX + (maxX - minX) * (offset.dx) / (c.maxWidth - reservedSize),
+                      (_wnbMaxWeight + _wnbMinWeight) -
+                          (_wnbMinWeight +
+                              (_wnbMaxWeight - _wnbMinWeight) * (offset.dy) / (c.maxHeight - reservedSize)),
+                    );
+                  }
+
+                  return ScatterChart(
+                    ScatterChartData(
+                      titlesData: FlTitlesData(
+                        leftTitles: AxisTitles(
+                          axisNameSize: 16,
+                          axisNameWidget: const Text("Weight (lbs)"),
+                          sideTitles: SideTitles(reservedSize: 44, showTitles: true),
+                        ),
+                        bottomTitles: AxisTitles(
+                          axisNameSize: 16,
+                          axisNameWidget: Text(bottomAxisLabel),
+                          sideTitles: SideTitles(reservedSize: 44, showTitles: true),
+                        ),
+                        rightTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
+                        topTitles: const AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
+                        show: true,
+                      ),
+                      scatterSpots: makeSpotData(),
+                      minX: minX,
+                      minY: _wnbMinWeight,
+                      maxX: maxX,
+                      maxY: _wnbMaxWeight,
+                      gridData: FlGridData(
+                        show: true,
+                        drawHorizontalLine: true,
+                        checkToShowHorizontalLine: (value) => true,
+                        getDrawingHorizontalLine: (value) => FlLine(color: Theme.of(context).colorScheme.outlineVariant),
+                        drawVerticalLine: true,
+                        checkToShowVerticalLine: (value) => true,
+                        getDrawingVerticalLine: (value) => FlLine(color: Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                      scatterTouchData: ScatterTouchData(
+                        touchSpotThreshold: 10,
+                        enabled: true,
+                        handleBuiltInTouches: false,
+                        touchCallback: (FlTouchEvent event, ScatterTouchResponse? touchResponse) {
+                          if (event is FlTapUpEvent && _wnbEditing) {
+                            if (touchResponse != null) {
+                              ScatterTouchedSpot? spot = touchResponse.touchedSpot;
+                              if (spot != null) {
+                                setState(() {
+                                  if (spot.spotIndex > 1) {
+                                    if (lateralChart) {
+                                      _wnbEnvelopePointsLat.removeAt(spot.spotIndex - 2);
+                                    } else {
+                                      _wnbEnvelopePoints.removeAt(spot.spotIndex - 2);
+                                    }
+                                  }
+                                });
+                              } else {
+                                setState(() {
+                                  final p = pixelToCoordinate(event.details.localPosition, constraints);
+                                  if (lateralChart) {
+                                    _wnbEnvelopePointsLat.add(p);
+                                  } else {
+                                    _wnbEnvelopePoints.add(p);
+                                  }
+                                });
+                              }
+                            }
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWnbTab() {
+    Offset cgRamp = _calculateCG();
+    Offset cgLand = _calculateLandingCG();
+    bool rampLongOk = _isCGWithinLimits();
+    bool landingLongOk = _isLandingCGWithinLimits();
+
+    Offset cgRampLat = _calculateCGLateral();
+    Offset cgLandLat = _calculateLandingCGLateral();
+    bool rampLatOk = _isCGLateralWithinLimits();
+    bool landingLatOk = _isLandingCGLateralWithinLimits();
+
+    final bool allOk = _wnbHelicopterLayout
+        ? (rampLongOk && rampLatOk && landingLongOk && landingLatOk)
+        : (rampLongOk && landingLongOk);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Status Card
           Card(
-            color: isInside ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
+            color: allOk ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
-                    isInside ? Icons.check_circle : Icons.warning,
-                    color: isInside ? Colors.green : Colors.red,
+                    allOk ? Icons.check_circle : Icons.warning,
+                    color: allOk ? Colors.green : Colors.red,
                     size: 32,
                   ),
                   const SizedBox(width: 12),
@@ -995,17 +1339,41 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isInside ? "Within Limits" : "Outside Limits",
+                          allOk ? "Within Limits" : "Outside Limits",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: isInside ? Colors.green : Colors.red,
+                            color: allOk ? Colors.green : Colors.red,
                           ),
                         ),
                         Text(
-                          "CG: ${cg.dx.toStringAsFixed(2)} in | Weight: ${cg.dy.toStringAsFixed(1)} lbs",
+                          _wnbHelicopterLayout
+                              ? "Ramp: longitudinal CG ${cgRamp.dx.toStringAsFixed(2)} in | ${cgRamp.dy.toStringAsFixed(1)} lbs"
+                                  " ${rampLongOk ? '✓' : '✗'}"
+                              : "Ramp: CG ${cgRamp.dx.toStringAsFixed(2)} in | ${cgRamp.dy.toStringAsFixed(1)} lbs"
+                                  " ${rampLongOk ? '✓' : '✗'}",
                           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         ),
+                        if (_wnbHelicopterLayout)
+                          Text(
+                            "Ramp: lateral CG ${cgRampLat.dx.toStringAsFixed(2)} in | ${cgRampLat.dy.toStringAsFixed(1)} lbs"
+                            " ${rampLatOk ? '✓' : '✗'}",
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          ),
+                        Text(
+                          _wnbHelicopterLayout
+                              ? "Landing: longitudinal CG ${cgLand.dx.toStringAsFixed(2)} in | ${cgLand.dy.toStringAsFixed(1)} lbs"
+                                  " ${landingLongOk ? '✓' : '✗'}"
+                              : "Landing: CG ${cgLand.dx.toStringAsFixed(2)} in | ${cgLand.dy.toStringAsFixed(1)} lbs"
+                                  " ${landingLongOk ? '✓' : '✗'}",
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
+                        if (_wnbHelicopterLayout)
+                          Text(
+                            "Landing: lateral CG ${cgLandLat.dx.toStringAsFixed(2)} in | ${cgLandLat.dy.toStringAsFixed(1)} lbs"
+                            " ${landingLatOk ? '✓' : '✗'}",
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          ),
                       ],
                     ),
                   ),
@@ -1014,115 +1382,37 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
-          // CG Envelope Chart
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.show_chart, size: 20, color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        "CG Envelope",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (_wnbEditing)
-                        Text("Tap to add/remove points", style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.outline)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Envelope limits
-                  if (_wnbEditing)
-                    Row(
-                      children: [
-                        Expanded(child: _buildWnbLimitField("Arm Min", _wnbMinArm, (v) => setState(() => _wnbMinArm = v))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildWnbLimitField("Arm Max", _wnbMaxArm, (v) => setState(() => _wnbMaxArm = v))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildWnbLimitField("Wt Min", _wnbMinWeight, (v) => setState(() => _wnbMinWeight = v))),
-                        const SizedBox(width: 8),
-                        Expanded(child: _buildWnbLimitField("Wt Max", _wnbMaxWeight, (v) => setState(() => _wnbMaxWeight = v))),
-                      ],
-                    ),
-                  if (_wnbEditing) const SizedBox(height: 16),
-                  
-                  // Chart
-                  AspectRatio(
-                    aspectRatio: 1.2,
-                    child: LayoutBuilder(builder: (context, constraints) {
-                      Offset pixelToCoordinate(Offset offset, BoxConstraints constraints) {
-                        double reservedSize = 44 + 16;
-                        return Offset(
-                          _wnbMinArm + (_wnbMaxArm - _wnbMinArm) * (offset.dx) / (constraints.maxWidth - reservedSize),
-                          (_wnbMaxWeight + _wnbMinWeight) - (_wnbMinWeight + (_wnbMaxWeight - _wnbMinWeight) * (offset.dy) / (constraints.maxHeight - reservedSize)));
-                      }
+          _buildWnbScatterEnvelopeCard(
+            title: _wnbHelicopterLayout ? "Longitudinal CG" : "CG Envelope",
+            bottomAxisLabel: "Longitudinal arm (in)",
+            envelopePoints: _wnbEnvelopePoints,
+            minX: _wnbMinArm,
+            maxX: _wnbMaxArm,
+            cgRamp: cgRamp,
+            cgLand: cgLand,
+            rampInside: rampLongOk,
+            landingInside: landingLongOk,
+            lateralChart: false,
+            showWeightLimitFields: true,
+          ),
+          if (_wnbHelicopterLayout) ...[
+            const SizedBox(height: 16),
+            _buildWnbScatterEnvelopeCard(
+              title: "Lateral CG",
+              bottomAxisLabel: "Lateral arm (in from centerline)",
+              envelopePoints: _wnbEnvelopePointsLat,
+              minX: _wnbMinArmLat,
+              maxX: _wnbMaxArmLat,
+              cgRamp: cgRampLat,
+              cgLand: cgLandLat,
+              rampInside: rampLatOk,
+              landingInside: landingLatOk,
+              lateralChart: true,
+              showWeightLimitFields: false,
+            ),
+          ],
+          const SizedBox(height: 16),
 
-                      return ScatterChart(
-                        ScatterChartData(
-                          titlesData: const FlTitlesData(
-                            leftTitles: AxisTitles(axisNameSize: 16, axisNameWidget: Text("Weight (lbs)"), sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
-                            bottomTitles: AxisTitles(axisNameSize: 16, axisNameWidget: Text("Arm (in)"),  sideTitles: SideTitles(reservedSize: 44, showTitles: true)),
-                            rightTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
-                            topTitles: AxisTitles(sideTitles: SideTitles(reservedSize: 0, showTitles: false)),
-                            show: true,
-                          ),
-                          scatterSpots: makeSpotData(),
-                          minX: _wnbMinArm,
-                          minY: _wnbMinWeight,
-                          maxX: _wnbMaxArm,
-                          maxY: _wnbMaxWeight,
-                          gridData: FlGridData(
-                            show: true,
-                            drawHorizontalLine: true,
-                            checkToShowHorizontalLine: (value) => true,
-                            getDrawingHorizontalLine: (value) => FlLine(color: Theme.of(context).colorScheme.outlineVariant),
-                            drawVerticalLine: true,
-                            checkToShowVerticalLine: (value) => true,
-                            getDrawingVerticalLine: (value) => FlLine(color: Theme.of(context).colorScheme.outlineVariant),
-                          ),
-                          scatterTouchData: ScatterTouchData(
-                            touchSpotThreshold: 10,
-                            enabled: true,
-                            handleBuiltInTouches: false,
-                            touchCallback: (FlTouchEvent event, ScatterTouchResponse? touchResponse) {
-                              if (event is FlTapUpEvent && _wnbEditing) {
-                                if (touchResponse != null) {
-                                  ScatterTouchedSpot? spot = touchResponse.touchedSpot;
-                                  if (spot != null) {
-                                    setState(() {
-                                      if (spot.spotIndex > 0) {
-                                        _wnbEnvelopePoints.removeAt(spot.spotIndex - 1);
-                                      }
-                                    });
-                                  } else {
-                                    setState(() {
-                                      _wnbEnvelopePoints.add(pixelToCoordinate(event.details.localPosition, constraints));
-                                    });
-                                  }
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
           // Weight Items Card
           Card(
             child: Padding(
@@ -1149,7 +1439,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                           tooltip: 'Add station',
                           onPressed: () {
                             setState(() {
-                              _wnbStations.add(_WnbStation(name: 'New Station', arm: 40, weight: 0));
+                              _wnbStations.add(_WnbStation(name: 'New Station', arm: 40, armLateral: 0, weight: 0));
                             });
                           },
                         ),
@@ -1249,11 +1539,25 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   }
   
   Widget _buildWnbStationsTable() {
-    double totalMoment = 0;
-    
+    double rampMoment = 0;
+    double landingMoment = 0;
+    double rampMomentLat = 0;
+    double landingMomentLat = 0;
+    for (final s in _wnbStations) {
+      if (!_isLandingFuelRow(s)) {
+        rampMoment += s.moment;
+        rampMomentLat += s.momentLat;
+      }
+      if (!_isRampFuelRow(s)) {
+        landingMoment += s.moment;
+        landingMomentLat += s.momentLat;
+      }
+    }
+
     List<Widget> rows = [];
-    
-    // Header row
+
+    TextStyle th = TextStyle(fontWeight: FontWeight.bold, fontSize: _wnbHelicopterLayout ? 11 : 12);
+
     rows.add(
       Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1263,19 +1567,41 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         ),
         child: Row(
           children: [
-            Expanded(flex: 3, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text("Station", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)))),
-            Expanded(flex: 2, child: Text("Weight", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text("Arm", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
-            Expanded(flex: 2, child: Text("Moment", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+            Expanded(flex: 3, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text("Station", style: th))),
+            Expanded(flex: 2, child: Text("Weight", style: th, textAlign: TextAlign.center)),
+            Expanded(
+              flex: 2,
+              child: Text(_wnbHelicopterLayout ? "Longitudinal" : "Arm", style: th, textAlign: TextAlign.center),
+            ),
+            if (_wnbHelicopterLayout) ...[
+              Expanded(flex: 2, child: Text("Lateral", style: th, textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text("Longitudinal moment", style: th, textAlign: TextAlign.center)),
+              Expanded(flex: 2, child: Text("Lateral moment", style: th, textAlign: TextAlign.center)),
+            ] else
+              Expanded(flex: 2, child: Text("Moment", style: th, textAlign: TextAlign.center)),
             if (_wnbEditing) const SizedBox(width: 40),
           ],
         ),
       ),
     );
-    
+
+    Widget momentCell(double value) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          value.toStringAsFixed(0),
+          style: const TextStyle(fontSize: 13),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
     for (int i = 0; i < _wnbStations.length; i++) {
       final _WnbStation station = _wnbStations[i];
-      totalMoment += station.moment;
 
       rows.add(
         Container(
@@ -1335,24 +1661,49 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                   ),
                 ),
               ),
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      station.moment.toStringAsFixed(0),
+              if (_wnbHelicopterLayout) ...[
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: TextFormField(
+                      enabled: _wnbEditing,
+                      initialValue: station.armLateral.toStringAsFixed(1),
+                      keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
+                      decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12)),
                       style: const TextStyle(fontSize: 13),
-                      textAlign: TextAlign.center,
+                      onChanged: (value) {
+                        try {
+                          setState(() => station.armLateral = double.parse(value));
+                        } catch (e) {
+                          // ignore
+                        }
+                      },
                     ),
                   ),
                 ),
-              ),
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: momentCell(station.moment),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: momentCell(station.momentLat),
+                  ),
+                ),
+              ] else
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: momentCell(station.moment),
+                  ),
+                ),
               if (_wnbEditing)
                 SizedBox(
                   width: 40,
@@ -1368,38 +1719,86 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         ),
       );
     }
-    
-    Offset cg = _calculateCG();
-    bool isInside = _isCGWithinLimits();
-    
-    // Total row
-    rows.add(
-      Container(
+
+    Offset cgRamp = _calculateCG();
+    Offset cgLand = _calculateLandingCG();
+    Offset cgRampLat = _calculateCGLateral();
+    Offset cgLandLat = _calculateLandingCGLateral();
+    bool rampLongOk = _isCGWithinLimits();
+    bool landingLongOk = _isLandingCGWithinLimits();
+    bool rampLatOk = _isCGLateralWithinLimits();
+    bool landingLatOk = _isLandingCGLateralWithinLimits();
+
+    Widget totalTilePlane(String label, Offset cg, double moment, bool inside) {
+      return Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isInside ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
+          color: inside ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isInside ? Colors.green : Colors.red),
+          border: Border.all(color: inside ? Colors.green : Colors.red),
         ),
         child: Row(
           children: [
-            Expanded(flex: 3, child: Text("TOTAL", style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(cg.dy.toStringAsFixed(1), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(cg.dx.toStringAsFixed(2), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
-            Expanded(flex: 2, child: Text(totalMoment.toStringAsFixed(0), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 3, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(cg.dy.toStringAsFixed(1), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(cg.dx.toStringAsFixed(2), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(moment.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
             if (_wnbEditing) const SizedBox(width: 40),
           ],
         ),
-      ),
-    );
-    
-    return Column(children: rows);
+      );
+    }
+
+    Widget totalTileHeli(String label, Offset cgLong, Offset cgLat, double momLong, double momLat, bool inside) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: inside ? Colors.green.withAlpha(30) : Colors.red.withAlpha(30),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: inside ? Colors.green : Colors.red),
+        ),
+        child: Row(
+          children: [
+            Expanded(flex: 3, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(cgLong.dy.toStringAsFixed(1), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(cgLong.dx.toStringAsFixed(2), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(cgLat.dx.toStringAsFixed(2), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(momLong.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            Expanded(flex: 2, child: Text(momLat.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold))),
+            if (_wnbEditing) const SizedBox(width: 40),
+          ],
+        ),
+      );
+    }
+
+    if (_wnbHelicopterLayout) {
+      rows.add(totalTileHeli("TOTAL (ramp)", cgRamp, cgRampLat, rampMoment, rampMomentLat, rampLongOk && rampLatOk));
+      rows.add(totalTileHeli("TOTAL (landing)", cgLand, cgLandLat, landingMoment, landingMomentLat, landingLongOk && landingLatOk));
+    } else {
+      rows.add(totalTilePlane("TOTAL (ramp)", cgRamp, rampMoment, rampLongOk));
+      rows.add(totalTilePlane("TOTAL (landing)", cgLand, landingMoment, landingLongOk));
+    }
+
+    final Widget table = Column(children: rows);
+    if (_wnbHelicopterLayout) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: 920,
+          child: table,
+        ),
+      );
+    }
+    return table;
   }
   
   Future<void> _saveWnbData() async {
     // Convert current W&B data to JSON
-    List<WnbStationDef> stationDefs = _wnbStations.map((s) => WnbStationDef(name: s.name, arm: s.arm, defaultWeight: s.weight)).toList();
+    List<WnbStationDef> stationDefs = _wnbStations
+        .map((s) => WnbStationDef(name: s.name, arm: s.arm, armLateral: s.armLateral, defaultWeight: s.weight))
+        .toList();
     WnbData wnbData = WnbData(
       stations: stationDefs,
       envelopePoints: _wnbEnvelopePoints,
@@ -1407,6 +1806,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       maxArm: _wnbMaxArm,
       minWeight: _wnbMinWeight,
       maxWeight: _wnbMaxWeight,
+      envelopePointsLateral: _wnbEnvelopePointsLat,
+      minArmLat: _wnbMinArmLat,
+      maxArmLat: _wnbMaxArmLat,
     );
     
     // Get existing aircraft from database or create new
@@ -2001,6 +2403,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               _deleteCustomAircraftFromDb(aircraft.name);
               if (wasSelected) {
                 _loadWnbForAircraft();
+                Aircraft.reloadAircraftIcon();
               }
             },
           ),
@@ -2013,6 +2416,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         });
         _saveSelectedAircraft();
         _loadWnbForAircraft();
+        Aircraft.reloadAircraftIcon();
       },
     );
   }
@@ -2166,9 +2570,10 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 
     _saveSelectedAircraft();
     _loadWnbForAircraft();
+    await Aircraft.reloadAircraftIcon();
     _resetCustomForm();
   }
-  
+
   void _resetCustomForm() {
     _editingExistingTail = null;
     _customNameController.clear();
