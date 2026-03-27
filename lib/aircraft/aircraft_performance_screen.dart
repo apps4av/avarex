@@ -178,6 +178,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   double _wnbMinArmLat = -8;
   double _wnbMaxArmLat = 8;
   /// True when the aircraft icon is helicopter (per-aircraft DB icon, else app default).
+  /// Also hides fixed-wing-only performance tabs and POH performance tables in My Aircraft.
   bool _wnbHelicopterLayout = false;
   bool _wnbEditing = false;
 
@@ -240,6 +241,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     wnbData ??= CommonWnbData.getWnbData(_selectedAircraft.name);
     wnbData ??= WnbData.defaultData();
 
+    final bool wasHeli = _wnbHelicopterLayout;
     final bool heli = icon == 'helicopter';
     List<Offset> envLat = List<Offset>.from(wnbData.envelopePointsLateral);
     if (heli && envLat.length < 3) {
@@ -251,6 +253,17 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     }
     setState(() {
       _wnbHelicopterLayout = heli;
+      if (heli && !wasHeli) {
+        if (_pageIndex == 4) {
+          _pageIndex = 1;
+        } else if (_pageIndex >= 1) {
+          _pageIndex = 0;
+        }
+      } else if (!heli && wasHeli) {
+        if (_pageIndex == 1) {
+          _pageIndex = 4;
+        }
+      }
       _wnbStations = wnbData!.stations
           .map((s) => _WnbStation(name: s.name, arm: s.arm, armLateral: s.armLateral, weight: s.defaultWeight))
           .toList();
@@ -858,13 +871,19 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    List<Widget> pages = [
-      _buildCustomTab(),
-      _buildTakeoffTab(),
-      _buildLandingTab(),
-      _buildCruiseTab(),
-      _buildWnbTab(),
-    ];
+    final bool heli = _wnbHelicopterLayout;
+    final List<String> pageLabels = heli
+        ? ['My Aircraft', 'W&B']
+        : _pageLabels;
+    final List<Widget> pages = heli
+        ? [_buildCustomTab(), _buildWnbTab()]
+        : [
+            _buildCustomTab(),
+            _buildTakeoffTab(),
+            _buildLandingTab(),
+            _buildCruiseTab(),
+            _buildWnbTab(),
+          ];
 
     return Scaffold(
       appBar: AppBar(
@@ -907,7 +926,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       ),
       body: Column(
         children: [
-          Expanded(child: pages[_pageIndex]),
+          Expanded(child: pages[_pageIndex.clamp(0, pages.length - 1)]),
           Padding(
             padding: const EdgeInsets.all(5),
             child: SingleChildScrollView(
@@ -915,23 +934,23 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  for (int i = 0; i < _pageLabels.length; i++)
+                  for (int i = 0; i < pageLabels.length; i++)
                     TextButton(
                       style: _pageIndex == i
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
                       onPressed: () {
                         setState(() {
-                          if (_pageLabels[i] == 'Cruise') {
+                          if (pageLabels[i] == 'Cruise') {
                             _syncCruiseAltitudeFromPlan();
                           }
                           _pageIndex = i;
                         });
-                        if (_pageLabels[i] == 'W&B') {
+                        if (pageLabels[i] == 'W&B') {
                           _loadWnbForAircraft();
                         }
                       },
-                      child: Text(_pageLabels[i]),
+                      child: Text(pageLabels[i]),
                     ),
                 ],
               ),
@@ -1969,92 +1988,94 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
           ),
           const SizedBox(height: 16),
           
-          _buildCombinedTableCard(
-            'TAKEOFF PERFORMANCE',
-            'Enter ground roll and 50ft obstacle distances from POH',
-            _customTakeoffEntries,
-            () => setState(() {
-              if (_customTakeoffEntries.isEmpty) {
-                _customTakeoffEntries.add(_TakeoffLandingEntry(
-                    altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500));
-              } else {
-                _customTakeoffEntries.add(_TakeoffLandingEntry.copyOf(_customTakeoffEntries.last));
-              }
-            }),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Takeoff Corrections', style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13, 
-                    color: Theme.of(context).colorScheme.primary)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildTextField('Headwind (%/kt)', _customToHeadwindController, 
-                        keyboard: const TextInputType.numberWithOptions(decimal: true))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildTextField('Tailwind (%/kt)', _customToTailwindController, 
-                        keyboard: const TextInputType.numberWithOptions(decimal: true))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildTextField('Soft Field (%)', _customToSoftFieldController, 
-                        keyboard: TextInputType.number)),
-                    ],
-                  ),
-                ],
+          if (_customIcon != 'helicopter') ...[
+            _buildCombinedTableCard(
+              'TAKEOFF PERFORMANCE',
+              'Enter ground roll and 50ft obstacle distances from POH',
+              _customTakeoffEntries,
+              () => setState(() {
+                if (_customTakeoffEntries.isEmpty) {
+                  _customTakeoffEntries.add(_TakeoffLandingEntry(
+                      altitude: 0, temp: 15, weight: 2400, groundRoll: 900, over50ft: 1500));
+                } else {
+                  _customTakeoffEntries.add(_TakeoffLandingEntry.copyOf(_customTakeoffEntries.last));
+                }
+              }),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Takeoff Corrections', style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13, 
+                      color: Theme.of(context).colorScheme.primary)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Headwind (%/kt)', _customToHeadwindController, 
+                          keyboard: const TextInputType.numberWithOptions(decimal: true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildTextField('Tailwind (%/kt)', _customToTailwindController, 
+                          keyboard: const TextInputType.numberWithOptions(decimal: true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildTextField('Soft Field (%)', _customToSoftFieldController, 
+                          keyboard: TextInputType.number)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          
-          _buildCombinedTableCard(
-            'LANDING PERFORMANCE',
-            'Enter ground roll and 50ft obstacle distances from POH',
-            _customLandingEntries,
-            () => setState(() {
-              if (_customLandingEntries.isEmpty) {
-                _customLandingEntries.add(_TakeoffLandingEntry(
-                    altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300));
-              } else {
-                _customLandingEntries.add(_TakeoffLandingEntry.copyOf(_customLandingEntries.last));
-              }
-            }),
-          ),
-          const SizedBox(height: 8),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Landing Corrections', style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: 13, 
-                    color: Theme.of(context).colorScheme.primary)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(child: _buildTextField('Headwind (%/kt)', _customLdHeadwindController, 
-                        keyboard: const TextInputType.numberWithOptions(decimal: true))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildTextField('Tailwind (%/kt)', _customLdTailwindController, 
-                        keyboard: const TextInputType.numberWithOptions(decimal: true))),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildTextField('Soft Field (%)', _customLdSoftFieldController, 
-                        keyboard: TextInputType.number)),
-                    ],
-                  ),
-                ],
+            const SizedBox(height: 16),
+            
+            _buildCombinedTableCard(
+              'LANDING PERFORMANCE',
+              'Enter ground roll and 50ft obstacle distances from POH',
+              _customLandingEntries,
+              () => setState(() {
+                if (_customLandingEntries.isEmpty) {
+                  _customLandingEntries.add(_TakeoffLandingEntry(
+                      altitude: 0, temp: 15, weight: 2400, groundRoll: 550, over50ft: 1300));
+                } else {
+                  _customLandingEntries.add(_TakeoffLandingEntry.copyOf(_customLandingEntries.last));
+                }
+              }),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Landing Corrections', style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13, 
+                      color: Theme.of(context).colorScheme.primary)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(child: _buildTextField('Headwind (%/kt)', _customLdHeadwindController, 
+                          keyboard: const TextInputType.numberWithOptions(decimal: true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildTextField('Tailwind (%/kt)', _customLdTailwindController, 
+                          keyboard: const TextInputType.numberWithOptions(decimal: true))),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildTextField('Soft Field (%)', _customLdSoftFieldController, 
+                          keyboard: TextInputType.number)),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          
-          _buildCruiseTableCard2(),
-          const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            
+            _buildCruiseTableCard2(),
+            const SizedBox(height: 24),
+          ],
           
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

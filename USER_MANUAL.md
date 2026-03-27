@@ -612,6 +612,8 @@ A unified screen with tabs for managing aircraft profiles, performance calculati
 | **Cruise**      | Calculate cruise performance (TAS, fuel flow) at altitude/power settings |
 | **W&B**         | Weight and balance calculations with CG envelope |
 
+**Helicopter (map icon):** When the **selected** aircraft uses the helicopter icon (per-aircraft in **My Aircraft**, or the app-wide default in settings if that aircraft has no saved profile row), the **T/O**, **L/D**, and **Cruise** tabs are hidden—only **My Aircraft** and **W&B** remain. The same applies to takeoff, landing, and cruise **POH-style performance tables** when **adding or editing** a profile whose **Aircraft Icon** is **Helicopter**.
+
 #### Aircraft Selection
 
 Use the dropdown at the top to select from:
@@ -710,7 +712,7 @@ Create and manage your saved aircraft profiles:
 - Takeoff/Landing correction factors (headwind %, tailwind %, soft field %)
 - Custom performance tables (altitude, temperature, weight entries)
 
-**Performance Tables**: Add rows for takeoff, landing, and cruise performance at various conditions. The app interpolates between entries for accurate calculations. Under each row, a read-only **density altitude** (ft) is shown from that row’s altitude and temperature (takeoff/landing use °C OAT; cruise uses the same ISA temperature deviation convention as the Cruise tab).
+**Performance Tables**: Add rows for takeoff, landing, and cruise performance at various conditions (omitted when **Aircraft Icon** is **Helicopter**). The app interpolates between entries for accurate calculations. Under each row, a read-only **density altitude** (ft) is shown from that row’s altitude and temperature (takeoff/landing use °C OAT; cruise uses the same ISA temperature deviation convention as the Cruise tab).
 
 ### 9.4 Check Lists
 
@@ -975,9 +977,9 @@ Possible issue items:
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
 | Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
-| Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` |
-| Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` |
-| Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` |
+| Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
+| Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
+| Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
 | Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
