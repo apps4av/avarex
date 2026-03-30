@@ -55,12 +55,13 @@ class RMCPacket extends Packet {
     sdf = DateFormat("ddMMyy");
     packet += "${sdf.format(date)},";
 
-    // Put variation
+    // NMEA RMC: positive declination = East (e.g. US West Coast), negative = West.
+    // Matches WMM/geo DB sign used by GeoCalculations.getMagneticHeading and Airport.getAirportVariationDirection.
     if (dec < 0) {
       dec = -dec;
-      packet += "${dec.toStringAsFixed(1).padLeft(5, '0')},E";
-    } else {
       packet += "${dec.toStringAsFixed(1).padLeft(5, '0')},W";
+    } else {
+      packet += "${dec.toStringAsFixed(1).padLeft(5, '0')},E";
     }
 
     assemble();
