@@ -5,6 +5,7 @@ import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
@@ -412,21 +413,44 @@ class AiScreenState extends State<AiScreen> {
   Widget _buildContextSection() {
     return StatefulBuilder(
       builder: (context, setLocalState) {
-        Widget contextChip(String label, IconData icon, bool selected, VoidCallback onTap, String tooltip) {
+        Widget contextIcon({
+          required String label,
+          required IconData icon,
+          required bool selected,
+          required VoidCallback onTap,
+          required String tooltip,
+        }) {
+          final scheme = Theme.of(context).colorScheme;
           return Tooltip(
             message: tooltip,
-            child: FilterChip(
-              avatar: Icon(icon, size: 18, color: selected ? Theme.of(context).colorScheme.onPrimaryContainer : Theme.of(context).colorScheme.outline),
-              label: Text(label),
-              selected: selected,
-              onSelected: _isSending ? null : (_) {
-                onTap();
-                setLocalState(() {});
-              },
-              selectedColor: Theme.of(context).colorScheme.primaryContainer,
-              showCheckmark: false,
+            child: IconButton(
+              onPressed: _isSending
+                  ? null
+                  : () {
+                      onTap();
+                      setLocalState(() {});
+                    },
+              icon: Icon(icon, size: 18),
+              color: selected ? scheme.onPrimaryContainer : scheme.outline,
+              style: IconButton.styleFrom(
+                backgroundColor: selected ? scheme.primaryContainer : Colors.transparent,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                minimumSize: const Size(36, 36),
+                padding: EdgeInsets.zero,
+              ),
             ),
           );
+        }
+
+        void toggleWithToast({
+          required String sourceLabel,
+          required IconData icon,
+          required bool newSelected,
+        }) {
+          final message = newSelected
+              ? "Context from $sourceLabel included in the query"
+              : "Context from $sourceLabel removed from the query";
+          Toast.showToast(context, message, Icon(icon, size: 18), 2);
         }
 
         return Card(
@@ -448,17 +472,74 @@ class AiScreenState extends State<AiScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    contextChip("Logbook", Icons.notes, includeLogbook, () => includeLogbook = !includeLogbook, "Include your 50 most recent logbook entries"),
-                    contextChip("Aircraft", MdiIcons.airplane, includeAircraft, () => includeAircraft = !includeAircraft, "Include details from your first aircraft"),
-                    contextChip("Plan", Icons.route, includePlan, () => includePlan = !includePlan, "Include your current flight plan"),
-                    contextChip("Weather", Icons.cloud, includeWeather, () => includeWeather = !includeWeather, "Include winds aloft from departure and destination"),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            contextIcon(
+                              label: "Logbook",
+                              icon: Icons.notes,
+                              selected: includeLogbook,
+                              tooltip: "Include your 50 most recent logbook entries",
+                              onTap: () {
+                                includeLogbook = !includeLogbook;
+                                toggleWithToast(
+                                  sourceLabel: "logbook",
+                                  icon: Icons.notes,
+                                  newSelected: includeLogbook,
+                                );
+                              },
+                            ),
+                            contextIcon(
+                              label: "Aircraft",
+                              icon: MdiIcons.airplane,
+                              selected: includeAircraft,
+                              tooltip: "Include details from your first aircraft",
+                              onTap: () {
+                                includeAircraft = !includeAircraft;
+                                toggleWithToast(
+                                  sourceLabel: "aircraft",
+                                  icon: MdiIcons.airplane,
+                                  newSelected: includeAircraft,
+                                );
+                              },
+                            ),
+                            contextIcon(
+                              label: "Plan",
+                              icon: Icons.route,
+                              selected: includePlan,
+                              tooltip: "Include your current flight plan",
+                              onTap: () {
+                                includePlan = !includePlan;
+                                toggleWithToast(
+                                  sourceLabel: "plan",
+                                  icon: Icons.route,
+                                  newSelected: includePlan,
+                                );
+                              },
+                            ),
+                            contextIcon(
+                              label: "Weather",
+                              icon: Icons.cloud,
+                              selected: includeWeather,
+                              tooltip: "Include winds aloft from departure and destination",
+                              onTap: () {
+                                includeWeather = !includeWeather;
+                                toggleWithToast(
+                                  sourceLabel: "weather",
+                                  icon: Icons.cloud,
+                                  newSelected: includeWeather,
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
