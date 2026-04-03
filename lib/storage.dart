@@ -51,6 +51,7 @@ import 'instruments/flight_timer.dart';
 import 'gdl90/message.dart';
 import 'utils/geojson_parser.dart';
 import 'io/gps.dart';
+import 'io/adsb_capture.dart';
 import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
@@ -302,8 +303,12 @@ class Storage {
     if(s == null) {
       return;
     }
+    if (!kIsWeb) {
+      AdsbCapture().configure(baseDir: dataDir);
+    }
     _btStream = s.listen(
       (data) {
+        AdsbCapture().capture(data);
         _gdl90Buffer.put(data);
         _nmeaBuffer.put(data);
         _processData();
@@ -314,6 +319,9 @@ class Storage {
   }
 
   void startIO() {
+    if (!kIsWeb) {
+      AdsbCapture().configure(baseDir: dataDir);
+    }
     // GPS data receive
     // start both external and internal
     if(!gpsDisabled) {
@@ -343,6 +351,7 @@ class Storage {
     _udpStream?.onError((obj){
     });
     _udpStream?.onData((data) {
+      AdsbCapture().capture(data);
       _gdl90Buffer.put(data);
       _nmeaBuffer.put(data);
       _processData();
@@ -363,6 +372,7 @@ class Storage {
     catch(e) {
       AppLog.logMessage("Error stopping UDP: $e");
     }
+    AdsbCapture().stop();
     try {
       _gpsStream?.cancel();
     }
@@ -393,6 +403,7 @@ class Storage {
       if (!dir.existsSync()) {
         dir.createSync();
       }
+      AdsbCapture().configure(baseDir: dataDir);
     }
     DbGeneral.set(); // set database platform
 

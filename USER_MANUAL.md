@@ -551,6 +551,7 @@ Includes:
 Import button supports:
 
 - `.txt` — text files
+- `.adsb` — ADS-B capture logs (daily files written by external ADS-B/GDL90 receivers)
 - `.geojson` — GeoJSON geographic data
 - `.kml` — KML track files
 - `.pdf` (except Linux)

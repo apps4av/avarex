@@ -332,6 +332,9 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     else if(PathUtils.isKmlFile(product.url)) {
       return const Icon(Icons.route);
     }
+    else if(PathUtils.isAdsbFile(product.url)) {
+      return const Icon(Icons.wifi);
+    }
     else {
       return const Icon(Icons.file_copy);
     }
