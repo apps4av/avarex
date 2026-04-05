@@ -295,6 +295,11 @@ class MapScreenState extends State<MapScreen> {
           maxClusterRadius: _maxClusterRadius,
           disableClusteringAtZoom: _disableClusteringAtZoom,
           markers: markers,
+          animationsOptions: const AnimationsOptions(
+            zoom: Duration.zero,
+            fitBound: Duration.zero,
+            centerMarker: Duration.zero,
+            spiderfy: Duration.zero,          ),
           builder: (context, m) {
             return Container(color: Colors.transparent,);
           },
