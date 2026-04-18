@@ -7,7 +7,6 @@ import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/utils/toast.dart';
-import 'package:avaremp/weather/winds_cache.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -176,13 +175,9 @@ class InstrumentListState extends State<InstrumentList> {
         }
 
         // find time to next, not interested in fuel
-        double? ws;
-        double? wd;
-        (wd, ws) = WindsCache.getWindsAt(next.destination.coordinate, GeoCalculations.convertAltitude(Storage().position.altitude), 6); // 6HR wind
-
         Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
         DestinationCalculations calc = DestinationCalculations(d, next.destination,
-            GeoCalculations.convertSpeed(Storage().position.speed), 0, wd, ws, GeoCalculations.convertAltitude(Storage().position.altitude));
+            GeoCalculations.convertSpeed(Storage().position.speed), 0, GeoCalculations.convertAltitude(Storage().position.altitude));
         calc.calculateTo();
         if(calc.time.isFinite) {
           Duration time = Duration(seconds: calc.time.round());
