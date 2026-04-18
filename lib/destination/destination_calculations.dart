@@ -51,8 +51,9 @@ class DestinationCalculations {
     wind = "${wd.round()}@${ws.round()}";
 
     variation = (variation1 + variation2) / 2.0; // avg of two variation
-    groundSpeed = sqrt(ws * ws + _speed * _speed - 2 * ws * _speed * cos((trueCourse - wd) * pi / 180.0));
-    windCorrectionAngle = -GeoCalculations.toDegrees(atan2(ws * sin((trueCourse - wd) * pi / 180.0), _speed - ws * cos((trueCourse - wd) * pi / 180.0)));
+    WindSolution solution = WindSolution.solveWindTriangle(windSpeed: ws, windDirectionDeg: wd, courseDeg: trueCourse, trueAirspeed: _speed);
+    groundSpeed = solution.groundSpeed;
+    windCorrectionAngle = solution.wcaDeg;
     magneticCourse = GeoCalculations.getMagneticHeading(trueCourse, variation);
     course = (magneticCourse + windCorrectionAngle) % 360;
     time = 3600 * distance / groundSpeed; //sec
@@ -80,4 +81,56 @@ class DestinationCalculations {
     return log;
   }
 
+}
+
+// AI generated
+class WindSolution {
+  final double wcaDeg; // Wind Correction Angle (degrees, +right / -left)
+  final double headingDeg; // Corrected heading (degrees)
+  final double groundSpeed; // Ground speed
+
+  WindSolution({
+    required this.wcaDeg,
+    required this.headingDeg,
+    required this.groundSpeed,
+  });
+
+  static WindSolution solveWindTriangle({
+    required double windSpeed,
+    required double windDirectionDeg, // FROM
+    required double courseDeg,
+    required double trueAirspeed,
+  }) {
+    const deg2rad = pi / 180.0;
+    const rad2deg = 180.0 / pi;
+
+    final windDirRad = windDirectionDeg * deg2rad;
+    final courseRad = courseDeg * deg2rad;
+
+    final theta = windDirRad - courseRad;
+
+    // Components
+    final crosswind = windSpeed * sin(theta);
+    final headwind = windSpeed * cos(theta);
+
+    // Clamp for safety
+    double clamp(double x) => x.clamp(-1.0, 1.0);
+
+    // WCA
+    final wcaRad = asin(clamp(crosswind / trueAirspeed));
+
+    // Heading
+    double headingDeg = (courseRad + wcaRad) * rad2deg;
+    headingDeg = (headingDeg % 360 + 360) % 360;
+
+    // Ground speed (corrected)
+    final groundSpeed =
+        sqrt(pow(trueAirspeed, 2) - pow(crosswind, 2)) - headwind;
+
+    return WindSolution(
+      wcaDeg: wcaRad * rad2deg,
+      headingDeg: headingDeg,
+      groundSpeed: groundSpeed,
+    );
+  }
 }
