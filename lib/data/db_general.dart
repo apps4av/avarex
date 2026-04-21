@@ -17,8 +17,8 @@ class DbGeneral {
     }
   }
 
-  static Future<List<Map<String, Object?>>> query(Database db, String sql) async {
-    var ret = db.rawQuery(sql).onError((error, stackTrace) {
+  static Future<List<Map<String, Object?>>> query(Database db, String sql, {List<dynamic> params = const []}) async {
+    var ret = db.rawQuery(sql, params).onError((error, stackTrace) {
       return [];
     });
     return ret;
