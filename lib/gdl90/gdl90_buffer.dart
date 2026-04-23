@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 class Gdl90Buffer {
 
-  static const _maxLength = 65536;
+  static const _maxLength = 1024 * 1024;
   final List<int> _buffer = List.empty(growable: true);
 
   // not thread safe

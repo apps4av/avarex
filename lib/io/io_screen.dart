@@ -140,7 +140,14 @@ class IoScreenState extends State<IoScreen> {
 
                                   connection = value;
                                   connectedDevice = result.device;
-                                  Storage().setBtStream(connection!.input);
+                                  if(connection != null) {
+                                    if (connection!.input != null) {
+                                      connection!.input!.listen((data) {
+                                        Storage().gdl90Buffer.put(data);
+                                        Storage().nmeaBuffer.put(data);
+                                      });
+                                    }
+                                  }
                                 }
                                 else {
                                   Toast.showToast(context, "Failed to connect to ${result.device.name ?? result.device.address}", const Icon(Icons.error, color: Colors.red), 3);
@@ -260,7 +267,6 @@ class IoScreenState extends State<IoScreen> {
     connection?.dispose();
     connection = null;
     connectedDevice = null;
-    Storage().setBtStream(null);
   }
 }
 
