@@ -1,3 +1,6 @@
+import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/weather_database_helper.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/gdl90/product.dart';
 import 'package:avaremp/weather/metar.dart';
@@ -54,52 +57,39 @@ class TextualWeatherProduct extends Product {
   }
 
   void _parseTaf(String place, String report) {
-    Taf? taf;
-    Weather? inCacheWeather = Storage().taf.getQuick(place);
-    if(null != inCacheWeather) {
-      taf = Taf(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, (inCacheWeather as Taf).coordinate);
-    }
-    else if (null != coordinate) {
-      taf = Taf(place,
-          time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
-          DateTime.now(), Weather.sourceADSB,
-          report, coordinate!);
-    }
-    if(null != taf) {
-      Storage().taf.put(taf);
-    }
+
+    MainDatabaseHelper.db.findAirport(place).then((AirportDestination? result) {
+      if(result != null) {
+        Taf taf = Taf(place,
+            time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+            DateTime.now(), Weather.sourceADSB,
+            report, result.coordinate);
+        Storage().taf.put(taf);
+        WeatherDatabaseHelper.db.addTaf(taf);
+      }
+    });
   }
 
   // This is a lot of ugly code because marker cluster has issues with changing coordinates
   void _parseMetarSpeci(String place, String report) {
-    Metar? metar;
-    Weather? inCacheWeather = Storage().metar.getQuick(place);
-    if(null != inCacheWeather) {
-      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
-          _text, Metar.getCategory(report), (inCacheWeather as Metar).coordinate);
-    }
-    else if(null != coordinate) {
-      metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
-          _text, Metar.getCategory(report), coordinate!);
-    }
-    if(null != metar) {
-      Storage().metar.put(metar);
-    }
+    MainDatabaseHelper.db.findAirport(place).then((AirportDestination? result) {
+      if(result != null) {
+        Metar metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
+            _text, Metar.getCategory(report), result.coordinate);
+        Storage().metar.put(metar);
+        WeatherDatabaseHelper.db.addMetar(metar);
+      }
+    });
   }
 
   void _parsePirep(String place, String report) {
-    Airep? airep;
-    Weather? inCacheWeather = Storage().airep.getQuick(place);
-
-    if(null != inCacheWeather) {
-      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, (inCacheWeather as Airep).coordinates);
-    }
-    else if(null != coordinate) {
-      airep = Airep(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB, report, coordinate!);
-    }
-
-    if(null != airep) {
+    if(null != coordinate) {
+      Airep airep = Airep(place,
+          time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+          DateTime.now(), Weather.sourceADSB, report, coordinate!);
       Storage().airep.put(airep);
+      WeatherDatabaseHelper.db.addAirep(airep);
+
     }
   }
 
@@ -183,9 +173,10 @@ class TextualWeatherProduct extends Product {
       if(coordinate != null) {
         w0k = WindsCache.getWind0kFromMetar(coordinate!);
       }
-      WindsAloft wa = WindsAloft(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
+      WindsAloft wa = WindsAloft("${place}06H", time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
           w0k, w3k, w6k, w9k, w12k, w18k, w24k, w30k, w34k, w39k);
       Storage().winds.put(wa);
+      WeatherDatabaseHelper.db.addWindsAloft(wa);
     }
     catch (e) {
       AppLog.logMessage("Exception parsing winds aloft ADS-B: $e");
