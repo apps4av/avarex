@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'dlac.dart';
@@ -217,36 +216,36 @@ class FisGraphics {
           case shapePrismAgl:
           case shapePrisonMsl: // Extended Range Circular Prism (7 = MSL, 8 = AGL)
             if (data.length >= 14) {
-              //int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
-              //    ((data[1].toInt() & 0xFF) << 2) +
-              //    ((data[2].toInt() & 0xC0) >> 6);
-              //int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
-              //    ((data[3].toInt() & 0xFF) << 4) +
-              //    ((data[4].toInt() & 0xF0) >> 4);
-
-              //int topLon = ((data[4].toInt() & 0x0F) << 14) +
-              //    ((data[5].toInt() & 0xFF) << 6) +
-              //    ((data[6].toInt() & 0xFC) >> 2);
-              //int topLat = ((data[6].toInt() & 0x03) << 16) +
-              //    ((data[7].toInt() & 0xFF) << 8) + ((data[8].toInt() & 0xFF));
+              final int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
+                  ((data[1].toInt() & 0xFF) << 2) +
+                  ((data[2].toInt() & 0xC0) >> 6);
+              final int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
+                  ((data[3].toInt() & 0xFF) << 4) +
+                  ((data[4].toInt() & 0xF0) >> 4);
 
               int bottomAlt = ((data[9].toInt() & 0xFE) >> 1) * 5;
-              int topAlt = (((data[9].toInt() & 0x01) << 6) + (data[10].toInt() & 0xFC) >> 2) * 100;
+              int topAlt = ((((data[9].toInt() & 0x01) << 6) +
+                      ((data[10].toInt() & 0xFC) >> 2))) *
+                  100;
               altitudeBottom = bottomAlt.toString();
               altitudeTop = topAlt.toString();
 
-              // only 2D
-              //LatLng b = _parseLatLon(bottomLat, bottomLon, true);
-              //LatLng t = _parseLatLon(topLat, topLon, true);
+              final int rLonRaw = ((data[10].toInt() & 0x03) << 7) +
+                  ((data[11].toInt() & 0xFE) >> 1);
+              final int rLatRaw = ((data[11].toInt() & 0x01) << 8) +
+                  (data[12].toInt() & 0xFF);
+              final double radiusNm = (rLonRaw + rLatRaw) / 2.0 * 0.2;
+              final LatLng center = _parseLatLon(bottomLat, bottomLon, true);
 
-              //double rLon = (((data[10].toInt() & 0x03) << 7) +
-              //    ((data[11].toInt() & 0xFE) >> 1)).toDouble() * 0.2;
-              //double rLat = (((data[11].toInt() & 0x01) << 8) +
-              //    (data[12].toInt() & 0xFF)).toDouble() * 0.2;
-              //int alpha = recordData[13].toInt() & 0xFF;
-              //LatLng r = LatLng(rLat, rLon);
-              // make a circle with top, bottom and radius
-              // TODO : Implement this
+              const Distance distance = Distance();
+              final double radiusM =
+                  radiusNm < 0.25 ? 0.25 * 1852.0 : radiusNm * 1852.0;
+              for (int i = 0; i < 36; i++) {
+                coordinates.add(distance.offset(center, radiusM, i * 10.0));
+              }
+              if (coordinates.isNotEmpty) {
+                coordinates.add(coordinates.first);
+              }
               data = data.sublist(14);
             }
             else {

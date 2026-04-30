@@ -13,7 +13,16 @@ class NotamProduct extends Product {
   @override
   void parse() {
     super.parse();
-    if(fisGraphics.geometryOverlayOptions == FisGraphics.shapePolygonMSL && fisGraphics.coordinates.isNotEmpty) {
+    if (!fisGraphics.valid) {
+      return;
+    }
+    // TFR / NOTAM-TFR graphics: closed polygon (3) or circular prism (7/8) per FIS-B MOPS.
+    final int geom = fisGraphics.geometryOverlayOptions;
+    final bool tfrOutline = fisGraphics.coordinates.isNotEmpty &&
+        (geom == FisGraphics.shapePolygonMSL ||
+            geom == FisGraphics.shapePrisonMsl ||
+            geom == FisGraphics.shapePrismAgl);
+    if (tfrOutline) {
       // TFR
       DateTime endsDt;
       DateTime startsDt;
