@@ -10,7 +10,6 @@ import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/plan/passage.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
-import 'package:avaremp/weather/winds_cache.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -207,9 +206,6 @@ class PlanRoute {
     // calculate plan
     for(int index = 0; index < _allDestinations.length - 1; index++) {
       _allDestinations[0].calculations = null;
-      double? ws;
-      double? wd;
-      (wd, ws) = WindsCache.getWindsAt(_allDestinations[index].coordinate, altitude.toDouble(), fore);
       DestinationCalculations calc;
       // calculate total from current position to active route
       if(current.destination == _allDestinations[index + 1]) {
@@ -217,13 +213,13 @@ class PlanRoute {
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
           _allDestinations[index + 1],
           Storage().settings.getTas(),
-          Storage().settings.getFuelBurn(), wd, ws, altitude.toDouble());
+          Storage().settings.getFuelBurn(), altitude.toDouble());
       }
       else {
         calc = DestinationCalculations(
             _allDestinations[index], _allDestinations[index + 1],
             Storage().settings.getTas(),
-            Storage().settings.getFuelBurn(), wd, ws,
+            Storage().settings.getFuelBurn(),
             altitude.toDouble()
         );
       }

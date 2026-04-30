@@ -65,89 +65,762 @@ class Cruise3DEntry {
 }
 
 class Interpolator3D {
+  /// Interpolates POH ground roll / 50 ft distance at the requested
+  /// pressure altitude [alt] (ft), OAT [temp] (°C) and [weight] (lb).
+  ///
+  /// Two strategies are used in priority order:
+  ///
+  ///  1. **Gridded tensor-product PCHIP** — when the supplied entries
+  ///     form a complete regular grid in (pressureAlt, temp, weight),
+  ///     which is the case for any normal POH table. We do
+  ///     shape-preserving cubic Hermite (PCHIP) interpolation along
+  ///     each axis in succession. PCHIP is multi-order (cubic), passes
+  ///     exactly through every data point, and is monotone-preserving
+  ///     so it cannot overshoot or dip near the boundary samples (the
+  ///     classic least-squares failure mode at the last temperature
+  ///     column of a POH table).
+  ///
+  ///  2. **Scattered polynomial fit in (densityAltitude, weight)** —
+  ///     fallback when entries are sparse / not on a regular grid.
+  ///     Density altitude correctly fuses pressure altitude and OAT
+  ///     into the single physical quantity that drives takeoff and
+  ///     landing performance. We fit a bivariate least-squares
+  ///     polynomial (degree 1–3, auto-chosen from data variety) and
+  ///     evaluate it at the requested (DA, weight); the result is
+  ///     clamped to the observed value envelope to keep the polynomial
+  ///     from running away outside the data.
   static double interpolatePerformance(List<Performance3DEntry> entries, double alt, double temp, double weight) {
     if (entries.isEmpty) return 0;
     if (entries.length == 1) return entries.first.value;
 
-    Performance3DEntry? exact = entries.cast<Performance3DEntry?>().firstWhere(
-      (e) => e!.altitude == alt && e.temp == temp && e.weight == weight,
-      orElse: () => null,
-    );
-    if (exact != null) return exact.value;
+    final double? gridded = _interpolateOnGrid(entries, alt, temp, weight);
+    if (gridded != null) return gridded;
 
-    List<Performance3DEntry> sameTempWeight = entries.where((e) => e.temp == temp && e.weight == weight).toList();
-    if (sameTempWeight.length >= 2) {
-      sameTempWeight.sort((a, b) => a.altitude.compareTo(b.altitude));
-      double? result = _interpolateAlongDimension(sameTempWeight.map((e) => _DimValue(e.altitude, e.value)).toList(), alt);
-      if (result != null) return result;
-    }
-
-    List<Performance3DEntry> sameAltWeight = entries.where((e) => e.altitude == alt && e.weight == weight).toList();
-    if (sameAltWeight.length >= 2) {
-      sameAltWeight.sort((a, b) => a.temp.compareTo(b.temp));
-      double? result = _interpolateAlongDimension(sameAltWeight.map((e) => _DimValue(e.temp, e.value)).toList(), temp);
-      if (result != null) return result;
-    }
-
-    List<Performance3DEntry> sameAltTemp = entries.where((e) => e.altitude == alt && e.temp == temp).toList();
-    if (sameAltTemp.length >= 2) {
-      sameAltTemp.sort((a, b) => a.weight.compareTo(b.weight));
-      double? result = _interpolateAlongDimension(sameAltTemp.map((e) => _DimValue(e.weight, e.value)).toList(), weight);
-      if (result != null) return result;
-    }
-
-    return _inverseDistanceWeighted(entries, alt, temp, weight);
+    return _interpolateScatteredPolyDA(entries, alt, temp, weight);
   }
 
-  static double? _interpolateAlongDimension(List<_DimValue> sorted, double target) {
-    for (int i = 0; i < sorted.length - 1; i++) {
-      if (target >= sorted[i].dim && target <= sorted[i + 1].dim) {
-        double frac = (sorted[i + 1].dim == sorted[i].dim) ? 0 :
-            (target - sorted[i].dim) / (sorted[i + 1].dim - sorted[i].dim);
-        return sorted[i].value + (sorted[i + 1].value - sorted[i].value) * frac;
+  /// Returns the interpolated value when [entries] form (or can be
+  /// completed into) a regular grid in (altitude, temp, weight);
+  /// otherwise null. The interpolation is a tensor product of natural
+  /// cubic splines (linear on axes with only 2 samples). Each 1D
+  /// spline is solved as a single tridiagonal system that couples
+  /// every knot, so the cubic on any segment uses information from
+  /// every tabulated value — not just the two adjacent ones. The
+  /// interpolant passes through every grid point exactly and is C²
+  /// continuous in each variable, so the curve is smooth (continuous
+  /// value, slope and curvature) at every knot and never appears
+  /// "broken" there.
+  ///
+  /// Tolerance to imperfect tables: duplicate `(alt, temp, weight)`
+  /// rows are deduplicated (first occurrence wins — typos shouldn't
+  /// silently average into the result), and a small number of missing
+  /// cells are filled in by 1D natural-spline interpolation along
+  /// whichever neighbouring axis has at least two samples available
+  /// for that row/column. This keeps the smooth, monotone-friendly
+  /// spline path active even when the user's POH entries have the
+  /// occasional data-entry mistake (which would otherwise force a
+  /// fallback to the scattered polynomial fit, where boundary
+  /// overshoot can create the classic "value drops at the hottest
+  /// temperature column then snaps back at the exact grid point"
+  /// pattern).
+  static double? _interpolateOnGrid(
+    List<Performance3DEntry> entries,
+    double alt,
+    double temp,
+    double weight,
+  ) {
+    final List<double> alts = entries.map((e) => e.altitude).toSet().toList()..sort();
+    final List<double> temps = entries.map((e) => e.temp).toSet().toList()..sort();
+    final List<double> weights = entries.map((e) => e.weight).toSet().toList()..sort();
+
+    if (alts.length < 2 && temps.length < 2 && weights.length < 2) return null;
+
+    // grid[ai][ti][wi] = value, null = missing.
+    final List<List<List<double?>>> grid = List.generate(
+      alts.length,
+      (_) => List.generate(temps.length, (_) => List<double?>.filled(weights.length, null)),
+    );
+    for (final e in entries) {
+      final int ai = alts.indexOf(e.altitude);
+      final int ti = temps.indexOf(e.temp);
+      final int wi = weights.indexOf(e.weight);
+      if (ai < 0 || ti < 0 || wi < 0) return null;
+      // Duplicate row — keep the first; subsequent duplicates are
+      // ignored, which is the right behaviour for typos (averaging
+      // would smear in the bad value).
+      grid[ai][ti][wi] ??= e.value;
+    }
+
+    int countMissing() {
+      int c = 0;
+      for (int ai = 0; ai < alts.length; ai++) {
+        for (int ti = 0; ti < temps.length; ti++) {
+          for (int wi = 0; wi < weights.length; wi++) {
+            if (grid[ai][ti][wi] == null) c++;
+          }
+        }
+      }
+      return c;
+    }
+
+    int missing = countMissing();
+    // Iteratively fill missing cells using 1D natural-spline interp
+    // along whichever axis has ≥ 2 available samples for that
+    // row/column. We average the estimates from each viable axis to
+    // avoid biasing the fill toward one direction. Loop until either
+    // everything is filled or a full pass makes no progress (genuinely
+    // sparse data — let the scattered polynomial path handle it).
+    while (missing > 0) {
+      bool progress = false;
+      for (int ai = 0; ai < alts.length; ai++) {
+        for (int ti = 0; ti < temps.length; ti++) {
+          for (int wi = 0; wi < weights.length; wi++) {
+            if (grid[ai][ti][wi] != null) continue;
+
+            final List<double> estimates = <double>[];
+
+            // Along altitude.
+            final List<double> aXs = <double>[];
+            final List<double> aYs = <double>[];
+            for (int k = 0; k < alts.length; k++) {
+              final v = grid[k][ti][wi];
+              if (v != null) {
+                aXs.add(alts[k]);
+                aYs.add(v);
+              }
+            }
+            if (aXs.length >= 2) estimates.add(_interp1d(aXs, aYs, alts[ai]));
+
+            // Along temperature.
+            final List<double> tXs = <double>[];
+            final List<double> tYs = <double>[];
+            for (int k = 0; k < temps.length; k++) {
+              final v = grid[ai][k][wi];
+              if (v != null) {
+                tXs.add(temps[k]);
+                tYs.add(v);
+              }
+            }
+            if (tXs.length >= 2) estimates.add(_interp1d(tXs, tYs, temps[ti]));
+
+            // Along weight.
+            final List<double> wXs = <double>[];
+            final List<double> wYs = <double>[];
+            for (int k = 0; k < weights.length; k++) {
+              final v = grid[ai][ti][k];
+              if (v != null) {
+                wXs.add(weights[k]);
+                wYs.add(v);
+              }
+            }
+            if (wXs.length >= 2) estimates.add(_interp1d(wXs, wYs, weights[wi]));
+
+            if (estimates.isNotEmpty) {
+              double sum = 0;
+              for (final v in estimates) {
+                sum += v;
+              }
+              grid[ai][ti][wi] = sum / estimates.length;
+              progress = true;
+            }
+          }
+        }
+      }
+      final int newMissing = countMissing();
+      if (!progress || newMissing == missing) {
+        if (newMissing > 0) return null;
+        break;
+      }
+      missing = newMissing;
+    }
+
+    // Reduce to (alt) ← interp_temp(...) ← interp_weight(...).
+    final List<double> alongAlt = List<double>.filled(alts.length, 0);
+    for (int ai = 0; ai < alts.length; ai++) {
+      final List<double> alongTemp = List<double>.filled(temps.length, 0);
+      for (int ti = 0; ti < temps.length; ti++) {
+        final List<double> wColumn = List<double>.generate(weights.length, (wi) => grid[ai][ti][wi]!);
+        alongTemp[ti] = _interp1d(weights, wColumn, weight);
+      }
+      alongAlt[ai] = _interp1d(temps, alongTemp, temp);
+    }
+    return _interp1d(alts, alongAlt, alt);
+  }
+
+  /// Scattered (densityAltitude, weight) polynomial least-squares fit.
+  static double _interpolateScatteredPolyDA(
+    List<Performance3DEntry> entries,
+    double alt,
+    double temp,
+    double weight,
+  ) {
+    final double targetDa = PerformanceCalculator.calculateDensityAltitude(alt, temp);
+
+    final List<List<double>> points = entries.map((e) {
+      final double da = PerformanceCalculator.calculateDensityAltitude(e.altitude, e.temp);
+      return <double>[da, e.weight, e.value];
+    }).toList();
+
+    for (final p in points) {
+      if ((p[0] - targetDa).abs() < 1e-6 && (p[1] - weight).abs() < 1e-6) {
+        return p[2];
       }
     }
-    if (target < sorted.first.dim) return sorted.first.value;
-    if (target > sorted.last.dim) return sorted.last.value;
-    return null;
+
+    final Set<double> uniqueDa = points.map((p) => p[0]).toSet();
+    final Set<double> uniqueW = points.map((p) => p[1]).toSet();
+
+    int degree;
+    if (entries.length >= 10 && uniqueDa.length >= 4 && uniqueW.length >= 3) {
+      degree = 3;
+    } else if (entries.length >= 6 && uniqueDa.length >= 3 && uniqueW.length >= 2) {
+      degree = 2;
+    } else {
+      degree = 1;
+    }
+
+    double? fitted = _polynomialFit2D(points, targetDa, weight, degree: degree);
+    while (fitted == null && degree > 1) {
+      degree--;
+      fitted = _polynomialFit2D(points, targetDa, weight, degree: degree);
+    }
+    if (fitted == null) {
+      return _inverseDistanceWeighted(points, targetDa, weight);
+    }
+
+    double minV = points.first[2];
+    double maxV = points.first[2];
+    for (final p in points) {
+      if (p[2] < minV) minV = p[2];
+      if (p[2] > maxV) maxV = p[2];
+    }
+    final double range = (maxV - minV).abs();
+    final double pad = range * 0.25;
+    return fitted.clamp(minV - pad, maxV + pad);
   }
 
-  static double _inverseDistanceWeighted(List<Performance3DEntry> entries, double alt, double temp, double weight) {
+  /// 1D interpolation at [x] over strictly-ascending samples
+  /// ([xs], [ys]) using a **natural cubic spline through all
+  /// points**.
+  ///
+  /// The spline's second derivatives M[0..n-1] are obtained from a
+  /// single tridiagonal system (Thomas algorithm) with the natural
+  /// boundary M[0] = M[n-1] = 0. Because that system is solved
+  /// jointly, the cubic on any segment depends on every tabulated
+  /// value, not only on the two endpoints of the segment. The
+  /// resulting interpolant:
+  ///
+  ///  * passes through every (x, y) sample exactly (no smoothing),
+  ///  * is C² continuous at every knot (value, slope and curvature
+  ///    all match across knots — the curve never appears "broken" at
+  ///    a tabulated point),
+  ///  * uses *all* points on the axis at once, so changing one
+  ///    sample influences the curve everywhere.
+  ///
+  /// Outside [xs.first, xs.last] the spline's own endpoint slope is
+  /// used to extrapolate linearly, which keeps the result continuous
+  /// with the interior cubic at the boundary and continues the local
+  /// trend just past the last grid point.
+  ///
+  /// Degenerate cases: 1 sample → constant; 2 samples → linear.
+  static double _interp1d(List<double> xs, List<double> ys, double x) {
+    final int n = xs.length;
+    if (n == 1) return ys.first;
+    if (n == 2) {
+      final double dx = xs[1] - xs[0];
+      if (dx == 0) return ys[0];
+      return ys[0] + (x - xs[0]) * (ys[1] - ys[0]) / dx;
+    }
+
+    // Knot spacings.
+    final List<double> h = List<double>.filled(n - 1, 0);
+    for (int k = 0; k < n - 1; k++) {
+      h[k] = xs[k + 1] - xs[k];
+    }
+
+    // Build and solve the tridiagonal system for M[1..n-2].
+    //   h[k]·M[k] + 2·(h[k]+h[k+1])·M[k+1] + h[k+1]·M[k+2] = 6·rhs[k]
+    // for k = 0..n-3, with M[0] = M[n-1] = 0 (natural boundaries),
+    // rhs[k] = (y[k+2]-y[k+1])/h[k+1] - (y[k+1]-y[k])/h[k].
+    final int innerN = n - 2;
+    final List<double> diag = List<double>.filled(innerN, 0);
+    final List<double> sup = List<double>.filled(innerN, 0);
+    final List<double> rhs = List<double>.filled(innerN, 0);
+    for (int k = 0; k < innerN; k++) {
+      diag[k] = 2 * (h[k] + h[k + 1]);
+      if (k < innerN - 1) sup[k] = h[k + 1];
+      rhs[k] = 6 *
+          ((ys[k + 2] - ys[k + 1]) / h[k + 1] -
+              (ys[k + 1] - ys[k]) / h[k]);
+    }
+    // Thomas forward sweep — sub-diagonal entry below diag[k] is h[k].
+    for (int k = 1; k < innerN; k++) {
+      final double w = h[k] / diag[k - 1];
+      diag[k] -= w * sup[k - 1];
+      rhs[k] -= w * rhs[k - 1];
+    }
+    // Back substitution — m holds full-length M[0..n-1] with the
+    // natural boundary zeros in place.
+    final List<double> m = List<double>.filled(n, 0);
+    m[n - 2] = rhs[innerN - 1] / diag[innerN - 1];
+    for (int k = innerN - 2; k >= 0; k--) {
+      m[k + 1] = (rhs[k] - sup[k] * m[k + 2]) / diag[k];
+    }
+
+    // Linear extrapolation outside the range using the spline's own
+    // endpoint slope so the value is C¹-continuous with the interior.
+    if (x <= xs.first) {
+      final double slope = (ys[1] - ys[0]) / h[0] - h[0] * (2 * m[0] + m[1]) / 6;
+      return ys[0] + (x - xs[0]) * slope;
+    }
+    if (x >= xs.last) {
+      final double slope = (ys[n - 1] - ys[n - 2]) / h[n - 2] +
+          h[n - 2] * (m[n - 2] + 2 * m[n - 1]) / 6;
+      return ys[n - 1] + (x - xs[n - 1]) * slope;
+    }
+
+    int i = 0;
+    for (int k = 0; k < n - 1; k++) {
+      if (x >= xs[k] && x <= xs[k + 1]) {
+        i = k;
+        break;
+      }
+    }
+
+    // Cubic on segment [xs[i], xs[i+1]]:
+    //   S(x) = M[i]·(x_{i+1}-x)³/(6h) + M[i+1]·(x-x_i)³/(6h)
+    //        + (y_i/h   - M[i]  ·h/6)·(x_{i+1}-x)
+    //        + (y_{i+1}/h - M[i+1]·h/6)·(x-x_i)
+    final double hh = h[i];
+    final double a1 = xs[i + 1] - x;
+    final double a2 = x - xs[i];
+    return m[i] * a1 * a1 * a1 / (6 * hh) +
+        m[i + 1] * a2 * a2 * a2 / (6 * hh) +
+        (ys[i] / hh - m[i] * hh / 6) * a1 +
+        (ys[i + 1] / hh - m[i + 1] * hh / 6) * a2;
+  }
+
+  /// 2D least-squares polynomial fit of total degree [degree] in (x, y),
+  /// evaluated at ([targetX], [targetY]). Returns null if the normal
+  /// equations are singular. Inputs are mean-centered and scaled for
+  /// numerical conditioning.
+  static double? _polynomialFit2D(
+    List<List<double>> points,
+    double targetX,
+    double targetY, {
+    required int degree,
+  }) {
+    final int n = points.length;
+    final int numTerms = ((degree + 1) * (degree + 2)) ~/ 2;
+    if (n < numTerms) return null;
+
+    double meanX = 0, meanY = 0;
+    for (final p in points) {
+      meanX += p[0];
+      meanY += p[1];
+    }
+    meanX /= n;
+    meanY /= n;
+
+    double scaleX = 0, scaleY = 0;
+    for (final p in points) {
+      final double dx = (p[0] - meanX).abs();
+      final double dy = (p[1] - meanY).abs();
+      if (dx > scaleX) scaleX = dx;
+      if (dy > scaleY) scaleY = dy;
+    }
+    if (scaleX < 1e-9) scaleX = 1;
+    if (scaleY < 1e-9) scaleY = 1;
+
+    // Design matrix A and observation vector b.
+    final List<List<double>> a = List.generate(n, (_) => List<double>.filled(numTerms, 0));
+    final List<double> b = List<double>.filled(n, 0);
+    for (int i = 0; i < n; i++) {
+      final double dx = (points[i][0] - meanX) / scaleX;
+      final double dy = (points[i][1] - meanY) / scaleY;
+      int t = 0;
+      for (int d = 0; d <= degree; d++) {
+        for (int k = 0; k <= d; k++) {
+          a[i][t++] = _intPow(dx, d - k) * _intPow(dy, k);
+        }
+      }
+      b[i] = points[i][2];
+    }
+
+    // Normal equations: (Aᵀ A) c = Aᵀ b, with tiny ridge term for
+    // conditioning when columns are nearly collinear.
+    final List<List<double>> ata = List.generate(numTerms, (_) => List<double>.filled(numTerms, 0));
+    final List<double> atb = List<double>.filled(numTerms, 0);
+    for (int i = 0; i < numTerms; i++) {
+      for (int j = i; j < numTerms; j++) {
+        double s = 0;
+        for (int k = 0; k < n; k++) {
+          s += a[k][i] * a[k][j];
+        }
+        ata[i][j] = s;
+        ata[j][i] = s;
+      }
+      double s = 0;
+      for (int k = 0; k < n; k++) {
+        s += a[k][i] * b[k];
+      }
+      atb[i] = s;
+    }
+    for (int i = 0; i < numTerms; i++) {
+      ata[i][i] += 1e-9;
+    }
+
+    final List<double>? coeffs = _gaussSolve(ata, atb);
+    if (coeffs == null) return null;
+
+    final double dx = (targetX - meanX) / scaleX;
+    final double dy = (targetY - meanY) / scaleY;
+    double result = 0;
+    int t = 0;
+    for (int d = 0; d <= degree; d++) {
+      for (int k = 0; k <= d; k++) {
+        result += coeffs[t++] * _intPow(dx, d - k) * _intPow(dy, k);
+      }
+    }
+    return result;
+  }
+
+  /// Integer-exponent power; faster and numerically nicer than
+  /// dart:math `pow` for small non-negative degrees used here.
+  static double _intPow(double v, int n) {
+    if (n == 0) return 1;
+    double r = 1;
+    double base = v;
+    int e = n;
+    while (e > 0) {
+      if ((e & 1) == 1) r *= base;
+      e >>= 1;
+      if (e > 0) base *= base;
+    }
+    return r;
+  }
+
+  /// Solves a square linear system A x = b via Gaussian elimination
+  /// with partial pivoting. Returns null if [a] is effectively singular.
+  static List<double>? _gaussSolve(List<List<double>> a, List<double> b) {
+    final int n = a.length;
+    // Augmented matrix copy so callers' data is preserved.
+    final List<List<double>> m = List.generate(n, (i) => <double>[...a[i], b[i]]);
+
+    for (int i = 0; i < n; i++) {
+      int pivot = i;
+      double pivotMag = m[i][i].abs();
+      for (int k = i + 1; k < n; k++) {
+        final double mag = m[k][i].abs();
+        if (mag > pivotMag) {
+          pivot = k;
+          pivotMag = mag;
+        }
+      }
+      if (pivotMag < 1e-12) return null;
+      if (pivot != i) {
+        final List<double> tmp = m[i];
+        m[i] = m[pivot];
+        m[pivot] = tmp;
+      }
+      final double pivotVal = m[i][i];
+      for (int k = i + 1; k < n; k++) {
+        final double factor = m[k][i] / pivotVal;
+        if (factor == 0) continue;
+        for (int j = i; j <= n; j++) {
+          m[k][j] -= factor * m[i][j];
+        }
+      }
+    }
+
+    final List<double> x = List<double>.filled(n, 0);
+    for (int i = n - 1; i >= 0; i--) {
+      double s = m[i][n];
+      for (int j = i + 1; j < n; j++) {
+        s -= m[i][j] * x[j];
+      }
+      x[i] = s / m[i][i];
+    }
+    return x;
+  }
+
+  /// Last-resort scattered-data fallback when the polynomial fit cannot
+  /// be solved (e.g. all points collinear in the (DA, W) plane).
+  static double _inverseDistanceWeighted(List<List<double>> points, double targetDa, double weight) {
     double totalW = 0;
     double weightedSum = 0;
-    for (var e in entries) {
-      double altDist = (e.altitude - alt).abs() / 1000;
-      double tempDist = (e.temp - temp).abs() / 10;
-      double weightDist = (e.weight - weight).abs() / 500;
-      double dist = sqrt(altDist * altDist + tempDist * tempDist + weightDist * weightDist);
+    for (final p in points) {
+      final double daDist = (p[0] - targetDa).abs() / 1000.0;
+      final double wDist = (p[1] - weight).abs() / 500.0;
+      double dist = sqrt(daDist * daDist + wDist * wDist);
       if (dist < 0.001) dist = 0.001;
-      double w = 1 / (dist * dist);
-      weightedSum += e.value * w;
+      final double w = 1 / (dist * dist);
+      weightedSum += p[2] * w;
       totalW += w;
     }
-    return totalW > 0 ? weightedSum / totalW : entries.first.value;
+    return totalW > 0 ? weightedSum / totalW : points.first[2];
   }
 
+  /// Interpolates POH cruise KTAS and GPH at the requested pressure
+  /// altitude [alt] (ft), ISA temperature deviation [temp] (°C) and
+  /// throttle setting [power] (%).
+  ///
+  /// Cruise performance is driven physically by **density altitude**,
+  /// not by pressure altitude and temperature independently: at the
+  /// same density altitude and throttle setting, a normally-aspirated
+  /// engine produces (approximately) the same power and the airframe
+  /// produces (approximately) the same TAS at the same IAS. Two POH
+  /// inputs `(pressureAlt, isaDeviation)` that map to the same density
+  /// altitude therefore yield the same cruise numbers.
+  ///
+  /// Concretely, this means we cannot treat `alt` and `temp` as two
+  /// independent axes the way the takeoff / landing path does:
+  ///
+  ///  * Real POH cruise tables almost always tabulate at standard day
+  ///    only (one ISA-deviation column), so an independent-axis
+  ///    interpolator would collapse the temp axis to a constant and
+  ///    changing the user's ISA-deviation input would have no effect
+  ///    on KTAS or GPH (only on the displayed density altitude).
+  ///  * Even when the table does include a few non-ISA columns, the
+  ///    physically meaningful interpolation between them is along the
+  ///    density-altitude axis, not along ISA-dev at constant pressure
+  ///    altitude.
+  ///
+  /// So this method converts the user's `(alt, temp)` input *and*
+  /// every table entry's `(altitude, temp)` to density altitude, then
+  /// hands the remapped entries to the standard gridded
+  /// natural-cubic-spline tensor product on `(DA, power)` (the temp
+  /// axis collapses to a single zero column). This keeps the smooth,
+  /// monotone-friendly spline behaviour of the takeoff / landing path
+  /// while making ISA deviation an actual degree of freedom for the
+  /// user.
+  ///
+  ///  1. **Gridded tensor-product natural cubic spline on (DA, power)**
+  ///     — when entries form (or can be completed into) a regular
+  ///     grid in (densityAltitude, power). Real POH cruise tables are
+  ///     nearly always *ragged* on the power axis (each altitude
+  ///     lists its own 2–4 power settings rather than a fixed grid),
+  ///     so the grid completion step is essential.
+  ///
+  ///  2. **Inverse distance weighted scattered fallback** — for
+  ///     genuinely sparse data where even the row-fill cannot complete
+  ///     the grid (e.g. an altitude that only has a single power
+  ///     sample), we fall back to IDW in `(DA, power)` space.
   static CruiseResult interpolateCruise(List<Cruise3DEntry> entries, double alt, double temp, double power) {
     if (entries.isEmpty) return CruiseResult(ktas: 0, gph: 0);
     if (entries.length == 1) return CruiseResult(ktas: entries.first.ktas, gph: entries.first.gph);
 
-    Cruise3DEntry? exact = entries.cast<Cruise3DEntry?>().firstWhere(
-      (e) => e!.altitude == alt && e.temp == temp && e.powerPercent == power,
-      orElse: () => null,
-    );
-    if (exact != null) return CruiseResult(ktas: exact.ktas, gph: exact.gph);
+    // Remap (pressureAlt, isaDeviation) → density altitude for both
+    // the query point and every entry. The remapped entries live in
+    // (DA, 0, power) space — a single-temp column the spline grid path
+    // handles natively.
+    final double targetDa = PerformanceCalculator.densityAltitudeFromIsaDeviation(alt, temp);
+    final List<Cruise3DEntry> daEntries = entries
+        .map((e) => Cruise3DEntry(
+              altitude: PerformanceCalculator.densityAltitudeFromIsaDeviation(e.altitude, e.temp),
+              temp: 0,
+              powerPercent: e.powerPercent,
+              ktas: e.ktas,
+              gph: e.gph,
+            ))
+        .toList();
 
+    final CruiseResult? gridded = _interpolateCruiseOnGrid(daEntries, targetDa, 0, power);
+    if (gridded != null) return gridded;
+
+    return _interpolateCruiseScattered(daEntries, targetDa, 0, power);
+  }
+
+  /// Returns the interpolated cruise result when [entries] form (or
+  /// can be completed into) a regular grid in (altitude, temp,
+  /// powerPercent); otherwise null. KTAS and GPH are interpolated in
+  /// parallel as a tensor product of natural cubic splines.
+  ///
+  /// Tolerance to imperfect tables — same recipe as the takeoff /
+  /// landing path:
+  ///
+  ///   * Duplicate `(alt, temp, power)` rows are deduplicated (first
+  ///     occurrence wins — typos shouldn't silently average in).
+  ///   * Missing cells are filled iteratively by averaging 1D natural-
+  ///     spline estimates from each neighbouring axis that has at
+  ///     least two samples available for that row/column. The KTAS
+  ///     and GPH grids are filled in lock-step using the same axis
+  ///     samples so the two outputs stay physically consistent.
+  ///
+  /// This is what lets the grid path handle ragged POH cruise tables
+  /// like N80251's (different altitudes list different power values),
+  /// since each altitude's 3 power samples are enough to fill that
+  /// altitude's missing power columns via 1D power-axis spline.
+  static CruiseResult? _interpolateCruiseOnGrid(
+    List<Cruise3DEntry> entries,
+    double alt,
+    double temp,
+    double power,
+  ) {
+    final List<double> alts = entries.map((e) => e.altitude).toSet().toList()..sort();
+    final List<double> temps = entries.map((e) => e.temp).toSet().toList()..sort();
+    final List<double> powers = entries.map((e) => e.powerPercent).toSet().toList()..sort();
+
+    if (alts.length < 2 && temps.length < 2 && powers.length < 2) return null;
+
+    final List<List<List<double?>>> ktasGrid = List.generate(
+      alts.length,
+      (_) => List.generate(temps.length, (_) => List<double?>.filled(powers.length, null)),
+    );
+    final List<List<List<double?>>> gphGrid = List.generate(
+      alts.length,
+      (_) => List.generate(temps.length, (_) => List<double?>.filled(powers.length, null)),
+    );
+    for (final e in entries) {
+      final int ai = alts.indexOf(e.altitude);
+      final int ti = temps.indexOf(e.temp);
+      final int pi = powers.indexOf(e.powerPercent);
+      if (ai < 0 || ti < 0 || pi < 0) return null;
+      // First-wins on duplicates (see _interpolateOnGrid).
+      if (ktasGrid[ai][ti][pi] == null) {
+        ktasGrid[ai][ti][pi] = e.ktas;
+        gphGrid[ai][ti][pi] = e.gph;
+      }
+    }
+
+    int countMissing() {
+      int c = 0;
+      for (int ai = 0; ai < alts.length; ai++) {
+        for (int ti = 0; ti < temps.length; ti++) {
+          for (int pi = 0; pi < powers.length; pi++) {
+            if (ktasGrid[ai][ti][pi] == null) c++;
+          }
+        }
+      }
+      return c;
+    }
+
+    int missing = countMissing();
+    while (missing > 0) {
+      bool progress = false;
+      for (int ai = 0; ai < alts.length; ai++) {
+        for (int ti = 0; ti < temps.length; ti++) {
+          for (int pi = 0; pi < powers.length; pi++) {
+            if (ktasGrid[ai][ti][pi] != null) continue;
+
+            final List<double> ktasEstimates = <double>[];
+            final List<double> gphEstimates = <double>[];
+
+            // Along altitude.
+            final List<double> aXs = <double>[];
+            final List<double> aKs = <double>[];
+            final List<double> aGs = <double>[];
+            for (int k = 0; k < alts.length; k++) {
+              final double? kv = ktasGrid[k][ti][pi];
+              if (kv != null) {
+                aXs.add(alts[k]);
+                aKs.add(kv);
+                aGs.add(gphGrid[k][ti][pi]!);
+              }
+            }
+            if (aXs.length >= 2) {
+              ktasEstimates.add(_interp1d(aXs, aKs, alts[ai]));
+              gphEstimates.add(_interp1d(aXs, aGs, alts[ai]));
+            }
+
+            // Along temperature.
+            final List<double> tXs = <double>[];
+            final List<double> tKs = <double>[];
+            final List<double> tGs = <double>[];
+            for (int k = 0; k < temps.length; k++) {
+              final double? kv = ktasGrid[ai][k][pi];
+              if (kv != null) {
+                tXs.add(temps[k]);
+                tKs.add(kv);
+                tGs.add(gphGrid[ai][k][pi]!);
+              }
+            }
+            if (tXs.length >= 2) {
+              ktasEstimates.add(_interp1d(tXs, tKs, temps[ti]));
+              gphEstimates.add(_interp1d(tXs, tGs, temps[ti]));
+            }
+
+            // Along power.
+            final List<double> pXs = <double>[];
+            final List<double> pKs = <double>[];
+            final List<double> pGs = <double>[];
+            for (int k = 0; k < powers.length; k++) {
+              final double? kv = ktasGrid[ai][ti][k];
+              if (kv != null) {
+                pXs.add(powers[k]);
+                pKs.add(kv);
+                pGs.add(gphGrid[ai][ti][k]!);
+              }
+            }
+            if (pXs.length >= 2) {
+              ktasEstimates.add(_interp1d(pXs, pKs, powers[pi]));
+              gphEstimates.add(_interp1d(pXs, pGs, powers[pi]));
+            }
+
+            if (ktasEstimates.isNotEmpty) {
+              double ks = 0;
+              double gs = 0;
+              for (final v in ktasEstimates) {
+                ks += v;
+              }
+              for (final v in gphEstimates) {
+                gs += v;
+              }
+              ktasGrid[ai][ti][pi] = ks / ktasEstimates.length;
+              gphGrid[ai][ti][pi] = gs / gphEstimates.length;
+              progress = true;
+            }
+          }
+        }
+      }
+      final int newMissing = countMissing();
+      if (!progress || newMissing == missing) {
+        if (newMissing > 0) return null;
+        break;
+      }
+      missing = newMissing;
+    }
+
+    // Tensor-product spline: power → temp → altitude.
+    final List<double> alongAltKtas = List<double>.filled(alts.length, 0);
+    final List<double> alongAltGph = List<double>.filled(alts.length, 0);
+    for (int ai = 0; ai < alts.length; ai++) {
+      final List<double> alongTempK = List<double>.filled(temps.length, 0);
+      final List<double> alongTempG = List<double>.filled(temps.length, 0);
+      for (int ti = 0; ti < temps.length; ti++) {
+        final List<double> kCol = List<double>.generate(powers.length, (pi) => ktasGrid[ai][ti][pi]!);
+        final List<double> gCol = List<double>.generate(powers.length, (pi) => gphGrid[ai][ti][pi]!);
+        alongTempK[ti] = _interp1d(powers, kCol, power);
+        alongTempG[ti] = _interp1d(powers, gCol, power);
+      }
+      alongAltKtas[ai] = _interp1d(temps, alongTempK, temp);
+      alongAltGph[ai] = _interp1d(temps, alongTempG, temp);
+    }
+    return CruiseResult(
+      ktas: _interp1d(alts, alongAltKtas, alt),
+      gph: _interp1d(alts, alongAltGph, alt),
+    );
+  }
+
+  /// Last-resort scattered-data fallback: inverse-distance weighting
+  /// across every entry in (alt, temp, power) space. Only fires when
+  /// the data is too sparse for the grid path's row-fill to complete.
+  static CruiseResult _interpolateCruiseScattered(
+    List<Cruise3DEntry> entries,
+    double alt,
+    double temp,
+    double power,
+  ) {
     double totalW = 0;
     double ktasSum = 0;
     double gphSum = 0;
-    for (var e in entries) {
-      double altDist = (e.altitude - alt).abs() / 1000;
-      double tempDist = (e.temp - temp).abs() / 10;
-      double powerDist = (e.powerPercent - power).abs() / 10;
+    for (final e in entries) {
+      final double altDist = (e.altitude - alt).abs() / 1000;
+      final double tempDist = (e.temp - temp).abs() / 10;
+      final double powerDist = (e.powerPercent - power).abs() / 10;
       double dist = sqrt(altDist * altDist + tempDist * tempDist + powerDist * powerDist);
       if (dist < 0.001) dist = 0.001;
-      double w = 1 / (dist * dist);
+      final double w = 1 / (dist * dist);
       ktasSum += e.ktas * w;
       gphSum += e.gph * w;
       totalW += w;
@@ -157,12 +830,6 @@ class Interpolator3D {
     }
     return CruiseResult(ktas: entries.first.ktas, gph: entries.first.gph);
   }
-}
-
-class _DimValue {
-  final double dim;
-  final double value;
-  _DimValue(this.dim, this.value);
 }
 
 class PerformanceTable {

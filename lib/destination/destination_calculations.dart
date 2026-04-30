@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/weather/winds_cache.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../utils/geo_calculations.dart';
@@ -11,8 +13,6 @@ class DestinationCalculations {
   final Destination _to;
   final double _speed;
   final double _fuelBurn;
-  final double? _ws;
-  final double? _wd;
   final double altitude;
   String wind = "";
 
@@ -26,10 +26,12 @@ class DestinationCalculations {
   double groundSpeed = 0;
   double variation = 0;
 
-  DestinationCalculations(this._from, this._to, this._speed, this._fuelBurn, this._wd, this._ws, this.altitude);
+  DestinationCalculations(this._from, this._to, this._speed, this._fuelBurn, this.altitude);
 
   // calculate all params like dist, bearing, time, altitude and fuel
   void calculateTo() {
+
+    int fore = Storage().route.fore;
 
     GeoCalculations calculations = GeoCalculations();
     List<LatLng> points = calculations.findPoints(_from.coordinate, _to.coordinate);
@@ -37,26 +39,51 @@ class DestinationCalculations {
     if(points.length < 2) {
       return;
     }
-    trueCourse = calculations.calculateBearing(points[0], points[1]);
-    distance = 0;
+
     for(int index = 0; index < points.length - 1; index++) {
-      distance = distance + calculations.calculateDistance(points[index], points[index + 1]);
+      // distance accumulates
+      double d = calculations.calculateDistance(points[index], points[index + 1]);
+
+      // true course between points
+      double tc = calculations.calculateBearing(points[index], points[index + 1]);
+
+      double v1 = _from.geoVariation ?? 0;
+      double v2 = _to.geoVariation ?? 0;
+      double vStep = (v1 - v2) / points.length;
+
+      // interpolate variation as this is a db query otherwise
+      double v = v1 + vStep * index;
+
+      double? ws, wd;
+      (wd, ws) = WindsCache.getWindsAt(points[index], altitude.toDouble(), fore);
+      ws = ws ?? 0;
+      wd = wd ?? 0;
+
+      WindSolution solution = WindSolution.solveWindTriangle(windSpeed: ws,
+          windDirectionDeg: wd,
+          courseDeg: tc,
+          trueAirspeed: _speed);
+      double gs = solution.groundSpeed;
+      double wca = solution.wcaDeg;
+      double mc = GeoCalculations.getMagneticHeading(tc, v);
+      double c = (mc + wca) % 360;
+      double t = 3600 * d / gs;
+      double f = _fuelBurn * t / 3600;
+      time += t; //sec
+      fuel += f; // gallon per hour use
+      distance += d;
+      // show these at the start as averaging these makes no sense
+      if(0 == index) {
+        variation = v;
+        trueCourse = tc;
+        course = c;
+        magneticCourse = mc;
+        wind = "${wd.round()}@${ws.round()}";
+        windCorrectionAngle = wca;
+        groundSpeed = gs;
+      }
     }
 
-    double variation1 = _to.geoVariation?? 0;
-    double variation2 = _from.geoVariation?? 0;
-
-    double ws = _ws?? 0;
-    double wd = _wd?? 0;
-    wind = "${wd.round()}@${ws.round()}";
-
-    variation = (variation1 + variation2) / 2.0; // avg of two variation
-    groundSpeed = sqrt(ws * ws + _speed * _speed - 2 * ws * _speed * cos((trueCourse - wd) * pi / 180.0));
-    windCorrectionAngle = -GeoCalculations.toDegrees(atan2(ws * sin((trueCourse - wd) * pi / 180.0), _speed - ws * cos((trueCourse - wd) * pi / 180.0)));
-    magneticCourse = GeoCalculations.getMagneticHeading(trueCourse, variation);
-    course = (magneticCourse + windCorrectionAngle) % 360;
-    time = 3600 * distance / groundSpeed; //sec
-    fuel = _fuelBurn * time / 3600; // gallon per hour use
   }
 
   static const List<String> labels = ["FM", "TO", "AL", "TC", "VR", "MC", "WD", "CA", "MH", "DT", "GS", "TM", "FC"];
@@ -80,4 +107,54 @@ class DestinationCalculations {
     return log;
   }
 
+}
+
+// AI generated
+class WindSolution {
+  final double wcaDeg; // Wind Correction Angle (degrees, +right / -left)
+  final double headingDeg; // Corrected heading (degrees)
+  final double groundSpeed; // Ground speed
+
+  WindSolution({
+    required this.wcaDeg,
+    required this.headingDeg,
+    required this.groundSpeed,
+  });
+
+  static WindSolution solveWindTriangle({
+    required double windSpeed,
+    required double windDirectionDeg, // FROM
+    required double courseDeg,
+    required double trueAirspeed,
+  }) {
+
+    final windDirRad = GeoCalculations.toRadians(windDirectionDeg);
+    final courseRad = GeoCalculations.toRadians(courseDeg);
+
+    final theta = windDirRad - courseRad;
+
+    // Components
+    final crosswind = windSpeed * sin(theta);
+    final headwind = windSpeed * cos(theta);
+
+    // Clamp for safety
+    double clamp(double x) => x.clamp(-1.0, 1.0);
+
+    // WCA
+    final wcaRad = asin(clamp(crosswind / trueAirspeed));
+
+    // Heading
+    double headingDeg = GeoCalculations.toDegrees(courseRad + wcaRad);
+    headingDeg = (headingDeg % 360 + 360) % 360;
+
+    // Ground speed (corrected)
+    final groundSpeed =
+        sqrt(pow(trueAirspeed, 2) - pow(crosswind, 2)) - headwind;
+
+    return WindSolution(
+      wcaDeg: GeoCalculations.toDegrees(wcaRad),
+      headingDeg: headingDeg,
+      groundSpeed: groundSpeed,
+    );
+  }
 }

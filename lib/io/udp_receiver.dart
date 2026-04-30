@@ -1,13 +1,11 @@
-import 'dart:async';
+import 'package:avaremp/storage.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/utils/app_log.dart';
-import 'package:flutter/foundation.dart';
 
 // Get UDP from receivers, handle GDL90
 class UdpReceiver {
 
-  late StreamController<Uint8List> _controller;
   final List<RawDatagramSocket> _sockets = [];
 
   void initChannel(int port, bool broadcast) async {
@@ -24,7 +22,8 @@ class UdpReceiver {
             if (dg == null) {
               break;
             }
-            _controller.add(dg.data);
+            Storage().nmeaBuffer.put(dg.data);
+            Storage().gdl90Buffer.put(dg.data);
           }
         });
         return socket;
@@ -36,18 +35,15 @@ class UdpReceiver {
     }
   }
 
-  StreamSubscription<Uint8List> getStream(List<int> ports, List<bool> isBroadcast) {
-    _controller = StreamController<Uint8List>();
+  void start(List<int> ports, List<bool> isBroadcast) {
     for(int port in ports) {
       initChannel(port, isBroadcast[ports.indexOf(port)]);
     }
-    return _controller.stream.listen((event) { });
   }
 
   void finish() {
     for(RawDatagramSocket socket in _sockets) {
       socket.close();
     }
-    _controller.close();
   }
 }

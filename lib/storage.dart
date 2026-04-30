@@ -150,8 +150,8 @@ class Storage {
   bool airborne = true;  
   final AppSettings settings = AppSettings();
 
-  final Gdl90Buffer _gdl90Buffer = Gdl90Buffer();
-  final NmeaBuffer _nmeaBuffer = NmeaBuffer();
+  final Gdl90Buffer gdl90Buffer = Gdl90Buffer();
+  final NmeaBuffer nmeaBuffer = NmeaBuffer();
 
   int _key = 1111;
 
@@ -203,8 +203,6 @@ class Storage {
   }
 
   StreamSubscription<Position>? _gpsStream;
-  StreamSubscription<Uint8List>? _udpStream;
-  StreamSubscription<Uint8List>? _btStream;
 
   // for transition from plan to find for waypoint insert at a specific index
   bool planSearch = false;
@@ -214,7 +212,7 @@ class Storage {
     while(true) {
       Uint8List? message;
       try {
-        message = _gdl90Buffer.get();
+        message = gdl90Buffer.get();
       } catch (e, st) {
         setException("ADS-B data error");
         AppLog.logMessage("GDL90 data error: $e\n$st");
@@ -255,7 +253,7 @@ class Storage {
     while(true) {
       Uint8List? message;
       try {
-        message = _nmeaBuffer.get();
+        message = nmeaBuffer.get();
       } catch (e, st) {
         setException("NMEA data error");
         AppLog.logMessage("NMEA data error: $e\n$st");
@@ -293,26 +291,6 @@ class Storage {
     }
   }
 
-  // set bluetooth stream from IO screen
-  void setBtStream(Stream<Uint8List>? s) {
-    if(null != _btStream) {
-      _btStream?.cancel(); // old
-      _btStream = null;
-    }
-    if(s == null) {
-      return;
-    }
-    _btStream = s.listen(
-      (data) {
-        _gdl90Buffer.put(data);
-        _nmeaBuffer.put(data);
-        _processData();
-      },
-      onError: ((error) => AppLog.logMessage("Bluetooth stream error: $error")),
-      onDone: () => AppLog.logMessage("Bluetooth stream done")
-    );
-  }
-
   void startIO() {
     // GPS data receive
     // start both external and internal
@@ -337,16 +315,7 @@ class Storage {
     }
 
     // GPS data receive
-    _udpStream = _udpReceiver.getStream([4000, 43211, 49002], [false, false, false]);
-    _udpStream?.onDone(() {
-    });
-    _udpStream?.onError((obj){
-    });
-    _udpStream?.onData((data) {
-      _gdl90Buffer.put(data);
-      _nmeaBuffer.put(data);
-      _processData();
-    });
+    _udpReceiver.start([4000, 43211, 49002], [false, false, false]);
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
       gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
@@ -357,7 +326,6 @@ class Storage {
 
   void stopIO() {
     try {
-      _udpStream?.cancel();
       _udpReceiver.finish();
     }
     catch(e) {
@@ -445,6 +413,11 @@ class Storage {
       String data = AutoPilot.apCreateSentences();
       IoScreenState.sendData(data);
     });
+
+    Timer.periodic(const Duration(milliseconds: 100), (tim) async {
+      _processData();
+    });
+
 
     Timer.periodic(const Duration(milliseconds: 250), (tim) async {
       // this provides time to apps

@@ -42,7 +42,7 @@ class PathUtils {
       final d = Directory(base);
       final List<FileSystemEntity> entities = await d.list().toList();
       for (FileSystemEntity en in entities) {
-        if(isTextFile(en.path) || (isPdfFile(en.path) && Constants.shouldShowPdf) || isKmlFile(en.path) || isJSONFile(en.path) || isPictureFile(en.path)) {
+        if(isTextFile(en.path) || (isPdfFile(en.path) && Constants.shouldShowPdf) || isKmlFile(en.path) || isJSONFile(en.path) || isPictureFile(en.path) || isAdsbFile(en.path)) {
           ret.add(en.path);
         }
       }
@@ -170,6 +170,10 @@ class PathUtils {
 
   static bool isTextFile(String url) {
     return path.extension(url).toLowerCase() == ".txt";
+  }
+
+  static bool isAdsbFile(String url) {
+    return path.extension(url).toLowerCase() == ".adsb";
   }
 
   static bool isPictureFile(String url) {

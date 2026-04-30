@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
@@ -63,7 +64,8 @@ class WeatherCache {
     List<Uint8List> responses = [];
     for(String url in urls) {
         try {
-          http.Response response = await http.get(Uri.parse(url));
+          // download in background
+          http.Response response = await Isolate.run(() => http.get(Uri.parse(url)));
           responses.add(response.bodyBytes);
         }
         catch(e) {
