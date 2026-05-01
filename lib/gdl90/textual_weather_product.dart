@@ -72,14 +72,19 @@ class TextualWeatherProduct extends Product {
 
   // This is a lot of ugly code because marker cluster has issues with changing coordinates
   void _parseMetarSpeci(String place, String report) {
-    MainDatabaseHelper.db.findAirport(place).then((AirportDestination? result) {
-      if(result != null) {
-        Metar metar = Metar(place, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)), DateTime.now(), Weather.sourceADSB,
-            _text, Metar.getCategory(report), result.coordinate);
-        Storage().metar.put(metar);
-        WeatherDatabaseHelper.db.addMetar(metar);
-      }
-    });
+    // FAA bug, some airports come with wrong ID like K6b6, hence try both
+    for(String pp in [place, place.substring(1)]) {
+      MainDatabaseHelper.db.findAirport(pp).then((AirportDestination? result) {
+        if (result != null) {
+          Metar metar = Metar(pp, time.add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+              DateTime.now(), Weather.sourceADSB,
+              report, Metar.getCategory(report),
+              result.coordinate);
+          Storage().metar.put(metar);
+          WeatherDatabaseHelper.db.addMetar(metar);
+        }
+      });
+    }
   }
 
   void _parsePirep(String place, String report) {
