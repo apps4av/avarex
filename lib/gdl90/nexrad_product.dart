@@ -58,60 +58,38 @@ class NexradProduct extends Product {
       }
     }
     else {
-      //Make a list of empty blocks
+      // Empty Element bitmap — see SBS Description Doc Appendix G.1.1.2.3
+      // and Table G-3. Byte 4 holds the 4-bit bitmap length L in its low
+      // nibble (bits 5-8 per the spec, where bit 1 = MSB) and four bitmap
+      // bits in its high nibble for BN+1..BN+4. L additional bytes follow.
       full = [];
       empty = [];
       empty.add(block);
-      int bitmapLen = data[index].toInt() & 0x0F;
 
-      if ((data[index].toInt() & 0x10) != 0) {
-        empty.add(block + 1);
-      }
+      final int header = data[index].toInt();
+      final int bitmapLen = header & 0x0F;
 
-      if ((data[index].toInt() & 0x20) != 0) {
-        empty.add(block + 2);
-      }
+      if ((header & 0x10) != 0) empty.add(block + 1); // byte 4, bit 4
+      if ((header & 0x20) != 0) empty.add(block + 2); // byte 4, bit 3
+      if ((header & 0x40) != 0) empty.add(block + 3); // byte 4, bit 2
+      if ((header & 0x80) != 0) empty.add(block + 4); // byte 4, bit 1
 
-      if ((data[index].toInt() & 0x30) != 0) {
-        empty.add(block + 3);
-      }
-
-      if ((data[index].toInt() & 0x40) != 0) {
-        empty.add(block + 4);
-      }
-
-      for (int i = 1; i < bitmapLen; i++) {
-        if ((data[index + i].toInt() & 0x01) != 0) {
-          empty.add(block + i * 8 - 3);
+      for (int i = 1; i <= bitmapLen; i++) {
+        if (index + i >= len) {
+          break;
         }
-
-        if ((data[index + i].toInt() & 0x02) != 0) {
-          empty.add(block + i * 8 - 2);
-        }
-
-        if ((data[index + i].toInt() & 0x04) != 0) {
-          empty.add(block + i * 8 - 1);
-        }
-
-        if ((data[index + i].toInt() & 0x08) != 0) {
-          empty.add(block + i * 8 - 0);
-        }
-
-        if ((data[index + i].toInt() & 0x10) != 0) {
-          empty.add(block + i * 8 + 1);
-        }
-
-        if ((data[index + i].toInt() & 0x20) != 0) {
-          empty.add(block + i * 8 + 2);
-        }
-
-        if ((data[index + i].toInt() & 0x40) != 0) {
-          empty.add(block + i * 8 + 3);
-        }
-
-        if ((data[index + i].toInt() & 0x80) != 0) {
-          empty.add(block + i * 8 + 4);
-        }
+        final int b = data[index + i].toInt();
+        // Within each subsequent byte, bit 8 (LSB) maps to the lowest
+        // additional offset and bit 1 (MSB) to the highest, matching
+        // Table G-3.
+        if ((b & 0x01) != 0) empty.add(block + i * 8 - 3);
+        if ((b & 0x02) != 0) empty.add(block + i * 8 - 2);
+        if ((b & 0x04) != 0) empty.add(block + i * 8 - 1);
+        if ((b & 0x08) != 0) empty.add(block + i * 8);
+        if ((b & 0x10) != 0) empty.add(block + i * 8 + 1);
+        if ((b & 0x20) != 0) empty.add(block + i * 8 + 2);
+        if ((b & 0x40) != 0) empty.add(block + i * 8 + 3);
+        if ((b & 0x80) != 0) empty.add(block + i * 8 + 4);
       }
     }
     Storage().nexradCache.putImg(this);
