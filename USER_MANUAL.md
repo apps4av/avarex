@@ -6,6 +6,10 @@ This manual documents all features in the current AvareX app, including:
 - **How to reach them in the UI**
 - **What each feature does**
 - **Platform-specific availability**
+- **Annotated screenshots of every major screen**
+- **Step-by-step walkthroughs for common workflows**
+
+> Tip: Screenshots in this manual were captured from the macOS desktop build. Mobile builds (iOS/Android) reflow some controls into bottom sheets, but the labels and workflow remain the same.
 
 ---
 
@@ -89,6 +93,8 @@ Open from MAP with **Menu** button (bottom-left):
 - Donate (not iOS/macOS)
 - Help (opens User Manual PDF; not available on Linux)
 
+![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
+
 ---
 
 ## 4) MAP Tab (Primary Flight Display + Map Tools)
@@ -96,6 +102,10 @@ Open from MAP with **Menu** button (bottom-left):
 ### 4.1 How to access
 
 Tap bottom tab **MAP**.
+
+![MAP tab with sectional chart, ownship, instrument strip, and bottom controls](assets/docs/screenshots/01_map_tab.png)
+
+The **instrument strip** runs along the top (GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT…). Bottom-left is **Menu** (drawer); bottom-center is **Center**; bottom-right has **Mute, Ruler, Track-up toggle, Rubber-banding, Notes, Chart Type, Layers**, plus the warning icon top-right.
 
 ### 4.2 Core interactions
 
@@ -154,6 +164,8 @@ Selectable map chart types with max zoom levels:
 | Helicopter | 12 | Helicopter route charts |
 | Flyway | 11 | VFR Flyway planning charts |
 
+![Chart type picker — tap a chart type to switch the map base](assets/docs/screenshots/03_map_chart_types.png)
+
 ### 4.5 Map layers and what they do
 
 Layer list from settings (with per-layer opacity 0-100%):
@@ -179,6 +191,8 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **GeoJSON** | Imported user GeoJSON polygons/markers. |
 | **PFD** | Inset Primary Flight Display panel (artificial horizon, speed/altitude tapes, VSI, compass, CDI/VDI, AOA indicator, turn coordinator). Requires AHRS data. |
 | **Tracks** | Ownship breadcrumb/polyline track recording (green line). |
+
+![Map Layers popup — adjust opacity sliders for each layer](assets/docs/screenshots/02_map_layers_popup.png)
 
 Notes:
 
@@ -283,6 +297,8 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - Bottom tab **PLATE**, or
 - From destination popup using **Plates**
 
+![PLATE tab — selectors for airport (bottom-right) and plate (bottom-left)](assets/docs/screenshots/31_plate_tab.png)
+
 ### 6.2 What it does
 
 - Displays downloaded plates/diagrams/CSUP
@@ -338,6 +354,12 @@ Flight-state logic can auto-switch plate context to nearest airport diagram afte
 
 Tap bottom tab **PLAN**.
 
+![PLAN tab — empty state with totals header and bottom Actions/ASpd/GPH/Alt controls](assets/docs/screenshots/19_plan_tab_empty.png)
+
+After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/ground speed/course/time/fuel calculations:
+
+![PLAN tab populated with a route — ACTIVE leg highlighted in purple](assets/docs/screenshots/22_plan_with_route.png)
+
 ### 7.2 Main plan editor
 
 - Reorderable waypoint list (long-press and drag to reorder)
@@ -360,9 +382,13 @@ Bottom controls:
 
 ### 7.3 Navigation Log dialog
 
+Open from the PLAN tab by tapping the **analytics** icon (graph, tooltip *"Navigation log and terrain"*) at the far right of the bottom row.
+
+![Navigation Log full-screen dialog — per-leg grid on top, Winds & Terrain En Route diagram on the bottom; back/save/copy icons in the app bar](assets/docs/screenshots/23_plan_navlog.png)
+
 Includes:
 
-- **Per-leg log grid** with columns: FM (from), TO (to), AL (altitude), TC (true course), VR (variation), MC (magnetic course), WD (wind direction@speed), CA (wind correction angle), MH (magnetic heading), DT (distance), GS (ground speed), TM (time), FC (fuel consumption)
+- **Per-leg log grid** with columns: FM (from), TO (to), AL (altitude), TC (true course), VR (variation), MC (magnetic course), WD (wind direction@speed), CA (wind correction angle), MH (magnetic heading), DT (distance), GS (ground speed), TM (time), FC (fuel consumption). The bottom row of the grid totals DT/TM/FC for the whole plan.
   - Grid is zoomable/pannable; **double-tap** to reset zoom
 - **Winds & Terrain En Route diagram**: combined visualization showing wind components and terrain profile:
   - **Wind heat map**: color-coded cells at altitudes 0-18000 ft along route (green = tailwind, red = headwind, darker = lighter winds, brighter = stronger winds up to 50 kt scale)
@@ -380,7 +406,9 @@ Includes:
 
 ### 7.4 Plan Actions screen
 
-Sub-pages (accessed via bottom navigation buttons):
+Sub-pages (accessed via bottom navigation buttons): **Load & Save**, **Create**, **Brief & File**, **Manage**, and **Transfer** (Android only).
+
+![Plan Actions — Load & Save tab is the default landing](assets/docs/screenshots/24_plan_actions_load_save.png)
 
 #### A) Load & Save
 - Save current plan by name
@@ -394,7 +422,12 @@ Sub-pages (accessed via bottom navigation buttons):
 - **Create IFR Preferred Route**: build from rfinder.asalink.net API (enter `DEPART DEST`)
 - **Show IFR ATC Routes**: show recent ATC routes between departure/destination from 1800wxbrief with last departure times
 
+![Plan Actions → Create — type a route string and use one of the create buttons](assets/docs/screenshots/25_plan_actions_create.png)
+
 #### C) Brief & File (FAA)
+
+![Plan Actions → Brief & File — ICAO form fields and bottom Get Email Brief / Send to FAA buttons](assets/docs/screenshots/26_plan_actions_brief_file.png)
+
 - Detailed ICAO form fields:
   - Aircraft ID, Type, Flight Rule (VFR/IFR), Flight Type, Number of Aircraft
   - Wake Turbulence (LIGHT/MEDIUM/HEAVY)
@@ -421,6 +454,8 @@ Requires configured 1800wxbrief-compatible account email.
   - **ACTIVE** (green): **Close**
   - **CLOSED** (grey): view only
 
+![Plan Actions → Manage — list of filed plans with state-aware actions](assets/docs/screenshots/27_plan_actions_manage.png)
+
 #### E) Transfer (Android only)
 - Sends flight plan via standard NMEA 0183 RTE/WPL sentences over Bluetooth
 - Requires Bluetooth connection in IO screen
@@ -436,6 +471,7 @@ Requires configured 1800wxbrief-compatible account email.
 ### 7.5 Route building details
 
 **Waypoint types supported:**
+
 | Type | Description |
 |------|-------------|
 | GPS | User-entered lat/lon coordinates |
@@ -462,6 +498,8 @@ When within 2nm of a waypoint and moving away from it, the plan automatically ad
 
 Tap bottom tab **FIND**.
 
+![FIND tab — Recent button selected, with footer filter buttons (Recent/Nearest/Nearest 2K/Nearest 4K)](assets/docs/screenshots/28_find_tab_recent.png)
+
 ### 8.2 What it does
 
 - Search destinations by text (airports, navaids, fixes, GPS coordinates)
@@ -470,6 +508,12 @@ Tap bottom tab **FIND**.
   - Nearest (nearest airports)
   - Nearest 2K (runway >= 2000 ft)
   - Nearest 4K (runway >= 4000 ft)
+
+![Nearest filter — airports nearest to your position with bearing/distance pills](assets/docs/screenshots/29_find_tab_nearest.png)
+
+Type into the **Search** box to find airports, navaids, fixes, or procedures by identifier:
+
+![Search results for `KBOS` showing airport plus matching procedures](assets/docs/screenshots/30_find_tab_search_kbos.png)
 
 ### 8.3 Row actions
 
@@ -485,6 +529,8 @@ Tap bottom tab **FIND**.
 ### 9.1 Download
 
 Open: **Menu → Download**
+
+![Download screen — Status summary at top, categories (Databases, Sectional, TAC, IFR Low, IFR High…), bottom toggles for cycle and server](assets/docs/screenshots/05_download_screen.png)
 
 Purpose:
 
@@ -508,6 +554,10 @@ Controls:
 - Toggle **Main Server / Backup Server**
 - Info map icon shows regional coverage image
 
+Tap a category (e.g. **Sectional**) to expand and see regional charts that can be selected individually:
+
+![Sectional category expanded — pick one or more regions, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
+
 Major download categories include:
 
 - **Databases**: DatabasesX (required for core nav data), Business/FBO
@@ -521,6 +571,8 @@ Regional coverage (9 regions): Northeast, North Central, Northwest, Southeast, S
 ### 9.2 Documents
 
 Open: **Menu → Documents**
+
+![Documents screen — header with Import (download icon) and folder controls; list of weather products and user files](assets/docs/screenshots/07_documents_screen.png)
 
 Includes:
 
@@ -601,6 +653,8 @@ When you tap a KML file in Documents, the Track Viewer opens with three view mod
 
 Open: **Menu → Aircraft & Performance**
 
+![Aircraft & Performance — My Aircraft tab showing saved profiles and current aircraft specs](assets/docs/screenshots/09_aircraft_performance.png)
+
 A unified screen with tabs for managing aircraft profiles, performance calculations, and weight & balance:
 
 #### Tabs Overview
@@ -623,6 +677,8 @@ Use the dropdown at the top to select from:
 
 #### Takeoff Tab
 
+![T/O tab — enter conditions, see Ground Roll / Over 50ft Obstacle / Density Altitude](assets/docs/screenshots/10_aircraft_takeoff.png)
+
 Enter conditions to calculate takeoff performance:
 - **Pressure Altitude** (ft)
 - **Temperature** (°C)
@@ -636,6 +692,9 @@ Results show:
 - Soft field adjustments (if configured)
 
 #### Landing Tab
+
+![L/D tab — same input/output layout as Takeoff but for landing distances](assets/docs/screenshots/11_aircraft_landing.png)
+
 
 Enter conditions to calculate landing performance:
 - **Pressure Altitude** (ft)
@@ -651,6 +710,8 @@ Results show:
 
 #### Cruise Tab
 
+![Cruise tab — TAS and fuel-flow estimate at altitude and power setting](assets/docs/screenshots/12_aircraft_cruise.png)
+
 Enter cruise conditions:
 - **Altitude** (ft) — prefilled from the **PLAN** tab **Alt** when you open the Cruise tab (or open Aircraft & Performance); you can still edit it for what-if
 - **Temperature deviation** (°C from standard)
@@ -663,6 +724,8 @@ Results show:
 - Fuel Flow (GPH)
 
 #### W&B Tab
+
+![W&B tab — Status card and CG envelope chart with ramp (green) and landing (orange) markers](assets/docs/screenshots/13_aircraft_wnb.png)
 
 **Status Card**: Green "Within Limits" only when **both** ramp and landing CG are inside the envelope; otherwise red "Outside Limits". Shows ramp and landing lines (CG in inches, weight in lbs, each with ✓ or ✗).
 
@@ -687,6 +750,8 @@ For **custom aircraft**: Use **Edit/Save** button to modify envelope points and 
 For **built-in aircraft**: W&B data is from POH (read-only envelope, editable weights).
 
 #### My Aircraft tab
+
+![My Aircraft tab — list with edit/delete icons, "Add from <selected>" template button, and Current Aircraft Specs](assets/docs/screenshots/14_aircraft_my.png)
 
 Create and manage your saved aircraft profiles:
 
@@ -719,6 +784,8 @@ Create and manage your saved aircraft profiles:
 
 Open: **Menu → Check Lists**
 
+![Check Lists screen — Import button, info icon, and the dropdown for selecting an active checklist](assets/docs/screenshots/08_checklists_screen.png)
+
 - **Progress bar**: shows completion percentage with completed/total count
 - **Checkbox items**: tap to check off steps
 - **Visual feedback**:
@@ -734,6 +801,8 @@ Open: **Menu → Check Lists**
 ### 9.5 Log Book
 
 Open: **Menu → Log Book**
+
+![Log Book — empty state with summary card (Total Hours, Landings, Approaches), Details (chart) button, Import/Export icons in the app bar, and FAB to add a new entry](assets/docs/screenshots/15_logbook_screen.png)
 
 Features:
 
@@ -818,6 +887,8 @@ Open: **Menu → Help**
 
 On MAP tab, tap the notes/pen (transcribe) icon in bottom-right controls.
 
+![Notes screen — blank canvas with color picker, broom-eraser, dialpad, undo/redo, eraser, and save (disk) icons](assets/docs/screenshots/16_notes_screen.png)
+
 ### 10.2 Features
 
 - **Freehand drawing** with finger or stylus
@@ -832,6 +903,9 @@ On MAP tab, tap the notes/pen (transcribe) icon in bottom-right controls.
 
 Use the sheet icon in the app bar to select a background template for common aviation communications:
 
+![Aviation background-sheet picker — None / Cost / ATIS / CRAFT / Clearance / Ground Taxi / Tower Takeoff / Departure / Approach / Tower Landing / Ground Landed](assets/docs/screenshots/17_notes_sheet_picker.png)
+
+
 | Sheet | Purpose |
 |-------|---------|
 | None | Blank canvas |
@@ -845,6 +919,8 @@ Use the sheet icon in the app bar to select a background template for common avi
 | Approach | Approach control contact |
 | Tower Landing | Tower arrival/landing |
 | Ground Landed | Ground control after landing |
+
+![CRAFT sheet — Clearance Limit / Route / Altitude / Frequency / Transponder + Remarks/Readback/Notes](assets/docs/screenshots/18_notes_craft_sheet.png)
 
 Each sheet maintains its own saved sketch state. Switching sheets saves the current sheet and loads the new one.
 
@@ -1006,6 +1082,34 @@ Possible issue items:
 
 ## 15) Step-by-Step Use Cases (Common Scenarios)
 
+> Each use case is a numbered walkthrough you can follow end-to-end. Screen names match the labels in the app, and the screenshots above each step block show the exact place you should be.
+
+### UC-00: Download charts and databases
+
+This is the very first thing to do after onboarding — without **DatabasesX** the airport database is empty and the FIND/PLAN tabs return no results.
+
+![Step 1 — open the drawer with the **Menu** button on MAP](assets/docs/screenshots/04_drawer_menu.png)
+
+1. On the **MAP** tab, tap **Menu** (bottom-left) to open the left drawer.
+2. Tap **Download** under the **DATA** section.
+
+![Step 3 — the Download screen with the status summary card and category list](assets/docs/screenshots/05_download_screen.png)
+
+3. Confirm the **cycle** dropdown is on **This Cycle** (use **Next Cycle** only if a new cycle is published and you want to pre-stage it). Use **Main Server** unless it is unreachable; then switch to **Backup Server**.
+4. Tap **Databases** to expand it, then tap **DatabasesX** so it shows a download icon (queued).
+5. (Optional) Tap **Sectional**, **TAC**, **IFR Low**, **IFR High**, **Plates**, **CSUP**, **Elevation**, etc. to queue the chart products you need.
+
+![Step 5 — Sectional category expanded; tap regions to queue them, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
+
+6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared).
+7. Press **Download** in the app bar. A progress ring appears next to each item; the **Status Summary Card** updates the **Current / Expired / To Download / To Delete** counts.
+8. Wait for downloads to complete before leaving the screen — exiting can abort an in-flight download.
+9. To refresh expired data later, just press **Update** instead — it queues every expired item automatically.
+
+> Tip: You can also enter the Download screen during the **first-run onboarding** via the **Open Downloads** button on the *Databases and Maps* page. The flow is the same.
+
+---
+
 ### UC-01: Connect an external ADS-B/GPS receiver over Wi-Fi UDP
 
 Best when your receiver broadcasts GDL90/NMEA over local network.
@@ -1047,19 +1151,41 @@ Use this to adjust waypoints graphically.
 
 ### UC-04: Build a flight plan from scratch (quick VFR workflow)
 
-1. Open `PLAN` tab.
-2. Add waypoints using either:
-   - `FIND` tab → tap item → `+Plan` (insert) or `↓Plan` (append to end), or
-   - `MAP` long-press destination popup → `+Plan` (insert) or `↓Plan` (append to end), or
-   - **Long-press** an existing waypoint row in `PLAN` to insert after it (opens FIND; next selection inserts after that waypoint).
-3. Reorder legs by long-press and drag in `PLAN`.
-4. Tap a leg to make it current.
-5. Set `ASpd`, `GPH`, and `Alt` at bottom of `PLAN` (optional: tap the aircraft icon to fill speed and fuel burn from performance data).
-6. Open nav-log (analytics icon) to review:
-   - Leg calculations (double-tap grid to reset zoom)
-   - Combined winds & terrain diagram (green=tailwind/safe, red=headwind/terrain warning)
-   - Tap on diagram for detailed info at any point
-7. Save the route: `PLAN → Actions → Load & Save → Save`.
+There are three ways to add a waypoint to the plan; the fastest for a brand-new VFR plan is **Plan → Actions → Create → Create As Entered**, shown below.
+
+![Step 1 — empty PLAN tab; press **Actions** at the bottom](assets/docs/screenshots/19_plan_tab_empty.png)
+
+1. Tap the **PLAN** bottom tab. You'll see the empty plan view above (Distance / GSpd / Crs / Time / Fuel show `---`, and `No waypoints in plan` is displayed in the body).
+2. Press **Actions** to open the Plan Actions screen.
+
+![Step 3 — Plan Actions opens on **Load & Save** by default; switch to **Create**](assets/docs/screenshots/24_plan_actions_load_save.png)
+
+3. Tap **Create** in the bottom row to switch tabs.
+
+![Step 4 — Create tab; type a route into the **Route** field](assets/docs/screenshots/25_plan_actions_create.png)
+
+4. Tap into the **Route** text field and type your route as space-separated identifiers (airports, navaids, fixes, airways). Example: `KBOS BOS CMK KHPN`.
+5. Tap **Create As Entered**. The app parses each identifier, looks it up in the database, and returns to the main PLAN view.
+
+![Step 6 — your route now populates with per-leg distance/ground speed/course/time/fuel; the active leg is highlighted purple with **ACTIVE**](assets/docs/screenshots/22_plan_with_route.png)
+
+6. Verify the totals header (Dist 148, GSpd 91, Time 01:55, Fuel 18.6 in the example).
+7. Adjust the bottom controls as needed:
+   - **ASpd** — true airspeed in knots (or mph if Imperial units)
+   - **GPH** — fuel burn (gallons per hour)
+   - **Alt** — planned altitude (feet)
+   - **Aircraft icon** — auto-fills `ASpd` and `GPH` from your selected aircraft's Performance data at the chosen `Alt`
+   - **Forecast horizon** — `06H / 12H / 24H` (winds aloft window for nav-log calculations)
+8. To **reorder** legs: long-press and drag rows. To **set a different leg active**, tap its row. To **delete** a leg, swipe right-to-left.
+9. To **save** the plan: tap **Actions** again → **Load & Save** → press **Save** and give it a name.
+
+Alternative add methods (used after the plan exists):
+
+- From **MAP**: long-press near a destination → tap a row in the popup → `+Plan` (insert at current waypoint) or `↓Plan` (append to end).
+- From **FIND**: search/select an item → on the destination popup tap `+Plan` or `↓Plan`.
+- Long-press a waypoint row in **PLAN** to insert *after* that row (opens FIND; the next selection inserts there).
+
+> See **UC-21** below for using the **navigation log** (analytics icon) to review leg calculations, winds, and terrain along the route.
 
 ### UC-05: Create an IFR route automatically
 
@@ -1074,12 +1200,15 @@ Use this to adjust waypoints graphically.
 
 Prereq: set your 1800wxbrief-compatible email in onboarding.
 
-1. Build/verify your route in `PLAN`.
+1. Build/verify your route in `PLAN` (see UC-04).
 2. Open `PLAN → Actions → Brief & File`.
+
+![Brief & File tab — ICAO form fields with quick-fill placeholders on the right; **Get Email Brief** and **Send to FAA** buttons at the bottom-left](assets/docs/screenshots/26_plan_actions_brief_file.png)
+
 3. Fill required fields (aircraft ID/type, rule, departure, destination, route, times, fuel, POB, etc.).
 4. Use quick-fill buttons:
    - "Planned" buttons for departure/destination/route from current plan
-   - Aircraft buttons to fill from stored aircraft profiles
+   - Aircraft buttons (e.g. `N80251`) to fill from stored aircraft profiles
 5. Tap:
    - **Get Email Brief** for briefing email, and/or
    - **Send to FAA** to file.
@@ -1088,6 +1217,9 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 ### UC-07: Activate, close, or cancel an FAA flight plan
 
 1. Open `PLAN → Actions → Manage`.
+
+![Manage tab — once filed, plans appear here with state-aware action buttons](assets/docs/screenshots/27_plan_actions_manage.png)
+
 2. Find your plan in the list (color-coded by status).
 3. Use action by state:
    - `PROPOSED` (blue): **Depart** (choose time with sunrise/sunset reference) to activate
@@ -1131,9 +1263,18 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 ### UC-10b: Use aviation sheets for IFR clearance copydown
 
-1. On `MAP`, tap the notes/pen icon.
-2. Tap the sheet icon in the app bar.
+1. On `MAP`, tap the notes/pen icon (in the bottom-right control row).
+
+![Step 2 — the Notes screen opens with a blank canvas](assets/docs/screenshots/16_notes_screen.png)
+
+2. Tap the sheet icon (note_alt) in the app bar.
+
+![Step 3 — sheet picker; CRAFT is selected for IFR clearance copydown](assets/docs/screenshots/17_notes_sheet_picker.png)
+
 3. Select **CRAFT** for IFR clearance fields.
+
+![Step 4 — CRAFT template loaded; fields for Clearance Limit, Route, Altitude, Frequency, Transponder, Remarks, Readback, Notes](assets/docs/screenshots/18_notes_craft_sheet.png)
+
 4. Use the number keypad (dialpad icon) to type frequencies, altitudes, or squawk codes.
 5. **Tap on the canvas** to position the typed text exactly where you want it (e.g., next to the frequency field).
 6. Use freehand drawing to fill in route or other notes.
@@ -1217,6 +1358,38 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
    - IFR currency: 6 approaches in last 6 months
 4. Green = current, Red = not current
 
+### UC-18a: Search and find a destination
+
+The **FIND** tab is the fastest way to locate any airport, navaid, fix, or procedure and act on it.
+
+![FIND tab — Recent button selected; bottom row of filter buttons (Recent / Nearest / Nearest 2K / Nearest 4K)](assets/docs/screenshots/28_find_tab_recent.png)
+
+1. Tap the **FIND** bottom tab.
+2. Use one of the four bottom filter buttons:
+   - **Recent** — destinations you have viewed before
+   - **Nearest** — every airport within range, sorted by distance from current ownship position
+   - **Nearest 2K** — same, but only airports with ≥ 2000 ft of usable runway
+   - **Nearest 4K** — same, but ≥ 4000 ft of runway
+
+![Nearest filter active — bearing/distance pill on the right of each row](assets/docs/screenshots/29_find_tab_nearest.png)
+
+3. To search by identifier or text, tap into the **Search** field and start typing. Results appear immediately.
+
+![Search results for `KBOS` — airport at the top with `AIRPORT` chip; matching procedures listed below](assets/docs/screenshots/30_find_tab_search_kbos.png)
+
+4. Each row supports several actions:
+   - **Tap row** — open the destination popup with airport info, plates, METAR/TAF, NOTAMs, etc.
+   - **Tap the bearing/distance pill on the right** — center the map on that destination and switch to MAP.
+   - **Swipe right-to-left** — delete an entry from the Recent list.
+   - For GPS-coordinate recent entries, an **edit (pencil) icon** lets you set a custom facility name.
+5. From the destination popup you can:
+   - **→D** Direct-To this destination
+   - **+Plan** insert into the current plan after the active waypoint
+   - **↓Plan** append to the end of the plan
+   - **Plates** (airports) jump to PLATE tab at this airport
+
+---
+
 ### UC-19: Measure distance and bearing on the map
 
 1. On `MAP`, tap the **Ruler** icon (compass) to enable measure mode (turns red).
@@ -1234,40 +1407,101 @@ This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
 5. Search for or select the waypoint you want to insert.
 6. Tap `+Plan` or `↓Plan` — the new waypoint inserts after the long-pressed position.
 
-### UC-21: Analyze winds and terrain along your route
+### UC-21: Get the navigation log (winds & terrain analysis)
 
-1. Open `PLAN` tab and ensure you have a route with at least 2 waypoints.
-2. Set your planned altitude using the `Alt` field at the bottom.
-3. Tap the analytics icon (chart) to open the Navigation Log.
-4. View the **Winds & Terrain En Route** diagram:
-   - Green cells = tailwind at that altitude/position
-   - Red cells = headwind at that altitude/position
-   - Cyan horizontal line = your planned altitude
-   - Green terrain line = terrain safely below your altitude
+The navigation log gives you per-leg headings, magnetic variation, wind correction, ground speed, time, and fuel; plus a wind-and-terrain heat map at planning altitudes.
+
+1. Open the **PLAN** tab.
+2. Ensure your route has at least 2 waypoints (build one with **UC-04** if needed).
+
+![Step 3 — bottom row of the PLAN tab; the **analytics** icon (graph) at the far right opens the Navigation Log](assets/docs/screenshots/22_plan_with_route.png)
+
+3. Set your planned altitude using the **Alt** field at the bottom.
+4. Set the **Forecast horizon** dropdown (`06H / 12H / 24H`) so wind data matches your departure window.
+5. (Optional) Tap the **Aircraft icon** next to **Alt** to load TAS/GPH from your stored aircraft profile.
+6. Tap the **analytics icon** (graph, far right of the bottom row, tooltip *"Navigation log and terrain"*). The **Navigation Log** opens as a full-screen dialog.
+
+![Navigation Log — per-leg grid (top) and Winds & Terrain En Route diagram (bottom)](assets/docs/screenshots/23_plan_navlog.png)
+
+7. The **per-leg grid** at the top has 13 columns:
+
+   | Col | Meaning |
+   |-----|---------|
+   | **FM** | From waypoint |
+   | **TO** | To waypoint |
+   | **AL** | Plan altitude (ft) |
+   | **TC** | True course (°) |
+   | **VR** | Magnetic variation (°) |
+   | **MC** | Magnetic course (°) |
+   | **WD** | Wind direction@speed (e.g. `210@53`) |
+   | **CA** | Wind correction angle (°) |
+   | **MH** | Magnetic heading to fly (°) |
+   | **DT** | Distance for this leg (NM/SM) |
+   | **GS** | Ground speed for this leg (kt/mph) |
+   | **TM** | Leg time (HH:MM) |
+   | **FC** | Fuel consumed on this leg (gal) |
+
+   The bottom row of the grid is the **plan total** (sum of DT, TM, FC across all legs).
+
+   Double-tap the grid to reset zoom; pinch/scroll to focus on a specific leg.
+
+8. Below the grid, the **Winds & Terrain En Route** diagram is a single combined visualization for the whole route:
+   - Y-axis: altitude bands (0, 3000, 6000, 9000, 12000, 18000 ft)
+   - X-axis: position along the route from departure (left) to destination (right)
+   - **Wind heat map**: each cell colored by tailwind/headwind component — **green = tailwind**, **red = headwind** (darker = lighter winds, brighter = stronger winds, scaled up to 50 kt)
+   - **Cyan horizontal line**: your planned altitude (`Alt` from the PLAN tab)
+   - **Green/red terrain curve**: terrain elevation; green where it's safely below your plan altitude, red where it's at or above your plan altitude
+   - **Cyan tick marks** along the bottom edge: waypoint positions
+9. **Tap anywhere on the diagram** to display a tooltip showing:
+   - Nearest waypoint (only if your tap is within ~5% of that waypoint's position)
+   - Altitude at the tap (snapped to one of the altitude bands)
+   - Terrain elevation at that point along the route
+   - Course direction
+   - Wind direction and speed at that altitude
+   - Tailwind/headwind component (kt)
+10. Use the **Copy plan to clipboard** icon in the app bar (top-right) to share the per-leg data outside the app.
+11. Press **Back** (top-left chevron) to dismiss the dialog and return to the PLAN editor.
+
+> Tip: The route in the screenshot above (`KBOS → BOS → CMK → KHPN`, plan altitude 3000 ft) shows mostly **red** at the cruise band — this means a headwind across the whole route at the chosen altitude. Use the diagram to see if a higher altitude band gets you a tailwind, or change the **Forecast horizon** dropdown to align with your actual departure window.
 
 ### UC-22: Calculate takeoff and landing performance
 
 1. Open `MAP → Menu → Aircraft & Performance`.
-2. Select your aircraft from the dropdown (built-in or custom).
-3. Go to the **Takeoff** tab.
+
+![Step 2 — pick the aircraft from the dropdown next to the screen title](assets/docs/screenshots/09_aircraft_performance.png)
+
+2. Select your aircraft from the dropdown (built-in or custom). The dropdown is at the top-right of the screen.
+3. Go to the **T/O** tab.
+
+![Step 4 — Takeoff tab; results update as you edit the input fields](assets/docs/screenshots/10_aircraft_takeoff.png)
+
 4. Enter current conditions:
-   - Pressure altitude (ft)
-   - Temperature (°C)
-   - Aircraft weight (lbs)
-   - Headwind component (kts, use negative for tailwind)
-5. View calculated ground roll and 50ft obstacle clearance distances.
-6. Go to the **Landing** tab and repeat for landing performance.
-7. Results account for aircraft POH data and configured correction factors.
+   - **Pressure Altitude** (ft)
+   - **Temperature** (°C)
+   - **Takeoff Weight** (lbs)
+   - **Headwind** (kts, use a negative value for a tailwind)
+5. View calculated **Ground Roll**, **Over 50ft Obstacle**, and **Density Altitude** distances at the top of the screen.
+6. Switch to the **L/D** tab and repeat for landing performance.
+
+![Step 6 — Landing tab uses the same input → result layout](assets/docs/screenshots/11_aircraft_landing.png)
+
+7. Results account for aircraft POH data and any configured correction factors (headwind %, tailwind %, soft-field %) on the **My Aircraft** profile.
 
 ### UC-23: Check weight and balance before flight
 
 1. Open `MAP → Menu → Aircraft & Performance`.
 2. Select your aircraft from the dropdown.
 3. Go to the **W&B** tab.
-4. Enter weights for each station (passengers, baggage, fuel).
-5. View the status card showing "Within Limits" (green) or "Outside Limits" (red).
-6. Check the CG envelope chart to visualize your CG position.
-7. Adjust loading as needed to stay within the envelope.
+
+![W&B tab — green Status Card means both ramp and landing CG are inside the envelope](assets/docs/screenshots/13_aircraft_wnb.png)
+
+4. Enter weights for each station in the table below the chart (passengers, baggage, fuel, plus Landing fuel).
+5. The status card shows **Within Limits** (green) or **Outside Limits** (red), with a ✓ or ✗ for ramp and landing rows.
+6. Read the CG Envelope chart:
+   - Blue dots = envelope boundary
+   - Large green/red dot = ramp/takeoff CG
+   - Large orange/purple dot = landing CG
+7. Adjust loading until both dots are inside the envelope.
 8. For custom aircraft, use **Edit** to modify envelope points and station definitions.
 9. If your aircraft uses the **helicopter** map icon, check the lateral CG chart and lateral columns as well; all four CG checks must pass for a green status.
 
