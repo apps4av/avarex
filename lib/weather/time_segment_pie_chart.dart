@@ -52,8 +52,10 @@ class _PieChartPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3;
 
-      // include hours, days, months, and year
-      double hours = hourlyPairs[i].dateTime.hour + hourlyPairs[i].dateTime.day * 24 + hourlyPairs[i].dateTime.month * 24 * 30 + hourlyPairs[i].dateTime.year * 24 * 30 * 12;
+      // include hours, days, months, and year. Read in UTC so this matches
+      // the "now" hand below regardless of the source DateTime's timezone.
+      final DateTime dt = hourlyPairs[i].dateTime.toUtc();
+      double hours = dt.hour + dt.day * 24 + dt.month * 24 * 30 + dt.year * 24 * 30 * 12;
 
       // drawArc draws clockwise with 0 degree as in math, but clock's 0 degree is at -90 degree in math
       double angleStart = (hours % 12) / 12 * 360 - 90;
@@ -113,9 +115,10 @@ class DateTimeColorPair {
       // Calculate the number of hours between the previous and current DateTime
       final int hourDiff = currentPair.dateTime.difference(prevPair.dateTime).inHours;
 
-      // Add intermediate DateTime values spaced every hour
+      // Add intermediate DateTime values spaced every hour. Keep them in
+      // UTC so the painter (which reads .hour in UTC) renders consistently.
       for (int j = 1; j < hourDiff; j++) {
-        final DateTime interpolatedDateTime = prevPair.dateTime.add(hourlyDuration * j).toLocal();
+        final DateTime interpolatedDateTime = prevPair.dateTime.add(hourlyDuration * j).toUtc();
         result.add(DateTimeColorPair(interpolatedDateTime, prevPair.color));
       }
 

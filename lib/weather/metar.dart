@@ -130,49 +130,61 @@ class Metar extends Weather {
     }
   }
 
+  static final RegExp _visibilityRegex = RegExp(
+      r'^((?<vis>\d{4}|////)'
+      r'(?<dir>[NSEW]([EW])?)?|'
+      r'(M|P)?(?<integer>\d{1,2})?_?'
+      r'(?<fraction>\d/\d)?'
+      r'(?<units>SM|KM|M|U)|'
+      r'(?<cavok>CAVOK))$');
+
+  static final RegExp _cloudRegex = RegExp(
+      r'^(?<cover>VV|CLR|SKC|NSC|NCD|BKN|SCT|FEW|OVC|///)'
+      r'(?<height>\d{3}|///)?'
+      r'(?<type>TCU|CB|///)?$');
+
   static String getCategory(String report) {
-    List<String> tokens = report.split(" ");
-    String? integer;
-    String? fraction;
-    String? visibilityMeters;
-    String? height;
-    String? cover;
+    // Coalesce "N N/N SM" mixed-numeric visibility into a single token so the
+    // regex (which expects integer_fraction) can match it.
+    final String normalized = report.replaceAllMapped(
+        RegExp(r'(?<![\d/])(\d{1,2})\s+(\d/\d)(SM|KM)\b'),
+        (m) => '${m.group(1)}_${m.group(2)}${m.group(3)}');
+    final List<String> tokens = normalized.split(" ");
+
     double visSM = 6;
     double cloudFt = 12000;
-    String category = "VFR";
+    double? minCeilingFt;
 
-    for(String token in tokens.reversed) { // run reversed as the first cloud layer is the lowest layer
-      final RegExp visibility = RegExp(
-          r'^((?<vis>\d{4}|//\//)'
-          r'(?<dir>[NSEW]([EW])?)?|'
-          r'(M|P)?(?<integer>\d{1,2})?_?'
-          r'(?<fraction>\d/\d)?'
-          r'(?<units>SM|KM|M|U)|'
-          r'(?<cavok>CAVOK))$');
-
-      final RegExp cloud =
-      RegExp(
-          r'^(?<cover>VV|CLR|SKC|NSC|NCD|BKN|SCT|FEW|OVC|///)'
-          r'(?<height>\d{3}|///)?'
-          r'(?<type>TCU|CB|///)?$');
-
-      var vis = visibility.firstMatch(token);
-      if(vis != null) {
-        visibilityMeters = vis.namedGroup("vis");
-        integer = vis.namedGroup("integer");
-        fraction = vis.namedGroup("fraction");
-        if(null != integer) {
-          try {
-            visSM = double.parse(integer);
-          }
-          catch(e) {
-            AppLog.logMessage("Metar.getCategory: error parsing visibility integer $integer");
-          }
+    for (final String token in tokens) {
+      final vis = _visibilityRegex.firstMatch(token);
+      if (vis != null) {
+        final visibilityMeters = vis.namedGroup("vis");
+        final integer = vis.namedGroup("integer");
+        final fraction = vis.namedGroup("fraction");
+        final cavok = vis.namedGroup("cavok");
+        if (cavok != null) {
+          visSM = 10.0; // CAVOK ⇒ at least 10 km / ~6 SM
         }
-        else if(null != fraction) {
-          visSM = 0.5; // less than 1
+        else if (integer != null || fraction != null) {
+          double parsed = 0;
+          if (integer != null) {
+            try { parsed += double.parse(integer); }
+            catch (e) { AppLog.logMessage("Metar.getCategory: error parsing visibility integer $integer"); }
+          }
+          if (fraction != null) {
+            final parts = fraction.split('/');
+            if (parts.length == 2) {
+              try {
+                final num = double.parse(parts[0]);
+                final den = double.parse(parts[1]);
+                if (den != 0) parsed += num / den;
+              }
+              catch (e) { AppLog.logMessage("Metar.getCategory: error parsing visibility fraction $fraction"); }
+            }
+          }
+          visSM = parsed;
         }
-        else if (null != visibilityMeters) {
+        else if (visibilityMeters != null && visibilityMeters != "////") {
           try {
             visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
           }
@@ -181,38 +193,47 @@ class Metar extends Weather {
           }
         }
       }
-      var cld = cloud.firstMatch(token);
-      if(cld != null) {
-        cover = cld.namedGroup("cover");
-        height = cld.namedGroup("height");
-        if(height != null && cover != null) {
-          if(cover == "OVC" || cover == "BKN") {
+
+      final cld = _cloudRegex.firstMatch(token);
+      if (cld != null) {
+        final cover = cld.namedGroup("cover");
+        final height = cld.namedGroup("height");
+        // VV (vertical visibility / indefinite ceiling) IS a ceiling.
+        if (cover == "OVC" || cover == "BKN" || cover == "VV") {
+          if (height != null && height != "///") {
             try {
-              cloudFt = double.parse(height) * 100;
+              final ft = double.parse(height) * 100;
+              if (minCeilingFt == null || ft < minCeilingFt) {
+                minCeilingFt = ft;
+              }
             }
             catch (e) {
-              AppLog.logMessage("Metar.getCategory: error parsing cloud height $height" );
+              AppLog.logMessage("Metar.getCategory: error parsing cloud height $height");
             }
           }
         }
       }
     }
 
-    // find flight category
-    // VFR: > 3000 ft AND > 5SM
-    // MVFR: >= 1000 ft AND / OR > 3 SM
-    // IFR: >= 500 ft AND / OR >= 1 SM
-    // LIFR < 500 ft AND / OR < 1 SM
-    if(cloudFt < 500 || visSM < 1) {
-      category = "LIFR";
+    if (minCeilingFt != null) {
+      cloudFt = minCeilingFt;
     }
-    else if(cloudFt < 1000 || visSM < 1) {
-      category = "IFR";
+
+    // FAA flight categories:
+    //   VFR  - ceiling > 3000 ft AND vis > 5 SM
+    //   MVFR - ceiling 1000-3000 ft AND/OR vis 3-5 SM
+    //   IFR  - ceiling 500-999 ft AND/OR vis 1 to <3 SM
+    //   LIFR - ceiling < 500 ft AND/OR vis < 1 SM
+    if (cloudFt < 500 || visSM < 1) {
+      return "LIFR";
     }
-    else if(cloudFt <= 3000 || visSM <= 3) {
-      category = "MVFR";
+    if (cloudFt < 1000 || visSM < 3) {
+      return "IFR";
     }
-    return category;
+    if (cloudFt <= 3000 || visSM <= 5) {
+      return "MVFR";
+    }
+    return "VFR";
   }
 
   static int? getCeilingFtFromReport(String report) {

@@ -89,7 +89,7 @@ class Taf extends Weather {
         r')?');
 
     final RegExp visibility = RegExp(
-        r'^((?<vis>\d{4}|//\//)'
+        r'^((?<vis>\d{4}|////)'
         r'(?<dir>[NSEW]([EW])?)?|'
         r'(M|P)?(?<integer>\d{1,2})?_?'
         r'(?<fraction>\d/\d)?'
@@ -102,36 +102,51 @@ class Taf extends Weather {
         r'(?<height>\d{3}|///)?'
         r'(?<type>TCU|CB|///)?$');
 
-    List<String> lines = text.split("\n");
+    // Normalise the raw text so each FM / BECMG / TEMPO change group starts
+    // on its own line (the cache layer does this for AWC TAFs but ADS-B/GDL90
+    // TAFs reach us as a single line), and so "N N/N SM" mixed numerics get
+    // joined into one token the visibility regex above can match.
+    final String normalized = text
+        .replaceAll(RegExp(r'\s+(?=FM\d)'), '\n')
+        .replaceAll(RegExp(r'\s+(?=BECMG\b)'), '\n')
+        .replaceAll(RegExp(r'\s+(?=TEMPO\b)'), '\n')
+        .replaceAllMapped(
+            RegExp(r'(?<![\d/])(\d{1,2})\s+(\d/\d)(SM|KM)\b'),
+            (m) => '${m.group(1)}_${m.group(2)}${m.group(3)}');
+
+    List<String> lines = normalized.split("\n");
     String? validTillHours;
     String? validTillDate;
-    bool firstLine = true;
+    bool headerFound = false;
+    // Carry visibility/ceiling forward to BECMG/TEMPO/FM groups that don't
+    // restate them, since change groups in TAFs only mention what changes.
+    double? lastVisSM;
+    double? lastCloudFt;
+
     for (String line in lines) {
       List<String> tokens = line.split(" ");
-      String? integer;
-      String? fraction;
-      String? visibilityMeters;
-      String? height;
-      String? cover;
       String? validFromHours;
       String? validFromDate;
       double? visSM;
       double? cloudFt;
-      String? category;
+      bool sawCloud = false;
+      String category;
 
-      if(firstLine) {
-        firstLine = false;
+      if(!headerFound) {
         var head = header.firstMatch(line);
-        if(head != null) {
-          try {
-            validFromHours = head.namedGroup("validFromHours");
-            validTillHours = head.namedGroup("validTillHours");
-            validFromDate = head.namedGroup("validFromDate");
-            validTillDate = head.namedGroup("validTillDate");
-          }
-          catch (e) {
-            continue;
-          }
+        if(head == null) {
+          // Skip stand-alone "TAF" / blank lines until the real header is found.
+          continue;
+        }
+        headerFound = true;
+        try {
+          validFromHours = head.namedGroup("validFromHours");
+          validTillHours = head.namedGroup("validTillHours");
+          validFromDate = head.namedGroup("validFromDate");
+          validTillDate = head.namedGroup("validTillDate");
+        }
+        catch (e) {
+          continue;
         }
       }
       else {
@@ -155,82 +170,105 @@ class Taf extends Weather {
         continue;
       }
 
-      for (String token in tokens.reversed) { // run reversed as the first cloud layer is the lowest layer
-
+      // Find the lowest BKN/OVC/VV layer for the ceiling. Iterating in any
+      // single direction with a plain "last write wins" pattern is wrong
+      // because non-ceiling layers (SCT/FEW/CLR) below or above a real
+      // ceiling can clobber it.
+      double? minCeilingFt;
+      for (String token in tokens) {
         var vis = visibility.firstMatch(token);
         if (vis != null) {
-          visibilityMeters = vis.namedGroup("vis");
-          integer = vis.namedGroup("integer");
-          fraction = vis.namedGroup("fraction");
-          if (null != integer) {
-            try {
-              visSM = double.parse(integer);
-            }
-            catch (e) {
-              AppLog.logMessage("Error parsing visibility: $e");
-            }
+          final visibilityMeters = vis.namedGroup("vis");
+          final integer = vis.namedGroup("integer");
+          final fraction = vis.namedGroup("fraction");
+          final cavok = vis.namedGroup("cavok");
+          if (cavok != null) {
+            visSM = 10.0; // CAVOK ⇒ at least 10 km / ~6 SM
           }
-          else if (null != fraction) {
-            visSM = 0.5; // less than 1
+          else if (integer != null || fraction != null) {
+            double parsed = 0;
+            if (integer != null) {
+              try { parsed += double.parse(integer); }
+              catch (e) { AppLog.logMessage("Error parsing visibility integer: $e"); }
+            }
+            if (fraction != null) {
+              final parts = fraction.split('/');
+              if (parts.length == 2) {
+                try {
+                  final num = double.parse(parts[0]);
+                  final den = double.parse(parts[1]);
+                  if (den != 0) parsed += num / den;
+                }
+                catch (e) { AppLog.logMessage("Error parsing visibility fraction: $e"); }
+              }
+            }
+            visSM = parsed;
           }
-          else if (null != visibilityMeters) {
+          else if (visibilityMeters != null && visibilityMeters != "////") {
             try {
               visSM = (double.parse(visibilityMeters) / 1000) * 0.621371;
             }
             catch (e) {
-              AppLog.logMessage("Error parsing visibility: $e");
+              AppLog.logMessage("Error parsing visibility meters: $e");
             }
           }
         }
+
         var cld = cloud.firstMatch(token);
         if (cld != null) {
-          cover = cld.namedGroup("cover");
-          height = cld.namedGroup("height");
-          if (cover != null) {
-            if (cover == "OVC" || cover == "BKN") {
-              if(height != null) {
-                try {
-                  cloudFt = double.parse(height) * 100;
-                }
-                catch (e) {
-                  AppLog.logMessage("Error parsing cloud height: $e" );
+          sawCloud = true;
+          final cover = cld.namedGroup("cover");
+          final height = cld.namedGroup("height");
+          // VV (vertical visibility / indefinite ceiling) IS a ceiling.
+          if (cover == "OVC" || cover == "BKN" || cover == "VV") {
+            if (height != null && height != "///") {
+              try {
+                final ft = double.parse(height) * 100;
+                if (minCeilingFt == null || ft < minCeilingFt) {
+                  minCeilingFt = ft;
                 }
               }
-            }
-            else {
-              cloudFt = 12000; // VFR
+              catch (e) {
+                AppLog.logMessage("Error parsing cloud height: $e");
+              }
             }
           }
         }
       }
+
+      if (sawCloud) {
+        cloudFt = minCeilingFt ?? 12000; // sky reported but no ceiling layer ⇒ unlimited
+      }
+
+      visSM ??= lastVisSM;
+      cloudFt ??= lastCloudFt;
 
       if(null == cloudFt || null == visSM) {
         continue;
       }
 
-      // find flight category
-      // VFR: > 3000 ft AND > 5SM
-      // MVFR: >= 1000 ft AND / OR > 3 SM
-      // IFR: >= 500 ft AND / OR >= 1 SM
-      // LIFR < 500 ft AND / OR < 1 SM
-      category = "VFR";
+      // FAA flight categories:
+      //   VFR  - ceiling > 3000 ft AND vis > 5 SM
+      //   MVFR - ceiling 1000-3000 ft AND/OR vis 3-5 SM
+      //   IFR  - ceiling 500-999 ft AND/OR vis 1 to <3 SM
+      //   LIFR - ceiling < 500 ft AND/OR vis < 1 SM
       if (cloudFt < 500 || visSM < 1) {
         category = "LIFR";
       }
-      else if (cloudFt < 1000 || visSM < 1) {
+      else if (cloudFt < 1000 || visSM < 3) {
         category = "IFR";
       }
-      else if (cloudFt <= 3000 || visSM <= 3) {
+      else if (cloudFt <= 3000 || visSM <= 5) {
         category = "MVFR";
       }
-
-      DateTime now = DateTime.now();
-      DateTime from = DateTime(now.year, now.month, date, hours);
-      if(now.day > 26 && date < 3) { // if today is 27th, and date is 1, then it is 1st of next month
-        from = DateTime(now.year, now.month + 1, date, hours);
+      else {
+        category = "VFR";
       }
 
-      times.add(from);
+      lastVisSM = visSM;
+      lastCloudFt = cloudFt;
+
+      times.add(_utcAtDayHour(date, hours));
       colors.add(getColor(category));
     }
 
@@ -240,13 +278,7 @@ class Taf extends Weather {
       if (null == hours || null == date) {
         return;
       }
-      DateTime now = DateTime.now();
-      DateTime from = DateTime(now.year, now.month, date, hours);
-      if(now.day > date) {
-        from = DateTime(now.year, now.month + 1, date, hours);
-      }
-
-      times.add(from);
+      times.add(_utcAtDayHour(date, hours));
       if(colors.isNotEmpty) {
         colors.add(colors.last);
       }
@@ -254,6 +286,22 @@ class Taf extends Weather {
         colors.add(Colors.black);
       }
     }
+  }
+
+  // Build a UTC DateTime for the given TAF day-of-month and hour, choosing
+  // the calendar month that puts the date closest to "now" in UTC. Handles
+  // both forward (e.g. today is the 31st, TAF says day 1) and backward
+  // (today is the 1st, TAF says day 31) month rollovers.
+  static DateTime _utcAtDayHour(int date, int hours) {
+    final DateTime nowUtc = DateTime.now().toUtc();
+    final int dayDiff = date - nowUtc.day;
+    int monthOffset = 0;
+    if (dayDiff < -10) {
+      monthOffset = 1;  // forecast wraps into next month
+    } else if (dayDiff > 20) {
+      monthOffset = -1; // header was issued in the previous month
+    }
+    return DateTime.utc(nowUtc.year, nowUtc.month + monthOffset, date, hours);
   }
 
   Widget getIcon() {
