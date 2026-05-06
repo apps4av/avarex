@@ -2698,7 +2698,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
           value: _cruisePowerPercent.toDouble(),
           min: 25,
           max: 100,
-          divisions: 8,
+          divisions: 25,
           label: '$_cruisePowerPercent%',
           onChanged: (value) {
             setState(() {
