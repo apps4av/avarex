@@ -2696,8 +2696,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         Text('Power Setting: $_cruisePowerPercent%'),
         Slider(
           value: _cruisePowerPercent.toDouble(),
-          min: 45,
-          max: 85,
+          min: 25,
+          max: 100,
           divisions: 8,
           label: '$_cruisePowerPercent%',
           onChanged: (value) {
