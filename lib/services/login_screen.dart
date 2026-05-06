@@ -54,8 +54,13 @@ class LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final providers = [EmailAuthProvider()];
 
-    if(FirebaseAuth.instance.currentUser != null) {
-      RevenueCatService.logIn(FirebaseAuth.instance.currentUser!.uid);
+    final user = FirebaseAuth.instance.currentUser;
+    if(user != null) {
+      RevenueCatService.logIn(
+        user.uid,
+        email: user.email,
+        displayName: user.displayName,
+      );
     }
 
     return Scaffold(

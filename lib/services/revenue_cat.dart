@@ -29,10 +29,16 @@ class RevenueCatService {
     await Purchases.logOut();
   }
 
-  static Future<bool> logIn(String userId) async {
+  static Future<bool> logIn(String userId, {String? email, String? displayName}) async {
     bool loggedIn = false;
     try {
       await Purchases.logIn(userId);
+      if (email != null && email.isNotEmpty) {
+        await Purchases.setEmail(email);
+      }
+      if (displayName != null && displayName.isNotEmpty) {
+        await Purchases.setDisplayName(displayName);
+      }
       loggedIn = true;
     }
     catch(e) {// ignore
