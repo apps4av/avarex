@@ -15,6 +15,49 @@ class AirSigmetCache extends WeatherCache {
 
   AirSigmetCache(super.url, super.dbCall);
 
+  /// Sanitize an altitude attribute coming from the AviationWeather.gov feed.
+  /// The feed sometimes uses bogus sentinels ("null00", "-1", "") for missing
+  /// data, and pads valid values with leading zeros (e.g. "08000"). Returns
+  /// the cleaned-up value or null if the value should be considered missing.
+  static String? _cleanAltitude(String? raw) {
+    if (raw == null) return null;
+    final v = raw.trim();
+    if (v.isEmpty) return null;
+    if (v == "null00" || v == "null" || v == "-1" || v == "0") return null;
+    final n = int.tryParse(v);
+    if (n != null) {
+      if (n <= 0) return null;
+      return n.toString();
+    }
+    return v; // e.g. "FZL", "SFC"
+  }
+
+  /// Build a human readable altitude string from a GAIRMET element. Returns
+  /// an empty string when no usable altitude information is available.
+  static String _gairmetAltitude(XmlElement gairmet) {
+    String? minA;
+    String? maxA;
+    String? level;
+    for (final alt in gairmet.findElements("altitude")) {
+      minA ??= _cleanAltitude(alt.getAttribute("min_ft_msl"));
+      maxA ??= _cleanAltitude(alt.getAttribute("max_ft_msl"));
+      level ??= _cleanAltitude(alt.getAttribute("level_ft_msl"));
+    }
+    if (level != null) {
+      return "At $level MSL\n";
+    }
+    if (minA != null && maxA != null) {
+      return "From $minA to $maxA MSL\n";
+    }
+    if (maxA != null) {
+      return "Up to $maxA MSL\n";
+    }
+    if (minA != null) {
+      return "From $minA MSL\n";
+    }
+    return "";
+  }
+
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
 
@@ -70,9 +113,7 @@ class AirSigmetCache extends WeatherCache {
 
           String? product;
           String? hazard;
-          String? minAltitude;
-          String? maxAltitude;
-          String? altitude;
+          String altitude;
 
           try {
             product = text.getElement("product")!.innerText;
@@ -87,9 +128,7 @@ class AirSigmetCache extends WeatherCache {
           }
 
           try {
-            minAltitude = text.getElement("altitude")!.attributes[0].value;
-            maxAltitude = text.getElement("altitude")!.attributes[1].value;
-            altitude = "From $minAltitude to $maxAltitude MSL\n";
+            altitude = _gairmetAltitude(text);
           }
           catch (e) {
             altitude = "";
@@ -133,9 +172,7 @@ class AirSigmetCache extends WeatherCache {
 
           String? product;
           String? hazard;
-          String? minAltitude;
-          String? maxAltitude;
-          String? altitude;
+          String altitude;
 
           try {
             product = text.getElement("raw_text")!.innerText;
@@ -150,9 +187,7 @@ class AirSigmetCache extends WeatherCache {
           }
 
           try {
-            minAltitude = text.getElement("altitude")!.getAttribute("min_ft_msl");
-            maxAltitude = text.getElement("altitude")!.getAttribute("max_ft_msl");
-            altitude = "${minAltitude ?? '0'} to ${maxAltitude ?? "--"} MSL\n";
+            altitude = _gairmetAltitude(text);
           }
           catch (e) {
             altitude = "";
