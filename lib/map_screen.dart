@@ -1195,9 +1195,32 @@ class MapScreenState extends State<MapScreen> {
 
     } // all nav layers
 
-    // ruler, always present
+    // Ruler — always present at full opacity. Previous code reused the
+    // surrounding `opacity` variable (last set by the Nav layer above), so
+    // hiding the Nav layer would also hide the ruler.
+    // Connecting line first so the markers/labels render on top of it.
     layers.add(
-      IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+      IgnorePointer(child: ValueListenableBuilder<int>(
+        valueListenable: _ruler.change,
+        builder: (context, value, _) {
+          final List<LatLng> points = _ruler.getPoints();
+          return PolylineLayer(
+            polylines: [
+              if (points.length >= 2)
+                Polyline(
+                  points: points,
+                  strokeWidth: 3,
+                  color: Colors.black,
+                  borderStrokeWidth: 1,
+                  borderColor: Colors.white,
+                ),
+            ],
+          );
+        },
+      )),
+    );
+    layers.add(
+      IgnorePointer(child: ValueListenableBuilder<int>(
         valueListenable: _ruler.change,
         builder: (context, value, _) {
           List<(int, int)> calculations = _ruler.getDistanceBearing();
@@ -1205,14 +1228,14 @@ class MapScreenState extends State<MapScreen> {
           return MarkerLayer(
             markers: [
               for(LatLng point in points)
-                Marker(point: point, child: const Icon(Icons.cancel_outlined, color: Colors.black,)),
+                Marker(point: point, child: const Icon(Icons.add, color: Colors.black,)),
               for(int calculationN = 0; calculationN < calculations.length; calculationN++)
                 Marker(alignment: Alignment.bottomRight, point: points[calculationN + 1], width: 128, child: Text("${calculations[calculationN].$1.toString()}/${calculations[calculationN].$2.toString()}\u00b0", style: TextStyle(backgroundColor: Theme.of(context).cardColor.withValues(alpha: 0.6)),))
             ],
           );
         },
-      ),
-    )));
+      )),
+    );
 
     final FlutterMap map = FlutterMap(
       mapController: _controller,
