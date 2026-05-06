@@ -23,6 +23,7 @@ import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
+import 'package:avaremp/weather/game_tfr.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
@@ -722,6 +723,15 @@ class MapScreenState extends State<MapScreen> {
       layers.add(IgnorePointer(child: Opacity(opacity: opacity, child: _makeTfrLayer())));
 
       layers.add(Opacity(opacity: opacity, child: _makeTfrCluster()));
+    }
+
+    lIndex = _layers.indexOf(GameTfr.layerName);
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        layers.add(GameTfr.buildLayer(opacity: opacity));
+        layers.add(GameTfr.buildCluster(context, opacity: opacity));
+      }
     }
 
     lIndex = _layers.indexOf('Plate');
@@ -1596,6 +1606,7 @@ class MapScreenState extends State<MapScreen> {
       case "Radar": return MdiIcons.radar;
       case "Weather": return Icons.cloud;
       case "TFR": return MdiIcons.clockAlert;
+      case "Game TFR": return MdiIcons.stadium;
       case "Traffic": return MdiIcons.airplaneTakeoff;
       case "Nav": return MdiIcons.navigation;
       case "Plate": return MdiIcons.fileDocument;
