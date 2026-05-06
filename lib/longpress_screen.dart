@@ -69,18 +69,24 @@ class LongPressScreenState extends State<LongPressScreen> {
   int _index = 0;
   static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "ST", "Business"];
 
+  late Future<LongPressFuture> _loadFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFuture = LongPressFuture(widget.destinations[0]).getAll();
+  }
+
   @override
   Widget build(BuildContext context) {
 
-    return FutureBuilder(
-        future: LongPressFuture(widget.destinations[0]).getAll(),
+    return FutureBuilder<LongPressFuture>(
+        future: _loadFuture,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
           }
-          else {
-            return _makeContent(null);
-          }
+          return _makeContent(null);
         }
     );
   }

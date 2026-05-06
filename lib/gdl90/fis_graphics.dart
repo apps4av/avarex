@@ -20,7 +20,7 @@ class FisGraphics {
 
   static const int shapeNone = -1;
   static const int shapePolygonMSL = 3;
-  static const int shapePrisonMsl = 7;
+  static const int shapePrismMsl = 7;
   static const int shapePrismAgl = 8;
   static const int shapePoint3DAgl = 9;
 
@@ -205,8 +205,16 @@ class FisGraphics {
               int alt = (((data[4].toInt() & 0x03) << 8) + (data[5].toInt() & 0xFF)) * 100;
               altitudeTop = alt.toString();
 
-              LatLng c = _parseLatLon(lat, lon, false);
-              coordinates.add(c);
+              final LatLng center = _parseLatLon(lat, lon, false);
+              // Same minimum outline as circular prism so map layers get a closed ring.
+              const Distance distance = Distance();
+              const double radiusM = 0.25 * 1852.0;
+              for (int i = 0; i < 36; i++) {
+                coordinates.add(distance.offset(center, radiusM, i * 10.0));
+              }
+              if (coordinates.isNotEmpty) {
+                coordinates.add(coordinates.first);
+              }
               data = data.sublist(6);
             }
             else {
@@ -214,19 +222,21 @@ class FisGraphics {
             }
             break;
           case shapePrismAgl:
-          case shapePrisonMsl: // Extended Range Circular Prism (7 = MSL, 8 = AGL)
+          case shapePrismMsl: // Extended Range Circular Prism (7 = MSL, 8 = AGL)
             if (data.length >= 14) {
               final int bottomLon = ((data[0].toInt() & 0xFF) << 10) +
                   ((data[1].toInt() & 0xFF) << 2) +
                   ((data[2].toInt() & 0xC0) >> 6);
-              final int bottomLat = ((data[2].toInt() & 0x3F) << 10) +
+              // Latitude packed with 12 + 8 + 4 bits (matches FIS-B / Stratux uatparse).
+              final int bottomLat = ((data[2].toInt() & 0x3F) << 12) +
                   ((data[3].toInt() & 0xFF) << 4) +
                   ((data[4].toInt() & 0xF0) >> 4);
 
               int bottomAlt = ((data[9].toInt() & 0xFE) >> 1) * 5;
+              // Upper altitude: raw × 500 ft (was ×100; mis-scaled ceiling vs MOPS / reference decoders).
               int topAlt = ((((data[9].toInt() & 0x01) << 6) +
                       ((data[10].toInt() & 0xFC) >> 2))) *
-                  100;
+                  500;
               altitudeBottom = bottomAlt.toString();
               altitudeTop = topAlt.toString();
 

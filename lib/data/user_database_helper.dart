@@ -295,7 +295,7 @@ class UserDatabaseHelper {
     final db = await database;
 
     if (db != null) {
-      await DbGeneral.query(db, "delete from plan where name='$name'");
+      await DbGeneral.query(db, "delete from plan where name=?", params: [name]);
     }
   }
 
@@ -317,7 +317,7 @@ class UserDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
     if (db != null) {
-      maps = await DbGeneral.query(db, "select * from plan where name='$name'"); // most recent first
+      maps = await DbGeneral.query(db, "select * from plan where name=?", params: [name]); // most recent first
     }
 
     PlanRoute route = await PlanRoute.fromMap(maps[0], reverse);
