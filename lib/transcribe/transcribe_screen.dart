@@ -38,6 +38,7 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
       _svc.initError,
       _svc.partial,
       _svc.entries,
+      _svc.usingOnDevice,
     ]);
     _onChanged = () {
       if (!mounted) return;
@@ -124,7 +125,7 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
             triggerMode: TooltipTriggerMode.tap,
             showDuration: Duration(seconds: 30),
             message:
-                'Live speech-to-text — primarily for transcribing ATC audio that you hear in your aviation headset.\n\nRecommended setup:\n1. Connect the headset audio output (or an aviation audio splitter / panel-mounted audio tap) to your phone\'s audio input via a 3.5 mm TRRS cable.\n2. On phones without a 3.5 mm jack, use a USB-C or Lightning audio adapter.\n3. The phone treats the headset audio as a normal microphone input — no Bluetooth or extra pairing required.\n\nIf nothing is wired in, the phone\'s built-in microphone is used as a fallback (quality is poor in a typical cockpit due to engine and slipstream noise).\n\nTranscription keeps running when you switch to Map / Plate / Plan / Find — a small mic indicator at the top of the main screen lets you stop or return here at any time.',
+                'Live speech-to-text — primarily for transcribing ATC audio that you hear in your aviation headset.\n\nRecommended setup:\n1. Connect the headset audio output (or an aviation audio splitter / panel-mounted audio tap) to your phone\'s audio input via a 3.5 mm TRRS cable.\n2. On phones without a 3.5 mm jack, use a USB-C or Lightning audio adapter.\n3. The phone treats the headset audio as a normal microphone input — no Bluetooth or extra pairing required.\n\nIf nothing is wired in, the phone\'s built-in microphone is used as a fallback (quality is poor in a typical cockpit due to engine and slipstream noise).\n\nTranscription keeps running when you switch to Map / Plate / Plan / Find — a small mic indicator at the top of the main screen lets you stop or return here at any time.\n\nOffline use:\nTranscribe prefers the on-device speech recognizer so it works without cell coverage.\n• iPhone: on-device English recognition is available on most devices running iOS 13+.\n• Android: install an offline speech model first via Settings → System → Languages → On-device speech recognition (or Voice Input settings) and choose English. Without an installed pack, Android falls back to Google\'s network recognizer, which will not work in the air.\n\nThe status bar shows "On-device" or "Network" so you know which one is in use.',
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.help_outline),
@@ -176,6 +177,7 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
                   ),
                 ),
               ),
+              if (listening) _buildModeBadge(scheme),
             ],
           ),
           if (listening) ...[
@@ -195,6 +197,47 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeBadge(ColorScheme scheme) {
+    final onDevice = _svc.usingOnDevice.value;
+    final label = onDevice ? 'On-device' : 'Network';
+    final color = onDevice ? Colors.green : Colors.orange;
+    return Tooltip(
+      message: onDevice
+          ? 'Speech recognition is running on this device — works without internet.'
+          : 'Speech recognition is going through the platform\'s network recognizer — requires internet. On Android, install an offline speech pack to enable on-device recognition.',
+      triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: color.withAlpha(40),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withAlpha(140)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              onDevice ? Icons.offline_bolt : Icons.cloud_outlined,
+              size: 12,
+              color: color,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color,
+                letterSpacing: 0.4,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

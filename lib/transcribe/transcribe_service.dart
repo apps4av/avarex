@@ -43,8 +43,20 @@ class TranscribeService {
   final ValueNotifier<List<TranscriptEntry>> entries =
       ValueNotifier(<TranscriptEntry>[]);
 
+  /// True once a `listen()` call has succeeded with `onDevice: true`.
+  /// Reflects "probably running offline" — the platform plugin doesn't expose
+  /// a definitive offline indicator on Android, so we treat a successful
+  /// on-device-requested start as on-device.
+  final ValueNotifier<bool> usingOnDevice = ValueNotifier(false);
+
   bool _userStopRequested = false;
   bool _initInProgress = false;
+
+  /// Whether the next listen attempt should request on-device recognition.
+  /// Starts true; flipped to false (until the next [stop]) if the platform
+  /// rejects on-device mode (e.g. iOS device without SFSpeechRecognizer
+  /// on-device support).
+  bool _preferOnDevice = true;
 
   // ---- Init ---------------------------------------------------------------
 
@@ -96,6 +108,29 @@ class TranscribeService {
 
   void _onError(SpeechRecognitionError err) {
     statusMessage.value = 'Error: ${err.errorMsg}';
+
+    // Android edge case: `listen(onDevice: true)` can succeed even when no
+    // offline language pack is installed, then the recognizer reports a
+    // permanent error like `error_language_not_supported`. Retry once with
+    // cloud mode so the feature still works on the ground.
+    if (err.permanent &&
+        _preferOnDevice &&
+        isListening.value &&
+        !_userStopRequested) {
+      _preferOnDevice = false;
+      usingOnDevice.value = false;
+      statusMessage.value =
+          'On-device speech not available — using network recognizer';
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (isListening.value &&
+            !_userStopRequested &&
+            !_speech.isListening) {
+          _startRecognition();
+        }
+      });
+      return;
+    }
+
     final recoverable = !err.permanent;
     if (recoverable && isListening.value && !_userStopRequested) {
       Future.delayed(const Duration(milliseconds: 400), () {
@@ -119,6 +154,10 @@ class TranscribeService {
 
     isStarting.value = true;
     _userStopRequested = false;
+    // Reset the on-device preference for a fresh listening session — pilots
+    // commonly start the app on the ground (with WiFi/cell) and then taxi
+    // out, so re-trying on-device on every new session is the right default.
+    _preferOnDevice = true;
     statusMessage.value = 'Preparing audio…';
 
     try {
@@ -142,12 +181,31 @@ class TranscribeService {
         },
         listenOptions: SpeechListenOptions(
           partialResults: true,
+          // Try offline first so the feature is usable in the air without
+          // cell coverage. On iOS, devices without SFSpeechRecognizer
+          // on-device support reject this with an `onDeviceError`; on
+          // Android 12+ with an installed offline language pack this picks
+          // the on-device recognizer, otherwise the platform falls back to
+          // the default (cloud) recognizer.
+          onDevice: _preferOnDevice,
           listenMode: ListenMode.dictation,
           cancelOnError: false,
           autoPunctuation: true,
         ),
       );
+      usingOnDevice.value = _preferOnDevice;
     } catch (e) {
+      // iOS rejects on-device when SFSpeechRecognizer has no local model
+      // for this locale — fall back to cloud once per session so the
+      // feature still works when the pilot has internet on the ground.
+      if (_preferOnDevice) {
+        _preferOnDevice = false;
+        usingOnDevice.value = false;
+        statusMessage.value =
+            'On-device speech not available — using network recognizer';
+        await _startRecognition();
+        return;
+      }
       isListening.value = false;
       statusMessage.value = 'Failed to start: $e';
       try {
@@ -178,6 +236,7 @@ class TranscribeService {
     }
     partial.value = '';
     audioLevel.value = 0;
+    usingOnDevice.value = false;
     statusMessage.value = 'Stopped';
   }
 
