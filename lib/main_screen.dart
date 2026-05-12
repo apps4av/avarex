@@ -2,6 +2,7 @@ import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/transcribe/transcribe_status_overlay.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
@@ -399,8 +400,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             ),
           ),
         ),
-        body: Center(
-          child: _widgetOptions.elementAt(_selectedIndex),
+        body: Stack(
+          children: [
+            Center(
+              child: _widgetOptions.elementAt(_selectedIndex),
+            ),
+            // Global transcription status pill — visible across all four
+            // bottom-nav tabs while the recognizer is active. Invisible when
+            // idle.
+            const TranscribeStatusOverlay(),
+          ],
         ),
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(5),

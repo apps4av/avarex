@@ -7,7 +7,21 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="com.android.vending.BILLING" />
-    
+
+    <!-- For live speech transcription on the Pro/Transcribe screen.
+         The intended source is headset audio (ATC + own transmissions)
+         tapped into the phone's audio input via a wired aviation audio
+         adapter / TRRS cable; the OS exposes that as a normal microphone. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Android 11+ requires explicit declaration of the speech recognition
+         service in order for SpeechRecognizer to find it. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
+
     <application
         android:label="AvareX"
         android:name="${applicationName}"

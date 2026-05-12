@@ -48,7 +48,9 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app does not use the microphone for any purpose, but an SDK used for developing this app may contain calls to the microphone API.</string>
+	<string>AvareX uses the microphone for the live Transcribe screen, primarily to record ATC audio fed from an aviation headset into the phone via a wired audio adapter (TRRS cable). If nothing is wired in, the phone's built-in microphone is used. Audio is processed only for speech-to-text and is not shared with Apps4Av.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>AvareX uses speech recognition on the Transcribe screen to convert audio (typically ATC heard in your aviation headset) into text in real time. Speech is processed by the system speech recognizer and is not shared with Apps4Av.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

@@ -5,6 +5,7 @@ import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/transcribe/transcribe_screen.dart';
 import 'package:avaremp/writing_screen.dart';
 import 'aircraft/aircraft_performance_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -77,6 +78,7 @@ class MainApp extends StatelessWidget {
               '/notes': (context) => const WritingScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
               '/ai': (context) => const AiScreen(),
+              '/transcribe': (context) => const TranscribeScreen(),
               '/backup': (context) => const BackupScreen(),
               '/popup': (context) {
                   final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;

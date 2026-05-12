@@ -100,6 +100,7 @@ dependencies:
   purchases_flutter: ^9.9.9
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^9.9.9
+  speech_to_text: ^7.0.0
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

@@ -70,23 +70,32 @@ class LoginScreenState extends State<LoginScreen> {
         ),
         bottomSheet: SizedBox(
           height: 50,
-          child: isLoggedIn ? Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                child: const Text("Flight Intelligence"),
-                onPressed: () {
-                  // Offerings and purchase options
-                  showPaywall(context, '/ai');
-                },
-              ),
-              TextButton(
-                child: const Text("Backup/Sync"),
-                onPressed: () {
-                  showPaywall(context, '/backup');
-                },
-              ),
-            ],
+          child: isLoggedIn ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextButton(
+                  child: const Text("Flight Intelligence"),
+                  onPressed: () {
+                    // Offerings and purchase options
+                    showPaywall(context, '/ai');
+                  },
+                ),
+                TextButton(
+                  child: const Text("Transcribe"),
+                  onPressed: () {
+                    showPaywall(context, '/transcribe');
+                  },
+                ),
+                TextButton(
+                  child: const Text("Backup/Sync"),
+                  onPressed: () {
+                    showPaywall(context, '/backup');
+                  },
+                ),
+              ],
+            ),
           ) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
         ),
         body: isLoggedIn ?
