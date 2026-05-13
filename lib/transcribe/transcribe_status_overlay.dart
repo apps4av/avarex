@@ -1,3 +1,4 @@
+import 'package:avaremp/transcribe/stt_backend.dart';
 import 'package:avaremp/transcribe/transcribe_service.dart';
 import 'package:flutter/material.dart';
 
@@ -38,18 +39,16 @@ class _PillVisibility extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final svc = TranscribeService();
-    return ValueListenableBuilder<bool>(
-      valueListenable: svc.isListening,
-      builder: (context, listening, _) {
-        return ValueListenableBuilder<bool>(
-          valueListenable: svc.isStarting,
-          builder: (context, starting, __) {
-            if (!listening && !starting) {
-              return const SizedBox.shrink();
-            }
-            return _Pill(starting: starting);
-          },
-        );
+    return ListenableBuilder(
+      listenable: Listenable.merge(
+          [svc.isListening, svc.isStarting, svc.activeEngine]),
+      builder: (context, _) {
+        final listening = svc.isListening.value;
+        final starting = svc.isStarting.value;
+        if (!listening && !starting) {
+          return const SizedBox.shrink();
+        }
+        return _Pill(starting: starting);
       },
     );
   }
@@ -63,7 +62,14 @@ class _Pill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final svc = TranscribeService();
-    final label = starting ? 'Starting…' : 'REC';
+    // Surface which engine is active so the pilot can tell at a glance
+    // whether they're on online platform STT (no badge) or offline Whisper
+    // ("AI" badge). Whisper-active pill stays red but gains a small label.
+    final engine = svc.activeEngine.value;
+    final isWhisper = engine == SttEngine.whisper;
+    final label = starting
+        ? 'Starting…'
+        : (isWhisper ? 'REC · AI' : 'REC');
     return Material(
       color: Colors.red.withAlpha(220),
       elevation: 4,

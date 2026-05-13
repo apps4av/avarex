@@ -101,6 +101,33 @@ dependencies:
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^9.9.9
   speech_to_text: ^7.0.0
+  # Whisper.cpp via FFI for fully-offline, aviation-grade speech recognition
+  # on the Transcribe screen. The model file is downloaded on-demand from
+  # the in-screen voice-pack section (see lib/transcribe/whisper_model_manager.dart).
+  # Whisper is *optional* — if the model isn't installed we fall back to
+  # the platform recognizer wrapped via `speech_to_text`.
+  #
+  # We use `whisper_ggml_plus` (a maintained fork of `whisper_ggml`) because:
+  #   * The original `whisper_ggml` 1.1.x pulls in `ffmpeg_kit_flutter_full_gpl`,
+  #     whose native Android AAR (`com.arthenica:ffmpeg-kit-full-gpl`) was
+  #     removed from public maven repos earlier this year — Gradle can no
+  #     longer resolve it, breaking Android release builds.
+  #   * `whisper_ggml_plus` explicitly decouples ffmpeg into a separate
+  #     companion package, which we don't need: our audio is already 16 kHz
+  #     mono WAV produced by `record` and can be fed to Whisper.cpp directly.
+  whisper_ggml_plus: ^1.5.2
+  # Raw WAV microphone capture used by the Whisper backend to slice the
+  # continuous mic stream into utterances using amplitude-based VAD.
+  record: ^6.2.0
+
+# `scribble 0.10.0+1` pins `freezed_annotation ^2.4.1`, while
+# `whisper_ggml_plus 1.5.2` requires `freezed_annotation ^3.1.0`. The 3.1.x
+# line is API-compatible with scribble's pre-generated code (3.1 restored
+# the `when`/`map` removed in 3.0). Forcing 3.1.x makes both packages happy
+# without touching scribble.
+dependency_overrides:
+  freezed_annotation: ^3.1.0
+
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

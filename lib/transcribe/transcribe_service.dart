@@ -1,10 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:whisper_ggml_plus/whisper_ggml_plus.dart';
+
+import 'package:avaremp/storage.dart';
+
+import 'platform_stt_backend.dart';
+import 'stt_backend.dart';
+import 'whisper_model_manager.dart';
+import 'whisper_stt_backend.dart';
 
 /// Singleton speech-to-text engine. Lives for the lifetime of the app so the
 /// recognizer survives navigation between Map / Plate / Plan / Find / etc.
@@ -14,22 +19,34 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// [TranscribeStatusOverlay] pill, rendered globally on [MainScreen], lets
 /// the pilot see and stop transcription from any tab.
 ///
-/// Audio source: the OS microphone. The intended cockpit setup is to wire
-/// the aviation headset's audio output (or an aviation audio splitter cable)
-/// into the phone's audio input with a 3.5 mm TRRS cable (plus a USB-C or
-/// Lightning audio adapter on phones without a 3.5 mm jack). The phone then
-/// captures ATC audio plus the pilot's own transmissions as a normal
-/// microphone signal — no Bluetooth involved. If nothing is wired in, the
-/// phone's built-in microphone is used as a fallback (poor quality due to
-/// cockpit noise).
+/// ## Engine selection
+///
+/// At runtime the service picks one of two engines:
+///
+///  * [PlatformSttBackend] — wraps the OS recognizer via `speech_to_text`.
+///    Default fallback. Usually requires an internet connection on Android.
+///  * [WhisperSttBackend]  — fully offline, runs Whisper.cpp on the device
+///    against a model file downloaded from the Downloads screen.
+///
+/// The choice is driven by [AppSettings.getTranscribeEngine]:
+///   `auto`     → Whisper if its model is installed, else platform.
+///   `platform` → always platform.
+///   `whisper`  → always Whisper (fails fast if no model).
+///
+/// ## Audio source
+///
+/// The OS microphone. Recommended cockpit setup is to wire the aviation
+/// headset's audio output into the phone's audio input with a 3.5 mm TRRS
+/// cable (plus a USB-C / Lightning audio adapter on phones without a 3.5 mm
+/// jack). The phone then sees ATC audio plus the pilot's own transmissions
+/// as a normal mic signal — no Bluetooth pairing involved. If nothing is
+/// wired in, the phone's built-in mic is used as a (noisy) fallback.
 class TranscribeService {
   static final TranscribeService _instance = TranscribeService._internal();
 
   factory TranscribeService() => _instance;
 
   TranscribeService._internal();
-
-  final SpeechToText _speech = SpeechToText();
 
   // ---- Public, observable state -------------------------------------------
 
@@ -43,104 +60,171 @@ class TranscribeService {
   final ValueNotifier<List<TranscriptEntry>> entries =
       ValueNotifier(<TranscriptEntry>[]);
 
-  /// True once a `listen()` call has succeeded with `onDevice: true`.
-  /// Reflects "probably running offline" — the platform plugin doesn't expose
-  /// a definitive offline indicator on Android, so we treat a successful
-  /// on-device-requested start as on-device.
-  final ValueNotifier<bool> usingOnDevice = ValueNotifier(false);
+  /// Which engine is currently in use. Mirrors [SttEngine] but is null until
+  /// [init] has chosen a backend.
+  final ValueNotifier<SttEngine?> activeEngine = ValueNotifier(null);
 
-  bool _userStopRequested = false;
+  SttBackend? _backend;
   bool _initInProgress = false;
-
-  /// Whether the next listen attempt should request on-device recognition.
-  /// Starts true; flipped to false (until the next [stop]) if the platform
-  /// rejects on-device mode (e.g. iOS device without SFSpeechRecognizer
-  /// on-device support).
-  bool _preferOnDevice = true;
 
   // ---- Init ---------------------------------------------------------------
 
-  /// Idempotent. Safe to call from many places (e.g. each time the Transcribe
-  /// screen opens). Returns immediately if already initialized.
+  /// Idempotent. Safe to call from many places (e.g. each time the
+  /// Transcribe screen opens). Picks the right backend based on user
+  /// preference + model availability.
   Future<void> init() async {
-    if (isInitialized.value || _initInProgress) return;
+    if (_initInProgress) return;
     _initInProgress = true;
     try {
-      final ok = await _speech.initialize(
-        onStatus: _onStatus,
-        onError: _onError,
-        debugLogging: false,
+      final preferred = _resolvePreferredEngine();
+
+      // If we already have a backend and it matches the desired engine,
+      // we're done. Otherwise we may need to tear it down and rebuild.
+      if (_backend != null && _backend!.engine == preferred && isInitialized.value) {
+        return;
+      }
+      if (_backend != null && _backend!.engine != preferred) {
+        await _backend!.dispose();
+        _backend = null;
+        isInitialized.value = false;
+      }
+
+      _backend = _buildBackend(preferred);
+      activeEngine.value = _backend!.engine;
+
+      final ok = await _backend!.init(
+        onUtterance: _onUtterance,
+        onPartial: _onPartial,
+        onStatus: _onBackendStatus,
+        onError: _onBackendError,
+        onLevel: _onLevel,
       );
       isInitialized.value = ok;
-      if (!ok) {
-        initError.value =
-            'Speech recognition is not available on this device. On Android, install/enable a speech recognizer (e.g. Google) and grant microphone permission.';
-      } else {
-        initError.value = null;
+      initError.value = ok ? null : _backend!.initError;
+
+      // If the user asked for Whisper but it failed (e.g. model missing),
+      // transparently fall back to the platform engine so they can still
+      // transcribe — but keep the error message in [initError] so the UI
+      // can offer a "Download AI voice pack" prompt.
+      if (!ok && preferred == SttEngine.whisper) {
+        await _backend!.dispose();
+        _backend = _buildBackend(SttEngine.platform);
+        activeEngine.value = _backend!.engine;
+        final fallbackOk = await _backend!.init(
+          onUtterance: _onUtterance,
+          onPartial: _onPartial,
+          onStatus: _onBackendStatus,
+          onError: _onBackendError,
+          onLevel: _onLevel,
+        );
+        isInitialized.value = fallbackOk;
+        // Combine the two error messages so the user sees both: "Whisper
+        // model missing" and (if applicable) "platform recognizer also
+        // unavailable".
+        if (!fallbackOk) {
+          initError.value =
+              '${_backend!.initError ?? 'Speech recognition is unavailable.'} '
+              '(AI voice pack also unavailable — install it from Downloads.)';
+        }
       }
-    } catch (e) {
-      isInitialized.value = false;
-      initError.value = 'Failed to initialize speech recognition: $e';
     } finally {
       _initInProgress = false;
     }
   }
 
-  // ---- Recognizer callbacks ----------------------------------------------
-
-  void _onStatus(String status) {
-    statusMessage.value = status;
-    // The platform recognizer auto-stops after `pauseFor` of silence; restart
-    // it if the user hasn't pressed Stop, so the screen functions as a
-    // continuous live transcription view.
-    final stoppedByRecognizer =
-        status == 'done' || status == 'notListening';
-    if (stoppedByRecognizer && isListening.value && !_userStopRequested) {
-      Future.delayed(const Duration(milliseconds: 250), () {
-        if (isListening.value &&
-            !_userStopRequested &&
-            !_speech.isListening) {
-          _startRecognition();
-        }
-      });
+  SttEngine _resolvePreferredEngine() {
+    final raw = Storage().settings.getTranscribeEngine();
+    switch (raw) {
+      case 'platform':
+        return SttEngine.platform;
+      case 'whisper':
+        return SttEngine.whisper;
+      case 'auto':
+      default:
+        return WhisperModelManager().isAnyInstalled()
+            ? SttEngine.whisper
+            : SttEngine.platform;
     }
   }
 
-  void _onError(SpeechRecognitionError err) {
-    statusMessage.value = 'Error: ${err.errorMsg}';
+  SttBackend _buildBackend(SttEngine engine) {
+    switch (engine) {
+      case SttEngine.whisper:
+        return WhisperSttBackend(model: _chooseWhisperModel());
+      case SttEngine.platform:
+        return PlatformSttBackend();
+    }
+  }
 
-    // Android edge case: `listen(onDevice: true)` can succeed even when no
-    // offline language pack is installed, then the recognizer reports a
-    // permanent error like `error_language_not_supported`. Retry once with
-    // cloud mode so the feature still works on the ground.
-    if (err.permanent &&
-        _preferOnDevice &&
-        isListening.value &&
-        !_userStopRequested) {
-      _preferOnDevice = false;
-      usingOnDevice.value = false;
-      statusMessage.value =
-          'On-device speech not available — using network recognizer';
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (isListening.value &&
-            !_userStopRequested &&
-            !_speech.isListening) {
-          _startRecognition();
-        }
-      });
+  /// Picks the fastest Whisper variant from those installed. We prefer
+  /// `tiny.en` over `base.en` because the ~3× lower inference cost keeps
+  /// the transcript real-time even on mid-range phones in the cockpit; the
+  /// accuracy gap is small enough that more captured utterances beats
+  /// fewer-but-better ones for ATC use. If only the larger model is on
+  /// disk we'll happily use it. Falls back to the user-preferred name and
+  /// finally to `tiny.en` (which will fail init and trigger the download
+  /// prompt) when nothing is installed.
+  WhisperModel _chooseWhisperModel() {
+    final mgr = WhisperModelManager();
+    if (mgr.isInstalledSync(WhisperModel.tinyEn)) return WhisperModel.tinyEn;
+    if (mgr.isInstalledSync(WhisperModel.baseEn)) return WhisperModel.baseEn;
+
+    final saved = Storage().settings.getTranscribeWhisperModel();
+    for (final v in kWhisperVoicePackVariants) {
+      if (v.model.modelName == saved) return v.model;
+    }
+    return WhisperModel.tinyEn;
+  }
+
+  /// Tear down the current backend and let [init] pick a fresh one on next
+  /// call. Used when the user changes the engine preference in the UI or
+  /// installs / deletes a Whisper model on the Downloads screen.
+  Future<void> reconfigure() async {
+    if (_backend == null) {
+      await init();
       return;
     }
-
-    final recoverable = !err.permanent;
-    if (recoverable && isListening.value && !_userStopRequested) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (isListening.value &&
-            !_userStopRequested &&
-            !_speech.isListening) {
-          _startRecognition();
-        }
-      });
+    final wasListening = isListening.value;
+    if (wasListening) {
+      await stop();
     }
+    await _backend!.dispose();
+    _backend = null;
+    isInitialized.value = false;
+    await init();
+    if (wasListening && isInitialized.value) {
+      await start();
+    }
+  }
+
+  // ---- Backend callbacks --------------------------------------------------
+
+  void _onUtterance(SttUtterance u) {
+    final list = List<TranscriptEntry>.from(entries.value)
+      ..add(TranscriptEntry(u.timestamp, u.text));
+    entries.value = list;
+  }
+
+  void _onPartial(String s) {
+    partial.value = s;
+  }
+
+  void _onBackendStatus(String message) {
+    statusMessage.value = message;
+  }
+
+  void _onBackendError(String message, {required bool recoverable}) {
+    statusMessage.value = 'Error: $message';
+    if (!recoverable) {
+      isListening.value = false;
+      // Best-effort: drop the wakelock so we don't pin the screen on a
+      // permanently-broken recognizer.
+      WakelockPlus.disable().catchError((_) {});
+    }
+  }
+
+  void _onLevel(double levelDbfs) {
+    audioLevel.value = levelDbfs;
   }
 
   // ---- Public control surface --------------------------------------------
@@ -153,11 +237,6 @@ class TranscribeService {
     if (isListening.value || isStarting.value) return;
 
     isStarting.value = true;
-    _userStopRequested = false;
-    // Reset the on-device preference for a fresh listening session — pilots
-    // commonly start the app on the ground (with WiFi/cell) and then taxi
-    // out, so re-trying on-device on every new session is the right default.
-    _preferOnDevice = true;
     statusMessage.value = 'Preparing audio…';
 
     try {
@@ -167,91 +246,22 @@ class TranscribeService {
     isListening.value = true;
     isStarting.value = false;
 
-    await _startRecognition();
-  }
-
-  Future<void> _startRecognition() async {
-    try {
-      await _speech.listen(
-        onResult: _onResult,
-        listenFor: const Duration(minutes: 30),
-        pauseFor: const Duration(seconds: 5),
-        onSoundLevelChange: (level) {
-          audioLevel.value = level;
-        },
-        listenOptions: SpeechListenOptions(
-          partialResults: true,
-          // Try offline first so the feature is usable in the air without
-          // cell coverage. On iOS, devices without SFSpeechRecognizer
-          // on-device support reject this with an `onDeviceError`; on
-          // Android 12+ with an installed offline language pack this picks
-          // the on-device recognizer, otherwise the platform falls back to
-          // the default (cloud) recognizer.
-          onDevice: _preferOnDevice,
-          listenMode: ListenMode.dictation,
-          cancelOnError: false,
-          autoPunctuation: true,
-        ),
-      );
-      usingOnDevice.value = _preferOnDevice;
-    } catch (e) {
-      // iOS rejects on-device when SFSpeechRecognizer has no local model
-      // for this locale — fall back to cloud once per session so the
-      // feature still works when the pilot has internet on the ground.
-      if (_preferOnDevice) {
-        _preferOnDevice = false;
-        usingOnDevice.value = false;
-        statusMessage.value =
-            'On-device speech not available — using network recognizer';
-        await _startRecognition();
-        return;
-      }
-      isListening.value = false;
-      statusMessage.value = 'Failed to start: $e';
-      try {
-        await WakelockPlus.disable();
-      } catch (_) { /* ignore */ }
-    }
+    await _backend!.start();
   }
 
   Future<void> stop() async {
-    _userStopRequested = true;
     isListening.value = false;
     isStarting.value = false;
 
     try {
-      await _speech.stop();
+      await _backend?.stop();
     } catch (_) { /* ignore */ }
     try {
       await WakelockPlus.disable();
     } catch (_) { /* ignore */ }
 
-    // Promote any in-flight partial result to a finalized entry so nothing
-    // is lost when the pilot stops mid-utterance.
-    final p = partial.value.trim();
-    if (p.isNotEmpty) {
-      final list = List<TranscriptEntry>.from(entries.value)
-        ..add(TranscriptEntry(DateTime.now(), p));
-      entries.value = list;
-    }
-    partial.value = '';
     audioLevel.value = 0;
-    usingOnDevice.value = false;
     statusMessage.value = 'Stopped';
-  }
-
-  void _onResult(SpeechRecognitionResult result) {
-    if (result.finalResult) {
-      final words = result.recognizedWords.trim();
-      if (words.isNotEmpty) {
-        final list = List<TranscriptEntry>.from(entries.value)
-          ..add(TranscriptEntry(DateTime.now(), words));
-        entries.value = list;
-      }
-      partial.value = '';
-    } else {
-      partial.value = result.recognizedWords;
-    }
   }
 
   void clear() {

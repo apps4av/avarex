@@ -1,13 +1,17 @@
 import 'package:avaremp/constants.dart';
+import 'package:avaremp/storage.dart';
+import 'package:avaremp/transcribe/stt_backend.dart';
 import 'package:avaremp/transcribe/transcribe_service.dart';
+import 'package:avaremp/transcribe/voice_pack_section.dart';
+import 'package:avaremp/transcribe/whisper_model_manager.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// View over [TranscribeService]. All recognizer / Bluetooth state lives in
-/// the singleton service, so leaving this screen does NOT stop transcription
-/// — the recognizer keeps running across Map / Plate / Plan / Find. A small
+/// View over [TranscribeService]. All recognizer state lives in the
+/// singleton service, so leaving this screen does NOT stop transcription —
+/// the recognizer keeps running across Map / Plate / Plan / Find. A small
 /// global [TranscribeStatusOverlay] indicator on [MainScreen] reflects the
 /// active state from any tab.
 class TranscribeScreen extends StatefulWidget {
@@ -19,6 +23,7 @@ class TranscribeScreen extends StatefulWidget {
 
 class _TranscribeScreenState extends State<TranscribeScreen> {
   final TranscribeService _svc = TranscribeService();
+  final WhisperModelManager _mgr = WhisperModelManager();
   final ScrollController _scrollController = ScrollController();
 
   late final Listenable _listenable;
@@ -28,7 +33,6 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
   void initState() {
     super.initState();
 
-    // Re-paint on any service state change.
     _listenable = Listenable.merge([
       _svc.isInitialized,
       _svc.isListening,
@@ -38,7 +42,8 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
       _svc.initError,
       _svc.partial,
       _svc.entries,
-      _svc.usingOnDevice,
+      _svc.activeEngine,
+      _mgr.changes,
     ]);
     _onChanged = () {
       if (!mounted) return;
@@ -47,8 +52,11 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
     };
     _listenable.addListener(_onChanged);
 
-    // Idempotent — ensures permissions/recognizer are wired up on first open.
     _svc.init();
+    // Best-effort refresh of installed status — cheap on app start, this
+    // here is for the case where the user installed/deleted a voice pack
+    // since the screen was last open.
+    _mgr.refreshAll();
   }
 
   @override
@@ -107,6 +115,11 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
   String _formatTime(DateTime t) =>
       '${t.hour.toString().padLeft(2, "0")}:${t.minute.toString().padLeft(2, "0")}:${t.second.toString().padLeft(2, "0")}';
 
+  Future<void> _onEnginePreferenceChanged(String pref) async {
+    Storage().settings.setTranscribeEngine(pref);
+    await _svc.reconfigure();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -120,12 +133,40 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
             const Text('Transcribe'),
           ],
         ),
-        actions: const [
-          Tooltip(
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Engine preference',
+            onSelected: _onEnginePreferenceChanged,
+            itemBuilder: (context) {
+              final current = Storage().settings.getTranscribeEngine();
+              return [
+                _engineMenuItem(
+                  value: 'auto',
+                  selected: current == 'auto',
+                  title: 'Auto',
+                  subtitle: 'Whisper if installed, else platform',
+                ),
+                _engineMenuItem(
+                  value: 'platform',
+                  selected: current == 'platform',
+                  title: 'Platform (online)',
+                  subtitle: 'iOS/Android speech recognizer',
+                ),
+                _engineMenuItem(
+                  value: 'whisper',
+                  selected: current == 'whisper',
+                  title: 'Whisper (offline AI)',
+                  subtitle: 'Requires voice pack download',
+                ),
+              ];
+            },
+          ),
+          const Tooltip(
             triggerMode: TooltipTriggerMode.tap,
             showDuration: Duration(seconds: 30),
             message:
-                'Live speech-to-text — primarily for transcribing ATC audio that you hear in your aviation headset.\n\nRecommended setup:\n1. Connect the headset audio output (or an aviation audio splitter / panel-mounted audio tap) to your phone\'s audio input via a 3.5 mm TRRS cable.\n2. On phones without a 3.5 mm jack, use a USB-C or Lightning audio adapter.\n3. The phone treats the headset audio as a normal microphone input — no Bluetooth or extra pairing required.\n\nIf nothing is wired in, the phone\'s built-in microphone is used as a fallback (quality is poor in a typical cockpit due to engine and slipstream noise).\n\nTranscription keeps running when you switch to Map / Plate / Plan / Find — a small mic indicator at the top of the main screen lets you stop or return here at any time.\n\nOffline use:\nTranscribe prefers the on-device speech recognizer so it works without cell coverage.\n• iPhone: on-device English recognition is available on most devices running iOS 13+.\n• Android: install an offline speech model first via Settings → System → Languages → On-device speech recognition (or Voice Input settings) and choose English. Without an installed pack, Android falls back to Google\'s network recognizer, which will not work in the air.\n\nThe status bar shows "On-device" or "Network" so you know which one is in use.',
+                'Live speech-to-text — primarily for transcribing ATC audio that you hear in your aviation headset.\n\nRecommended setup:\n1. Connect the headset audio output (or an aviation audio splitter / panel-mounted audio tap) to your phone\'s audio input via a 3.5 mm TRRS cable.\n2. On phones without a 3.5 mm jack, use a USB-C or Lightning audio adapter.\n3. The phone treats the headset audio as a normal microphone input — no Bluetooth or extra pairing required.\n\nEngines:\n• Auto / Platform — uses the OS speech recognizer (usually needs internet on Android).\n• Whisper (offline AI) — runs an on-device model that is more robust to ATC accents and engine noise. Tap the AI Voice Pack section below to install it.\n\nTranscription keeps running when you switch to Map / Plate / Plan / Find — a small mic indicator at the top of the main screen lets you stop or return here at any time.',
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Icon(Icons.help_outline),
@@ -137,10 +178,53 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
         child: Column(
           children: [
             _buildStatusBar(scheme),
+            // Voice-pack manager lives directly on this screen so the pilot
+            // never has to leave Transcribe to enable offline AI. The widget
+            // is a self-contained ExpansionTile; it auto-collapses once a
+            // pack is installed and expands by default when nothing is.
+            if (_shouldShowVoicePackSection()) const VoicePackSection(),
             Expanded(child: _buildTranscriptArea(scheme)),
             _buildControls(scheme),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Hide the voice-pack section only when the user has explicitly chosen
+  /// the platform engine *and* no model is installed; otherwise we always
+  /// show it (so installed packs can be inspected/deleted, and so users in
+  /// 'auto'/'whisper' modes can install one inline).
+  bool _shouldShowVoicePackSection() {
+    final pref = Storage().settings.getTranscribeEngine();
+    if (pref == 'platform' && !_mgr.isAnyInstalled()) return false;
+    return true;
+  }
+
+  PopupMenuItem<String> _engineMenuItem({
+    required String value,
+    required bool selected,
+    required String title,
+    required String subtitle,
+  }) {
+    return PopupMenuItem<String>(
+      value: value,
+      child: Row(
+        children: [
+          Icon(selected ? Icons.check_circle : Icons.radio_button_unchecked,
+              size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(subtitle, style: const TextStyle(fontSize: 11)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -151,6 +235,7 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
     final statusColor = listening
         ? Colors.green
         : (initError != null ? Colors.red : scheme.outline);
+    final engineChip = _engineChip(scheme);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -177,13 +262,13 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
                   ),
                 ),
               ),
-              if (listening) _buildModeBadge(scheme),
+              if (engineChip != null) engineChip,
             ],
           ),
           if (listening) ...[
             const SizedBox(height: 6),
             LinearProgressIndicator(
-              value: ((_svc.audioLevel.value.clamp(-2.0, 10.0)) + 2) / 12,
+              value: _audioLevelToBar(_svc.audioLevel.value),
               minHeight: 4,
             ),
           ],
@@ -201,42 +286,47 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
     );
   }
 
-  Widget _buildModeBadge(ColorScheme scheme) {
-    final onDevice = _svc.usingOnDevice.value;
-    final label = onDevice ? 'On-device' : 'Network';
-    final color = onDevice ? Colors.green : Colors.orange;
+  /// Convert the backend's level (either dBFS [-160..0] from `record` or
+  /// the platform recognizer's raw -2..10) into a 0..1 progress bar value.
+  double _audioLevelToBar(double v) {
+    if (v <= -1.5) {
+      // dBFS path: -60 dBFS → 0, 0 dBFS → 1.
+      final clamped = v.clamp(-60.0, 0.0);
+      return (clamped + 60) / 60;
+    }
+    // speech_to_text path: -2..10.
+    final clamped = v.clamp(-2.0, 10.0);
+    return (clamped + 2) / 12;
+  }
+
+  /// Small badge in the top-right corner of the status bar indicating
+  /// which engine is active. Hidden until [TranscribeService.init] has
+  /// settled on a backend.
+  Widget? _engineChip(ColorScheme scheme) {
+    final engine = _svc.activeEngine.value;
+    if (engine == null) return null;
+    final label = engine == SttEngine.whisper ? 'AI' : 'OS';
+    final tooltip = engine == SttEngine.whisper
+        ? 'Offline AI (Whisper)'
+        : 'Platform speech recognizer';
+    final color = engine == SttEngine.whisper ? Colors.deepPurple : scheme.primary;
     return Tooltip(
-      message: onDevice
-          ? 'Speech recognition is running on this device — works without internet.'
-          : 'Speech recognition is going through the platform\'s network recognizer — requires internet. On Android, install an offline speech pack to enable on-device recognition.',
-      triggerMode: TooltipTriggerMode.tap,
-      showDuration: const Duration(seconds: 8),
+      message: tooltip,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        margin: const EdgeInsets.only(left: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
           color: color.withAlpha(40),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withAlpha(140)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color.withAlpha(120)),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              onDevice ? Icons.offline_bolt : Icons.cloud_outlined,
-              size: 12,
-              color: color,
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-                color: color,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
         ),
       ),
     );

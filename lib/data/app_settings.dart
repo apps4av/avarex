@@ -231,6 +231,28 @@ class AppSettings {
     return provider.getValue("key-document-page-v1", defaultValue: DocumentsScreen.allDocuments) as String;
   }
 
+  /// Transcribe engine preference. One of:
+  ///   "auto"     — use Whisper if its model is installed, else the OS recognizer.
+  ///   "platform" — always use the OS recognizer (online on Android, on-device on iOS).
+  ///   "whisper"  — always use Whisper (fails fast if model not installed).
+  String getTranscribeEngine() {
+    return provider.getValue("key-transcribe-engine-v1", defaultValue: "auto") as String;
+  }
+
+  void setTranscribeEngine(String value) {
+    provider.setString("key-transcribe-engine-v1", value);
+  }
+
+  /// Which Whisper model the user has chosen for offline transcription.
+  /// Matches the [WhisperModel] enum's [modelName] (e.g. "tiny.en", "base.en").
+  String getTranscribeWhisperModel() {
+    return provider.getValue("key-transcribe-whisper-model-v1", defaultValue: "tiny.en") as String;
+  }
+
+  void setTranscribeWhisperModel(String value) {
+    provider.setString("key-transcribe-whisper-model-v1", value);
+  }
+
   bool isAudibleAlertsEnabled() {
     return provider.getValue("key-audible-alerts", defaultValue: false) as bool;
   }

@@ -11,6 +11,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_storage
   geolocator_windows
   msvcredist
+  record_windows
   share_plus
   speech_to_text_windows
   sqlite3_flutter_libs
@@ -19,6 +20,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
+  whisper_ggml_plus
 )
 
 set(PLUGIN_BUNDLED_LIBRARIES)

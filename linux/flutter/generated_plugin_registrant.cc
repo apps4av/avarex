@@ -9,6 +9,7 @@
 #include <audioplayers_linux/audioplayers_linux_plugin.h>
 #include <desktop_webview_auth/desktop_webview_auth_plugin.h>
 #include <gtk/gtk_plugin.h>
+#include <record_linux/record_linux_plugin.h>
 #include <sqlite3_flutter_libs/sqlite3_flutter_libs_plugin.h>
 #include <syncfusion_pdfviewer_linux/syncfusion_pdfviewer_linux_plugin.h>
 #include <url_launcher_linux/url_launcher_plugin.h>
@@ -23,6 +24,9 @@ void fl_register_plugins(FlPluginRegistry* registry) {
   g_autoptr(FlPluginRegistrar) gtk_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "GtkPlugin");
   gtk_plugin_register_with_registrar(gtk_registrar);
+  g_autoptr(FlPluginRegistrar) record_linux_registrar =
+      fl_plugin_registry_get_registrar_for_plugin(registry, "RecordLinuxPlugin");
+  record_linux_plugin_register_with_registrar(record_linux_registrar);
   g_autoptr(FlPluginRegistrar) sqlite3_flutter_libs_registrar =
       fl_plugin_registry_get_registrar_for_plugin(registry, "Sqlite3FlutterLibsPlugin");
   sqlite3_flutter_libs_plugin_register_with_registrar(sqlite3_flutter_libs_registrar);
