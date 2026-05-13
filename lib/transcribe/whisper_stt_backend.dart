@@ -78,6 +78,11 @@ class WhisperSttBackend implements SttBackend {
   Timer? _pollTimer;
   int _utteranceCounter = 0;
 
+  /// Peak amplitude (dBFS) observed during the current utterance — surfaced
+  /// in the post-transcribe status hint so we can see at a glance whether
+  /// audio is actually reaching the recorder.
+  double _utterancePeakDbfs = -160;
+
   /// Number of `_transcribeFile` calls currently waiting on the Whisper
   /// isolate. Used to back-pressure the queue so a slow device never falls
   /// further than [_maxInflight] utterances behind reality.
@@ -185,6 +190,7 @@ class WhisperSttBackend implements SttBackend {
     _utteranceStart = DateTime.now();
     _speechSeen = false;
     _silenceStart = null;
+    _utterancePeakDbfs = -160;
 
     await _recorder.start(
       const RecordConfig(
@@ -209,6 +215,7 @@ class WhisperSttBackend implements SttBackend {
     final amp = await _recorder.getAmplitude();
     final dbfs = amp.current;
     _onLevel?.call(dbfs);
+    if (dbfs > _utterancePeakDbfs) _utterancePeakDbfs = dbfs;
 
     final now = DateTime.now();
     final age = now.difference(_utteranceStart!);
@@ -230,14 +237,22 @@ class WhisperSttBackend implements SttBackend {
     final endedByCap = age >= _maxUtteranceLength;
 
     if (endedBySilence || endedByCap) {
-      await _finishUtteranceAndStartNext(transcribe: _speechSeen);
+      await _finishUtteranceAndStartNext(
+        transcribe: _speechSeen,
+        utteranceDuration: age,
+        peakDbfs: _utterancePeakDbfs,
+      );
     }
   }
 
   /// Stops the current recorder, hands the file off to Whisper (if we ever
   /// heard speech), and immediately spins up a fresh recording so the mic
   /// gap between utterances is < 50 ms in practice.
-  Future<void> _finishUtteranceAndStartNext({required bool transcribe}) async {
+  Future<void> _finishUtteranceAndStartNext({
+    required bool transcribe,
+    required Duration utteranceDuration,
+    required double peakDbfs,
+  }) async {
     final pathToProcess = _currentRecordingPath;
     _currentRecordingPath = null;
 
@@ -262,6 +277,11 @@ class WhisperSttBackend implements SttBackend {
     final wavPath = stopped ?? pathToProcess;
     if (wavPath == null) return;
     if (!transcribe) {
+      // No speech detected — surface a diagnostic so we can see the
+      // amplitude meter and threshold are working before the radio kicks
+      // in, instead of silently dropping every chunk.
+      _onStatus?.call('Silence (peak ${peakDbfs.toStringAsFixed(0)} dBFS) — '
+          'threshold ${_speechThresholdDbfs.toStringAsFixed(0)} dBFS');
       _safeDelete(wavPath);
       return;
     }
@@ -278,14 +298,21 @@ class WhisperSttBackend implements SttBackend {
     // Fire-and-forget transcribe. With our 6 s max-utterance cap and
     // tiny.en model, this typically returns in under 1 s on modern phones.
     // ignore: unawaited_futures
-    _transcribeFile(wavPath);
+    _transcribeFile(
+      wavPath,
+      utteranceDuration: utteranceDuration,
+      peakDbfs: peakDbfs,
+    );
   }
 
-  Future<void> _transcribeFile(String wavPath) async {
+  Future<void> _transcribeFile(
+    String wavPath, {
+    required Duration utteranceDuration,
+    required double peakDbfs,
+  }) async {
     _inflightTranscriptions++;
-    // The "…" placeholder is a cheap visual hint that processing is in
-    // flight; cleared in `finally`.
     _onPartial?.call('…');
+    final inferenceStart = DateTime.now();
     try {
       final result = await _controller.transcribe(
         model: model,
@@ -296,20 +323,29 @@ class WhisperSttBackend implements SttBackend {
         //  * `withTimestamps: false` — we don't surface segment timestamps,
         //    only the final text, so skipping timestamp generation shaves a
         //    little off every chunk.
-        //  * `vadMode: disabled` — we already chunk audio with our own
-        //    amplitude VAD; running another VAD inside whisper.cpp wastes
-        //    CPU on every chunk.
-        //  * `convert: false` — the file is already a 16 kHz mono WAV
-        //    written by `record`, so the package's conversion step (which
-        //    would error without `whisper_ggml_plus_ffmpeg`) is a no-op
-        //    anyway, but skipping it removes the conditional logging.
+        //
+        // We deliberately leave `vadMode` at its `auto` default. The
+        // package ships a silero VAD model and applies it inside the
+        // inference pass to filter silent frames — disabling it actually
+        // makes the model more likely to hallucinate "thank you for
+        // watching"-style output on near-silent chunks.
         threads: _whisperThreads,
         withTimestamps: false,
-        vadMode: WhisperVadMode.disabled,
-        convert: false,
       );
+      final inferenceMs =
+          DateTime.now().difference(inferenceStart).inMilliseconds;
       final raw = result?.transcription.text ?? '';
       final cleaned = _cleanWhisperOutput(raw);
+      final preview = raw.trim().isEmpty
+          ? '(empty)'
+          : '"${_truncate(raw.trim(), 60)}"';
+      final filteredNote =
+          cleaned.isEmpty && raw.trim().isNotEmpty ? ' [filtered]' : '';
+      _onStatus?.call(
+        '${utteranceDuration.inMilliseconds}ms audio · '
+        'peak ${peakDbfs.toStringAsFixed(0)} dBFS · '
+        '${inferenceMs}ms infer · $preview$filteredNote',
+      );
       if (cleaned.isNotEmpty) {
         _onUtterance?.call(SttUtterance(DateTime.now(), cleaned));
       }
@@ -324,6 +360,11 @@ class WhisperSttBackend implements SttBackend {
       // We still try to clean any stray copy in case behaviour changes.
       _safeDelete('$wavPath.wav');
     }
+  }
+
+  static String _truncate(String s, int n) {
+    if (s.length <= n) return s;
+    return '${s.substring(0, n - 1)}…';
   }
 
   void _safeDelete(String path) {
