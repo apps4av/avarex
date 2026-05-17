@@ -55,5 +55,12 @@
 	<string>This app needs continuous access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to photo library to show images on a map.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AvareX needs access to your local network to receive ADS-B traffic, weather, and GPS data from devices like Stratux, Stratus, ForeFlight, and X-Plane over Wi-Fi (GDL90 on UDP 4000, ForeFlight on UDP 43211, X-Plane on UDP 49002). Without this permission, traffic and other ADS-B data will not appear on the map.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_gdl90._udp</string>
+	</array>
 </dict>
 </plist>

@@ -1017,6 +1017,14 @@ Possible issue items:
 - Data expired (shortcut to Download)
 - Runtime exception notices
 
+### iOS: traffic / ADS-B weather / external GPS not appearing
+
+If AvareX shows ownship moving but no traffic, no FIS-B weather, and no external GPS lock from your receiver — even though other apps on the same phone work — iOS has blocked AvareX's local network access.
+
+Fix: `Settings → Privacy & Security → Local Network → AvareX → ON`, then force-quit and relaunch AvareX. See FAQ-16 for full details.
+
+This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad and only affects iOS, not Android.
+
 ---
 
 ## 13) Data Lifecycle and Auto-Update Behavior
@@ -1117,16 +1125,17 @@ Best when your receiver broadcasts GDL90/NMEA over local network.
 1. Power on your ADS-B/GPS receiver.
 2. Connect your tablet/phone/computer to the receiver's Wi-Fi network (or same LAN).
 3. Open AvareX and go to `MAP`.
-4. Wait for incoming data on supported UDP ports: `4000`, `43211`, or `49002` (automatic listener).
-5. Turn on useful map layers:
+4. **iOS only — first launch on a new device**: when iOS shows the *"AvareX would like to find and connect to devices on your local network"* prompt, tap **Allow**. Without this permission iOS will silently drop all ADS-B/GPS UDP packets and traffic/weather will never appear, even though ownship over internal GPS still works. If the prompt was previously dismissed or denied, enable it under `Settings → Privacy & Security → Local Network → AvareX`.
+5. Wait for incoming data on supported UDP ports: `4000`, `43211`, or `49002` (automatic listener).
+6. Turn on useful map layers:
    - `Traffic`
    - `Weather`
    - `Radar` (internet radar)
-6. Verify data:
+7. Verify data:
    - Ownship updates smoothly
    - Traffic symbols appear (if in range)
    - Weather products populate
-7. If needed, open warning drawer from red icon and resolve GPS/data warnings.
+8. If needed, open warning drawer from red icon and resolve GPS/data warnings.
 
 ### UC-02: Connect an external ADS-B/GPS receiver over Bluetooth (Android)
 
@@ -1524,6 +1533,7 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 - For Wi-Fi receivers: connect the device to receiver network and AvareX auto-listens on UDP `4000`, `43211`, `49002`.
 - For Bluetooth receivers (Android): `Menu → IO`, pair/connect, then return to map.
+- **iOS only**: AvareX must have **Local Network** permission enabled (`Settings → Privacy & Security → Local Network → AvareX`). Without it, iOS silently blocks all ADS-B/GDL90 broadcasts and traffic/weather will never show, even though ownship from the internal phone GPS still works. The first time you launch AvareX after install you should see a prompt — tap **Allow**. See FAQ-16.
 - Source threads:
   - GPS source discussion:  
     `https://groups.google.com/g/apps4av-forum/c/e0ujCJQX1s8`
@@ -1660,5 +1670,28 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
   - Night (3 night landings in 90 days)
   - IFR (6 approaches in 6 months)
 - Status is automatically calculated from your logbook entries.
+
+### FAQ-16: On iOS, my ownship moves but I never see traffic from Stratux/Stratus/Echo, even though FltPlanGo and ForeFlight see it on the same phone
+
+This is a Local Network permission issue, not a bug in your receiver or in AvareX's traffic engine.
+
+Since iOS 14, Apple silently blocks all incoming UDP broadcasts (including GDL90 traffic on UDP `4000`, ForeFlight on `43211`, and X-Plane on `49002`) until the user grants the **Local Network** permission. The internal phone GPS keeps working, so ownship still moves and the map looks correct — that's the trap. ADS-B traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and external GPS lock from your receiver will all be missing.
+
+Fix:
+
+1. On the iPhone/iPad, open `Settings → Privacy & Security → Local Network`.
+2. Find **AvareX** in the list and turn the toggle **ON**.
+3. Force-quit AvareX (swipe up from app switcher) and relaunch it.
+4. Make sure the device's Wi-Fi is joined to the receiver's network (e.g. `stratux`, `Stratus-XXXX`, `EchoUAT-XXXX`).
+5. Open `MAP` and turn the `Traffic` layer on. Traffic should appear within a few seconds.
+
+If **AvareX** is not listed at all under `Local Network`, you are running an older build that predates the Local Network entitlement — update to the latest AvareX from the App Store.
+
+Notes:
+
+- This setting is per-app and per-device; each iPhone and iPad must be configured separately.
+- A factory reset of network settings or "Reset Location & Privacy" will clear this — you'll need to re-enable it.
+- This does not affect Android. Android handles Wi-Fi UDP without an extra runtime permission, which is why the same Stratux works fine with AVARE on Android.
+- AvareX always listens on UDP `4000` (Stratux/Stratus/Echo GDL90), `43211` (ForeFlight), and `49002` (X-Plane). There is no port to configure inside the app — if data is reaching the phone over Wi-Fi and Local Network is allowed, AvareX will pick it up.
 
 ---
