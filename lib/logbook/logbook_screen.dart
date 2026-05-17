@@ -48,7 +48,8 @@ class _LogbookScreenState extends State<LogbookScreen> {
     if (result == null) return;
 
     final file = File(result.files.single.path!);
-    final csvContent = await file.readAsString();
+    final rawContent = await file.readAsString();
+    final csvContent = rawContent.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 
     final rows = const CsvToListConverter(eol: "\n")
         .convert(csvContent, shouldParseNumbers: false);
@@ -60,42 +61,41 @@ class _LogbookScreenState extends State<LogbookScreen> {
 
     bool error = false;
     for (final row in dataRows) {
-      final map = <String, dynamic>{};
-      for (int i = 0; i < headers.length; i++) {
-        final key = headers[i];
-        final value = row[i];
-
-        if ([
-          "totalFlightTime",
-          "dayTime",
-          "nightTime",
-          "crossCountryTime",
-          "soloTime",
-          "simulatedInstruments",
-          "actualInstruments",
-          "dualReceived",
-          "pilotInCommand",
-          "copilot",
-          "instructor",
-          "examiner",
-          "groundTime",
-          "flightSimulator",
-          "holdingProcedures"
-        ].contains(key)) {
-          map[key] = double.tryParse(value.toString()) ?? 0.0;
-        } else if ([
-          "dayLandings",
-          "nightLandings",
-          "instrumentApproaches"
-        ].contains(key)) {
-          map[key] = int.tryParse(value.toString()) ?? 0;
-        } else {
-          map[key] = value.toString();
-        }
-      }
-
       final LogEntry entry;
       try {
+        final map = <String, dynamic>{};
+        for (int i = 0; i < headers.length; i++) {
+          final key = headers[i];
+          final value = i < row.length ? row[i] : "";
+
+          if ([
+            "totalFlightTime",
+            "dayTime",
+            "nightTime",
+            "crossCountryTime",
+            "soloTime",
+            "simulatedInstruments",
+            "actualInstruments",
+            "dualReceived",
+            "pilotInCommand",
+            "copilot",
+            "instructor",
+            "examiner",
+            "groundTime",
+            "flightSimulator",
+            "holdingProcedures"
+          ].contains(key)) {
+            map[key] = double.tryParse(value.toString()) ?? 0.0;
+          } else if ([
+            "dayLandings",
+            "nightLandings",
+            "instrumentApproaches"
+          ].contains(key)) {
+            map[key] = int.tryParse(value.toString()) ?? 0;
+          } else {
+            map[key] = value.toString();
+          }
+        }
         entry = LogEntry.fromMap(map);
       }
       catch(e) {
@@ -714,7 +714,8 @@ class LogbookCsv {
   }
 
   static List<LogEntry> importCsv(String csvContent) {
-    final rows = const CsvToListConverter().convert(csvContent, eol: "\n");
+    final normalized = csvContent.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
+    final rows = const CsvToListConverter().convert(normalized, eol: "\n");
     if (rows.isEmpty) return [];
 
     final header = rows.first.cast<String>();
