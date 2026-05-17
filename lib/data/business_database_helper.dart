@@ -42,23 +42,47 @@ class BusinessDatabaseHelper {
   }
 
   Future<List<Destination>> findBusinesses(Destination airport) async {
-    final db = await database;
-    num corrFactor = pow(cos(airport.coordinate.latitude * pi / 180.0), 2);
-    String distance =
-        "((Longitude - ${airport.coordinate.longitude}) * (Longitude - ${airport.coordinate.longitude}) * ${corrFactor.toDouble()} + (Latitude - ${airport.coordinate.latitude}) * (Latitude - ${airport.coordinate.latitude}))";
-    if (db != null) {
+    try {
+      final db = await database;
+      if (db == null) {
+        return [];
+      }
+      num corrFactor = pow(cos(airport.coordinate.latitude * pi / 180.0), 2);
+      String distance =
+          "((Longitude - ${airport.coordinate.longitude}) * (Longitude - ${airport.coordinate.longitude}) * ${corrFactor.toDouble()} + (Latitude - ${airport.coordinate.latitude}) * (Latitude - ${airport.coordinate.latitude}))";
       String qry = "select * from business where LocationID='${airport.locationID}' order by $distance asc";
       List<Map<String, Object?>> maps = await DbGeneral.query(db, qry);
-      return List.generate(maps.length, (i) {
-        String name = maps[i]['Name'] as String;
-        String placeId = maps[i]['PlaceID'] as String;
-        LatLng coordinate = LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double);
-        GpsDestination gps = GpsDestination(locationID: airport.locationID, type: Destination.typeGps, facilityName: name, coordinate: coordinate);
+      List<Destination> out = [];
+      for (final m in maps) {
+        final double? lat = _readDouble(m['Latitude']);
+        final double? lon = _readDouble(m['Longitude']);
+        if (lat == null || lon == null) {
+          continue;
+        }
+        final String name = (m['Name'] ?? '').toString();
+        final String placeId = (m['PlaceID'] ?? '').toString();
+        final gps = GpsDestination(
+          locationID: airport.locationID,
+          type: Destination.typeGps,
+          facilityName: name,
+          coordinate: LatLng(lat, lon),
+        );
         gps.secondaryName = placeId;
-        return gps;
-      });
+        out.add(gps);
+      }
+      return out;
+    } catch (_) {
+      // business.db may be missing, have a different schema, or store
+      // numeric columns as TEXT. Treat any failure as "no businesses".
+      return [];
     }
-    return [];
+  }
+
+  static double? _readDouble(Object? v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
   }
 }
 

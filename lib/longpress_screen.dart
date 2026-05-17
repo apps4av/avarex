@@ -83,6 +83,9 @@ class LongPressScreenState extends State<LongPressScreen> {
     return FutureBuilder<LongPressFuture>(
         future: _loadFuture,
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            Storage().setException('${snapshot.error}\n${snapshot.stackTrace}');
+          }
           if (snapshot.hasData) {
             return _makeContent(snapshot.data);
           }
