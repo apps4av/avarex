@@ -36,8 +36,12 @@ class WhisperSttBackend implements SttBackend {
 
   /// End-of-utterance silence — kept short so the transcript catches up to
   /// the pilot's mental model quickly. Trade-off: too short and we'll split
-  /// a single ATC call across two transcribe jobs.
-  static const Duration _endOfUtteranceSilence = Duration(milliseconds: 400);
+  /// a single ATC call across two transcribe jobs (which then produce
+  /// near-duplicate output because Whisper hallucinates context on each
+  /// half). 600 ms is long enough to ride over the natural intra-phrase
+  /// pauses in ATC speech ("Cessna [pause] one [pause] two three") without
+  /// adding much perceived latency to the transcript.
+  static const Duration _endOfUtteranceSilence = Duration(milliseconds: 600);
 
   /// Minimum recording window before we'll call something an utterance. Set
   /// just above the typical "click of the PTT being keyed" duration so the
@@ -94,6 +98,13 @@ class WhisperSttBackend implements SttBackend {
   /// rather than queued — better to skip an ATC call than have the
   /// transcript drift 30 seconds behind the radio.
   static const int _maxInflight = 2;
+
+  /// Ring of the most recently published utterance texts (normalized for
+  /// comparison). Used to drop adjacent duplicates that arise when Whisper
+  /// hallucinates the same content across split chunks, or when its greedy
+  /// decoder produces near-identical output on overlapping audio.
+  final List<String> _recentPublished = [];
+  static const int _recentPublishedWindow = 4;
 
   // Caller plumbing.
   SttUtteranceCallback? _onUtterance;
@@ -339,26 +350,66 @@ class WhisperSttBackend implements SttBackend {
       final preview = raw.trim().isEmpty
           ? '(empty)'
           : '"${_truncate(raw.trim(), 60)}"';
-      final filteredNote =
-          cleaned.isEmpty && raw.trim().isNotEmpty ? ' [filtered]' : '';
+      String filteredNote = '';
+      if (cleaned.isEmpty && raw.trim().isNotEmpty) {
+        filteredNote = ' [filtered]';
+      }
+      // Drop adjacent duplicates - the most common source of "the same
+      // sentence keeps printing" complaints. Comparison is case- and
+      // punctuation-insensitive so "Cleared to land" and "cleared to land."
+      // collapse to one published row.
+      String? published = cleaned;
+      if (published.isNotEmpty && _isRecentDuplicate(published)) {
+        filteredNote = ' [duplicate]';
+        published = null;
+      }
       _onStatus?.call(
         '${utteranceDuration.inMilliseconds}ms audio · '
         'peak ${peakDbfs.toStringAsFixed(0)} dBFS · '
         '${inferenceMs}ms infer · $preview$filteredNote',
       );
-      if (cleaned.isNotEmpty) {
-        _onUtterance?.call(SttUtterance(DateTime.now(), cleaned));
+      if (published != null && published.isNotEmpty) {
+        _onUtterance?.call(SttUtterance(DateTime.now(), published));
+        _trackPublished(published);
       }
     } catch (e) {
       _onError?.call('Whisper transcription failed: $e', recoverable: true);
     } finally {
       _inflightTranscriptions--;
-      _onPartial?.call('');
+      // Only clear the partial indicator when the queue actually drains -
+      // otherwise back-to-back utterances can race and leave a stale "..."
+      // on screen, or worse, a clear before another inference finishes.
+      if (_inflightTranscriptions <= 0) {
+        _onPartial?.call('');
+      }
       _safeDelete(wavPath);
       // whisper_ggml_plus skips its conversion step when the input already
       // ends in `.wav` (which ours does), so no side-car file is produced.
       // We still try to clean any stray copy in case behaviour changes.
       _safeDelete('$wavPath.wav');
+    }
+  }
+
+  /// Case- and punctuation-insensitive normalization used for the dedup
+  /// ring. Strips trailing punctuation, collapses whitespace, lowercases.
+  static String _normalizeForDedup(String s) {
+    final lower = s.toLowerCase();
+    final stripped = lower.replaceAll(RegExp(r'[\s\.,!\?\-…]+'), ' ').trim();
+    return stripped;
+  }
+
+  bool _isRecentDuplicate(String text) {
+    final norm = _normalizeForDedup(text);
+    if (norm.isEmpty) return false;
+    return _recentPublished.contains(norm);
+  }
+
+  void _trackPublished(String text) {
+    final norm = _normalizeForDedup(text);
+    if (norm.isEmpty) return;
+    _recentPublished.add(norm);
+    while (_recentPublished.length > _recentPublishedWindow) {
+      _recentPublished.removeAt(0);
     }
   }
 
@@ -411,7 +462,34 @@ class WhisperSttBackend implements SttBackend {
     final stripped = t.replaceAll(RegExp(r'[\s\.,!\?\-…]'), '');
     if (stripped.isEmpty) return '';
 
+    t = _collapseTailRepetition(t);
     return t;
+  }
+
+  /// Collapse Whisper's greedy-decoder repetition loops within a single
+  /// transcription. Whisper-tiny.en on near-silent / padded audio is
+  /// notorious for outputs like "Cleared to land. Cleared to land. Cleared
+  /// to land." We detect a 2-to-6-word phrase repeated 3+ times at the
+  /// tail and drop all but the first occurrence.
+  static String _collapseTailRepetition(String text) {
+    final words = text.split(RegExp(r'\s+'));
+    if (words.length < 6) return text;
+    for (int n = 6; n >= 2; n--) {
+      if (words.length < n * 3) continue;
+      String span(int start) =>
+          words.sublist(start, start + n).join(' ').toLowerCase();
+      final lastStart = words.length - n;
+      final tail1 = span(lastStart);
+      final tail2 = span(lastStart - n);
+      final tail3 = span(lastStart - 2 * n);
+      if (tail1 == tail2 && tail2 == tail3) {
+        // Keep the prefix plus a single copy of the looped phrase. The
+        // first occurrence ends at index (lastStart - n - 1), so we take
+        // sublist(0, lastStart - n).
+        return words.sublist(0, lastStart - n).join(' ');
+      }
+    }
+    return text;
   }
 
   @override
@@ -426,6 +504,7 @@ class WhisperSttBackend implements SttBackend {
       _safeDelete(_currentRecordingPath!);
       _currentRecordingPath = null;
     }
+    _recentPublished.clear();
     _onPartial?.call('');
     _onLevel?.call(-160);
   }
