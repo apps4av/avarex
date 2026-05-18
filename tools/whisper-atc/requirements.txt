@@ -1,0 +1,14 @@
+# Python deps for tools/whisper-atc/train.py
+# Versions pinned to known-good combinations as of 2025-10. Free Colab T4
+# already has CUDA-enabled torch installed, so we don't pin torch here.
+
+transformers==4.46.3
+datasets==3.1.0
+accelerate==1.1.1
+evaluate==0.4.3
+jiwer==3.0.5
+audiomentations==0.43.1
+librosa==0.10.2
+soundfile==0.12.1
+tensorboard
+huggingface_hub

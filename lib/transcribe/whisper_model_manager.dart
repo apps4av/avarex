@@ -75,6 +75,31 @@ class WhisperModelManager {
   static final WhisperModelManager _instance = WhisperModelManager._internal();
   factory WhisperModelManager() => _instance;
 
+  /// Overrides for the per-model download URL. The default URL is the one
+  /// embedded in `whisper_ggml_plus`'s [WhisperModel.modelUri] (HuggingFace's
+  /// `ggerganov/whisper.cpp` mirror), which is the stock OpenAI model.
+  ///
+  /// When you publish an aviation-fine-tuned `ggml-tiny.en.bin` (see
+  /// `tools/whisper-atc/`), add its URL here. The Compact tile in the
+  /// Transcribe screen's AI Voice Pack section will then pull *your* file
+  /// instead of the stock one, with the existing progress / atomic-rename /
+  /// cancel UX intact.
+  ///
+  /// Bump the URL (`...-v2`, `...-v3`, ...) every time you re-train and ask
+  /// users to delete + re-download from the voice-pack tile to upgrade.
+  static const Map<WhisperModel, String> _customDownloadUrls = {
+     WhisperModel.tinyEn:
+       'https://www.apps4av.org/share/ggml-tiny.en.bin',
+  };
+
+  /// Resolves the URL that [download] should fetch for [model]: the entry
+  /// from [_customDownloadUrls] if one exists, otherwise the package default.
+  Uri _downloadUriFor(WhisperModel model) {
+    final override = _customDownloadUrls[model];
+    if (override != null) return Uri.parse(override);
+    return model.modelUri;
+  }
+
   /// One [_PackState] per variant in [kWhisperVoicePackVariants].
   final Map<WhisperModel, _PackState> _states = {
     for (final v in kWhisperVoicePackVariants)
@@ -183,7 +208,7 @@ class WhisperModelManager {
       await Directory(await _getModelDir()).create(recursive: true);
 
       final client = http.Client();
-      final request = http.Request('GET', model.modelUri);
+      final request = http.Request('GET', _downloadUriFor(model));
       response = await client.send(request);
 
       if (response.statusCode != 200) {
@@ -247,6 +272,94 @@ class WhisperModelManager {
     final s = _states[model]!;
     if (s.state == WhisperModelState.downloading) {
       s.cancelRequested = true;
+      _notifyChanges();
+    }
+  }
+
+  /// Sideload a `.bin` file the user already has on disk (e.g. an
+  /// aviation-fine-tuned model produced by `tools/whisper-atc/`) into the
+  /// slot for [model]. The source is copied to `<model dir>/ggml-${model.modelName}.bin`
+  /// via a `.partial` sidecar + atomic rename, so a failure can never
+  /// corrupt the existing installed file.
+  ///
+  /// Returns the destination path on success. Throws on any I/O error.
+  Future<String> importFromFile(WhisperModel model, String sourcePath) async {
+    final s = _states[model]!;
+    final src = File(sourcePath);
+
+    if (!await src.exists()) {
+      throw Exception('Source file does not exist: $sourcePath');
+    }
+    final srcSize = await src.length();
+    if (srcSize < 1024 * 1024) {
+      // Whisper model files are tens of MB. Anything smaller is almost
+      // certainly not a valid ggml file - bail before clobbering the slot.
+      throw Exception(
+        'File is too small (${srcSize ~/ 1024} KB) to be a Whisper model.',
+      );
+    }
+
+    // Reuse the downloading state for UI feedback; conceptually identical
+    // from the user's perspective (a row going from "absent" to "installing"
+    // to "installed"), and lets [VoicePackSection] keep its existing
+    // state-machine without a new branch.
+    s.state = WhisperModelState.downloading;
+    s.progressPercent = 0;
+    _notifyChanges();
+
+    final destPath = await modelFilePath(model);
+    final partialPath = '$destPath.partial';
+    final partialFile = File(partialPath);
+
+    try {
+      await Directory(await _getModelDir()).create(recursive: true);
+      if (await partialFile.exists()) {
+        await partialFile.delete();
+      }
+
+      // Streamed copy so a multi-hundred-MB import doesn't block the UI
+      // thread and so we can publish progress as we go.
+      final readStream = src.openRead();
+      final sink = partialFile.openWrite();
+      int copied = 0;
+      int lastReportedPct = 0;
+      await for (final chunk in readStream) {
+        sink.add(chunk);
+        copied += chunk.length;
+        final pct = ((copied / srcSize) * 100).clamp(0, 100).toInt();
+        if (pct - lastReportedPct >= 1) {
+          s.progressPercent = pct;
+          lastReportedPct = pct;
+          _notifyChanges();
+        }
+      }
+      await sink.flush();
+      await sink.close();
+
+      // Replace any existing file atomically.
+      final existing = File(destPath);
+      if (await existing.exists()) {
+        await existing.delete();
+      }
+      await partialFile.rename(destPath);
+
+      s.progressPercent = 100;
+      s.installed = true;
+      s.state = WhisperModelState.presentIdle;
+      return destPath;
+    } catch (e) {
+      try {
+        if (await partialFile.exists()) {
+          await partialFile.delete();
+        }
+      } catch (_) { /* ignore */ }
+      s.progressPercent = 0;
+      s.installed = await isInstalled(model);
+      s.state = s.installed
+          ? WhisperModelState.presentIdle
+          : WhisperModelState.absentIdle;
+      rethrow;
+    } finally {
       _notifyChanges();
     }
   }

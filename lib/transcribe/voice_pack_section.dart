@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 
@@ -138,6 +139,7 @@ class _VoicePackSectionState extends State<VoicePackSection> {
           children: [
             for (final variant in kWhisperVoicePackVariants)
               _buildRow(variant, scheme),
+            _buildImportRow(scheme),
           ],
         ),
       ),
@@ -286,5 +288,148 @@ class _VoicePackSectionState extends State<VoicePackSection> {
       case WhisperModelState.absentIdle:
         return const Icon(Icons.download_outlined, size: 22);
     }
+  }
+
+  /// Compact row pinned under the variant list that opens a file picker so
+  /// the user can sideload a `.bin` they trained themselves (see
+  /// `tools/whisper-atc/`). Disabled while any download/delete is in flight
+  /// to keep the manager's per-slot state-machine well-defined.
+  Widget _buildImportRow(ColorScheme scheme) {
+    final busy = _mgr.activeOperationCount() > 0;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: scheme.outlineVariant,
+          style: BorderStyle.solid,
+        ),
+      ),
+      child: ListTile(
+        dense: true,
+        leading: Icon(
+          Icons.file_open_outlined,
+          color: busy ? scheme.outline : scheme.primary,
+          size: 22,
+        ),
+        title: Text(
+          'Import from file…',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: busy ? scheme.outline : scheme.onSurface,
+          ),
+        ),
+        subtitle: Text(
+          'Sideload a fine-tuned ggml-*.bin you produced from tools/whisper-atc.',
+          style: TextStyle(fontSize: 11, color: scheme.outline),
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+        onTap: busy ? null : _importFromFile,
+      ),
+    );
+  }
+
+  Future<void> _importFromFile() async {
+    final variant = await _pickSlotDialog();
+    if (variant == null || !mounted) return;
+
+    // If the slot is already filled, confirm before clobbering it.
+    if (_mgr.stateOf(variant.model) == WhisperModelState.presentIdle) {
+      final replace = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Replace existing voice pack?'),
+          content: Text(
+            '${variant.displayName} is already installed. Importing will '
+            'overwrite the existing file.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.tonal(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Replace'),
+            ),
+          ],
+        ),
+      );
+      if (replace != true || !mounted) return;
+    }
+
+    final picked = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      allowMultiple: false,
+      dialogTitle: 'Pick ggml-${variant.model.modelName}.bin',
+      withData: false,
+      withReadStream: false,
+    );
+    if (picked == null || picked.files.isEmpty || !mounted) return;
+    final path = picked.files.single.path;
+    if (path == null) {
+      _showSnack('Could not read the selected file path.');
+      return;
+    }
+
+    try {
+      await _mgr.importFromFile(variant.model, path);
+      if (!mounted) return;
+      _showSnack('${variant.displayName} installed.');
+      // ignore: unawaited_futures
+      TranscribeService().reconfigure();
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Import failed: $e');
+    }
+  }
+
+  Future<WhisperVoicePackVariant?> _pickSlotDialog() async {
+    return showDialog<WhisperVoicePackVariant>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Install into which slot?'),
+        children: [
+          for (final v in kWhisperVoicePackVariants)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(ctx, v),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${v.displayName}  (ggml-${v.model.modelName}.bin)',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      v.description,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(ctx).colorScheme.outline,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 8, 4),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: const Text('Cancel'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }
