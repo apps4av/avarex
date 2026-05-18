@@ -232,10 +232,23 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
   Widget _buildStatusBar(ColorScheme scheme) {
     final listening = _svc.isListening.value;
     final initError = _svc.initError.value;
+    final level = _svc.audioLevel.value;
+    // While listening, derive the header word from the live audio level so
+    // the label actually tracks speech instead of just mirroring the mic
+    // open/closed flag. -38 dBFS is the same threshold the Whisper backend
+    // uses for VAD onset, so this header lines up with what the recognizer
+    // is doing.
+    final bool hearingSpeech = listening && level > -38.0;
     final statusColor = listening
-        ? Colors.green
+        ? (hearingSpeech ? Colors.green : scheme.outline)
         : (initError != null ? Colors.red : scheme.outline);
+    final headerText = listening
+        ? (hearingSpeech ? 'Hearing speech' : 'Quiet')
+        : (initError ?? 'Idle — tap microphone to start');
     final engineChip = _engineChip(scheme);
+    final statusLine = _svc.statusMessage.value;
+    final showStatusLine =
+        statusLine.isNotEmpty && statusLine != 'Idle' && statusLine != 'Stopped';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -253,9 +266,7 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  listening
-                      ? 'Listening'
-                      : (initError ?? 'Idle — tap microphone to start'),
+                  headerText,
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: statusColor,
@@ -268,16 +279,18 @@ class _TranscribeScreenState extends State<TranscribeScreen> {
           if (listening) ...[
             const SizedBox(height: 6),
             LinearProgressIndicator(
-              value: _audioLevelToBar(_svc.audioLevel.value),
+              value: _audioLevelToBar(level),
               minHeight: 4,
             ),
           ],
-          if (!listening &&
-              _svc.statusMessage.value.isNotEmpty &&
-              _svc.statusMessage.value != 'Idle') ...[
+          // Always render the per-chunk diagnostic line (silence / inference
+          // timing / duplicate / filtered) - while listening AND when
+          // stopped - so the user can see what the recognizer most recently
+          // did instead of just an unchanging top-level label.
+          if (showStatusLine) ...[
             const SizedBox(height: 4),
             Text(
-              _svc.statusMessage.value,
+              statusLine,
               style: TextStyle(fontSize: 11, color: scheme.outline),
             ),
           ],
