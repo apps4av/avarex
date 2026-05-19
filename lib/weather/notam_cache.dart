@@ -66,7 +66,7 @@ class NotamCache extends WeatherCache {
       // 1. Get OAuth access token
       // ================================
       final tokenUrl = Uri.parse(
-          "https://api-staging.cgifederal-aim.com/v1/auth/token");
+          "https://nms.aim.faa.gov/v1/auth/token");
 
       // Build Basic Auth header
       final creds = base64Encode(utf8.encode(
@@ -94,7 +94,7 @@ class NotamCache extends WeatherCache {
       // 2. Use access token to call NOTAM API
       // ================================
       final notamUrl = Uri.parse(
-          "https://api-staging.cgifederal-aim.com/nmsapi/v1/notams?location=${airport.locationID}"
+          "https://nms.aim.faa.gov/nmsapi/v1/notams?location=${airport.locationID}"
       );
 
       final notamResponse = await http.get(
