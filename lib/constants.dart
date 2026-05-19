@@ -58,6 +58,10 @@ class Constants {
   static const Color tfrColor = Color.fromARGB(255, 255, 0, 0);
   static const Color tfrColorFuture = Color.fromARGB(255, 150, 103, 0);
 
+  static const Color trafficColor = Colors.cyan;
+  static const Color trafficColorAlert = Colors.red;
+
+
   static const String appleId = "6502421523";
   static const String microsoftId = "9MX4HKL30MWW";
 

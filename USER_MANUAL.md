@@ -185,7 +185,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **Wind Vectors** | Animated wind particle field overlay at selected altitude (from Winds Aloft data). |
 | **Ceiling** | Black overlay showing areas where METAR ceiling is below your selected altitude. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
-| **Traffic** | Traffic symbols with relative orientation, altitude, vertical trend, callsign; audible alerts integration (cyan=proximate, orange=advisory, red=resolution). |
+| **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
 | **Obstacles** | Obstacle markers (red squares) in your vicinity. |
 | **Tape** | Distance tape labels from ownship upward in NM. |
 | **GeoJSON** | Imported user GeoJSON polygons/markers. |

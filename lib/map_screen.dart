@@ -764,7 +764,32 @@ class MapScreenState extends State<MapScreen> {
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(
-        // traffic layer
+        // traffic 1-minute projection lines (drawn underneath the dots)
+          IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
+            valueListenable: Storage().timeChange,
+            builder: (context, value, _) {
+              return PolylineLayer(
+                polylines: Storage().trafficCache.getTraffic()
+                  .where((t) => t.message.airborne && t.message.velocity > 0)
+                  .map((t) {
+                    final Color lineColor = t.isThreat
+                        ? Constants.trafficColorAlert
+                        : Constants.trafficColor;
+                    return Polyline(
+                      points: [t.getCoordinates(), t.getOneMinuteProjection()],
+                      color: lineColor,
+                      borderColor: Colors.black,
+                      borderStrokeWidth: 1,
+                      strokeWidth: 3,
+                    );
+                  }).toList(),
+              );
+            },
+          ),
+        )),
+      );
+      layers.add(
+        // traffic layer (Avare-style circles)
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
@@ -772,9 +797,12 @@ class MapScreenState extends State<MapScreen> {
             return MarkerLayer(
               markers:
               Storage().trafficCache.getTraffic().map((e) {
-                return Marker( // our position and heading to destination
+                return Marker( // dot is centered at the traffic position; labels offset to the right
                   point: e.getCoordinates(),
-                  child: Transform.rotate(angle: angle * pi / 180, child:e.getIcon(angle)),
+                  width: Traffic.iconWidth,
+                  height: Traffic.iconHeight,
+                  alignment: Alignment.center,
+                  child: Transform.rotate(angle: angle * pi / 180, child: e.getIcon(angle)),
                 );
               }).toList(),
             );
