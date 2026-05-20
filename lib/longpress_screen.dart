@@ -168,7 +168,6 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("NOTAM")] = FutureBuilder(
         future: Storage().notam.getSync(showDestination.locationID),
         builder: (context, snapshot) {
-          if (snapshot.hasData) {
             if (snapshot.data != null) {
               Notam n = snapshot.data as Notam;
 
@@ -222,14 +221,11 @@ class LongPressScreenState extends State<LongPressScreen> {
                   children: [
                     Icon(Icons.check_circle, size: 48, color: Theme.of(context).colorScheme.outline),
                     const SizedBox(height: 8),
-                    Text("No NOTAMs", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                    Text("No NOTAMs / Unable to Download", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
                   ],
                 ),
               );
             }
-          } else {
-            return const Center(child: CircularProgressIndicator());
-          }
         },
       );
     } else {
