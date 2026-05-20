@@ -4,7 +4,7 @@ import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
 import 'package:flutter/material.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:universal_io/io.dart';
 import 'constants.dart';
 import 'map_screen.dart';

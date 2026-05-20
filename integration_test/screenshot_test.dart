@@ -17,7 +17,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 
 late Directory _outDir;
@@ -65,13 +64,6 @@ Future<void> _shot(WidgetTester tester, String name) async {
     debugPrint('Screenshot saved: ${file.path} (${bytes.length} bytes)');
   } catch (e) {
     debugPrint('Screenshot $name failed: $e');
-  }
-}
-
-Future<void> _safeTap(WidgetTester tester, Finder finder) async {
-  if (tester.any(finder)) {
-    await tester.tap(finder.first);
-    await tester.pump(const Duration(milliseconds: 250));
   }
 }
 

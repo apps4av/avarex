@@ -6,7 +6,7 @@ import 'package:universal_io/io.dart';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'destination_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 

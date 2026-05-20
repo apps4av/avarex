@@ -8,7 +8,7 @@ import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:scribble/scribble.dart';
 import 'package:toastification/toastification.dart';
 import 'package:value_notifier_tools/value_notifier_tools.dart';

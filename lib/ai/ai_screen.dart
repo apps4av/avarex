@@ -10,7 +10,7 @@ import 'package:avaremp/weather/winds_cache.dart';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});

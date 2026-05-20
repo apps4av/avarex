@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avaremp/main.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
@@ -143,7 +143,6 @@ void main() {
 
                 // give time to download - poll for completion
                 String cycle = FaaDates.getCurrentCycle();
-                String range = FaaDates.getVersionRange(cycle);
                 bool downloadComplete = false;
                 
                 // Poll for up to 60 seconds for download to complete
