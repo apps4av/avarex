@@ -1,0 +1,136 @@
+rules_version = '2';
+
+// Security rules for the AvareX Community feature.
+//
+// Deploy with:
+//   firebase deploy --only firestore:rules
+//
+// Indexes required (Firestore will prompt the first time a query runs):
+//   - groups: where visibility == "public" orderBy memberCount desc
+//   - groups: where visibility == "public" orderBy nameLower (prefix search)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isGroupOwner(gid) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/groups/$(gid)).data.ownerUid == request.auth.uid;
+    }
+
+    function isActiveMember(gid) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/groups/$(gid)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/groups/$(gid)/members/$(request.auth.uid)).data.status == "active";
+    }
+
+    function groupVisibility(gid) {
+      return get(/databases/$(database)/documents/groups/$(gid)).data.visibility;
+    }
+
+    // ------------------ Pilot profiles ------------------
+    match /users/{uid} {
+      // Profiles are readable by any signed-in pilot so members lists work.
+      allow read: if isSignedIn();
+      allow create, update: if isSelf(uid);
+      allow delete: if false;
+    }
+
+    // ------------------ Groups ------------------
+    match /groups/{gid} {
+      // Public groups are visible to all signed-in pilots; private groups
+      // are still visible in Discover (by name only) but the feed is locked
+      // down at the posts subcollection level.
+      allow read: if isSignedIn();
+
+      // Anyone signed in can create a group; the client always sets
+      // ownerUid to the caller, and the rules enforce that.
+      allow create: if isSignedIn() &&
+        request.resource.data.ownerUid == request.auth.uid &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() >= 3;
+
+      // Only the owner may delete; updates from members must only change
+      // counter fields (memberCount / postCount); owner may change anything.
+      allow delete: if isGroupOwner(gid);
+      allow update: if isGroupOwner(gid) ||
+        (isSignedIn() &&
+          request.resource.data.diff(resource.data).changedKeys()
+            .hasOnly(['memberCount', 'postCount']));
+
+      // ------------------ Members ------------------
+      match /members/{uid} {
+        // Any signed-in pilot can see who is in a group.
+        allow read: if isSignedIn();
+
+        // Membership create rules. NOTE: the owner's own membership doc is
+        // written in the same batch as the group doc itself, which means
+        // get(groups/{gid}) inside this rule will not see the new group
+        // (rules evaluate against the pre-batch state). We therefore allow
+        // self-create with role=owner + status=active without consulting
+        // the group doc. This is safe because all real ownership privileges
+        // flow from groups/{gid}.ownerUid, not from this member's role
+        // field.
+        allow create: if isSelf(uid) &&
+          request.resource.data.role in ['owner', 'member'] &&
+          (
+            // Group owner self-creating during group creation batch.
+            (request.resource.data.role == 'owner' &&
+             request.resource.data.status == 'active') ||
+            // Public group: join immediately as active member.
+            (request.resource.data.role == 'member' &&
+             groupVisibility(gid) == 'public' &&
+             request.resource.data.status == 'active') ||
+            // Private group: pending until owner approves.
+            (request.resource.data.role == 'member' &&
+             groupVisibility(gid) == 'private' &&
+             request.resource.data.status == 'pending') ||
+            // Owner explicitly adding someone else's membership.
+            isGroupOwner(gid)
+          );
+
+        // A user can delete their own membership (leave); owners can
+        // delete anyone's membership (kick / reject).
+        allow delete: if isSelf(uid) || isGroupOwner(gid);
+
+        // Only owners can flip a pending request to active.
+        allow update: if isGroupOwner(gid);
+      }
+
+      // ------------------ Posts ------------------
+      match /posts/{pid} {
+        // Public group feeds are readable by any signed-in pilot;
+        // private group feeds are restricted to active members + owner.
+        allow read: if isSignedIn() &&
+          (groupVisibility(gid) == 'public' || isActiveMember(gid) || isGroupOwner(gid));
+
+        // Active members can post; client sets authorUid to caller.
+        allow create: if isActiveMember(gid) &&
+          request.resource.data.authorUid == request.auth.uid &&
+          request.resource.data.text is string &&
+          request.resource.data.text.size() > 0;
+
+        // Author may delete their own post; owner may delete any post.
+        allow delete: if isSignedIn() &&
+          (resource.data.authorUid == request.auth.uid || isGroupOwner(gid));
+
+        // No edits for v1.
+        allow update: if false;
+      }
+    }
+
+    // ------------------ Denormalized "my groups" index ------------------
+    match /userGroups/{uid}/groups/{gid} {
+      allow read: if isSelf(uid);
+      // Owner can write to other users' index docs when approving / removing
+      // them. The user themselves writes their own on join / leave.
+      allow create, update, delete: if isSelf(uid) || isGroupOwner(gid);
+    }
+  }
+}

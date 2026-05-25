@@ -86,6 +86,12 @@ class LoginScreenState extends State<LoginScreen> {
                   showPaywall(context, '/backup');
                 },
               ),
+              TextButton(
+                child: const Text("Community"),
+                onPressed: () {
+                  showPaywall(context, '/community');
+                },
+              ),
             ],
           ) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
         ),

@@ -97,6 +97,7 @@ dependencies:
   firebase_ui_auth: ^3.0.1
   firebase_ai: ^3.6.0
   firebase_storage: ^13.0.4
+  cloud_firestore: ^6.0.0
   purchases_flutter: ^9.9.9
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^9.9.9
