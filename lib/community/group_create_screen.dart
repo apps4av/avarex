@@ -51,8 +51,10 @@ class _GroupCreateScreenState extends State<GroupCreateScreen> {
         MaterialPageRoute(builder: (_) => GroupDetailScreen(groupId: id)),
       );
     } catch (e) {
-      Toast.showToast(context, "Could not create group: $e",
-          const Icon(Icons.error, color: Colors.red), 4);
+      if (mounted) {
+        Toast.showToast(context, "Could not create group: $e",
+            const Icon(Icons.error, color: Colors.red), 4);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

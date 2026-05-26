@@ -26,6 +26,11 @@ class _JoinLeaveButtonState extends State<JoinLeaveButton> {
   bool _busy = false;
 
   void _say(String m) {
+    // Bail if the button was unmounted while the join/leave future was
+    // in flight. Otherwise the parent's onMessage closure may call
+    // Toast.showToast against a deactivated BuildContext, which throws
+    // "Looking up a deactivated widget's ancestor is unsafe".
+    if (!mounted) return;
     final cb = widget.onMessage;
     if (cb != null) cb(m);
   }

@@ -83,8 +83,10 @@ class _GroupDetailBody extends StatelessWidget {
       if (!context.mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      Toast.showToast(context, "Delete failed: $e",
-          const Icon(Icons.error, color: Colors.red), 4);
+      if (context.mounted) {
+        Toast.showToast(context, "Delete failed: $e",
+            const Icon(Icons.error, color: Colors.red), 4);
+      }
     }
   }
 
@@ -238,8 +240,12 @@ class _MembershipBanner extends StatelessWidget {
           JoinLeaveButton(
             group: group,
             membership: membership,
-            onMessage: (m) => Toast.showToast(
-                context, m, const Icon(Icons.info), 3),
+            onMessage: (m) {
+              if (context.mounted) {
+                Toast.showToast(
+                    context, m, const Icon(Icons.info), 3);
+              }
+            },
           ),
         ],
       ),

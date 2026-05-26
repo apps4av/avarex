@@ -70,8 +70,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
-      Toast.showToast(context, "Save failed: $e",
-          const Icon(Icons.error, color: Colors.red), 4);
+      if (mounted) {
+        Toast.showToast(context, "Save failed: $e",
+            const Icon(Icons.error, color: Colors.red), 4);
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
