@@ -30,7 +30,19 @@ class GroupMembersScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (allSnap.hasError) {
-          return Center(child: Text("Couldn't load members: ${allSnap.error}"));
+          final err = allSnap.error.toString().toLowerCase();
+          final isPrivate = err.contains("permission");
+          return Padding(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: Text(
+                isPrivate
+                    ? "Member list is private. Join this group to see who else is here."
+                    : "Couldn't load members: ${allSnap.error}",
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
         }
         final all = allSnap.data ?? const [];
         final active = all.where((m) => m.isActive).toList();
