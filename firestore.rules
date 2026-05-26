@@ -1,0 +1,347 @@
+rules_version = '2';
+
+// Security rules for the AvareX Community feature.
+//
+// Deploy with:
+//   firebase deploy --only firestore:rules
+//
+// Threat model and known limitations (must read before changing):
+//
+//   * No Cloud Functions. v1 is rules-only. The two long-term gaps that
+//     cannot be closed with rules alone are:
+//       (a) counter integrity (memberCount / postCount can be bumped by
+//           ±1 per call by any signed-in user; rules cannot prove that a
+//           bump is paired with a sibling membership/post write in the
+//           same batch). The rule below caps the damage at exactly ±1
+//           per call and forbids negatives, but the counts can still
+//           drift under adversarial use. Long term, move counters to a
+//           Cloud Function trigger or compute on read via aggregate
+//           queries.
+//       (b) Spoofed createdAt / joinedAt timestamps. We only validate
+//           that the field is a timestamp, not that it equals
+//           request.time. Migrate to FieldValue.serverTimestamp() once
+//           we add a Cloud Function or accept a small drift.
+//
+//   * Group documents are readable by any signed-in pilot so that the
+//     Discover tab can surface private groups by name (the join-request
+//     flow needs this). Do NOT put invite codes, moderation notes, or
+//     any other secret in the group doc -- put them in a subcollection
+//     with stricter rules.
+//
+// Indexes required:
+//   - groups: (visibility ASC, memberCount DESC) -- declared in
+//     firestore.indexes.json. The name-prefix search uses the auto
+//     single-field index on nameLower.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // Auth helpers
+    // =========================================================
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // =========================================================
+    // Group helpers
+    // =========================================================
+
+    function groupData(gid) {
+      return get(/databases/$(database)/documents/groups/$(gid)).data;
+    }
+
+    function isGroupOwner(gid) {
+      return isSignedIn() && groupData(gid).ownerUid == request.auth.uid;
+    }
+
+    function groupVisibility(gid) {
+      return groupData(gid).visibility;
+    }
+
+    function memberData(gid, uid) {
+      return get(
+        /databases/$(database)/documents/groups/$(gid)/members/$(uid)
+      ).data;
+    }
+
+    function memberExists(gid, uid) {
+      return exists(
+        /databases/$(database)/documents/groups/$(gid)/members/$(uid)
+      );
+    }
+
+    function isActiveMember(gid) {
+      return isSignedIn()
+        && memberExists(gid, request.auth.uid)
+        && memberData(gid, request.auth.uid).status == 'active';
+    }
+
+    // =========================================================
+    // Validation helpers
+    // =========================================================
+
+    function isValidIcao(v) {
+      return v == null || (v is string && v.size() <= 4);
+    }
+
+    function isValidStringList(v, maxItems) {
+      return v is list && v.size() <= maxItems;
+    }
+
+    function isValidTimestamp(v) {
+      return v is timestamp;
+    }
+
+    // Counter delta gate. Allows any signed-in caller to bump memberCount
+    // or postCount by exactly +1 or -1, and forbids any other field
+    // change. Counts can never go negative. This is the v1 compromise for
+    // not having Cloud Functions; see the file-level comment.
+    function isCounterBumpOnly() {
+      let changed =
+        request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['memberCount', 'postCount'])
+        && request.resource.data.memberCount is int
+        && request.resource.data.postCount is int
+        && request.resource.data.memberCount >= 0
+        && request.resource.data.postCount >= 0
+        && (!('memberCount' in changed)
+            || request.resource.data.memberCount
+               == resource.data.memberCount + 1
+            || request.resource.data.memberCount
+               == resource.data.memberCount - 1)
+        && (!('postCount' in changed)
+            || request.resource.data.postCount
+               == resource.data.postCount + 1
+            || request.resource.data.postCount
+               == resource.data.postCount - 1);
+    }
+
+    // =========================================================
+    // Pilot profiles
+    // =========================================================
+
+    function isValidProfile() {
+      return request.resource.data.keys().hasOnly([
+        'displayName', 'displayNameLower', 'homeAirport',
+        'ratings', 'aircraftTypes', 'bio',
+        'createdAt', 'updatedAt'
+      ])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 40
+        && request.resource.data.displayNameLower is string
+        && request.resource.data.displayNameLower.size() <= 40
+        && isValidIcao(request.resource.data.get('homeAirport', null))
+        && isValidStringList(request.resource.data.get('ratings', []), 12)
+        && isValidStringList(
+             request.resource.data.get('aircraftTypes', []), 12)
+        && (request.resource.data.get('bio', null) == null
+            || (request.resource.data.bio is string
+                && request.resource.data.bio.size() <= 200))
+        && isValidTimestamp(request.resource.data.createdAt)
+        && isValidTimestamp(request.resource.data.updatedAt);
+    }
+
+    match /users/{uid} {
+      // Profiles are readable by any signed-in pilot so member lists and
+      // post-author avatars work. Sensitive future fields must NOT live
+      // on this doc -- create a separate restricted subcollection.
+      allow read: if isSignedIn();
+
+      allow create, update: if isSelf(uid) && isValidProfile();
+
+      allow delete: if false;
+    }
+
+    // =========================================================
+    // Groups
+    // =========================================================
+
+    function isValidGroupCreate() {
+      return request.resource.data.keys().hasOnly([
+        'name', 'nameLower', 'description', 'homeAirport',
+        'tags', 'visibility',
+        'ownerUid', 'ownerName',
+        'memberCount', 'postCount', 'createdAt'
+      ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 3
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 60
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 280
+        && isValidIcao(request.resource.data.get('homeAirport', null))
+        && isValidStringList(request.resource.data.get('tags', []), 12)
+        && request.resource.data.visibility in ['public', 'private']
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 40
+        && request.resource.data.memberCount == 1
+        && request.resource.data.postCount == 0
+        && isValidTimestamp(request.resource.data.createdAt);
+    }
+
+    // Owner-only metadata edit. Owner cannot transfer ownership or
+    // rewrite createdAt; everything else is permitted but stays inside
+    // the same key whitelist as create.
+    function isValidOwnerGroupUpdate() {
+      let changed =
+        request.resource.data.diff(resource.data).changedKeys();
+      return request.resource.data.keys().hasOnly([
+          'name', 'nameLower', 'description', 'homeAirport',
+          'tags', 'visibility',
+          'ownerUid', 'ownerName',
+          'memberCount', 'postCount', 'createdAt'
+        ])
+        && !('ownerUid' in changed)
+        && !('createdAt' in changed)
+        && request.resource.data.visibility in ['public', 'private']
+        && request.resource.data.memberCount >= 0
+        && request.resource.data.postCount >= 0;
+    }
+
+    match /groups/{gid} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() && isValidGroupCreate();
+
+      allow update: if (isGroupOwner(gid) && isValidOwnerGroupUpdate())
+                       || isCounterBumpOnly();
+
+      allow delete: if isGroupOwner(gid);
+
+      // -----------------------------------------------------
+      // Members
+      // -----------------------------------------------------
+
+      function isValidMemberDoc() {
+        return request.resource.data.keys().hasOnly([
+          'displayName', 'homeAirport', 'role', 'status', 'joinedAt'
+        ])
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() <= 60
+          && isValidIcao(request.resource.data.get('homeAirport', null))
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status in ['active', 'pending']
+          && isValidTimestamp(request.resource.data.joinedAt);
+      }
+
+      match /members/{uid} {
+        // Member rosters are exposed in three legitimate cases. Private
+        // group rosters are NOT browseable by strangers -- that closes
+        // the social-graph enumeration leak.
+        allow read: if isSignedIn() && (
+          isSelf(uid)
+          || isGroupOwner(gid)
+          || groupVisibility(gid) == 'public'
+          || isActiveMember(gid)
+        );
+
+        // Only self-create paths. There is no owner-creates-other-user
+        // branch; approvals happen via update of an existing pending
+        // doc that the joiner wrote.
+        allow create: if isSelf(uid) && isValidMemberDoc() && (
+          // Owner self-create during the group-creation batch.
+          // NB: get(group) returns nothing here because the group doc
+          // is being created in the same batch, so we cannot consult
+          // visibility -- this branch is the only safe way to seed the
+          // owner's own membership.
+          (request.resource.data.role == 'owner'
+           && request.resource.data.status == 'active')
+
+          // Public group: join immediately as active member.
+          || (request.resource.data.role == 'member'
+              && groupVisibility(gid) == 'public'
+              && request.resource.data.status == 'active')
+
+          // Private group: pending until owner approves.
+          || (request.resource.data.role == 'member'
+              && groupVisibility(gid) == 'private'
+              && request.resource.data.status == 'pending')
+        );
+
+        // Owner-only approval. Only the status field may change, and
+        // only from pending -> active. Role and joinedAt are frozen.
+        allow update: if isGroupOwner(gid)
+          && request.resource.data.diff(resource.data).changedKeys()
+               .hasOnly(['status'])
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'active';
+
+        // Self may leave; owner may kick. Rules cannot distinguish
+        // "owner leaves" from "owner deletes group" (which legitimately
+        // batch-deletes the owner's own membership), so the client
+        // repository enforces "owners cannot leave -- they must delete
+        // the group instead".
+        allow delete: if isSelf(uid) || isGroupOwner(gid);
+      }
+
+      // -----------------------------------------------------
+      // Posts
+      // -----------------------------------------------------
+
+      function isValidPost() {
+        return request.resource.data.keys().hasOnly([
+          'authorUid', 'authorName', 'text', 'attachedAirport',
+          'createdAt'
+        ])
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorName is string
+          && request.resource.data.authorName.size() <= 60
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 1000
+          && isValidIcao(
+               request.resource.data.get('attachedAirport', null))
+          && isValidTimestamp(request.resource.data.createdAt);
+      }
+
+      match /posts/{pid} {
+        allow read: if isSignedIn() && (
+          groupVisibility(gid) == 'public'
+          || isActiveMember(gid)
+          || isGroupOwner(gid)
+        );
+
+        allow create: if isActiveMember(gid) && isValidPost();
+
+        allow delete: if isSignedIn() && (
+          resource.data.authorUid == request.auth.uid
+          || isGroupOwner(gid)
+        );
+
+        // No edits in v1.
+        allow update: if false;
+      }
+    }
+
+    // =========================================================
+    // Denormalized "my groups" index
+    // =========================================================
+
+    function isValidUserGroupDoc() {
+      return request.resource.data.keys().hasOnly([
+        'role', 'status', 'joinedAt', 'groupName'
+      ])
+        && request.resource.data.role in ['owner', 'member']
+        && request.resource.data.status in ['active', 'pending']
+        && isValidTimestamp(request.resource.data.joinedAt)
+        && request.resource.data.groupName is string
+        && request.resource.data.groupName.size() <= 60;
+    }
+
+    match /userGroups/{uid}/groups/{gid} {
+      allow read: if isSelf(uid);
+      allow create, update: if (isSelf(uid) || isGroupOwner(gid))
+                              && isValidUserGroupDoc();
+      allow delete: if isSelf(uid) || isGroupOwner(gid);
+    }
+  }
+}
