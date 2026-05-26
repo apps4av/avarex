@@ -55,6 +55,13 @@ class _CommunityScreenState extends State<CommunityScreen> {
               const Text("Pilot Community"),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              tooltip: "Disclaimer",
+              onPressed: () => showCommunityDisclaimer(context),
+            ),
+          ],
           bottom: const TabBar(
             tabs: [
               Tab(icon: Icon(Icons.groups), text: "My Groups"),
@@ -76,6 +83,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
         body: Column(
           children: [
             if (_initError != null) _SetupBanner(message: _initError!),
+            const _DisclaimerStrip(),
             const Expanded(
               child: TabBarView(
                 children: [
@@ -146,6 +154,139 @@ class _SetupBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Compact always-visible bar that reminds pilots the Community is
+/// unmoderated and not a place for sensitive data. Tap to open the full
+/// disclaimer dialog.
+class _DisclaimerStrip extends StatelessWidget {
+  const _DisclaimerStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => showCommunityDisclaimer(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        color: scheme.tertiaryContainer.withAlpha(120),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline,
+                size: 16, color: scheme.onTertiaryContainer),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                "Community is unmoderated. Don't share sensitive info. "
+                "Tap for full disclaimer.",
+                style: TextStyle(
+                  fontSize: 11,
+                  color: scheme.onTertiaryContainer,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right,
+                size: 16, color: scheme.onTertiaryContainer),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows the full Community disclaimer. Called from the AppBar info icon
+/// and from the always-visible disclaimer strip on the main Community
+/// screen. Kept top-level so future Community screens (Group detail,
+/// post compose, etc.) can surface the same text without duplication.
+Future<void> showCommunityDisclaimer(BuildContext context) {
+  return showDialog(
+    context: context,
+    builder: (ctx) {
+      final scheme = Theme.of(ctx).colorScheme;
+      Widget bullet(IconData icon, String title, String body) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 18, color: scheme.primary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text(body,
+                        style: TextStyle(
+                            fontSize: 12, color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      return AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline),
+            SizedBox(width: 8),
+            Text("Community Disclaimer"),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              bullet(
+                Icons.warning_amber_outlined,
+                "Not responsible for data loss",
+                "Apps4Av is not responsible for any data loss in the "
+                "Pilot Community. Treat posts and group content as "
+                "ephemeral and keep your own copies of anything you "
+                "want to keep.",
+              ),
+              bullet(
+                Icons.lock_outline,
+                "Don't share sensitive information",
+                "Do not post passwords, government IDs, financial "
+                "details, medical records, or any other sensitive "
+                "personal information. Anything you post may be visible "
+                "to other pilots.",
+              ),
+              bullet(
+                Icons.gavel_outlined,
+                "No moderation by Apps4Av",
+                "Apps4Av does not moderate Pilot Community activity. "
+                "Group owners are responsible for their own groups. "
+                "Use your own judgment when interacting with other "
+                "pilots and content.",
+              ),
+              bullet(
+                Icons.shield_outlined,
+                "Data is not shared with third parties",
+                "Apps4Av will not share your Pilot Community data with "
+                "third parties. Data is stored in the project's Firebase "
+                "backend solely to operate this feature.",
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Close"),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _MyGroupsTab extends StatelessWidget {

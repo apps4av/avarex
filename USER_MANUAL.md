@@ -993,6 +993,13 @@ Screen title: **Pilot Community**
 
 A pilot-only social network backed by Firebase. Pilots can build a public profile, create groups, and join existing ones. **Private** groups require owner approval; **public** groups are open to all signed-in Pro users.
 
+**Disclaimer** (shown as a strip at the top of the screen and via the info icon in the app bar):
+
+- Apps4Av is **not responsible for data loss** in the Pilot Community. Keep your own copies of anything you want to retain.
+- **Do not share sensitive information** (passwords, government IDs, financial details, medical records, etc.). Anything you post may be visible to other pilots.
+- Apps4Av **does not moderate** community activity. Group owners are responsible for their own groups.
+- Apps4Av **will not share community data with third parties**. Data is stored only in the project's Firebase backend to operate this feature.
+
 **Tabs**:
 
 - **My Groups**: groups you own or have been approved to join.
