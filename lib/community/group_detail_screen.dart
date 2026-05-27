@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
 import '../constants.dart';
+import '../main_screen.dart';
+import '../plan/plan_route.dart';
+import '../storage.dart';
 import '../utils/toast.dart';
 import 'data/community_repository.dart';
 import 'group_members_screen.dart';
@@ -346,11 +349,66 @@ class _FeedTab extends StatelessWidget {
                   3,
                 );
               },
+              onLoadRoute: p.hasRoute
+                  ? () => _confirmLoadRoute(context, p)
+                  : null,
             );
           },
         );
       },
     );
+  }
+
+  Future<void> _confirmLoadRoute(BuildContext context, GroupPost p) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Load shared plan?"),
+        content: Text(
+          "This will replace your current flight plan with:\n\n"
+          "${p.attachedRouteText}\n\n"
+          "Your current plan will be lost unless you've saved it.",
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Cancel")),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.download, size: 18),
+            label: const Text("Load to PLAN"),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      final name = (p.attachedRouteName?.isNotEmpty == true)
+          ? p.attachedRouteName!
+          : "Shared plan";
+      final loaded = await PlanRoute.fromLine(name, p.attachedRouteText!);
+      Storage().route.copyFrom(loaded);
+      Storage().route.setCurrentWaypoint(0);
+      if (!context.mounted) return;
+      // Pop the group + community stack and switch to the PLAN tab.
+      Navigator.popUntil(context, (r) => r.isFirst);
+      MainScreenState.gotoPlan();
+      Toast.showToast(
+        context,
+        "Loaded \"$name\" into PLAN",
+        const Icon(Icons.check, color: Colors.green),
+        3,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        Toast.showToast(
+          context,
+          "Couldn't load plan: $e",
+          const Icon(Icons.error, color: Colors.red),
+          4,
+        );
+      }
+    }
   }
 }
 

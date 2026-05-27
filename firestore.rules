@@ -290,16 +290,34 @@ service cloud.firestore {
       function isValidPost() {
         return request.resource.data.keys().hasOnly([
           'authorUid', 'authorName', 'text', 'attachedAirport',
+          'attachedRouteText', 'attachedRouteName',
+          'mediaUrls',
           'createdAt'
         ])
           && request.resource.data.authorUid == request.auth.uid
           && request.resource.data.authorName is string
           && request.resource.data.authorName.size() <= 60
           && request.resource.data.text is string
-          && request.resource.data.text.size() > 0
+          // Post body may be empty when a photo or shared plan carries
+          // the payload; the client still requires at least one of the
+          // three to be non-empty.
           && request.resource.data.text.size() <= 1000
           && isValidIcao(
                request.resource.data.get('attachedAirport', null))
+          // Shared flight plan: space-separated waypoint IDs that match
+          // PlanRoute.toString / PlanRoute.fromLine. Length capped to
+          // keep the post doc small.
+          && (request.resource.data.get('attachedRouteText', null) == null
+              || (request.resource.data.attachedRouteText is string
+                  && request.resource.data.attachedRouteText.size() <= 500))
+          && (request.resource.data.get('attachedRouteName', null) == null
+              || (request.resource.data.attachedRouteName is string
+                  && request.resource.data.attachedRouteName.size() <= 60))
+          // Image download URLs (HTTPS, from Firebase Storage). Capped
+          // at 4 entries; individual size limits are enforced by the
+          // Storage rules.
+          && isValidStringList(
+               request.resource.data.get('mediaUrls', []), 4)
           && isValidTimestamp(request.resource.data.createdAt);
       }
 

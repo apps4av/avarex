@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 import '../models/group_member.dart';
 import '../models/group_post.dart';
@@ -219,6 +222,13 @@ class CommunityRepository {
     }
     batch.delete(_groupRef(groupId));
     await batch.commit();
+
+    // Best-effort cleanup of any media attached to the group's posts.
+    // Failures here only leak Storage objects; the Firestore state is
+    // already consistent after the batch commit above.
+    for (final p in posts.docs) {
+      await _deletePostMedia(groupId, p.id);
+    }
   }
 
   // -------------------- Membership --------------------
@@ -370,6 +380,9 @@ class CommunityRepository {
     String groupId, {
     required String text,
     String? attachedAirport,
+    String? attachedRouteText,
+    String? attachedRouteName,
+    List<Uint8List> images = const [],
   }) async {
     final uid = _requireUid();
     final profile = await ensureMyProfile();
@@ -381,7 +394,35 @@ class CommunityRepository {
     if (!member.isActive) {
       throw StateError("Membership pending owner approval");
     }
+    if (images.length > GroupPost.maxImages) {
+      throw StateError(
+          "At most ${GroupPost.maxImages} images per post");
+    }
+    final routeText = attachedRouteText?.trim();
+    if (routeText != null && routeText.length > GroupPost.maxRouteLength) {
+      throw StateError("Attached plan is too long to share");
+    }
+
     final postRef = _postsCol(groupId).doc();
+
+    // Upload images first so the post doc is only created with finalized
+    // download URLs. Path layout matches storage.rules:
+    //   community/{groupId}/{postId}/{index}.jpg
+    final mediaUrls = <String>[];
+    for (var i = 0; i < images.length; i++) {
+      final imgRef = FirebaseStorage.instance
+          .ref()
+          .child('community')
+          .child(groupId)
+          .child(postRef.id)
+          .child('$i.jpg');
+      await imgRef.putData(
+        images[i],
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
+      mediaUrls.add(await imgRef.getDownloadURL());
+    }
+
     final post = GroupPost(
       id: postRef.id,
       groupId: groupId,
@@ -389,6 +430,11 @@ class CommunityRepository {
       authorName: profile.displayName,
       text: text.trim(),
       attachedAirport: attachedAirport?.trim().toUpperCase(),
+      attachedRouteText:
+          (routeText == null || routeText.isEmpty) ? null : routeText,
+      attachedRouteName:
+          attachedRouteName?.trim().isEmpty ?? true ? null : attachedRouteName!.trim(),
+      mediaUrls: mediaUrls,
       createdAt: DateTime.now(),
     );
 
@@ -401,6 +447,9 @@ class CommunityRepository {
   }
 
   /// Delete a post. Authors can delete their own; owners can delete any.
+  /// Any attached images are removed from Firebase Storage on a
+  /// best-effort basis; an orphaned image is harmless and gets cleaned
+  /// up by lifecycle rules if configured.
   Future<void> deletePost(String groupId, String postId) async {
     final uid = _requireUid();
     final postSnap = await _postsCol(groupId).doc(postId).get();
@@ -415,5 +464,20 @@ class CommunityRepository {
       "postCount": FieldValue.increment(-1),
     });
     await batch.commit();
+    await _deletePostMedia(groupId, postId);
+  }
+
+  Future<void> _deletePostMedia(String groupId, String postId) async {
+    try {
+      final folderRef = FirebaseStorage.instance
+          .ref()
+          .child('community')
+          .child(groupId)
+          .child(postId);
+      final list = await folderRef.listAll();
+      await Future.wait(list.items.map((i) => i.delete()));
+    } catch (_) {
+      // Ignore — Storage cleanup is best effort.
+    }
   }
 }

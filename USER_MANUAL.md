@@ -1012,7 +1012,12 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 
 **Group detail screen tabs**:
 
-- **Feed**: scrollable list of posts. Active members can **Post** (floating action button) up to 1000 characters and optionally tag an airport ICAO. Authors can delete their own posts; the group owner can delete any post.
+- **Feed**: scrollable list of posts. Active members can **Post** (floating action button) up to 1000 characters and optionally attach:
+  - **Photos** (up to 4 per post, JPEG/PNG, automatically downscaled to 1920px wide and re-encoded at quality 80, which also strips EXIF). Tap a photo to zoom.
+  - **A flight plan** — tap **Attach plan** to share your current PLAN. Other members see the route inline with a **Load** button that imports the plan into their PLAN tab (after a confirmation dialog).
+  - **An airport ICAO** quick-tag.
+  
+  Authors can delete their own posts; the group owner can delete any post. Deleting a post also removes its attached photos from cloud storage on a best-effort basis.
 - **Members**: list of active members with their home airport. The owner sees a separate **Pending requests** section at the top with **Approve** / **Reject** controls and can **Remove** any non-owner member.
 - **About**: owner, visibility, home airport, member/post counts, creation date.
 
@@ -1122,6 +1127,9 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Join a public group | `MAP top-right account icon → Community → Discover → tap group → Join` |
 | Approve pending members (owner) | `Community → group → Members tab → Approve / Reject` |
 | Edit your pilot profile | `MAP top-right account icon → Community → Profile → edit icon` |
+| Post a photo to a group | `Community → group → Post → Photo → choose source` |
+| Share your current flight plan | `Community → group → Post → Attach plan` |
+| Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | Donate | `MAP → Menu → Donate` (not iOS/macOS) |

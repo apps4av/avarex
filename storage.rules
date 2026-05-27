@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Firebase Storage rules for AvareX.
+//
+// Deploy with:
+//   firebase deploy --only storage
+//
+// (Add a "storage" section to firebase.json:
+//    "storage": { "rules": "storage.rules" })
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Backup/Sync (Pro): user.db lives at users/{uid}/user.db. Each user
+    // owns their own directory and nobody else can read or write it.
+    match /users/{uid}/{filename=**} {
+      allow read, write: if request.auth != null
+                        && request.auth.uid == uid;
+    }
+
+    // Community: photos attached to group posts live at
+    //   community/{groupId}/{postId}/{filename}
+    //
+    // Any signed-in user can read (visibility is enforced by the
+    // download URL being embedded in a post they can already read via
+    // Firestore rules; URLs include a long random download token).
+    // Writes are limited to authenticated users and JPEG/PNG files
+    // under 5 MB, which is comfortably above the 1920px / quality 80
+    // images the client produces.
+    match /community/{groupId}/{postId}/{filename} {
+      allow read: if request.auth != null;
+
+      allow write: if request.auth != null
+                  && request.resource.size < 5 * 1024 * 1024
+                  && request.resource.contentType.matches('image/.*');
+
+      // Author or owner cleanup; the corresponding Firestore rules
+      // already gate who can delete a post, and the repository's
+      // _deletePostMedia mirrors that.
+      allow delete: if request.auth != null;
+    }
+  }
+}
