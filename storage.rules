@@ -11,22 +11,39 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Backup/Sync (Pro): user.db lives at users/{uid}/user.db. Each user
-    // owns their own directory and nobody else can read or write it.
-    match /users/{uid}/{filename=**} {
-      allow read, write: if request.auth != null
-                        && request.auth.uid == uid;
+    // ------------------------------------------------------------------
+    // Backup / Restore
+    //
+    // user.db and other per-user files live at users/{uid}/**.
+    // Only the authenticated owner can read, write, or delete their
+    // own files — backups are private. The client always accesses
+    // these objects with an authenticated FirebaseStorage SDK call
+    // against gs:// paths (see lib/services/backup_screen.dart), so
+    // no public-read path is needed.
+    // ------------------------------------------------------------------
+    match /users/{userId}/{allPaths=**} {
+      allow read, delete: if request.auth != null
+                         && request.auth.uid == userId;
+
+      allow write, create: if request.auth != null
+                          && request.auth.uid == userId
+                          && request.resource.size < 10 * 1024 * 1024;
     }
 
-    // Community: photos attached to group posts live at
+    // ------------------------------------------------------------------
+    // Community (Pilot Community feature)
+    //
+    // Photos attached to group posts live at
     //   community/{groupId}/{postId}/{filename}
     //
-    // Any signed-in user can read (visibility is enforced by the
-    // download URL being embedded in a post they can already read via
-    // Firestore rules; URLs include a long random download token).
-    // Writes are limited to authenticated users and JPEG/PNG files
-    // under 5 MB, which is comfortably above the 1920px / quality 80
+    // Any signed-in user can read (visibility is gated by the
+    // Firestore post doc that holds the download URL — the URL itself
+    // carries a long random download token).
+    //
+    // Writes are limited to authenticated users posting JPEG/PNG
+    // files under 5 MB, comfortably above the 1920px / quality 80
     // images the client produces.
+    // ------------------------------------------------------------------
     match /community/{groupId}/{postId}/{filename} {
       allow read: if request.auth != null;
 
@@ -34,8 +51,8 @@ service firebase.storage {
                   && request.resource.size < 5 * 1024 * 1024
                   && request.resource.contentType.matches('image/.*');
 
-      // Author or owner cleanup; the corresponding Firestore rules
-      // already gate who can delete a post, and the repository's
+      // Author or owner cleanup; Firestore rules already gate who can
+      // delete the corresponding post, and the repository's
       // _deletePostMedia mirrors that.
       allow delete: if request.auth != null;
     }
