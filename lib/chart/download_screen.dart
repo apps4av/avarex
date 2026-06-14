@@ -88,7 +88,7 @@ class DownloadScreenState extends State<DownloadScreen> {
             color: Colors.black,
               child: Stack(
                 children:[
-                  Center(child:InteractiveViewer(child: Image.asset('assets/images/regions.jpeg'))),
+                  Center(child:InteractiveViewer(child: Image.asset('assets/images/regions.png'))),
                   Align(alignment: Alignment.topRight, child: IconButton(icon: const Icon(Icons.close, size: 36), onPressed: () {Navigator.of(context).pop();}))
                 ]
               ),

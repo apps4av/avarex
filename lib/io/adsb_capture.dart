@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:avaremp/utils/app_log.dart';
 import 'package:flutter/foundation.dart';
@@ -186,7 +185,7 @@ class AdsbCapture {
     final date = _formatDate(now);
     final baseDir = _baseDir ?? "(null)";
     AppLog.logMessage(
-      "ADS-B capture: rx=${_bytesSeenSinceLog} bytes in 15s date=$date baseDir=$baseDir",
+      "ADS-B capture: rx=$_bytesSeenSinceLog bytes in 15s date=$date baseDir=$baseDir",
     );
     _bytesSeenSinceLog = 0;
   }
