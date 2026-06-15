@@ -9,6 +9,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set app version
+        shell: bash
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -42,6 +46,11 @@ jobs:
           type: 'zip'
           filename: ${{github.ref_name}}-windows.zip
           directory: build/windows/x64/runner/Release
+      - name: Prepare upload artifact
+        shell: bash
+        run: |
+          mkdir -p build/artifacts
+          cp "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" "build/artifacts/avarex_${APP_VERSION}.zip"
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -58,8 +67,6 @@ jobs:
           export SSH_ASKPASS="$ASKPASS_SCRIPT"
           export SSH_ASKPASS_REQUIRE=force
           export DISPLAY=none
-          scp -o StrictHostKeyChecking=accept-new \
-            "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" \
-            apps4av@apps4av.org:/home/apps4av/builds/
+          scp -o StrictHostKeyChecking=accept-new build/artifacts/* apps4av@apps4av.org:/home/apps4av/builds/
         env:
           MAMBA_PASSWORD: ${{ secrets.MAMBA_PASSWORD }}

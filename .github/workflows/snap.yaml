@@ -45,6 +45,11 @@ jobs:
 
       - name: Build Snap Image
         run: sudo snapcraft --destructive-mode
+
+      - name: Prepare upload artifact
+        run: |
+          mkdir -p build/artifacts
+          cp avarex*.snap "build/artifacts/avarex_${APP_VERSION}.snap"
           
       - name: Upload Artifact
         uses: appleboy/scp-action@v0.1.7
@@ -53,5 +58,6 @@ jobs:
           username: apps4av
           password: ${{ secrets.MAMBA_PASSWORD }}
           port: 22
-          source: avarex*.snap
+          strip_components: 2
+          source: build/artifacts/*
           target: /home/apps4av/builds

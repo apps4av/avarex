@@ -9,6 +9,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set app version
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -79,6 +82,12 @@ jobs:
         env:
           BUILD_TOOLS_VERSION: "34.0.0"
 
+      - name: Prepare upload artifacts
+        run: |
+          mkdir -p build/artifacts
+          cp "${{ steps.sign_apk.outputs.signedReleaseFile }}" "build/artifacts/avarex_${APP_VERSION}.apk"
+          cp "${{ steps.sign_aab.outputs.signedReleaseFile }}" "build/artifacts/avarex_${APP_VERSION}.aab"
+
       - name: Upload release
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -86,6 +95,6 @@ jobs:
           username: apps4av
           password: ${{ secrets.MAMBA_PASSWORD }}
           port: 22
-          strip_components: 5
-          source: "${{ steps.sign_apk.outputs.signedReleaseFile }},${{ steps.sign_aab.outputs.signedReleaseFile }}"
+          strip_components: 2
+          source: build/artifacts/*
           target: /home/apps4av/builds

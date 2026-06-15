@@ -10,6 +10,9 @@ jobs:
     steps:
 
       - uses: actions/checkout@v4
+      - name: Set app version
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
       - uses: futureware-tech/simulator-action@v4
         with:
           model: 'iPhone 17'
@@ -72,6 +75,11 @@ jobs:
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
+      - name: Prepare upload artifact
+        run: |
+          mkdir -p build/artifacts
+          cp build/ios/ipa/*.ipa "build/artifacts/avarex_${APP_VERSION}.ipa"
+
       - name: Upload Artifact
         run: |
           ASKPASS_SCRIPT="$RUNNER_TEMP/apps4av_ssh_askpass.sh"
@@ -80,7 +88,7 @@ jobs:
           export SSH_ASKPASS="$ASKPASS_SCRIPT"
           export SSH_ASKPASS_REQUIRE=force
           export DISPLAY=none
-          scp -o StrictHostKeyChecking=accept-new build/ios/ipa/*.ipa apps4av@apps4av.org:/home/apps4av/builds/
+          scp -o StrictHostKeyChecking=accept-new build/artifacts/* apps4av@apps4av.org:/home/apps4av/builds/
         env:
           MAMBA_PASSWORD: ${{ secrets.MAMBA_PASSWORD }}
 

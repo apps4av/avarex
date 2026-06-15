@@ -9,6 +9,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set app version
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
 
       - name: Find and Replace NMS FAA
         uses: richardrigutins/replace-in-files@v2
@@ -27,6 +30,12 @@ jobs:
       - name: Build Flutter
         run: export PATH=${PATH}:/home/zkhan/flutter/bin && flutter build linux --release
 
+      - name: Prepare upload artifact
+        run: |
+          mkdir -p build/artifacts
+          cd build/linux/arm64/release
+          zip -r "../../../artifacts/avarex_${APP_VERSION}.zip" bundle
+
       - name: Upload Artifact
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -34,6 +43,6 @@ jobs:
           username: apps4av
           password: ${{ secrets.MAMBA_PASSWORD }}
           port: 22
-          strip_components: 5
-          source: build/linux/arm64/release/bundle/*
+          strip_components: 2
+          source: build/artifacts/*
           target: /home/apps4av/builds
