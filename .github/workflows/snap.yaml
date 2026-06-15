@@ -9,6 +9,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Set snap version
+        run: |
+          echo "APP_VERSION=$(sed -n 's/^version: //p' snap/snapcraft.yaml)" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
