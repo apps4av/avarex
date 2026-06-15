@@ -52,7 +52,7 @@ jobs:
       - name: Prepare upload artifact
         run: |
           mkdir -p build/artifacts
-          cp avarex*.snap "build/artifacts/avarex_${APP_VERSION}.snap"
+          cp avarex*.snap "build/artifacts/avarex_snap_${APP_VERSION}_${{ github.ref_name }}.snap"
           
       - name: Upload Artifact
         uses: appleboy/scp-action@v0.1.7

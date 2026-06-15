@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p build/artifacts
           cd build/linux/arm64/release
-          zip -r "../../../artifacts/avarex_${APP_VERSION}.zip" bundle
+          zip -r "../../../artifacts/avarex_linux_arm64_${APP_VERSION}_${{ github.ref_name }}.zip" bundle
 
       - name: Upload Artifact
         uses: appleboy/scp-action@v0.1.7

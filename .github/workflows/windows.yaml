@@ -12,7 +12,7 @@ jobs:
       - name: Set app version
         shell: bash
         run: |
-          echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$(sed -n 's/^  msix_version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -50,7 +50,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p build/artifacts
-          cp "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" "build/artifacts/avarex_${APP_VERSION}.zip"
+          cp "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" "build/artifacts/avarex_windows_${APP_VERSION}_${{ github.ref_name }}.zip"
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')

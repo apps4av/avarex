@@ -78,7 +78,7 @@ jobs:
       - name: Prepare upload artifact
         run: |
           mkdir -p build/artifacts
-          cp build/ios/ipa/*.ipa "build/artifacts/avarex_${APP_VERSION}.ipa"
+          cp build/ios/ipa/*.ipa "build/artifacts/avarex_ios_${APP_VERSION}_${{ github.ref_name }}.ipa"
 
       - name: Upload Artifact
         run: |
