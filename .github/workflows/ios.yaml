@@ -73,10 +73,16 @@ jobs:
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: iOS
-          path: build/ios/ipa/*.ipa
+        run: |
+          ASKPASS_SCRIPT="$RUNNER_TEMP/apps4av_ssh_askpass.sh"
+          printf '#!/usr/bin/env bash\nprintf "%%s\\n" "$MAMBA_PASSWORD"\n' > "$ASKPASS_SCRIPT"
+          chmod 700 "$ASKPASS_SCRIPT"
+          export SSH_ASKPASS="$ASKPASS_SCRIPT"
+          export SSH_ASKPASS_REQUIRE=force
+          export DISPLAY=none
+          scp -o StrictHostKeyChecking=accept-new build/ios/ipa/*.ipa apps4av@apps4av.org:/home/apps4av/builds/
+        env:
+          MAMBA_PASSWORD: ${{ secrets.MAMBA_PASSWORD }}
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}

@@ -47,7 +47,11 @@ jobs:
         run: sudo snapcraft --destructive-mode
           
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: appleboy/scp-action@v0.1.7
         with:
-          name: Snap
-          path: avarex*.snap
+          host: apps4av.org
+          username: apps4av
+          password: ${{ secrets.MAMBA_PASSWORD }}
+          port: 22
+          source: avarex*.snap
+          target: /home/apps4av/builds
