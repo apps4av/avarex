@@ -70,7 +70,9 @@ class LoginScreenState extends State<LoginScreen> {
         ),
         bottomSheet: SizedBox(
           height: 50,
-          child: isLoggedIn ? Row(
+          child: isLoggedIn ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextButton(
@@ -92,8 +94,14 @@ class LoginScreenState extends State<LoginScreen> {
                   showPaywall(context, '/community');
                 },
               ),
+              TextButton(
+                child: const Text("Scheduler"),
+                onPressed: () {
+                  showPaywall(context, '/scheduler');
+                },
+              ),
             ],
-          ) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
+          )) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
         ),
         body: isLoggedIn ?
           ProfileScreen(

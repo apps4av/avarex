@@ -361,5 +361,281 @@ service cloud.firestore {
                               && isValidUserGroupDoc();
       allow delete: if isSelf(uid) || isGroupOwner(gid);
     }
+
+    // =========================================================
+    // Aircraft Scheduler
+    //
+    // Mirrors the Community group model: an owner creates a scheduler,
+    // members join (public = immediate, private = owner-approved), the
+    // owner adds schedulable resources (aircraft / instructors), and
+    // members reserve those resources. Reservations carry a backup queue;
+    // when a main reservation is cancelled the next backup is promoted by
+    // the canceller via a constrained update (isReservationPromotion).
+    //
+    // Same rules-only compromises as Community apply (counter drift,
+    // client-supplied timestamps, and a small booking race window).
+    // =========================================================
+
+    function schedGroupData(sgid) {
+      return get(/databases/$(database)/documents/schedulerGroups/$(sgid)).data;
+    }
+
+    function isSchedOwner(sgid) {
+      return isSignedIn() && schedGroupData(sgid).ownerUid == request.auth.uid;
+    }
+
+    function schedVisibility(sgid) {
+      return schedGroupData(sgid).visibility;
+    }
+
+    function schedMemberData(sgid, uid) {
+      return get(
+        /databases/$(database)/documents/schedulerGroups/$(sgid)/members/$(uid)
+      ).data;
+    }
+
+    function schedMemberExists(sgid, uid) {
+      return exists(
+        /databases/$(database)/documents/schedulerGroups/$(sgid)/members/$(uid)
+      );
+    }
+
+    function isSchedActiveMember(sgid) {
+      return isSignedIn()
+        && schedMemberExists(sgid, request.auth.uid)
+        && schedMemberData(sgid, request.auth.uid).status == 'active';
+    }
+
+    function isValidSchedGroupCreate() {
+      return request.resource.data.keys().hasOnly([
+        'name', 'nameLower', 'description', 'homeAirport', 'visibility',
+        'ownerUid', 'ownerName', 'memberCount', 'resourceCount',
+        'maxReservationsPerMember', 'maxWeekendReservations', 'createdAt'
+      ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 3
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 60
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 280
+        && isValidIcao(request.resource.data.get('homeAirport', null))
+        // All schedulers are private.
+        && request.resource.data.visibility == 'private'
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 40
+        && request.resource.data.memberCount == 1
+        && request.resource.data.resourceCount == 0
+        && request.resource.data.maxReservationsPerMember is int
+        && request.resource.data.maxReservationsPerMember >= 0
+        && request.resource.data.maxWeekendReservations is int
+        && request.resource.data.maxWeekendReservations >= 0
+        && isValidTimestamp(request.resource.data.createdAt);
+    }
+
+    // ±1 counter bump (memberCount on join/leave). Mirrors the Community
+    // isCounterBumpOnly compromise but covers resourceCount too.
+    function isSchedCounterBumpOnly() {
+      let changed =
+        request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['memberCount', 'resourceCount'])
+        && request.resource.data.memberCount is int
+        && request.resource.data.resourceCount is int
+        && request.resource.data.memberCount >= 0
+        && request.resource.data.resourceCount >= 0
+        && (!('memberCount' in changed)
+            || request.resource.data.memberCount
+               == resource.data.memberCount + 1
+            || request.resource.data.memberCount
+               == resource.data.memberCount - 1)
+        && (!('resourceCount' in changed)
+            || request.resource.data.resourceCount
+               == resource.data.resourceCount + 1
+            || request.resource.data.resourceCount
+               == resource.data.resourceCount - 1);
+    }
+
+    function isValidSchedOwnerUpdate() {
+      let changed =
+        request.resource.data.diff(resource.data).changedKeys();
+      return request.resource.data.keys().hasOnly([
+          'name', 'nameLower', 'description', 'homeAirport', 'visibility',
+          'ownerUid', 'ownerName', 'memberCount', 'resourceCount',
+          'maxReservationsPerMember', 'maxWeekendReservations', 'createdAt'
+        ])
+        && !('ownerUid' in changed)
+        && !('createdAt' in changed)
+        && request.resource.data.visibility == 'private'
+        && request.resource.data.memberCount >= 0
+        && request.resource.data.resourceCount >= 0
+        && request.resource.data.maxReservationsPerMember is int
+        && request.resource.data.maxReservationsPerMember >= 0
+        && request.resource.data.maxWeekendReservations is int
+        && request.resource.data.maxWeekendReservations >= 0;
+    }
+
+    match /schedulerGroups/{sgid} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() && isValidSchedGroupCreate();
+
+      allow update: if (isSchedOwner(sgid) && isValidSchedOwnerUpdate())
+                       || isSchedCounterBumpOnly();
+
+      allow delete: if isSchedOwner(sgid);
+
+      // -----------------------------------------------------
+      // Members
+      // -----------------------------------------------------
+
+      function isValidSchedMemberDoc() {
+        return request.resource.data.keys().hasOnly([
+          'displayName', 'role', 'status', 'joinedAt'
+        ])
+          && request.resource.data.displayName is string
+          && request.resource.data.displayName.size() <= 60
+          && request.resource.data.role in ['owner', 'member']
+          && request.resource.data.status in ['active', 'pending']
+          && isValidTimestamp(request.resource.data.joinedAt);
+      }
+
+      match /members/{uid} {
+        allow read: if isSignedIn() && (
+          isSelf(uid)
+          || isSchedOwner(sgid)
+          || schedVisibility(sgid) == 'public'
+          || isSchedActiveMember(sgid)
+        );
+
+        allow create: if isSelf(uid) && isValidSchedMemberDoc() && (
+          (request.resource.data.role == 'owner'
+           && request.resource.data.status == 'active')
+
+          || (request.resource.data.role == 'member'
+              && schedVisibility(sgid) == 'public'
+              && request.resource.data.status == 'active')
+
+          || (request.resource.data.role == 'member'
+              && schedVisibility(sgid) == 'private'
+              && request.resource.data.status == 'pending')
+        );
+
+        allow update: if isSchedOwner(sgid)
+          && request.resource.data.diff(resource.data).changedKeys()
+               .hasOnly(['status'])
+          && resource.data.status == 'pending'
+          && request.resource.data.status == 'active';
+
+        allow delete: if isSelf(uid) || isSchedOwner(sgid);
+      }
+
+      // -----------------------------------------------------
+      // Resources (owner-managed)
+      // -----------------------------------------------------
+
+      function isValidResource() {
+        return request.resource.data.keys().hasOnly([
+          'name', 'type', 'identifier', 'available', 'createdAt'
+        ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 1
+          && request.resource.data.name.size() <= 40
+          && request.resource.data.type in ['aircraft', 'instructor']
+          && (request.resource.data.get('identifier', null) == null
+              || (request.resource.data.identifier is string
+                  && request.resource.data.identifier.size() <= 20))
+          && request.resource.data.available is bool
+          && isValidTimestamp(request.resource.data.createdAt);
+      }
+
+      match /resources/{rid} {
+        allow read: if isSignedIn() && (
+          schedVisibility(sgid) == 'public'
+          || isSchedActiveMember(sgid)
+          || isSchedOwner(sgid)
+        );
+
+        allow create, update: if isSchedOwner(sgid) && isValidResource();
+
+        allow delete: if isSchedOwner(sgid);
+      }
+
+      // -----------------------------------------------------
+      // Reservations
+      // -----------------------------------------------------
+
+      function isValidReservation() {
+        return request.resource.data.keys().hasOnly([
+          'resourceId', 'resourceName', 'schedulerUid', 'schedulerName',
+          'start', 'end', 'isBackup', 'backupOrder', 'note', 'createdAt'
+        ])
+          && request.resource.data.resourceId is string
+          && request.resource.data.resourceName is string
+          && request.resource.data.resourceName.size() <= 40
+          && request.resource.data.schedulerUid == request.auth.uid
+          && request.resource.data.schedulerName is string
+          && request.resource.data.schedulerName.size() <= 40
+          && isValidTimestamp(request.resource.data.start)
+          && isValidTimestamp(request.resource.data.end)
+          && request.resource.data.isBackup is bool
+          && request.resource.data.backupOrder is int
+          && request.resource.data.backupOrder >= 0
+          && (request.resource.data.get('note', null) == null
+              || (request.resource.data.note is string
+                  && request.resource.data.note.size() <= 200))
+          && isValidTimestamp(request.resource.data.createdAt);
+      }
+
+      // Promotion-only update: a backup becomes the main reservation when
+      // the previous main is cancelled. The canceller (any active member)
+      // may only flip isBackup false and zero backupOrder; no other field
+      // may change. v1 rules-only compromise.
+      function isReservationPromotion() {
+        return request.resource.data.diff(resource.data).changedKeys()
+                 .hasOnly(['isBackup', 'backupOrder'])
+          && resource.data.isBackup == true
+          && request.resource.data.isBackup == false
+          && request.resource.data.backupOrder == 0;
+      }
+
+      match /reservations/{resvId} {
+        allow read: if isSignedIn() && (
+          schedVisibility(sgid) == 'public'
+          || isSchedActiveMember(sgid)
+          || isSchedOwner(sgid)
+        );
+
+        allow create: if isSchedActiveMember(sgid) && isValidReservation();
+
+        allow update: if isSchedOwner(sgid)
+                         || (isSchedActiveMember(sgid)
+                             && isReservationPromotion());
+
+        // Only the member who booked it or the owner may cancel.
+        allow delete: if isSignedIn() && (
+          resource.data.schedulerUid == request.auth.uid
+          || isSchedOwner(sgid)
+        );
+      }
+    }
+
+    function isValidUserSchedGroupDoc() {
+      return request.resource.data.keys().hasOnly([
+        'role', 'status', 'joinedAt', 'groupName'
+      ])
+        && request.resource.data.role in ['owner', 'member']
+        && request.resource.data.status in ['active', 'pending']
+        && isValidTimestamp(request.resource.data.joinedAt)
+        && request.resource.data.groupName is string
+        && request.resource.data.groupName.size() <= 60;
+    }
+
+    match /userSchedulerGroups/{uid}/groups/{sgid} {
+      allow read: if isSelf(uid);
+      allow create, update: if (isSelf(uid) || isSchedOwner(sgid))
+                              && isValidUserSchedGroupDoc();
+      allow delete: if isSelf(uid) || isSchedOwner(sgid);
+    }
   }
 }

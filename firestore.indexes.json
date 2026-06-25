@@ -7,6 +7,22 @@
         { "fieldPath": "visibility", "order": "ASCENDING" },
         { "fieldPath": "memberCount", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "resourceId", "order": "ASCENDING" },
+        { "fieldPath": "start", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "reservations",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schedulerUid", "order": "ASCENDING" },
+        { "fieldPath": "start", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

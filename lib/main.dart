@@ -20,6 +20,7 @@ import 'chart/download_screen.dart';
 import 'firebase_options.dart';
 import 'io/io_screen.dart';
 import 'main_screen.dart';
+import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
 import 'services/backup_screen.dart';
 
@@ -80,6 +81,7 @@ class MainApp extends StatelessWidget {
               '/ai': (context) => const AiScreen(),
               '/backup': (context) => const BackupScreen(),
               '/community': (context) => const CommunityScreen(),
+              '/scheduler': (context) => const SchedulerScreen(),
               '/popup': (context) {
                   final args = ModalRoute.of(context)!.settings.arguments as List<Destination>;
                   return LongPressScreen(destinations: args);

@@ -58,7 +58,7 @@ You can reopen onboarding later from the drawer header icon.
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
 | Plan Transfer via NMEA 0183                                                                      | **Android only** (through Bluetooth IO) |
-| Pro Services (Flight Intelligence + Backup/Sync + Community )                                    | **iOS and Android only** |
+| Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
 | Donate screen                                                                                    | Not available on iOS/macOS |
@@ -1035,7 +1035,55 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 
 **Notifications**: in-app only for v1 (no push). Pending requests and new posts appear when you open the group.
 
-### 11.5 Backup/Sync
+### 11.5 Aircraft Scheduler
+
+Screen title: **Aircraft Scheduler**
+
+A shared booking calendar for flying clubs, partnerships, and flight schools, backed by Firebase. It works like the Pilot Community: an owner creates a scheduler, members request to join, and members reserve the resources the owner adds. **All schedulers are private** — they are discoverable by name, but the owner approves every member, and the schedule and roster are hidden from non-members.
+
+**Tabs**:
+
+- **My Schedulers**: schedulers you own or have been approved to join.
+- **Discover**: type a name to find a scheduler to request to join. There is no public browse list because all schedulers are private.
+
+**Top action**:
+
+- **New Scheduler** (floating action button): create a scheduler with name, description, and optional home airport (ICAO). The creator becomes the owner. Every scheduler is private; set booking limits afterwards from the **Booking Rules** screen.
+
+**Scheduler detail screen tabs**:
+
+- **Schedule**: the booking timeline. Resources are stacked **vertically** (one row each) and time runs **horizontally** across the day. Colors indicate slot state:
+  - **Green** = available (free) slot on an in-service resource.
+  - **Blue** = booked. A solid block is the main reservation; a thin lighter-blue bar at the bottom of the row is a backup. Your own reservations have a white border.
+  - **Red** = unavailable (the resource is marked out of service by the owner).
+  
+  Use the date bar (**‹ / ›**, the date button to pick a day, and **Today**) to change days. Tap a **green** slot to open the **Book** dialog, which pre-fills the tapped day/time as the start; choose a **start date + time** and **end date + time**. Bookings may span **multiple days** (up to 14 days). A multi-day reservation appears as a booked (blue) block on every day it covers. If the resource is already booked for any of that time, you are added to the **backup queue** instead. Tap any reservation block to see details and cancel it.
+- **Mine**: your own reservations in this scheduler, split into **Upcoming** and **Past**. Upcoming entries can be cancelled here directly. When the owner has set booking limits, chips at the top show your current usage (e.g. `2/3 active`, `1/1 weekend`). Weekend reservations and backups are tagged.
+- **Members**: list of active members. The owner sees a **Pending requests** section with **Approve** / **Reject** controls and can **Remove** any non-owner member.
+- **About**: owner, visibility, home airport, member/resource counts, booking limits, creation date, and a short explanation of how booking works.
+
+**Owner app-bar actions**:
+
+- **Booking rules** (tune icon): open the **Booking Rules** screen to set limits.
+- **Delete scheduler** (trash icon): remove the scheduler and all resources/reservations/memberships.
+
+**Resources** (owner only): tap **Add resource** on the Schedule tab to add an **Aircraft** or **Instructor** (name plus optional tail number/identifier). Tap a resource's name in the left column to **toggle availability** (mark it out of service for maintenance — shown in red) or **Delete** it (which also removes its reservations).
+
+**Booking Rules screen** (owner only): set limits that apply to members (the owner is exempt). A value of **0 means unlimited**.
+
+- **Reservations per member**: the most current/upcoming reservations a member may hold at once.
+- **Weekend reservations**: the most Saturday/Sunday reservations a member may hold at once.
+
+Limits are enforced when a member books; exceeding a limit shows an explanatory message and the booking is blocked.
+
+**Booking and backups**:
+
+- Any active member can book an available resource that is not already taken, subject to the owner's booking limits.
+- If a resource is already booked for an overlapping time, the new request joins the **backup queue** (Backup #1, #2, …).
+- When a **main** reservation is cancelled, the next backup in line is automatically **promoted** to the main reservation.
+- **Only the member who made a reservation or the scheduler owner can cancel it.** The owner can cancel any member's reservation.
+
+### 11.6 Backup/Sync
 
 Screen title: **Backup/Sync**
 
@@ -1130,6 +1178,14 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Post a photo to a group | `Community → group → Post → Photo → choose source` |
 | Share your current flight plan | `Community → group → Post → Attach plan` |
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
+| Aircraft Scheduler | `MAP top-right account icon → Scheduler` |
+| Create a scheduler (private) | `MAP top-right account icon → Scheduler → New Scheduler` |
+| Add an aircraft/instructor (owner) | `Scheduler → scheduler → Schedule tab → Add resource` |
+| Book a resource | `Scheduler → scheduler → Schedule tab → tap a green slot → Book` |
+| View / cancel my reservations | `Scheduler → scheduler → Mine tab` |
+| Set booking limits (owner) | `Scheduler → scheduler → tune icon → Booking Rules` |
+| Cancel a reservation | `Scheduler → scheduler → Schedule tab → tap reservation → Cancel` |
+| Mark a resource out of service (owner) | `Scheduler → scheduler → Schedule tab → tap resource name → Available toggle` |
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | Donate | `MAP → Menu → Donate` (not iOS/macOS) |
@@ -1594,6 +1650,20 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 4. The group owner will see your request in the **Members** tab under **Pending requests**.
 5. When approved, the **Feed** unlocks and you can post immediately. You can leave at any time with the **Leave** button.
 6. To cancel a pending request, tap **Requested** to withdraw it.
+
+### UC-26: Set up an aircraft scheduler and book a flight (Pro)
+
+1. Open Pro Services from the account icon on MAP (top-right).
+2. Sign in and pass the entitlement/paywall if required.
+3. Tap **Scheduler** in the Pro bottom sheet.
+4. Tap the **New Scheduler** floating action button, fill in the name (and optional description/home airport), then tap **Create Scheduler**. Every scheduler is private; you land on the new scheduler as the owner.
+5. On the **Schedule** tab, tap **Add resource** to add your aircraft (e.g. `Cessna 172`, tail `N12345`) and any instructors. They appear as rows, with time across the top.
+6. (Optional) Tap the **tune** icon in the app bar to open **Booking Rules** and set how many reservations — and how many weekend reservations — each member may hold at once (0 = unlimited). The owner is exempt from these limits.
+7. Share the scheduler name with your members; they open `Scheduler → Discover`, search the name, and **Request to Join**. Approve them on the **Members** tab.
+8. To book, a member taps a **green** slot on a resource row, picks a **start date/time** and **end date/time** (bookings can span multiple days, up to 14), then taps **Book**. The slot turns **blue**. Members can review their bookings on the **Mine** tab.
+9. If that time is already taken, the member is added to the **backup** queue. If the main reservation is later cancelled, the first backup is promoted automatically.
+10. To cancel, tap the reservation block (or use the **Mine** tab) and choose **Cancel**. Only the member who booked it or the owner can cancel a reservation.
+11. For maintenance, the owner taps the resource name and turns off **Available for booking**; the row turns **red** and bookings are blocked until it is turned back on.
 
 ---
 
