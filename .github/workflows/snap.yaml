@@ -35,6 +35,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
+      # Node 22.23.0 / 24.17.0 / 26 shipped an http.Agent keep-alive
+      # regression that breaks firebase-tools ADC auth (firebase-tools#10716),
+      # which makes `flutterfire configure` hang on an interactive prompt.
+      # Pin to a fixed Node release.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.1'
+
       - name: Login to Firebase
         run: |
           # Pinned: firebase-tools 15.22.2 has an ADC/service-account auth
@@ -45,7 +53,9 @@ jobs:
           echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 -d > key.json
           export GOOGLE_APPLICATION_CREDENTIALS="key.json"
           dart pub global activate flutterfire_cli
-          flutterfire configure --project avarex-479ae --platforms android --yes
+          # Redirect stdin so any unexpected prompt fails fast instead of
+          # hanging the runner waiting on interactive input.
+          flutterfire configure --project avarex-479ae --platforms android --yes < /dev/null
 
       - name: Install Snapcraft
         uses: samuelmeuli/action-snapcraft@v2
