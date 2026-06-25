@@ -37,7 +37,11 @@ jobs:
 
       - name: Login to Firebase
         run: |
-          npm install -g firebase-tools
+          # Pinned: firebase-tools 15.22.2 has an ADC/service-account auth
+          # regression (firebase-tools#10716) that makes `flutterfire
+          # configure` hang on an interactive "create project?" prompt.
+          # Unpin once a fixed release ships.
+          npm install -g firebase-tools@15.22.1
           echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 -d > key.json
           export GOOGLE_APPLICATION_CREDENTIALS="key.json"
           dart pub global activate flutterfire_cli

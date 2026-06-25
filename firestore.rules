@@ -137,6 +137,10 @@ service cloud.firestore {
         && request.resource.data.displayName.size() <= 40
         && request.resource.data.displayNameLower is string
         && request.resource.data.displayNameLower.size() <= 40
+        // Bind the search index to the display name so it can't be spoofed
+        // to surface under an unrelated search term (impersonation).
+        && request.resource.data.displayNameLower
+           == request.resource.data.displayName.lower()
         && isValidIcao(request.resource.data.get('homeAirport', null))
         && isValidStringList(request.resource.data.get('ratings', []), 12)
         && isValidStringList(
@@ -202,7 +206,20 @@ service cloud.firestore {
         ])
         && !('ownerUid' in changed)
         && !('createdAt' in changed)
+        // Re-validate the same field types/lengths as create so an owner
+        // can't write an oversized or wrong-typed name/description/etc.
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 3
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 60
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 280
+        && isValidIcao(request.resource.data.get('homeAirport', null))
+        && isValidStringList(request.resource.data.get('tags', []), 12)
         && request.resource.data.visibility in ['public', 'private']
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 40
         && request.resource.data.memberCount >= 0
         && request.resource.data.postCount >= 0;
     }
@@ -213,7 +230,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidGroupCreate();
 
       allow update: if (isGroupOwner(gid) && isValidOwnerGroupUpdate())
-                       || isCounterBumpOnly();
+                       || (isSignedIn() && isCounterBumpOnly());
 
       allow delete: if isGroupOwner(gid);
 
@@ -248,13 +265,16 @@ service cloud.firestore {
         // branch; approvals happen via update of an existing pending
         // doc that the joiner wrote.
         allow create: if isSelf(uid) && isValidMemberDoc() && (
-          // Owner self-create during the group-creation batch.
-          // NB: get(group) returns nothing here because the group doc
-          // is being created in the same batch, so we cannot consult
-          // visibility -- this branch is the only safe way to seed the
-          // owner's own membership.
+          // Owner self-create. During the group-creation batch the group
+          // doc isn't committed yet, so !exists() is true and the creator
+          // can seed their own owner membership. After the group exists,
+          // ONLY the real owner can write an owner member doc -- this
+          // closes the bypass where any signed-in user could self-seed an
+          // active owner membership into any group.
           (request.resource.data.role == 'owner'
-           && request.resource.data.status == 'active')
+           && request.resource.data.status == 'active'
+           && (!exists(/databases/$(database)/documents/groups/$(gid))
+               || groupData(gid).ownerUid == request.auth.uid))
 
           // Public group: join immediately as active member.
           || (request.resource.data.role == 'member'
@@ -357,8 +377,12 @@ service cloud.firestore {
 
     match /userGroups/{uid}/groups/{gid} {
       allow read: if isSelf(uid);
-      allow create, update: if (isSelf(uid) || isGroupOwner(gid))
-                              && isValidUserGroupDoc();
+      // Only the user may create their own index entry. The owner may
+      // update (e.g. approve pending -> active) or delete an existing
+      // entry, but cannot fabricate entries under arbitrary uids (spam).
+      allow create: if isSelf(uid) && isValidUserGroupDoc();
+      allow update: if (isSelf(uid) || isGroupOwner(gid))
+                      && isValidUserGroupDoc();
       allow delete: if isSelf(uid) || isGroupOwner(gid);
     }
 
@@ -466,6 +490,18 @@ service cloud.firestore {
         ])
         && !('ownerUid' in changed)
         && !('createdAt' in changed)
+        // Re-validate the same field types/lengths as create so an owner
+        // can't write an oversized or wrong-typed name/description/etc.
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 3
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower.size() <= 60
+        && request.resource.data.description is string
+        && request.resource.data.description.size() <= 280
+        && isValidIcao(request.resource.data.get('homeAirport', null))
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 40
         && request.resource.data.visibility == 'private'
         && request.resource.data.memberCount >= 0
         && request.resource.data.resourceCount >= 0
@@ -481,7 +517,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidSchedGroupCreate();
 
       allow update: if (isSchedOwner(sgid) && isValidSchedOwnerUpdate())
-                       || isSchedCounterBumpOnly();
+                       || (isSignedIn() && isSchedCounterBumpOnly());
 
       allow delete: if isSchedOwner(sgid);
 
@@ -509,8 +545,12 @@ service cloud.firestore {
         );
 
         allow create: if isSelf(uid) && isValidSchedMemberDoc() && (
+          // Owner self-create. !exists() covers the create batch; after the
+          // scheduler exists only the real owner can write an owner doc.
           (request.resource.data.role == 'owner'
-           && request.resource.data.status == 'active')
+           && request.resource.data.status == 'active'
+           && (!exists(/databases/$(database)/documents/schedulerGroups/$(sgid))
+               || schedGroupData(sgid).ownerUid == request.auth.uid))
 
           || (request.resource.data.role == 'member'
               && schedVisibility(sgid) == 'public'
@@ -596,7 +636,10 @@ service cloud.firestore {
                  .hasOnly(['isBackup', 'backupOrder'])
           && resource.data.isBackup == true
           && request.resource.data.isBackup == false
-          && request.resource.data.backupOrder == 0;
+          && request.resource.data.backupOrder == 0
+          // The reservation must point at a resource that still exists,
+          // so an orphaned/garbage doc can't be promoted to a main slot.
+          && exists(/databases/$(database)/documents/schedulerGroups/$(sgid)/resources/$(resource.data.resourceId));
       }
 
       match /reservations/{resvId} {
@@ -608,8 +651,13 @@ service cloud.firestore {
 
         allow create: if isSchedActiveMember(sgid) && isValidReservation();
 
+        // The owner may promote any backup. A regular member may only
+        // promote someone else's backup (the next-in-line after they
+        // cancel their own main) -- never their own, which would let them
+        // jump the queue or self-promote past an active main.
         allow update: if isSchedOwner(sgid)
                          || (isSchedActiveMember(sgid)
+                             && resource.data.schedulerUid != request.auth.uid
                              && isReservationPromotion());
 
         // Only the member who booked it or the owner may cancel.
@@ -633,8 +681,12 @@ service cloud.firestore {
 
     match /userSchedulerGroups/{uid}/groups/{sgid} {
       allow read: if isSelf(uid);
-      allow create, update: if (isSelf(uid) || isSchedOwner(sgid))
-                              && isValidUserSchedGroupDoc();
+      // Only the user may create their own index entry. The owner may
+      // update (e.g. approve pending -> active) or delete an existing
+      // entry, but cannot fabricate entries under arbitrary uids (spam).
+      allow create: if isSelf(uid) && isValidUserSchedGroupDoc();
+      allow update: if (isSelf(uid) || isSchedOwner(sgid))
+                      && isValidUserSchedGroupDoc();
       allow delete: if isSelf(uid) || isSchedOwner(sgid);
     }
   }

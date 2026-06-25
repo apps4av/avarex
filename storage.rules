@@ -34,27 +34,69 @@ service firebase.storage {
     // Community (Pilot Community feature)
     //
     // Photos attached to group posts live at
-    //   community/{groupId}/{postId}/{filename}
+    //   community/{groupId}/{uid}/{postId}/{filename}
     //
-    // Any signed-in user can read (visibility is gated by the
-    // Firestore post doc that holds the download URL — the URL itself
-    // carries a long random download token).
+    // The {uid} segment is the uploader, which lets these rules bind a
+    // file to its owner without consulting the (not-yet-written) post
+    // doc. Access is gated against the group in Firestore:
+    //   * read   -> public group, OR active member, OR group owner
+    //   * write  -> the uploader, who must be an active member; image
+    //               files only, under 5 MB
+    //   * delete -> the uploader OR the group owner (cleanup)
     //
-    // Writes are limited to authenticated users posting JPEG/PNG
-    // files under 5 MB, comfortably above the 1920px / quality 80
-    // images the client produces.
+    // NOTE: A Firebase download URL carries a capability token that
+    // bypasses these rules for HTTPS reads; that token only lives in the
+    // access-controlled post doc. These rules close the gs:// SDK path
+    // enumeration / overwrite / vandalism holes.
     // ------------------------------------------------------------------
-    match /community/{groupId}/{postId}/{filename} {
-      allow read: if request.auth != null;
 
-      allow write: if request.auth != null
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function communityGroup(groupId) {
+      return firestore.get(/databases/(default)/documents/groups/$(groupId)).data;
+    }
+
+    function communityGroupExists(groupId) {
+      return firestore.exists(/databases/(default)/documents/groups/$(groupId));
+    }
+
+    function isCommunityOwner(groupId) {
+      return isSignedIn()
+        && communityGroupExists(groupId)
+        && communityGroup(groupId).ownerUid == request.auth.uid;
+    }
+
+    function isCommunityPublic(groupId) {
+      return communityGroupExists(groupId)
+        && communityGroup(groupId).visibility == 'public';
+    }
+
+    function isActiveCommunityMember(groupId) {
+      return isSignedIn()
+        && firestore.exists(
+             /databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid))
+        && firestore.get(
+             /databases/(default)/documents/groups/$(groupId)/members/$(request.auth.uid))
+             .data.status == 'active';
+    }
+
+    match /community/{groupId}/{uid}/{postId}/{filename} {
+      allow read: if isSignedIn() && (
+        isCommunityPublic(groupId)
+        || isActiveCommunityMember(groupId)
+        || isCommunityOwner(groupId)
+      );
+
+      allow write: if isSignedIn()
+                  && request.auth.uid == uid
+                  && isActiveCommunityMember(groupId)
                   && request.resource.size < 5 * 1024 * 1024
                   && request.resource.contentType.matches('image/.*');
 
-      // Author or owner cleanup; Firestore rules already gate who can
-      // delete the corresponding post, and the repository's
-      // _deletePostMedia mirrors that.
-      allow delete: if request.auth != null;
+      allow delete: if isSignedIn()
+                   && (request.auth.uid == uid || isCommunityOwner(groupId));
     }
   }
 }
