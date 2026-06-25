@@ -212,6 +212,15 @@ class CommunityRepository {
     final members = await _membersCol(groupId).get();
     final posts = await _postsCol(groupId).get();
 
+    // Best-effort media cleanup runs FIRST, while the group doc still
+    // exists: the Storage rules authorize the owner to delete other
+    // members' photos via isCommunityOwner(groupId), which needs the group
+    // doc to be present. Failures here only leak Storage objects.
+    for (final p in posts.docs) {
+      final post = GroupPost.fromDoc(groupId, p);
+      await _deletePostMedia(groupId, post.authorUid, p.id);
+    }
+
     final batch = _db.batch();
     for (final m in members.docs) {
       batch.delete(m.reference);
@@ -222,13 +231,6 @@ class CommunityRepository {
     }
     batch.delete(_groupRef(groupId));
     await batch.commit();
-
-    // Best-effort cleanup of any media attached to the group's posts.
-    // Failures here only leak Storage objects; the Firestore state is
-    // already consistent after the batch commit above.
-    for (final p in posts.docs) {
-      await _deletePostMedia(groupId, p.id);
-    }
   }
 
   // -------------------- Membership --------------------
@@ -407,13 +409,16 @@ class CommunityRepository {
 
     // Upload images first so the post doc is only created with finalized
     // download URLs. Path layout matches storage.rules:
-    //   community/{groupId}/{postId}/{index}.jpg
+    //   community/{groupId}/{uid}/{postId}/{index}.jpg
+    // The uid segment binds each object to its uploader so Storage rules
+    // can authorize writes/deletes without reading the post doc.
     final mediaUrls = <String>[];
     for (var i = 0; i < images.length; i++) {
       final imgRef = FirebaseStorage.instance
           .ref()
           .child('community')
           .child(groupId)
+          .child(uid)
           .child(postRef.id)
           .child('$i.jpg');
       await imgRef.putData(
@@ -464,15 +469,17 @@ class CommunityRepository {
       "postCount": FieldValue.increment(-1),
     });
     await batch.commit();
-    await _deletePostMedia(groupId, postId);
+    await _deletePostMedia(groupId, post.authorUid, postId);
   }
 
-  Future<void> _deletePostMedia(String groupId, String postId) async {
+  Future<void> _deletePostMedia(
+      String groupId, String authorUid, String postId) async {
     try {
       final folderRef = FirebaseStorage.instance
           .ref()
           .child('community')
           .child(groupId)
+          .child(authorUid)
           .child(postId);
       final list = await folderRef.listAll();
       await Future.wait(list.items.map((i) => i.delete()));
