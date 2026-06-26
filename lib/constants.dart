@@ -81,8 +81,12 @@ class Constants {
     return MediaQuery.of(context).size.width;
   }
 
+  // Instruments are now a free-floating, full-screen overlay, so no vertical
+  // band is reserved for them. Other overlays (PFD, warnings) use the full
+  // screen height. Kept as a method (returning 0) so existing offset callers
+  // continue to work without change.
   static double screenHeightForInstruments(BuildContext context) {
-    return isPortrait(context) ? MediaQuery.of(context).size.height / 12 : MediaQuery.of(context).size.height / 8;
+    return 0;
   }
 
   static bool isPortrait(BuildContext context) {

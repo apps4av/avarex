@@ -105,7 +105,7 @@ Tap bottom tab **MAP**.
 
 ![MAP tab with sectional chart, ownship, instrument strip, and bottom controls](assets/docs/screenshots/01_map_tab.png)
 
-The **instrument strip** runs along the top (GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT…). Bottom-left is **Menu** (drawer); bottom-center is **Center**; bottom-right has **Mute, Ruler, Track-up toggle, Rubber-banding, Notes, Chart Type, Layers**, plus the warning icon top-right.
+The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT…); each tile can be dragged anywhere and its position is remembered. Bottom-left is **Menu** (drawer); bottom-center is **Center**; bottom-right has **Mute, Ruler, Track-up toggle, Rubber-banding, Notes, Chart Type, Layers**, plus the warning icon top-right.
 
 ### 4.2 Core interactions
 
@@ -199,9 +199,9 @@ Notes:
 - Turning **Tracks** layer OFF saves a KML track file into Documents/tracks and clears active track recording.
 - **PFD** requires AHRS data from GDL90-compatible devices to show attitude.
 
-### 4.6 Instrument strip (top-left)
+### 4.6 Instrument overlay (movable tiles)
 
-Reorderable instrument tiles include:
+Instrument tiles float as a full-screen overlay on top of the map. Each tile can be **dragged independently** to any position on the screen, and its position is remembered across app restarts (separate layouts are kept for portrait and landscape orientation). By default only the first few tiles are shown; add the rest one at a time from the menu. Available tiles include:
 
 | Tile | Description | Tap Action |
 |------|-------------|------------|
@@ -224,9 +224,8 @@ Reorderable instrument tiles include:
 
 Interactions:
 
-- Dropdown arrow: expand/contract tile sizes
-- Drag tiles to rearrange order
-- `?` icon: show help with tile descriptions
+- **Drag** any tile to move it anywhere on the screen; its position is saved automatically.
+- **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Add XXX** entries to show any hidden tile one at a time, **Reset Layout** to restore the default tiles and positions, and `?` for help with tile descriptions.
 
 ### 4.7 GPWS (Ground Proximity Warning System)
 
@@ -313,7 +312,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - **Procedure menu** (plus icon near bottom-right):
   - Show procedure profile
   - `+Plan` adds procedure waypoint sequence to plan
-- **Instrument strip show/hide** toggle (top-right arrow icon)
+- **Instrument overlay show/hide** toggle (top-right arrow icon)
 - **Profile close (X)** closes procedure profile card
 
 ### 6.4 Plate type color coding
@@ -1192,7 +1191,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Wind Vectors slider > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider) |
-| Change GPS source mode | Tap `SRC` tile in instrument bar |
+| Change GPS source mode | Tap `SRC` tile in instrument overlay |
 | Measure distances | `MAP → Ruler icon → long-press map to add points` |
 | Rubber band waypoints | `MAP → Rubber banding icon → long-press and drag waypoints` |
 | Insert waypoint at position | `PLAN → long-press waypoint row → FIND → select destination` |

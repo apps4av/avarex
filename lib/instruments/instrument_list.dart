@@ -46,6 +46,14 @@ class InstrumentListState extends State<InstrumentList> {
   static final DateFormat _hourMinuteFormatter = DateFormat('HH:mm');
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
   late List<Color> _itemsColors;
+  // Fractional (0..1) top-left position of each tile, keyed by tile code.
+  final Map<String, Offset> _positions = {};
+  bool? _loadedPortrait; // orientation whose positions are currently loaded
+  // Tiles currently shown, in the order they were added. The rest are hidden
+  // and can be added one by one from the menu.
+  final List<String> _visible = [];
+  bool _visibleLoaded = false;
+  static const int _defaultVisibleCount = 5;
   String _gndSpeed = "0";
   String _altitude = "0";
   String _magneticHeading = "0\u00b0";
@@ -344,19 +352,140 @@ class InstrumentListState extends State<InstrumentList> {
     });
   }
 
-  // make an instrument for top line
-  Widget _makeInstrument(int index) {
+  // tile dimensions, scaled by the user adjustable factor
+  double _tileWidth() {
     bool portrait = Constants.isPortrait(context);
-    double width = Constants.screenWidth(context) / 9.7 / Storage().settings.getInstrumentScaleFactor(); // get more instruments in
-    if(portrait) {
-      width = Constants.screenWidth(context) / 5.7 / Storage().settings.getInstrumentScaleFactor();
+    double factor = Storage().settings.getInstrumentScaleFactor();
+    return (portrait ? Constants.screenWidth(context) / 5.7 : Constants.screenWidth(context) / 9.7) / factor;
+  }
+
+  double _tileHeight() {
+    bool portrait = Constants.isPortrait(context);
+    double factor = Storage().settings.getInstrumentScaleFactor();
+    return (portrait ? Constants.screenHeight(context) / 12 : Constants.screenHeight(context) / 8) / factor;
+  }
+
+  // default layout: a row of tiles near the top that wraps onto new rows
+  Map<String, Offset> _defaultPositions() {
+    double w = Constants.screenWidth(context);
+    double h = Constants.screenHeight(context);
+    double tw = _tileWidth();
+    double th = _tileHeight();
+    const double gap = 4;
+    const double startX = 5;
+    const double startY = 42; // leave room for the corner menu button
+    Map<String, Offset> pos = {};
+    double x = startX;
+    double y = startY;
+    for(String code in _items) {
+      if(x + tw > w) { // wrap to next row
+        x = startX;
+        y += th + gap;
+      }
+      pos[code] = Offset(x / w, y / h);
+      x += tw + gap;
     }
+    return pos;
+  }
+
+  // load saved positions for the current orientation, filling any gaps with defaults
+  void _loadPositions() {
+    bool portrait = Constants.isPortrait(context);
+    String raw = Storage().settings.getInstrumentPositions(portrait);
+    Map<String, Offset> parsed = {};
+    if(raw.isNotEmpty) {
+      for(String part in raw.split(",")) {
+        List<String> f = part.split(":");
+        if(f.length == 3) {
+          double? dx = double.tryParse(f[1]);
+          double? dy = double.tryParse(f[2]);
+          if(dx != null && dy != null) {
+            parsed[f[0]] = Offset(dx, dy);
+          }
+        }
+      }
+    }
+    Map<String, Offset> defaults = _defaultPositions();
+    _positions.clear();
+    for(String code in _items) {
+      _positions[code] = parsed[code] ?? defaults[code] ?? const Offset(0, 0);
+    }
+    _loadedPortrait = portrait;
+  }
+
+  void _savePositions() {
+    bool portrait = Constants.isPortrait(context);
+    String raw = _positions.entries
+        .map((e) => "${e.key}:${e.value.dx.toStringAsFixed(4)}:${e.value.dy.toStringAsFixed(4)}")
+        .join(",");
+    Storage().settings.setInstrumentPositions(portrait, raw);
+  }
+
+  List<String> _defaultVisible() {
+    return _items.where((c) => c.isNotEmpty).take(_defaultVisibleCount).toList();
+  }
+
+  // load which tiles are shown; first run / empty falls back to the default few
+  void _loadVisible() {
+    String raw = Storage().settings.getInstrumentVisible();
+    _visible.clear();
+    if(raw.isEmpty) {
+      _visible.addAll(_defaultVisible());
+    }
+    else {
+      for(String c in raw.split(",")) {
+        if(c.isNotEmpty && _items.contains(c) && !_visible.contains(c)) {
+          _visible.add(c);
+        }
+      }
+    }
+    _visibleLoaded = true;
+  }
+
+  void _saveVisible() {
+    Storage().settings.setInstrumentVisible(_visible.join(","));
+  }
+
+  // add a hidden tile from the menu, placing it at its default slot
+  void _addTile(String code) {
+    if(_visible.contains(code)) {
+      return;
+    }
+    setState(() {
+      _visible.add(code);
+      _positions[code] ??= _defaultPositions()[code] ?? const Offset(0, 0);
+    });
+    _saveVisible();
+    _savePositions();
+  }
+
+  void _resetLayout() {
+    setState(() {
+      _visible
+        ..clear()
+        ..addAll(_defaultVisible());
+      _positions
+        ..clear()
+        ..addAll(_defaultPositions());
+    });
+    _saveVisible();
+    _savePositions();
+  }
+
+  // make a draggable instrument tile
+  Widget _makeInstrument(String code) {
+    double width = _tileWidth();
+    double height = _tileHeight();
+    double screenW = Constants.screenWidth(context);
+    double screenH = Constants.screenHeight(context);
+    int index = _items.indexOf(code);
+    Offset frac = _positions[code] ?? const Offset(0, 0);
 
     String value = "";
     Function() cb = () {};
 
     // set callbacks and connect values
-    switch(_items[index]) {
+    switch(code) {
       case "GS":
         value = _gndSpeed;
         break;
@@ -413,12 +542,23 @@ class InstrumentListState extends State<InstrumentList> {
         break;
     }
 
-    return ReorderableDelayedDragStartListener(
-        index: index,
-        key: Key(index.toString()),
-        child: GestureDetector(
-          onTap: cb,
-          child: Container(
+    return Positioned(
+      left: frac.dx * screenW,
+      top: frac.dy * screenH,
+      width: width,
+      height: height,
+      child: GestureDetector(
+        onTap: cb,
+        onPanUpdate: (details) {
+          Offset cur = _positions[code] ?? const Offset(0, 0);
+          double nx = (cur.dx * screenW + details.delta.dx).clamp(0.0, max(0.0, screenW - width));
+          double ny = (cur.dy * screenH + details.delta.dy).clamp(0.0, max(0.0, screenH - height));
+          setState(() {
+            _positions[code] = Offset(nx / screenW, ny / screenH);
+          });
+        },
+        onPanEnd: (_) => _savePositions(),
+        child: Container(
           width: width,
           decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
           child: Column(
@@ -426,8 +566,87 @@ class InstrumentListState extends State<InstrumentList> {
               Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
               Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle( ), maxLines: 1,)))),
             ]),
-          )
-      )
+        ),
+      ),
+    );
+  }
+
+  // corner menu: tile sizing, reset layout, and help. Lives top-left and is fixed.
+  Widget _makeMenu() {
+    return Positioned(
+      left: 5,
+      top: 5,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton2<String>(
+          dropdownStyleData: DropdownStyleData(
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
+            width: Constants.screenWidth(context) / 2,
+          ),
+          isExpanded: false,
+          customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
+          onChanged: (value) {
+            setState(() {
+            });
+          },
+          items: [
+            DropdownMenuItem(
+              value: "1",
+              onTap:() {
+                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
+              },
+              child: const Text("Expand", style: TextStyle(fontSize: 12),),
+            ),
+            DropdownMenuItem(
+              value: "2",
+              onTap:() {
+                Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
+              },
+              child: const Text("Contract", style: TextStyle(fontSize: 12),),
+            ),
+            DropdownMenuItem(
+              value: "3",
+              onTap: _resetLayout,
+              child: const Text("Reset Layout", style: TextStyle(fontSize: 12),),
+            ),
+            for(final String code in _items.where((c) => c.isNotEmpty && !_visible.contains(c)))
+              DropdownMenuItem(
+                value: "add-$code",
+                onTap: () => _addTile(code),
+                child: Text("Add  $code", style: const TextStyle(fontSize: 12),),
+              ),
+            DropdownMenuItem(
+              value: "4",
+              onTap:() {
+                // Make a toast and show
+                Toast.showToast(context,
+                    "You may adjust the size of the tiles using Expand/Contract.\n"
+                    "You may drag any tile to move it anywhere on the screen.\n"
+                    "Use the Add entries in this menu to show more tiles, one at a time.\n"
+                    "Use Reset Layout to restore the default tiles and positions.\n\n"
+                    "Available Tiles:\n"
+                    "GS  - Ground speed.\n"
+                    "ALT - GPS altitude.\n"
+                    "MT  - Magnetic track.\n"
+                    "PRV - Tap to go to the previous waypoint as shown.\n"
+                    "NXT - Tap to go to the next waypoint as shown.\n"
+                    "DIS - Distance to the next waypoint.\n"
+                    "BRG - Bearing to the next waypoint.\n"
+                    "GEL - Ground elevation. Needs Elevation charts.\n"
+                    "ETA - Estimated time of arrival at the next waypoint.\n"
+                    "ETE - Estimated time en-route to the next waypoint.\n"
+                    "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
+                    "UPT - Tap to start/stop the up timer.\n"
+                    "DNT - Tap to start/stop the down timer.\n"
+                    "UTC - Coordinated Universal Time.\n"
+                    "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
+                    "FLT - Total flight time in hours. Tap to reset.\n",
+                    null, 30);
+                },
+                child: const Text("?", style: TextStyle(fontSize: 12),),
+              ),
+          ],
+        )
+      ),
     );
   }
 
@@ -440,88 +659,24 @@ class InstrumentListState extends State<InstrumentList> {
     _routeListener();
     _timeListener();
 
-    // user can rearrange widgets
-    return ReorderableListView(
-      shrinkWrap: true,
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(5, 5, 5, 0),
-      header: Column(children:[
-        DropdownButtonHideUnderline(
-          child:DropdownButton2<String>(
-            dropdownStyleData: DropdownStyleData(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-              width: Constants.screenWidth(context) / 2,
-            ),
-            isExpanded: false,
-            customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
-              onChanged: (value) {
-                setState(() {
-                });
-              },
-            items: [
-              DropdownMenuItem(
-                value: "1",
-                onTap:() {
-                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
-                },
-                child: const Text("Expand", style: TextStyle(fontSize: 12),),
-              ),
-              DropdownMenuItem(
-                value: "2",
-                onTap:() {
-                  Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
-                },
-                child: const Text("Contract", style: TextStyle(fontSize: 12),),
-              ),
+    // (re)load tile positions when first built or when orientation changes
+    bool portrait = Constants.isPortrait(context);
+    if(_loadedPortrait != portrait || _positions.length != _items.length) {
+      _loadPositions();
+    }
+    if(!_visibleLoaded) {
+      _loadVisible();
+    }
 
-              DropdownMenuItem(
-                value: "4",
-                onTap:() {
-                  // Make a toast and show
-                  Toast.showToast(context,
-                      "You may adjust the size of the tiles using Expand/Contract.\n"
-                      "You may drag a tile to adjust its position.\n\n"
-                      "Available Tiles:\n"
-                      "GS  - Ground speed.\n"
-                      "ALT - GPS altitude.\n"
-                      "MT  - Magnetic track.\n"
-                      "PRV - Tap to go to the previous waypoint as shown.\n"
-                      "NXT - Tap to go to the next waypoint as shown.\n"
-                      "DIS - Distance to the next waypoint.\n"
-                      "BRG - Bearing to the next waypoint.\n"
-                      "GEL - Ground elevation. Needs Elevation charts.\n"
-                      "ETA - Estimated time of arrival at the next waypoint.\n"
-                      "ETE - Estimated time en-route to the next waypoint.\n"
-                      "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
-                      "UPT - Tap to start/stop the up timer.\n"
-                      "DNT - Tap to start/stop the down timer.\n"
-                      "UTC - Coordinated Universal Time.\n"
-                      "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
-                      "FLT - Total flight time in hours. Tap to reset.\n",
-                      null, 30);
-                  },
-                  child: const Text("?", style: TextStyle(fontSize: 12),),
-                ),
-            ],
-          )
-        ),
-      ]),
-      buildDefaultDragHandles: false,
+    // Full screen overlay. The Stack itself does not absorb touches in empty
+    // areas, so the underlying map remains fully interactive; only the tiles
+    // and the menu button receive gestures.
+    return Stack(
       children: <Widget>[
-        for(int index = 0; index < _items.length; index++)
-          _makeInstrument(index),
+        for(final String code in _visible)
+          _makeInstrument(code),
+        _makeMenu(),
       ],
-      onReorder: (int oldIndex, int newIndex) {
-        setState(() {
-          if (oldIndex < newIndex) {
-            newIndex -= 1;
-          }
-          final String item = _items.removeAt(oldIndex);
-          _items.insert(newIndex, item);
-        });
-        // save order for next start
-        Storage().settings.setInstruments(_items.join(","));
-      },
     );
   }
 }

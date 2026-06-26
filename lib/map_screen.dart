@@ -1336,12 +1336,7 @@ class MapScreenState extends State<MapScreen> {
                     );
                   }
                 ),
-              Positioned(
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
-                )
-              ),
+              const Positioned.fill(child: InstrumentList()),
               // warn
               Positioned(
                 child: Align(

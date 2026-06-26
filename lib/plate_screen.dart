@@ -416,15 +416,9 @@ class PlateScreenState extends State<PlateScreen> {
             ),
           ),
 
-          // Instruments panel (top left)
-          Positioned(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: Storage().settings.isInstrumentsVisiblePlate()
-                  ? SizedBox(height: Constants.screenHeightForInstruments(context), child: const InstrumentList())
-                  : Container(),
-            ),
-          ),
+          // Instruments overlay (full screen, free-floating draggable tiles)
+          if(Storage().settings.isInstrumentsVisiblePlate())
+            const Positioned.fill(child: InstrumentList()),
 
           // Instrument toggle button (top right)
           Positioned(
@@ -453,7 +447,7 @@ class PlateScreenState extends State<PlateScreen> {
           // Auto-show airport diagram toggle (top right, below instruments toggle)
           if (!notAd)
             Positioned(
-              top: Constants.screenHeightForInstruments(context) + 12,
+              top: 60, // sit below the show/hide instruments button (~48px tall at top:8)
               right: 12,
               child: GestureDetector(
                 onTap: () {

@@ -86,6 +86,26 @@ class AppSettings {
     return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT") as String;
   }
 
+  // Which instrument tiles are currently shown, in the order they were added.
+  // Empty means "use default" (the first few tiles).
+  void setInstrumentVisible(String codes) {
+    provider.setString("key-instruments-visible", codes);
+  }
+
+  String getInstrumentVisible() {
+    return provider.getValue("key-instruments-visible", defaultValue: "") as String;
+  }
+
+  // Free-floating instrument tile positions, stored per orientation.
+  // Format: "CODE:dxFraction:dyFraction,CODE:dxFraction:dyFraction,..."
+  void setInstrumentPositions(bool portrait, String positions) {
+    provider.setString(portrait ? "key-instrument-positions-portrait" : "key-instrument-positions-landscape", positions);
+  }
+
+  String getInstrumentPositions(bool portrait) {
+    return provider.getValue(portrait ? "key-instrument-positions-portrait" : "key-instrument-positions-landscape", defaultValue: "") as String;
+  }
+
   void setGpsSourceMode(String mode) {
     provider.setString("key-gps-source-mode", mode);
   }
