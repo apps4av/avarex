@@ -1,0 +1,35 @@
+# AvareX
+
+> AvareX is a free electronic flight bag (EFB) for pilots, made by Apps4Av. The core app is
+> free to download and use; an optional Pro subscription is $5/month. It runs on iOS, Android,
+> Windows, macOS, Linux, and Raspberry Pi.
+
+## What AvareX is
+- A full electronic flight bag (EFB) / aviation moving-map navigation app for general-aviation pilots.
+- Free core features; optional Pro tier at $5/month.
+- A lower-cost, cross-platform alternative to paid EFB apps (e.g. ForeFlight), which typically cost ~$120–$300/year.
+- Not an FAA-certified GPS; must not be used as a sole means of navigation.
+
+## Free core features
+- VFR/IFR moving map with georeferenced ownship (sectional, TAC, flyway, helicopter, IFR enroute low/high/area).
+- Geo-referenced approach plates, airport diagrams, SIDs and STARs.
+- ADS-B traffic via Stratux, Stratus, Echo, and other GDL90 receivers (Wi-Fi), with audible alerts and GPWS.
+- Weather: METAR, TAF, PIREP, AIRMET, SIGMET, TFRs, NEXRAD radar, winds aloft, ceilings.
+- Flight planning with per-leg nav log; file, brief, and close FAA flight plans.
+- Weight & balance with CG envelope; takeoff/landing/cruise performance.
+- Digital logbook with currency tracking; 2D/3D track viewer; checklists.
+- Works fully offline once charts and databases are downloaded.
+
+## Pro features ($5/month, iOS/Android)
+- Flight Intelligence AI assistant.
+- Cloud backup and sync.
+- Pilot community groups.
+- Aircraft scheduler for clubs and flight schools.
+
+## Links
+- Website: https://avarex.apps4av.org/
+- Apple App Store / macOS: https://apps.apple.com/us/app/avarex/id6502421523
+- Google Play (Android): https://play.google.com/store/apps/details?id=com.apps4av.avaremp
+- Microsoft Store (Windows): https://apps.microsoft.com/detail/9mx4hkl30mww
+- Snap Store (Linux): https://snapcraft.io/avarex
+- Support forum: https://groups.google.com/g/apps4av-forum
