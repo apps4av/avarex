@@ -8,22 +8,22 @@
 
 <!-- ============================================================= -->
 <!-- GOOGLE ADS CONVERSION TRACKING                                 -->
-<!-- 1. Replace AW-CONVERSION_ID with your Google Ads conversion ID -->
-<!-- 2. Replace CONVERSION_LABEL with your "Download" action label   -->
-<!--    (Tools > Conversions > create "Download" > Tag setup)        -->
+<!-- Tag ID:           AW-18278324047                                -->
+<!-- Conversion label: 7250CPXL28YcEM-u5ItE  (action: "Subscribe")  -->
+<!-- Fires on App Store / Google Play button clicks (see trackDownload). -->
 <!-- ============================================================= -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-CONVERSION_ID"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18278324047"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'AW-CONVERSION_ID');
+  gtag('config', 'AW-18278324047');
 
   // Fires a conversion, then continues to the store URL.
   function trackDownload(url, platform) {
     var callback = function () { if (typeof url !== 'undefined') window.location = url; };
     gtag('event', 'conversion', {
-      'send_to': 'AW-CONVERSION_ID/CONVERSION_LABEL',
+      'send_to': 'AW-18278324047/7250CPXL28YcEM-u5ItE',
       'event_callback': callback,
       'event_label': platform
     });
