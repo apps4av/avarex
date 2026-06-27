@@ -627,7 +627,7 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                 Text("Reserved by ${r.schedulerName}"),
                 const SizedBox(height: 4),
                 Text(
-                  "${_dayLabel(r.start)}  ·  ${_fmtTime(r.start)} – ${_fmtTime(r.end)}",
+                  _fmtRange(r.start, r.end),
                   style: TextStyle(color: scheme.outline, fontSize: 13),
                 ),
                 if (r.note != null && r.note!.isNotEmpty) ...[
@@ -913,6 +913,20 @@ String _fmtTime(DateTime t) {
   return "$h12:$m $ampm";
 }
 
+/// Formats a reservation window. Single-day bookings read
+/// "Sat Jun 27 · 9:00 AM – 11:00 AM"; multi-day bookings include the end
+/// date so it isn't lost: "Sat Jun 27 9:00 AM – Sun Jun 28 11:00 AM".
+String _fmtRange(DateTime start, DateTime end) {
+  final sameDay = start.year == end.year &&
+      start.month == end.month &&
+      start.day == end.day;
+  if (sameDay) {
+    return "${_fmtDay(start)}  ·  ${_fmtTime(start)} – ${_fmtTime(end)}";
+  }
+  return "${_fmtDay(start)} ${_fmtTime(start)} – "
+      "${_fmtDay(end)} ${_fmtTime(end)}";
+}
+
 class _MyReservationsTab extends StatelessWidget {
   final SchedulerGroup group;
   const _MyReservationsTab({required this.group});
@@ -1060,7 +1074,7 @@ class _MyReservationsTab extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        "${_fmtDay(r.start)}  ·  ${_fmtTime(r.start)} – ${_fmtTime(r.end)}",
+        _fmtRange(r.start, r.end),
         style: TextStyle(fontSize: 12, color: scheme.outline),
       ),
       trailing: cancellable

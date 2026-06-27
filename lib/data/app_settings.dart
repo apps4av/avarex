@@ -267,6 +267,14 @@ class AppSettings {
     provider.setBool("key-enable-instruments-plate", value);
   }
 
+  bool isInstrumentsLocked() {
+    return provider.getValue("key-instruments-locked", defaultValue: false) as bool;
+  }
+
+  void setInstrumentsLocked(bool value) {
+    provider.setBool("key-instruments-locked", value);
+  }
+
   bool isShowAirportDiagramOnLanding() {
     return provider.getValue("key-show-airport-diagram-on-landing", defaultValue: false) as bool;
   }

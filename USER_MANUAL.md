@@ -225,7 +225,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 Interactions:
 
 - **Drag** any tile to move it anywhere on the screen; its position is saved automatically.
-- **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Add XXX** entries to show any hidden tile one at a time, **Reset Layout** to restore the default tiles and positions, and `?` for help with tile descriptions.
+- **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Lock Tiles**/**Unlock Tiles** to prevent or allow moving tiles (unlocked by default), **Add XXX** entries to show any hidden tile one at a time, **Reset Layout** to restore the default tiles and positions, and `?` for help with tile descriptions.
 
 ### 4.7 GPWS (Ground Proximity Warning System)
 

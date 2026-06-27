@@ -549,7 +549,7 @@ class InstrumentListState extends State<InstrumentList> {
       height: height,
       child: GestureDetector(
         onTap: cb,
-        onPanUpdate: (details) {
+        onPanUpdate: Storage().settings.isInstrumentsLocked() ? null : (details) {
           Offset cur = _positions[code] ?? const Offset(0, 0);
           double nx = (cur.dx * screenW + details.delta.dx).clamp(0.0, max(0.0, screenW - width));
           double ny = (cur.dy * screenH + details.delta.dy).clamp(0.0, max(0.0, screenH - height));
@@ -557,7 +557,7 @@ class InstrumentListState extends State<InstrumentList> {
             _positions[code] = Offset(nx / screenW, ny / screenH);
           });
         },
-        onPanEnd: (_) => _savePositions(),
+        onPanEnd: Storage().settings.isInstrumentsLocked() ? null : (_) => _savePositions(),
         child: Container(
           width: width,
           decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
@@ -594,25 +594,36 @@ class InstrumentListState extends State<InstrumentList> {
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
               },
-              child: const Text("Expand", style: TextStyle(fontSize: 12),),
+              child: _menuRow(Icons.zoom_in, "Expand"),
             ),
             DropdownMenuItem(
               value: "2",
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
               },
-              child: const Text("Contract", style: TextStyle(fontSize: 12),),
+              child: _menuRow(Icons.zoom_out, "Contract"),
+            ),
+            DropdownMenuItem(
+              value: "lock",
+              onTap:() {
+                setState(() {
+                  Storage().settings.setInstrumentsLocked(!Storage().settings.isInstrumentsLocked());
+                });
+              },
+              child: Storage().settings.isInstrumentsLocked()
+                  ? _menuRow(Icons.lock_open, "Unlock Tiles")
+                  : _menuRow(Icons.lock_outline, "Lock Tiles"),
             ),
             DropdownMenuItem(
               value: "3",
               onTap: _resetLayout,
-              child: const Text("Reset Layout", style: TextStyle(fontSize: 12),),
+              child: _menuRow(Icons.restart_alt, "Reset Layout"),
             ),
             for(final String code in _items.where((c) => c.isNotEmpty && !_visible.contains(c)))
               DropdownMenuItem(
                 value: "add-$code",
                 onTap: () => _addTile(code),
-                child: Text("Add  $code", style: const TextStyle(fontSize: 12),),
+                child: _menuRow(Icons.add_circle_outline, "Add  $code"),
               ),
             DropdownMenuItem(
               value: "4",
@@ -621,6 +632,7 @@ class InstrumentListState extends State<InstrumentList> {
                 Toast.showToast(context,
                     "You may adjust the size of the tiles using Expand/Contract.\n"
                     "You may drag any tile to move it anywhere on the screen.\n"
+                    "Use Lock Tiles to prevent accidentally moving tiles, and Unlock Tiles to move them again.\n"
                     "Use the Add entries in this menu to show more tiles, one at a time.\n"
                     "Use Reset Layout to restore the default tiles and positions.\n\n"
                     "Available Tiles:\n"
@@ -642,11 +654,23 @@ class InstrumentListState extends State<InstrumentList> {
                     "FLT - Total flight time in hours. Tap to reset.\n",
                     null, 30);
                 },
-                child: const Text("?", style: TextStyle(fontSize: 12),),
+                child: _menuRow(Icons.help_outline, "Help"),
               ),
           ],
         )
       ),
+    );
+  }
+
+  // a dropdown menu entry with a leading icon
+  Widget _menuRow(IconData icon, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
     );
   }
 
