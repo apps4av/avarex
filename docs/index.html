@@ -99,6 +99,7 @@
   .ic{font-size:22px;margin-bottom:10px;display:block}
 
   .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+  .shots.shots-2{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto}
   .shots img{width:100%;border-radius:14px;border:1px solid var(--line);background:#000}
   .shots figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
 
@@ -191,9 +192,8 @@
   <section>
     <h2>See it in the cockpit</h2>
     <p class="sub2">Real screens from the app.</p>
-    <div class="shots">
+    <div class="shots shots-2">
       <figure><img src="img/map.png" alt="Moving map">    <figcaption>Moving map + instruments</figcaption></figure>
-      <figure><img src="img/plate.png" alt="Approach plate"><figcaption>Geo-referenced approach plate</figcaption></figure>
       <figure><img src="img/navlog.png" alt="Nav log">     <figcaption>Flight plan &amp; nav log</figcaption></figure>
     </div>
   </section>
