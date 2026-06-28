@@ -75,6 +75,9 @@ class Storage {
   // when destination changes
   final timeChange = ValueNotifier<int>(0);
   final timeRadarChange = ValueNotifier<int>(0);
+  // bumped only when the traffic set actually changes (new/updated/removed),
+  // so traffic map layers rebuild on real changes instead of every second
+  final trafficChange = ValueNotifier<int>(0);
   final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();

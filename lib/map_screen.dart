@@ -20,7 +20,6 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
-import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
@@ -78,6 +77,12 @@ class MapScreenState extends State<MapScreen> {
   double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
   int _cacheBustElevation = 0;
+  // memoization for the distance circles and the to-waypoint great-circle path,
+  // which otherwise recompute trig every second even when nothing has changed
+  String? _circlesKey;
+  PolylineLayer? _circlesLayer;
+  String? _toWaypointKey;
+  List<LatLng> _toWaypointPath = const [];
 
   static final List<String> _mesonets = [
     "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913-m40m/{z}/{x}/{y}.png",
@@ -179,6 +184,12 @@ class MapScreenState extends State<MapScreen> {
 
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
+    // The tape markers are only consumed by the Tape layer. Skip the trig loop
+    // entirely (it otherwise runs on every pan/zoom frame) when Tape is off.
+    final int tapeIndex = _layers.indexOf('Tape');
+    if (tapeIndex < 0 || _layersOpacity[tapeIndex] <= 0) {
+      return;
+    }
     LatLng center = Gps.toLatLng(Storage().gpsChange.value);
     LatLng topCenter = _controller.camera.screenOffsetToLatLng(Offset(Constants.screenWidth(context) / 2, Constants.screenHeightForInstruments(context) + iconRadius));
     String centralDistance = _calculations.calculateDistance(center, topCenter).round().toString();
@@ -772,7 +783,7 @@ class MapScreenState extends State<MapScreen> {
       layers.add(
         // traffic 1-minute projection lines (drawn underneath the dots)
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-            valueListenable: Storage().timeChange,
+            valueListenable: Storage().trafficChange,
             builder: (context, value, _) {
               return PolylineLayer(
                 polylines: Storage().trafficCache.getTraffic()
@@ -797,7 +808,7 @@ class MapScreenState extends State<MapScreen> {
       layers.add(
         // traffic layer (Avare-style circles)
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().timeChange,
+          valueListenable: Storage().trafficChange,
           builder: (context, value, _) {
             double angle = _northUp ? 0 : Storage().position.heading;
             return MarkerLayer(
@@ -849,39 +860,50 @@ class MapScreenState extends State<MapScreen> {
         IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
-              return PolylineLayer(
-                polylines: [
-                  // 10 nm circle
-                  Polyline(
-                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 10),
-                    color: Constants.distanceCircleColor,
-                    strokeWidth: 3,
-                  ),
-                  // 5 nm circle
-                  Polyline(
-                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 5),
-                    color: Constants.distanceCircleColor,
-                    strokeWidth: 3,
-                  ),
-                  // 2 nm circle
-                  Polyline(
-                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 2),
-                    color: Constants.distanceCircleColor,
-                    strokeWidth: 3,
-                  ),
-                  // speed marker
-                  Polyline(
-                    points: GeoCalculations().calculateCircle(Gps.toLatLng(value), GeoCalculations.convertSpeed(value.speed) / 60),
-                    color: Constants.speedCircleColor,
-                    strokeWidth: 3,
-                  ),
-                  Polyline(
-                    points: Storage().area.glideProfile.getGlideCircle(),
-                    color: Constants.glideCircleColor,
-                    strokeWidth: 3,
-                  ),
-                ],
-              );
+              // Inputs to the circles are position, ground speed (speed ring) and
+              // the glide profile (carried by area.change). Recompute the trig
+              // only when one of those actually changes.
+              final String key = "${value.latitude.toStringAsFixed(5)},"
+                  "${value.longitude.toStringAsFixed(5)},"
+                  "${value.speed.toStringAsFixed(1)},"
+                  "${Storage().area.change.value}";
+              if (_circlesKey != key || _circlesLayer == null) {
+                _circlesKey = key;
+                _circlesLayer = PolylineLayer(
+                  polylines: [
+                    // 10 nm circle
+                    Polyline(
+                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 10),
+                      color: Constants.distanceCircleColor,
+                      strokeWidth: 3,
+                    ),
+                    // 5 nm circle
+                    Polyline(
+                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 5),
+                      color: Constants.distanceCircleColor,
+                      strokeWidth: 3,
+                    ),
+                    // 2 nm circle
+                    Polyline(
+                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 2),
+                      color: Constants.distanceCircleColor,
+                      strokeWidth: 3,
+                    ),
+                    // speed marker
+                    Polyline(
+                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), GeoCalculations.convertSpeed(value.speed) / 60),
+                      color: Constants.speedCircleColor,
+                      strokeWidth: 3,
+                    ),
+                    Polyline(
+                      points: Storage().area.glideProfile.getGlideCircle(),
+                      color: Constants.glideCircleColor,
+                      strokeWidth: 3,
+                    ),
+                  ],
+                );
+              }
+              return _circlesLayer!;
             },
           ),
           )
@@ -1064,9 +1086,18 @@ class MapScreenState extends State<MapScreen> {
         IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
           valueListenable: Storage().timeChange,
           builder: (context, value, _) {
-            // this place
-            PlanRoute here = Storage().route;
-            List<LatLng> path = here.getPathFromLocation(Storage().position);
+            // The great-circle interpolation only changes when ownship moves or
+            // the active waypoint changes (route.change); reuse the last path
+            // otherwise instead of recomputing findPoints every second.
+            final Position p = Storage().position;
+            final String key = "${p.latitude.toStringAsFixed(5)},"
+                "${p.longitude.toStringAsFixed(5)},"
+                "${Storage().route.change.value}";
+            if (_toWaypointKey != key) {
+              _toWaypointKey = key;
+              _toWaypointPath = Storage().route.getPathFromLocation(p);
+            }
+            final List<LatLng> path = _toWaypointPath;
             return PolylineLayer(
               polylines: [
                 if(path.isNotEmpty)
@@ -1315,7 +1346,7 @@ class MapScreenState extends State<MapScreen> {
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
-              map, // map
+              RepaintBoundary(child: map), // map
               if(_layersOpacity[_layers.indexOf('PFD')] > 0)
                 ValueListenableBuilder<int>(
                   valueListenable: Storage().pfdChange,
@@ -1330,19 +1361,19 @@ class MapScreenState extends State<MapScreen> {
                                 child: ClipRRect(
                                     borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
                                     child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
-                                        child:CustomPaint(
+                                        child:RepaintBoundary(child: CustomPaint(
                                             painter: PfdPainter(
                                                 height: height,
                                                 width: width,
                                                 repaint: Storage().timeChange) // repaint every second
-                                        ))
+                                        )))
                                 )
                             )
                         )
                     );
                   }
                 ),
-              const Positioned.fill(child: InstrumentList()),
+              const Positioned.fill(child: RepaintBoundary(child: InstrumentList())),
               // warn
               Positioned(
                 child: Align(

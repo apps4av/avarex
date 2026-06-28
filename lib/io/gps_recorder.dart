@@ -10,6 +10,10 @@ import 'gps.dart';
 class GpsRecorder {
   TrackPoint _last;
   final List<TrackPoint> _points;
+  // mirror of the recorded coordinates, maintained incrementally so the map's
+  // tracks layer can read the path in O(1) instead of remapping every point on
+  // every GPS update
+  final List<LatLng> _coordinates = [];
 
   GpsRecorder() :
     _last = TrackPoint(
@@ -144,6 +148,7 @@ class GpsRecorder {
 
     _last = TrackPoint(coordinate: Gps.toLatLng(position), altitude: altitude, speed: speed, heading: heading, time: DateTime.now());
     _points.add(_last);
+    _coordinates.add(_last.coordinate);
   }
 
   String getKml() {
@@ -151,10 +156,10 @@ class GpsRecorder {
   }
 
   List<LatLng> getPoints() {
-    if(_points.isEmpty) {
+    if(_coordinates.isEmpty) {
       return [LatLng(0, 0)];
     }
-    return _points.map((e) => e.coordinate).toList();
+    return _coordinates;
   }
 
   Future<String?> saveKml() async {

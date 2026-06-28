@@ -218,10 +218,12 @@ class TrafficCache {
         if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt ||
           trafficNew.horizontalOwnshipDistanceNmi > _kTrafficDistanceDiffThresholdNm) {
            _traffic[i] = null;
+           Storage().trafficChange.value++; // traffic removed
           return;
         }
 
         _traffic[i] = trafficNew;
+        Storage().trafficChange.value++; // traffic updated
 
         // process any audible alerts from traffic (if enabled)
         handleAudibleAlerts();
@@ -241,6 +243,7 @@ class TrafficCache {
 
     // sort
     _traffic.sort(_trafficSort);
+    Storage().trafficChange.value++; // new traffic added
 
     // process any audible alerts from traffic (if enabled)
     handleAudibleAlerts();
@@ -309,6 +312,9 @@ class TrafficCache {
           _traffic[i] = null;
         }        
       }
+      // refresh traffic map layers (also carries ownship heading changes that
+      // rotate the icons in track-up); runs ~1 Hz as a gpsChange listener
+      Storage().trafficChange.value++;
     }).then((value) => handleAudibleAlerts());
   }
 
