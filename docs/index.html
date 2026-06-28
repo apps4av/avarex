@@ -10,24 +10,64 @@
 <meta name="robots" content="index, follow, max-image-preview:large" />
 <meta name="google-site-verification" content="NoNH5ULzxVyi91Hk8irgfm0qVatBnFqDe0arkWWhqg0" />
 <link rel="canonical" href="https://avarex.apps4av.org/" />
-<meta name="theme-color" content="#0b1220" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<meta name="theme-color" content="#0a2540" />
 
-<!-- Open Graph (Facebook, LinkedIn, iMessage, many AI crawlers) -->
+<!-- Open Graph -->
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="AvareX" />
 <meta property="og:title" content="AvareX — Free Electronic Flight Bag (EFB)" />
 <meta property="og:description" content="Free EFB for pilots: moving map, FAA charts, geo-referenced plates, ADS-B traffic, weather & flight planning. Free to start; Pro $5/mo. iOS, Android, Windows, macOS & Linux." />
 <meta property="og:url" content="https://avarex.apps4av.org/" />
-<meta property="og:image" content="https://avarex.apps4av.org/img/map.png" />
+<meta property="og:image" content="https://avarex.apps4av.org/img/map.jpg" />
 <meta property="og:image:alt" content="AvareX moving map with ownship on an FAA sectional chart" />
 
 <!-- Twitter / X card -->
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="AvareX — Free Electronic Flight Bag (EFB)" />
 <meta name="twitter:description" content="Free EFB for pilots: charts, plates, ADS-B traffic, weather & flight planning. Free to start; Pro $5/mo. Runs on iOS, Android, Windows, macOS & Linux." />
-<meta name="twitter:image" content="https://avarex.apps4av.org/img/map.png" />
+<meta name="twitter:image" content="https://avarex.apps4av.org/img/map.jpg" />
 
-<!-- Structured data: helps Google understand the page and helps AI cite it -->
+<!-- ============================================================= -->
+<!-- GOOGLE ADS CONVERSION TRACKING                                 -->
+<!-- Tag ID:           AW-18278324047                                -->
+<!-- Conversion label: 7250CPXL28YcEM-u5ItE  (action: "Subscribe")  -->
+<!-- Fires on App Store / Google Play button clicks (see trackDownload). -->
+<!-- ============================================================= -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18278324047"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-18278324047');
+
+  function trackDownload(url, platform) {
+    var callback = function () { if (typeof url !== 'undefined') window.location = url; };
+    gtag('event', 'conversion', {
+      'send_to': 'AW-18278324047/7250CPXL28YcEM-u5ItE',
+      'event_callback': callback,
+      'event_label': platform
+    });
+    setTimeout(callback, 600);
+    return false;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var qs = window.location.search;
+    if (qs) {
+      document.querySelectorAll('a[data-store]').forEach(function (a) {
+        var join = a.href.indexOf('?') === -1 ? '?' : '&';
+        a.dataset.fullurl = a.href + join + qs.substring(1);
+      });
+    }
+    // Sticky header shadow on scroll
+    var hdr = document.querySelector('.site-header');
+    var onScroll = function(){ hdr.classList.toggle('scrolled', window.scrollY > 8); };
+    window.addEventListener('scroll', onScroll); onScroll();
+  });
+</script>
+
+<!-- Structured data -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -69,343 +109,564 @@
     {
       "@type": "FAQPage",
       "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "Is AvareX free?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. The core AvareX electronic flight bag is free to download and fly, including the moving map, FAA charts, geo-referenced approach plates, ADS-B traffic, weather, and flight planning. An optional Pro subscription is $5/month and adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community, and an aircraft scheduler." }
-        },
-        {
-          "@type": "Question",
-          "name": "Is AvareX a free alternative to ForeFlight?",
-          "acceptedAnswer": { "@type": "Answer", "text": "AvareX is a full electronic flight bag with a free core (charts, plates, ADS-B traffic, weather, and flight planning) and an optional $5/month Pro tier, compared with the roughly $120–$300 per year that comparable paid EFB apps such as ForeFlight charge. AvareX also runs on Android, Windows, Linux, and Raspberry Pi in addition to iOS." }
-        },
-        {
-          "@type": "Question",
-          "name": "Does AvareX work on Android?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. AvareX runs on Android, iOS, Windows, macOS, Linux, and Raspberry Pi, so you are not limited to an iPad." }
-        },
-        {
-          "@type": "Question",
-          "name": "Does AvareX support ADS-B traffic?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. AvareX connects to Stratux, Stratus, Echo, and other GDL90 receivers over Wi-Fi to display ADS-B traffic, with altitude offset, trend, and audible alerts, plus a Ground Proximity Warning System (GPWS)." }
-        },
-        {
-          "@type": "Question",
-          "name": "Does AvareX work offline?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Core navigation works fully offline once you download the charts and databases. Internet is only required for downloads, live weather, AI features, FAA plan filing, and cloud backup." }
-        },
-        {
-          "@type": "Question",
-          "name": "How much does AvareX Pro cost?",
-          "acceptedAnswer": { "@type": "Answer", "text": "AvareX Pro is $5 per month. It adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community groups, and an aircraft scheduler for clubs and flight schools. Pro is available on iOS and Android." }
-        },
-        {
-          "@type": "Question",
-          "name": "Is AvareX FAA-certified?",
-          "acceptedAnswer": { "@type": "Answer", "text": "No. AvareX is not an FAA-certified GPS and must not be used as a sole means of navigation. Always cross-check with official sources and certified equipment." }
-        }
+        { "@type": "Question", "name": "Is AvareX free?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. The core AvareX electronic flight bag is free to download and fly, including the moving map, FAA charts, geo-referenced approach plates, ADS-B traffic, weather, and flight planning. An optional Pro subscription is $5/month and adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community, and an aircraft scheduler." } },
+        { "@type": "Question", "name": "Is AvareX a free alternative to ForeFlight?", "acceptedAnswer": { "@type": "Answer", "text": "AvareX is a full electronic flight bag with a free core (charts, plates, ADS-B traffic, weather, and flight planning) and an optional $5/month Pro tier, compared with the roughly $120–$300 per year that comparable paid EFB apps such as ForeFlight charge. AvareX also runs on Android, Windows, Linux, and Raspberry Pi in addition to iOS." } },
+        { "@type": "Question", "name": "Does AvareX work on Android?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. AvareX runs on Android, iOS, Windows, macOS, Linux, and Raspberry Pi, so you are not limited to an iPad." } },
+        { "@type": "Question", "name": "Does AvareX support ADS-B traffic?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. AvareX connects to Stratux, Stratus, Echo, and other GDL90 receivers over Wi-Fi to display ADS-B traffic, with altitude offset, trend, and audible alerts, plus a Ground Proximity Warning System (GPWS)." } },
+        { "@type": "Question", "name": "Does AvareX work offline?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Core navigation works fully offline once you download the charts and databases. Internet is only required for downloads, live weather, AI features, FAA plan filing, and cloud backup." } },
+        { "@type": "Question", "name": "How much does AvareX Pro cost?", "acceptedAnswer": { "@type": "Answer", "text": "AvareX Pro is $5 per month. It adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community groups, and an aircraft scheduler for clubs and flight schools. Pro is available on iOS and Android." } },
+        { "@type": "Question", "name": "Is AvareX FAA-certified?", "acceptedAnswer": { "@type": "Answer", "text": "No. AvareX is not an FAA-certified GPS and must not be used as a sole means of navigation. Always cross-check with official sources and certified equipment." } }
       ]
     }
   ]
 }
 </script>
 
-<!-- ============================================================= -->
-<!-- GOOGLE ADS CONVERSION TRACKING                                 -->
-<!-- Tag ID:           AW-18278324047                                -->
-<!-- Conversion label: 7250CPXL28YcEM-u5ItE  (action: "Subscribe")  -->
-<!-- Fires on App Store / Google Play button clicks (see trackDownload). -->
-<!-- ============================================================= -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18278324047"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'AW-18278324047');
-
-  // Fires a conversion, then continues to the store URL.
-  function trackDownload(url, platform) {
-    var callback = function () { if (typeof url !== 'undefined') window.location = url; };
-    gtag('event', 'conversion', {
-      'send_to': 'AW-18278324047/7250CPXL28YcEM-u5ItE',
-      'event_callback': callback,
-      'event_label': platform
-    });
-    // Fallback in case the callback doesn't fire (e.g. tracker blocked).
-    setTimeout(callback, 600);
-    return false;
-  }
-
-  // Append the ad's UTM/source query string onto store links so it
-  // flows through to Play Console / analytics.
-  document.addEventListener('DOMContentLoaded', function () {
-    var qs = window.location.search;
-    if (!qs) return;
-    document.querySelectorAll('a[data-store]').forEach(function (a) {
-      var join = a.href.indexOf('?') === -1 ? '?' : '&';
-      a.dataset.fullurl = a.href + join + qs.substring(1);
-    });
-  });
-</script>
-
 <style>
   :root{
-    --bg:#0b1220; --bg2:#0f1a30; --panel:#121d36; --line:#22304f;
-    --text:#e8eefc; --muted:#9fb0d0; --accent:#3b82f6; --accent2:#22c55e;
-    --radius:16px; --max:1080px;
+    --navy:#0a2540; --navy2:#0d2c52; --ink:#0f1c2e; --muted:#5a6b82;
+    --line:#e4ebf3; --bg:#ffffff; --bg-alt:#f4f8fc;
+    --blue:#1d6fe0; --blue-d:#155bbd; --green:#16a34a; --green-d:#12823b;
+    --radius:16px; --max:1140px; --shadow:0 18px 50px rgba(13,44,82,.12);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:radial-gradient(1200px 600px at 70% -10%, #16264a 0%, var(--bg) 55%) no-repeat,var(--bg);
-    color:var(--text);line-height:1.55;-webkit-font-smoothing:antialiased;
-  }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
-  .wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
-  .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;
-    color:var(--accent2);background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);
-    padding:6px 12px;border-radius:999px}
+  img{display:block;max-width:100%}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12.5px;font-weight:800;color:var(--blue)}
 
-  header{padding:18px 0}
-  .nav{display:flex;align-items:center;justify-content:space-between}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.3px;font-size:20px}
-  .brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
-  .nav a.minor{color:var(--muted);font-size:14px}
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 20px;border-radius:12px;
+    font-weight:700;font-size:15px;border:1.5px solid var(--line);background:#fff;color:var(--ink);
+    transition:.16s;cursor:pointer;white-space:nowrap}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(13,44,82,.12)}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.primary:hover{background:var(--blue-d)}
+  .btn.ghost-light{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+  .btn .sub{display:block;font-size:10.5px;font-weight:600;opacity:.8;line-height:1.05}
+  .btn .big{font-size:15px;font-weight:800;line-height:1.1}
+  .store-row{display:flex;flex-wrap:wrap;gap:12px}
 
-  .hero{padding:48px 0 24px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
-  .hero h1{font-size:46px;line-height:1.05;font-weight:850;letter-spacing:-.5px;margin:18px 0 14px}
-  .hero h1 .g{background:linear-gradient(135deg,#60a5fa,#34d399);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .hero p.lede{font-size:18px;color:var(--muted);max-width:38ch}
-  .stores{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 10px}
-  .btn{display:inline-flex;align-items:center;gap:10px;padding:13px 18px;border-radius:12px;
-    font-weight:700;border:1px solid var(--line);background:#0d1730;transition:.15s;cursor:pointer}
-  .btn:hover{transform:translateY(-1px);border-color:var(--accent)}
-  .btn.primary{background:linear-gradient(135deg,var(--accent),#2563eb);border-color:transparent}
-  .btn .sub{display:block;font-size:11px;font-weight:600;color:var(--muted);line-height:1.1}
-  .btn.primary .sub{color:#cfe0ff}
-  .btn .big{font-size:15px;line-height:1.1}
-  .micro{color:var(--muted);font-size:13px;margin-top:6px}
+  /* Header */
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);
+    backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid transparent;transition:.2s}
+  .site-header.scrolled{border-bottom-color:var(--line);box-shadow:0 4px 20px rgba(13,44,82,.05)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:850;font-size:20px;letter-spacing:-.2px}
+  .brand img{width:30px;height:30px}
+  .nav-links{display:flex;align-items:center;gap:28px}
+  .nav-links a{color:var(--muted);font-weight:600;font-size:15px}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{display:flex;align-items:center;gap:12px}
 
-  .phone{justify-self:center;position:relative}
-  .phone img{width:280px;max-width:80vw;border-radius:28px;border:8px solid #0a0f1d;
-    box-shadow:0 30px 80px rgba(0,0,0,.55);background:#000}
+  /* Hero */
+  .hero{background:radial-gradient(1100px 520px at 78% -8%, #15396b 0%, var(--navy) 60%);color:#fff;
+    padding:74px 0 90px;position:relative;overflow:hidden}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .hero .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(22,163,74,.16);
+    border:1px solid rgba(22,163,74,.4);color:#86efac;font-weight:700;font-size:13px;
+    padding:6px 13px;border-radius:999px;margin-bottom:20px}
+  .hero h1{font-size:52px;line-height:1.04;font-weight:850;letter-spacing:-1.2px}
+  .hero h1 .g{background:linear-gradient(120deg,#7cc4ff,#86efac);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lede{color:#cfe0f5;font-size:18.5px;margin:18px 0 28px;max-width:42ch}
+  .hero .micro{color:#9fb6d6;font-size:13.5px;margin-top:14px}
+  .hero-visual{justify-self:center;position:relative}
 
-  section{padding:46px 0}
-  h2{font-size:30px;font-weight:800;letter-spacing:-.3px;margin-bottom:8px;text-align:center}
-  .sub2{color:var(--muted);text-align:center;max-width:60ch;margin:0 auto 30px}
+  /* Device frame */
+  .device{width:300px;max-width:84vw;border-radius:38px;background:#0a0f1d;padding:11px;
+    box-shadow:0 40px 90px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08)}
+  .device img{width:100%;border-radius:28px;display:block;background:#000}
+  .device.sm{width:255px}
 
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .card{background:linear-gradient(180deg,var(--panel),#101a31);border:1px solid var(--line);
-    border-radius:var(--radius);padding:20px}
-  .card h3{font-size:16px;margin-bottom:6px}
-  .card p{color:var(--muted);font-size:14px}
-  .ic{font-size:22px;margin-bottom:10px;display:block}
+  /* Platform strip */
+  .strip{background:var(--bg-alt);border-bottom:1px solid var(--line)}
+  .strip .wrap{display:flex;align-items:center;justify-content:center;gap:14px 30px;flex-wrap:wrap;
+    padding:20px 22px;color:var(--muted);font-weight:700;font-size:14.5px}
+  .strip b{color:var(--ink)}
+  .strip .sep{width:5px;height:5px;border-radius:50%;background:#c2cfde}
 
-  .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
-  .shots.shots-2{grid-template-columns:repeat(2,1fr);max-width:760px;margin:0 auto}
-  .shots img{width:100%;border-radius:14px;border:1px solid var(--line);background:#000}
-  .shots figcaption{color:var(--muted);font-size:13px;text-align:center;margin-top:8px}
+  /* Section scaffolding */
+  section{padding:84px 0}
+  .section-head{text-align:center;max-width:640px;margin:0 auto 50px}
+  .section-head h2{font-size:38px;font-weight:850;letter-spacing:-.6px;margin:10px 0 12px}
+  .section-head p{color:var(--muted);font-size:18px}
+  .alt-bg{background:var(--bg-alt)}
 
-  table.cmp{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-  table.cmp th,table.cmp td{padding:14px 16px;text-align:left;border-bottom:1px solid var(--line);font-size:15px}
-  table.cmp th{background:#0e1830;font-weight:700}
-  table.cmp td.y{color:var(--accent2);font-weight:700}
-  table.cmp td.center{text-align:center}
+  /* Pillars */
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .pillar{text-align:center;padding:8px}
+  .pillar .ic{width:54px;height:54px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#e8f1ff,#e7f7ee);font-size:26px}
+  .pillar h3{font-size:17px;margin-bottom:5px}
+  .pillar p{color:var(--muted);font-size:14.5px}
+
+  /* Alternating feature rows */
+  .feature{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin:0 auto;max-width:var(--max)}
+  .feature + .feature{margin-top:96px}
+  .feature.rev .f-text{order:2}
+  .feature.rev .f-media{order:1}
+  .feature h3{font-size:30px;font-weight:850;letter-spacing:-.5px;margin:12px 0 14px}
+  .feature p{color:var(--muted);font-size:17px;margin-bottom:18px}
+  .flist{list-style:none;display:grid;gap:10px}
+  .flist li{display:flex;gap:10px;align-items:flex-start;color:var(--ink);font-size:15.5px}
+  .flist li::before{content:"✓";color:var(--green);font-weight:800;margin-top:1px}
+  .f-media{display:flex;justify-content:center}
+
+  /* Capabilities grid */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:.16s}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+  .card .ic{font-size:24px;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#e8f1ff,#e7f7ee);margin-bottom:14px}
+  .card h3{font-size:17px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:14.5px}
+
+  /* Comparison */
+  table.cmp{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);
+    border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  table.cmp th,table.cmp td{padding:15px 18px;text-align:left;border-bottom:1px solid var(--line);font-size:15.5px}
+  table.cmp th{background:var(--navy);color:#fff;font-weight:700}
+  table.cmp th.center,table.cmp td.center{text-align:center}
+  table.cmp td.y{color:var(--green-d);font-weight:800}
+  table.cmp td.muted{color:var(--muted)}
   table.cmp tr:last-child td{border-bottom:none}
+  table.cmp tr:nth-child(even) td{background:#fafcff}
 
-  .cta{background:linear-gradient(135deg,#11244a,#0e1830);border:1px solid var(--line);
-    border-radius:24px;padding:40px;text-align:center}
-  .cta h2{margin-bottom:6px}
+  /* Pricing */
+  .prices{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;max-width:840px;margin:0 auto}
+  .price{background:#fff;border:1.5px solid var(--line);border-radius:20px;padding:30px}
+  .price.featured{border-color:var(--blue);box-shadow:0 20px 50px rgba(29,111,224,.18);position:relative}
+  .price .tag{position:absolute;top:-13px;right:22px;background:var(--blue);color:#fff;font-size:12px;
+    font-weight:800;padding:5px 12px;border-radius:999px;letter-spacing:.03em}
+  .price h3{font-size:20px}
+  .price .amt{font-size:44px;font-weight:850;letter-spacing:-1px;margin:8px 0 2px}
+  .price .amt span{font-size:16px;font-weight:600;color:var(--muted)}
+  .price .note{color:var(--muted);font-size:14px;margin-bottom:18px}
+  .price ul{list-style:none;display:grid;gap:10px;margin:18px 0 24px}
+  .price li{display:flex;gap:9px;font-size:15px}
+  .price li::before{content:"✓";color:var(--green);font-weight:800}
+  .price .btn{width:100%;justify-content:center}
 
-  .alt{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-top:18px;color:var(--muted);font-size:14px}
-  .alt a{border-bottom:1px dashed var(--line)}
+  /* Community */
+  .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:780px;margin:0 auto 44px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;text-align:center}
+  .stat .num{font-size:40px;font-weight:850;letter-spacing:-1px;color:var(--navy);line-height:1}
+  .stat .lbl{color:var(--muted);font-size:14.5px;margin-top:6px}
+  .threads{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .thread{display:block;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;transition:.16s}
+  .thread:hover{box-shadow:var(--shadow);transform:translateY(-2px);border-color:#cfe0f5}
+  .thread .t{font-weight:700;font-size:15.5px;color:var(--ink);line-height:1.4}
+  .thread .m{display:flex;align-items:center;gap:8px;margin-top:12px;color:var(--muted);font-size:13px}
+  .thread .av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--green));
+    display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800}
+  .center-cta{text-align:center;margin-top:34px}
 
-  .faq{max-width:780px;margin:0 auto}
-  .faq details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 18px;margin-bottom:12px}
-  .faq summary{cursor:pointer;list-style:none;padding:16px 0;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+  /* FAQ */
+  .faq{max-width:820px;margin:0 auto}
+  .faq details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 20px;margin-bottom:12px}
+  .faq summary{cursor:pointer;list-style:none;padding:18px 0;font-weight:700;font-size:16.5px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px}
   .faq summary::-webkit-details-marker{display:none}
-  .faq summary::after{content:"+";color:var(--accent2);font-size:22px;font-weight:700}
+  .faq summary::after{content:"+";color:var(--blue);font-size:24px;font-weight:700;line-height:1}
   .faq details[open] summary::after{content:"–"}
-  .faq details p{color:var(--muted);font-size:15px;padding:0 0 18px}
+  .faq details p{color:var(--muted);font-size:15.5px;padding:0 0 20px}
 
-  footer{padding:40px 0 60px;color:var(--muted);font-size:13px;text-align:center}
-  footer .disc{max-width:70ch;margin:0 auto 10px}
+  /* CTA band */
+  .cta-band{background:radial-gradient(900px 400px at 50% -40%, #15396b, var(--navy));color:#fff;
+    border-radius:26px;padding:56px 30px;text-align:center;max-width:var(--max);margin:0 auto}
+  .cta-band h2{font-size:36px;font-weight:850;letter-spacing:-.6px}
+  .cta-band p{color:#cfe0f5;font-size:18px;margin:10px auto 26px;max-width:50ch}
+  .cta-band .store-row{justify-content:center}
 
-  @media(max-width:860px){
-    .hero{grid-template-columns:1fr;text-align:center}
-    .hero p.lede{margin:0 auto}
-    .stores{justify-content:center}
-    .grid,.shots{grid-template-columns:1fr}
-    .hero h1{font-size:36px}
+  /* Footer */
+  footer{background:var(--navy);color:#aac1de;padding:56px 0 30px;margin-top:84px}
+  .fgrid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:30px}
+  footer .brand{color:#fff;margin-bottom:12px}
+  footer p.tag{color:#8aa6c9;font-size:14.5px;max-width:34ch}
+  footer h4{color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+  footer ul{list-style:none;display:grid;gap:10px}
+  footer ul a{color:#aac1de;font-size:14.5px}
+  footer ul a:hover{color:#fff}
+  .fbar{border-top:1px solid rgba(255,255,255,.12);margin-top:40px;padding-top:22px;
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:#8aa6c9}
+  .disc{max-width:62ch}
+
+  @media(max-width:920px){
+    .hero .wrap,.feature{grid-template-columns:1fr;gap:40px;text-align:center}
+    .hero{padding:54px 0 64px}
+    .hero h1{font-size:40px}
+    .hero p.lede{margin-left:auto;margin-right:auto}
+    .hero .store-row{justify-content:center}
+    .feature.rev .f-text{order:2}.feature.rev .f-media{order:1}
+    .feature .f-media{order:-1}
+    .flist{display:inline-grid;text-align:left}
+    .pillars{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr 1fr}
+    .prices{grid-template-columns:1fr}
+    .threads{grid-template-columns:1fr 1fr}
+    .fgrid{grid-template-columns:1fr 1fr}
+    .nav-links{display:none}
+    .section-head h2{font-size:30px}
+  }
+  @media(max-width:560px){
+    .grid{grid-template-columns:1fr}.pillars{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}
+    .stat-row{grid-template-columns:1fr}.threads{grid-template-columns:1fr}
+    .hero h1{font-size:34px}
   }
 </style>
 </head>
 <body>
 
-<header>
+<!-- HEADER -->
+<header class="site-header">
   <div class="wrap nav">
-    <div class="brand"><span class="dot"></span> AvareX</div>
-    <span><a class="minor" href="#features">Features</a> &nbsp; <a class="minor" href="#faq">FAQ</a></span>
+    <a class="brand" href="#top"><img src="favicon.svg" alt="AvareX logo"> AvareX</a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#compare">Compare</a>
+      <a href="#community">Community</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
+         onclick="return trackDownload(this.dataset.fullurl||this.href,'ios_header')">Download free</a>
+    </div>
   </div>
 </header>
 
-<main class="wrap">
+<main id="top">
 
   <!-- HERO -->
-  <section class="hero" style="padding-top:30px">
-    <div>
-      <span class="pill">● Free to start · Pro just $5/mo</span>
-      <h1>A full electronic flight bag.<br><span class="g">Pro for $5/month.</span></h1>
-      <p class="lede">Moving map, FAA charts, geo-referenced plates, ADS-B traffic, weather and flight
-        planning are <strong>free to download and fly</strong>. Pro adds AI, cloud sync &amp; more for
-        $5/mo — a fraction of the ~$120–$300/yr others charge.</p>
-
-      <div class="stores">
-        <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
-           onclick="return trackDownload(this.dataset.fullurl||this.href,'ios')">
-          <span> <span class="sub">Download on the</span><span class="big">App Store</span> </span>
-        </a>
-        <a class="btn" data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp"
-           onclick="return trackDownload(this.dataset.fullurl||this.href,'android')">
-          <span> <span class="sub">Get it on</span><span class="big">Google Play</span> </span>
-        </a>
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="pill">● Free to start · Pro just $5/mo</span>
+        <h1>The electronic flight bag that <span class="g">flies free.</span></h1>
+        <p class="lede">Moving map, FAA charts, geo-referenced plates, ADS-B traffic, weather and
+          flight planning — free to download and fly. Pro adds AI, cloud sync &amp; more for $5/month,
+          a fraction of what other EFBs charge.</p>
+        <div class="store-row">
+          <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
+             onclick="return trackDownload(this.dataset.fullurl||this.href,'ios')">
+            <span><span class="sub">Download on the</span><span class="big">App Store</span></span>
+          </a>
+          <a class="btn ghost-light" data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp"
+             onclick="return trackDownload(this.dataset.fullurl||this.href,'android')">
+            <span><span class="sub">Get it on</span><span class="big">Google Play</span></span>
+          </a>
+        </div>
+        <p class="micro">Also on Windows, macOS, Linux &amp; Raspberry Pi · Works offline once charts are downloaded</p>
       </div>
-      <p class="micro">Also on Windows, macOS, Linux &amp; Raspberry Pi. Works offline once charts are downloaded.</p>
-    </div>
-
-    <div class="phone">
-      <img src="img/map.png" alt="AvareX moving map with ownship, FAA sectional and instruments" />
+      <div class="hero-visual">
+        <div class="device"><img src="img/map.jpg" alt="AvareX moving map with ownship, FAA sectional chart and flight instruments" width="900" height="1900" /></div>
+      </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <h2>Everything you fly with — free to start</h2>
-    <p class="sub2">The core EFB below is free to download and fly. Pro ($5/mo) adds Flight Intelligence
-      AI, cloud backup &amp; sync, pilot community and an aircraft scheduler. Built by pilots, at Apps4Av.</p>
-    <div class="grid">
-      <div class="card"><span class="ic">🗺️</span><h3>Moving Map &amp; FAA Charts</h3>
-        <p>VFR sectional, TAC, flyway, heli, and IFR enroute low/high/area. Georeferenced ownship, track-up or north-up.</p></div>
-      <div class="card"><span class="ic">📄</span><h3>Geo-Referenced Plates</h3>
-        <p>Approach plates, airport diagrams, SIDs &amp; STARs with your ownship drawn on the plate.</p></div>
-      <div class="card"><span class="ic">✈️</span><h3>ADS-B Traffic</h3>
-        <p>Connect Stratux, Stratus, Echo &amp; other GDL90 receivers. Traffic targets with audible alerts + GPWS.</p></div>
-      <div class="card"><span class="ic">🌧️</span><h3>Weather</h3>
-        <p>METAR, TAF, PIREP, AIRMET/SIGMET, TFRs, NEXRAD radar, winds aloft &amp; ceilings — color-coded.</p></div>
-      <div class="card"><span class="ic">🧭</span><h3>Flight Planning</h3>
-        <p>Routes from airports, navaids, fixes &amp; airways. Per-leg nav log. File, brief &amp; close FAA plans.</p></div>
-      <div class="card"><span class="ic">⚖️</span><h3>W&amp;B, Performance &amp; Logbook</h3>
-        <p>Interactive CG envelope, takeoff/landing/cruise performance, plus a digital logbook with currency.</p></div>
+  <!-- PLATFORM STRIP -->
+  <div class="strip">
+    <div class="wrap">
+      <span>Built by pilots, at <b>Apps4Av</b></span><span class="sep"></span>
+      <span><b>iOS</b></span><span class="sep"></span>
+      <span><b>Android</b></span><span class="sep"></span>
+      <span><b>Windows</b></span><span class="sep"></span>
+      <span><b>macOS</b></span><span class="sep"></span>
+      <span><b>Linux</b></span><span class="sep"></span>
+      <span><b>Raspberry Pi</b></span>
+    </div>
+  </div>
+
+  <!-- PILLARS -->
+  <section style="padding-bottom:30px">
+    <div class="wrap">
+      <div class="pillars">
+        <div class="pillar"><div class="ic">🧭</div><h3>Plan</h3><p>Build routes from airports, navaids, fixes, airways &amp; procedures.</p></div>
+        <div class="pillar"><div class="ic">🌦️</div><h3>Brief</h3><p>Weather, winds aloft, NOTAMs &amp; TFRs before you launch.</p></div>
+        <div class="pillar"><div class="ic">📨</div><h3>File</h3><p>File, activate &amp; close FAA flight plans right from the app.</p></div>
+        <div class="pillar"><div class="ic">✈️</div><h3>Fly</h3><p>Georeferenced moving map with ADS-B traffic &amp; terrain alerts.</p></div>
+      </div>
     </div>
   </section>
 
-  <!-- SCREENSHOTS -->
+  <!-- FEATURES (alternating) -->
+  <section id="features" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Everything you fly with</div>
+        <h2>A complete cockpit, on every device</h2>
+        <p>The features below are free to download and fly. Pro adds AI, cloud sync, community and a scheduler for $5/month.</p>
+      </div>
+
+      <div class="feature">
+        <div class="f-text">
+          <div class="eyebrow">Charts &amp; moving map</div>
+          <h3>FAA charts and a moving map you can trust</h3>
+          <p>Fly the sectional, TAC, flyway, helicopter, and IFR enroute charts with a georeferenced
+             ownship — track-up or north-up, with range, speed and glide rings.</p>
+          <ul class="flist">
+            <li>VFR &amp; IFR charts plus a vector map with airspace</li>
+            <li>Movable instrument tiles: GS, ALT, track, ETA, ETE &amp; more</li>
+            <li>Topo &amp; color-coded terrain and elevation layers</li>
+            <li>Download once, then fly fully offline</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="device"><img src="img/charts.jpg" alt="AvareX chart types and moving map" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature rev">
+        <div class="f-text">
+          <div class="eyebrow">Weather</div>
+          <h3>Weather, winds and layers at a glance</h3>
+          <p>Layer live and FIS-B weather right on the map and make a confident go/no-go call.</p>
+          <ul class="flist">
+            <li>METAR, TAF, PIREP, AIRMET, SIGMET &amp; TFRs, color-coded</li>
+            <li>Animated internet radar and ADS-B/FIS-B NEXRAD</li>
+            <li>Winds-aloft vector field and ceilings at any altitude</li>
+            <li>WPC surface/prog, SigWx, icing &amp; turbulence products</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="device"><img src="img/layers.jpg" alt="AvareX weather and map layers" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature">
+        <div class="f-text">
+          <div class="eyebrow">Flight planning</div>
+          <h3>Plan every leg, then file in seconds</h3>
+          <p>Build a route, review a per-leg nav log with winds and terrain, then file with the FAA
+             without leaving AvareX.</p>
+          <ul class="flist">
+            <li>Per-leg heading, wind correction, ground speed, time &amp; fuel</li>
+            <li>Winds &amp; terrain en-route profile</li>
+            <li>IFR preferred routes and recent ATC routes</li>
+            <li>File, brief, activate &amp; close FAA plans (1800wxbrief / LMFS)</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="device sm"><img src="img/navlog.png" alt="AvareX flight plan and navigation log" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature rev">
+        <div class="f-text">
+          <div class="eyebrow">Aircraft</div>
+          <h3>Weight &amp; balance and performance, built in</h3>
+          <p>Start from built-in aircraft profiles or add your own, then check that every flight is
+             safe and legal.</p>
+          <ul class="flist">
+            <li>Interactive CG envelope (fixed-wing &amp; helicopter)</li>
+            <li>Takeoff, landing &amp; cruise performance with density altitude</li>
+            <li>Profiles for C152, C172S, C182T, PA-28, SR22, DA40 &amp; more</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="device sm"><img src="img/wnb.png" alt="AvareX weight and balance with CG envelope" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature">
+        <div class="f-text">
+          <div class="eyebrow">Logbook &amp; tools</div>
+          <h3>Your logbook and tools, all in one place</h3>
+          <p>Keep currency, review your flights, and carry the small stuff that matters.</p>
+          <ul class="flist">
+            <li>Digital logbook with currency tracking &amp; CSV import/export</li>
+            <li>Auto-create entries from recorded flight tracks</li>
+            <li>2D/3D track viewer, checklists &amp; handwriting notes</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="device sm"><img src="img/logbook.png" alt="AvareX digital logbook" loading="lazy"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPABILITIES GRID -->
   <section>
-    <h2>See it in the cockpit</h2>
-    <p class="sub2">Real screens from the app.</p>
-    <div class="shots shots-2">
-      <figure><img src="img/map.png" alt="Moving map">    <figcaption>Moving map + instruments</figcaption></figure>
-      <figure><img src="img/navlog.png" alt="Nav log">     <figcaption>Flight plan &amp; nav log</figcaption></figure>
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Avionics in your pocket</div>
+        <h2>Capabilities pilots count on</h2>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="ic">🗺️</div><h3>Moving Map &amp; Charts</h3><p>VFR sectional, TAC, flyway, heli and IFR enroute, with georeferenced ownship.</p></div>
+        <div class="card"><div class="ic">📄</div><h3>Approach Plates</h3><p>Geo-referenced plates, airport diagrams, SIDs &amp; STARs with ownship drawn on the plate.</p></div>
+        <div class="card"><div class="ic">📡</div><h3>ADS-B Traffic</h3><p>Stratux, Stratus, Echo &amp; other GDL90 receivers, with audible alerts and GPWS.</p></div>
+        <div class="card"><div class="ic">🌧️</div><h3>Weather</h3><p>METAR, TAF, NEXRAD, winds aloft, TFRs and more — color-coded by category.</p></div>
+        <div class="card"><div class="ic">🧮</div><h3>W&amp;B &amp; Performance</h3><p>Interactive CG envelope plus takeoff, landing and cruise numbers.</p></div>
+        <div class="card"><div class="ic">📓</div><h3>Logbook</h3><p>Currency tracking, CSV import/export, and auto entries from your tracks.</p></div>
+      </div>
     </div>
   </section>
 
   <!-- COMPARISON -->
-  <section>
-    <h2>Why pilots switch</h2>
-    <p class="sub2">A full-featured EFB that also runs where the others don't.</p>
-    <table class="cmp">
-      <tr><th>Capability</th><th class="center">Typical paid EFB</th><th class="center">AvareX</th></tr>
-      <tr><td>VFR/IFR moving map + geo-ref ownship</td><td class="center">paid plan</td><td class="y center">Free core</td></tr>
-      <tr><td>Geo-referenced approach plates</td><td class="center">paid plan</td><td class="y center">Free core</td></tr>
-      <tr><td>ADS-B traffic (Stratux/GDL90)</td><td class="center">paid plan</td><td class="y center">Free core</td></tr>
-      <tr><td>Weather, winds aloft, NEXRAD</td><td class="center">paid plan</td><td class="y center">Free core</td></tr>
-      <tr><td>Flight planning + file FAA plans</td><td class="center">paid plan</td><td class="y center">Free core</td></tr>
-      <tr><td>Runs on Android, Windows, Linux</td><td class="center">—</td><td class="y center">Yes</td></tr>
-      <tr><td><strong>Price</strong></td><td class="center">~$120–$300/yr</td><td class="y center">$0 to start · Pro $5/mo</td></tr>
-    </table>
-  </section>
-
-  <!-- FAQ (must mirror the FAQPage JSON-LD in <head>) -->
-  <section id="faq">
-    <h2>Frequently asked questions</h2>
-    <p class="sub2">What pilots ask before switching to AvareX.</p>
-    <div class="faq">
-      <details open>
-        <summary>Is AvareX free?</summary>
-        <p>Yes. The core AvareX electronic flight bag is free to download and fly, including the moving
-          map, FAA charts, geo-referenced approach plates, ADS-B traffic, weather, and flight planning.
-          An optional Pro subscription is $5/month and adds the Flight Intelligence AI assistant, cloud
-          backup and sync, pilot community, and an aircraft scheduler.</p>
-      </details>
-      <details>
-        <summary>Is AvareX a free alternative to ForeFlight?</summary>
-        <p>AvareX is a full electronic flight bag with a free core (charts, plates, ADS-B traffic,
-          weather, and flight planning) and an optional $5/month Pro tier — compared with the roughly
-          $120–$300 per year that comparable paid EFB apps such as ForeFlight charge. AvareX also runs
-          on Android, Windows, Linux, and Raspberry Pi in addition to iOS.</p>
-      </details>
-      <details>
-        <summary>Does AvareX work on Android?</summary>
-        <p>Yes. AvareX runs on Android, iOS, Windows, macOS, Linux, and Raspberry Pi, so you are not
-          limited to an iPad.</p>
-      </details>
-      <details>
-        <summary>Does AvareX support ADS-B traffic?</summary>
-        <p>Yes. AvareX connects to Stratux, Stratus, Echo, and other GDL90 receivers over Wi-Fi to
-          display ADS-B traffic with altitude offset, trend, and audible alerts, plus a Ground
-          Proximity Warning System (GPWS).</p>
-      </details>
-      <details>
-        <summary>Does AvareX work offline?</summary>
-        <p>Yes. Core navigation works fully offline once you download the charts and databases.
-          Internet is only required for downloads, live weather, AI features, FAA plan filing, and
-          cloud backup.</p>
-      </details>
-      <details>
-        <summary>How much does AvareX Pro cost?</summary>
-        <p>AvareX Pro is $5 per month. It adds the Flight Intelligence AI assistant, cloud backup and
-          sync, pilot community groups, and an aircraft scheduler for clubs and flight schools. Pro is
-          available on iOS and Android.</p>
-      </details>
-      <details>
-        <summary>Is AvareX FAA-certified?</summary>
-        <p>No. AvareX is not an FAA-certified GPS and must not be used as a sole means of navigation.
-          Always cross-check with official sources and certified equipment.</p>
-      </details>
+  <section id="compare" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Why pilots switch</div>
+        <h2>A full EFB that also runs where others don't</h2>
+      </div>
+      <table class="cmp">
+        <tr><th>Capability</th><th class="center">Typical paid EFB</th><th class="center">AvareX</th></tr>
+        <tr><td>VFR/IFR moving map + geo-ref ownship</td><td class="center muted">paid plan</td><td class="y center">Free core</td></tr>
+        <tr><td>Geo-referenced approach plates</td><td class="center muted">paid plan</td><td class="y center">Free core</td></tr>
+        <tr><td>ADS-B traffic (Stratux/GDL90)</td><td class="center muted">paid plan</td><td class="y center">Free core</td></tr>
+        <tr><td>Weather, winds aloft, NEXRAD</td><td class="center muted">paid plan</td><td class="y center">Free core</td></tr>
+        <tr><td>Flight planning + file FAA plans</td><td class="center muted">paid plan</td><td class="y center">Free core</td></tr>
+        <tr><td>Runs on Android, Windows, Linux</td><td class="center muted">—</td><td class="y center">Yes</td></tr>
+        <tr><td><strong>Price</strong></td><td class="center muted">~$120–$300/yr</td><td class="y center">$0 to start · Pro $5/mo</td></tr>
+      </table>
     </div>
   </section>
 
-  <!-- CTA -->
-  <section>
-    <div class="cta">
-      <h2>Start flying with AvareX today</h2>
-      <p class="sub2" style="margin-bottom:22px">Free to download and fly. Pro just $5/month — cancel anytime.</p>
-      <div class="stores" style="justify-content:center">
-        <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
-           onclick="return trackDownload(this.dataset.fullurl||this.href,'ios')">
-          <span> <span class="sub">Download on the</span><span class="big">App Store</span> </span>
-        </a>
-        <a class="btn" data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp"
-           onclick="return trackDownload(this.dataset.fullurl||this.href,'android')">
-          <span> <span class="sub">Get it on</span><span class="big">Google Play</span> </span>
-        </a>
+  <!-- COMMUNITY -->
+  <section id="community">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Community</div>
+        <h2>Backed by an active pilot community</h2>
+        <p>Thousands of pilots ask, answer, report bugs and shape AvareX in the Apps4Av forum — and the team replies.</p>
       </div>
-      <div class="alt">
-        <a data-store href="https://apps.microsoft.com/detail/9mx4hkl30mww" onclick="return trackDownload(this.dataset.fullurl||this.href,'windows')">Windows</a>
-        <a data-store href="https://snapcraft.io/avarex" onclick="return trackDownload(this.dataset.fullurl||this.href,'linux')">Linux (Snap)</a>
-        <a href="https://groups.google.com/g/apps4av-forum">Support forum</a>
+      <div class="stat-row">
+        <div class="stat"><div class="num">3,400+</div><div class="lbl">Forum discussions</div></div>
+        <div class="stat"><div class="num">Daily</div><div class="lbl">New posts &amp; replies</div></div>
+        <div class="stat"><div class="num">Free</div><div class="lbl">To read &amp; join</div></div>
+      </div>
+      <div class="threads">
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">New in v108: place instrument tiles anywhere on the screen</div><div class="m"><span class="av">A4</span> Apps4Av Support</div></a>
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">AvareX 107 — aircraft &amp; CFI scheduling under Pro</div><div class="m"><span class="av">A4</span> Apps4Av Support</div></a>
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">AvareX community feature — public &amp; private groups</div><div class="m"><span class="av">A4</span> Apps4Av Support</div></a>
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">Has anyone run AvareX on iOS with an ADS-B receiver?</div><div class="m"><span class="av">RM</span> Rick &amp; others</div></a>
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">Using a Sentry with Avare and AvareX</div><div class="m"><span class="av">NO</span> A. Nepomuk Otte &amp; others</div></a>
+        <a class="thread" href="https://groups.google.com/g/apps4av-forum"><div class="t">Ideas for the Flight Plan section</div><div class="m"><span class="av">EO</span> Eric Olsen &amp; others</div></a>
+      </div>
+      <div class="center-cta">
+        <a class="btn primary" href="https://groups.google.com/g/apps4av-forum">Browse the Apps4Av forum →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Simple pricing</div>
+        <h2>Start free. Upgrade only if you want more.</h2>
+        <p>No trial countdown and no paywall on the core electronic flight bag.</p>
+      </div>
+      <div class="prices">
+        <div class="price">
+          <h3>AvareX</h3>
+          <div class="amt">$0</div>
+          <div class="note">The complete core EFB — free to download and fly.</div>
+          <ul>
+            <li>Moving map &amp; FAA charts</li>
+            <li>Geo-referenced approach plates</li>
+            <li>ADS-B traffic &amp; weather</li>
+            <li>Flight planning, nav log &amp; FAA filing</li>
+            <li>Weight &amp; balance, performance &amp; logbook</li>
+            <li>Offline charts on every platform</li>
+          </ul>
+          <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
+             onclick="return trackDownload(this.dataset.fullurl||this.href,'ios_pricing')">Download free</a>
+        </div>
+        <div class="price featured">
+          <span class="tag">PRO</span>
+          <h3>AvareX Pro</h3>
+          <div class="amt">$5<span> / month</span></div>
+          <div class="note">Everything in the free app, plus connected Pro services (iOS/Android).</div>
+          <ul>
+            <li>Flight Intelligence AI assistant</li>
+            <li>Cloud backup &amp; sync across devices</li>
+            <li>Pilot community groups</li>
+            <li>Aircraft scheduler for clubs &amp; schools</li>
+            <li>Cancel anytime</li>
+          </ul>
+          <a class="btn primary" data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp"
+             onclick="return trackDownload(this.dataset.fullurl||this.href,'android_pricing')">Get AvareX &amp; go Pro</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">FAQ</div>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq">
+        <details open><summary>Is AvareX free?</summary><p>Yes. The core AvareX electronic flight bag is free to download and fly, including the moving map, FAA charts, geo-referenced approach plates, ADS-B traffic, weather, and flight planning. An optional Pro subscription is $5/month and adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community, and an aircraft scheduler.</p></details>
+        <details><summary>Is AvareX a free alternative to ForeFlight?</summary><p>AvareX is a full electronic flight bag with a free core (charts, plates, ADS-B traffic, weather, and flight planning) and an optional $5/month Pro tier — compared with the roughly $120–$300 per year that comparable paid EFB apps such as ForeFlight charge. AvareX also runs on Android, Windows, Linux, and Raspberry Pi in addition to iOS.</p></details>
+        <details><summary>Does AvareX work on Android?</summary><p>Yes. AvareX runs on Android, iOS, Windows, macOS, Linux, and Raspberry Pi, so you are not limited to an iPad.</p></details>
+        <details><summary>Does AvareX support ADS-B traffic?</summary><p>Yes. AvareX connects to Stratux, Stratus, Echo, and other GDL90 receivers over Wi-Fi to display ADS-B traffic with altitude offset, trend, and audible alerts, plus a Ground Proximity Warning System (GPWS).</p></details>
+        <details><summary>Does AvareX work offline?</summary><p>Yes. Core navigation works fully offline once you download the charts and databases. Internet is only required for downloads, live weather, AI features, FAA plan filing, and cloud backup.</p></details>
+        <details><summary>How much does AvareX Pro cost?</summary><p>AvareX Pro is $5 per month. It adds the Flight Intelligence AI assistant, cloud backup and sync, pilot community groups, and an aircraft scheduler for clubs and flight schools. Pro is available on iOS and Android.</p></details>
+        <details><summary>Is AvareX FAA-certified?</summary><p>No. AvareX is not an FAA-certified GPS and must not be used as a sole means of navigation. Always cross-check with official sources and certified equipment.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA BAND -->
+  <section style="padding-top:0">
+    <div class="cta-band">
+      <h2>Ready to fly with AvareX?</h2>
+      <p>Free to download and fly. Pro just $5/month — cancel anytime.</p>
+      <div class="store-row">
+        <a class="btn primary" data-store href="https://apps.apple.com/us/app/avarex/id6502421523"
+           onclick="return trackDownload(this.dataset.fullurl||this.href,'ios_cta')">
+          <span><span class="sub">Download on the</span><span class="big">App Store</span></span>
+        </a>
+        <a class="btn ghost-light" data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp"
+           onclick="return trackDownload(this.dataset.fullurl||this.href,'android_cta')">
+          <span><span class="sub">Get it on</span><span class="big">Google Play</span></span>
+        </a>
       </div>
     </div>
   </section>
 
 </main>
 
+<!-- FOOTER -->
 <footer>
-  <p class="disc"><strong>Safety notice:</strong> AvareX is <em>not</em> an FAA-certified GPS and must
-    not be used as a sole means of navigation. Aviation is inherently risky — always cross-check with
-    official sources and certified equipment.</p>
-  <p>© <span id="yr"></span> Apps4Av · AvareX</p>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <div class="brand"><img src="favicon.svg" alt="" style="width:28px;height:28px"> AvareX</div>
+        <p class="tag">A pilot's all-in-one electronic flight bag, by Apps4Av — the team behind Avare, rebuilt in Flutter.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#compare">Compare</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Download</h4>
+        <ul>
+          <li><a data-store href="https://apps.apple.com/us/app/avarex/id6502421523" onclick="return trackDownload(this.dataset.fullurl||this.href,'ios_footer')">App Store (iOS / macOS)</a></li>
+          <li><a data-store href="https://play.google.com/store/apps/details?id=com.apps4av.avaremp" onclick="return trackDownload(this.dataset.fullurl||this.href,'android_footer')">Google Play</a></li>
+          <li><a data-store href="https://apps.microsoft.com/detail/9mx4hkl30mww" onclick="return trackDownload(this.dataset.fullurl||this.href,'windows_footer')">Microsoft Store</a></li>
+          <li><a data-store href="https://snapcraft.io/avarex" onclick="return trackDownload(this.dataset.fullurl||this.href,'linux_footer')">Linux (Snap)</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://groups.google.com/g/apps4av-forum">Support forum</a></li>
+          <li><a href="https://github.com/apps4av/avarex">Source (GitHub)</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fbar">
+      <p class="disc"><strong>Safety notice:</strong> AvareX is not an FAA-certified GPS and must not be
+        used as a sole means of navigation. Aviation is inherently risky — always cross-check with
+        official sources and certified equipment.</p>
+      <p>© <span id="yr"></span> Apps4Av · AvareX</p>
+    </div>
+  </div>
 </footer>
 <script>document.getElementById('yr').textContent=new Date().getFullYear();</script>
 
