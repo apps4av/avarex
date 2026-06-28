@@ -8,6 +8,7 @@ import 'group_create_screen.dart';
 import 'group_detail_screen.dart';
 import 'models/pilot_group.dart';
 import 'models/pilot_profile.dart';
+import 'notifications_screen.dart';
 import 'profile_edit_screen.dart';
 import 'widgets/group_card.dart';
 
@@ -56,6 +57,7 @@ class _CommunityScreenState extends State<CommunityScreen> {
             ],
           ),
           actions: [
+            const CommunityNotificationsBell(),
             IconButton(
               icon: const Icon(Icons.info_outline),
               tooltip: "Disclaimer",

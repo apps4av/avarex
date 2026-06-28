@@ -4,8 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
+import '../models/community_notification.dart';
 import '../models/group_member.dart';
 import '../models/group_post.dart';
+import '../models/notification_prefs.dart';
 import '../models/pilot_group.dart';
 import '../models/pilot_profile.dart';
 
@@ -18,6 +20,8 @@ import '../models/pilot_profile.dart';
 ///   groups/{gid}/members/{uid}                   -> GroupMember
 ///   groups/{gid}/posts/{pid}                     -> GroupPost
 ///   userGroups/{uid}/groups/{gid}                -> denormalized membership index
+///   userNotifications/{uid}/items/{nid}          -> CommunityNotification
+///   userNotificationPrefs/{uid}                  -> NotificationPrefs
 class CommunityRepository {
   CommunityRepository._();
   static final CommunityRepository instance = CommunityRepository._();
@@ -85,6 +89,15 @@ class CommunityRepository {
 
   DocumentReference<Map<String, dynamic>> _userGroupRef(String uid, String gid) =>
       _db.collection("userGroups").doc(uid).collection("groups").doc(gid);
+
+  CollectionReference<Map<String, dynamic>> _notifsCol(String uid) =>
+      _db.collection("userNotifications").doc(uid).collection("items");
+
+  DocumentReference<Map<String, dynamic>> _notifPrefsRef(String uid) =>
+      _db.collection("userNotificationPrefs").doc(uid);
+
+  DocumentReference<Map<String, dynamic>> _groupReadRef(String uid, String gid) =>
+      _db.collection("userGroupReads").doc(uid).collection("groups").doc(gid);
 
   Stream<PilotGroup?> watchGroup(String groupId) {
     return _groupRef(groupId)
@@ -244,6 +257,16 @@ class CommunityRepository {
         .map((s) => s.exists ? GroupMember.fromDoc(s) : null);
   }
 
+  /// One-shot read of the current user's membership, used when opening a
+  /// thread from a notification (where the streamed membership context
+  /// isn't already on hand).
+  Future<GroupMember?> fetchMyMembership(String groupId) async {
+    final uid = _uid;
+    if (uid == null) return null;
+    final snap = await _membersCol(groupId).doc(uid).get();
+    return snap.exists ? GroupMember.fromDoc(snap) : null;
+  }
+
   Stream<List<GroupMember>> watchMembers(String groupId,
       {MemberStatus? status}) {
     Query<Map<String, dynamic>> q = _membersCol(groupId);
@@ -369,15 +392,59 @@ class CommunityRepository {
 
   // -------------------- Posts --------------------
 
+  /// Top-level topics for a group's feed, newest first.
+  ///
+  /// Replies are filtered out client-side (rather than with a server
+  /// `where("replyToId", isEqualTo: null)`) so that legacy posts written
+  /// before threading existed -- which have no `replyToId` field at all --
+  /// still show up as topics. A server null-equality filter would silently
+  /// drop those documents.
   Stream<List<GroupPost>> watchPosts(String groupId, {int limit = 100}) {
     return _postsCol(groupId)
         .orderBy("createdAt", descending: true)
         .limit(limit)
         .snapshots()
-        .map((s) =>
-            s.docs.map((d) => GroupPost.fromDoc(groupId, d)).toList(growable: false));
+        .map((s) => s.docs
+            .map((d) => GroupPost.fromDoc(groupId, d))
+            .where((p) => !p.isReply)
+            .toList(growable: false));
   }
 
+  /// Replies to a single topic, oldest first so a thread reads top to
+  /// bottom like a conversation.
+  ///
+  /// Deliberately an equality-only query (no server-side `orderBy`): an
+  /// equality filter plus an `orderBy` on a different field would require a
+  /// deployed composite index, and without it the stream errors and the
+  /// thread appears empty even though the topic's replyCount is non-zero.
+  /// Relying only on the automatic single-field index on `replyToId` keeps
+  /// replies working with no index deployment; they're sorted client-side.
+  Stream<List<GroupPost>> watchReplies(String groupId, String topicId,
+      {int limit = 200}) {
+    return _postsCol(groupId)
+        .where("replyToId", isEqualTo: topicId)
+        .limit(limit)
+        .snapshots()
+        .map((s) {
+      final list =
+          s.docs.map((d) => GroupPost.fromDoc(groupId, d)).toList();
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return list;
+    });
+  }
+
+  /// Live view of a single post (used by the thread screen to keep the
+  /// topic header -- including its reply count -- up to date).
+  Stream<GroupPost?> watchPost(String groupId, String postId) {
+    return _postsCol(groupId).doc(postId).snapshots().map(
+        (s) => s.exists ? GroupPost.fromDoc(groupId, s) : null);
+  }
+
+  /// Create a post. When [replyToId] is supplied the post is a reply to
+  /// that topic: it is tagged with the parent id and the parent's
+  /// [GroupPost.replyCount] is bumped in the same batch. Replies do not
+  /// affect the group's `postCount` (only topics do), which keeps the
+  /// group counter changes to ±1 per call.
   Future<void> createPost(
     String groupId, {
     required String text,
@@ -385,6 +452,7 @@ class CommunityRepository {
     String? attachedRouteText,
     String? attachedRouteName,
     List<Uint8List> images = const [],
+    String? replyToId,
   }) async {
     final uid = _requireUid();
     final profile = await ensureMyProfile();
@@ -403,6 +471,22 @@ class CommunityRepository {
     final routeText = attachedRouteText?.trim();
     if (routeText != null && routeText.length > GroupPost.maxRouteLength) {
       throw StateError("Attached plan is too long to share");
+    }
+
+    final parentId = (replyToId != null && replyToId.trim().isNotEmpty)
+        ? replyToId.trim()
+        : null;
+    // Replies attach to a top-level topic only. If the supplied parent is
+    // itself a reply, re-target its parent so the thread stays one level
+    // deep and the reply counter lives on the topic.
+    String? topicId = parentId;
+    if (parentId != null) {
+      final parentSnap = await _postsCol(groupId).doc(parentId).get();
+      if (!parentSnap.exists) {
+        throw StateError("The topic you're replying to no longer exists");
+      }
+      final parent = GroupPost.fromDoc(groupId, parentSnap);
+      topicId = parent.isReply ? parent.replyToId : parent.id;
     }
 
     final postRef = _postsCol(groupId).doc();
@@ -440,18 +524,113 @@ class CommunityRepository {
       attachedRouteName:
           attachedRouteName?.trim().isEmpty ?? true ? null : attachedRouteName!.trim(),
       mediaUrls: mediaUrls,
+      replyToId: topicId,
+      replyCount: 0,
       createdAt: DateTime.now(),
     );
 
     final batch = _db.batch();
     batch.set(postRef, post.toCreateMap());
-    batch.update(_groupRef(groupId), {
-      "postCount": FieldValue.increment(1),
-    });
+    if (topicId == null) {
+      // A new topic counts toward the group's post total.
+      batch.update(_groupRef(groupId), {
+        "postCount": FieldValue.increment(1),
+      });
+    } else {
+      // A reply bumps its topic's reply counter instead.
+      batch.update(_postsCol(groupId).doc(topicId), {
+        "replyCount": FieldValue.increment(1),
+      });
+    }
     await batch.commit();
+
+    // Fan out reply notifications after the reply is durably committed.
+    // Done separately (and best-effort) so a notification rule rejection
+    // can never roll back the reply itself.
+    if (topicId != null) {
+      final snippet = text.trim().isNotEmpty
+          ? text.trim()
+          : (mediaUrls.isNotEmpty ? "[Photo]" : "Replied");
+      await _notifyReply(
+        groupId: groupId,
+        topicId: topicId,
+        replyId: postRef.id,
+        actorUid: uid,
+        actorName: profile.displayName,
+        snippet: snippet,
+      );
+    }
+  }
+
+  /// Write reply notifications to the topic's author and the group owner
+  /// (excluding the replier, and de-duplicated when they're the same
+  /// person). Best-effort: any failure here is swallowed so it never
+  /// affects the reply that already committed.
+  Future<void> _notifyReply({
+    required String groupId,
+    required String topicId,
+    required String replyId,
+    required String actorUid,
+    required String actorName,
+    required String snippet,
+  }) async {
+    try {
+      final groupSnap = await _groupRef(groupId).get();
+      if (!groupSnap.exists) return;
+      final group = PilotGroup.fromDoc(groupSnap);
+      final topicSnap = await _postsCol(groupId).doc(topicId).get();
+      if (!topicSnap.exists) return;
+      final topic = GroupPost.fromDoc(groupId, topicSnap);
+
+      // uid -> reason. Topic author wins over group owner when both apply.
+      final recipients = <String, String>{};
+      if (topic.authorUid.isNotEmpty && topic.authorUid != actorUid) {
+        recipients[topic.authorUid] = CommunityNotification.reasonTopicAuthor;
+      }
+      if (group.ownerUid.isNotEmpty &&
+          group.ownerUid != actorUid &&
+          !recipients.containsKey(group.ownerUid)) {
+        recipients[group.ownerUid] = CommunityNotification.reasonGroupOwner;
+      }
+      if (recipients.isEmpty) return;
+
+      final trimmed = snippet.length > CommunityNotification.maxSnippet
+          ? snippet.substring(0, CommunityNotification.maxSnippet)
+          : snippet;
+      final now = DateTime.now();
+
+      final batch = _db.batch();
+      recipients.forEach((recipientUid, reason) {
+        final ref = _notifsCol(recipientUid).doc();
+        final notif = CommunityNotification(
+          id: ref.id,
+          type: CommunityNotification.typeReply,
+          groupId: groupId,
+          groupName: group.name,
+          topicId: topicId,
+          postId: replyId,
+          actorUid: actorUid,
+          actorName: actorName,
+          reason: reason,
+          snippet: trimmed,
+          read: false,
+          createdAt: now,
+        );
+        batch.set(ref, notif.toCreateMap());
+      });
+      await batch.commit();
+    } catch (_) {
+      // Notifications are best-effort; ignore rule/network failures.
+    }
   }
 
   /// Delete a post. Authors can delete their own; owners can delete any.
+  ///
+  /// Deleting a topic cascades to its replies so a thread never outlives
+  /// the conversation it belonged to; only the topic decrements the
+  /// group's `postCount`. Deleting a reply decrements its topic's
+  /// `replyCount` instead.
+  ///
   /// Any attached images are removed from Firebase Storage on a
   /// best-effort basis; an orphaned image is harmless and gets cleaned
   /// up by lifecycle rules if configured.
@@ -463,13 +642,40 @@ class CommunityRepository {
     if (post.authorUid != uid) {
       await _assertOwner(groupId, uid);
     }
+
+    if (post.isReply) {
+      // A reply: drop the doc and decrement its topic's reply counter.
+      final batch = _db.batch();
+      batch.delete(_postsCol(groupId).doc(postId));
+      batch.update(_postsCol(groupId).doc(post.replyToId!), {
+        "replyCount": FieldValue.increment(-1),
+      });
+      await batch.commit();
+      await _deletePostMedia(groupId, post.authorUid, postId);
+      return;
+    }
+
+    // A topic: cascade-delete every reply, then the topic itself. Only the
+    // topic touches the group's postCount (replies never did).
+    final replies =
+        await _postsCol(groupId).where("replyToId", isEqualTo: postId).get();
+
     final batch = _db.batch();
+    for (final r in replies.docs) {
+      batch.delete(r.reference);
+    }
     batch.delete(_postsCol(groupId).doc(postId));
     batch.update(_groupRef(groupId), {
       "postCount": FieldValue.increment(-1),
     });
     await batch.commit();
+
+    // Best-effort Storage cleanup for the topic and all its replies.
     await _deletePostMedia(groupId, post.authorUid, postId);
+    for (final r in replies.docs) {
+      final reply = GroupPost.fromDoc(groupId, r);
+      await _deletePostMedia(groupId, reply.authorUid, r.id);
+    }
   }
 
   Future<void> _deletePostMedia(
@@ -486,5 +692,90 @@ class CommunityRepository {
     } catch (_) {
       // Ignore — Storage cleanup is best effort.
     }
+  }
+
+  // -------------------- Read tracking --------------------
+
+  /// The last time the current user marked a group's feed as read. Topics
+  /// created after this are considered unread (shown bold in the feed).
+  /// Returns null when the user has never opened the group.
+  Future<DateTime?> fetchGroupLastRead(String groupId) async {
+    final uid = _uid;
+    if (uid == null) return null;
+    final snap = await _groupReadRef(uid, groupId).get();
+    if (!snap.exists) return null;
+    final ts = snap.data()?["lastReadAt"];
+    return ts is Timestamp ? ts.toDate() : null;
+  }
+
+  /// Mark a group's feed as read up to now.
+  Future<void> markGroupRead(String groupId) async {
+    final uid = _uid;
+    if (uid == null) return;
+    await _groupReadRef(uid, groupId)
+        .set({"lastReadAt": Timestamp.fromDate(DateTime.now())});
+  }
+
+  // -------------------- Notifications --------------------
+
+  /// The current user's notifications, newest first. Preferences are
+  /// applied by the caller on read (see [NotificationPrefs]).
+  Stream<List<CommunityNotification>> watchMyNotifications({int limit = 50}) {
+    final uid = _uid;
+    if (uid == null) return Stream.value(const []);
+    return _notifsCol(uid)
+        .orderBy("createdAt", descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((s) => s.docs
+            .map(CommunityNotification.fromDoc)
+            .toList(growable: false));
+  }
+
+  Stream<NotificationPrefs> watchMyNotificationPrefs() {
+    final uid = _uid;
+    if (uid == null) return Stream.value(NotificationPrefs.defaults);
+    return _notifPrefsRef(uid).snapshots().map(
+        (s) => s.exists ? NotificationPrefs.fromDoc(s) : NotificationPrefs.defaults);
+  }
+
+  Future<void> saveMyNotificationPrefs(NotificationPrefs prefs) async {
+    final uid = _requireUid();
+    await _notifPrefsRef(uid).set(prefs.toMap());
+  }
+
+  Future<void> markNotificationRead(String notificationId) async {
+    final uid = _requireUid();
+    await _notifsCol(uid).doc(notificationId).update({"read": true});
+  }
+
+  /// Mark every currently-unread notification as read.
+  Future<void> markAllNotificationsRead() async {
+    final uid = _requireUid();
+    final unread =
+        await _notifsCol(uid).where("read", isEqualTo: false).get();
+    if (unread.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final d in unread.docs) {
+      batch.update(d.reference, {"read": true});
+    }
+    await batch.commit();
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final uid = _requireUid();
+    await _notifsCol(uid).doc(notificationId).delete();
+  }
+
+  /// Remove all of the current user's notifications.
+  Future<void> clearAllNotifications() async {
+    final uid = _requireUid();
+    final all = await _notifsCol(uid).get();
+    if (all.docs.isEmpty) return;
+    final batch = _db.batch();
+    for (final d in all.docs) {
+      batch.delete(d.reference);
+    }
+    await batch.commit();
   }
 }

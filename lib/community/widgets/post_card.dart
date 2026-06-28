@@ -12,6 +12,18 @@ class PostCard extends StatelessWidget {
   final VoidCallback? onTapAirport;
   final VoidCallback? onLoadRoute;
 
+  /// Tapping the card opens the topic's thread. Supplied in the feed; left
+  /// null inside the thread screen where the topic is already open.
+  final VoidCallback? onOpenThread;
+
+  /// Adds a reply to this topic. When supplied, a reply footer (count +
+  /// "Reply" button) is shown.
+  final VoidCallback? onReply;
+
+  /// When true the post is rendered with heavier (bold) text to signal it
+  /// hasn't been read yet.
+  final bool unread;
+
   const PostCard({
     super.key,
     required this.post,
@@ -19,6 +31,9 @@ class PostCard extends StatelessWidget {
     this.onDelete,
     this.onTapAirport,
     this.onLoadRoute,
+    this.onOpenThread,
+    this.onReply,
+    this.unread = false,
   });
 
   String _relativeTime(DateTime t) {
@@ -41,9 +56,14 @@ class PostCard extends StatelessWidget {
         ? post.authorName.trim().substring(0, 1).toUpperCase()
         : "?";
 
+    final showReplyFooter = onReply != null || post.replyCount > 0;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Padding(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpenThread,
+        child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,7 +89,9 @@ class PostCard extends StatelessWidget {
                     children: [
                       Text(
                         post.authorName,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                            fontWeight:
+                                unread ? FontWeight.w800 : FontWeight.w600),
                       ),
                       Text(
                         _relativeTime(post.createdAt),
@@ -96,7 +118,11 @@ class PostCard extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 4, right: 8),
                 child: Text(
                   post.text,
-                  style: const TextStyle(fontSize: 14, height: 1.35),
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: unread ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
               ),
             ],
@@ -123,9 +149,77 @@ class PostCard extends StatelessWidget {
                 ),
               ),
             ],
+            if (showReplyFooter) ...[
+              const SizedBox(height: 4),
+              _ReplyFooter(
+                replyCount: post.replyCount,
+                onReply: onReply,
+                onOpenThread: onOpenThread,
+              ),
+            ],
           ],
         ),
+        ),
       ),
+    );
+  }
+}
+
+class _ReplyFooter extends StatelessWidget {
+  final int replyCount;
+  final VoidCallback? onReply;
+  final VoidCallback? onOpenThread;
+  const _ReplyFooter({
+    required this.replyCount,
+    this.onReply,
+    this.onOpenThread,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final label = replyCount == 0
+        ? "Reply"
+        : replyCount == 1
+            ? "1 reply"
+            : "$replyCount replies";
+    return Row(
+      children: [
+        if (onReply != null)
+          TextButton.icon(
+            onPressed: onReply,
+            icon: const Icon(Icons.reply, size: 16),
+            label: const Text("Reply"),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        const Spacer(),
+        if (replyCount > 0 && onOpenThread != null)
+          TextButton.icon(
+            onPressed: onOpenThread,
+            icon: Icon(Icons.forum_outlined, size: 15, color: scheme.primary),
+            label: Text(
+              label,
+              style: TextStyle(color: scheme.primary, fontSize: 12),
+            ),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 32),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          )
+        else if (replyCount > 0)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              label,
+              style: TextStyle(color: scheme.outline, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 }

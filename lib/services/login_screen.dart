@@ -1,3 +1,4 @@
+import 'package:avaremp/community/notifications_screen.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
@@ -69,7 +70,7 @@ class LoginScreenState extends State<LoginScreen> {
             title: const Text("Pro Services"),
         ),
         bottomSheet: SizedBox(
-          height: 50,
+          height: 58,
           child: isLoggedIn ? SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -88,11 +89,26 @@ class LoginScreenState extends State<LoginScreen> {
                   showPaywall(context, '/backup');
                 },
               ),
-              TextButton(
-                child: const Text("Community"),
-                onPressed: () {
-                  showPaywall(context, '/community');
-                },
+              // Community entry carries a notifications bell on top of the
+              // label so unread replies are visible from the login screen.
+              Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.topCenter,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: TextButton(
+                      child: const Text("Community"),
+                      onPressed: () {
+                        showPaywall(context, '/community');
+                      },
+                    ),
+                  ),
+                  const Positioned(
+                    top: 0,
+                    child: CommunityNotificationsBadge(),
+                  ),
+                ],
               ),
               TextButton(
                 child: const Text("Scheduler"),

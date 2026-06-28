@@ -1011,12 +1011,16 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 
 **Group detail screen tabs**:
 
-- **Feed**: scrollable list of posts. Active members can **Post** (floating action button) up to 1000 characters and optionally attach:
+- **Feed**: scrollable list of topics (top-level posts). Active members can **Post** (floating action button) up to 1000 characters and optionally attach:
   - **Photos** (up to 4 per post, JPEG/PNG, automatically downscaled to 1920px wide and re-encoded at quality 80, which also strips EXIF). Tap a photo to zoom.
   - **A flight plan** — tap **Attach plan** to share your current PLAN. Other members see the route inline with a **Load** button that imports the plan into their PLAN tab (after a confirmation dialog).
   - **An airport ICAO** quick-tag.
-  
-  Authors can delete their own posts; the group owner can delete any post. Deleting a post also removes its attached photos from cloud storage on a best-effort basis.
+
+  **Threaded discussions**: each topic keeps its own thread of replies. Tap **Reply** on a topic to add a reply (text and/or photos), or **tap the topic** to open its discussion thread — the topic at the top followed by all replies, oldest first, with a **Reply** button. The reply count is shown on each topic in the feed. Replies stay attached to their topic, so a conversation never gets mixed up with unrelated posts.
+
+  **Unread topics**: topics posted since you last opened a group's feed are shown in **bold**. Opening the feed marks it read, so they return to normal weight on your next visit (your own posts are never shown as unread).
+
+  Authors can delete their own posts; the group owner can delete any post. Deleting a topic also deletes all of its replies. Deleting a post removes its attached photos from cloud storage on a best-effort basis.
 - **Members**: list of active members with their home airport. The owner sees a separate **Pending requests** section at the top with **Approve** / **Reject** controls and can **Remove** any non-owner member.
 - **About**: owner, visibility, home airport, member/post counts, creation date.
 
@@ -1032,7 +1036,12 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 - Public groups are discoverable and any signed-in Pro user can read the feed.
 - Private groups are discoverable by name but the feed is hidden from non-members. Owners get a red badge over the **Members** tab when pending requests exist.
 
-**Notifications**: in-app only for v1 (no push). Pending requests and new posts appear when you open the group.
+**Notifications**: in-app only (no push). A **bell icon** appears both in the `Pilot Community` app bar and above the `Community` button on the Pro Services screen; it shows an unread count and opens the **Notifications** screen. You are notified when:
+
+- someone **replies to a topic you started**, or
+- someone **replies to any post in a group you own**.
+
+On the Notifications screen, unread items are shown in **bold** with a dot. You can **tap** a notification to jump straight to that discussion thread (which marks it read), **swipe** a notification away to dismiss it, **mark all read** (`✓✓` icon), or open **notification settings** (gear icon). Settings let you turn reply notifications **off globally**, or **mute individual groups** — muted groups and a global "off" stop counting toward the unread badge and are hidden from the list. Pending join requests still appear as a red badge over the **Members** tab when you open a group you own.
 
 ### 11.5 Aircraft Scheduler
 
@@ -1177,6 +1186,10 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Post a photo to a group | `Community → group → Post → Photo → choose source` |
 | Share your current flight plan | `Community → group → Post → Attach plan` |
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
+| Reply to a topic | `Community → group → tap topic → Reply` |
+| View a topic's discussion thread | `Community → group → tap a topic in the Feed` |
+| View notifications | `Community → bell icon` (also shown on the bell above the `Community` button on the Pro Services screen) |
+| Turn reply notifications off / mute a group | `Community → bell icon → gear icon` |
 | Aircraft Scheduler | `MAP top-right account icon → Scheduler` |
 | Create a scheduler (private) | `MAP top-right account icon → Scheduler → New Scheduler` |
 | Add an aircraft/instructor (owner) | `Scheduler → scheduler → Schedule tab → Add resource` |

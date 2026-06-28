@@ -312,6 +312,7 @@ service cloud.firestore {
           'authorUid', 'authorName', 'text', 'attachedAirport',
           'attachedRouteText', 'attachedRouteName',
           'mediaUrls',
+          'replyToId', 'replyCount',
           'createdAt'
         ])
           && request.resource.data.authorUid == request.auth.uid
@@ -338,7 +339,34 @@ service cloud.firestore {
           // Storage rules.
           && isValidStringList(
                request.resource.data.get('mediaUrls', []), 4)
+          // Threading: replyToId is null for a top-level topic, or the
+          // (string) id of the topic this post replies to. New posts
+          // always start with replyCount == 0; it is bumped only via the
+          // constrained update below.
+          && (request.resource.data.get('replyToId', null) == null
+              || (request.resource.data.replyToId is string
+                  && request.resource.data.replyToId.size() <= 64))
+          && request.resource.data.get('replyCount', 0) == 0
           && isValidTimestamp(request.resource.data.createdAt);
+      }
+
+      // The only post mutation allowed: bumping a topic's replyCount by
+      // exactly ±1 when a reply is created or deleted. Mirrors the group
+      // isCounterBumpOnly compromise -- rules can't prove the bump is
+      // paired with a sibling reply write, so the count can drift under
+      // adversarial use, but the per-call damage is capped at ±1 and the
+      // count can never go negative. get(..., 0) tolerates legacy topics
+      // that predate the replyCount field.
+      function isReplyCountBumpOnly() {
+        let changed =
+          request.resource.data.diff(resource.data).changedKeys();
+        return changed.hasOnly(['replyCount'])
+          && request.resource.data.replyCount is int
+          && request.resource.data.replyCount >= 0
+          && (request.resource.data.replyCount
+                == resource.data.get('replyCount', 0) + 1
+              || request.resource.data.replyCount
+                == resource.data.get('replyCount', 0) - 1);
       }
 
       match /posts/{pid} {
@@ -355,8 +383,9 @@ service cloud.firestore {
           || isGroupOwner(gid)
         );
 
-        // No edits in v1.
-        allow update: if false;
+        // Content is immutable; the only permitted update is the ±1
+        // replyCount bump that accompanies a reply create/delete.
+        allow update: if isActiveMember(gid) && isReplyCountBumpOnly();
       }
     }
 
@@ -384,6 +413,137 @@ service cloud.firestore {
       allow update: if (isSelf(uid) || isGroupOwner(gid))
                       && isValidUserGroupDoc();
       allow delete: if isSelf(uid) || isGroupOwner(gid);
+    }
+
+    // =========================================================
+    // In-app notifications
+    //
+    // No Cloud Functions in v1: the actor (the replier) writes a
+    // notification doc directly into each recipient's collection. The
+    // create rule is locked down so a notification can ONLY be produced
+    // for a real reply the actor actually made:
+    //
+    //   * actorName and groupName are bound to the actor's real profile
+    //     name and the group's real name (read from their source docs),
+    //     so the notification cannot impersonate another pilot or
+    //     mislabel the group in the recipient's inbox.
+    //   * postId must reference an existing post in the group that is
+    //     authored by the actor and whose replyToId == topicId -- i.e. a
+    //     genuine reply -- so notifications can't be fabricated without a
+    //     corresponding (moderatable, deletable) reply.
+    //   * the recipient must be the group owner or the topic's author.
+    //
+    // The recipient owns read/update(read flag)/delete on their own items.
+    // Preferences (global on/off, per-group mute) live in
+    // userNotificationPrefs and are applied client-side on read -- delivery
+    // is not suppressed at write time.
+    //
+    // Residual compromise (rules-only): volume is bounded only by how many
+    // real replies the actor can post. A determined active member could
+    // still generate notification noise by posting many real replies; the
+    // group owner moderates that by deleting the replies/member. Move to a
+    // Cloud Function for true rate limiting.
+    // =========================================================
+
+    function notifTopicAuthor(gid, topicId) {
+      return get(
+        /databases/$(database)/documents/groups/$(gid)/posts/$(topicId)
+      ).data.authorUid;
+    }
+
+    // The notification's postId must point at a real reply: a post in the
+    // same group, authored by the actor, whose parent is the named topic.
+    // The two get() calls resolve to the same document and are deduped at
+    // evaluation time, so this costs one read plus the exists() guard.
+    function notifReplyIsGenuine(gid, postId, topicId) {
+      return exists(/databases/$(database)/documents/groups/$(gid)/posts/$(postId))
+        && get(/databases/$(database)/documents/groups/$(gid)/posts/$(postId))
+             .data.authorUid == request.auth.uid
+        && get(/databases/$(database)/documents/groups/$(gid)/posts/$(postId))
+             .data.get('replyToId', '') == topicId;
+    }
+
+    function isValidNotification(recipientUid) {
+      return request.resource.data.keys().hasOnly([
+          'type', 'groupId', 'groupName', 'topicId', 'postId',
+          'actorUid', 'actorName', 'reason', 'snippet', 'read', 'createdAt'
+        ])
+        && request.resource.data.type == 'reply'
+        && request.resource.data.groupId is string
+        && request.resource.data.groupName is string
+        && request.resource.data.groupName.size() <= 60
+        && request.resource.data.topicId is string
+        && request.resource.data.topicId.size() <= 64
+        && request.resource.data.postId is string
+        && request.resource.data.postId.size() <= 64
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.actorName is string
+        && request.resource.data.actorName.size() <= 60
+        && request.resource.data.reason in ['topic_author', 'group_owner']
+        && request.resource.data.snippet is string
+        && request.resource.data.snippet.size() <= 140
+        && request.resource.data.read == false
+        && isValidTimestamp(request.resource.data.createdAt)
+        // Actor must be an active member of the group they're notifying
+        // about.
+        && isActiveMember(request.resource.data.groupId)
+        // Anti-impersonation: the displayed name and group label are bound
+        // to their authoritative source documents, not free text.
+        && request.resource.data.actorName ==
+             get(/databases/$(database)/documents/users/$(request.auth.uid))
+               .data.displayName
+        && request.resource.data.groupName ==
+             groupData(request.resource.data.groupId).name
+        // Anti-fabrication: there must be a real reply backing this.
+        && notifReplyIsGenuine(request.resource.data.groupId,
+                               request.resource.data.postId,
+                               request.resource.data.topicId)
+        // The recipient must have a legitimate stake in the group.
+        && (
+          groupData(request.resource.data.groupId).ownerUid == recipientUid
+          || notifTopicAuthor(request.resource.data.groupId,
+                              request.resource.data.topicId) == recipientUid
+        );
+    }
+
+    match /userNotifications/{uid}/items/{nid} {
+      allow read: if isSelf(uid);
+      allow create: if isSignedIn() && isValidNotification(uid);
+      // Recipient may only flip the read flag; everything else is frozen.
+      allow update: if isSelf(uid)
+        && request.resource.data.diff(resource.data).changedKeys()
+             .hasOnly(['read'])
+        && request.resource.data.read is bool;
+      allow delete: if isSelf(uid);
+    }
+
+    function isValidNotificationPrefs() {
+      return request.resource.data.keys().hasOnly([
+          'globalEnabled', 'mutedGroupIds'
+        ])
+        && request.resource.data.globalEnabled is bool
+        && isValidStringList(
+             request.resource.data.get('mutedGroupIds', []), 500);
+    }
+
+    match /userNotificationPrefs/{uid} {
+      allow read: if isSelf(uid);
+      allow write: if isSelf(uid) && isValidNotificationPrefs();
+    }
+
+    // =========================================================
+    // Per-user feed read markers
+    //
+    // Tracks the last time the user marked a group's feed as read so the
+    // client can render newer topics in bold. Entirely private to the
+    // user; the only field is a timestamp.
+    // =========================================================
+
+    match /userGroupReads/{uid}/groups/{gid} {
+      allow read: if isSelf(uid);
+      allow write: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['lastReadAt'])
+        && isValidTimestamp(request.resource.data.lastReadAt);
     }
 
     // =========================================================

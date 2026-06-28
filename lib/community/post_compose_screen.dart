@@ -13,11 +13,25 @@ import 'models/group_post.dart';
 class PostComposeScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
+
+  /// When set, this compose screen creates a reply attached to the topic
+  /// with this id instead of a new top-level topic. Reply mode hides the
+  /// airport / flight-plan attachments to keep replies conversational.
+  final String? replyToId;
+
+  /// Author of the topic being replied to, shown in the app bar so the
+  /// user knows which conversation they're adding to.
+  final String? replyToAuthorName;
+
   const PostComposeScreen({
     super.key,
     required this.groupId,
     required this.groupName,
+    this.replyToId,
+    this.replyToAuthorName,
   });
+
+  bool get isReply => replyToId != null;
 
   @override
   State<PostComposeScreen> createState() => _PostComposeScreenState();
@@ -129,9 +143,17 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
 
   Future<void> _submit() async {
     final text = _textCtrl.text.trim();
-    if (text.isEmpty && _images.isEmpty && _attachedRouteText == null) {
-      Toast.showToast(context, "Add text, a photo, or a plan first",
-          const Icon(Icons.info, color: Colors.orange), 2);
+    final isReply = widget.isReply;
+    final hasContent = isReply
+        ? (text.isNotEmpty || _images.isNotEmpty)
+        : (text.isNotEmpty || _images.isNotEmpty || _attachedRouteText != null);
+    if (!hasContent) {
+      Toast.showToast(
+          context,
+          isReply ? "Write a reply or add a photo first"
+              : "Add text, a photo, or a plan first",
+          const Icon(Icons.info, color: Colors.orange),
+          2);
       return;
     }
     setState(() => _busy = true);
@@ -139,12 +161,13 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
       await CommunityRepository.instance.createPost(
         widget.groupId,
         text: text,
-        attachedAirport: _airportCtrl.text.trim().isEmpty
+        attachedAirport: isReply || _airportCtrl.text.trim().isEmpty
             ? null
             : _airportCtrl.text.trim(),
-        attachedRouteText: _attachedRouteText,
-        attachedRouteName: _attachedRouteName,
+        attachedRouteText: isReply ? null : _attachedRouteText,
+        attachedRouteName: isReply ? null : _attachedRouteName,
         images: List<Uint8List>.from(_images),
+        replyToId: widget.replyToId,
       );
       if (!mounted) return;
       Navigator.pop(context);
@@ -160,10 +183,16 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isReply = widget.isReply;
+    final title = isReply
+        ? (widget.replyToAuthorName?.isNotEmpty == true
+            ? "Reply to ${widget.replyToAuthorName}"
+            : "Reply")
+        : "Post to ${widget.groupName}";
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
-        title: Text("Post to ${widget.groupName}"),
+        title: Text(title),
         actions: [
           TextButton.icon(
             onPressed: _busy ? null : _submit,
@@ -174,7 +203,7 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.send),
-            label: const Text("Post"),
+            label: Text(isReply ? "Reply" : "Post"),
           ),
         ],
       ),
@@ -195,9 +224,11 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
                         minLines: 5,
                         textCapitalization: TextCapitalization.sentences,
                         autofocus: true,
-                        decoration: const InputDecoration(
-                          hintText: "Share something with the group...",
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          hintText: isReply
+                              ? "Write a reply..."
+                              : "Share something with the group...",
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       if (_images.isNotEmpty) ...[
@@ -213,18 +244,20 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
                 ),
               ),
               const Divider(height: 16),
-              TextField(
-                controller: _airportCtrl,
-                maxLength: 4,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: "Attach airport (optional)",
-                  hintText: "ICAO, e.g. KBED",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on_outlined),
+              if (!isReply) ...[
+                TextField(
+                  controller: _airportCtrl,
+                  maxLength: 4,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(
+                    labelText: "Attach airport (optional)",
+                    hintText: "ICAO, e.g. KBED",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
               Row(
                 children: [
                   TextButton.icon(
@@ -232,13 +265,16 @@ class _PostComposeScreenState extends State<PostComposeScreen> {
                     icon: const Icon(Icons.add_a_photo_outlined),
                     label: Text("Photo (${_images.length}/${GroupPost.maxImages})"),
                   ),
-                  const SizedBox(width: 8),
-                  TextButton.icon(
-                    onPressed:
-                        _attachedRouteText == null ? _attachCurrentPlan : null,
-                    icon: const Icon(Icons.route),
-                    label: const Text("Attach plan"),
-                  ),
+                  if (!isReply) ...[
+                    const SizedBox(width: 8),
+                    TextButton.icon(
+                      onPressed: _attachedRouteText == null
+                          ? _attachCurrentPlan
+                          : null,
+                      icon: const Icon(Icons.route),
+                      label: const Text("Attach plan"),
+                    ),
+                  ],
                 ],
               ),
             ],

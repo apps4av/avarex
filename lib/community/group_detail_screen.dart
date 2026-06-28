@@ -13,6 +13,7 @@ import 'models/group_member.dart';
 import 'models/group_post.dart';
 import 'models/pilot_group.dart';
 import 'post_compose_screen.dart';
+import 'post_thread_screen.dart';
 import 'widgets/join_leave_button.dart';
 import 'widgets/post_card.dart';
 
@@ -256,7 +257,7 @@ class _MembershipBanner extends StatelessWidget {
   }
 }
 
-class _FeedTab extends StatelessWidget {
+class _FeedTab extends StatefulWidget {
   final PilotGroup group;
   final bool isOwner;
   final bool canPost;
@@ -265,6 +266,51 @@ class _FeedTab extends StatelessWidget {
     required this.isOwner,
     required this.canPost,
   });
+
+  @override
+  State<_FeedTab> createState() => _FeedTabState();
+}
+
+class _FeedTabState extends State<_FeedTab> {
+  PilotGroup get group => widget.group;
+  bool get isOwner => widget.isOwner;
+  bool get canPost => widget.canPost;
+
+  // Topics created after this instant are shown bold (unread). Captured
+  // once when the feed opens; the group is then marked read up to "now"
+  // so these same topics count as read on the next visit.
+  DateTime? _readBaseline;
+  bool _baselineLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initReadState();
+  }
+
+  Future<void> _initReadState() async {
+    final baseline =
+        await CommunityRepository.instance.fetchGroupLastRead(group.id);
+    if (mounted) {
+      setState(() {
+        _readBaseline = baseline;
+        _baselineLoaded = true;
+      });
+    }
+    // Mark the feed read up to now for the next visit. Best-effort.
+    try {
+      await CommunityRepository.instance.markGroupRead(group.id);
+    } catch (_) {/* non-fatal */}
+  }
+
+  bool _isUnread(GroupPost p, String? myUid) {
+    // Nothing is bold until we know the baseline, and a pilot's own posts
+    // are never "unread" to themselves. A null baseline (first ever visit)
+    // is treated as all-read to avoid a wall of bold text.
+    if (!_baselineLoaded || _readBaseline == null) return false;
+    if (myUid != null && myUid == p.authorUid) return false;
+    return p.createdAt.isAfter(_readBaseline!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -307,9 +353,41 @@ class _FeedTab extends StatelessWidget {
           itemBuilder: (context, i) {
             final p = posts[i];
             final canDelete = isOwner || (myUid != null && myUid == p.authorUid);
+            void openThread() {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PostThreadScreen(
+                    groupId: group.id,
+                    groupName: group.name,
+                    topicId: p.id,
+                    isOwner: isOwner,
+                    canPost: canPost,
+                  ),
+                ),
+              );
+            }
+
             return PostCard(
               post: p,
               canDelete: canDelete,
+              unread: _isUnread(p, myUid),
+              onOpenThread: openThread,
+              onReply: canPost
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PostComposeScreen(
+                            groupId: group.id,
+                            groupName: group.name,
+                            replyToId: p.id,
+                            replyToAuthorName: p.authorName,
+                          ),
+                        ),
+                      );
+                    }
+                  : null,
               onDelete: () async {
                 final ok = await showDialog<bool>(
                   context: context,
