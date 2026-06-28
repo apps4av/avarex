@@ -162,7 +162,6 @@ class Storage {
   // make it double buffer to get rid of plate load flicker
   ui.Image? imagePlate;
   ui.Image? imagePlane;
-  Uint8List? imageBytesPlate;
   LatLng? topLeftPlate;
   LatLng? bottomRightPlate;
 
@@ -345,8 +344,25 @@ class Storage {
     }
   }
 
+  // Cap the global image cache so that map chart tiles, plate/NEXRAD overlays,
+  // and network (Topo/USGS) tiles cannot balloon memory on older devices.
+  // Flutter's default is 1000 images / 100 MB, which is far too generous for a
+  // map-heavy app running on low-RAM hardware.
+  void _configureImageCache() {
+    if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
+      // Mobile / web: assume limited RAM (older phones and tablets).
+      imageCache.maximumSize = 100;
+      imageCache.maximumSizeBytes = 32 << 20; // 32 MB
+    } else {
+      // Desktop: more headroom available.
+      imageCache.maximumSize = 200;
+      imageCache.maximumSizeBytes = 64 << 20; // 64 MB
+    }
+  }
+
   Future<void> init() async {
     WidgetsFlutterBinding.ensureInitialized();
+    _configureImageCache();
     if (kIsWeb) {
       // No filesystem on web; use inert paths
       dataDir = "/";
@@ -549,8 +565,6 @@ class Storage {
       // file bad or not found
       bytes = bd.buffer.asUint8List();
     }
-    imageBytesPlate = bytes;
-
     topLeftPlate = null;
     bottomRightPlate = null;
 

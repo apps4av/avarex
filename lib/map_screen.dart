@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
+import 'package:avaremp/utils/image_utils.dart';
 import 'package:avaremp/utils/mbtiles_layer.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/utils/toast.dart';
@@ -88,6 +89,7 @@ class MapScreenState extends State<MapScreen> {
 
   TileLayer _nexradLayer = TileLayer(
     maxNativeZoom: 5,
+    keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
     urlTemplate: _mesonets[0],
     userAgentPackageName: 'com.apps4av.avarex',
     tileProvider: NetworkTileProvider(),
@@ -95,6 +97,7 @@ class MapScreenState extends State<MapScreen> {
 
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
+    keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
     userAgentPackageName: 'com.apps4av.avarex',
     urlTemplate: "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS/tile/1.0.0/USGSTopo/default/default028mm/{z}/{y}/{x}.png",
     tileProvider: MapNetworkTileProvider()
@@ -455,6 +458,7 @@ class MapScreenState extends State<MapScreen> {
     final TileLayer chartLayer = TileLayer(
         tms: true,
         maxNativeZoom: _maxZoom,
+        keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
         tileProvider: ChartTileProvider(),
         urlTemplate: "${Storage().dataDir}/tiles/"
           "${ChartCategory.chartTypeToIndex(_type)}/"
@@ -465,6 +469,7 @@ class MapScreenState extends State<MapScreen> {
     final TileLayer elevationLayer = TileLayer(
         tms: true,
         maxNativeZoom: _maxZoom,
+        keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
         tileProvider: elevationTileProvider,
         urlTemplate: "${Storage().dataDir}/tiles/"
           "${ChartCategory.chartTypeToIndex(ChartCategory.elevation)}/"
@@ -618,6 +623,7 @@ class MapScreenState extends State<MapScreen> {
             _nexradLayer = TileLayer(
               userAgentPackageName: 'com.apps4av.avarex',
               maxNativeZoom: 5,
+              keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
               urlTemplate: _mesonets[index],
               tileProvider: NetworkTileProvider(),
             );
@@ -696,7 +702,7 @@ class MapScreenState extends State<MapScreen> {
               List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
               return OverlayImageLayer(
                 overlayImages: images.map((e) {
-                  return OverlayImage(imageProvider: MemoryImage(e.getImage()!),
+                  return OverlayImage(imageProvider: e.getProvider()!,
                       bounds: e.getBounds());
                 }).toList(),
               );
@@ -743,7 +749,7 @@ class MapScreenState extends State<MapScreen> {
             builder: (context, value, _) {
               return OverlayImageLayer(
                 overlayImages: [
-                  if(Storage().imageBytesPlate != null &&
+                  if(Storage().imagePlate != null &&
                       Storage().bottomRightPlate != null &&
                       Storage().topLeftPlate != null)
                     OverlayImage(
@@ -751,7 +757,7 @@ class MapScreenState extends State<MapScreen> {
                           Storage().topLeftPlate!,
                           Storage().bottomRightPlate!
                       ),
-                      imageProvider: MemoryImage(Storage().imageBytesPlate!),
+                      imageProvider: UiImageProvider(Storage().imagePlate!),
                     ),
                 ],
               );

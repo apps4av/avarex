@@ -1,5 +1,6 @@
 import 'package:avaremp/constants.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show ImageProvider, MemoryImage;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image/image.dart';
 import 'nexrad_medium_product.dart';
@@ -127,6 +128,10 @@ class NexradImage {
   double _scaleY = 1;
   LatLng _coordinate = const LatLng(0, 0);
   Uint8List? _image;
+  // Cached provider so the map reuses one stable ImageProvider per block across
+  // every radar animation tick, instead of allocating a fresh MemoryImage (and
+  // forcing a re-decode) on each rebuild.
+  ImageProvider? _provider;
 
   bool isExpired() {
     Duration diff = time.difference(DateTime.now());
@@ -175,6 +180,17 @@ class NexradImage {
 
   void discard() {
     _image = null;
+    _provider = null;
+  }
+
+  /// Stable [ImageProvider] for this block's radar bitmap, created lazily and
+  /// reused for the lifetime of the block. Returns null when there is no image.
+  ImageProvider? getProvider() {
+    final Uint8List? image = _image;
+    if (image == null) {
+      return null;
+    }
+    return _provider ??= MemoryImage(image);
   }
 
   LatLngBounds getBounds() {
