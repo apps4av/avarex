@@ -10,7 +10,7 @@
 <meta name="robots" content="index, follow, max-image-preview:large" />
 <meta name="google-site-verification" content="NoNH5ULzxVyi91Hk8irgfm0qVatBnFqDe0arkWWhqg0" />
 <link rel="canonical" href="https://avarex.apps4av.org/" />
-<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="icon" type="image/png" href="logo.png" />
 <meta name="theme-color" content="#0a2540" />
 
 <!-- Open Graph -->
@@ -175,11 +175,18 @@
   .hero .micro{color:#9fb6d6;font-size:13.5px;margin-top:14px}
   .hero-visual{justify-self:center;position:relative}
 
-  /* Device frame */
-  .device{width:300px;max-width:84vw;border-radius:38px;background:#0a0f1d;padding:11px;
-    box-shadow:0 40px 90px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08)}
-  .device img{width:100%;border-radius:28px;display:block;background:#000}
-  .device.sm{width:255px}
+  /* Screenshot frame (landscape app window) */
+  .device{width:100%;max-width:560px;border-radius:16px;background:#0d1626;padding:8px;
+    box-shadow:0 30px 70px rgba(13,44,82,.32);border:1px solid rgba(255,255,255,.10)}
+  .device img{width:100%;height:auto;display:block;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:cover}
+  .device.sm{max-width:520px}
+  .feature .device{box-shadow:0 24px 55px rgba(13,44,82,.16);border-color:var(--line)}
+
+  /* Phone frame (portrait) */
+  .phone{width:296px;max-width:74vw;border-radius:46px;background:#0b1220;padding:11px;
+    box-shadow:0 38px 80px rgba(13,44,82,.40);border:1px solid rgba(255,255,255,.12)}
+  .phone img{width:100%;height:auto;display:block;border-radius:36px;background:#000}
+  .feature .phone{box-shadow:0 30px 64px rgba(13,44,82,.22)}
 
   /* Platform strip */
   .strip{background:var(--bg-alt);border-bottom:1px solid var(--line)}
@@ -323,7 +330,7 @@
 <!-- HEADER -->
 <header class="site-header">
   <div class="wrap nav">
-    <a class="brand" href="#top"><img src="favicon.svg" alt="AvareX logo"> AvareX</a>
+    <a class="brand" href="#top"><img src="logo.png" alt="AvareX logo"> AvareX</a>
     <nav class="nav-links">
       <a href="#features">Features</a>
       <a href="#compare">Compare</a>
@@ -362,7 +369,7 @@
         <p class="micro">Also on Windows, macOS, Linux &amp; Raspberry Pi · Works offline once charts are downloaded</p>
       </div>
       <div class="hero-visual">
-        <div class="device"><img src="img/map.jpg" alt="AvareX moving map with ownship, FAA sectional chart and flight instruments" width="900" height="1900" /></div>
+        <div class="phone"><img src="img/shot1.jpg" alt="AvareX moving map on iPhone with ownship, FAA sectional chart, airspace and flight instrument tiles" /></div>
       </div>
     </div>
   </section>
@@ -414,7 +421,7 @@
             <li>Download once, then fly fully offline</li>
           </ul>
         </div>
-        <div class="f-media"><div class="device"><img src="img/charts.jpg" alt="AvareX chart types and moving map" loading="lazy"></div></div>
+        <div class="f-media"><div class="phone"><img src="img/shot3.jpg" alt="AvareX moving map showing San Francisco Class B airspace, ADS-B traffic targets and ownship" loading="lazy"></div></div>
       </div>
 
       <div class="feature rev">
@@ -429,52 +436,38 @@
             <li>WPC surface/prog, SigWx, icing &amp; turbulence products</li>
           </ul>
         </div>
-        <div class="f-media"><div class="device"><img src="img/layers.jpg" alt="AvareX weather and map layers" loading="lazy"></div></div>
+        <div class="f-media"><div class="phone"><img src="img/shot4.jpg" alt="AvareX showing NEXRAD weather radar overlaid on the moving map with terrain rings" loading="lazy"></div></div>
       </div>
 
       <div class="feature">
         <div class="f-text">
+          <div class="eyebrow">Plates &amp; airports</div>
+          <h3>Geo-referenced approach plates</h3>
+          <p>Shoot approaches with your ownship drawn right on the plate, and layer weather on the
+             procedure so you always know what's ahead.</p>
+          <ul class="flist">
+            <li>Approach plates, airport diagrams, departures &amp; STARs</li>
+            <li>Ownship position drawn on georeferenced plates</li>
+            <li>Airport info, runways, NOTAMs, FBOs &amp; alternates</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="phone"><img src="img/shot6.jpg" alt="AvareX geo-referenced RNAV approach plate with ownship and weather overlay" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature rev">
+        <div class="f-text">
           <div class="eyebrow">Flight planning</div>
           <h3>Plan every leg, then file in seconds</h3>
-          <p>Build a route, review a per-leg nav log with winds and terrain, then file with the FAA
-             without leaving AvareX.</p>
+          <p>Build a route, review a per-leg nav log with distance, ground speed, time and fuel, then
+             file with the FAA without leaving AvareX.</p>
           <ul class="flist">
-            <li>Per-leg heading, wind correction, ground speed, time &amp; fuel</li>
+            <li>Per-leg distance, ground speed, time &amp; fuel burn</li>
             <li>Winds &amp; terrain en-route profile</li>
             <li>IFR preferred routes and recent ATC routes</li>
             <li>File, brief, activate &amp; close FAA plans (1800wxbrief / LMFS)</li>
           </ul>
         </div>
-        <div class="f-media"><div class="device sm"><img src="img/navlog.png" alt="AvareX flight plan and navigation log" loading="lazy"></div></div>
-      </div>
-
-      <div class="feature rev">
-        <div class="f-text">
-          <div class="eyebrow">Aircraft</div>
-          <h3>Weight &amp; balance and performance, built in</h3>
-          <p>Start from built-in aircraft profiles or add your own, then check that every flight is
-             safe and legal.</p>
-          <ul class="flist">
-            <li>Interactive CG envelope (fixed-wing &amp; helicopter)</li>
-            <li>Takeoff, landing &amp; cruise performance with density altitude</li>
-            <li>Profiles for C152, C172S, C182T, PA-28, SR22, DA40 &amp; more</li>
-          </ul>
-        </div>
-        <div class="f-media"><div class="device sm"><img src="img/wnb.png" alt="AvareX weight and balance with CG envelope" loading="lazy"></div></div>
-      </div>
-
-      <div class="feature">
-        <div class="f-text">
-          <div class="eyebrow">Logbook &amp; tools</div>
-          <h3>Your logbook and tools, all in one place</h3>
-          <p>Keep currency, review your flights, and carry the small stuff that matters.</p>
-          <ul class="flist">
-            <li>Digital logbook with currency tracking &amp; CSV import/export</li>
-            <li>Auto-create entries from recorded flight tracks</li>
-            <li>2D/3D track viewer, checklists &amp; handwriting notes</li>
-          </ul>
-        </div>
-        <div class="f-media"><div class="device sm"><img src="img/logbook.png" alt="AvareX digital logbook" loading="lazy"></div></div>
+        <div class="f-media"><div class="phone"><img src="img/shot9.jpg" alt="AvareX flight plan and per-leg navigation log from KSFO to KLAX" loading="lazy"></div></div>
       </div>
     </div>
   </section>
@@ -631,7 +624,7 @@
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <div class="brand"><img src="favicon.svg" alt="" style="width:28px;height:28px"> AvareX</div>
+        <div class="brand"><img src="logo.png" alt="" style="width:28px;height:28px"> AvareX</div>
         <p class="tag">A pilot's all-in-one electronic flight bag, by Apps4Av — the team behind Avare, rebuilt in Flutter.</p>
       </div>
       <div>
