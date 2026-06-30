@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/gdl90/ahrs_message.dart';
 import 'package:avaremp/gdl90/basic_report_message.dart';
+import 'package:avaremp/gdl90/device_report_message.dart';
 import 'package:avaremp/gdl90/heartbeat_message.dart';
 import 'package:avaremp/gdl90/ownship_geometric_altitude_message.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
@@ -62,6 +63,7 @@ class MessageFactory
         m = AhrsMessage(type);
         break;
       case MessageType.deviceReport:
+        m = DeviceReportMessage(type);
         break;
       case MessageType.rollReverse:
         Storage().isRollReversed = true;
@@ -73,7 +75,23 @@ class MessageFactory
     if (null != m) {
       m.parse(data);
     }
+    // Log received messages (decoded) for the ADS-B status screen. The status
+    // screen's per-type filter decides what is kept (AHRS is off by default).
+    Storage().adsbStatus.logMessage(
+        type, MessageType.describe(type), m?.summary() ?? "", m?.decode() ?? "",
+        _toHex(data));
     return m;
+  }
+
+  static String _toHex(Uint8List bytes) {
+    StringBuffer sb = StringBuffer();
+    for (int i = 0; i < bytes.length; i++) {
+      sb.write((bytes[i] & 0xFF).toRadixString(16).padLeft(2, '0'));
+      if (i != bytes.length - 1) {
+        sb.write(' ');
+      }
+    }
+    return sb.toString();
   }
 
   static Uint8List? _process(Uint8List msg)

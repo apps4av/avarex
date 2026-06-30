@@ -13,8 +13,18 @@ class OwnShipMessage extends Message {
   double verticalSpeed = 0;
   double heading = 0;
   bool airborne = false;
+  bool extrapolated = false;
+  int trackType = 0;
+  int nic = 0;
+  int nacp = 0;
 
   OwnShipMessage(super.type);
+
+  // Track/heading type from the low 2 bits of the misc indicator nibble.
+  static const Map<int, String> trackTypes = {
+    0: "Not valid", 1: "True track angle", 2: "Magnetic heading",
+    3: "True heading",
+  };
 
   @override
   void parse(Uint8List message) {
@@ -41,6 +51,12 @@ class OwnShipMessage extends Message {
     }
 
     airborne = (message[11] & 0x08) != 0;
+    extrapolated = (message[11] & 0x04) != 0;
+    trackType = message[11].toInt() & 0x03;
+
+    // navigation integrity / accuracy categories
+    nic = (message[12].toInt() & 0xF0) >> 4;
+    nacp = message[12].toInt() & 0x0F;
 
     upper = ((message[13].toInt() & 0xFF)) << 4;
     lower = ((message[14].toInt() & 0xF0)) >> 4;
@@ -65,6 +81,23 @@ class OwnShipMessage extends Message {
 
     // heading / track
     heading = ((message[16].toInt() & 0xFF).toDouble() * 1.40625); // heading resolution 1.40625
+  }
+
+  @override
+  String decode() {
+    double altFt = altitude * Storage().units.mToF;
+    double kts = velocity / 0.514444;
+    return "ICAO: ${icao.toRadixString(16).toUpperCase().padLeft(6, '0')} ($icao)\n"
+        "Latitude: ${coordinates.latitude.toStringAsFixed(5)}\u00b0\n"
+        "Longitude: ${coordinates.longitude.toStringAsFixed(5)}\u00b0\n"
+        "Altitude: ${altFt.toStringAsFixed(0)} ft (${altitude.toStringAsFixed(0)} m)\n"
+        "Ground speed: ${kts.toStringAsFixed(0)} kt (${velocity.toStringAsFixed(1)} m/s)\n"
+        "Track/heading: ${heading.toStringAsFixed(0)}\u00b0 (${trackTypes[trackType] ?? "?"})\n"
+        "Vertical speed: ${verticalSpeed.toStringAsFixed(0)} fpm\n"
+        "NIC: $nic\n"
+        "NACp: $nacp\n"
+        "Report: ${extrapolated ? "extrapolated" : "updated"}\n"
+        "Airborne: ${airborne ? "yes" : "no"}";
   }
 
   static double calculateDegrees(int highByte, int midByte, int lowByte) {

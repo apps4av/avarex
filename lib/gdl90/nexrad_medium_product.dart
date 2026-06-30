@@ -5,4 +5,6 @@ class NexradMediumProduct extends NexradProduct {
 
   NexradMediumProduct(super.time, super.data, super.coordinate, super.productFileId, super.productFileLength, super.apduNumber, super.segFlag);
 
+  @override
+  String regionLabel() => "NEXRAD radar (CONUS)";
 }

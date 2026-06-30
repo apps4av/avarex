@@ -30,4 +30,7 @@ class OwnShipGeometricAltitudeMessage extends Message {
       altitude = alt.round();
     }
   }
+
+  @override
+  String decode() => "Geometric altitude (ft): $altitude";
 }

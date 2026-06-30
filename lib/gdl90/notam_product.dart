@@ -78,4 +78,31 @@ class NotamProduct extends Product {
       }
     }
   }
+
+  bool _isTfr() {
+    final int geom = fisGraphics.geometryOverlayOptions;
+    return fisGraphics.coordinates.isNotEmpty &&
+        (geom == FisGraphics.shapePolygonMSL ||
+            geom == FisGraphics.shapePrismMsl ||
+            geom == FisGraphics.shapePrismAgl ||
+            geom == FisGraphics.shapePoint3DAgl);
+  }
+
+  @override
+  String decode() {
+    if (!fisGraphics.valid) {
+      return "NOTAM (no graphics)";
+    }
+    if (_isTfr()) {
+      return "NOTAM-TFR #${fisGraphics.reportNumber}\n"
+          "Vertices: ${fisGraphics.coordinates.length}\n"
+          "Altitude: ${fisGraphics.altitudeBottom}-${fisGraphics.altitudeTop} ft\n"
+          "Effective: ${fisGraphics.startTime.isEmpty ? "-" : fisGraphics.startTime}\n"
+          "Until: ${fisGraphics.endTime.isEmpty ? "-" : fisGraphics.endTime}";
+    }
+    return graphicsSummary("NOTAM");
+  }
+
+  @override
+  String shortName() => _isTfr() ? "TFR" : "NOTAM";
 }

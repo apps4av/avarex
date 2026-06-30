@@ -95,4 +95,20 @@ class NexradProduct extends Product {
     Storage().nexradCache.putImg(this);
   }
 
+  // Overridden by subclasses to distinguish CONUS vs regional mosaics.
+  String regionLabel() => "NEXRAD radar";
+
+  @override
+  String decode() {
+    final String kind = full.isNotEmpty
+        ? "precipitation (${full.length} bins)"
+        : "no precipitation (${empty.length} empty block(s))";
+    return "${regionLabel()}\n"
+        "Block: $block\n"
+        "Data: $kind";
+  }
+
+  @override
+  String shortName() => "NEXRAD";
+
 }

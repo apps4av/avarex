@@ -18,6 +18,7 @@ class TextualWeatherProduct extends Product {
   TextualWeatherProduct(super.time, super.data, super.coordinate, super.productFileId, super.productFileLength, super.apduNumber, super.segFlag);
 
   String _text = "";
+  String _type = ""; // METAR, TAF, SPECI, PIREP, WINDS
 
   @override
   void parse() {
@@ -35,6 +36,7 @@ class TextualWeatherProduct extends Product {
       return;
     }
     String type = parts[0];
+    _type = type;
     String place = parts[1];
     String report = parts.sublist(1).join(" ");
 
@@ -55,6 +57,15 @@ class TextualWeatherProduct extends Product {
         break;
     }
   }
+
+  @override
+  String decode() {
+    final String t = _text.trim();
+    return t.isEmpty ? "Text weather (empty)" : t;
+  }
+
+  @override
+  String shortName() => _type.isEmpty ? "Text" : _type;
 
   void _parseTaf(String place, String report) {
 

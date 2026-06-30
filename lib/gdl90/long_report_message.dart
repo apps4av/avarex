@@ -22,7 +22,6 @@ class LongReportMessage extends TrafficReportMessage {
   double lat = 0.0;
   int northerlyVelocity = 0;
   int easterlyVelocity = 0;
-  int nic = 0;
   bool trueTrackAngle = false;
   bool magneticHeading = false;
   bool trueHeading = false;
@@ -279,4 +278,21 @@ class LongReportMessage extends TrafficReportMessage {
     coordinates = LatLng(lat, lon);
     Storage().trafficCache.putTraffic(this);
   }
+
+  String _targetType() {
+    if (adsbTarget) return "ADS-B";
+    if (adsrTarget && tisbTarget) return "TIS-B/ADS-R";
+    if (tisbTarget) return "TIS-B";
+    if (adsrTarget) return "ADS-R";
+    if (surfaceVehicle) return "Surface vehicle";
+    if (adsbBeacon) return "Beacon";
+    return "Unknown";
+  }
+
+  @override
+  String decode() =>
+      "Target type: ${_targetType()}\n"
+      "NIC: $nic\n"
+      "Address qualifier: $addressQualifier\n"
+      "${commonDecode()}";
 }

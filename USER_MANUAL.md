@@ -224,12 +224,25 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 | **UTC** | Current UTC time (HH:MM) | — |
 | **SRC** | GPS source mode. Shows `Internal`, `External`, `Internal-A`, or `External-A` (A=Auto mode) | Tap to cycle modes: Auto, Internal, External. Green=Internal, Blue=External |
 | **FLT** | Total flight time in hours | Reset timer |
-| **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Green filled circle ● = connected with GPS; yellow filled circle ● = connected without GPS (partial); empty circle ○ = disconnected. Only the circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen (connected, GPS valid, UTC OK, UAT initialized, ground stations) with a back button |
+| **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Green filled circle ● = connected with GPS; yellow filled circle ● = connected without GPS (partial); empty circle ○ = disconnected. Only the circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen |
 
 Interactions:
 
 - **Drag** any tile to move it anywhere on the screen; its position is saved automatically.
 - **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Lock Tiles**/**Unlock Tiles** to prevent or allow moving tiles (unlocked by default), a row for every tile with a **+** (show) / **−** (hide) toggle, **Reset Layout** to restore the default tiles and positions, and a **Help** entry with tile descriptions.
+- **Tap the `ADSB` tile** to open the **ADS-B Status** screen (back button in the app bar). It shows live receiver status (connected, GPS position valid, UTC timing OK, UAT initialized, ground stations received) and a scrolling log of the **last 50 received messages**, newest first. Use the **filter** button (funnel icon) to choose which message types appear in the log — toggle Heartbeat, Uplink, Ownship, Traffic, Basic/Long report, AHRS, Device, and more. **AHRS is off by default** because it arrives many times per second and would crowd out other messages. For FIS-B uplinks, the collapsed row also shows a short summary of the products carried (e.g. `uplink (0x07) — METAR, NEXRAD, TFR`). **Tap any message** to expand its decoded fields along with the **raw bytes** (selectable hex). Decoded detail per message type includes:
+  - **Heartbeat**: GPS position valid, maintenance required, GPS battery low, UTC timing OK, UAT initialized, receiver UTC time, and uplink/traffic message counts.
+  - **Traffic**: alert status, address type (ADS-B/TIS-B/surface/beacon), NIC/NACp integrity and accuracy, emergency/priority code, callsign, ICAO, position, altitude, ground speed, track/heading, vertical speed, emitter category, and airborne state.
+  - **Basic/Long report**: target type, NIC, address qualifier, plus the common traffic fields above.
+  - **Ownship**: ICAO, position, altitude, ground speed, track/heading with track type, vertical speed, NIC/NACp, report (updated/extrapolated), and airborne state.
+  - **FIS-B uplink**: ground station position, position-valid flag, slot ID, TIS-B site ID, and each weather product carried in the frame, decoded individually:
+    - **METAR/SPECI/TAF/PIREP/Winds Aloft**: the full textual report.
+    - **NOTAM / NOTAM-TFR**: NOTAM text, or for TFRs the report number, polygon vertex count, altitude band, and effective/expiry times.
+    - **NEXRAD radar** (regional or CONUS): the bin block number and whether the block carries precipitation or is empty.
+    - **SIGMET / AIRMET / SUA**: location, polygon vertex count, effective times, and any embedded text.
+  - **Device report**: battery charge percentage and charging state.
+
+  Use **Pause**/**Resume** to freeze or continue the live log. Leaving the screen automatically pauses the log (it resumes when you reopen the screen).
 
 ### 4.7 GPWS (Ground Proximity Warning System)
 

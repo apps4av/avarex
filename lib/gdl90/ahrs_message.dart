@@ -163,4 +163,18 @@ class AhrsMessage extends Message {
     setPfd(Storage().pfdData);
     Storage().pfdChange.value++;
   }
+
+  String _f(double? v) => v == null ? "-" : v.toStringAsFixed(1);
+
+  @override
+  String decode() =>
+      "Roll: ${_f(roll)}\n"
+      "Pitch: ${_f(pitch)}\n"
+      "Yaw: ${_f(yaw)}\n"
+      "Slip: ${_f(slip)}\n"
+      "Turn trend: ${_f(turnTrend)}\n"
+      "Speed: ${_f(speed)}\n"
+      "Altitude: ${_f(altitude)}\n"
+      "VSI: ${_f(vsi)}\n"
+      "AOA: ${_f(aoa)}";
 }
