@@ -446,14 +446,16 @@ class InstrumentListState extends State<InstrumentList> {
     Storage().settings.setInstrumentVisible(_visible.join(","));
   }
 
-  // add a hidden tile from the menu, placing it at its default slot
-  void _addTile(String code) {
-    if(_visible.contains(code)) {
-      return;
-    }
+  // show/hide a tile from the menu; added tiles get their default slot
+  void _toggleTile(String code) {
     setState(() {
-      _visible.add(code);
-      _positions[code] ??= _defaultPositions()[code] ?? const Offset(0, 0);
+      if(_visible.contains(code)) {
+        _visible.remove(code);
+      }
+      else {
+        _visible.add(code);
+        _positions[code] ??= _defaultPositions()[code] ?? const Offset(0, 0);
+      }
     });
     _saveVisible();
     _savePositions();
@@ -590,6 +592,37 @@ class InstrumentListState extends State<InstrumentList> {
           },
           items: [
             DropdownMenuItem(
+              value: "4",
+              onTap:() {
+                // Make a toast and show
+                Toast.showToast(context,
+                    "You may adjust the size of the tiles using Expand/Contract.\n"
+                    "You may drag any tile to move it anywhere on the screen.\n"
+                    "Use Lock Tiles to prevent accidentally moving tiles, and Unlock Tiles to move them again.\n"
+                    "Each tile is listed in this menu: tap + to show it, or - to hide it.\n"
+                    "Use Reset Layout to restore the default tiles and positions.\n\n"
+                    "Available Tiles:\n"
+                    "GS  - Ground speed.\n"
+                    "ALT - GPS altitude.\n"
+                    "MT  - Magnetic track.\n"
+                    "PRV - Tap to go to the previous waypoint as shown.\n"
+                    "NXT - Tap to go to the next waypoint as shown.\n"
+                    "DIS - Distance to the next waypoint.\n"
+                    "BRG - Bearing to the next waypoint.\n"
+                    "GEL - Ground elevation. Needs Elevation charts.\n"
+                    "ETA - Estimated time of arrival at the next waypoint.\n"
+                    "ETE - Estimated time en-route to the next waypoint.\n"
+                    "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
+                    "UPT - Tap to start/stop the up timer.\n"
+                    "DNT - Tap to start/stop the down timer.\n"
+                    "UTC - Coordinated Universal Time.\n"
+                    "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
+                    "FLT - Total flight time in hours. Tap to reset.\n",
+                    null, 30);
+                },
+                child: _menuRow(Icons.help_outline, "Help"),
+            ),
+            DropdownMenuItem(
               value: "1",
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
@@ -619,42 +652,11 @@ class InstrumentListState extends State<InstrumentList> {
               onTap: _resetLayout,
               child: _menuRow(Icons.restart_alt, "Reset Layout"),
             ),
-            for(final String code in _items.where((c) => c.isNotEmpty && !_visible.contains(c)))
+            for(final String code in _items.where((c) => c.isNotEmpty))
               DropdownMenuItem(
-                value: "add-$code",
-                onTap: () => _addTile(code),
-                child: _menuRow(Icons.add_circle_outline, "Add  $code"),
-              ),
-            DropdownMenuItem(
-              value: "4",
-              onTap:() {
-                // Make a toast and show
-                Toast.showToast(context,
-                    "You may adjust the size of the tiles using Expand/Contract.\n"
-                    "You may drag any tile to move it anywhere on the screen.\n"
-                    "Use Lock Tiles to prevent accidentally moving tiles, and Unlock Tiles to move them again.\n"
-                    "Use the Add entries in this menu to show more tiles, one at a time.\n"
-                    "Use Reset Layout to restore the default tiles and positions.\n\n"
-                    "Available Tiles:\n"
-                    "GS  - Ground speed.\n"
-                    "ALT - GPS altitude.\n"
-                    "MT  - Magnetic track.\n"
-                    "PRV - Tap to go to the previous waypoint as shown.\n"
-                    "NXT - Tap to go to the next waypoint as shown.\n"
-                    "DIS - Distance to the next waypoint.\n"
-                    "BRG - Bearing to the next waypoint.\n"
-                    "GEL - Ground elevation. Needs Elevation charts.\n"
-                    "ETA - Estimated time of arrival at the next waypoint.\n"
-                    "ETE - Estimated time en-route to the next waypoint.\n"
-                    "VSR - VSI required to arrive at the NXT airport 1000ft above its elevation.\n"
-                    "UPT - Tap to start/stop the up timer.\n"
-                    "DNT - Tap to start/stop the down timer.\n"
-                    "UTC - Coordinated Universal Time.\n"
-                    "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
-                    "FLT - Total flight time in hours. Tap to reset.\n",
-                    null, 30);
-                },
-                child: _menuRow(Icons.help_outline, "Help"),
+                value: "toggle-$code",
+                onTap: () => _toggleTile(code),
+                child: _menuRow(_visible.contains(code) ? Icons.remove_circle_outline : Icons.add_circle_outline, code),
               ),
           ],
         )
