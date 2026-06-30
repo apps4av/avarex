@@ -14,6 +14,7 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/chart/download_screen.dart';
 import 'package:avaremp/instruments/flight_status.dart';
+import 'package:avaremp/gdl90/adsb_status.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
@@ -141,6 +142,9 @@ class Storage {
     return gpsSourceMode;
   }
   bool isRollReversed = false;
+
+  // ADS-B receiver status (heartbeat + ground uplinks post to this directly)
+  final AdsbStatus adsbStatus = AdsbStatus();
 
   // gps
   final _gps = Gps();

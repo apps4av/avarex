@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'fis_buffer.dart';
@@ -57,6 +58,13 @@ class UplinkMessage extends Message {
     bool applicationDataValid = (message[skip + 6].toInt() & 0x20) != 0;
     if (false == applicationDataValid) {
       return;
+    }
+
+    // The uplink frame carries the position of the transmitting ground
+    // station ("tower"). Record it for the ADS-B reception indicator, skipping
+    // an unlocked 0,0 position.
+    if (!(degLat == 0 && degLon == 0)) {
+      Storage().adsbStatus.reportGroundStation(LatLng(degLat, degLon));
     }
 
     // byte 9-432: application data (multiple iFrames).

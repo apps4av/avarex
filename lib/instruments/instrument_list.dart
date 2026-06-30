@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:avaremp/destination/destination_calculations.dart';
+import 'package:avaremp/gdl90/adsb_status_screen.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
 import 'package:avaremp/plan/plan_route.dart';
@@ -70,6 +71,8 @@ class InstrumentListState extends State<InstrumentList> {
   String _vsr = "";
   String _flightTime = "00:00";
   String _gel = "DL";
+  String _adsb = "\u25cb"; // empty circle
+  Color? _adsbColor; // circle color: null=default, yellow=partial, green=connected
 
   @override
   void dispose() {
@@ -289,6 +292,12 @@ class InstrumentListState extends State<InstrumentList> {
       // Auto = default tile color, Green = Internal, Blue = External
       defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
+      // ADSB: filled circle when connected (green with GPS, yellow without GPS),
+      // empty circle when disconnected. Only the circle is colored, not the tile.
+      bool connected = Storage().adsbStatus.connected;
+      bool gpsValid = Storage().adsbStatus.gpsValid;
+      _adsb = connected ? "\u25cf" : "\u25cb"; // filled vs empty circle
+      _adsbColor = !connected ? null : (gpsValid ? Colors.green : Colors.yellow);
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
   }
@@ -350,6 +359,13 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _source = Storage().getGpsSourceModeString();
     });
+  }
+
+  // ADS-B tile tap: open the receiver status screen.
+  void _showAdsbDetails() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AdsbStatusScreen()),
+    );
   }
 
   // tile dimensions, scaled by the user adjustable factor
@@ -484,6 +500,7 @@ class InstrumentListState extends State<InstrumentList> {
     Offset frac = _positions[code] ?? const Offset(0, 0);
 
     String value = "";
+    Color? valueColor; // override the value text color (used by the ADSB tile)
     Function() cb = () {};
 
     // set callbacks and connect values
@@ -542,6 +559,11 @@ class InstrumentListState extends State<InstrumentList> {
         value = _flightTime;
         cb = _resetTacTimer;
         break;
+      case "ADSB":
+        value = _adsb;
+        valueColor = _adsbColor;
+        cb = _showAdsbDetails;
+        break;
     }
 
     return Positioned(
@@ -566,7 +588,7 @@ class InstrumentListState extends State<InstrumentList> {
           child: Column(
             children: [
               Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
-              Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: const TextStyle( ), maxLines: 1,)))),
+              Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: TextStyle(color: valueColor), maxLines: 1,)))),
             ]),
         ),
       ),
@@ -617,7 +639,8 @@ class InstrumentListState extends State<InstrumentList> {
                     "DNT - Tap to start/stop the down timer.\n"
                     "UTC - Coordinated Universal Time.\n"
                     "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
-                    "FLT - Total flight time in hours. Tap to reset.\n",
+                    "FLT - Total flight time in hours. Tap to reset.\n"
+                    "ADSB- ADS-B receiver status. Green \u25cf=connected, yellow \u25cf=connected without GPS, \u25cb=disconnected. Click on the tile to open the status screen.\n",
                     null, 30);
                 },
                 child: _menuRow(Icons.help_outline, "Help"),
@@ -678,7 +701,7 @@ class InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
-    _itemsColors = List.generate(Storage().settings.getInstruments().split(",").length, (index) => Theme.of(context).cardColor.withValues(alpha: 0.6));
+    _itemsColors = List.generate(_items.length, (index) => Theme.of(context).cardColor.withValues(alpha: 0.6));
 
     // init everything
     _gpsListener();

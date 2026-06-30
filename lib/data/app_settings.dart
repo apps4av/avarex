@@ -83,7 +83,7 @@ class AppSettings {
   }
 
   String getInstruments() {
-    return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT") as String;
+    return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT,ADSB") as String;
   }
 
   // Which instrument tiles are currently shown, in the order they were added.

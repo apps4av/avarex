@@ -139,6 +139,9 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 - **Chart type popup**: selects chart source type.
 - **Layers popup**: per-layer on/off via opacity slider.
 
+#### Top-left
+- **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
+
 #### Traffic-only controls (show when Traffic layer > 0)
 - **Traffic puck size** cycles: `S`, `M`, `L`
   - S: 20 aircraft, 3000 ft, 10 NM
@@ -221,6 +224,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 | **UTC** | Current UTC time (HH:MM) | — |
 | **SRC** | GPS source mode. Shows `Internal`, `External`, `Internal-A`, or `External-A` (A=Auto mode) | Tap to cycle modes: Auto, Internal, External. Green=Internal, Blue=External |
 | **FLT** | Total flight time in hours | Reset timer |
+| **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Green filled circle ● = connected with GPS; yellow filled circle ● = connected without GPS (partial); empty circle ○ = disconnected. Only the circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen (connected, GPS valid, UTC OK, UAT initialized, ground stations) with a back button |
 
 Interactions:
 
@@ -1174,6 +1178,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
 | Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
+| Check ADS-B receiver status | `MAP → ADSB instrument tile` (movable; tap opens ADS-B Status screen) |
 | Notes/drawing | `MAP → Notes icon` |
 | Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template` |
 | Notes number keypad | `MAP → Notes icon → dialpad icon` |
