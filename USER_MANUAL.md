@@ -201,7 +201,7 @@ Notes:
 
 ### 4.6 Instrument overlay (movable tiles)
 
-Instrument tiles float as a full-screen overlay on top of the map. Each tile can be **dragged independently** to any position on the screen, and its position is remembered across app restarts (separate layouts are kept for portrait and landscape orientation). By default only the first few tiles are shown; add the rest one at a time from the menu. Available tiles include:
+Instrument tiles float as a full-screen overlay on top of the map. Each tile can be **dragged independently** to any position on the screen, and its position is remembered across app restarts (separate layouts are kept for portrait and landscape orientation). By default only the first few tiles are shown; every tile has a row in the menu with a **+**/**−** toggle to show or hide it. Available tiles include:
 
 | Tile | Description | Tap Action |
 |------|-------------|------------|
@@ -225,7 +225,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 Interactions:
 
 - **Drag** any tile to move it anywhere on the screen; its position is saved automatically.
-- **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Lock Tiles**/**Unlock Tiles** to prevent or allow moving tiles (unlocked by default), **Add XXX** entries to show any hidden tile one at a time, **Reset Layout** to restore the default tiles and positions, and `?` for help with tile descriptions.
+- **Dropdown arrow** (top-left menu): **Expand**/**Contract** tile sizes, **Lock Tiles**/**Unlock Tiles** to prevent or allow moving tiles (unlocked by default), a row for every tile with a **+** (show) / **−** (hide) toggle, **Reset Layout** to restore the default tiles and positions, and a **Help** entry with tile descriptions.
 
 ### 4.7 GPWS (Ground Proximity Warning System)
 
