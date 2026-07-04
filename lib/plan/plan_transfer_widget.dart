@@ -21,13 +21,10 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
   @override
   void initState() {
     super.initState();
-    _avidyne.acquire();
-  }
-
-  @override
-  void dispose() {
-    _avidyne.release();
-    super.dispose();
+    // Discovery is normally already running (started with network IO for
+    // Capstone ADS-B); this just makes sure it is up while the transfer UI is
+    // open. It is intentionally left running on dispose.
+    _avidyne.start();
   }
 
   Future<void> _sendToIfd(AvidyneDevice device) async {

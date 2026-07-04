@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:avaremp/avidyne/avidyne_ifd.dart';
 import 'package:avaremp/instruments/autopilot.dart';
 import 'package:avaremp/io/io_screen.dart';
 import 'package:flutter/foundation.dart';
@@ -322,6 +323,11 @@ class Storage {
 
     // GPS data receive
     _udpReceiver.start([4000, 43211, 49002], [false, false, false]);
+
+    // Broadcast the Avidyne "AVISDK" trigger so any Avidyne IFD on the network
+    // starts streaming its Capstone (GDL90) ADS-B data. That data arrives on
+    // UDP 4000 above and flows through the normal GDL90 decoder.
+    AvidyneIfd().start();
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
       gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
@@ -336,6 +342,12 @@ class Storage {
     }
     catch(e) {
       AppLog.logMessage("Error stopping UDP: $e");
+    }
+    try {
+      AvidyneIfd().stop();
+    }
+    catch(e) {
+      AppLog.logMessage("Error stopping Avidyne discovery: $e");
     }
     try {
       _gpsStream?.cancel();

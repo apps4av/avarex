@@ -58,6 +58,7 @@ You can reopen onboarding later from the drawer header icon.
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
 | Plan Transfer to Avidyne IFD (Wi-Fi)                                                             | All supported platforms |
+| Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -481,6 +482,8 @@ The `Transfer` sub-page sends the active flight plan to a panel-mounted **Avidyn
 - Tap **Send** next to an IFD to upload the plan as a stored route. The IFD must have flight-plan input enabled (the list notes when it is not).
 - The uploaded route reproduces the AvareX waypoints on the IFD ("stick route"); review and activate it on the IFD.
 - **iOS only**: the **Local Network** permission must be granted for discovery and upload to work.
+
+**Avidyne ADS-B (Capstone):** While AvareX is running on the same Wi-Fi network as an IFD equipped with an ADS-B receiver, it also receives the IFD's **Capstone** ADS-B stream automatically. Capstone is GDL90-format data, so traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and receiver status appear the same way as with any other GDL90 device — no separate setup is needed beyond being on the IFD's network (and, on iOS, the **Local Network** permission).
 
 ### 7.5 Route building details
 
@@ -1727,6 +1730,8 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 
 **Supported avionics:** Panel-mounted Avidyne IFD440/540/550 units with flight-plan input enabled. On iOS, grant the **Local Network** permission for discovery and upload to work.
 
+If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B traffic and weather automatically over the same Wi-Fi network (Capstone is GDL90 data received on UDP `4000`). See FAQ-16 for the iOS Local Network requirement.
+
 ### FAQ-03: Where do I enable new wind/ceiling map features?
 
 - `MAP → Layers`:
@@ -1861,6 +1866,6 @@ Notes:
 - This setting is per-app and per-device; each iPhone and iPad must be configured separately.
 - A factory reset of network settings or "Reset Location & Privacy" will clear this — you'll need to re-enable it.
 - This does not affect Android. Android handles Wi-Fi UDP without an extra runtime permission, which is why the same Stratux works fine with AVARE on Android.
-- AvareX always listens on UDP `4000` (Stratux/Stratus/Echo GDL90), `43211` (ForeFlight), and `49002` (X-Plane). There is no port to configure inside the app — if data is reaching the phone over Wi-Fi and Local Network is allowed, AvareX will pick it up.
+- AvareX always listens on UDP `4000` (Stratux/Stratus/Echo GDL90, and Avidyne IFD Capstone), `43211` (ForeFlight), and `49002` (X-Plane). There is no port to configure inside the app — if data is reaching the phone over Wi-Fi and Local Network is allowed, AvareX will pick it up.
 
 ---
