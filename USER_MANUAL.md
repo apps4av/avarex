@@ -57,7 +57,7 @@ You can reopen onboarding later from the drawer header icon.
 | Vector map layer with airspace                                                                   | All supported platforms |
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
-| Plan Transfer to Avidyne IFD (Wi-Fi)                                                             | All supported platforms |
+| Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
@@ -475,13 +475,13 @@ Requires configured 1800wxbrief-compatible account email.
 
 #### E) Transfer
 
-The `Transfer` sub-page sends the active flight plan to a panel-mounted **Avidyne IFD440/540/550** over Wi-Fi. It requires a route with at least 2 waypoints.
+The `Transfer` sub-page exchanges flight plans with a panel-mounted **Avidyne IFD440/540/550** over Wi-Fi, in both directions.
 
 - Connect your device to the **same Wi-Fi network** as the IFD (use the IFD's Maintenance-mode network page to configure it).
-- AvareX automatically searches for IFDs; discovered units appear in a list showing their IP address and software version.
-- Tap **Send** next to an IFD to upload the plan as a stored route. The IFD must have flight-plan input enabled (the list notes when it is not).
-- The uploaded route reproduces the AvareX waypoints on the IFD ("stick route"); review and activate it on the IFD.
-- **iOS only**: the **Local Network** permission must be granted for discovery and upload to work.
+- AvareX automatically searches for IFDs; discovered units appear in a list showing their IP address and software version. Each has two buttons:
+  - **Send** — uploads the active AvareX plan to the IFD as a stored route. Requires a route with at least 2 waypoints, and the IFD must have flight-plan input enabled (the list notes when it is not). The uploaded route reproduces the AvareX waypoints on the IFD ("stick route"); review and activate it on the IFD.
+  - **Get** — downloads the IFD's flight plan and loads it into the active AvareX plan (replacing the current one). Each downloaded waypoint is matched to the AvareX database by identifier (closest to the IFD's coordinate); waypoints that cannot be matched are added as GPS coordinate points. Airway/procedure legs are reproduced as their coordinate waypoints.
+- **iOS only**: the **Local Network** permission must be granted for discovery and transfer to work.
 
 **Avidyne ADS-B (Capstone):** While AvareX is running on the same Wi-Fi network as an IFD equipped with an ADS-B receiver, it also receives the IFD's **Capstone** ADS-B stream automatically. Capstone is GDL90-format data, so traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and receiver status appear the same way as with any other GDL90 device — no separate setup is needed beyond being on the IFD's network (and, on iOS, the **Local Network** permission).
 
@@ -1177,7 +1177,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Load reversed plan | `PLAN → Actions → Load & Save → 3-dot menu → Load Reversed` |
 | Create IFR preferred route | `PLAN → Actions → Create → Create IFR Preferred Route` |
 | Show recent ATC routes | `PLAN → Actions → Create → Show IFR ATC Routes` |
-| Send plan to Avidyne IFD (Wi-Fi) | `PLAN → Actions → Transfer` |
+| Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Actions → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
@@ -1440,16 +1440,15 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 3. Open `MAP` and set `GeoJSON` layer opacity > 0.
 4. Imported polygons/markers now draw on the map.
 
-### UC-12: Send your plan to an Avidyne IFD over Wi-Fi
+### UC-12: Send your plan to, or get a plan from, an Avidyne IFD over Wi-Fi
 
-This feature uploads the active flight plan to a panel-mounted Avidyne IFD440/540/550 as a stored route.
+Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either direction.
 
-1. Build your route with at least 2 waypoints.
-2. Connect this device to the **same Wi-Fi network** as the IFD (configure the network on the IFD's Maintenance-mode page if needed). **iOS**: grant the **Local Network** permission.
-3. Open `PLAN → Actions → Transfer`.
-4. Under **Avidyne IFD (Wi-Fi)**, wait for the IFD to appear in the list.
-5. Tap **Send** next to the IFD.
-6. Wait for the success toast, then **review and activate** the uploaded route on the IFD.
+1. Connect this device to the **same Wi-Fi network** as the IFD (configure the network on the IFD's Maintenance-mode page if needed). **iOS**: grant the **Local Network** permission.
+2. Open `PLAN → Actions → Transfer`.
+3. Under **Avidyne IFD (Wi-Fi)**, wait for the IFD to appear in the list.
+4. To **send**: build your route with at least 2 waypoints, then tap **Send** next to the IFD. Wait for the success toast, then **review and activate** the uploaded route on the IFD.
+5. To **get**: tap **Get** next to the IFD. AvareX downloads the IFD's flight plan and loads it into the active plan (replacing the current one). Matched waypoints keep their database type; unmatched ones become GPS coordinate points.
 
 ### UC-13: Back up and restore app data (Pro)
 
@@ -1722,11 +1721,12 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
   - Android IO functionality:  
     `https://groups.google.com/g/apps4av-forum/c/WI-BcDK7rT0`
 
-### FAQ-02: How do I transfer a plan to an external device?
+### FAQ-02: How do I transfer a plan to or from an external device?
 
-- Build a route with at least 2 waypoints.
 - Connect this device to the **same Wi-Fi network** as your Avidyne IFD.
-- Open `PLAN → Actions → Transfer`, wait for the IFD to appear, then tap **Send**.
+- Open `PLAN → Actions → Transfer` and wait for the IFD to appear.
+- To upload: build a route with at least 2 waypoints, then tap **Send**.
+- To download the IFD's plan into AvareX: tap **Get** (this replaces the active plan).
 
 **Supported avionics:** Panel-mounted Avidyne IFD440/540/550 units with flight-plan input enabled. On iOS, grant the **Local Network** permission for discovery and upload to work.
 

@@ -31,10 +31,20 @@ class AvidyneRoutePoint {
   });
 }
 
+/// A route parsed back out of a stored-route file downloaded from the IFD.
+class AvidyneParsedRoute {
+  final String name;
+  final List<AvidyneRoutePoint> points;
+
+  const AvidyneParsedRoute({required this.name, required this.points});
+}
+
 class AvidyneStoredRoute {
   // Procedure kinds (Procedure::KindType).
   static const int _kindOrigin = 1;
+  static const int _kindDestArpt = 2;
   static const int _kindDirect = 3;
+  static const int _kindStarAppDest = 10;
 
   // Fix kinds (Procedure::FixKindType).
   static const int fixNone = 0;
@@ -238,5 +248,170 @@ class AvidyneStoredRoute {
       return cleaned.substring(0, _routeNameLen - 1);
     }
     return cleaned;
+  }
+
+  // --- Download / parsing ------------------------------------------------
+
+  /// Parses a stored-route file (as produced by [buildRouteFileFromPoints] or
+  /// downloaded from the IFD) back into a name and the list of waypoints that
+  /// carry a usable coordinate (origin, destination and direct legs).
+  ///
+  /// Airway/procedure/hold records are skipped: they reference multi-point
+  /// structures rather than a single coordinate, so they cannot be reproduced
+  /// as a plain "stick route" waypoint.
+  static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
+    if (bytes.length < _routeNameLen + 1) {
+      return null;
+    }
+    final String name = _readCString(bytes, 0, _routeNameLen).trim();
+    final int numRecords = bytes[_routeNameLen];
+    final List<AvidyneRoutePoint> points = [];
+
+    int offset = _routeNameLen + 1;
+    for (int i = 0; i < numRecords && i < _maxRecords; i++) {
+      if (offset + _recordLen > bytes.length) {
+        break;
+      }
+      final int kind = bytes[offset];
+      final int fixKind = bytes[offset + 1];
+      if (kind == _kindOrigin ||
+          kind == _kindDirect ||
+          kind == _kindDestArpt ||
+          kind == _kindStarAppDest) {
+        final int nameStart = offset + 2;
+        final String ident = _readCString(bytes, nameStart, _nameLen);
+        final double? lat = _parseCoordinate(bytes, nameStart + _nameLen, _ref1Len);
+        final double? lon =
+            _parseCoordinate(bytes, nameStart + _nameLen + _ref1Len, _ref2Len);
+        if (lat != null &&
+            lon != null &&
+            lat.abs() <= 90.0 &&
+            lon.abs() <= 180.0 &&
+            !(lat == 0.0 && lon == 0.0)) {
+          points.add(AvidyneRoutePoint(
+              id: ident, latitude: lat, longitude: lon, fixKind: fixKind));
+        }
+      }
+      offset += _recordLen;
+    }
+
+    return AvidyneParsedRoute(name: name, points: points);
+  }
+
+  /// Decompresses a file received over the WiFiCrChannel download protocol.
+  ///
+  /// Downloaded files carry a small header: a 1 byte "is RLE" flag, a 4 byte
+  /// big-endian uncompressed length, the (optionally RLE compressed) payload,
+  /// and a trailing 2 byte Fletcher-16 checksum. Port of
+  /// `WiFiCrChannel::Decompress`.
+  static Uint8List? decompressDownload(Uint8List raw) {
+    if (raw.length < 7) {
+      return null;
+    }
+    final int isRle = raw[0];
+    final int fileSize =
+        (raw[1] << 24) | (raw[2] << 16) | (raw[3] << 8) | raw[4];
+    if (fileSize <= 0 || fileSize > 1 << 20) {
+      return null;
+    }
+    final int payloadLen = raw.length - 7;
+    if (payloadLen < 0) {
+      return null;
+    }
+    final Uint8List payload = Uint8List.sublistView(raw, 5, 5 + payloadLen);
+
+    if (isRle == 1) {
+      final List<int> computed = _fletcher16(payload);
+      final int c0 = raw[5 + payloadLen];
+      final int c1 = raw[5 + payloadLen + 1];
+      if (computed[0] != c0 || computed[1] != c1) {
+        return null;
+      }
+      return _rleUncompress(payload, fileSize);
+    }
+
+    // Not compressed: the payload is the file (possibly with trailing slack).
+    if (payloadLen < fileSize) {
+      return null;
+    }
+    return Uint8List.fromList(payload.sublist(0, fileSize));
+  }
+
+  /// Fletcher-16 checksum returning [sum2, sum1] to match `CompUtils::FletcherSum`.
+  static List<int> _fletcher16(Uint8List data) {
+    int s1 = 0;
+    int s2 = 0;
+    for (final int b in data) {
+      s1 = (s1 + b) % 255;
+      s2 = (s1 + s2) % 255;
+    }
+    return [s2 & 0xFF, s1 & 0xFF];
+  }
+
+  /// Run length decoder, port of `CompUtils::RLE_Uncompress2` with diff=false.
+  static Uint8List? _rleUncompress(Uint8List input, int outSize) {
+    final Uint8List out = Uint8List(outSize);
+    final int inSize = input.length;
+    int inpos = 0;
+    int outpos = 0;
+
+    while (inpos < inSize) {
+      final int token = input[inpos];
+      if ((token & 0x80) != 0) {
+        // A run of raw, non-repeated bytes.
+        final int count = token & 0x7f;
+        inpos++;
+        int i = 0;
+        for (; i < count && outpos < outSize && inpos < inSize; i++) {
+          out[outpos++] = input[inpos++];
+        }
+        if (i != count) {
+          return null;
+        }
+      } else if (token >= 2) {
+        // A repeated byte.
+        if (inpos + 1 >= inSize) {
+          return null;
+        }
+        final int count = input[inpos++];
+        final int value = input[inpos++];
+        int i = 0;
+        for (; i < count && outpos < outSize; i++) {
+          out[outpos++] = value;
+        }
+        if (i != count) {
+          return null;
+        }
+      } else {
+        return null; // corrupt token
+      }
+    }
+
+    if (outpos == outSize) {
+      return out;
+    }
+    // Accept short output by trimming (matches the SDK returning the actual
+    // produced length).
+    return Uint8List.sublistView(out, 0, outpos);
+  }
+
+  static String _readCString(Uint8List bytes, int start, int len) {
+    final StringBuffer sb = StringBuffer();
+    for (int i = 0; i < len && start + i < bytes.length; i++) {
+      final int c = bytes[start + i];
+      if (c == 0) {
+        break;
+      }
+      sb.writeCharCode(c);
+    }
+    return sb.toString().trim();
+  }
+
+  static double? _parseCoordinate(Uint8List bytes, int start, int len) {
+    final String s = _readCString(bytes, start, len).trim();
+    if (s.isEmpty) {
+      return null;
+    }
+    return double.tryParse(s);
   }
 }

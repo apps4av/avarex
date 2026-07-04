@@ -126,7 +126,6 @@ class AiScreenState extends State<AiScreen> {
         final query = Content.multi(parts);
         final responseT = await _model.countTokens([query]);
         final totalTokens = responseT.totalTokens;
-        print(totalTokens);
         if(myQuery.length > 2048) {
           ret = "Question length must be less than 2048 characters";
         }

@@ -3,8 +3,14 @@ import 'dart:async';
 import 'package:avaremp/avidyne/avidyne_discovery.dart';
 import 'package:avaremp/avidyne/avidyne_stored_route.dart';
 import 'package:avaremp/avidyne/avidyne_wifi_channel.dart';
+import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/plan/plan_route.dart';
+import 'package:avaremp/plan/waypoint.dart';
+import 'package:avaremp/utils/app_log.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 
 /// High level manager for talking to Avidyne IFD units over Wi-Fi.
 ///
@@ -120,5 +126,92 @@ class AvidyneIfd {
       _transferInProgress = false;
       change.value++;
     }
+  }
+
+  /// Downloads the active route from [device] and turns it into an AvareX
+  /// [PlanRoute].
+  ///
+  /// Returns a record of (route, error); exactly one is non-null. Each IFD
+  /// waypoint is resolved against the AvareX database by identifier (picking
+  /// the closest match to the IFD coordinate) so it keeps its real type; if it
+  /// cannot be resolved, a plain GPS coordinate waypoint is used instead.
+  Future<(PlanRoute?, String?)> importFlightPlan(AvidyneDevice device) async {
+    if (_transferInProgress) {
+      return (null, "A transfer is already in progress.");
+    }
+
+    _transferInProgress = true;
+    change.value++;
+    try {
+      final AvidyneWifiChannel channel = AvidyneWifiChannel();
+      final (Uint8List? bytes, String? error) =
+          await channel.download(device.ipAddress, AvidyneWifiChannel.datasetRoute);
+      if (error != null) {
+        return (null, error);
+      }
+      if (bytes == null) {
+        return (null, "No flight plan received from the IFD.");
+      }
+
+      final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
+      if (parsed == null || parsed.points.isEmpty) {
+        return (null, "The IFD did not return a usable flight plan.");
+      }
+
+      final PlanRoute route = await _buildRoute(parsed);
+      if (route.length < 1) {
+        return (null, "The IFD flight plan had no usable waypoints.");
+      }
+      return (route, null);
+    } finally {
+      _transferInProgress = false;
+      change.value++;
+    }
+  }
+
+  Future<PlanRoute> _buildRoute(AvidyneParsedRoute parsed) async {
+    final PlanRoute route =
+        PlanRoute(parsed.name.isEmpty ? "IFD Route" : parsed.name);
+    for (final AvidyneRoutePoint p in parsed.points) {
+      final Destination d = await _resolvePoint(p);
+      route.addWaypoint(Waypoint(d));
+    }
+    return route;
+  }
+
+  Future<Destination> _resolvePoint(AvidyneRoutePoint p) async {
+    final LatLng target = LatLng(p.latitude, p.longitude);
+    final String ident = p.id.trim();
+
+    if (ident.isNotEmpty) {
+      try {
+        final List<Destination> matches =
+            await MainDatabaseHelper.db.findDestinations(ident, exact: true);
+        Destination? best;
+        double bestDistance = double.infinity;
+        for (final Destination m in matches) {
+          // Airways/procedures are not single coordinate waypoints.
+          if (Destination.isAirway(m.type) || Destination.isProcedure(m.type)) {
+            continue;
+          }
+          final double dist =
+              GeoCalculations().calculateDistance(target, m.coordinate);
+          if (dist < bestDistance) {
+            bestDistance = dist;
+            best = m;
+          }
+        }
+        // Only accept the database hit if it is near the IFD coordinate (a few
+        // miles) so we do not grab an identically named fix in another region.
+        if (best != null && bestDistance <= 5.0) {
+          return await DestinationFactory.make(best);
+        }
+      } catch (e) {
+        AppLog.logMessage("Avidyne import lookup failed for $ident: $e");
+      }
+    }
+
+    // Fall back to a GPS coordinate waypoint.
+    return Destination.fromLatLng(target);
   }
 }
