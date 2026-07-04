@@ -53,7 +53,6 @@ class InstrumentListState extends State<InstrumentList> {
   // Tiles currently shown, in the order they were added. The rest are hidden
   // and can be added one by one from the menu.
   final List<String> _visible = [];
-  bool _visibleLoaded = false;
   static const int _defaultVisibleCount = 5;
   String _gndSpeed = "0";
   String _altitude = "0";
@@ -455,7 +454,6 @@ class InstrumentListState extends State<InstrumentList> {
         }
       }
     }
-    _visibleLoaded = true;
   }
 
   void _saveVisible() {
@@ -713,9 +711,12 @@ class InstrumentListState extends State<InstrumentList> {
     if(_loadedPortrait != portrait || _positions.length != _items.length) {
       _loadPositions();
     }
-    if(!_visibleLoaded) {
-      _loadVisible();
-    }
+    // Always reload the shown-tiles list from settings. The map and plate
+    // screens each host their own InstrumentList that share this saved list;
+    // reloading every build keeps them in sync so a long-lived instance can't
+    // overwrite the setting with a stale list (which previously made tiles such
+    // as ADSB disappear after being toggled on the other screen).
+    _loadVisible();
 
     // Full screen overlay. The Stack itself does not absorb touches in empty
     // areas, so the underlying map remains fully interactive; only the tiles

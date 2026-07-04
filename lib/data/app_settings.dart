@@ -78,12 +78,29 @@ class AppSettings {
     return provider.getValue("key-chart-center-longitude", defaultValue: -95.0) as double;
   }
 
+  // Default instrument tiles, in order. New tiles must be added here so they
+  // become available to everyone (see getInstruments merge below).
+  static const String _instrumentsDefault =
+      "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT,ADSB";
+
   void setInstruments(String instruments) {
     provider.setString("key-instruments-v16", instruments);
   }
 
   String getInstruments() {
-    return provider.getValue("key-instruments-v16", defaultValue: "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT,ADSB") as String;
+    String stored = provider.getValue("key-instruments-v16",
+        defaultValue: _instrumentsDefault) as String;
+    // Users who saved an instrument list before a tile was added (e.g. ADSB)
+    // would otherwise never see the new tile or its add/remove menu entry.
+    // Append any default codes missing from the stored list so new tiles are
+    // always available while preserving the user's existing order.
+    List<String> items = stored.split(",").where((c) => c.isNotEmpty).toList();
+    for (final String code in _instrumentsDefault.split(",")) {
+      if (!items.contains(code)) {
+        items.add(code);
+      }
+    }
+    return items.join(",");
   }
 
   // Which instrument tiles are currently shown, in the order they were added.
