@@ -165,6 +165,26 @@ void main() {
     test('rejects a file that is too short', () {
       expect(AvidyneStoredRoute.parseRouteFile(Uint8List(4)), isNull);
     });
+
+    test('parses the CSV form the IFD may return on download', () {
+      const String csv =
+          "Origin,Airport,KBOS,42.364350,-71.005180,RW04R\r\n"
+          "Direct,VhfNavaid,PVD,41.724050,-71.428420\r\n"
+          "Direct,Fix,SSOXS,41.400000,-72.100000\r\n"
+          "Airway,NoFix,V3,PVD\r\n" // not a coordinate leg -> skipped
+          "DestArpt,Airport,KHPN,41.066960,-73.707570,RW16\r\n";
+      final parsed = AvidyneStoredRoute.parseRouteFile(
+          Uint8List.fromList(csv.codeUnits));
+      expect(parsed, isNotNull);
+      expect(parsed!.points.length, 4);
+      expect(parsed.points[0].id, 'KBOS');
+      expect(parsed.points[0].fixKind, AvidyneStoredRoute.fixAirport);
+      expect(parsed.points[0].latitude, closeTo(42.36435, 1e-5));
+      expect(parsed.points[1].id, 'PVD');
+      expect(parsed.points[1].fixKind, AvidyneStoredRoute.fixVhfNavaid);
+      expect(parsed.points[3].id, 'KHPN');
+      expect(parsed.points[3].longitude, closeTo(-73.70757, 1e-5));
+    });
   });
 
   group('AvidyneStoredRoute download decompression', () {

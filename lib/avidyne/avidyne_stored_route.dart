@@ -140,12 +140,26 @@ class AvidyneStoredRoute {
   }
 
   static AvidyneRoutePoint _toPoint(Destination d) {
+    // Airway/procedure legs are expanded by the plan into their individual
+    // fixes, but each of those keeps the airway/procedure name in `locationID`
+    // and the real fix identifier in `secondaryName`. Prefer the real fix name
+    // so the IFD gets the actual waypoints (e.g. the fixes on V39) instead of
+    // the airway name repeated once per fix.
+    final String? secondary = d.secondaryName;
+    final String ident =
+        (secondary != null && secondary.trim().isNotEmpty && _isRouteLine(d.type))
+            ? secondary
+            : d.locationID;
     return AvidyneRoutePoint(
-      id: d.locationID,
+      id: ident,
       latitude: d.coordinate.latitude,
       longitude: d.coordinate.longitude,
       fixKind: _fixKindFor(d),
     );
+  }
+
+  static bool _isRouteLine(String type) {
+    return type == Destination.typeAirway || type == Destination.typeProcedure;
   }
 
   static Uint8List _packOrigin(AvidyneRoutePoint p) {
@@ -252,14 +266,32 @@ class AvidyneStoredRoute {
 
   // --- Download / parsing ------------------------------------------------
 
-  /// Parses a stored-route file (as produced by [buildRouteFileFromPoints] or
-  /// downloaded from the IFD) back into a name and the list of waypoints that
-  /// carry a usable coordinate (origin, destination and direct legs).
+  /// Parses a stored-route file downloaded from the IFD back into a name and
+  /// the list of waypoints that carry a usable coordinate (origin, destination
+  /// and direct legs).
+  ///
+  /// The IFD may hand routes back either in the binary stored-route format
+  /// (same as [buildRouteFileFromPoints]) or in the SDK's CSV form
+  /// (`StoredRoute::SaveCsv`), so both are attempted.
   ///
   /// Airway/procedure/hold records are skipped: they reference multi-point
   /// structures rather than a single coordinate, so they cannot be reproduced
   /// as a plain "stick route" waypoint.
   static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
+    final AvidyneParsedRoute? binary = _parseBinary(bytes);
+    if (binary != null && binary.points.isNotEmpty) {
+      return binary;
+    }
+    final AvidyneParsedRoute? csv = _parseCsv(bytes);
+    if (csv != null && csv.points.isNotEmpty) {
+      return csv;
+    }
+    // Neither yielded usable points; return whichever we managed to read so
+    // the caller can still report a meaningful (empty) result.
+    return binary ?? csv;
+  }
+
+  static AvidyneParsedRoute? _parseBinary(Uint8List bytes) {
     if (bytes.length < _routeNameLen + 1) {
       return null;
     }
@@ -283,19 +315,81 @@ class AvidyneStoredRoute {
         final double? lat = _parseCoordinate(bytes, nameStart + _nameLen, _ref1Len);
         final double? lon =
             _parseCoordinate(bytes, nameStart + _nameLen + _ref1Len, _ref2Len);
-        if (lat != null &&
-            lon != null &&
-            lat.abs() <= 90.0 &&
-            lon.abs() <= 180.0 &&
-            !(lat == 0.0 && lon == 0.0)) {
+        if (_coordinateIsValid(lat, lon)) {
           points.add(AvidyneRoutePoint(
-              id: ident, latitude: lat, longitude: lon, fixKind: fixKind));
+              id: ident, latitude: lat!, longitude: lon!, fixKind: fixKind));
         }
       }
       offset += _recordLen;
     }
 
     return AvidyneParsedRoute(name: name, points: points);
+  }
+
+  // Leg-kind strings (StoredRoute s_LegKindLookupRecs) that carry a single
+  // coordinate fix we can turn into a waypoint.
+  static const Set<String> _coordinateLegKinds = {
+    'Origin',
+    'DestArpt',
+    'Direct',
+    'StarAppDest',
+  };
+
+  static const Map<String, int> _fixKindByName = {
+    'NoFix': fixNone,
+    'VhfNavaid': fixVhfNavaid,
+    'NdbNavaid': fixNdbNavaid,
+    'Airport': fixAirport,
+    'UserWaypoint': fixUserWaypoint,
+    'Waypoint': fixWaypoint,
+    'Fix': fixFix,
+  };
+
+  static AvidyneParsedRoute? _parseCsv(Uint8List bytes) {
+    // Only bother if the payload decodes as printable-ish text.
+    final String text = String.fromCharCodes(bytes);
+    if (!text.contains(',')) {
+      return null;
+    }
+
+    final List<AvidyneRoutePoint> points = [];
+    for (final String rawLine in text.split(RegExp(r'[\r\n]+'))) {
+      final String line = rawLine.trim();
+      if (line.isEmpty) {
+        continue;
+      }
+      final List<String> fields = line.split(',');
+      if (fields.length < 5) {
+        continue;
+      }
+      final String legKind = fields[0].trim();
+      if (!_coordinateLegKinds.contains(legKind)) {
+        continue;
+      }
+      final String ident = fields[2].trim();
+      final double? lat = double.tryParse(fields[3].trim());
+      final double? lon = double.tryParse(fields[4].trim());
+      if (_coordinateIsValid(lat, lon)) {
+        points.add(AvidyneRoutePoint(
+            id: ident,
+            latitude: lat!,
+            longitude: lon!,
+            fixKind: _fixKindByName[fields[1].trim()] ?? fixNone));
+      }
+    }
+
+    if (points.isEmpty) {
+      return null;
+    }
+    return AvidyneParsedRoute(name: "IFD Route", points: points);
+  }
+
+  static bool _coordinateIsValid(double? lat, double? lon) {
+    return lat != null &&
+        lon != null &&
+        lat.abs() <= 90.0 &&
+        lon.abs() <= 180.0 &&
+        !(lat == 0.0 && lon == 0.0);
   }
 
   /// Decompresses a file received over the WiFiCrChannel download protocol.

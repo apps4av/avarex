@@ -153,6 +153,9 @@ class AvidyneIfd {
         return (null, "No flight plan received from the IFD.");
       }
 
+      AppLog.logMessage(
+          "Avidyne IFD route file: ${bytes.length} bytes, preview: ${_preview(bytes)}");
+
       final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
       if (parsed == null || parsed.points.isEmpty) {
         return (null, "The IFD did not return a usable flight plan.");
@@ -167,6 +170,18 @@ class AvidyneIfd {
       _transferInProgress = false;
       change.value++;
     }
+  }
+
+  // A short, log-friendly preview of a downloaded file: printable characters
+  // are shown as-is, everything else as a dot, so we can tell binary from CSV.
+  static String _preview(Uint8List bytes) {
+    final int n = bytes.length < 96 ? bytes.length : 96;
+    final StringBuffer sb = StringBuffer();
+    for (int i = 0; i < n; i++) {
+      final int b = bytes[i];
+      sb.writeCharCode((b >= 0x20 && b < 0x7f) ? b : 0x2e);
+    }
+    return sb.toString();
   }
 
   Future<PlanRoute> _buildRoute(AvidyneParsedRoute parsed) async {
