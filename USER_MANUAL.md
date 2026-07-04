@@ -57,7 +57,7 @@ You can reopen onboarding later from the drawer header icon.
 | Vector map layer with airspace                                                                   | All supported platforms |
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
-| Plan Transfer via NMEA 0183                                                                      | **Android only** (through Bluetooth IO) |
+| Plan Transfer to Avidyne IFD (Wi-Fi)                                                             | All supported platforms |
 | Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -422,7 +422,7 @@ Includes:
 
 ### 7.4 Plan Actions screen
 
-Sub-pages (accessed via bottom navigation buttons): **Load & Save**, **Create**, **Brief & File**, **Manage**, and **Transfer** (Android only).
+Sub-pages (accessed via bottom navigation buttons): **Load & Save**, **Create**, **Brief & File**, **Manage**, and **Transfer**.
 
 ![Plan Actions — Load & Save tab is the default landing](assets/docs/screenshots/24_plan_actions_load_save.png)
 
@@ -472,17 +472,15 @@ Requires configured 1800wxbrief-compatible account email.
 
 ![Plan Actions → Manage — list of filed plans with state-aware actions](assets/docs/screenshots/27_plan_actions_manage.png)
 
-#### E) Transfer (Android only)
-- Sends flight plan via standard NMEA 0183 RTE/WPL sentences over Bluetooth
-- Requires Bluetooth connection in IO screen
-- Minimum 2 waypoints required
-- Shows connection status and connected device label
-- **Open Bluetooth** button navigates to IO screen
-- **Send to Garmin** button transmits the plan
+#### E) Transfer
 
-**Compatible devices:** Older handheld GPS units and devices that accept NMEA 0183 waypoint/route input (e.g., some autopilot systems, marine chartplotters, GPSMAP handhelds).
+The `Transfer` sub-page sends the active flight plan to a panel-mounted **Avidyne IFD440/540/550** over Wi-Fi. It requires a route with at least 2 waypoints.
 
-**Not compatible:** Modern Garmin panel-mount avionics (G3X Touch, GTN 650/750, GNS 430W/530W) use Garmin's proprietary Connext protocol, which is only available to Garmin Pilot and ForeFlight. These devices will show "Connected" over Bluetooth but will not import flight plans sent via NMEA RTE/WPL.
+- Connect your device to the **same Wi-Fi network** as the IFD (use the IFD's Maintenance-mode network page to configure it).
+- AvareX automatically searches for IFDs; discovered units appear in a list showing their IP address and software version.
+- Tap **Send** next to an IFD to upload the plan as a stored route. The IFD must have flight-plan input enabled (the list notes when it is not).
+- The uploaded route reproduces the AvareX waypoints on the IFD ("stick route"); review and activate it on the IFD.
+- **iOS only**: the **Local Network** permission must be granted for discovery and upload to work.
 
 ### 7.5 Route building details
 
@@ -878,7 +876,7 @@ Functions:
 - **Connection Status Bar**: shows currently connected device with disconnect button
 
 Connected stream feeds external data input into app parser for GPS, traffic, weather, AHRS.
-Also used by Plan Transfer for sending plans to devices and autopilot output for navigation data.
+Also used for autopilot output of navigation data.
 
 ### 9.7 Donate (not iOS/macOS)
 
@@ -1176,7 +1174,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Load reversed plan | `PLAN → Actions → Load & Save → 3-dot menu → Load Reversed` |
 | Create IFR preferred route | `PLAN → Actions → Create → Create IFR Preferred Route` |
 | Show recent ATC routes | `PLAN → Actions → Create → Show IFR ATC Routes` |
-| Send plan to device (Android) | `PLAN → Actions → Transfer` |
+| Send plan to Avidyne IFD (Wi-Fi) | `PLAN → Actions → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
@@ -1439,18 +1437,16 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 3. Open `MAP` and set `GeoJSON` layer opacity > 0.
 4. Imported polygons/markers now draw on the map.
 
-### UC-12: Transfer your plan to an NMEA-compatible device (Android)
+### UC-12: Send your plan to an Avidyne IFD over Wi-Fi
 
-This feature sends flight plans using standard NMEA 0183 RTE/WPL sentences.
-
-**Note:** Modern Garmin panel-mount avionics (G3X Touch, GTN, GNS series) do NOT support this protocol—they require Garmin's proprietary Connext protocol available only in Garmin Pilot and ForeFlight. For those devices, use Garmin Pilot for flight plan transfer.
+This feature uploads the active flight plan to a panel-mounted Avidyne IFD440/540/550 as a stored route.
 
 1. Build your route with at least 2 waypoints.
-2. Connect your NMEA-compatible device in `MAP → Menu → IO`.
+2. Connect this device to the **same Wi-Fi network** as the IFD (configure the network on the IFD's Maintenance-mode page if needed). **iOS**: grant the **Local Network** permission.
 3. Open `PLAN → Actions → Transfer`.
-4. Confirm connected device label and connection status.
-5. Tap **Send to Garmin**.
-6. Wait for success toast/status.
+4. Under **Avidyne IFD (Wi-Fi)**, wait for the IFD to appear in the list.
+5. Tap **Send** next to the IFD.
+6. Wait for the success toast, then **review and activate** the uploaded route on the IFD.
 
 ### UC-13: Back up and restore app data (Pro)
 
@@ -1726,18 +1722,10 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-02: How do I transfer a plan to an external device?
 
 - Build a route with at least 2 waypoints.
-- On Android, connect device in `Menu → IO`.
-- Open `PLAN → Actions → Transfer`, then **Send to Garmin**.
+- Connect this device to the **same Wi-Fi network** as your Avidyne IFD.
+- Open `PLAN → Actions → Transfer`, wait for the IFD to appear, then tap **Send**.
 
-**Important compatibility note:** This feature uses standard NMEA 0183 RTE/WPL sentences. It works with devices that accept NMEA waypoint/route input (older handhelds, some autopilots, marine GPS). 
-
-**It does NOT work with modern Garmin panel-mount avionics** (G3X Touch, GTN 650/750, GNS 430W/530W). These use Garmin's proprietary Connext protocol, which Garmin restricts to their own Garmin Pilot app and ForeFlight. If you have these avionics, use Garmin Pilot (free) to transfer flight plans wirelessly.
-
-- Source threads:
-  - Testing Garmin transfer:  
-    `https://groups.google.com/g/apps4av-forum/c/k958J5yLyR4`
-  - Importing/transfer conversation:  
-    `https://groups.google.com/g/apps4av-forum/c/acmWm72qITY`
+**Supported avionics:** Panel-mounted Avidyne IFD440/540/550 units with flight-plan input enabled. On iOS, grant the **Local Network** permission for discovery and upload to work.
 
 ### FAQ-03: Where do I enable new wind/ceiling map features?
 

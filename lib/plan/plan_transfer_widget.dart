@@ -1,5 +1,5 @@
-import 'package:avaremp/constants.dart';
-import 'package:avaremp/io/garmin_connext_transfer.dart';
+import 'package:avaremp/avidyne/avidyne_discovery.dart';
+import 'package:avaremp/avidyne/avidyne_ifd.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
@@ -12,124 +12,142 @@ class PlanTransferWidget extends StatefulWidget {
 }
 
 class PlanTransferWidgetState extends State<PlanTransferWidget> {
-  bool _sending = false;
-  String _status = "";
-  Color _statusColor = Colors.green;
+  final AvidyneIfd _avidyne = AvidyneIfd();
 
-  Future<void> _openBluetooth() async {
-    await Navigator.pushNamed(context, '/io');
-    if (mounted) {
-      setState(() {});
-    }
+  String? _sendingToIfdIp; // ip currently being sent to, if any
+  String _ifdStatus = "";
+  Color _ifdStatusColor = Colors.green;
+
+  @override
+  void initState() {
+    super.initState();
+    _avidyne.acquire();
   }
 
-  Future<void> _sendToGarmin() async {
+  @override
+  void dispose() {
+    _avidyne.release();
+    super.dispose();
+  }
+
+  Future<void> _sendToIfd(AvidyneDevice device) async {
     setState(() {
-      _sending = true;
-      _status = "";
+      _sendingToIfdIp = device.ipAddress;
+      _ifdStatus = "Sending to ${device.label} \u2026";
+      _ifdStatusColor = Colors.blue;
     });
 
-    final error = await GarminConnextTransfer.sendFlightPlan(Storage().route);
+    final error = await _avidyne.sendFlightPlan(device, Storage().route);
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _sending = false;
+      _sendingToIfdIp = null;
       if (error == null) {
-        final device = GarminConnextTransfer.connectedDeviceLabel ?? "Garmin device";
-        _status = "Flight plan sent to $device.";
-        _statusColor = Colors.green;
+        _ifdStatus = "Flight plan sent to ${device.label}.";
+        _ifdStatusColor = Colors.green;
       } else {
-        _status = error;
-        _statusColor = Colors.red;
+        _ifdStatus = error;
+        _ifdStatusColor = Colors.red;
       }
     });
 
     if (error == null) {
-      Toast.showToast(context, "Sent flight plan to Garmin device",
+      Toast.showToast(context, "Sent flight plan to Avidyne IFD",
           const Icon(Icons.check, color: Colors.green), 3);
     } else {
-      Toast.showToast(context, error,
-          const Icon(Icons.error, color: Colors.red), 4);
+      Toast.showToast(
+          context, error, const Icon(Icons.error, color: Colors.red), 4);
     }
+  }
+
+  Widget _sectionTitle(String title) {
+    return Padding(
+        padding: const EdgeInsets.fromLTRB(0, 8, 0, 4),
+        child: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)));
+  }
+
+  Widget _buildAvidyneSection() {
+    final route = Storage().route;
+    final destinations = route.getAllDestinations();
+    final bool hasEnoughWaypoints = destinations.length >= 2;
+
+    return ValueListenableBuilder<int>(
+        valueListenable: _avidyne.change,
+        builder: (context, _, __) {
+          final devices = _avidyne.devices;
+          return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _sectionTitle("Avidyne IFD (Wi-Fi)"),
+                const Text(
+                    "Send the flight plan to an Avidyne IFD440/540/550 over Wi-Fi. "
+                    "Connect this device to the same Wi-Fi network as the IFD, then wait "
+                    "for it to appear below."),
+                const Padding(padding: EdgeInsets.all(4)),
+                Text("Plan: ${route.name} (${destinations.length} waypoints)"),
+                const Padding(padding: EdgeInsets.all(4)),
+                if (devices.isEmpty)
+                  Row(children: const [
+                    SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2)),
+                    Padding(padding: EdgeInsets.all(6)),
+                    Expanded(child: Text("Searching for Avidyne IFDs\u2026")),
+                  ])
+                else
+                  ...devices.map((device) =>
+                      _buildIfdTile(device, hasEnoughWaypoints)),
+                if (_ifdStatus.isNotEmpty)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(_ifdStatus,
+                          style: TextStyle(color: _ifdStatusColor))),
+              ]);
+        });
+  }
+
+  Widget _buildIfdTile(AvidyneDevice device, bool hasEnoughWaypoints) {
+    final bool busy = _sendingToIfdIp != null;
+    final bool sendingThis = _sendingToIfdIp == device.ipAddress;
+    final bool canSend = hasEnoughWaypoints &&
+        device.acceptsFlightPlans &&
+        !busy &&
+        !_avidyne.transferInProgress;
+
+    String subtitle = "Software ${device.versionLabel}";
+    if (!device.acceptsFlightPlans) {
+      subtitle += " \u2022 flight plan input not enabled";
+    }
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.flight, color: Colors.green),
+      title: Text(device.label),
+      subtitle: Text(subtitle),
+      trailing: sendingThis
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2))
+          : TextButton(
+              onPressed: canSend ? () => _sendToIfd(device) : null,
+              child: const Text("Send"),
+            ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final route = Storage().route;
-    final destinations = route.getAllDestinations();
-    final bool isConnected = GarminConnextTransfer.isConnected;
-    final String connectionLabel =
-        GarminConnextTransfer.connectedDeviceLabel ?? "Not connected";
-    final bool canSend = isConnected &&
-        destinations.length >= GarminConnextTransfer.minWaypoints &&
-        !_sending;
-
-    return Container(
-        padding: const EdgeInsets.all(0),
-        child: Column(children: [
-          Expanded(
-              flex: 1,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  child: const Text("Transfer",
-                      style: TextStyle(fontWeight: FontWeight.w800)))),
-          Expanded(
-              flex: 2,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  alignment: Alignment.centerLeft,
-                  child: const Text(
-                      "Send flight plan via NMEA 0183 over Bluetooth. Works with NMEA-compatible devices (handhelds, some autopilots). Not compatible with G3X/GTN/GNS panel avionics."))),
-          Expanded(
-              flex: 1,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  child: Row(children: [
-                    Icon(
-                        isConnected
-                            ? Icons.bluetooth_connected
-                            : Icons.bluetooth_disabled,
-                        color: isConnected ? Colors.green : Colors.red),
-                    const Padding(padding: EdgeInsets.all(6)),
-                    Expanded(child: Text(connectionLabel)),
-                  ]))),
-          Expanded(
-              flex: 1,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                      "Plan: ${route.name} (${destinations.length} waypoints)"))),
-          Expanded(
-              flex: 2,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  child: Row(children: [
-                    if (Constants.shouldShowBluetoothSpp)
-                      TextButton(
-                          onPressed: _openBluetooth,
-                          child: const Text("Open Bluetooth")),
-                    const Padding(padding: EdgeInsets.fromLTRB(6, 0, 6, 0)),
-                    TextButton(
-                        onPressed: canSend ? _sendToGarmin : null,
-                        child: const Text("Send to Garmin")),
-                    const Padding(padding: EdgeInsets.fromLTRB(10, 0, 0, 0)),
-                    SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: Visibility(
-                            visible: _sending,
-                            child: const CircularProgressIndicator())),
-                  ]))),
-          Expanded(
-              flex: 1,
-              child: Container(
-                  padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                  alignment: Alignment.centerLeft,
-                  child: Text(_status,
-                      style: TextStyle(color: _statusColor)))),
-        ]));
+    return SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAvidyneSection(),
+            ]));
   }
 }

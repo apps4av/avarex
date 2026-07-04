@@ -56,7 +56,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to photo library to show images on a map.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>AvareX needs access to your local network to receive ADS-B traffic, weather, and GPS data from devices like Stratux, Stratus, ForeFlight, and X-Plane over Wi-Fi (GDL90 on UDP 4000, ForeFlight on UDP 43211, X-Plane on UDP 49002). Without this permission, traffic and other ADS-B data will not appear on the map.</string>
+	<string>AvareX needs access to your local network to receive ADS-B traffic, weather, and GPS data from devices like Stratux, Stratus, ForeFlight, and X-Plane over Wi-Fi (GDL90 on UDP 4000, ForeFlight on UDP 43211, X-Plane on UDP 49002), and to send flight plans to Avidyne IFD units over Wi-Fi. Without this permission, traffic and other ADS-B data will not appear on the map and flight plans cannot be sent to the IFD.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_http._tcp</string>

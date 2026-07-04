@@ -1,4 +1,3 @@
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/plan/plan_create_widget.dart';
 import 'package:avaremp/plan/plan_file_widget.dart';
 import 'package:avaremp/plan/plan_load_save_widget.dart';
@@ -43,9 +42,9 @@ class PlanActionState extends State<PlanActionScreen> {
     pages.add(createPage);
     pages.add(filePage);
     pages.add(managePage);
-    if (Constants.shouldShowBluetoothSpp) {
-      pages.add(transferPage);
-    }
+    // Transfer is available on every platform: Avidyne IFD transfer works over
+    // Wi-Fi.
+    pages.add(transferPage);
 
     return Container(
         padding: const EdgeInsets.all(5),
@@ -95,8 +94,7 @@ class PlanActionState extends State<PlanActionScreen> {
                   _current = 3;
                 })
             ),
-            if (Constants.shouldShowBluetoothSpp)
-              TextButton(
+            TextButton(
                 style: _current == 4 ? TextButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                 ) : null,
