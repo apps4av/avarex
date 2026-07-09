@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/airport_satellite.dart';
 import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -124,14 +125,11 @@ class PlatesFuture {
     if(_currentPlateAirport.isNotEmpty) {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
       _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
-      AirportDestination? d = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
-      if(d != null) {
-        _businesses = await BusinessDatabaseHelper.db.findBusinesses(d);
+      _airportDestination = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
+      if(_airportDestination != null) {
+        _businesses = await BusinessDatabaseHelper.db.findBusinesses(_airportDestination!);
       }
     }
-    // next one
-    _airportDestination = await MainDatabaseHelper.db
-        .findAirport(Storage().settings.getCurrentPlateAirport());
   }
 
   Future<PlatesFuture> getAll() async {
@@ -334,7 +332,7 @@ class PlateScreenState extends State<PlateScreen> {
     double height = 0;
 
     if(future == null || future.airports.isEmpty) {
-      return makePlateView([], [], [], [], height, _notifier);
+      return makePlateView([], [], [], [], height, _notifier, null);
     }
 
     List<String> plates = future.plates;
@@ -362,10 +360,28 @@ class PlateScreenState extends State<PlateScreen> {
       }
     }
 
-    return makePlateView(airports, plates, procedureNames, business, height, _notifier);
+    return makePlateView(airports, plates, procedureNames, business, height, _notifier, future.airportDestination);
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier) {
+  Future<void> _downloadSatellite(AirportDestination airport) async {
+    Toast.showToast(context, "Downloading satellite view for ${airport.locationID}...", null, 3);
+    try {
+      await AirportSatellite.download(airport.locationID, airport.coordinate);
+      Storage().currentPlate = AirportSatellite.plateName;
+      if (mounted) {
+        setState(() {
+          _transformationController.value = Matrix4.identity();
+        });
+      }
+    }
+    catch (e) {
+      if (mounted) {
+        Toast.showToast(context, "Unable to download satellite view: $e", null, 4);
+      }
+    }
+  }
+
+  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
     if (notAd) {
@@ -376,6 +392,15 @@ class PlateScreenState extends State<PlateScreen> {
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     final double opacity = layersOpacity[layers.indexOf("Elevation")];
     final Color overlayBg = Theme.of(context).colorScheme.surface.withAlpha(200);
+
+    // Always offer an APD-SATELLITE entry in the plate selector. It is a real
+    // plate once downloaded; otherwise it is a placeholder with a download
+    // button shown next to the selector.
+    final bool satelliteDownloaded = plates.contains(AirportSatellite.plateName);
+    if (!satelliteDownloaded) {
+      plates.add(AirportSatellite.plateName);
+      plates.sort();
+    }
 
     // Empty state when no airports/plates
     if (airports.isEmpty) {
@@ -534,6 +559,7 @@ class PlateScreenState extends State<PlateScreen> {
                     value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
                     items: plates.map((String item) {
                       final bool isSelected = item == Storage().currentPlate;
+                      final bool isSatellitePlaceholder = item == AirportSatellite.plateName && !satelliteDownloaded;
                       return DropdownMenuItem<String>(
                         value: item,
                         child: Container(
@@ -545,11 +571,11 @@ class PlateScreenState extends State<PlateScreen> {
                           ),
                           child: Row(
                             children: [
-                              Icon(_getPlateIcon(item), size: 16, color: Colors.white),
+                              Icon(isSatellitePlaceholder ? Icons.download : _getPlateIcon(item), size: 16, color: Colors.white),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: AutoSizeText(
-                                  item,
+                                  isSatellitePlaceholder ? "$item (Get)" : item,
                                   minFontSize: 8,
                                   maxLines: 1,
                                   style: TextStyle(
@@ -564,8 +590,16 @@ class PlateScreenState extends State<PlateScreen> {
                       );
                     }).toList(),
                     onChanged: (value) {
+                      final String selected = value ?? plates[0];
+                      // selecting the not-yet-downloaded satellite entry downloads it
+                      if (selected == AirportSatellite.plateName && !satelliteDownloaded) {
+                        if (airportDestination != null) {
+                          _downloadSatellite(airportDestination);
+                        }
+                        return;
+                      }
                       setState(() {
-                        Storage().currentPlate = value ?? plates[0];
+                        Storage(  ).currentPlate = selected;
                         _transformationController.value = Matrix4.identity();
                       });
                     },
@@ -775,7 +809,9 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
   IconData _getPlateIcon(String name) {
-    if (name.startsWith("APD")) {
+    if (name.startsWith("APS")) {
+      return Icons.satellite_alt;
+    } else if (name.startsWith("APD")) {
       return Icons.local_airport;
     } else if (name.startsWith("CSUP")) {
       return Icons.info;
@@ -796,7 +832,10 @@ class PlateScreenState extends State<PlateScreen> {
   }
   
   Color _getPlateColor(String name) {
-    if(name.startsWith("APD")) {
+    if(name.startsWith("APS")) {
+      return Colors.teal;
+    }
+    else if(name.startsWith("APD")) {
       return Colors.green;
     }
     else if(name.startsWith("CSUP")) {

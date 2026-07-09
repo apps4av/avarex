@@ -326,7 +326,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 ### 6.3 Controls
 
 - **Airport selector** (bottom-right): choose airport from recent airports list
-- **Plate selector** (bottom-left): choose plate within airport (color-coded by type)
+- **Plate selector** (bottom-left, always shown): choose plate within airport (color-coded by type). Always contains an `APS-AERIAL VIEW` entry — once downloaded it loads the georeferenced Google Maps satellite picture like any other plate; until then it appears as an `APS-AERIAL VIEW (Get)` placeholder that downloads the image when selected. The picture is stored in the airport's plates folder as `APS-AERIAL VIEW.png` with ownship drawn on it
 - **Procedure menu** (plus icon near bottom-right):
   - Show procedure profile
   - `+Plan` adds procedure waypoint sequence to plan
@@ -344,6 +344,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 | Cyan | STAR |
 | Brown | Minimums (MIN) |
 | Red | Hot Spots (HOT), Land and Hold Short (LAH) |
+| Teal | Satellite View (`APS-AERIAL VIEW`) |
 
 ### 6.5 Terrain caution overlay on plates
 
@@ -1180,6 +1181,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Actions → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
+| Get airport satellite view | `PLATE tab → Plate selector → Get Satellite View` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
