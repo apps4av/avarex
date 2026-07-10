@@ -111,6 +111,43 @@ void main() {
       expect(file[bodyEnd + 3], crc & 0xFF);
     });
 
+    test('encodes an airway as a single airway leg (name + exit fix)', () {
+      final points = <AvidyneRoutePoint>[
+        const AvidyneRoutePoint(
+            id: 'KBOS',
+            latitude: 42.36294,
+            longitude: -71.00639,
+            fixKind: AvidyneStoredRoute.fixAirport),
+        const AvidyneRoutePoint(
+            id: 'BOS',
+            latitude: 42.35745,
+            longitude: -70.98955,
+            fixKind: AvidyneStoredRoute.fixVhfNavaid),
+        const AvidyneRoutePoint.airway(id: 'V1', exitFix: 'HFD'),
+      ];
+      final Uint8List file =
+          AvidyneStoredRoute.buildRouteFileFromPoints('KBOS BOS V1 HFD', points)!;
+
+      // Three records: Origin KBOS, Direct BOS, Airway V1.
+      expect(file[16], 3);
+
+      final int rec2 = 17 + 39 * 2;
+      expect(file[rec2], 4); // eAirway
+      expect(file[rec2 + 1], 0); // fix kind unused
+      // 7-byte name field is unused (zeroed) for airways.
+      for (int i = rec2 + 2; i < rec2 + 9; i++) {
+        expect(file[i], 0);
+      }
+      // Airway name in Ref1 (12 bytes starting at +9).
+      final String airway = String.fromCharCodes(
+          file.sublist(rec2 + 9, rec2 + 9 + 12).where((b) => b != 0));
+      expect(airway, 'V1');
+      // Exit fix in Ref2 (12 bytes starting at +21).
+      final String exit = String.fromCharCodes(
+          file.sublist(rec2 + 21, rec2 + 21 + 12).where((b) => b != 0));
+      expect(exit, 'HFD');
+    });
+
     test('rejects routes with fewer than two waypoints', () {
       final Uint8List? file = AvidyneStoredRoute.buildRouteFileFromPoints(
           'X', const [
@@ -125,43 +162,6 @@ void main() {
   });
 
   group('AvidyneStoredRoute parsing (download)', () {
-    test('round-trips a built route back into name and points', () {
-      final points = <AvidyneRoutePoint>[
-        const AvidyneRoutePoint(
-            id: 'KBOS',
-            latitude: 42.36435,
-            longitude: -71.00518,
-            fixKind: AvidyneStoredRoute.fixAirport),
-        const AvidyneRoutePoint(
-            id: 'PVD',
-            latitude: 41.72405,
-            longitude: -71.42842,
-            fixKind: AvidyneStoredRoute.fixVhfNavaid),
-        const AvidyneRoutePoint(
-            id: 'KHPN',
-            latitude: 41.06696,
-            longitude: -73.70757,
-            fixKind: AvidyneStoredRoute.fixAirport),
-      ];
-      final Uint8List file =
-          AvidyneStoredRoute.buildRouteFileFromPoints('RTOUR', points)!;
-
-      final parsed = AvidyneStoredRoute.parseRouteFile(file);
-      expect(parsed, isNotNull);
-      expect(parsed!.name, 'RTOUR');
-      expect(parsed.points.length, 3);
-
-      expect(parsed.points[0].id, 'KBOS');
-      expect(parsed.points[0].latitude, closeTo(42.36435, 1e-5));
-      expect(parsed.points[0].longitude, closeTo(-71.00518, 1e-5));
-
-      expect(parsed.points[1].id, 'PVD');
-      expect(parsed.points[1].latitude, closeTo(41.72405, 1e-5));
-
-      expect(parsed.points[2].id, 'KHPN');
-      expect(parsed.points[2].longitude, closeTo(-73.70757, 1e-5));
-    });
-
     test('rejects a file that is too short', () {
       expect(AvidyneStoredRoute.parseRouteFile(Uint8List(4)), isNull);
     });
@@ -213,24 +213,42 @@ void main() {
       expect(parsed.points[2].longitude, closeTo(-118.43201, 1e-5));
     });
 
-    test('parses the CSV form the IFD may return on download', () {
-      const String csv =
-          "Origin,Airport,KBOS,42.364350,-71.005180,RW04R\r\n"
-          "Direct,VhfNavaid,PVD,41.724050,-71.428420\r\n"
-          "Direct,Fix,SSOXS,41.400000,-72.100000\r\n"
-          "Airway,NoFix,V3,PVD\r\n" // not a coordinate leg -> skipped
-          "DestArpt,Airport,KHPN,41.066960,-73.707570,RW16\r\n";
-      final parsed = AvidyneStoredRoute.parseRouteFile(
-          Uint8List.fromList(csv.codeUnits));
+    test('parses a download containing an airway leg (KBOS BOS V1 HFD)', () {
+      // Exact 196-byte payload captured from an IFD Trainer download of the
+      // route "KBOS BOS V1 HFD". The tail holds three records: Origin KBOS,
+      // Direct BOS and an eAirway record (V1 leaving at HFD).
+      final Uint8List file = Uint8List.fromList(<int>[
+        0x3b, 0x56, 0x30, 0x30, 0x31, 0x00, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
+        0x2d, 0x32, 0x30, 0x32, 0x36, 0x2d, 0x30, 0x37, 0x2d, 0x31, 0x30, 0x2d, 0x30, 0x39, 0x2d, 0x34,
+        0x31, 0x2d, 0x32, 0x38, 0x2d, 0x32, 0x31, 0x36, 0x30, 0x32, 0x34, 0x30, 0x32, 0x00, 0x31, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x4b, 0x42,
+        0x4f, 0x53, 0x00, 0x00, 0x48, 0x46, 0x44, 0x00, 0x00, 0x00, 0x88, 0xf6, 0x50, 0x6a, 0x03, 0x01,
+        0x03, 0x4b, 0x42, 0x4f, 0x53, 0x00, 0x00, 0x00, 0x34, 0x32, 0x2e, 0x33, 0x36, 0x32, 0x39, 0x34,
+        0x20, 0x20, 0x00, 0x00, 0x2d, 0x37, 0x31, 0x2e, 0x30, 0x30, 0x36, 0x33, 0x39, 0x20, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x01, 0x42, 0x4f, 0x53, 0x20, 0x00, 0x00, 0x00, 0x34,
+        0x32, 0x2e, 0x33, 0x35, 0x37, 0x34, 0x35, 0x20, 0x20, 0x00, 0x00, 0x2d, 0x37, 0x30, 0x2e, 0x39,
+        0x38, 0x39, 0x35, 0x35, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x31, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x48, 0x46, 0x44, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+      ]);
+      expect(file.length, 196);
+
+      final parsed = AvidyneStoredRoute.parseRouteFile(file);
       expect(parsed, isNotNull);
-      expect(parsed!.points.length, 4);
+      expect(parsed!.points.length, 3);
+
       expect(parsed.points[0].id, 'KBOS');
-      expect(parsed.points[0].fixKind, AvidyneStoredRoute.fixAirport);
-      expect(parsed.points[0].latitude, closeTo(42.36435, 1e-5));
-      expect(parsed.points[1].id, 'PVD');
-      expect(parsed.points[1].fixKind, AvidyneStoredRoute.fixVhfNavaid);
-      expect(parsed.points[3].id, 'KHPN');
-      expect(parsed.points[3].longitude, closeTo(-73.70757, 1e-5));
+      expect(parsed.points[0].isAirway, isFalse);
+      expect(parsed.points[0].latitude, closeTo(42.36294, 1e-5));
+
+      expect(parsed.points[1].id, 'BOS');
+      expect(parsed.points[1].isAirway, isFalse);
+      expect(parsed.points[1].latitude, closeTo(42.35745, 1e-5));
+
+      expect(parsed.points[2].isAirway, isTrue);
+      expect(parsed.points[2].id, 'V1');
+      expect(parsed.points[2].exitFix, 'HFD');
     });
   });
 

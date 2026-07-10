@@ -3,14 +3,8 @@ import 'dart:async';
 import 'package:avaremp/avidyne/avidyne_discovery.dart';
 import 'package:avaremp/avidyne/avidyne_stored_route.dart';
 import 'package:avaremp/avidyne/avidyne_wifi_channel.dart';
-import 'package:avaremp/data/main_database_helper.dart';
-import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/plan/plan_route.dart';
-import 'package:avaremp/plan/waypoint.dart';
-import 'package:avaremp/utils/app_log.dart';
-import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:flutter/foundation.dart';
-import 'package:latlong2/latlong.dart';
 
 /// High level manager for talking to Avidyne IFD units over Wi-Fi.
 ///
@@ -131,10 +125,10 @@ class AvidyneIfd {
   /// Downloads the active route from [device] and turns it into an AvareX
   /// [PlanRoute].
   ///
-  /// Returns a record of (route, error); exactly one is non-null. Each IFD
-  /// waypoint is resolved against the AvareX database by identifier (picking
-  /// the closest match to the IFD coordinate) so it keeps its real type; if it
-  /// cannot be resolved, a plain GPS coordinate waypoint is used instead.
+  /// Returns a record of (route, error); exactly one is non-null. The decoded
+  /// records are turned into a route string and handed to [PlanRoute.fromLine],
+  /// the same parser the plan-create screen uses, so waypoints and airways are
+  /// resolved and expanded consistently.
   Future<(PlanRoute?, String?)> importFlightPlan(AvidyneDevice device) async {
     if (_transferInProgress) {
       return (null, "A transfer is already in progress.");
@@ -153,21 +147,18 @@ class AvidyneIfd {
         return (null, "No flight plan received from the IFD.");
       }
 
-      AppLog.logMessage(
-          "Avidyne IFD route file: ${bytes.length} bytes, preview: ${_preview(bytes)}");
-      // Full hex dump (chunked so dart:developer log() does not truncate it) so
-      // the exact download byte layout can be reverse-engineered when parsing
-      // fails.
-      for (final String line in _hexDump(bytes)) {
-        AppLog.logMessage(line);
-      }
-
       final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
       if (parsed == null || parsed.points.isEmpty) {
         return (null, "The IFD did not return a usable flight plan.");
       }
 
-      final PlanRoute route = await _buildRoute(parsed);
+      // Reuse the same route parser the plan-create screen uses: turn the
+      // decoded records into a "KBOS BOS V1 HFD" style string (airway legs
+      // become "<airway> <exit fix>") and let PlanRoute.fromLine resolve and
+      // expand everything, including airways.
+      final String line = _routeLine(parsed);
+      final PlanRoute route = await PlanRoute.fromLine(
+          parsed.name.isEmpty ? "IFD Route" : parsed.name, line);
       if (route.length < 1) {
         return (null, "The IFD flight plan had no usable waypoints.");
       }
@@ -178,85 +169,29 @@ class AvidyneIfd {
     }
   }
 
-  // A short, log-friendly preview of a downloaded file: printable characters
-  // are shown as-is, everything else as a dot, so we can tell binary from CSV.
-  static String _preview(Uint8List bytes) {
-    final int n = bytes.length < 96 ? bytes.length : 96;
-    final StringBuffer sb = StringBuffer();
-    for (int i = 0; i < n; i++) {
-      final int b = bytes[i];
-      sb.writeCharCode((b >= 0x20 && b < 0x7f) ? b : 0x2e);
-    }
-    return sb.toString();
-  }
-
-  // Classic "hexdump" of the whole file: one line per 16 bytes with the byte
-  // offset, hex values and the printable ASCII rendering.
-  static List<String> _hexDump(Uint8List bytes) {
-    final List<String> lines = [];
-    for (int i = 0; i < bytes.length; i += 16) {
-      final int end = (i + 16 < bytes.length) ? i + 16 : bytes.length;
-      final StringBuffer hex = StringBuffer();
-      final StringBuffer ascii = StringBuffer();
-      for (int j = i; j < i + 16; j++) {
-        if (j < end) {
-          final int b = bytes[j];
-          hex.write(b.toRadixString(16).padLeft(2, '0'));
-          hex.write(' ');
-          ascii.writeCharCode((b >= 0x20 && b < 0x7f) ? b : 0x2e);
-        } else {
-          hex.write('   ');
-        }
-      }
-      final String offset = i.toRadixString(16).padLeft(4, '0');
-      lines.add("IFD $offset: $hex |$ascii|");
-    }
-    return lines;
-  }
-
-  Future<PlanRoute> _buildRoute(AvidyneParsedRoute parsed) async {
-    final PlanRoute route =
-        PlanRoute(parsed.name.isEmpty ? "IFD Route" : parsed.name);
+  // Builds the space separated waypoint string that PlanRoute.fromLine expects
+  // from the decoded records. An airway leg becomes its name followed by the
+  // fix it exits at (e.g. "V1 HFD"); the entry fix is simply the preceding
+  // waypoint, so fromLine expands the airway between them.
+  static String _routeLine(AvidyneParsedRoute parsed) {
+    final List<String> tokens = [];
     for (final AvidyneRoutePoint p in parsed.points) {
-      final Destination d = await _resolvePoint(p);
-      route.addWaypoint(Waypoint(d));
-    }
-    return route;
-  }
-
-  Future<Destination> _resolvePoint(AvidyneRoutePoint p) async {
-    final LatLng target = LatLng(p.latitude, p.longitude);
-    final String ident = p.id.trim();
-
-    if (ident.isNotEmpty) {
-      try {
-        final List<Destination> matches =
-            await MainDatabaseHelper.db.findDestinations(ident, exact: true);
-        Destination? best;
-        double bestDistance = double.infinity;
-        for (final Destination m in matches) {
-          // Airways/procedures are not single coordinate waypoints.
-          if (Destination.isAirway(m.type) || Destination.isProcedure(m.type)) {
-            continue;
-          }
-          final double dist =
-              GeoCalculations().calculateDistance(target, m.coordinate);
-          if (dist < bestDistance) {
-            bestDistance = dist;
-            best = m;
-          }
+      if (p.isAirway) {
+        final String airway = p.id.trim();
+        if (airway.isNotEmpty) {
+          tokens.add(airway);
         }
-        // Only accept the database hit if it is near the IFD coordinate (a few
-        // miles) so we do not grab an identically named fix in another region.
-        if (best != null && bestDistance <= 5.0) {
-          return await DestinationFactory.make(best);
+        final String exit = (p.exitFix ?? '').trim();
+        if (exit.isNotEmpty) {
+          tokens.add(exit);
         }
-      } catch (e) {
-        AppLog.logMessage("Avidyne import lookup failed for $ident: $e");
+      } else {
+        final String id = p.id.trim();
+        if (id.isNotEmpty) {
+          tokens.add(id);
+        }
       }
     }
-
-    // Fall back to a GPS coordinate waypoint.
-    return Destination.fromLatLng(target);
+    return tokens.join(' ');
   }
 }

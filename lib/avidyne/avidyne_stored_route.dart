@@ -23,12 +23,26 @@ class AvidyneRoutePoint {
   /// One of the `AvidyneStoredRoute.fix*` constants.
   final int fixKind;
 
+  /// When true this is an airway leg ([id] is the airway name, e.g. "V1") that
+  /// leaves the airway at [exitFix], rather than a single coordinate fix.
+  final bool isAirway;
+  final String? exitFix;
+
   const AvidyneRoutePoint({
     required this.id,
     required this.latitude,
     required this.longitude,
     required this.fixKind,
-  });
+  })  : isAirway = false,
+        exitFix = null;
+
+  /// An airway leg. [id] is the airway name and [exitFix] the fix at which the
+  /// route leaves the airway. The airway is entered at the preceding record.
+  const AvidyneRoutePoint.airway({required this.id, required this.exitFix})
+      : latitude = 0,
+        longitude = 0,
+        fixKind = 0,
+        isAirway = true;
 }
 
 /// A route parsed back out of a stored-route file downloaded from the IFD.
@@ -44,6 +58,7 @@ class AvidyneStoredRoute {
   static const int _kindOrigin = 1;
   static const int _kindDestArpt = 2;
   static const int _kindDirect = 3;
+  static const int _kindAirway = 4;
   static const int _kindStarAppDest = 10;
 
   // Fix kinds (Procedure::FixKindType).
@@ -77,9 +92,41 @@ class AvidyneStoredRoute {
 
   /// Builds the upload file for the given route. Returns null if there are not
   /// enough usable waypoints.
+  ///
+  /// Airways are sent as a single Avidyne airway leg (the airway name plus the
+  /// fix at which the route leaves it) rather than expanded into every fix
+  /// along the airway, so "KBOS BOS V1 HFD" is sent as KBOS, BOS, V1(→HFD).
+  /// Procedures (SID/STAR/approach) are still expanded into their fixes.
   static Uint8List? buildRouteFile(PlanRoute route) {
-    return buildRouteFileFromPoints(
-        route.name, route.getAllDestinations().map(_toPoint).toList());
+    final List<AvidyneRoutePoint> points = [];
+    final int n = route.length;
+    int i = 0;
+    while (i < n) {
+      final Destination d = route.getWaypointAt(i).destination;
+      if (Destination.isAirway(d.type)) {
+        // An airway needs a fix before it (the entry) and after it (the exit).
+        if (i > 0 && i < n - 1) {
+          final String exit = route.getWaypointAt(i + 1).destination.locationID;
+          points.add(AvidyneRoutePoint.airway(id: d.locationID, exitFix: exit));
+          i += 2; // consume the airway and its exit fix
+          continue;
+        }
+        // Airway without a usable entry/exit: cannot be represented, skip it.
+        i += 1;
+        continue;
+      }
+      if (Destination.isProcedure(d.type)) {
+        // Procedures are expanded into their individual fixes.
+        for (final Destination fix in route.getWaypointAt(i).destinationsOnRoute) {
+          points.add(_toPoint(fix));
+        }
+        i += 1;
+        continue;
+      }
+      points.add(_toPoint(d));
+      i += 1;
+    }
+    return buildRouteFileFromPoints(route.name, points);
   }
 
   /// Builds the upload file from a plain list of route points. Exposed so the
@@ -96,7 +143,9 @@ class AvidyneStoredRoute {
       // The very first airport becomes the route origin; everything else is a
       // simple "direct" leg. The IFD navigates by the embedded lat/lon so this
       // reliably reproduces the AvareX flight plan on the IFD ("stick route").
-      if (i == 0 && p.fixKind == _fixAirport) {
+      if (p.isAirway) {
+        records.add(_packAirway(p));
+      } else if (i == 0 && p.fixKind == _fixAirport) {
         records.add(_packOrigin(p));
       } else {
         records.add(_packDirect(p));
@@ -177,6 +226,20 @@ class AvidyneStoredRoute {
     b.addByte(p.fixKind);
     b.add(_packFix(p.id, p.latitude, p.longitude));
     b.add(Uint8List(_ref3Len)); // no altitude constraint
+    return _padRecord(b.toBytes());
+  }
+
+  /// Port of Airway::Pack: kind, unused fix kind, an unused 7-byte name field,
+  /// then the airway name (Ref1) and the exit fix (Ref2).
+  static Uint8List _packAirway(AvidyneRoutePoint p) {
+    final BytesBuilder b = BytesBuilder();
+    b.addByte(_kindAirway);
+    b.addByte(0); // fixKind unused for airways
+    b.add(Uint8List(_nameLen)); // name field unused for airways
+    b.add(_fixedField(_sanitizeIdent(p.id), _ref1Len, forceNullTerminated: true));
+    b.add(_fixedField(
+        _sanitizeIdent(p.exitFix ?? ''), _ref2Len, forceNullTerminated: true));
+    b.add(Uint8List(_ref3Len));
     return _padRecord(b.toBytes());
   }
 
@@ -266,41 +329,9 @@ class AvidyneStoredRoute {
 
   // --- Download / parsing ------------------------------------------------
 
-  /// Parses a stored-route file downloaded from the IFD back into a name and
-  /// the list of waypoints that carry a usable coordinate (origin, destination
-  /// and direct legs).
-  ///
-  /// The IFD may hand routes back either in the binary stored-route format
-  /// (same as [buildRouteFileFromPoints]) or in the SDK's CSV form
-  /// (`StoredRoute::SaveCsv`), so both are attempted.
-  ///
-  /// Airway/procedure/hold records are skipped: they reference multi-point
-  /// structures rather than a single coordinate, so they cannot be reproduced
-  /// as a plain "stick route" waypoint.
-  static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
-    // 1) Our own fixed-header upload format (name[16] + count + 128 slots + CRC).
-    final AvidyneParsedRoute? binary = _parseBinary(bytes);
-    if (binary != null && binary.points.isNotEmpty) {
-      return binary;
-    }
-    // 2) The IFD/Trainer download format: a variable-length text header
-    //    (";V001", <id>, <title>, ...) followed by a 1-byte record count and
-    //    that many 39-byte records at the tail of the file.
-    final AvidyneParsedRoute? download = _parseTrainerDownload(bytes);
-    if (download != null && download.points.isNotEmpty) {
-      return download;
-    }
-    // 3) The SDK's CSV form.
-    final AvidyneParsedRoute? csv = _parseCsv(bytes);
-    if (csv != null && csv.points.isNotEmpty) {
-      return csv;
-    }
-    // None yielded usable points; return whichever we managed to read so the
-    // caller can still report a meaningful (empty) result.
-    return binary ?? download ?? csv;
-  }
-
-  // Procedure kinds that reference a single coordinate fix.
+  // Procedure kinds that reference a single coordinate fix and are turned back
+  // into a plain waypoint. Airway records ([_kindAirway]) are handled
+  // separately; any other multi-point structures are skipped.
   static const Set<int> _coordinateKinds = {
     _kindOrigin,
     _kindDestArpt,
@@ -308,48 +339,39 @@ class AvidyneStoredRoute {
     _kindStarAppDest,
   };
 
-  /// Parses the route file the IFD (and the IFD Trainer) hands back on a
-  /// download.
+  /// Parses a stored-route file downloaded from the IFD into a route name and
+  /// its coordinate waypoints.
   ///
-  /// Layout observed from a real Trainer download:
-  ///   - a variable length text header of NUL-terminated strings
-  ///     (`;V001`, a timestamped route id, the human route title, origin and
-  ///     destination idents and a small CRC), then
-  ///   - a 1-byte record count, then
-  ///   - `count` procedure records, each with the SAME 39-byte layout used for
-  ///     upload: `[kind][fixKind][name:7][lat:12 ascii][lon:12 ascii][ref3:6]`.
-  ///
-  /// Because the header length is not fixed, the record block is located from
-  /// the end of the file: the records occupy the trailing `count * 39` bytes
-  /// and the count byte sits immediately before them.
-  static AvidyneParsedRoute? _parseTrainerDownload(Uint8List bytes) {
+  /// A downloaded route always ends with `count` fixed 39-byte procedure
+  /// records (the same record layout used for upload:
+  /// `[kind][fixKind][name:7][lat:12 ascii][lon:12 ascii][ref3:6]`) preceded by
+  /// a 1-byte record count. The bytes before that are a header whose exact
+  /// shape varies: a plain IFD stored-route file starts with a 16-byte name,
+  /// while the IFD Trainer prefixes a ";V001" version tag, a timestamped id and
+  /// the route title. Because the records always sit at the tail, they are
+  /// located by scanning candidate counts from the end of the file.
+  static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
     for (int n = _maxRecords; n >= 1; n--) {
-      final int recordsLen = n * _recordLen;
-      final int countPos = bytes.length - recordsLen - 1;
-      if (countPos < 0) {
-        continue;
-      }
-      if (bytes[countPos] != n) {
+      final int countPos = bytes.length - (n * _recordLen) - 1;
+      if (countPos < 0 || bytes[countPos] != n) {
         continue;
       }
       final List<AvidyneRoutePoint>? points =
-          _readTrainerRecords(bytes, countPos + 1, n);
+          _readRecords(bytes, countPos + 1, n);
       if (points == null) {
-        // A record was not a plausible procedure -> wrong alignment, keep
-        // searching for a smaller count.
+        // Records did not decode -> wrong alignment, try a smaller count.
         continue;
       }
       return AvidyneParsedRoute(
-          name: _extractTrainerName(bytes, countPos), points: points);
+          name: _extractName(bytes, countPos), points: points);
     }
     return null;
   }
 
-  /// Reads exactly [n] procedure records starting at [start]. Returns the
-  /// coordinate waypoints among them, or null if any record does not look like
-  /// a real procedure (which means the record block was mis-aligned and this
-  /// candidate count should be rejected).
-  static List<AvidyneRoutePoint>? _readTrainerRecords(
+  /// Reads exactly [n] procedure records at [start], returning the coordinate
+  /// waypoints among them. Returns null if any record is not a plausible
+  /// procedure, which means the record block was mis-aligned.
+  static List<AvidyneRoutePoint>? _readRecords(
       Uint8List bytes, int start, int n) {
     final List<AvidyneRoutePoint> points = [];
     int offset = start;
@@ -364,7 +386,18 @@ class AvidyneStoredRoute {
       if (kind < 1 || kind > 20) {
         return null;
       }
-      if (_coordinateKinds.contains(kind)) {
+      if (kind == _kindAirway) {
+        // Airway leg: name field is unused; the airway name is in Ref1 and the
+        // exit fix in Ref2 (same layout produced by _packAirway).
+        final int ref1Start = offset + 2 + _nameLen;
+        final String airway = _readCString(bytes, ref1Start, _ref1Len);
+        final String exit = _readCString(bytes, ref1Start + _ref1Len, _ref2Len);
+        if (airway.isEmpty) {
+          return null;
+        }
+        points.add(AvidyneRoutePoint.airway(
+            id: airway, exitFix: exit.isEmpty ? null : exit));
+      } else if (_coordinateKinds.contains(kind)) {
         final int nameStart = offset + 2;
         final String ident = _readCString(bytes, nameStart, _nameLen);
         final double? lat =
@@ -382,117 +415,27 @@ class AvidyneStoredRoute {
     return points.isEmpty ? null : points;
   }
 
-  /// Extracts the human route title from the download header: the third
-  /// NUL-terminated string (`;V001`, then the route id, then the title). Only
-  /// bytes before [limit] (the record count position) are considered.
-  static String _extractTrainerName(Uint8List bytes, int limit) {
-    final List<String> strings = [];
+  /// Extracts the route title from the header bytes before [limit]. Skips the
+  /// Trainer's ";V001" version tag and its timestamped id, then returns the
+  /// first remaining readable string (the plain stored-route name or the
+  /// Trainer route title), falling back to a generic name.
+  static String _extractName(Uint8List bytes, int limit) {
+    final RegExp datePattern = RegExp(r'\d{4}-\d{2}-\d{2}');
     int i = 0;
-    while (i < limit && strings.length < 3) {
+    while (i < limit) {
       final int strStart = i;
       while (i < limit && bytes[i] != 0) {
         i++;
       }
-      strings.add(_readCString(bytes, strStart, i - strStart));
-      i++; // skip the NUL terminator
-    }
-    if (strings.length >= 3 && strings[2].trim().isNotEmpty) {
-      return strings[2].trim();
-    }
-    return "IFD Route";
-  }
-
-  static AvidyneParsedRoute? _parseBinary(Uint8List bytes) {
-    if (bytes.length < _routeNameLen + 1) {
-      return null;
-    }
-    final String name = _readCString(bytes, 0, _routeNameLen).trim();
-    final int numRecords = bytes[_routeNameLen];
-    final List<AvidyneRoutePoint> points = [];
-
-    int offset = _routeNameLen + 1;
-    for (int i = 0; i < numRecords && i < _maxRecords; i++) {
-      if (offset + _recordLen > bytes.length) {
-        break;
-      }
-      final int kind = bytes[offset];
-      final int fixKind = bytes[offset + 1];
-      if (kind == _kindOrigin ||
-          kind == _kindDirect ||
-          kind == _kindDestArpt ||
-          kind == _kindStarAppDest) {
-        final int nameStart = offset + 2;
-        final String ident = _readCString(bytes, nameStart, _nameLen);
-        final double? lat = _parseCoordinate(bytes, nameStart + _nameLen, _ref1Len);
-        final double? lon =
-            _parseCoordinate(bytes, nameStart + _nameLen + _ref1Len, _ref2Len);
-        if (_coordinateIsValid(lat, lon)) {
-          points.add(AvidyneRoutePoint(
-              id: ident, latitude: lat!, longitude: lon!, fixKind: fixKind));
+      if (i > strStart) {
+        final String s = _readCString(bytes, strStart, i - strStart);
+        if (s.isNotEmpty && !s.startsWith(';') && !datePattern.hasMatch(s)) {
+          return s;
         }
       }
-      offset += _recordLen;
+      i++; // skip the NUL terminator
     }
-
-    return AvidyneParsedRoute(name: name, points: points);
-  }
-
-  // Leg-kind strings (StoredRoute s_LegKindLookupRecs) that carry a single
-  // coordinate fix we can turn into a waypoint.
-  static const Set<String> _coordinateLegKinds = {
-    'Origin',
-    'DestArpt',
-    'Direct',
-    'StarAppDest',
-  };
-
-  static const Map<String, int> _fixKindByName = {
-    'NoFix': fixNone,
-    'VhfNavaid': fixVhfNavaid,
-    'NdbNavaid': fixNdbNavaid,
-    'Airport': fixAirport,
-    'UserWaypoint': fixUserWaypoint,
-    'Waypoint': fixWaypoint,
-    'Fix': fixFix,
-  };
-
-  static AvidyneParsedRoute? _parseCsv(Uint8List bytes) {
-    // Only bother if the payload decodes as printable-ish text.
-    final String text = String.fromCharCodes(bytes);
-    if (!text.contains(',')) {
-      return null;
-    }
-
-    final List<AvidyneRoutePoint> points = [];
-    for (final String rawLine in text.split(RegExp(r'[\r\n]+'))) {
-      final String line = rawLine.trim();
-      if (line.isEmpty) {
-        continue;
-      }
-      final List<String> fields = line.split(',');
-      if (fields.length < 5) {
-        continue;
-      }
-      final String legKind = fields[0].trim();
-      if (!_coordinateLegKinds.contains(legKind)) {
-        continue;
-      }
-      final String ident = fields[2].trim();
-      final double? lat = double.tryParse(fields[3].trim());
-      final double? lon = double.tryParse(fields[4].trim());
-      if (_coordinateIsValid(lat, lon)) {
-        points.add(AvidyneRoutePoint(
-            id: ident,
-            latitude: lat!,
-            longitude: lon!,
-            fixKind: _fixKindByName[fields[1].trim()] ?? fixNone));
-      }
-    }
-
-    if (points.isEmpty) {
-      return null;
-    }
-    return AvidyneParsedRoute(name: "IFD Route", points: points);
+    return "IFD Route";
   }
 
   static bool _coordinateIsValid(double? lat, double? lon) {
