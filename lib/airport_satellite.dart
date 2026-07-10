@@ -12,7 +12,8 @@ import 'package:universal_io/io.dart';
 
 /// Downloads and stores a Google Maps satellite picture for an airport.
 ///
-/// The image is stitched from Google satellite map tiles (no API key needed),
+/// The image is stitched from Google hybrid map tiles (satellite imagery with
+/// road/place/building labels overlaid, no API key needed),
 /// georeferenced with an EXIF `UserComment` (same format the app uses for FAA
 /// plates) and stored in the airport's plates folder as `APS-AERIAL VIEW.png`,
 /// so it shows up with the rest of the airport plates and draws ownship like
@@ -67,8 +68,10 @@ class AirportSatellite {
         }
         final int wrappedX = ((tx % n) + n) % n; // wrap around the antimeridian
         final int server = (tx + ty).abs() % 4;
+        // lyrs=y is the hybrid layer: satellite imagery with road/place/building
+        // labels baked in, so names appear without any extra query.
         final String url =
-            "https://mt$server.google.com/vt/lyrs=s&x=$wrappedX&y=$ty&z=$_zoom";
+            "https://mt$server.google.com/vt/lyrs=y&x=$wrappedX&y=$ty&z=$_zoom";
 
         final http.Response r = await http.get(Uri.parse(url),
             headers: {"User-Agent": "Mozilla/5.0"});
