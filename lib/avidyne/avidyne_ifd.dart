@@ -155,6 +155,12 @@ class AvidyneIfd {
 
       AppLog.logMessage(
           "Avidyne IFD route file: ${bytes.length} bytes, preview: ${_preview(bytes)}");
+      // Full hex dump (chunked so dart:developer log() does not truncate it) so
+      // the exact download byte layout can be reverse-engineered when parsing
+      // fails.
+      for (final String line in _hexDump(bytes)) {
+        AppLog.logMessage(line);
+      }
 
       final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
       if (parsed == null || parsed.points.isEmpty) {
@@ -182,6 +188,30 @@ class AvidyneIfd {
       sb.writeCharCode((b >= 0x20 && b < 0x7f) ? b : 0x2e);
     }
     return sb.toString();
+  }
+
+  // Classic "hexdump" of the whole file: one line per 16 bytes with the byte
+  // offset, hex values and the printable ASCII rendering.
+  static List<String> _hexDump(Uint8List bytes) {
+    final List<String> lines = [];
+    for (int i = 0; i < bytes.length; i += 16) {
+      final int end = (i + 16 < bytes.length) ? i + 16 : bytes.length;
+      final StringBuffer hex = StringBuffer();
+      final StringBuffer ascii = StringBuffer();
+      for (int j = i; j < i + 16; j++) {
+        if (j < end) {
+          final int b = bytes[j];
+          hex.write(b.toRadixString(16).padLeft(2, '0'));
+          hex.write(' ');
+          ascii.writeCharCode((b >= 0x20 && b < 0x7f) ? b : 0x2e);
+        } else {
+          hex.write('   ');
+        }
+      }
+      final String offset = i.toRadixString(16).padLeft(4, '0');
+      lines.add("IFD $offset: $hex |$ascii|");
+    }
+    return lines;
   }
 
   Future<PlanRoute> _buildRoute(AvidyneParsedRoute parsed) async {

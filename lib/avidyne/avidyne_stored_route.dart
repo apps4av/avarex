@@ -278,17 +278,128 @@ class AvidyneStoredRoute {
   /// structures rather than a single coordinate, so they cannot be reproduced
   /// as a plain "stick route" waypoint.
   static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
+    // 1) Our own fixed-header upload format (name[16] + count + 128 slots + CRC).
     final AvidyneParsedRoute? binary = _parseBinary(bytes);
     if (binary != null && binary.points.isNotEmpty) {
       return binary;
     }
+    // 2) The IFD/Trainer download format: a variable-length text header
+    //    (";V001", <id>, <title>, ...) followed by a 1-byte record count and
+    //    that many 39-byte records at the tail of the file.
+    final AvidyneParsedRoute? download = _parseTrainerDownload(bytes);
+    if (download != null && download.points.isNotEmpty) {
+      return download;
+    }
+    // 3) The SDK's CSV form.
     final AvidyneParsedRoute? csv = _parseCsv(bytes);
     if (csv != null && csv.points.isNotEmpty) {
       return csv;
     }
-    // Neither yielded usable points; return whichever we managed to read so
-    // the caller can still report a meaningful (empty) result.
-    return binary ?? csv;
+    // None yielded usable points; return whichever we managed to read so the
+    // caller can still report a meaningful (empty) result.
+    return binary ?? download ?? csv;
+  }
+
+  // Procedure kinds that reference a single coordinate fix.
+  static const Set<int> _coordinateKinds = {
+    _kindOrigin,
+    _kindDestArpt,
+    _kindDirect,
+    _kindStarAppDest,
+  };
+
+  /// Parses the route file the IFD (and the IFD Trainer) hands back on a
+  /// download.
+  ///
+  /// Layout observed from a real Trainer download:
+  ///   - a variable length text header of NUL-terminated strings
+  ///     (`;V001`, a timestamped route id, the human route title, origin and
+  ///     destination idents and a small CRC), then
+  ///   - a 1-byte record count, then
+  ///   - `count` procedure records, each with the SAME 39-byte layout used for
+  ///     upload: `[kind][fixKind][name:7][lat:12 ascii][lon:12 ascii][ref3:6]`.
+  ///
+  /// Because the header length is not fixed, the record block is located from
+  /// the end of the file: the records occupy the trailing `count * 39` bytes
+  /// and the count byte sits immediately before them.
+  static AvidyneParsedRoute? _parseTrainerDownload(Uint8List bytes) {
+    for (int n = _maxRecords; n >= 1; n--) {
+      final int recordsLen = n * _recordLen;
+      final int countPos = bytes.length - recordsLen - 1;
+      if (countPos < 0) {
+        continue;
+      }
+      if (bytes[countPos] != n) {
+        continue;
+      }
+      final List<AvidyneRoutePoint>? points =
+          _readTrainerRecords(bytes, countPos + 1, n);
+      if (points == null) {
+        // A record was not a plausible procedure -> wrong alignment, keep
+        // searching for a smaller count.
+        continue;
+      }
+      return AvidyneParsedRoute(
+          name: _extractTrainerName(bytes, countPos), points: points);
+    }
+    return null;
+  }
+
+  /// Reads exactly [n] procedure records starting at [start]. Returns the
+  /// coordinate waypoints among them, or null if any record does not look like
+  /// a real procedure (which means the record block was mis-aligned and this
+  /// candidate count should be rejected).
+  static List<AvidyneRoutePoint>? _readTrainerRecords(
+      Uint8List bytes, int start, int n) {
+    final List<AvidyneRoutePoint> points = [];
+    int offset = start;
+    for (int i = 0; i < n; i++) {
+      if (offset + _recordLen > bytes.length) {
+        return null;
+      }
+      final int kind = bytes[offset];
+      final int fixKind = bytes[offset + 1];
+      // Real Procedure::KindType values are small; anything outside this range
+      // means we are not aligned on a record boundary.
+      if (kind < 1 || kind > 20) {
+        return null;
+      }
+      if (_coordinateKinds.contains(kind)) {
+        final int nameStart = offset + 2;
+        final String ident = _readCString(bytes, nameStart, _nameLen);
+        final double? lat =
+            _parseCoordinate(bytes, nameStart + _nameLen, _ref1Len);
+        final double? lon =
+            _parseCoordinate(bytes, nameStart + _nameLen + _ref1Len, _ref2Len);
+        if (!_coordinateIsValid(lat, lon)) {
+          return null;
+        }
+        points.add(AvidyneRoutePoint(
+            id: ident, latitude: lat!, longitude: lon!, fixKind: fixKind));
+      }
+      offset += _recordLen;
+    }
+    return points.isEmpty ? null : points;
+  }
+
+  /// Extracts the human route title from the download header: the third
+  /// NUL-terminated string (`;V001`, then the route id, then the title). Only
+  /// bytes before [limit] (the record count position) are considered.
+  static String _extractTrainerName(Uint8List bytes, int limit) {
+    final List<String> strings = [];
+    int i = 0;
+    while (i < limit && strings.length < 3) {
+      final int strStart = i;
+      while (i < limit && bytes[i] != 0) {
+        i++;
+      }
+      strings.add(_readCString(bytes, strStart, i - strStart));
+      i++; // skip the NUL terminator
+    }
+    if (strings.length >= 3 && strings[2].trim().isNotEmpty) {
+      return strings[2].trim();
+    }
+    return "IFD Route";
   }
 
   static AvidyneParsedRoute? _parseBinary(Uint8List bytes) {
