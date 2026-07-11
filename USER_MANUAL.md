@@ -372,7 +372,7 @@ Flight-state logic can auto-switch plate context to nearest airport diagram afte
 
 Tap bottom tab **PLAN**.
 
-![PLAN tab — empty state with totals header and bottom Actions/ASpd/GPH/Alt controls](assets/docs/screenshots/19_plan_tab_empty.png)
+![PLAN tab — empty state with totals header and bottom action buttons plus ASpd/GPH/Alt controls](assets/docs/screenshots/19_plan_tab_empty.png)
 
 After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/ground speed/course/time/fuel calculations:
 
@@ -388,15 +388,19 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 - Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
 - Airways and procedures show as expandable items with nested waypoints
 
-Bottom controls:
+Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the plan calculation controls:
 
-- **Actions** button opens Plan Actions screen
 - **ASpd** field: true airspeed used in calculations (knots)
 - **GPH** field: fuel burn (gallons per hour)
 - **Alt** field: plan altitude (feet, default 3000)
 - **Aircraft icon** (next to Alt): loads **ASpd** and **GPH** using the same aircraft as the **Performance** screen app-bar **dropdown** (latest selection), interpolated at the plan **Alt** using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
 - **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
 - **Analytics icon** (chart): opens full-screen Navigation Log
+
+The **tab row** (below the settings row) switches what the PLAN tab shows; the active tab is highlighted:
+
+- **Plan** (first tab): the waypoint list / plan editor (default)
+- **Load & Save**, **Create**, **Brief & File**, **Manage**, **Transfer**: each shows the matching action sub-page inline; tap **Plan** to return to the waypoint list
 
 ### 7.3 Navigation Log dialog
 
@@ -422,9 +426,9 @@ Includes:
     - Tailwind/headwind component in knots
 - **Copy plan to clipboard** button (app bar)
 
-### 7.4 Plan Actions screen
+### 7.4 Plan actions (inline sub-pages)
 
-Sub-pages (accessed via bottom navigation buttons): **Load & Save**, **Create**, **Brief & File**, **Manage**, and **Transfer**.
+The action sub-pages are shown inline in the PLAN tab by tapping one of the tab buttons at the bottom. The first tab, **Plan**, is the waypoint list / editor; the remaining tabs are **Load & Save**, **Create**, **Brief & File**, **Manage**, and **Transfer**. The tapped button is highlighted while its sub-page is displayed; tap **Plan** (or complete an action such as loading/creating a plan) to return to the waypoint list.
 
 ![Plan Actions — Load & Save tab is the default landing](assets/docs/screenshots/24_plan_actions_load_save.png)
 
@@ -1174,12 +1178,12 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight` |
 | Create folder for documents | `MAP → Menu → Documents → folder icon in app bar` |
 | Build or modify plan | `PLAN tab` |
-| File FAA plan | `PLAN → Actions → Brief & File` |
-| Manage filed plans | `PLAN → Actions → Manage` |
-| Load reversed plan | `PLAN → Actions → Load & Save → 3-dot menu → Load Reversed` |
-| Create IFR preferred route | `PLAN → Actions → Create → Create IFR Preferred Route` |
-| Show recent ATC routes | `PLAN → Actions → Create → Show IFR ATC Routes` |
-| Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Actions → Transfer` |
+| File FAA plan | `PLAN → Brief & File` |
+| Manage filed plans | `PLAN → Manage` |
+| Load reversed plan | `PLAN → Load & Save → 3-dot menu → Load Reversed` |
+| Create IFR preferred route | `PLAN → Create → Create IFR Preferred Route` |
+| Show recent ATC routes | `PLAN → Create → Show IFR ATC Routes` |
+| Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Get airport satellite view | `PLATE tab → Plate selector → Get Satellite View` |
@@ -1306,16 +1310,16 @@ Use this to adjust waypoints graphically.
 
 ### UC-04: Build a flight plan from scratch (quick VFR workflow)
 
-There are three ways to add a waypoint to the plan; the fastest for a brand-new VFR plan is **Plan → Actions → Create → Create As Entered**, shown below.
+There are three ways to add a waypoint to the plan; the fastest for a brand-new VFR plan is **Plan → Create → Create As Entered**, shown below.
 
-![Step 1 — empty PLAN tab; press **Actions** at the bottom](assets/docs/screenshots/19_plan_tab_empty.png)
+![Step 1 — empty PLAN tab; press **Create** at the bottom](assets/docs/screenshots/19_plan_tab_empty.png)
 
 1. Tap the **PLAN** bottom tab. You'll see the empty plan view above (Distance / GSpd / Crs / Time / Fuel show `---`, and `No waypoints in plan` is displayed in the body).
-2. Press **Actions** to open the Plan Actions screen.
+2. Press **Create** at the bottom; the Create sub-page appears inline (the **Create** button is highlighted).
 
-![Step 3 — Plan Actions opens on **Load & Save** by default; switch to **Create**](assets/docs/screenshots/24_plan_actions_load_save.png)
+![Step 3 — the Create sub-page shown inline in the PLAN tab](assets/docs/screenshots/24_plan_actions_load_save.png)
 
-3. Tap **Create** in the bottom row to switch tabs.
+3. If a different sub-page is showing, tap **Create** in the bottom row to switch.
 
 ![Step 4 — Create tab; type a route into the **Route** field](assets/docs/screenshots/25_plan_actions_create.png)
 
@@ -1332,7 +1336,7 @@ There are three ways to add a waypoint to the plan; the fastest for a brand-new 
    - **Aircraft icon** — auto-fills `ASpd` and `GPH` from your selected aircraft's Performance data at the chosen `Alt`
    - **Forecast horizon** — `06H / 12H / 24H` (winds aloft window for nav-log calculations)
 8. To **reorder** legs: long-press and drag rows. To **set a different leg active**, tap its row. To **delete** a leg, swipe right-to-left.
-9. To **save** the plan: tap **Actions** again → **Load & Save** → press **Save** and give it a name.
+9. To **save** the plan: tap **Load & Save** at the bottom → press **Save** and give it a name.
 
 Alternative add methods (used after the plan exists):
 
@@ -1344,7 +1348,7 @@ Alternative add methods (used after the plan exists):
 
 ### UC-05: Create an IFR route automatically
 
-1. Open `PLAN → Actions → Create`.
+1. Open `PLAN → Create`.
 2. In Route field:
    - Enter route text and use **Create As Entered**, or
    - Enter `DEPART DEST` and use **Create IFR Preferred Route**, or
@@ -1356,7 +1360,7 @@ Alternative add methods (used after the plan exists):
 Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 1. Build/verify your route in `PLAN` (see UC-04).
-2. Open `PLAN → Actions → Brief & File`.
+2. Open `PLAN → Brief & File`.
 
 ![Brief & File tab — ICAO form fields with quick-fill placeholders on the right; **Get Email Brief** and **Send to FAA** buttons at the bottom-left](assets/docs/screenshots/26_plan_actions_brief_file.png)
 
@@ -1371,7 +1375,7 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 ### UC-07: Activate, close, or cancel an FAA flight plan
 
-1. Open `PLAN → Actions → Manage`.
+1. Open `PLAN → Manage`.
 
 ![Manage tab — once filed, plans appear here with state-aware action buttons](assets/docs/screenshots/27_plan_actions_manage.png)
 
@@ -1448,7 +1452,7 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either direction.
 
 1. Connect this device to the **same Wi-Fi network** as the IFD (configure the network on the IFD's Maintenance-mode page if needed). **iOS**: grant the **Local Network** permission.
-2. Open `PLAN → Actions → Transfer`.
+2. Open `PLAN → Transfer`.
 3. Under **Avidyne IFD (Wi-Fi)**, wait for the IFD to appear in the list.
 4. To **send**: build your route with at least 2 waypoints, then tap **Send** next to the IFD. Wait for the success toast, then **review and activate** the uploaded route on the IFD.
 5. To **get**: tap **Get** next to the IFD. AvareX downloads the IFD's flight plan and loads it into the active plan (replacing the current one). Matched waypoints keep their database type; unmatched ones become GPS coordinate points.
@@ -1494,7 +1498,7 @@ Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either dire
 
 ### UC-17: Load a plan in reverse order for a return flight
 
-1. Open `PLAN → Actions → Load & Save`.
+1. Open `PLAN → Load & Save`.
 2. Find your saved outbound plan.
 3. Tap the 3-dot menu on the plan.
 4. Select **Load Reversed**.
@@ -1727,7 +1731,7 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-02: How do I transfer a plan to or from an external device?
 
 - Connect this device to the **same Wi-Fi network** as your Avidyne IFD.
-- Open `PLAN → Actions → Transfer` and wait for the IFD to appear.
+- Open `PLAN → Transfer` and wait for the IFD to appear.
 - To upload: build a route with at least 2 waypoints, then tap **Send**.
 - To download the IFD's plan into AvareX: tap **Get** (this replaces the active plan).
 
@@ -1781,7 +1785,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 ### FAQ-08: How do I enter an ATC reroute quickly?
 
-- Open `PLAN → Actions → Create`.
+- Open `PLAN → Create`.
 - Use **Create As Entered** and paste/type reroute string (space-separated waypoints/airways).
 - Then review/reorder in PLAN list if needed.
 - Source thread:  
@@ -1803,7 +1807,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 - Ensure app is updated to latest release and internet is available.
 - Confirm your 1800wxbrief-compatible email is configured.
-- Retry via `PLAN → Actions → Create` and `Brief & File`.
+- Retry via `PLAN → Create` and `Brief & File`.
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/0wHqcJT-WiY`
 

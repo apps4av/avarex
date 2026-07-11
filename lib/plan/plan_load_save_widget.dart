@@ -5,7 +5,8 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 
 class PlanLoadSaveWidget extends StatefulWidget {
-  const PlanLoadSaveWidget({super.key});
+  final VoidCallback? onDone;
+  const PlanLoadSaveWidget({super.key, this.onDone});
 
 
   @override
@@ -130,9 +131,7 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                                 UserDatabaseHelper.db.getPlan(planName, false).then((value) {
                                   Storage().route.copyFrom(value);
                                   Storage().route.setCurrentWaypoint(0);
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                  }
+                                  widget.onDone?.call();
                                 });
                               },
                             ),
@@ -140,11 +139,9 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                               child: const Text('Load Reversed'),
                               onTap: () {
                                 UserDatabaseHelper.db.getPlan(planName, true).then((value) {
-                                  if (context.mounted) {
-                                    Navigator.pop(context);
-                                  }
                                   Storage().route.copyFrom(value);
                                   Storage().route.setCurrentWaypoint(0);
+                                  widget.onDone?.call();
                                 });
                               },
                             ),
@@ -164,9 +161,7 @@ class PlanLoadSaveWidgetState extends State<PlanLoadSaveWidget> {
                           UserDatabaseHelper.db.getPlan(planName, false).then((value) {
                             Storage().route.copyFrom(value);
                             Storage().route.setCurrentWaypoint(0);
-                            if (context.mounted) {
-                              Navigator.pop(context);
-                            }
+                            widget.onDone?.call();
                           });
                         },
                       ),

@@ -6,7 +6,8 @@ import 'package:avaremp/plan/plan_transfer_widget.dart';
 import 'package:flutter/material.dart';
 
 class PlanActionScreen extends StatefulWidget {
-  const PlanActionScreen({super.key});
+  final int initialTab;
+  const PlanActionScreen({super.key, this.initialTab = 0});
   @override
   State<StatefulWidget> createState() => PlanActionState();
 }
@@ -18,6 +19,7 @@ class PlanActionState extends State<PlanActionScreen> {
   @override
   void initState() {
     super.initState();
+    _current = widget.initialTab;
   }
 
   @override
@@ -27,9 +29,9 @@ class PlanActionState extends State<PlanActionScreen> {
 
   Widget _makeContent() {
 
-    Widget loadSavePage = const PlanLoadSaveWidget();
+    Widget loadSavePage = PlanLoadSaveWidget(onDone: () => Navigator.pop(context));
 
-    Widget createPage = const PlanCreateWidget();
+    Widget createPage = PlanCreateWidget(onDone: () => Navigator.pop(context));
 
     Widget filePage = const PlanFileWidget();
 
@@ -115,7 +117,7 @@ class PlanActionState extends State<PlanActionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-      title: const Text("Plan Actions"),
+      title: const Text("Plan"),
     ),
     body: _makeContent());
   }

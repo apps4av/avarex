@@ -16,9 +16,14 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:universal_io/io.dart';
+import 'plan_create_widget.dart';
+import 'plan_file_widget.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
+import 'plan_load_save_widget.dart';
+import 'plan_manage_widget.dart';
 import 'plan_route.dart';
+import 'plan_transfer_widget.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
@@ -34,6 +39,9 @@ class PlanScreen extends StatefulWidget {
 
 class PlanScreenState extends State<PlanScreen> {
   final ScrollController _scrollController = ScrollController();
+
+  // null shows the plan (waypoint) editor; 0-4 show an action sub-page inline
+  int? _actionTab;
 
   @override
   void initState() {
@@ -74,117 +82,15 @@ class PlanScreenState extends State<PlanScreen> {
       padding: EdgeInsets.fromLTRB(8, 8, 8, bottom),
       child: Column(
         children: [
-        Expanded(flex: 1,
-        child: ValueListenableBuilder<int>( // update in plan change
-          valueListenable: route.change,
-          builder: (context, value, _) {
-            return ListTile( // header
-                key: Key(Storage().getKey()),
-                leading: GestureDetector(child: Icon(Icons.add), onTap: () {
-                  Storage().planSearch = true;
-                  MainScreenState.gotoFind();
-                },),
-                title: PlanLineWidgetState.getHeading(),
-                subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
-            })),
-          Expanded(flex: 5,
-            child: route.length == 0
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_location_alt, size: 64, color: Theme.of(context).colorScheme.outline),
-                        const SizedBox(height: 12),
-                        Text(
-                          "No waypoints in plan",
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Use Actions to create or load a plan",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ReorderableListView(
-                    scrollController: _scrollController,
-                    scrollDirection: Axis.vertical,
-                    buildDefaultDragHandles: false,
-                    children: <Widget>[
-                      for (int index = 0; index < route.length; index++)
-                        ReorderableDelayedDragStartListener(
-                          index: index,
-                          key: Key(index.toString()),
-                          child: Dismissible(
-                            background: Container(
-                              alignment: Alignment.centerRight,
-                              padding: const EdgeInsets.only(right: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withAlpha(30),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(Icons.delete, color: Colors.red),
-                            ),
-                            key: Key(Storage().getKey()),
-                            direction: DismissDirection.endToStart,
-                            onDismissed: (direction) {
-                              setState(() {
-                                route.removeWaypointAt(index);
-                              });
-                            },
-                            child: ValueListenableBuilder<int>(
-                              valueListenable: route.change,
-                              builder: (context, value, _) {
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 2),
-                                  color: route.isCurrent(index)
-                                      ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
-                                      : null,
-                                  child: PlanItemWidget(
-                                    waypoint: route.getWaypointAt(index),
-                                    current: route.isCurrent(index),
-                                    onTap: () {
-                                      setState(() {
-                                        Storage().route.setCurrentWaypoint(index);
-                                      });
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                    ],
-                    onReorder: (int oldIndex, int newIndex) {
-                      setState(() {
-                        if (oldIndex < newIndex) {
-                          newIndex -= 1;
-                        }
-                        route.moveWaypoint(oldIndex, newIndex);
-                      });
-                    },
-                  ),
+          Expanded(
+            child: _actionTab == null ? _buildPlanEditor(route) : _actionPage(_actionTab!),
           ),
           const SizedBox(height: 8),
+          if (_actionTab == null)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                TextButton(
-                  onPressed: () async {
-                    await Navigator.pushNamed(context, "/plan_actions");
-                    setState(() {});
-                  },
-                  child: const Text("Actions"),
-                ),
-                const SizedBox(width: 8),
                 SizedBox(
                   width: 60,
                   child: TextFormField(
@@ -335,8 +241,178 @@ class PlanScreenState extends State<PlanScreen> {
               ],
             ),
           ),
+          if (_actionTab == null) const SizedBox(height: 4),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _planButton(),
+                _actionButton("Load & Save", 0),
+                _actionButton("Create", 1),
+                _actionButton("Brief & File", 2),
+                _actionButton("Manage", 3),
+                _actionButton("Transfer", 4),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _planButton() {
+    final bool active = _actionTab == null;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: TextButton(
+        style: active
+            ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
+            : null,
+        onPressed: () => setState(() => _actionTab = null),
+        child: const Text("Plan"),
+      ),
+    );
+  }
+
+  Widget _actionButton(String label, int tab) {
+    final bool active = _actionTab == tab;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: TextButton(
+        style: active
+            ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
+            : null,
+        onPressed: () => setState(() => _actionTab = tab),
+        child: Text(label),
+      ),
+    );
+  }
+
+  void _returnToPlan() {
+    setState(() => _actionTab = null);
+  }
+
+  Widget _actionPage(int tab) {
+    switch (tab) {
+      case 0:
+        return PlanLoadSaveWidget(onDone: _returnToPlan);
+      case 1:
+        return PlanCreateWidget(onDone: _returnToPlan);
+      case 2:
+        return const PlanFileWidget();
+      case 3:
+        return const PlanManageWidget();
+      case 4:
+      default:
+        return const PlanTransferWidget();
+    }
+  }
+
+  Widget _buildPlanEditor(PlanRoute route) {
+    return Column(
+      children: [
+        Expanded(
+          flex: 1,
+          child: ValueListenableBuilder<int>( // update in plan change
+            valueListenable: route.change,
+            builder: (context, value, _) {
+              return ListTile( // header
+                  key: Key(Storage().getKey()),
+                  leading: GestureDetector(child: Icon(Icons.add), onTap: () {
+                    Storage().planSearch = true;
+                    MainScreenState.gotoFind();
+                  },),
+                  title: PlanLineWidgetState.getHeading(),
+                  subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
+            }),
+        ),
+        Expanded(
+          flex: 5,
+          child: route.length == 0
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add_location_alt, size: 64, color: Theme.of(context).colorScheme.outline),
+                      const SizedBox(height: 12),
+                      Text(
+                        "No waypoints in plan",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Use the buttons below to create or load a plan",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ReorderableListView(
+                  scrollController: _scrollController,
+                  scrollDirection: Axis.vertical,
+                  buildDefaultDragHandles: false,
+                  children: <Widget>[
+                    for (int index = 0; index < route.length; index++)
+                      ReorderableDelayedDragStartListener(
+                        index: index,
+                        key: Key(index.toString()),
+                        child: Dismissible(
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withAlpha(30),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.delete, color: Colors.red),
+                          ),
+                          key: Key(Storage().getKey()),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (direction) {
+                            setState(() {
+                              route.removeWaypointAt(index);
+                            });
+                          },
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: route.change,
+                            builder: (context, value, _) {
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 2),
+                                color: route.isCurrent(index)
+                                    ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
+                                    : null,
+                                child: PlanItemWidget(
+                                  waypoint: route.getWaypointAt(index),
+                                  current: route.isCurrent(index),
+                                  onTap: () {
+                                    setState(() {
+                                      Storage().route.setCurrentWaypoint(index);
+                                    });
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                  onReorder: (int oldIndex, int newIndex) {
+                    setState(() {
+                      if (oldIndex < newIndex) {
+                        newIndex -= 1;
+                      }
+                      route.moveWaypoint(oldIndex, newIndex);
+                    });
+                  },
+                ),
+        ),
+      ],
     );
   }
 

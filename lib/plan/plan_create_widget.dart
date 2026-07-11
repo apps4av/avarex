@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:avaremp/storage.dart';
 
 class PlanCreateWidget extends StatefulWidget {
-  const PlanCreateWidget({super.key});
+  final VoidCallback? onDone;
+  const PlanCreateWidget({super.key, this.onDone});
 
   @override
   State<StatefulWidget> createState() => PlanCreateWidgetState();
@@ -89,10 +90,8 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                     PlanRoute.fromLine("New Plan", input).then((value) {
                       Storage().route.copyFrom(value);
                       Storage().route.setCurrentWaypoint(0);
-                      setState(() {
-                        _getting = false;
-                        Navigator.pop(context);
-                      });
+                      setState(() => _getting = false);
+                      widget.onDone?.call();
                     });
                   },
                 ),
@@ -111,10 +110,8 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                     PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude.toString(), Storage().route.altitude.toString()).then((value) {
                       Storage().route.copyFrom(value);
                       Storage().route.setCurrentWaypoint(0);
-                      setState(() {
-                        _getting = false;
-                        Navigator.pop(context);
-                      });
+                      setState(() => _getting = false);
+                      widget.onDone?.call();
                     });
                   },
                 ),
@@ -133,10 +130,8 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                     PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude.toString(), Storage().route.altitude.toString(), lowAltitudeOnly: true).then((value) {
                       Storage().route.copyFrom(value);
                       Storage().route.setCurrentWaypoint(0);
-                      setState(() {
-                        _getting = false;
-                        Navigator.pop(context);
-                      });
+                      setState(() => _getting = false);
+                      widget.onDone?.call();
                     });
                   },
                 ),
