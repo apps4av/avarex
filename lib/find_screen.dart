@@ -59,6 +59,14 @@ class FindScreenState extends State<FindScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
               child: TextFormField(
+                // 1. Explicitly turns off the native platform spell checker
+                spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+
+                // 2. Instructs the system keyboard not to auto-correct typos
+                autocorrect: false,
+
+                // 3. Tells the keyboard to hide the predictive text/suggestion strip
+                enableSuggestions: false,
                 decoration: InputDecoration(
                   border: const OutlineInputBorder(),
                   labelText: "Search",

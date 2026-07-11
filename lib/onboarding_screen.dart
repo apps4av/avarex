@@ -806,6 +806,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
                       onChanged: (value) {
                         email = value;
                       },
+                      keyboardType: TextInputType.emailAddress,
                       controller: TextEditingController()..text = email,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(

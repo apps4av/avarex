@@ -30,6 +30,14 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                   children: [
                     Expanded(
                       child: TextFormField(
+                        // 1. Explicitly turns off the native platform spell checker
+                        spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+
+                        // 2. Instructs the system keyboard not to auto-correct typos
+                        autocorrect: false,
+
+                        // 3. Tells the keyboard to hide the predictive text/suggestion strip
+                        enableSuggestions: false,
                         onChanged: (value) {
                           _route = value.toUpperCase();
                         },
