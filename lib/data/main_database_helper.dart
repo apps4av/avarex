@@ -419,6 +419,21 @@ class MainDatabaseHelper {
     return AirwayDestination.fromMap(maps[0]["name"], maps);
   }
 
+  // Return all points (ordered by airway and sequence) of every airway that has at
+  // least one point inside the given bounding box. The full airway is returned even
+  // if only part of it lies in the box, so the airway stays contiguous for routing.
+  Future<List<Map<String, Object?>>> getAirwayPointsInRegion(double minLat, double maxLat, double minLon, double maxLon) async {
+    final db = await database;
+    if (db == null) {
+      return [];
+    }
+    String qry =
+        "select name, sequence, Longitude, Latitude from airways where name in "
+        "(select distinct name from airways where Latitude between $minLat and $maxLat and Longitude between $minLon and $maxLon) "
+        "order by name, cast(sequence as integer) asc";
+    return await DbGeneral.query(db, qry);
+  }
+
   // procedure is same as airway as its a bunch of points
   Future<ProcedureDestination?> findProcedure(String procedureName) async {
     List<Map<String, dynamic>> maps = [];

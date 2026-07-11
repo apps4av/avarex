@@ -437,7 +437,8 @@ Sub-pages (accessed via bottom navigation buttons): **Load & Save**, **Create**,
 
 #### B) Create
 - **Create As Entered**: parse typed route string (space-separated waypoints/airways, e.g., `KBOS V123 KHPN`)
-- **Create IFR Preferred Route**: build from rfinder.asalink.net API (enter `DEPART DEST`)
+- **Create IFR Route**: build a plan between two airports (enter `DEPART DEST`) using the built-in offline route generator, which produces a waypoint route over all airways — joining near the departure, following the airway network, and leaving near the destination
+- **Create IFR LA Route**: same as above but restricted to low altitude airways
 - **Show IFR ATC Routes**: show recent ATC routes between departure/destination from 1800wxbrief with last departure times
 
 ![Plan Actions → Create — type a route string and use one of the create buttons](assets/docs/screenshots/25_plan_actions_create.png)

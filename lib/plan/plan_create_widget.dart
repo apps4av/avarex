@@ -100,8 +100,8 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.alt_route),
-                  title: const Text('Create IFR Preferred Route'),
-                  subtitle: const Text('Fetch FAA preferred route', style: TextStyle(fontSize: 12)),
+                  title: const Text('Create IFR Route'),
+                  subtitle: const Text('Generate a route over all airways', style: TextStyle(fontSize: 12)),
                   trailing: const Icon(Icons.chevron_right),
                   enabled: !_getting,
                   onTap: () {
@@ -109,6 +109,28 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                     Storage().settings.setLastRouteEntry(input);
                     setState(() => _getting = true);
                     PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude.toString(), Storage().route.altitude.toString()).then((value) {
+                      Storage().route.copyFrom(value);
+                      Storage().route.setCurrentWaypoint(0);
+                      setState(() {
+                        _getting = false;
+                        Navigator.pop(context);
+                      });
+                    });
+                  },
+                ),
+              ),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.airline_stops),
+                  title: const Text('Create IFR LA Route'),
+                  subtitle: const Text('Generate a route over low altitude airways', style: TextStyle(fontSize: 12)),
+                  trailing: const Icon(Icons.chevron_right),
+                  enabled: !_getting,
+                  onTap: () {
+                    String input = _route.trim();
+                    Storage().settings.setLastRouteEntry(input);
+                    setState(() => _getting = true);
+                    PlanRoute.fromPreferred("New Plan", input, Storage().route.altitude.toString(), Storage().route.altitude.toString(), lowAltitudeOnly: true).then((value) {
                       Storage().route.copyFrom(value);
                       Storage().route.setCurrentWaypoint(0);
                       setState(() {

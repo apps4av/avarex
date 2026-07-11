@@ -1,20 +1,18 @@
 
 import 'dart:convert';
 
-import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airway.dart';
 import 'package:avaremp/data/main_database_helper.dart';
-import 'package:avaremp/utils/faa_dates.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/plan/passage.dart';
+import 'package:avaremp/plan/route_generator.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
-import 'package:http/http.dart' as http;
 
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
@@ -544,82 +542,36 @@ class PlanRoute {
     return route;
   }
 
-  // convert json to Route
-  static Future<PlanRoute> fromPreferred(String name, String line, String minAltitude, String maxAltitude) async {
+  // Build a route between two airports (enter "DEPART DEST").
+  //
+  // rfinder.asalink.net is no longer usable (commercial use prohibited), so this
+  // uses a built-in offline route generator that routes over the airway network:
+  // it joins near the departure, follows airways, and leaves near the destination,
+  // emitting the result as a list of waypoints. When [lowAltitudeOnly] is true only
+  // Victor and RNAV T airways are used; otherwise the full airway network is used.
+  static Future<PlanRoute> fromPreferred(String name, String line, String minAltitude, String maxAltitude, {bool lowAltitudeOnly = false}) async {
     PlanRoute route = PlanRoute(name);
-    List<String> split = line.split(" ");
+    List<String> split = line.trim().split(RegExp(r"\s+"));
 
     if(split.length < 2) {
       // source and dest must be present
       return route;
     }
 
-    Map<String, String> params = {};
-    params['id1'] = split[0];
-    params['id2'] = split[1];
-    params['nats'] = 'R';
-    params['rnav'] = 'Y';
-    params['dbid'] = FaaDates.getCurrentCycle();
-    params['easet'] = 'Y';
-    params['lvl'] = 'L'; // low is fine for now
-    params['minalt'] = minAltitude;
-    params['maxalt'] = maxAltitude;
+    List<Destination>? destinations = await RouteGenerator(lowAltitudeOnly: lowAltitudeOnly).generate(split[0], split[1]);
 
-    final response = await http.post(Uri.parse("https://rfinder.asalink.net/free/autoroute_rtx.php"), body: params);
-    if (response.statusCode == 200) {
-      /* parse the html
-        https://rfinder.asalink.net/login.php?cmd=login&uid=apps4av&pwd=apps4av
-        Name/Remarks
-        KBOS             0      0   N42&deg;21'46.60" W071&deg;00'23.00" GENERAL EDWARD LAWRENCE LOGAN
-        WHYBE          256     19   N42&deg;15'13.82" W071&deg;24'59.53" WHYBE
-        BOSOX          257     10   N42&deg;12'06.78" W071&deg;37'39.63" BOSOX
-        GRIPE          258     13   N42&deg;08'08.87" W071&deg;54'32.46" GRIPE
-        GRAYM          254      6   N42&deg;06'04.27" W072&deg;01'53.49" GRAYM
-        DVANY          225     19   N41&deg;51'44.56" W072&deg;18'11.24" DVANY
-        HFD     114.9  224     17   N41&deg;38'27.97" W072&deg;32'50.70" HARTFORD
-        YALER          250     18   N41&deg;30'56.61" W072&deg;54'39.09" YALER
-        SORRY          250      5   N41&deg;28'43.09" W073&deg;01'02.67" SORRY
-        MERIT          228      8   N41&deg;22'55.02" W073&deg;08'14.74" MERIT
-        TRUDE          228      4   N41&deg;20'01.96" W073&deg;11'48.73" TRUDE
-        ANNEI          228      4   N41&deg;17'09.83" W073&deg;15'21.23" ANNEI
-        VAGUS          227     10   N41&deg;09'49.86" W073&deg;24'22.27" VAGUS
-        OUTTE          227      7   N41&deg;04'41.47" W073&deg;30'39.77" OUTTE
-        KHPN           270      9   N41&deg;04'01.03" W073&deg;42'27.23" WESTCHESTER COUNTY
-     */
-      String data = response.body;
-      try {
-        LineSplitter ls = const LineSplitter();
-        List<String> lines = ls.convert(data);
-
-        // find lon lat in table of routes
-        RegExp exp = RegExp(r'''N(?<degLat>[0-9]*)&deg;(?<minLat>[0-9]*)'(?<secLat>[0-9]*\.[0-9]*)"\s*W(?<degLon>[0-9]*)&deg;(?<minLon>[0-9]*)'(?<secLon>[0-9]*\.[0-9]*)"''');
-
-        for(String line in lines) {
-          RegExpMatch? match = exp.firstMatch(line);
-          if(match != null) {
-            double degLat = double.parse(match.namedGroup("degLat")!);
-            double degLon = double.parse(match.namedGroup("degLon")!);
-            double minLat = double.parse(match.namedGroup("minLat")!);
-            double minLon = double.parse(match.namedGroup("minLon")!);
-            double secLat = double.parse(match.namedGroup("secLat")!);
-            double secLon = double.parse(match.namedGroup("secLon")!);
-
-            double latitude = degLat + minLat / 60 + secLat / 3600;
-            double longitude = degLon + minLon / 60 + secLon / 3600;
-
-            LatLng ll = LatLng(latitude, -longitude);
-            Destination d = await MainDatabaseHelper.db.findDestinationByCoordinates(ll);
-            Waypoint w = Waypoint(d);
-            route.addWaypoint(w);
-          }
-        }
-      }
-
-      catch (e) {
-        AppLog.logMessage("ASA plan parse error $e");
-      }
+    if(destinations == null || destinations.isEmpty) {
+      return route;
     }
 
+    // The generator already resolved each waypoint to the exact nav/fix at its
+    // coordinate, so build the plan directly. Re-parsing identifiers here would be
+    // ambiguous (some fix ids collide with airport city names) and could tear the
+    // route apart with huge direct legs to far-away airports.
+    for (Destination d in destinations) {
+      Destination expanded = await DestinationFactory.make(d);
+      route.addWaypoint(Waypoint(expanded));
+    }
     return route;
   }
 
