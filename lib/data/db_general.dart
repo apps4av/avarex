@@ -18,38 +18,48 @@ class DbGeneral {
   }
 
   static Future<List<Map<String, Object?>>> query(Database db, String sql, {List<dynamic> params = const []}) async {
-    var ret = db.rawQuery(sql, params).onError((error, stackTrace) {
+    // Guard with try/catch (not just onError): if the database was closed (e.g. during a
+    // chart/database download), rawQuery throws synchronously via checkNotClosed before a
+    // Future is ever created, so onError alone would let the exception escape.
+    try {
+      return await db.rawQuery(sql, params);
+    }
+    catch (error) {
       return [];
-    });
-    return ret;
+    }
   }
 
   static Future<int> insert(Database db, String table, Map<String, Object?> values) async {
-    var ret = db.insert(table, values).onError((error, stackTrace) {
-        return -1;
-      }
-    );
-    return ret;
+    try {
+      return await db.insert(table, values);
+    }
+    catch (error) {
+      return -1;
+    }
   }
 
   static Future<int> replace(Database db, String table, Map<String, Object?> values) async {
-    var ret = db.insert(table, values, conflictAlgorithm: ConflictAlgorithm.replace).onError((error, stackTrace) {
+    try {
+      return await db.insert(table, values, conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+    catch (error) {
       return -1;
     }
-    );
-    return ret;
   }
 
   static Future<void> deleteAndInsertBatch(Database db, String table, List<dynamic> values) async {
-    await db.transaction((txn) async {
-      Batch batch = txn.batch();
-      batch.delete(table);
-      for(dynamic v in values) {
-        batch.insert(table, v.toMap());
-      }
-      await batch.commit().onError((error, stackTrace) {
-        return [];
+    try {
+      await db.transaction((txn) async {
+        Batch batch = txn.batch();
+        batch.delete(table);
+        for(dynamic v in values) {
+          batch.insert(table, v.toMap());
+        }
+        await batch.commit();
       });
-    });
+    }
+    catch (error) {
+      // database may be closed (e.g. during a download) - ignore
+    }
   }
 }
