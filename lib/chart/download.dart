@@ -12,6 +12,9 @@ import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'chart.dart';
 import 'package:archive/archive_io.dart';
+// Streaming zip extractor that inflates directly to disk to avoid buffering
+// whole files in memory.
+import 'chart_extract.dart';
 
 const String _kSetupCancel = 'setupCancel';
 const String _kDownloaded = 'downloaded';
@@ -107,10 +110,8 @@ void _chartUnzipIsolateEntry(Map<String, Object?> start) {
           return;
         }
         if (file.isFile) {
-          final outputStream = OutputFileStream(
-              PathUtils.getUnzipFilePath(dataDir, file.name));
-          file.writeContent(outputStream);
-          outputStream.close();
+          extractFileStreaming(
+              file, PathUtils.getUnzipFilePath(dataDir, file.name));
         }
         final double fraction = num++ / archive.length.toDouble();
         final double progress = 0.5 + (fraction / 2);
