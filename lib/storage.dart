@@ -81,6 +81,8 @@ class Storage {
   // so traffic map layers rebuild on real changes instead of every second
   final trafficChange = ValueNotifier<int>(0);
   final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
+  /// Bumped when map layer opacity changes outside MapScreen (e.g. low memory).
+  final layerChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   Destination? business; // currently shown business on plate
@@ -296,6 +298,29 @@ class Storage {
         break;
       }
     }
+  }
+
+  static const Set<String> _essentialMapLayers = {'Nav', 'Chart'};
+
+  /// React to OS low-memory signals by disabling every map layer except Nav and Chart.
+  void onLowMemory() {
+    final names = settings.getLayers();
+    final opacity = settings.getLayersOpacity();
+    var changed = false;
+    for (var i = 0; i < names.length; i++) {
+      if (!_essentialMapLayers.contains(names[i]) && opacity[i] > 0) {
+        opacity[i] = 0.0;
+        changed = true;
+      }
+    }
+    if (!changed) {
+      return;
+    }
+    settings.setLayersOpacity(opacity);
+    cachedTrafficLayerOn = false;
+    imageCache.clear();
+    layerChange.value++;
+    setException("Low memory: disabled non-essential map layers.");
   }
 
   void startIO() {

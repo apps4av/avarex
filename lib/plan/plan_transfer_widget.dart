@@ -1,5 +1,6 @@
 import 'package:avaremp/avidyne/avidyne_discovery.dart';
 import 'package:avaremp/avidyne/avidyne_ifd.dart';
+import 'package:avaremp/avidyne/avidyne_message_log.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class PlanTransferWidget extends StatefulWidget {
 
 class PlanTransferWidgetState extends State<PlanTransferWidget> {
   final AvidyneIfd _avidyne = AvidyneIfd();
+  final AvidyneMessageLog _log = AvidyneMessageLog();
 
   String? _sendingToIfdIp; // ip currently being sent to, if any
   String? _importingFromIfdIp; // ip currently being read from, if any
@@ -26,6 +28,15 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
     // Capstone ADS-B); this just makes sure it is up while the transfer UI is
     // open. It is intentionally left running on dispose.
     _avidyne.start();
+    // Run the hex log live while the transfer screen is open.
+    _log.logPaused = false;
+  }
+
+  @override
+  void dispose() {
+    // Leaving the screen pauses the message log so it stops updating.
+    _log.logPaused = true;
+    super.dispose();
   }
 
   Future<void> _sendToIfd(AvidyneDevice device) async {
@@ -102,6 +113,11 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
         padding: const EdgeInsets.fromLTRB(0, 8, 0, 4),
         child: Text(title,
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)));
+  }
+
+  String _formatTime(DateTime t) {
+    String two(int v) => v < 10 ? "0$v" : "$v";
+    return "${two(t.hour)}:${two(t.minute)}:${two(t.second)}";
   }
 
   Widget _buildAvidyneSection() {
@@ -184,14 +200,107 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
     );
   }
 
+  Widget _buildMessageHeader() {
+    return AnimatedBuilder(
+      animation: _log.logChange,
+      builder: (context, _) {
+        final bool paused = _log.logPaused;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 0),
+          child: Row(
+            children: [
+              const Text("Messages (last 50)",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _log.clear(),
+                icon: const Icon(Icons.clear_all, size: 18),
+                label: const Text("Clear"),
+              ),
+              TextButton.icon(
+                onPressed: () => _log.toggleLogPaused(),
+                icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+                label: Text(paused ? "Resume" : "Pause"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMessageList() {
+    return AnimatedBuilder(
+      animation: _log.logChange,
+      builder: (context, _) {
+        final List<AvidyneLogEntry> msgs = _log.messages();
+        if (msgs.isEmpty) {
+          return const Center(
+              child: Text("No transfer messages yet — use Send or Get"));
+        }
+        return ListView.builder(
+          itemCount: msgs.length,
+          itemBuilder: (context, i) {
+            final AvidyneLogEntry m = msgs[i];
+            final Color dirColor =
+                m.outbound ? Colors.blue : Colors.green;
+            return ExpansionTile(
+              key: ValueKey(m),
+              dense: true,
+              leading: Text(m.directionLabel,
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: dirColor,
+                      fontFamily: "monospace")),
+              title: Text(m.summary.isEmpty
+                  ? m.type
+                  : "${m.type}  \u2014  ${m.summary}"),
+              subtitle: Text(_formatTime(m.time)),
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Raw bytes:",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      SelectableText(
+                        m.raw.isEmpty ? "-" : m.raw,
+                        style: const TextStyle(
+                            fontFamily: "monospace", fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAvidyneSection(),
-            ]));
+    // Parent already gives us a bounded height (Expanded). Cap the device
+    // section so a long description cannot starve the hex log; put the
+    // scrolling message list in the remaining space (ADS-B Status layout).
+    final double maxTop = MediaQuery.sizeOf(context).height * 0.45;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxTop),
+            child: SingleChildScrollView(child: _buildAvidyneSection()),
+          ),
+          const Divider(height: 16),
+          _buildMessageHeader(),
+          Expanded(child: _buildMessageList()),
+        ],
+      ),
+    );
   }
 }

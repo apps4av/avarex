@@ -31,14 +31,17 @@ class ElevationTileProvider extends TileProvider {
       return false;
     }
 
-    for(var value in _cache.values) {
-      value.evict();
-    }
-
-    _cache.clear();
+    clearCache();
     _lastCalled = DateTime.now().millisecondsSinceEpoch;
     _lastAltitude = currentAltitude;
     return true; // evicted
+  }
+
+  void clearCache() {
+    for (var value in _cache.values) {
+      value.evict();
+    }
+    _cache.clear();
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:avaremp/avidyne/avidyne_message_log.dart';
 import 'package:avaremp/avidyne/avidyne_stored_route.dart';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:universal_io/io.dart';
@@ -56,6 +57,21 @@ class AvidyneWifiChannel {
 
   int _nextMessageId = 0;
 
+  final AvidyneMessageLog _log = AvidyneMessageLog();
+
+  void _send(Socket socket, Uint8List bytes) {
+    _log.logMessage(true, bytes);
+    socket.add(bytes);
+  }
+
+  Future<Uint8List> _recv(_SocketReader reader, int n, Duration timeout) async {
+    final Uint8List bytes = await reader.read(n, timeout);
+    if (bytes.isNotEmpty) {
+      _log.logMessage(false, bytes);
+    }
+    return bytes;
+  }
+
   /// Uploads [fileBytes] as the given [dataset] to the IFD at [ipAddress].
   ///
   /// Returns null on success, or a human readable error string on failure.
@@ -76,11 +92,11 @@ class AvidyneWifiChannel {
 
       // Step 1: request the upload.
       final int fileLength = fileBytes.length;
-      socket.add(_buildUploadRequest(dataset, fileLength));
+      _send(socket, _buildUploadRequest(dataset, fileLength));
       await socket.flush();
 
       // Step 2: read the Ready response and extract the upload id.
-      final Uint8List response = await reader.read(8, responseTimeout);
+      final Uint8List response = await _recv(reader, 8, responseTimeout);
       if (response.length != 8 || !_checksumIsGood(response, 8)) {
         return "IFD gave a malformed response.";
       }
@@ -101,10 +117,10 @@ class AvidyneWifiChannel {
 
         bool acked = false;
         for (int attempt = 0; attempt <= _maxRetries && !acked; attempt++) {
-          socket.add(packet);
+          _send(socket, packet);
           await socket.flush();
 
-          final Uint8List ack = await reader.read(8, responseTimeout);
+          final Uint8List ack = await _recv(reader, 8, responseTimeout);
           final bool lastPacket = (offset + payloadSize) >= fileLength;
 
           if (ack.length != 8 || !_checksumIsGood(ack, 8)) {
@@ -165,11 +181,11 @@ class AvidyneWifiChannel {
       // Step 1: request the download. Remember the message id so we can match
       // it against the Ready response.
       final int requestId = _nextMessageId & 0xFF;
-      socket.add(_buildDownloadRequest(dataset));
+      _send(socket, _buildDownloadRequest(dataset));
       await socket.flush();
 
       // Step 2: read the Ready response (11 bytes) with file length + uid.
-      final Uint8List ready = await reader.read(11, responseTimeout);
+      final Uint8List ready = await _recv(reader, 11, responseTimeout);
       if (ready.length != 11 || !_checksumIsGood(ready, 11)) {
         return (null, "IFD gave a malformed download response.");
       }
@@ -187,7 +203,7 @@ class AvidyneWifiChannel {
       }
 
       // Step 3: tell the IFD we are ready to start receiving.
-      socket.add(_buildStartDownload(uid));
+      _send(socket, _buildStartDownload(uid));
       await socket.flush();
 
       // Step 4: receive data packets, acknowledging each, until complete.
@@ -197,6 +213,7 @@ class AvidyneWifiChannel {
       int retries = 0;
 
       while (remaining > 0) {
+        // Read header then body as one logical message for the hex log.
         final Uint8List header = await reader.read(5, responseTimeout);
         if (header.length != 5) {
           return (null, "Timed out receiving the flight plan from the IFD.");
@@ -204,22 +221,25 @@ class AvidyneWifiChannel {
         final int cmd = header[0];
         final int msgLen = header[2];
         if (msgLen < 8) {
+          _log.logMessage(false, header);
           return (null, "IFD sent a malformed packet.");
         }
         final Uint8List rest = await reader.read(msgLen - 5, responseTimeout);
         if (rest.length != msgLen - 5) {
+          _log.logMessage(false, header);
           return (null, "Timed out receiving the flight plan from the IFD.");
         }
         final Uint8List packet = Uint8List(msgLen)
           ..setRange(0, 5, header)
           ..setRange(5, msgLen, rest);
+        _log.logMessage(false, packet);
 
         if (cmd != _cmdDownloadData) {
           // Unable / Fail / unexpected command.
           return (null, "IFD aborted the download (${_subCodeName(packet[5])}).");
         }
         if (!_checksumIsGood(packet, msgLen)) {
-          socket.add(_buildDownloadNak(uid, expectedPacketId, _subChecksumError));
+          _send(socket, _buildDownloadNak(uid, expectedPacketId, _subChecksumError));
           await socket.flush();
           if (++retries > _maxRetries) {
             return (null, "Too many errors downloading the flight plan.");
@@ -231,7 +251,7 @@ class AvidyneWifiChannel {
         }
         final int packetId = packet[6];
         if (packetId != expectedPacketId) {
-          socket.add(_buildDownloadNak(uid, expectedPacketId, _subOutOfSequence));
+          _send(socket, _buildDownloadNak(uid, expectedPacketId, _subOutOfSequence));
           await socket.flush();
           if (++retries > _maxRetries) {
             return (null, "Too many errors downloading the flight plan.");
@@ -240,7 +260,7 @@ class AvidyneWifiChannel {
         }
         final int numBytes = msgLen - 8;
         if (numBytes <= 0 || numBytes > remaining) {
-          socket.add(_buildDownloadNak(uid, expectedPacketId, _subInvalidLength));
+          _send(socket, _buildDownloadNak(uid, expectedPacketId, _subInvalidLength));
           await socket.flush();
           if (++retries > _maxRetries) {
             return (null, "Too many errors downloading the flight plan.");
@@ -252,7 +272,7 @@ class AvidyneWifiChannel {
         remaining -= numBytes;
         retries = 0;
 
-        socket.add(_buildDownloadAck(uid, packetId));
+        _send(socket, _buildDownloadAck(uid, packetId));
         await socket.flush();
         expectedPacketId = (expectedPacketId + 1) & 0xFF;
       }

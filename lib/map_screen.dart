@@ -151,10 +151,29 @@ class MapScreenState extends State<MapScreen> {
     });
   }
 
+  void _layerListen() {
+    final opacity = Storage().settings.getLayersOpacity();
+    for (var i = 0; i < opacity.length; i++) {
+      _layersOpacity[i] = opacity[i];
+    }
+    _circlesKey = null;
+    _circlesLayer = null;
+    _toWaypointKey = null;
+    _toWaypointPath = const [];
+    _tfrLayer = null;
+    _airSigmetLayer = null;
+    _metarCluster = null;
+    _geoJsonLayer = null;
+    elevationTileProvider.clearCache();
+    _cacheBustElevation++;
+    setState(() {});
+  }
+
   @override
   void initState() {
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
+    Storage().layerChange.addListener(_layerListen);
     Storage().metar.change.addListener(_metarListen);
     Storage().taf.change.addListener(_tafListen);
     Storage().airep.change.addListener(_airepListen);
@@ -171,6 +190,7 @@ class MapScreenState extends State<MapScreen> {
   void dispose() {
     // save ptz when we switch out
     Storage().gpsChange.removeListener(_gpsListen);
+    Storage().layerChange.removeListener(_layerListen);
     Storage().metar.change.removeListener(_metarListen);
     Storage().taf.change.removeListener(_tafListen);
     Storage().airep.change.removeListener(_airepListen);

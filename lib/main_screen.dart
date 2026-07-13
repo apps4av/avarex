@@ -442,6 +442,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     Storage().stopIO();
     super.dispose();
   }
@@ -465,6 +466,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         Storage().stopIO();
         break;
     }
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    Storage().onLowMemory();
   }
 }
 
