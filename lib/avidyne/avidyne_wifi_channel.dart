@@ -30,21 +30,27 @@ class AvidyneWifiChannel {
   static const int datasetRoute = 1;
   static const int datasetUserWaypoint = 2;
 
-  // Command kinds.
+  // Command kinds (WiFiCrChannel::CommandKind).
   static const int _cmdRequestUpload = 0x00;
   static const int _cmdRequestDownload = 0x01;
   static const int _cmdStartDownload = 0x04;
+  static const int _cmdResetSession = 0x3F;
   static const int _cmdUploadData = 0x40;
   static const int _cmdDownloadData = 0x41;
 
-  // Response kinds.
+  // Response kinds (WiFiCrChannel::ResponseKind). eReady (0x80) answers both an
+  // upload and a download request; eUnable/eFail are refusals whose reason is
+  // in byte 5 (a ResponseSubCode).
   static const int _respReady = 0x80;
+  static const int _respUnable = 0x81;
+  static const int _respFail = 0x82;
   static const int _respDone = 0x83;
   static const int _respPacketAck = 0x84;
   static const int _respPacketNak = 0x85;
 
   // Response sub codes (see WiFiCrChannel::ResponseSubCode).
   static const int _subSuccess = 0;
+  static const int _subBusy = 1;
   static const int _subChecksumError = 6;
   static const int _subInvalidLength = 8;
   static const int _subOutOfSequence = 13;
@@ -64,12 +70,113 @@ class AvidyneWifiChannel {
     socket.add(bytes);
   }
 
+  // Connects to the IFD's FMS port, retrying with a short backoff. The IFD
+  // accepts only one client at a time, so right after a previous transfer it
+  // can briefly refuse (or not answer) a new connection until it has released
+  // the old socket; a couple of retries ride over that window.
+  Future<Socket> _connect(String ipAddress, Duration totalTimeout) async {
+    const int attempts = 3;
+    final int perMs = totalTimeout.inMilliseconds ~/ attempts;
+    final Duration perAttempt =
+        Duration(milliseconds: perMs < 2500 ? 2500 : perMs);
+    Object? lastError;
+    for (int i = 0; i < attempts; i++) {
+      try {
+        final Socket socket = await Socket.connect(ipAddress, fmsProtocolPort,
+            timeout: perAttempt);
+        socket.setOption(SocketOption.tcpNoDelay, true);
+        return socket;
+      } on SocketException catch (e) {
+        lastError = e;
+      } on TimeoutException catch (e) {
+        lastError = e;
+      }
+      if (i < attempts - 1) {
+        await Future<void>.delayed(const Duration(milliseconds: 800));
+      }
+    }
+    throw lastError!;
+  }
+
+  // Closes the connection gracefully: flush queued bytes, then half-close with
+  // a FIN (bounded by a short timeout) so the IFD sees a clean disconnect and
+  // releases its transfer session promptly, instead of an abortive reset that
+  // can leave the session lingering as "busy". Falls back to a hard destroy.
+  Future<void> _closeGracefully(Socket? socket, _SocketReader? reader) async {
+    if (socket != null) {
+      try {
+        await socket.flush();
+      } catch (_) {}
+      try {
+        await Future.any(<Future<void>>[
+          socket.close().then((_) {}),
+          Future<void>.delayed(const Duration(seconds: 2)),
+        ]);
+      } catch (_) {}
+    }
+    try {
+      await reader?.cancel();
+    } catch (_) {}
+    try {
+      socket?.destroy();
+    } catch (_) {}
+  }
+
   Future<Uint8List> _recv(_SocketReader reader, int n, Duration timeout) async {
     final Uint8List bytes = await reader.read(n, timeout);
     if (bytes.isNotEmpty) {
       _log.logMessage(false, bytes);
     }
     return bytes;
+  }
+
+  // Reads one command/response message, whose length is carried in byte 2 of
+  // the 5 byte header. Used for the variable length ready/refusal responses so
+  // an 8 byte "unable" reply is not mistaken for a truncated 11 byte "ready".
+  Future<Uint8List> _recvResponse(
+      _SocketReader reader, Duration timeout) async {
+    final Uint8List header = await reader.read(5, timeout);
+    if (header.length != 5) {
+      if (header.isNotEmpty) {
+        _log.logMessage(false, header);
+      }
+      return header;
+    }
+    final int msgLen = header[2];
+    if (msgLen < 6 || msgLen > 32) {
+      _log.logMessage(false, header);
+      return header; // implausible length -> caller treats as malformed
+    }
+    final Uint8List rest = await reader.read(msgLen - 5, timeout);
+    final Uint8List packet = Uint8List(5 + rest.length)
+      ..setRange(0, 5, header)
+      ..setRange(5, 5 + rest.length, rest);
+    _log.logMessage(false, packet);
+    return packet;
+  }
+
+  // True if the IFD refused a request because a transfer session is still
+  // active (eUnable/eFail with the eBusy sub code).
+  bool _isBusy(Uint8List response) {
+    return response.length >= 8 &&
+        (response[0] == _respUnable || response[0] == _respFail) &&
+        response[5] == _subBusy;
+  }
+
+  // Sends a reset-session command to return the IFD channel to its idle state
+  // and waits for the eReady acknowledgement. Returns null on success.
+  Future<String?> _resetSession(
+      Socket socket, _SocketReader reader, Duration timeout) async {
+    _send(socket, _buildResetSession());
+    await socket.flush();
+    final Uint8List resp = await _recvResponse(reader, timeout);
+    if (resp.length < 8 || !_checksumIsGood(resp, resp.length)) {
+      return "IFD gave a malformed reset response.";
+    }
+    if (resp[0] != _respReady) {
+      return "IFD could not clear its busy session (${_subCodeName(resp[5])}).";
+    }
+    return null;
   }
 
   /// Uploads [fileBytes] as the given [dataset] to the IFD at [ipAddress].
@@ -85,9 +192,7 @@ class AvidyneWifiChannel {
     Socket? socket;
     _SocketReader? reader;
     try {
-      socket = await Socket.connect(ipAddress, fmsProtocolPort,
-          timeout: connectTimeout);
-      socket.setOption(SocketOption.tcpNoDelay, true);
+      socket = await _connect(ipAddress, connectTimeout);
       reader = _SocketReader(socket);
 
       // Step 1: request the upload.
@@ -96,9 +201,23 @@ class AvidyneWifiChannel {
       await socket.flush();
 
       // Step 2: read the Ready response and extract the upload id.
-      final Uint8List response = await _recv(reader, 8, responseTimeout);
-      if (response.length != 8 || !_checksumIsGood(response, 8)) {
+      Uint8List response = await _recvResponse(reader, responseTimeout);
+      if (response.length < 8 || !_checksumIsGood(response, response.length)) {
         return "IFD gave a malformed response.";
+      }
+      // A stale session left over from an interrupted transfer makes the IFD
+      // answer "unable: busy". Reset the channel and request the upload again.
+      if (_isBusy(response)) {
+        final String? resetError = await _resetSession(socket, reader, responseTimeout);
+        if (resetError != null) {
+          return resetError;
+        }
+        _send(socket, _buildUploadRequest(dataset, fileLength));
+        await socket.flush();
+        response = await _recvResponse(reader, responseTimeout);
+        if (response.length < 8 || !_checksumIsGood(response, response.length)) {
+          return "IFD gave a malformed response.";
+        }
       }
       if (response[0] != _respReady) {
         return "IFD refused the upload (${_subCodeName(response[5])}).";
@@ -146,16 +265,17 @@ class AvidyneWifiChannel {
       }
 
       return null;
+    } on SocketException catch (e) {
+      AppLog.logMessage("Avidyne upload connection failed: $e");
+      return "Could not reach the IFD. It may still be finishing a previous "
+          "transfer \u2014 wait a few seconds and try again.";
     } on TimeoutException {
       return "Timed out communicating with the IFD.";
     } catch (e) {
       AppLog.logMessage("Avidyne upload failed: $e");
       return "Failed to send to the IFD. Check the Wi-Fi connection.";
     } finally {
-      try {
-        await reader?.cancel();
-        socket?.destroy();
-      } catch (_) {}
+      await _closeGracefully(socket, reader);
     }
   }
 
@@ -173,24 +293,42 @@ class AvidyneWifiChannel {
     Socket? socket;
     _SocketReader? reader;
     try {
-      socket = await Socket.connect(ipAddress, fmsProtocolPort,
-          timeout: connectTimeout);
-      socket.setOption(SocketOption.tcpNoDelay, true);
+      socket = await _connect(ipAddress, connectTimeout);
       reader = _SocketReader(socket);
 
       // Step 1: request the download. Remember the message id so we can match
       // it against the Ready response.
-      final int requestId = _nextMessageId & 0xFF;
-      _send(socket, _buildDownloadRequest(dataset));
+      Uint8List request = _buildDownloadRequest(dataset);
+      int requestId = request[1];
+      _send(socket, request);
       await socket.flush();
 
-      // Step 2: read the Ready response (11 bytes) with file length + uid.
-      final Uint8List ready = await _recv(reader, 11, responseTimeout);
-      if (ready.length != 11 || !_checksumIsGood(ready, 11)) {
+      // Step 2: read the Ready response (eReady is 11 bytes with the file length
+      // and uid; a refusal is a shorter message with the reason in byte 5).
+      Uint8List ready = await _recvResponse(reader, responseTimeout);
+      if (ready.length < 8 || !_checksumIsGood(ready, ready.length)) {
         return (null, "IFD gave a malformed download response.");
+      }
+      // Clear a stale/busy session and ask again (see upload()).
+      if (_isBusy(ready)) {
+        final String? resetError = await _resetSession(socket, reader, responseTimeout);
+        if (resetError != null) {
+          return (null, resetError);
+        }
+        request = _buildDownloadRequest(dataset);
+        requestId = request[1];
+        _send(socket, request);
+        await socket.flush();
+        ready = await _recvResponse(reader, responseTimeout);
+        if (ready.length < 8 || !_checksumIsGood(ready, ready.length)) {
+          return (null, "IFD gave a malformed download response.");
+        }
       }
       if (ready[0] != _respReady) {
         return (null, "IFD refused the download (${_subCodeName(ready[5])}).");
+      }
+      if (ready.length != 11) {
+        return (null, "IFD gave a malformed download response.");
       }
       if (ready[1] != requestId) {
         return (null, "IFD download response was out of sequence.");
@@ -283,16 +421,18 @@ class AvidyneWifiChannel {
         return (null, "The downloaded flight plan was corrupt.");
       }
       return (file, null);
+    } on SocketException catch (e) {
+      AppLog.logMessage("Avidyne download connection failed: $e");
+      return (null,
+          "Could not reach the IFD. It may still be finishing a previous "
+          "transfer \u2014 wait a few seconds and try again.");
     } on TimeoutException {
       return (null, "Timed out communicating with the IFD.");
     } catch (e) {
       AppLog.logMessage("Avidyne download failed: $e");
       return (null, "Failed to read from the IFD. Check the Wi-Fi connection.");
     } finally {
-      try {
-        await reader?.cancel();
-        socket?.destroy();
-      } catch (_) {}
+      await _closeGracefully(socket, reader);
     }
   }
 
@@ -302,6 +442,13 @@ class AvidyneWifiChannel {
     b[5] = dataset & 0xFF;
     b[6] = 0; // meta data
     b[7] = _checksum(b, 7);
+    return b;
+  }
+
+  Uint8List _buildResetSession() {
+    final Uint8List b = Uint8List(6);
+    _populateHeader(b, _cmdResetSession, 6);
+    b[5] = _checksum(b, 5);
     return b;
   }
 
