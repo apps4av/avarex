@@ -467,11 +467,5 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         break;
     }
   }
-
-  @override
-  void didHaveMemoryPressure() {
-    super.didHaveMemoryPressure();
-    Storage().onLowMemory();
-  }
 }
 
