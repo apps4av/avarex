@@ -74,6 +74,18 @@ class AvidyneIfd {
     change.value++;
   }
 
+  /// Makes sure discovery is running and immediately broadcasts the "AVISDK"
+  /// trigger, the same message [start] sends periodically (and that Storage's
+  /// IO startup kicks off). Lets the user prompt IFDs to re-announce themselves
+  /// without waiting for the next periodic broadcast.
+  Future<void> triggerDiscovery() async {
+    if (_discovery == null) {
+      await start();
+      return; // start() already sends an initial trigger.
+    }
+    _discovery!.sendTrigger();
+  }
+
   void _onDevice(AvidyneDevice device) {
     final AvidyneDevice? existing = _devices[device.ipAddress];
     if (existing == null) {

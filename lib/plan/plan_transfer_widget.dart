@@ -108,6 +108,18 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
     }
   }
 
+  // Broadcasts the "AVISDK" discovery trigger (the same message Storage's IO
+  // startup sends) so nearby IFDs re-announce themselves without waiting for
+  // the next periodic broadcast.
+  Future<void> _searchIfds() async {
+    await _avidyne.triggerDiscovery();
+    if (!mounted) {
+      return;
+    }
+    Toast.showToast(context, "Searching for Avidyne IFDs\u2026",
+        const Icon(Icons.wifi_tethering, color: Colors.blue), 2);
+  }
+
   Widget _sectionTitle(String title) {
     return Padding(
         padding: const EdgeInsets.fromLTRB(0, 8, 0, 4),
@@ -132,7 +144,14 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
           return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _sectionTitle("Avidyne IFD (Wi-Fi)"),
+                Row(children: [
+                  _sectionTitle("Avidyne IFD (Wi-Fi)"),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => _searchIfds(),
+                    child: const Text("Search"),
+                  ),
+                ]),
                 const Text(
                     "Send the active flight plan to an Avidyne IFD440/540/550 over "
                     "Wi-Fi, or get the IFD's flight plan into AvareX. Connect this "

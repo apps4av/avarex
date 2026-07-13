@@ -134,6 +134,11 @@ class AvidyneDiscovery {
     }
   }
 
+  /// Sends the "AVISDK" discovery trigger broadcast once. Safe to call at any
+  /// time while discovery is running; used both by the periodic timer and by a
+  /// manual "search" action in the UI.
+  void sendTrigger() => _sendTrigger();
+
   void _sendTrigger() {
     try {
       _sendSocket?.send(_triggerMessage, InternetAddress("255.255.255.255"),
