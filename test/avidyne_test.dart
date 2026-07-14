@@ -305,6 +305,121 @@ void main() {
       expect(AvidyneStoredRoute.decompressDownload(Uint8List.fromList(raw)),
           isNull);
     });
+
+    test('tolerates a leading byte before the RLE header (real IFD firmware)',
+        () {
+      // Some shipping IFD firmwares (seen on 10.3.1.2) prepend one extra byte
+      // before the compression header, so the file content starts one byte
+      // later than the documented packet offset. decompressDownload should skip
+      // it and validate the RLE payload by its Fletcher checksum.
+      final compressed = <int>[0x04, 0xAA, 0x82, 0xBB, 0xCC];
+      final expected = <int>[0xAA, 0xAA, 0xAA, 0xAA, 0xBB, 0xCC];
+      final chk = fletcher(compressed);
+      final raw = <int>[
+        0x00, // stray leading byte prepended by the IFD
+        1, // RLE
+        0, 0, 0, expected.length,
+        ...compressed,
+        ...chk,
+      ];
+      final out = AvidyneStoredRoute.decompressDownload(Uint8List.fromList(raw));
+      expect(out, isNotNull);
+      expect(out, equals(expected));
+    });
+  });
+
+  group('AvidyneStoredRoute fixed-format parsing (real IFD download)', () {
+    // Literal-only RLE encoding: valid RLE_Uncompress2 input that round-trips
+    // any file (each <=127 byte chunk becomes a 0x80|len raw run).
+    List<int> rleLiteral(List<int> data) {
+      final out = <int>[];
+      int i = 0;
+      while (i < data.length) {
+        final int chunk = (data.length - i).clamp(0, 127);
+        out.add(0x80 | chunk);
+        out.addAll(data.sublist(i, i + chunk));
+        i += chunk;
+      }
+      return out;
+    }
+
+    List<int> fletcher(List<int> data) {
+      int s1 = 0, s2 = 0;
+      for (final b in data) {
+        s1 = (s1 + b) % 255;
+        s2 = (s1 + s2) % 255;
+      }
+      return [s2 & 0xFF, s1 & 0xFF];
+    }
+
+    // Wrap a plain file the way a download-data stream does: compression header
+    // + literal-RLE payload + Fletcher, optionally with the stray leading byte
+    // real firmware prepends.
+    Uint8List wrapDownload(Uint8List file, {bool stray = false}) {
+      final compressed = rleLiteral(file);
+      return Uint8List.fromList(<int>[
+        if (stray) 0x00,
+        1,
+        (file.length >> 24) & 0xFF,
+        (file.length >> 16) & 0xFF,
+        (file.length >> 8) & 0xFF,
+        file.length & 0xFF,
+        ...compressed,
+        ...fletcher(compressed),
+      ]);
+    }
+
+    test('decompresses and parses a real fixed-layout route (KMMU..V188..KAVP)',
+        () {
+      // Our own upload builder produces the exact fixed StoredRoute layout the
+      // IFD returns (name[16], count, 128 x 39B records) plus a 4 byte CRC. The
+      // real download is the same file without that CRC.
+      final points = <AvidyneRoutePoint>[
+        const AvidyneRoutePoint(
+            id: 'KMMU',
+            latitude: 40.79993,
+            longitude: -74.41489,
+            fixKind: AvidyneStoredRoute.fixAirport),
+        const AvidyneRoutePoint(
+            id: 'SAX',
+            latitude: 41.06754,
+            longitude: -74.53831,
+            fixKind: AvidyneStoredRoute.fixVhfNavaid),
+        const AvidyneRoutePoint.airway(id: 'V188', exitFix: 'LVZ'),
+        const AvidyneRoutePoint(
+            id: 'KAVP',
+            latitude: 41.33847,
+            longitude: -75.72333,
+            fixKind: AvidyneStoredRoute.fixAirport),
+      ];
+      final upload =
+          AvidyneStoredRoute.buildRouteFileFromPoints('KMMU-KAVP', points)!;
+      // Drop the trailing 4 byte CRC to mirror the download file.
+      final file = Uint8List.sublistView(upload, 0, upload.length - 4);
+
+      // Straight fixed-format parse works.
+      final parsed = AvidyneStoredRoute.parseRouteFile(file);
+      expect(parsed, isNotNull);
+      expect(parsed!.name, 'KMMU-KAVP');
+      expect(parsed.points.length, 4);
+      expect(parsed.points[0].id, 'KMMU');
+      expect(parsed.points[0].isAirway, isFalse);
+      expect(parsed.points[2].isAirway, isTrue);
+      expect(parsed.points[2].id, 'V188');
+      expect(parsed.points[2].exitFix, 'LVZ');
+      expect(parsed.points[3].id, 'KAVP');
+
+      // End-to-end through the download wrapper with the real firmware's stray
+      // leading byte: decompress then parse must yield the same route.
+      final wrapped = wrapDownload(file, stray: true);
+      final decompressed = AvidyneStoredRoute.decompressDownload(wrapped);
+      expect(decompressed, isNotNull);
+      final parsed2 = AvidyneStoredRoute.parseRouteFile(decompressed!);
+      expect(parsed2, isNotNull);
+      expect(parsed2!.points.length, 4);
+      expect(parsed2.points[2].id, 'V188');
+      expect(parsed2.points[2].exitFix, 'LVZ');
+    });
   });
 
   group('WiFiCrChannel checksum reference', () {

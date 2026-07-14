@@ -351,6 +351,18 @@ class AvidyneStoredRoute {
   /// the route title. Because the records always sit at the tail, they are
   /// located by scanning candidate counts from the end of the file.
   static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
+    // Preferred: the fixed StoredRoute layout that real IFDs return and that we
+    // also upload -- a 16 byte route name, a 1 byte record count, then that
+    // many 39 byte records. The IFD zero-pads the record area out to 128 slots,
+    // so the records sit at the front of the file, not the tail.
+    final AvidyneParsedRoute? fixed = _parseFixedFormat(bytes);
+    if (fixed != null) {
+      return fixed;
+    }
+
+    // Fallback: the IFD Trainer's variable ";V001" wrapper. There the records
+    // sit at the tail (no fixed name field / padding), so locate the record
+    // block by scanning candidate counts back from the end of the file.
     for (int n = _maxRecords; n >= 1; n--) {
       final int countPos = bytes.length - (n * _recordLen) - 1;
       if (countPos < 0 || bytes[countPos] != n) {
@@ -366,6 +378,33 @@ class AvidyneStoredRoute {
           name: _extractName(bytes, countPos), points: points);
     }
     return null;
+  }
+
+  /// Parses the fixed `StoredRoute` layout: `name[16]`, a 1 byte record count,
+  /// then `count` 39 byte procedure records (port of the reader in
+  /// `StoredRoute::StoredRoute(filename)`). Returns null if the file is not in
+  /// this shape so the Trainer tail-scan can be tried instead.
+  static AvidyneParsedRoute? _parseFixedFormat(Uint8List bytes) {
+    const int countPos = _routeNameLen; // count byte follows the 16 byte name
+    if (bytes.length < countPos + 1 + _recordLen) {
+      return null;
+    }
+    final int count = bytes[countPos];
+    if (count < 1 || count > _maxRecords) {
+      return null;
+    }
+    final int recordsStart = countPos + 1;
+    if (bytes.length < recordsStart + count * _recordLen) {
+      return null;
+    }
+    final List<AvidyneRoutePoint>? points =
+        _readRecords(bytes, recordsStart, count);
+    if (points == null || points.isEmpty) {
+      return null;
+    }
+    final String name = _readCString(bytes, 0, _routeNameLen);
+    return AvidyneParsedRoute(
+        name: name.isEmpty ? "IFD Route" : name, points: points);
   }
 
   /// Reads exactly [n] procedure records at [start], returning the coordinate
@@ -452,32 +491,76 @@ class AvidyneStoredRoute {
   /// big-endian uncompressed length, the (optionally RLE compressed) payload,
   /// and a trailing 2 byte Fletcher-16 checksum. Port of
   /// `WiFiCrChannel::Decompress`.
+  ///
+  /// The published SDK expects each download-data packet to place the file
+  /// content at packet offset 7 (5 byte header + upload id + packet id), and
+  /// the IFD Trainer follows that. Some shipping IFD firmwares (seen on
+  /// 10.3.1.2) prepend one extra byte before the compression header, so the
+  /// accumulated payload starts one byte early. Route files always compress
+  /// into a single packet, so we tolerate a small leading offset here rather
+  /// than guessing the framing in the socket layer: a checksum-validated RLE
+  /// header found after skipping 0, 1 or 2 leading bytes wins, falling back to
+  /// the uncompressed interpretation only at the documented offset.
   static Uint8List? decompressDownload(Uint8List raw) {
-    if (raw.length < 7) {
+    // A valid RLE payload is self-verifying via its Fletcher checksum, so try
+    // that first across the candidate offsets.
+    for (int skip = 0; skip <= 2; skip++) {
+      final Uint8List? out = _decompressAt(raw, skip, onlyRle: true);
+      if (out != null) {
+        return out;
+      }
+    }
+    // No compressed payload matched: accept an uncompressed file at the
+    // documented offset (the Trainer's plain, un-RLE'd download).
+    for (int skip = 0; skip <= 2; skip++) {
+      final Uint8List? out = _decompressAt(raw, skip, onlyRle: false);
+      if (out != null) {
+        return out;
+      }
+    }
+    return null;
+  }
+
+  /// Attempts to decode a download file whose compression header begins at
+  /// [start]. Returns null if the header is implausible or (for RLE) the
+  /// checksum does not match. When [onlyRle] is set, an uncompressed header is
+  /// rejected so a checksum-validated RLE offset can be preferred first.
+  static Uint8List? _decompressAt(Uint8List raw, int start,
+      {required bool onlyRle}) {
+    if (raw.length - start < 7) {
       return null;
     }
-    final int isRle = raw[0];
-    final int fileSize =
-        (raw[1] << 24) | (raw[2] << 16) | (raw[3] << 8) | raw[4];
+    final int isRle = raw[start];
+    if (isRle != 0 && isRle != 1) {
+      return null;
+    }
+    final int fileSize = (raw[start + 1] << 24) |
+        (raw[start + 2] << 16) |
+        (raw[start + 3] << 8) |
+        raw[start + 4];
     if (fileSize <= 0 || fileSize > 1 << 20) {
       return null;
     }
-    final int payloadLen = raw.length - 7;
+    final int payloadLen = raw.length - start - 7;
     if (payloadLen < 0) {
       return null;
     }
-    final Uint8List payload = Uint8List.sublistView(raw, 5, 5 + payloadLen);
+    final Uint8List payload =
+        Uint8List.sublistView(raw, start + 5, start + 5 + payloadLen);
 
     if (isRle == 1) {
       final List<int> computed = _fletcher16(payload);
-      final int c0 = raw[5 + payloadLen];
-      final int c1 = raw[5 + payloadLen + 1];
+      final int c0 = raw[start + 5 + payloadLen];
+      final int c1 = raw[start + 5 + payloadLen + 1];
       if (computed[0] != c0 || computed[1] != c1) {
         return null;
       }
       return _rleUncompress(payload, fileSize);
     }
 
+    if (onlyRle) {
+      return null;
+    }
     // Not compressed: the payload is the file (possibly with trailing slack).
     if (payloadLen < fileSize) {
       return null;
