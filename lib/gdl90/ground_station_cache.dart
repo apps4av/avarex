@@ -9,7 +9,9 @@ import 'package:latlong2/latlong.dart';
 class GroundStation {
   final LatLng coordinates;
   int lastSeenMs;
-  GroundStation(this.coordinates, this.lastSeenMs);
+  int slotId;      // UAT ground-station broadcast slot (0-31)
+  int tisbSiteId;  // TIS-B site ID (0 = no TIS-B service from this station)
+  GroundStation(this.coordinates, this.lastSeenMs, {this.slotId = 0, this.tisbSiteId = 0});
 }
 
 class GroundStationCache {
@@ -29,11 +31,12 @@ class GroundStationCache {
 
   /// Record a ground station heard at [coordinates]. Returns true if this is a
   /// newly heard station (not currently in the cache).
-  bool put(LatLng coordinates) {
+  bool put(LatLng coordinates, {int slotId = 0, int tisbSiteId = 0}) {
     int now = DateTime.now().millisecondsSinceEpoch;
     String key = _keyFor(coordinates);
     bool isNew = !_stations.containsKey(key);
-    _stations[key] = GroundStation(coordinates, now);
+    _stations[key] =
+        GroundStation(coordinates, now, slotId: slotId, tisbSiteId: tisbSiteId);
     return isNew;
   }
 

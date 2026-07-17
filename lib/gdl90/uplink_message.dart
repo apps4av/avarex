@@ -75,7 +75,8 @@ class UplinkMessage extends Message {
     // an unlocked 0,0 position.
     if (!(degLat == 0 && degLon == 0)) {
       groundStation = LatLng(degLat, degLon);
-      Storage().adsbStatus.reportGroundStation(groundStation!);
+      Storage().adsbStatus.reportGroundStation(groundStation!,
+          slotId: slotId, tisbSiteId: tisbSiteId);
     }
 
     // byte 9-432: application data (multiple iFrames).

@@ -5,6 +5,14 @@ import 'package:latlong2/latlong.dart';
 
 import 'message.dart';
 
+/// Why a traffic report was dropped by TrafficCache (not shown on the map).
+/// Used by the ADS-B status log to color-code filtered aircraft.
+enum TrafficFilter {
+  none,     // displayed
+  ownship,  // matched our ownship ICAO/callsign ("that's us")
+  range,    // outside the current puck distance/altitude window
+}
+
 class TrafficReportMessage extends Message {
   double altitude = -305;
   LatLng coordinates = const LatLng(0, 0);
@@ -21,6 +29,7 @@ class TrafficReportMessage extends Message {
   int nic = 0;
   int nacp = 0;
   int emergencyCode = 0;
+  TrafficFilter filter = TrafficFilter.none; // set by TrafficCache.putTraffic
 
   TrafficReportMessage(super.type);
 

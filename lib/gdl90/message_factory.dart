@@ -20,6 +20,7 @@ class MessageFactory
     if (dataIn.length < 3) {
       AppLog.logMessage(
           'GDL90 message too short (${dataIn.length} bytes)');
+      Storage().adsbStatus.recordFrameError();
       return null;
     }
     // remove 7e at start and end
@@ -31,6 +32,7 @@ class MessageFactory
     if (processedDataIn.length < 3) {
       AppLog.logMessage(
           'GDL90 processed frame too short (${processedDataIn.length} bytes)');
+      Storage().adsbStatus.recordFrameError();
       return null;
     }
     int type = (processedDataIn.elementAt(0) & 0xFF);
@@ -77,9 +79,12 @@ class MessageFactory
     }
     // Log received messages (decoded) for the ADS-B status screen. The status
     // screen's per-type filter decides what is kept (AHRS is off by default).
+    // Traffic reports carry why they were filtered out (not shown on map).
+    final TrafficFilter filter =
+        m is TrafficReportMessage ? m.filter : TrafficFilter.none;
     Storage().adsbStatus.logMessage(
         type, MessageType.describe(type), m?.summary() ?? "", m?.decode() ?? "",
-        _toHex(data));
+        _toHex(data), filter: filter);
     return m;
   }
 
@@ -121,6 +126,7 @@ class MessageFactory
     if (length < 3) {
       AppLog.logMessage(
           'GDL90 frame too short after unescape ($length bytes)');
+      Storage().adsbStatus.recordFrameError();
       return null;
     }
     int msb = (msgCrc.elementAt(length - 1).toInt() & 0xFF);
@@ -130,6 +136,7 @@ class MessageFactory
       final int id = msgCrc.elementAt(0) & 0xFF;
       AppLog.logMessage(
           'GDL90 CRC check failed (${MessageType.describe(id)})');
+      Storage().adsbStatus.recordCrcError();
       return null;
     }
     Uint8List ret = msgCrc.sublist(0, length);

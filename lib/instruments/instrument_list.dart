@@ -70,8 +70,9 @@ class InstrumentListState extends State<InstrumentList> {
   String _vsr = "";
   String _flightTime = "00:00";
   String _gel = "DL";
-  String _adsb = "\u25cb"; // empty circle
-  Color? _adsbColor; // circle color: null=default, yellow=partial, green=connected
+  String _adsb = "\u25cb"; // status circle, shown when no ownship callsign is available
+  String _adsbCallsign = ""; // ownship tail number reported by the receiver, if any
+  Color? _adsbColor; // callsign/circle color: null=default/disconnected, yellow=partial, green=connected
 
   @override
   void dispose() {
@@ -291,11 +292,13 @@ class InstrumentListState extends State<InstrumentList> {
       // Auto = default tile color, Green = Internal, Blue = External
       defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
-      // ADSB: filled circle when connected (green with GPS, yellow without GPS),
-      // empty circle when disconnected. Only the circle is colored, not the tile.
+      // ADSB: the tile shows the ownship tail number when reported; otherwise it
+      // falls back to a status circle (filled when connected, empty when not).
+      // Color reflects the receiver state (green with GPS, yellow without GPS).
       bool connected = Storage().adsbStatus.connected;
       bool gpsValid = Storage().adsbStatus.gpsValid;
       _adsb = connected ? "\u25cf" : "\u25cb"; // filled vs empty circle
+      _adsbCallsign = Storage().ownshipMessageCallsign;
       _adsbColor = !connected ? null : (gpsValid ? Colors.green : Colors.yellow);
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
@@ -558,7 +561,8 @@ class InstrumentListState extends State<InstrumentList> {
         cb = _resetTacTimer;
         break;
       case "ADSB":
-        value = _adsb;
+        // ownship tail number when reported, otherwise the status circle
+        value = _adsbCallsign.isEmpty ? _adsb : _adsbCallsign;
         valueColor = _adsbColor;
         cb = _showAdsbDetails;
         break;
@@ -638,7 +642,7 @@ class InstrumentListState extends State<InstrumentList> {
                     "UTC - Coordinated Universal Time.\n"
                     "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
                     "FLT - Total flight time in hours. Tap to reset.\n"
-                    "ADSB- ADS-B receiver status. Green \u25cf=connected, yellow \u25cf=connected without GPS, \u25cb=disconnected. Click on the tile to open the status screen.\n",
+                    "ADSB- ADS-B receiver status. Shows your tail number when the receiver reports it; otherwise a circle (green \u25cf=connected, yellow \u25cf=connected without GPS, \u25cb=disconnected). Click on the tile to open the status screen.\n",
                     null, 30);
                 },
                 child: _menuRow(Icons.help_outline, "Help"),

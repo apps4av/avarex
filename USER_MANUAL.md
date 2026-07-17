@@ -225,7 +225,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 | **UTC** | Current UTC time (HH:MM) | — |
 | **SRC** | GPS source mode. Shows `Internal`, `External`, `Internal-A`, or `External-A` (A=Auto mode) | Tap to cycle modes: Auto, Internal, External. Green=Internal, Blue=External |
 | **FLT** | Total flight time in hours | Reset timer |
-| **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Green filled circle ● = connected with GPS; yellow filled circle ● = connected without GPS (partial); empty circle ○ = disconnected. Only the circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen |
+| **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Shows your own tail number when the receiver reports it; otherwise a status circle — green filled circle ● = connected with GPS, yellow filled circle ● = connected without GPS (partial), empty circle ○ = disconnected. Only the text/circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen |
 
 Interactions:
 
@@ -243,7 +243,13 @@ Interactions:
     - **SIGMET / AIRMET / SUA**: location, polygon vertex count, effective times, and any embedded text.
   - **Device report**: battery charge percentage and charging state.
 
+  Each message type has its own **color**, so you can tell types apart at a glance. The same colors are used in the **filter** list (funnel icon) next to each message type, so the log and the filter selector stay in sync. When a traffic target is suppressed, the row also carries a text tag — `filtered: ownship` (its ID matched yours, so it was treated as "us") or `filtered: out of range` (outside the current S/M/L traffic distance/altitude window). This makes it easy to confirm whether a nearby aircraft (for example one received via **TIS-B**) is being received but suppressed rather than never received at all.
+
   Use **Pause**/**Resume** to freeze or continue the live log. Leaving the screen automatically pauses the log (it resumes when you reopen the screen).
+
+- **Ground stations**: under the **Ground stations received** count, each currently-heard FIS-B ground station (tower) is listed, nearest first, showing its identity (**TIS-B site** number when it provides TIS-B, plus its UAT **slot**), its **distance and bearing** from your position, its latitude/longitude, and how many seconds ago it was last heard. Distance/bearing are shown only when your position is known.
+
+- **Diagnostics** (expandable card under the receiver status): reception-quality counters to help debug ADS-B problems. It shows the total decoded messages and average message rate, per-type counts (Heartbeat, Ownship, Traffic, Uplink), how long ago the last heartbeat/ownship/traffic message was seen, the uplink/traffic counts reported by the latest heartbeat, how many aircraft are currently tracked, how many traffic targets were filtered (ownship-match vs out-of-range), and error counts (**CRC**, **frame**, and **parse** errors — highlighted red when non-zero). Tap **Reset** to zero the counters. Use these to tell, for example, whether traffic is simply not being received versus being received but filtered.
 
 ### 4.7 GPWS (Ground Proximity Warning System)
 

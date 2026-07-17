@@ -17,6 +17,7 @@ class OwnShipMessage extends Message {
   int trackType = 0;
   int nic = 0;
   int nacp = 0;
+  String callSign = ""; // tail number, when the receiver reports it
 
   OwnShipMessage(super.type);
 
@@ -81,13 +82,20 @@ class OwnShipMessage extends Message {
 
     // heading / track
     heading = ((message[16].toInt() & 0xFF).toDouble() * 1.40625); // heading resolution 1.40625
+
+    // call sign / tail number from bytes 18..25 (same layout as traffic report)
+    if (message.length >= 26) {
+      Uint8List call = message.sublist(18, 26);
+      callSign = String.fromCharCodes(call).replaceAll(RegExp("[^a-zA-Z0-9]"), "");
+    }
   }
 
   @override
   String decode() {
     double altFt = altitude * Storage().units.mToF;
     double kts = velocity / 0.514444;
-    return "ICAO: ${icao.toRadixString(16).toUpperCase().padLeft(6, '0')} ($icao)\n"
+    return "Callsign: ${callSign.isEmpty ? "-" : callSign}\n"
+        "ICAO: ${icao.toRadixString(16).toUpperCase().padLeft(6, '0')} ($icao)\n"
         "Latitude: ${coordinates.latitude.toStringAsFixed(5)}\u00b0\n"
         "Longitude: ${coordinates.longitude.toStringAsFixed(5)}\u00b0\n"
         "Altitude: ${altFt.toStringAsFixed(0)} ft (${altitude.toStringAsFixed(0)} m)\n"

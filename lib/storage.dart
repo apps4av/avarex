@@ -101,6 +101,8 @@ class Storage {
   bool cachedTrafficLayerOn = false;
   String myAircraftCallsign = "";
   int ownshipMessageIcao = 0;
+  String ownshipMessageCallsign = ""; // tail number reported by the ADS-B receiver, if any
+  bool _adsbWasConnected = false; // tracks ADS-B connection edge to reset ownship on disconnect
   final PfdData pfdData = PfdData(); // a place to drive PFD
   GpsRecorder tracks = GpsRecorder();
   late final FlightTimer flightTimer;
@@ -238,6 +240,10 @@ class Storage {
               continue; // skip 0, 0 when GPS is not locked
             }
             ownshipMessageIcao = m.icao;
+            // keep the last reported tail number (some frames omit it)
+            if (m.callSign.isNotEmpty) {
+              ownshipMessageCallsign = m.callSign;
+            }
             _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch; // update time when GPS signal was last received
             _lastMsExternalSignal = _lastMsGpsSignal; // start ignoring internal GPS
             _gpsStack.push(p);
@@ -249,6 +255,7 @@ class Storage {
           }
         } catch (e, st) {
           setException("ADS-B parse error");
+          adsbStatus.recordParseError();
           AppLog.logMessage("GDL90 parse error: $e\n$st");
         }
       }
@@ -462,6 +469,14 @@ class Storage {
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // this provides time to apps
       timeChange.value++;
+
+      // clear the ADS-B-derived ownship identity when the receiver disconnects
+      final bool adsbConnected = adsbStatus.connected;
+      if (_adsbWasConnected && !adsbConnected) {
+        ownshipMessageIcao = 0;
+        ownshipMessageCallsign = "";
+      }
+      _adsbWasConnected = adsbConnected;
 
       Position positionIn = _gpsStack.pop(); // used for testing and injecting GPS location
       position = Gps.clone(positionIn, area.geoAltitude);

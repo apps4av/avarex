@@ -199,6 +199,7 @@ class TrafficCache {
       || (myAircraftCallsign.isNotEmpty && message.callSign.isNotEmpty && myAircraftCallsign == message.callSign))
     {
       // do not add ourselves
+      message.filter = TrafficFilter.ownship;
       return;
     }
 
@@ -223,6 +224,7 @@ class TrafficCache {
         if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt ||
           trafficNew.horizontalOwnshipDistanceNmi > _kTrafficDistanceDiffThresholdNm) {
            _traffic[i] = null;
+           message.filter = TrafficFilter.range;
            Storage().trafficChange.value++; // traffic removed
           return;
         }
@@ -242,6 +244,7 @@ class TrafficCache {
     // only display/alert traffic that isn't too far from ownship
     if (trafficNew.verticalOwnshipDistanceFt.abs() > _kTrafficAltDiffThresholdFt ||
       trafficNew.horizontalOwnshipDistanceNmi > _kTrafficDistanceDiffThresholdNm) {
+      message.filter = TrafficFilter.range;
       return;
     }    
     _traffic[maxEntries] = trafficNew;
