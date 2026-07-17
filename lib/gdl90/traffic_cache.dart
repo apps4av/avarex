@@ -188,10 +188,15 @@ class TrafficCache {
 
   void putTraffic(TrafficReportMessage message) {
 
-    // filter own report
-    if(message.icao == Storage().ownshipMessageIcao 
-      || Storage().myAircraftIcao == message.icao
-      || Storage().myAircraftCallsign == message.callSign) 
+    // filter own report. Guard against unset defaults (ICAO 0 / empty callsign)
+    // so anonymous TIS-B targets (track-file targets often report ICAO 0 and no
+    // callsign) are not mistaken for ownship and discarded.
+    final int icao = message.icao;
+    final int ownshipIcao = Storage().ownshipMessageIcao;
+    final int myAircraftIcao = Storage().myAircraftIcao;
+    final String myAircraftCallsign = Storage().myAircraftCallsign;
+    if((icao != 0 && (icao == ownshipIcao || icao == myAircraftIcao))
+      || (myAircraftCallsign.isNotEmpty && message.callSign.isNotEmpty && myAircraftCallsign == message.callSign))
     {
       // do not add ourselves
       return;
