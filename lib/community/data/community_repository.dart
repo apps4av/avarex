@@ -16,6 +16,7 @@ import '../models/pilot_profile.dart';
 ///
 /// Collection layout:
 ///   users/{uid}                                  -> PilotProfile
+///   usernames/{displayNameLower}                 -> { uid } (name uniqueness)
 ///   groups/{gid}                                 -> PilotGroup
 ///   groups/{gid}/members/{uid}                   -> GroupMember
 ///   groups/{gid}/posts/{pid}                     -> GroupPost
@@ -43,6 +44,9 @@ class CommunityRepository {
   DocumentReference<Map<String, dynamic>> _profileRef(String uid) =>
       _db.collection("users").doc(uid);
 
+  DocumentReference<Map<String, dynamic>> _usernameRef(String nameLower) =>
+      _db.collection("usernames").doc(nameLower);
+
   Future<PilotProfile> ensureMyProfile() async {
     final uid = _requireUid();
     final ref = _profileRef(uid);
@@ -50,13 +54,69 @@ class CommunityRepository {
     if (snap.exists) {
       return PilotProfile.fromDoc(snap);
     }
-    final initial = PilotProfile.empty(
-      uid,
-      FirebaseAuth.instance.currentUser?.displayName ??
-          FirebaseAuth.instance.currentUser?.email?.split("@").first,
-    );
+    // Pick a globally-unique display name (the security rules require the
+    // caller to own the matching usernames/{lower} claim before the profile
+    // can be written). Start from the auth name/email, appending a short uid
+    // suffix if it's taken.
+    final base = FirebaseAuth.instance.currentUser?.displayName ??
+        FirebaseAuth.instance.currentUser?.email?.split("@").first ??
+        "Pilot";
+    final displayName = await _claimUniqueName(uid, base);
+    final initial = PilotProfile.empty(uid, displayName);
     await ref.set(initial.toMap());
     return initial;
+  }
+
+  /// Normalize a candidate display name to the 2-40 char window the rules
+  /// require, and to something usable as the usernames claim document id
+  /// (the lowercased name is the doc id, so '/', '.' and '..' are illegal).
+  String _sanitizeDisplayName(String name) {
+    var n = name.replaceAll("/", "-").trim();
+    if (n.length > 40) n = n.substring(0, 40).trim();
+    if (n.length < 2 || n == "." || n == "..") n = "Pilot";
+    return n;
+  }
+
+  /// Claim the global username [nameLower] for [uid]. No-op if the caller
+  /// already holds it; throws a [StateError] if another pilot does.
+  Future<void> _claimUsername(String uid, String nameLower) async {
+    final ref = _usernameRef(nameLower);
+    final snap = await ref.get();
+    if (snap.exists) {
+      if (snap.data()?["uid"] == uid) return; // already mine
+      throw StateError("That display name is taken. Please choose another.");
+    }
+    try {
+      await ref.set({"uid": uid});
+    } on FirebaseException {
+      // Lost a race: another pilot claimed it between the read and the write
+      // (the create-only rule rejected our overwrite).
+      throw StateError("That display name is taken. Please choose another.");
+    }
+  }
+
+  /// Claim a unique display name for a brand-new profile, deriving it from
+  /// [base] and falling back to uid-suffixed variants when [base] is taken.
+  Future<String> _claimUniqueName(String uid, String base) async {
+    final root = _sanitizeDisplayName(base);
+    final candidates = <String>[
+      root,
+      _sanitizeDisplayName("$root-${uid.substring(0, 4)}"),
+      _sanitizeDisplayName("$root-${uid.substring(0, 6)}"),
+      _sanitizeDisplayName("Pilot-${uid.substring(0, 6)}"),
+    ];
+    for (final candidate in candidates) {
+      try {
+        await _claimUsername(uid, candidate.toLowerCase());
+        return candidate;
+      } on StateError {
+        // taken -> try the next candidate
+      }
+    }
+    // Extremely unlikely: fall back to the full uid, which is unique.
+    final unique = _sanitizeDisplayName("Pilot-$uid");
+    await _claimUsername(uid, unique.toLowerCase());
+    return unique;
   }
 
   Stream<PilotProfile?> watchMyProfile() {
@@ -70,7 +130,32 @@ class CommunityRepository {
 
   Future<void> saveMyProfile(PilotProfile profile) async {
     final uid = _requireUid();
-    await _profileRef(uid).set(profile.toMap(), SetOptions(merge: true));
+    // Canonicalize the name so the claim id is a valid doc id and matches the
+    // stored displayNameLower exactly (the rules bind the two).
+    final toSave = profile.copyWith(
+        displayName: _sanitizeDisplayName(profile.displayName));
+    final newLower = toSave.displayName.toLowerCase();
+
+    // Determine the previous name so we can release its claim on a rename.
+    final currentSnap = await _profileRef(uid).get();
+    final data = currentSnap.data();
+    final oldLower = (data?["displayNameLower"] as String?) ??
+        (data?["displayName"] as String?)?.toLowerCase();
+
+    // The rules require us to own the (new) name claim before the profile
+    // write; claim it first (throws "taken" if another pilot holds it).
+    await _claimUsername(uid, newLower);
+
+    await _profileRef(uid).set(toSave.toMap(), SetOptions(merge: true));
+
+    // Release the previous claim so the old name becomes available again.
+    if (oldLower != null && oldLower != newLower) {
+      try {
+        await _usernameRef(oldLower).delete();
+      } catch (_) {
+        // Best-effort; a lingering claim only prevents name reuse.
+      }
+    }
   }
 
   // -------------------- Groups --------------------

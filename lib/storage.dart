@@ -9,6 +9,7 @@ import 'dart:ui' as ui;
 // put all singletons here.
 
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/business/models/airport_business.dart';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/place/area.dart';
 import 'package:avaremp/data/main_database_helper.dart';
@@ -83,7 +84,7 @@ class Storage {
   final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
-  Destination? business; // currently shown business on plate
+  AirportBusiness? business; // currently selected business on the plate diagram
   late WindsCache winds;
   late MetarCache metar;
   late TafCache taf;

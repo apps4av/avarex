@@ -27,6 +27,28 @@ class LoginScreenState extends State<LoginScreen> {
   }
 
   static void showPaywall(BuildContext context, String route) async {
+    showPaywallThen(context, (ctx) => Navigator.pushNamed(ctx, route));
+  }
+
+  /// Sign-in-only gate (no Pro entitlement required). Runs [onSignedIn] when
+  /// the user is authenticated, otherwise sends them to the sign-in screen.
+  /// Used by features that are free but still need an accountable identity
+  /// (e.g. Airport Businesses & Reviews).
+  static void requireSignInThen(
+      BuildContext context, void Function(BuildContext context) onSignedIn) {
+    if (FirebaseAuth.instance.currentUser == null) {
+      Navigator.pushNamed(context, "/pro");
+    } else {
+      onSignedIn(context);
+    }
+  }
+
+  /// Like [showPaywall] but runs [onEntitled] once the user is signed in and
+  /// has an active Pro entitlement, instead of navigating to a fixed named
+  /// route. Used by features (e.g. Airport Businesses) that need to open a
+  /// screen with runtime arguments.
+  static void showPaywallThen(
+      BuildContext context, void Function(BuildContext context) onEntitled) async {
     if(FirebaseAuth.instance.currentUser == null) {
       Navigator.pushNamed(context, "/pro");
     }
@@ -35,7 +57,7 @@ class LoginScreenState extends State<LoginScreen> {
         RevenueCatService.presentPaywallIfNeeded().then((entitled) {
           if (context.mounted) {
             if (entitled) {
-              Navigator.pushNamed(context, route);
+              onEntitled(context);
             }
             else {
               Toast.showToast(

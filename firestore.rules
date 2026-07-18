@@ -152,15 +152,47 @@ service cloud.firestore {
         && isValidTimestamp(request.resource.data.updatedAt);
     }
 
+    // Global uniqueness of the display name: the caller must hold the
+    // usernames/{displayNameLower} claim (see the /usernames rules below).
+    // This is what actually prevents impersonation -- binding createdByName /
+    // authorName to the profile is only meaningful if the profile name itself
+    // can't be duplicated. Because rules read committed state, the client
+    // claims the username in a separate write *before* writing the profile.
+    function ownsUsername(nameLower) {
+      return exists(/databases/$(database)/documents/usernames/$(nameLower))
+        && get(/databases/$(database)/documents/usernames/$(nameLower)).data.uid
+           == request.auth.uid;
+    }
+
     match /users/{uid} {
       // Profiles are readable by any signed-in pilot so member lists and
       // post-author avatars work. Sensitive future fields must NOT live
       // on this doc -- create a separate restricted subcollection.
       allow read: if isSignedIn();
 
-      allow create, update: if isSelf(uid) && isValidProfile();
+      allow create, update: if isSelf(uid)
+        && isValidProfile()
+        && ownsUsername(request.resource.data.displayNameLower);
 
       allow delete: if false;
+    }
+
+    // Display-name uniqueness registry. The doc id is the lowercased display
+    // name; the doc just records the owning uid. Create-only (no overwrite)
+    // guarantees a name can be held by exactly one pilot at a time; a pilot
+    // may release (delete) their own claim when renaming. Names here must
+    // match the profile's 2-40 char constraint.
+    match /usernames/{nameLower} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && nameLower.size() >= 2 && nameLower.size() <= 40
+        && nameLower == nameLower.lower();
+      // A claim can never be reassigned in place; the holder must delete then
+      // re-create, which keeps ownership unambiguous.
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
     // =========================================================
@@ -848,6 +880,185 @@ service cloud.firestore {
       allow update: if (isSelf(uid) || isSchedOwner(sgid))
                       && isValidUserSchedGroupDoc();
       allow delete: if isSelf(uid) || isSchedOwner(sgid);
+    }
+
+    // =========================================================
+    // Airport Businesses (crowd-sourced FBO directory + reviews)
+    //
+    // Business *names* are seeded by an offline import that runs through the
+    // Admin SDK (which bypasses these rules). Everything else -- services,
+    // fuel, hours and reviews -- is contributed by signed-in pilots from
+    // inside the app.
+    //
+    // Anti-junk / accountability model:
+    //   * Nothing is anonymous: createdByName (listings) and authorName
+    //     (reviews) are bound to the contributor's authoritative profile
+    //     display name (users/{uid}.displayName), so they can't be spoofed
+    //     to a different pilot.
+    //   * Nothing can be deleted: allow delete is false for both listings
+    //     and reviews, and reviews are additionally immutable. This keeps a
+    //     durable, attributable record and prevents review-bombing cleanup
+    //     abuse. Moderation of bad content is an admin/offline task.
+    //   * Detail edits (services/fuel/hours) are open to any signed-in
+    //     contributor (the data is community-owned), but the listing's
+    //     identity, creator and aggregate counters are frozen on that path.
+    //     Each edit is attributed (lastEditedByUid/Name bound to the editor's
+    //     profile) so detail changes are no longer anonymous.
+    //   * Review aggregates are NOT stored on the listing (there is no
+    //     reviewCount/ratingSum field to forge). The displayed average and
+    //     count are computed on the client with Firestore aggregation
+    //     queries (count() / average('rating')) directly over the immutable
+    //     reviews subcollection, so a rating can only reflect real,
+    //     attributable review documents. This keeps the feature rules-only
+    //     (no Cloud Functions), consistent with the rest of this file.
+    //   * All client-set timestamps (createdAt / updatedAt / lastReviewedAt)
+    //     are pinned to request.time so ordering (e.g. newest reviews, or
+    //     floating interacted listings to the top) can't be spoofed.
+    //   * lastReviewedAt is stamped on the listing when a review is posted so
+    //     reviewed listings can be floated to the top without counting the
+    //     reviews subcollection on read; it affects ordering only.
+    // =========================================================
+
+    function profileName(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.displayName;
+    }
+
+    function isValidBusinessStringList(v, maxItems) {
+      return v is list
+        && v.size() <= maxItems
+        && v.toSet().size() == v.size();
+    }
+
+    // Optional map coordinate. Absent for most user-added listings; present
+    // for seeded ones. When present both parts must be valid numbers in range.
+    function isValidBusinessLocation() {
+      let d = request.resource.data;
+      return (d.get('latitude', null) == null && d.get('longitude', null) == null)
+        || (d.latitude is number && d.latitude >= -90 && d.latitude <= 90
+            && d.longitude is number && d.longitude >= -180 && d.longitude <= 180);
+    }
+
+    function isValidBusinessCreate() {
+      return request.resource.data.keys().hasOnly([
+          'airport', 'name', 'nameLower', 'services', 'fuelTypes',
+          'operatingHours', 'phoneNumber', 'radioFrequency',
+          'createdByUid', 'createdByName', 'source', 'createdAt',
+          'latitude', 'longitude'
+        ])
+        && request.resource.data.airport is string
+        && request.resource.data.airport.size() >= 2
+        && request.resource.data.airport.size() <= 8
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.nameLower is string
+        && request.resource.data.nameLower == request.resource.data.name.lower()
+        && isValidBusinessStringList(request.resource.data.services, 30)
+        && isValidBusinessStringList(request.resource.data.fuelTypes, 10)
+        && request.resource.data.operatingHours is string
+        && request.resource.data.operatingHours.size() <= 200
+        && request.resource.data.get('phoneNumber', '') is string
+        && request.resource.data.get('phoneNumber', '').size() <= 30
+        && request.resource.data.get('radioFrequency', '') is string
+        && request.resource.data.get('radioFrequency', '').size() <= 30
+        && isValidBusinessLocation()
+        && request.resource.data.createdByUid == request.auth.uid
+        // Bind the shown contributor name to the profile so it can't be
+        // spoofed to another pilot -- this is what makes listings
+        // accountable rather than anonymous.
+        && request.resource.data.createdByName == profileName(request.auth.uid)
+        && request.resource.data.source == 'user'
+        // Pin creation time to the server clock (no client-chosen ordering).
+        && request.resource.data.createdAt == request.time;
+    }
+
+    // Detail-only edit: services / fuel / hours may change; identity,
+    // creator, source, name and review aggregates are all frozen. Every edit
+    // must carry the editor's attribution (bound to their profile) and a
+    // server-pinned updatedAt, so detail changes are accountable.
+    function isValidBusinessDetailUpdate() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly([
+          'services', 'fuelTypes', 'operatingHours', 'phoneNumber',
+          'radioFrequency', 'fuelPrices',
+          'lastEditedByUid', 'lastEditedByName', 'updatedAt'
+        ])
+        && isValidBusinessStringList(request.resource.data.services, 30)
+        && isValidBusinessStringList(request.resource.data.fuelTypes, 10)
+        && request.resource.data.operatingHours is string
+        && request.resource.data.operatingHours.size() <= 200
+        && request.resource.data.get('phoneNumber', '') is string
+        && request.resource.data.get('phoneNumber', '').size() <= 30
+        && request.resource.data.get('radioFrequency', '') is string
+        && request.resource.data.get('radioFrequency', '').size() <= 30
+        // fuelPrices is a map keyed by fuel type; per-entry shape (number
+        // price + timestamp) is sanitized client-side (rules can't iterate
+        // map values), but the map size is capped here.
+        && request.resource.data.get('fuelPrices', {}) is map
+        && request.resource.data.get('fuelPrices', {}).size() <= 12
+        && request.resource.data.lastEditedByUid == request.auth.uid
+        && request.resource.data.lastEditedByName == profileName(request.auth.uid)
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // Review-activity bump: when a pilot posts a review (in the same batch)
+    // the listing's lastReviewedAt is stamped so reviewed listings can float
+    // to the top of the lists without counting the reviews subcollection on
+    // read. Only that one field may change and it must equal request.time.
+    //
+    // Rules-only compromise (mirrors the counter-bump pattern elsewhere in
+    // this file): rules can't prove the bump is paired with a real review
+    // write, so a signed-in user could re-stamp lastReviewedAt without a new
+    // review. The only effect is list ordering, so the impact is cosmetic.
+    function isBusinessReviewActivityBump() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['lastReviewedAt'])
+        && request.resource.data.lastReviewedAt == request.time;
+    }
+
+    function isValidBusinessReview() {
+      return request.resource.data.keys().hasOnly([
+          'rating', 'text', 'authorUid', 'authorName', 'createdAt'
+        ])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.authorUid == request.auth.uid
+        // Bind the review's author name to the profile (no anonymous /
+        // impersonated reviews).
+        && request.resource.data.authorName == profileName(request.auth.uid)
+        // Pin creation time to the server clock (no client-chosen ordering).
+        && request.resource.data.createdAt == request.time;
+    }
+
+    match /airportBusinesses/{bizId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn() && isValidBusinessCreate();
+
+      // Two client-writable mutations: an attributed detail edit, or the
+      // single-field lastReviewedAt bump that accompanies posting a review.
+      // Review aggregates (count/average) are still computed on read from the
+      // reviews subcollection; lastReviewedAt only affects list ordering.
+      allow update: if isSignedIn()
+        && (isValidBusinessDetailUpdate() || isBusinessReviewActivityBump());
+
+      // Listings are permanent -- accountability over deletability.
+      allow delete: if false;
+
+      match /reviews/{rid} {
+        allow read: if isSignedIn();
+        // One review per pilot per business: the review doc id must be the
+        // author's uid. A second review would target the same (immutable) doc
+        // and be rejected, which also caps review spam and rating gaming.
+        allow create: if isSignedIn()
+          && rid == request.auth.uid
+          && isValidBusinessReview();
+        // Reviews are immutable and permanent.
+        allow update, delete: if false;
+      }
     }
   }
 }

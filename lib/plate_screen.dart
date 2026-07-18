@@ -4,7 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport_satellite.dart';
-import 'package:avaremp/data/business_database_helper.dart';
+import 'package:avaremp/business/airport_businesses_gate.dart';
+import 'package:avaremp/business/models/airport_business.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/plate_profile_widget.dart';
@@ -100,7 +101,7 @@ class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
   List<String> _procedures = [];
-  List<Destination> _businesses = [];
+  List<AirportBusiness> _businesses = [];
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
@@ -126,9 +127,12 @@ class PlatesFuture {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
       _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
       _airportDestination = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
-      if(_airportDestination != null) {
-        _businesses = await BusinessDatabaseHelper.db.findBusinesses(_airportDestination!);
-      }
+      // Businesses drawn on the airport diagram come from the crowd-sourced
+      // cloud directory; the gate handles platform/sign-in and returns empty
+      // when unavailable.
+      _businesses = await AirportBusinessesGate.businessesForPlate(
+          _currentPlateAirport,
+          origin: _airportDestination?.coordinate);
     }
   }
 
@@ -140,7 +144,7 @@ class PlatesFuture {
   AirportDestination? get airportDestination => _airportDestination;
   List<String> get airports => _airports;
   List<String> get plates => _plates;
-  List<Destination> get business => _businesses;
+  List<AirportBusiness> get business => _businesses;
   List<String> get procedures => _procedures;
   String get currentPlateAirport => _currentPlateAirport;
 }
@@ -336,7 +340,7 @@ class PlateScreenState extends State<PlateScreen> {
     }
 
     List<String> plates = future.plates;
-    List<Destination> business = future.business;
+    List<AirportBusiness> business = future.business;
     List<String> airports = future.airports;
     List<String> procedures = future.procedures;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
@@ -381,10 +385,11 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<Destination> business, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
+  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<AirportBusiness> business, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
     if (notAd) {
+      // The business marker only makes sense on the airport diagram.
       Storage().business = null;
     }
 
@@ -633,14 +638,16 @@ class PlateScreenState extends State<PlateScreen> {
                       width: Constants.screenWidth(context) * 0.75,
                     ),
                     isExpanded: false,
-                    value: business.contains(Storage().business) ? Storage().business!.facilityName : business[0].facilityName,
-                    items: business.map((Destination item) {
+                    value: business.any((b) => b.id == Storage().business?.id)
+                        ? Storage().business!.id
+                        : business[0].id,
+                    items: business.map((AirportBusiness item) {
                       return DropdownMenuItem<String>(
-                        value: item.facilityName,
+                        value: item.id,
                         child: ListTile(
                           dense: true,
                           leading: const Icon(Icons.location_on, size: 18),
-                          title: Text(item.facilityName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                          title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                         ),
                       );
                     }).toList(),
@@ -648,7 +655,7 @@ class PlateScreenState extends State<PlateScreen> {
                       setState(() {
                         Storage().business = value == null
                             ? business[0]
-                            : business.firstWhere((element) => element.facilityName == value, orElse: () => business[0]);
+                            : business.firstWhere((element) => element.id == value, orElse: () => business[0]);
                       });
                     },
                   ),
@@ -867,7 +874,7 @@ class PlateScreenState extends State<PlateScreen> {
 class _PlatePainter extends CustomPainter {
 
   List<double>? _matrix;
-  Destination? _business;
+  AirportBusiness? _business;
   ui.Image? _image;
   ui.Image? _imagePlane;
   double? _variation;
@@ -982,13 +989,13 @@ class _PlatePainter extends CustomPainter {
         // draw circle at center of airport
         canvas.drawCircle(offsetCircle, 16  , _paintCenter);
 
-        if(_business != null) {
+        if(_business != null && _business!.hasLocation) {
           // draw selected business
           Offset offsetBiz = const Offset(0, 0);
           (offsetBiz, _) = _calculateOffset(_business!.coordinate);
           canvas.drawCircle(offsetBiz, 10, _paintBusiness);
           offsetBiz = Offset(offsetBiz.dx + 12, offsetBiz.dy - 12);
-          TextSpan span = TextSpan(text: _business!.facilityName.substring(0, min(_business!.facilityName.length, 24)),
+          TextSpan span = TextSpan(text: _business!.name.substring(0, min(_business!.name.length, 24)),
               style: TextStyle(color: Colors.red, backgroundColor: Colors.white, fontWeight: FontWeight.bold, fontSize: 12));
           TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
           tp.layout();

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:core';
 import 'dart:isolate';
 import 'package:universal_io/io.dart';
-import 'package:avaremp/data/business_database_helper.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/utils/faa_dates.dart';
 import 'package:avaremp/utils/path_utils.dart';
@@ -141,7 +140,6 @@ class Download {
   // download close db
   static Future<void> _invalidateSqlite() async {
       await MainDatabaseHelper.invalidateConnection();
-      await BusinessDatabaseHelper.invalidateConnection();
   }
 
   static Future<void> _deleteZipFile(File file) async {

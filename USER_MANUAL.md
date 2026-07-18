@@ -60,6 +60,7 @@ You can reopen onboarding later from the drawer header icon.
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
+| Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
 | Donate screen                                                                                    | Not available on iOS/macOS |
@@ -307,7 +308,7 @@ Possible tabs:
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
 - **ST**: sounding chart/image for the area (Skew-T diagram)
-- **Business**: nearby business/FBO list (with AI **Details** button when Pro enabled)
+- **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
 If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
@@ -326,7 +327,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
 - Displays downloaded plates/diagrams/CSUP
 - Draws ownship and heading on georeferenced plates
-- Can overlay selected business/FBO marker on airport diagrams
+- Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android, sign-in required)
 - Supports zoom/pan via InteractiveViewer (up to 8x)
 
 ### 6.3 Controls
@@ -359,12 +360,13 @@ When map **Elevation** layer has opacity > 0, plate rendering can include colore
 - **Yellow**: terrain within 500-1000 ft below aircraft
 - **Red**: terrain within 500 ft or above aircraft
 
-### 6.6 Business/FBO selector
+### 6.6 Business selector
 
-On airport diagrams, when business data is available, a right-side selector (three dots icon) allows you to:
-- Select a business/FBO
-- See its location marked on the airport diagram
-- Name label appears next to the marker
+On airport diagrams, when businesses with a known location exist for the airport, a right-side selector (business icon) lets you:
+- Select a business from the crowd-sourced Airport Businesses directory
+- See its location marked on the airport diagram, with its name labeled next to the marker
+
+The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android and when you are signed in.
 
 ### 6.7 Automatic behavior on landing
 
@@ -590,7 +592,7 @@ Tap a category (e.g. **Sectional**) to expand and see regional charts that can b
 
 Major download categories include:
 
-- **Databases**: DatabasesX (required for core nav data), Business/FBO
+- **Databases**: DatabasesX (required for core nav data)
 - **VFR Charts**: Sectional, TAC, Flyway, Helicopter
 - **IFR Charts**: IFR Low, IFR High, IFR Area
 - **Procedures**: Plates, CSUP
@@ -982,7 +984,7 @@ Tap the dialpad icon in the toolbar to display an on-screen keypad:
 
 ### 11.1 Access
 
-From MAP top-right account icon, or by routed requests from some features (e.g., AI Details in Business tab).
+From MAP top-right account icon, or by routed requests from some features (e.g., translate actions).
 
 ### 11.2 Login and subscription flow
 
@@ -1136,6 +1138,61 @@ Cloud operations for `user.db` using Firebase Storage:
 - Both actions show confirmation warnings before proceeding
 - Data stored under user's Firebase UID
 
+### 11.7 Airport Businesses & Reviews
+
+A crowd-sourced directory of airport businesses/FBOs that pilots build together.
+Business names are pre-seeded from the app's built-in business database;
+everything else is contributed by signed-in pilots.
+
+**This is a free feature** — it is **not** part of a Pro subscription. It only
+requires a signed-in account (the same account used for Pro Services) so that
+contributions are accountable rather than anonymous. It is available on iOS and
+Android, where cloud accounts are supported.
+
+**Access**: destination popup → `Business` tab. When you are signed in, the
+airport's businesses are listed **directly inside the tab** — there is no
+separate screen to open. If you are not signed in, the tab shows a sign-in
+prompt; tapping it takes you to the sign-in screen (the only time this feature
+navigates away), and no subscription or paywall is involved. Once signed in the
+tab refreshes to show the businesses in place.
+
+**What you can do** (all in place, without leaving the tab):
+
+- **Add**: tap **Add** to create a new listing at the airport with its name,
+  services, fuel types, operating hours, phone number, and radio frequency.
+- **View details & reviews**: tap a listing to expand it inline and see its
+  fuel, services, operating hours, phone number, radio frequency, and reviews.
+- **Edit details**: on an expanded listing, tap **Edit details** to add/update
+  its services, fuel available, operating hours, phone number, and radio
+  frequency. The phone number and radio frequency fields use a numeric keypad.
+  Details are community-owned, so any signed-in pilot can enrich a listing.
+- **Set fuel prices**: on an expanded listing, tap **Set fuel prices** to enter
+  a price per gallon for any fuel type. Each price is shown with the date it was
+  last set; leave a field blank to clear that fuel's price.
+- **Add Review**: on an expanded listing, tap **Add** next to *Reviews*, choose
+  a **1–5 star** rating and optional text. You can post **one review per
+  business** — reviews are permanent and can't be edited or deleted.
+
+**Ordering**: listings that pilots have created, updated or reviewed are
+floated to the top of both the `Business` tab list and the `PLATE` business
+selector (most recently touched first), marked with a small verified-user
+icon. The remaining (seeded) listings follow **nearest-first** from the
+airport, so the most relevant businesses appear before distant ones. The
+“interacted” status is stored on the listing in the cloud, so that part of the
+ordering is the same for everyone.
+
+**Accountability**: every listing and review is tagged with your profile display
+name — nothing is anonymous, and each display name is **unique** across pilots
+so it can't be used to impersonate someone else. To keep a durable, attributable
+record, **listings and reviews cannot be deleted or edited once posted** (only
+detail fields like services/fuel/hours can be updated), and each pilot may post
+**one review per business**. A listing's average rating and review count update
+automatically as reviews are added.
+
+**On the airport diagram**: listings that carry a location (e.g. those seeded
+from the built-in business database) can be pinned on the `PLATE` airport
+diagram using its business selector — see Section 6.6.
+
 ---
 
 ## 12) Warnings and Troubleshooting Drawer
@@ -1231,6 +1288,11 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Set booking limits (owner) | `Scheduler → scheduler → tune icon → Booking Rules` |
 | Cancel a reservation | `Scheduler → scheduler → Schedule tab → tap reservation → Cancel` |
 | Mark a resource out of service (owner) | `Scheduler → scheduler → Schedule tab → tap resource name → Available toggle` |
+| Airport Businesses & Reviews | `Destination popup → Business tab` (inline; free; sign-in required) |
+| Add an airport business | `Destination popup → Business tab → Add` |
+| Add services/fuel/hours to a business | `Business tab → tap listing → Edit details` |
+| Set fuel prices for a business | `Business tab → tap listing → Set fuel prices` |
+| Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | Donate | `MAP → Menu → Donate` (not iOS/macOS) |
@@ -1768,8 +1830,8 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 ### FAQ-05: Where are FBO/business details?
 
-- On `PLATE` screen, when an airport diagram is active and business data is available, use the right-side business selector (three dots icon).
-- In destination popup, the **Business** tab shows nearby businesses with AI **Details** button (Pro feature).
+- In the destination popup, open the **Business** tab (free; sign-in required). The airport's businesses are listed inline; tap one to view and contribute services, fuel, hours, and star reviews per airport (see Section 11.7).
+- On the `PLATE` screen, when an airport diagram is active, use the right-side business selector (business icon) to mark a business's location on the diagram. It draws from the same crowd-sourced directory (iOS/Android, sign-in required).
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/oMOR-gaIqis`
 

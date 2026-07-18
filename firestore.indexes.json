@@ -23,6 +23,14 @@
         { "fieldPath": "schedulerUid", "order": "ASCENDING" },
         { "fieldPath": "start", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "airportBusinesses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "airport", "order": "ASCENDING" },
+        { "fieldPath": "nameLower", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

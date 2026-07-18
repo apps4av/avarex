@@ -1,6 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/ai/ai_screen.dart';
-import 'package:avaremp/data/business_database_helper.dart';
+import 'package:avaremp/business/airport_businesses_gate.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -40,7 +40,6 @@ class LongPressFuture {
   final Destination _destination;
   Destination show;
   List<Saa> saa = [];
-  List<Destination> businesses = [];
   List<NavDestination>? navs;
 
   LongPressFuture(this._destination) : show =
@@ -55,7 +54,6 @@ class LongPressFuture {
     show = await DestinationFactory.make(_destination);
     navs = await MainDatabaseHelper.db.findNearestVOR(_destination.coordinate);
     saa = await MainDatabaseHelper.db.getSaa(_destination.coordinate);
-    businesses = await BusinessDatabaseHelper.db.findBusinesses(_destination);
   }
 
   Future<LongPressFuture> getAll() async {
@@ -365,32 +363,14 @@ class LongPressScreenState extends State<LongPressScreen> {
       );
     }
 
-    if (future.businesses.isNotEmpty) {
-      pages[labels.indexOf("Business")] = ListView(
-        padding: const EdgeInsets.all(8),
-        children: [
-          for (Destination b in future.businesses)
-            Card(
-              child: ListTile(
-                leading: Icon(Icons.business, color: Theme.of(context).colorScheme.primary),
-                title: Text(b.facilityName),
-                trailing: Constants.shouldShowProServices
-                    ? TextButton(
-                        onPressed: () {
-                          if (Constants.shouldShowProServices) {
-                            String query = "What are the address, telephone number, website, services (flight training, car rental, courtesy car, maintenance, fuel) at ${b.facilityName} (${b.locationID})";
-                            if (mounted) {
-                              AiScreenState.teleportToAiScreen(context, query);
-                            }
-                          }
-                        },
-                        child: const Text("Details"),
-                      )
-                    : null,
-              ),
-            ),
-        ],
-      );
+    // Build the Business tab for any airport. All cloud/Firebase logic lives
+    // in AirportBusinessesTab; this screen only decides whether the platform
+    // supports the feature. It is never gated by Pro.
+    final bool isAirport = showDestination is AirportDestination;
+    if (isAirport && AirportBusinessesGate.available) {
+      pages[labels.indexOf("Business")] = AirportBusinessesTab(
+          airport: showDestination.locationID,
+          origin: showDestination.coordinate);
     }
 
     return Scaffold(

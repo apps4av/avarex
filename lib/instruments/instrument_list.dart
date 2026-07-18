@@ -70,8 +70,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _vsr = "";
   String _flightTime = "00:00";
   String _gel = "DL";
-  String _adsb = "\u25cb"; // status circle, shown when no ownship callsign is available
-  String _adsbCallsign = ""; // ownship tail number reported by the receiver, if any
+  String _adsb = "\u25cb"; // ADSB tile value: ownship tail number, else status circle
   Color? _adsbColor; // callsign/circle color: null=default/disconnected, yellow=partial, green=connected
 
   @override
@@ -292,13 +291,14 @@ class InstrumentListState extends State<InstrumentList> {
       // Auto = default tile color, Green = Internal, Blue = External
       defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
-      // ADSB: the tile shows the ownship tail number when reported; otherwise it
-      // falls back to a status circle (filled when connected, empty when not).
-      // Color reflects the receiver state (green with GPS, yellow without GPS).
+      // ADSB: show the ownship tail number when the receiver reports it;
+      // otherwise fall back to a status circle (filled when connected, empty
+      // when not). Color reflects the receiver state (green with GPS, yellow
+      // without GPS).
       bool connected = Storage().adsbStatus.connected;
       bool gpsValid = Storage().adsbStatus.gpsValid;
-      _adsb = connected ? "\u25cf" : "\u25cb"; // filled vs empty circle
-      _adsbCallsign = Storage().ownshipMessageCallsign;
+      final String adsbCallsign = Storage().ownshipMessageCallsign;
+      _adsb = adsbCallsign.isNotEmpty ? adsbCallsign : (connected ? "\u25cf" : "\u25cb");
       _adsbColor = !connected ? null : (gpsValid ? Colors.green : Colors.yellow);
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
     });
@@ -561,8 +561,7 @@ class InstrumentListState extends State<InstrumentList> {
         cb = _resetTacTimer;
         break;
       case "ADSB":
-        // ownship tail number when reported, otherwise the status circle
-        value = _adsbCallsign.isEmpty ? _adsb : _adsbCallsign;
+        value = _adsb; // tail number when reported, otherwise the status circle
         valueColor = _adsbColor;
         cb = _showAdsbDetails;
         break;
