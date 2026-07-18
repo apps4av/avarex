@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../utils/firestore_write.dart';
 import '../utils/toast.dart';
 import 'data/airport_business_repository.dart';
 import 'models/airport_business.dart';
 import 'models/business_review.dart';
 import 'widgets/business_form.dart';
 import 'widgets/star_rating.dart';
+
+/// Toast for a contribution write: the normal success message when it synced,
+/// or an "offline, will upload later" note when it was queued locally.
+void _showWriteResultToast(
+    BuildContext context, WriteSyncResult result, String syncedMessage) {
+  if (result == WriteSyncResult.queuedOffline) {
+    Toast.showToast(
+        context,
+        "You're offline — saved on this device and will upload when you reconnect.",
+        const Icon(Icons.cloud_off, color: Colors.orange),
+        4);
+  } else {
+    Toast.showToast(context, syncedMessage,
+        const Icon(Icons.check_circle, color: Colors.green), 2);
+  }
+}
 
 /// Inline, self-contained view of the crowd-sourced businesses/FBOs for a
 /// single airport. It is embedded directly (e.g. in the airport long-press
@@ -36,18 +53,19 @@ class AirportBusinessesView extends StatelessWidget {
     );
     if (result == null || !context.mounted) return;
     try {
-      await AirportBusinessRepository.instance.addBusiness(
-        airport: _airport,
-        name: result.name,
-        services: result.services,
-        fuelTypes: result.fuelTypes,
-        operatingHours: result.operatingHours,
-        phoneNumber: result.phoneNumber,
-        radioFrequency: result.radioFrequency,
+      final sync = await commitWithOfflineFallback(
+        AirportBusinessRepository.instance.addBusiness(
+          airport: _airport,
+          name: result.name,
+          services: result.services,
+          fuelTypes: result.fuelTypes,
+          operatingHours: result.operatingHours,
+          phoneNumber: result.phoneNumber,
+          radioFrequency: result.radioFrequency,
+        ),
       );
       if (context.mounted) {
-        Toast.showToast(context, "Business added. Thank you!",
-            const Icon(Icons.check_circle, color: Colors.green), 2);
+        _showWriteResultToast(context, sync, "Business added. Thank you!");
       }
     } catch (e) {
       if (context.mounted) {
@@ -59,7 +77,7 @@ class AirportBusinessesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<List<AirportBusiness>>(
+    return StreamBuilder<BusinessListSnapshot>(
       stream: AirportBusinessRepository.instance
           .watchBusinesses(_airport, origin: origin),
       builder: (context, snapshot) {
@@ -69,7 +87,8 @@ class AirportBusinessesView extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final items = snapshot.data!;
+        final data = snapshot.data!;
+        final items = data.items;
         return ListView(
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
           children: [
@@ -92,8 +111,9 @@ class AirportBusinessesView extends StatelessWidget {
                 ],
               ),
             ),
+            if (data.isFromCache) const _OfflineBanner(),
             if (items.isEmpty)
-              _EmptyView(airport: _airport)
+              _EmptyView(airport: _airport, offline: data.isFromCache)
             else
               for (final b in items) _BusinessTile(business: b),
           ],
@@ -147,17 +167,18 @@ class _BusinessTileState extends State<_BusinessTile> {
     );
     if (result == null || !mounted) return;
     try {
-      await _repo.updateDetails(
-        biz.id,
-        services: result.services,
-        fuelTypes: result.fuelTypes,
-        operatingHours: result.operatingHours,
-        phoneNumber: result.phoneNumber,
-        radioFrequency: result.radioFrequency,
+      final sync = await commitWithOfflineFallback(
+        _repo.updateDetails(
+          biz.id,
+          services: result.services,
+          fuelTypes: result.fuelTypes,
+          operatingHours: result.operatingHours,
+          phoneNumber: result.phoneNumber,
+          radioFrequency: result.radioFrequency,
+        ),
       );
       if (mounted) {
-        Toast.showToast(context, "Details updated. Thank you!",
-            const Icon(Icons.check_circle, color: Colors.green), 2);
+        _showWriteResultToast(context, sync, "Details updated. Thank you!");
       }
     } catch (e) {
       if (mounted) {
@@ -175,14 +196,15 @@ class _BusinessTileState extends State<_BusinessTile> {
     );
     if (result == null || !mounted) return;
     try {
-      await _repo.setFuelPrices(
-        biz.id,
-        prices: result,
-        previous: biz.fuelPrices,
+      final sync = await commitWithOfflineFallback(
+        _repo.setFuelPrices(
+          biz.id,
+          prices: result,
+          previous: biz.fuelPrices,
+        ),
       );
       if (mounted) {
-        Toast.showToast(context, "Fuel prices updated. Thank you!",
-            const Icon(Icons.check_circle, color: Colors.green), 2);
+        _showWriteResultToast(context, sync, "Fuel prices updated. Thank you!");
       }
     } catch (e) {
       if (mounted) {
@@ -200,12 +222,14 @@ class _BusinessTileState extends State<_BusinessTile> {
     );
     if (result == null || !mounted) return;
     try {
-      await _repo.addReview(biz.id, rating: result.rating, text: result.text);
-      // Refresh the collapsed-summary rating after a successful post.
+      final sync = await commitWithOfflineFallback(
+        _repo.addReview(biz.id, rating: result.rating, text: result.text),
+      );
+      // Refresh the collapsed-summary rating after a successful post (offline
+      // this stays unavailable since aggregates need the server).
       await _loadStats();
       if (mounted) {
-        Toast.showToast(context, "Review posted. Thank you!",
-            const Icon(Icons.check_circle, color: Colors.green), 2);
+        _showWriteResultToast(context, sync, "Review posted. Thank you!");
       }
     } catch (e) {
       if (mounted) {
@@ -271,9 +295,11 @@ class _BusinessTileState extends State<_BusinessTile> {
                     Text(
                       stats == null
                           ? "…"
-                          : (stats.hasReviews
-                              ? "${stats.averageRating.toStringAsFixed(1)} (${stats.reviewCount})"
-                              : "No reviews"),
+                          : (!stats.available
+                              ? "Ratings offline"
+                              : (stats.hasReviews
+                                  ? "${stats.averageRating.toStringAsFixed(1)} (${stats.reviewCount})"
+                                  : "No reviews")),
                       style: TextStyle(fontSize: 12, color: scheme.outline),
                     ),
                   ],
@@ -523,7 +549,8 @@ class _BusinessTileState extends State<_BusinessTile> {
 
 class _EmptyView extends StatelessWidget {
   final String airport;
-  const _EmptyView({required this.airport});
+  final bool offline;
+  const _EmptyView({required this.airport, this.offline = false});
 
   @override
   Widget build(BuildContext context) {
@@ -532,16 +559,55 @@ class _EmptyView extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          Icon(Icons.storefront_outlined, size: 48, color: scheme.outline),
+          Icon(offline ? Icons.cloud_off : Icons.storefront_outlined,
+              size: 48, color: scheme.outline),
           const SizedBox(height: 12),
-          Text("No businesses listed for $airport yet.",
+          Text(
+              offline
+                  ? "You're offline. $airport's businesses aren't saved on "
+                      "this device yet — reconnect to load them."
+                  : "No businesses listed for $airport yet.",
               textAlign: TextAlign.center,
               style: TextStyle(color: scheme.outline)),
-          const SizedBox(height: 4),
-          Text("Tap “Add” to be the first to contribute.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: scheme.outline, fontSize: 12)),
+          if (!offline) ...[
+            const SizedBox(height: 4),
+            Text("Tap “Add” to be the first to contribute.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.outline, fontSize: 12)),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// Shown above the list when the businesses came only from the local cache
+/// (i.e. the device is offline).
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      color: scheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Icon(Icons.cloud_off, size: 20, color: scheme.onSecondaryContainer),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "You're offline. Showing saved data — ratings and airports you "
+                "haven't opened before may be missing, and your changes will "
+                "upload when you reconnect.",
+                style: TextStyle(
+                    fontSize: 12, color: scheme.onSecondaryContainer),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

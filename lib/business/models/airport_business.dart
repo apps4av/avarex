@@ -281,10 +281,24 @@ class BusinessStats {
   final int reviewCount;
   final double averageRating; // 0..5, 0 when there are no reviews
 
-  const BusinessStats({required this.reviewCount, required this.averageRating});
+  /// False when the stats couldn't be computed (aggregation queries are
+  /// server-only, so this is what you get offline). The UI shows a
+  /// "ratings unavailable" hint rather than a misleading "no reviews".
+  final bool available;
+
+  const BusinessStats({
+    required this.reviewCount,
+    required this.averageRating,
+    this.available = true,
+  });
 
   static const BusinessStats empty =
       BusinessStats(reviewCount: 0, averageRating: 0);
+
+  /// Stats could not be loaded (e.g. offline — review aggregates require the
+  /// server and are never served from the local cache).
+  static const BusinessStats unavailable =
+      BusinessStats(reviewCount: 0, averageRating: 0, available: false);
 
   bool get hasReviews => reviewCount > 0;
 
@@ -302,4 +316,14 @@ class BusinessStats {
       averageRating: count == 0 ? 0 : sum / count,
     );
   }
+}
+
+/// A page of businesses plus whether it came only from the local cache
+/// (Firestore's `isFromCache`), which is a reliable "you're offline" signal
+/// for the live list. Used to show an offline banner.
+class BusinessListSnapshot {
+  final List<AirportBusiness> items;
+  final bool isFromCache;
+
+  const BusinessListSnapshot(this.items, {required this.isFromCache});
 }

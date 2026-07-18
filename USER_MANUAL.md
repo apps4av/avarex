@@ -1189,6 +1189,14 @@ detail fields like services/fuel/hours can be updated), and each pilot may post
 **one review per business**. A listing's average rating and review count update
 automatically as reviews are added.
 
+**Offline**: businesses are cached on your device, so airports you've already
+opened stay browsable without a connection. An **offline banner** appears when
+you're viewing cached data. While offline: airports you've never opened may show
+nothing until you reconnect, star ratings show **"Ratings offline"** (they're
+computed on the server), and anything you add or edit is **saved on your device
+and uploads automatically when you're back online** (you'll see a note instead
+of the usual confirmation).
+
 **On the airport diagram**: listings that carry a location (e.g. those seeded
 from the built-in business database) can be pinned on the `PLATE` airport
 diagram using its business selector — see Section 6.6.

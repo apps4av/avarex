@@ -58,10 +58,13 @@ class AirportBusinessRepository {
   /// from [origin] (the airport's coordinate) when supplied, else
   /// alphabetically. Requires the composite index
   /// (airport ASC, nameLower ASC) in firestore.indexes.json.
-  Stream<List<AirportBusiness>> watchBusinesses(String airport,
+  Stream<BusinessListSnapshot> watchBusinesses(String airport,
       {LatLng? origin, int limit = 200}) {
     final id = airport.trim().toUpperCase();
-    if (id.isEmpty) return Stream.value(const []);
+    if (id.isEmpty) {
+      return Stream.value(
+          const BusinessListSnapshot([], isFromCache: false));
+    }
     return _col
         .where("airport", isEqualTo: id)
         .orderBy("nameLower")
@@ -70,7 +73,7 @@ class AirportBusinessRepository {
         .map((s) {
       final list = s.docs.map(AirportBusiness.fromDoc).toList();
       list.sort(AirportBusiness.byDistanceInteractedFirst(origin));
-      return list;
+      return BusinessListSnapshot(list, isFromCache: s.metadata.isFromCache);
     });
   }
 
@@ -121,7 +124,10 @@ class AirportBusinessRepository {
       final avg = snap.getAverage("rating") ?? 0;
       return BusinessStats(reviewCount: c, averageRating: avg.toDouble());
     } catch (_) {
-      return BusinessStats.empty;
+      // Aggregation queries are server-only; offline (or on any error) we
+      // can't compute them. Signal "unavailable" so the UI doesn't show a
+      // misleading "no reviews".
+      return BusinessStats.unavailable;
     }
   }
 

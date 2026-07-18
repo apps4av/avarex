@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -61,9 +62,13 @@ class CommunityRepository {
     final base = FirebaseAuth.instance.currentUser?.displayName ??
         FirebaseAuth.instance.currentUser?.email?.split("@").first ??
         "Pilot";
-    final displayName = await _claimUniqueName(uid, base);
+    final displayName = await _pickFreeName(uid, base);
     final initial = PilotProfile.empty(uid, displayName);
-    await ref.set(initial.toMap());
+    // Issue the profile create but don't block on the server ack, so first use
+    // works offline too: the write is applied to the local cache immediately
+    // and syncs later (rules are re-checked on sync). ensureMyProfile runs
+    // before every contribution, so blocking here would hang those writes.
+    unawaited(ref.set(initial.toMap()).catchError((_) => null));
     return initial;
   }
 
@@ -77,46 +82,31 @@ class CommunityRepository {
     return n;
   }
 
-  /// Claim the global username [nameLower] for [uid]. No-op if the caller
-  /// already holds it; throws a [StateError] if another pilot does.
-  Future<void> _claimUsername(String uid, String nameLower) async {
-    final ref = _usernameRef(nameLower);
-    final snap = await ref.get();
-    if (snap.exists) {
-      if (snap.data()?["uid"] == uid) return; // already mine
-      throw StateError("That display name is taken. Please choose another.");
-    }
-    try {
-      await ref.set({"uid": uid});
-    } on FirebaseException {
-      // Lost a race: another pilot claimed it between the read and the write
-      // (the create-only rule rejected our overwrite).
-      throw StateError("That display name is taken. Please choose another.");
-    }
-  }
-
-  /// Claim a unique display name for a brand-new profile, deriving it from
-  /// [base] and falling back to uid-suffixed variants when [base] is taken.
-  Future<String> _claimUniqueName(String uid, String base) async {
+  /// Pick a globally-unique display name for a brand-new profile and stake the
+  /// matching usernames claim. Derives from [base], falling back to
+  /// uid-suffixed variants when a candidate is taken. The claim write is
+  /// issued but not awaited (so this works offline); the rules enforce real
+  /// uniqueness when the write syncs.
+  Future<String> _pickFreeName(String uid, String base) async {
     final root = _sanitizeDisplayName(base);
     final candidates = <String>[
       root,
       _sanitizeDisplayName("$root-${uid.substring(0, 4)}"),
       _sanitizeDisplayName("$root-${uid.substring(0, 6)}"),
       _sanitizeDisplayName("Pilot-${uid.substring(0, 6)}"),
+      _sanitizeDisplayName("Pilot-$uid"), // uid is unique, so this always frees
     ];
     for (final candidate in candidates) {
-      try {
-        await _claimUsername(uid, candidate.toLowerCase());
+      final lower = candidate.toLowerCase();
+      final snap = await _usernameRef(lower).get();
+      if (!snap.exists) {
+        unawaited(
+            _usernameRef(lower).set({"uid": uid}).catchError((_) => null));
         return candidate;
-      } on StateError {
-        // taken -> try the next candidate
       }
+      if (snap.data()?["uid"] == uid) return candidate; // already mine
     }
-    // Extremely unlikely: fall back to the full uid, which is unique.
-    final unique = _sanitizeDisplayName("Pilot-$uid");
-    await _claimUsername(uid, unique.toLowerCase());
-    return unique;
+    return candidates.last;
   }
 
   Stream<PilotProfile?> watchMyProfile() {
@@ -142,20 +132,28 @@ class CommunityRepository {
     final oldLower = (data?["displayNameLower"] as String?) ??
         (data?["displayName"] as String?)?.toLowerCase();
 
-    // The rules require us to own the (new) name claim before the profile
-    // write; claim it first (throws "taken" if another pilot holds it).
-    await _claimUsername(uid, newLower);
-
-    await _profileRef(uid).set(toSave.toMap(), SetOptions(merge: true));
-
-    // Release the previous claim so the old name becomes available again.
-    if (oldLower != null && oldLower != newLower) {
-      try {
-        await _usernameRef(oldLower).delete();
-      } catch (_) {
-        // Best-effort; a lingering claim only prevents name reuse.
-      }
+    // Reject a name already held by another pilot (server truth when online;
+    // offline this uses the cache and is re-checked by the rules on sync).
+    final claimSnap = await _usernameRef(newLower).get();
+    if (claimSnap.exists && claimSnap.data()?["uid"] != uid) {
+      throw StateError("That display name is taken. Please choose another.");
     }
+
+    // Issue the writes in order (claim before profile) so they apply to the
+    // local cache at once and, when offline, queue in the order the rules
+    // need: the profile's ownsUsername check must see the claim first on sync.
+    // We don't await between them; the caller wraps the whole call in
+    // commitWithOfflineFallback to decide synced vs queued.
+    final claimWrite = claimSnap.exists
+        ? Future<void>.value()
+        : _usernameRef(newLower).set({"uid": uid});
+    final profileWrite =
+        _profileRef(uid).set(toSave.toMap(), SetOptions(merge: true));
+    final releaseWrite = (oldLower != null && oldLower != newLower)
+        ? _usernameRef(oldLower).delete().catchError((_) {})
+        : Future<void>.value();
+
+    await Future.wait([claimWrite, profileWrite, releaseWrite]);
   }
 
   // -------------------- Groups --------------------

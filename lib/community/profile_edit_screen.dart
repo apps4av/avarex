@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../constants.dart';
+import '../utils/firestore_write.dart';
 import '../utils/toast.dart';
 import 'data/community_repository.dart';
 import 'models/pilot_profile.dart';
@@ -66,8 +67,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ratings: _splitCsv(_ratingsCtrl.text),
         aircraftTypes: _splitCsv(_aircraftCtrl.text),
       );
-      await CommunityRepository.instance.saveMyProfile(updated);
+      final sync = await commitWithOfflineFallback(
+          CommunityRepository.instance.saveMyProfile(updated));
       if (!mounted) return;
+      if (sync == WriteSyncResult.queuedOffline) {
+        Toast.showToast(
+            context,
+            "You're offline — profile saved on this device and will upload when you reconnect.",
+            const Icon(Icons.cloud_off, color: Colors.orange),
+            4);
+      }
       Navigator.pop(context);
     } catch (e) {
       if (mounted) {
