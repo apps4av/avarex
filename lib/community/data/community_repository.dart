@@ -149,11 +149,20 @@ class CommunityRepository {
         : _usernameRef(newLower).set({"uid": uid});
     final profileWrite =
         _profileRef(uid).set(toSave.toMap(), SetOptions(merge: true));
-    final releaseWrite = (oldLower != null && oldLower != newLower)
-        ? _usernameRef(oldLower).delete().catchError((_) {})
-        : Future<void>.value();
+    final rename = Future.wait([claimWrite, profileWrite]);
 
-    await Future.wait([claimWrite, profileWrite, releaseWrite]);
+    // Release the previous name's claim ONLY once the rename actually commits.
+    // Doing it unconditionally would be unsafe offline: if the new name is
+    // taken by the time our queued writes sync, the profile write rolls back
+    // (rules), and deleting the old claim anyway would strand us with a
+    // profile name we no longer own -- reopening the impersonation gap.
+    if (oldLower != null && oldLower != newLower) {
+      unawaited(rename
+          .then((_) => _usernameRef(oldLower).delete())
+          .catchError((_) {}));
+    }
+
+    await rename;
   }
 
   // -------------------- Groups --------------------
