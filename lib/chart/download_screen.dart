@@ -500,6 +500,32 @@ class DownloadScreenState extends State<DownloadScreen> {
     return false;
   }
 
+  // The single "DatabasesX" chart that holds the aeronautical databases the app
+  // needs to function (airports, navaids, nasr.mbtiles, ...).
+  static Chart getDatabasesChart() {
+    return _allCharts
+        .firstWhere((cg) => cg.title == ChartCategory.databases)
+        .charts
+        .first;
+  }
+
+  // Whether the required databases have been downloaded locally.
+  static Future<bool> doDatabasesExist() async {
+    return (await Download.getChartCycleLocal(getDatabasesChart())).isNotEmpty;
+  }
+
+  // Find a chart by its download filename (e.g. "NE_SEC", "NE_TPP"), or null.
+  static Chart? getChartByFilename(String filename) {
+    for (ChartCategory cg in _allCharts) {
+      for (Chart chart in cg.charts) {
+        if (chart.filename == filename) {
+          return chart;
+        }
+      }
+    }
+    return null;
+  }
+
   Future<void> _getChartStateFromLocal(Chart chart) async {
     String cycle = await Download.getChartCycleLocal(chart);
     bool expired = await Download.isChartExpired(chart);

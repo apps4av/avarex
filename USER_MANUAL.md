@@ -41,8 +41,9 @@ On first run, complete onboarding pages:
    - Maritime (NM/knots/feet)
    - Imperial (SM/MPH/feet)
 4. Confirm GPS permissions/settings.
-5. Open **Download** and get at least **DatabasesX** (required for core nav data).
-6. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
+5. When you reach the **Databases and Maps** page, AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. (Use **Choose Manually** to open the full Download screen if you want to pick specific data.)
+6. Optional: open **Download** later to add more chart regions (IFR, TAC, Helicopter, etc.).
+7. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
 
 You can reopen onboarding later from the drawer header icon.
 
@@ -595,9 +596,11 @@ Tap a category (e.g. **Sectional**) to expand and see regional charts that can b
 
 ![Sectional category expanded — pick one or more regions, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
+**Free vs. Pro downloads** (iOS/Android): the free version lets you download **one region per chart category**. Selecting a second region in the same category prompts you to subscribe to **Pro Services**, which unlocks unlimited regions in every category. Charts you have already downloaded are never affected and can still be updated. The **Databases** category is always free. On platforms without Pro Services (desktop/web), downloads are unrestricted.
+
 Major download categories include:
 
-- **Databases**: DatabasesX (required for core nav data)
+- **Databases**: DatabasesX (required for core nav data; fetched automatically during onboarding for your GPS region)
 - **VFR Charts**: Sectional, TAC, Flyway, Helicopter
 - **IFR Charts**: IFR Low, IFR High, IFR Area
 - **Procedures**: Plates, CSUP
@@ -996,6 +999,7 @@ From MAP top-right account icon, or by routed requests from some features (e.g.,
 - Sign in/register with email authentication (Firebase)
 - Paywall handled through RevenueCat entitlement (`Pro`)
 - After login, bottom sheet shows available Pro features
+- Pro also unlocks **unlimited chart-region downloads** (free users are limited to one region per category)
 
 ### 11.3 Flight Intelligence (AI)
 
@@ -1234,6 +1238,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 
 ## 13) Data Lifecycle and Auto-Update Behavior
 
+- On reaching the onboarding **Databases and Maps** page, AvareX automatically downloads the **DatabasesX** package plus the **Sectional**, **Plates**, and **CSUP** for your current GPS region whenever any of them are missing/expired (skips items already current).
+- Chart downloads are limited to **one region per category** for free users on iOS/Android; Pro Services unlocks unlimited regions.
 - Weather downloads refresh periodically (10-minute cycle in storage timer).
 - GPS source modes (tap `SRC` tile to cycle):
   - **Auto**: Prefers external GPS when available, falls back to internal after 30s timeout. Shows `Internal-A` or `External-A`.
@@ -1326,7 +1332,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 
 ### UC-00: Download charts and databases
 
-This is the very first thing to do after onboarding — without **DatabasesX** the airport database is empty and the FIND/PLAN tabs return no results.
+Without **DatabasesX** the airport database is empty and the FIND/PLAN tabs return no results. Onboarding already grabs the databases plus the Sectional, Plates, and CSUP for your GPS region **automatically** when they are missing. Use this walkthrough when you want to add or update **specific chart regions** manually.
 
 ![Step 1 — open the drawer with the **Menu** button on MAP](assets/docs/screenshots/04_drawer_menu.png)
 
@@ -1341,12 +1347,12 @@ This is the very first thing to do after onboarding — without **DatabasesX** t
 
 ![Step 5 — Sectional category expanded; tap regions to queue them, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
-6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared).
+6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared). On iOS/Android, free users can queue **one region per category**; selecting a second region prompts to subscribe to **Pro**.
 7. Press **Download** in the app bar. A progress ring appears next to each item; the **Status Summary Card** updates the **Current / Expired / To Download / To Delete** counts.
 8. Wait for downloads to complete before leaving the screen — exiting can abort an in-flight download.
 9. To refresh expired data later, just press **Update** instead — it queues every expired item automatically.
 
-> Tip: You can also enter the Download screen during the **first-run onboarding** via the **Open Downloads** button on the *Databases and Maps* page. The flow is the same.
+> Tip: During **first-run onboarding**, the *Databases and Maps* page automatically downloads your GPS region's databases, Sectional, Plates, and CSUP. It also offers **Choose Manually** (opens this Download screen) if you prefer to pick data yourself. The manual flow is the same as above.
 
 ---
 

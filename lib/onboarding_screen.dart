@@ -1,3 +1,7 @@
+import 'package:avaremp/chart/chart.dart';
+import 'package:avaremp/chart/chart_download_dialog.dart';
+import 'package:avaremp/chart/download.dart';
+import 'package:avaremp/chart/download_screen.dart';
 import 'package:avaremp/plan/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/unit_conversion.dart';
@@ -18,6 +22,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
     with SingleTickerProviderStateMixin {
   final _introKey = GlobalKey<IntroductionScreenState>();
   bool _visibleRegister = false;
+  // Index of the "Databases and Maps" page in the pages list below.
+  static const int _databasesPageIndex = 3;
+  // Ensures the automatic region download is attempted only once per session.
+  bool _regionDownloadTriggered = false;
   late AnimationController _bounceController;
   late Animation<double> _bounceAnimation;
 
@@ -43,6 +51,84 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainScreen()),
     );
+  }
+
+  // Automatically download the required databases plus the Sectional and Plates
+  // for the region the device is currently in, but only when any of them are
+  // missing. Runs once, silently doing nothing when everything is present.
+  Future<void> _autoDownloadRegionIfNeeded() async {
+    if (_regionDownloadTriggered) {
+      return;
+    }
+    _regionDownloadTriggered = true;
+
+    if (Storage().downloadManager.total() != 0) {
+      return; // a download is already running
+    }
+
+    double latitude;
+    double longitude;
+    try {
+      final p = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+      latitude = p.latitude;
+      longitude = p.longitude;
+    }
+    catch (e) {
+      // no GPS fix: fall back to the last known / saved map center
+      latitude = Storage().settings.getCenterLatitude();
+      longitude = Storage().settings.getCenterLongitude();
+    }
+
+    final String region =
+        Chart.getChartRegionFromLocation(latitude, longitude);
+
+    final List<Chart> candidates = [DownloadScreenState.getDatabasesChart()];
+    if (region.isNotEmpty) {
+      final String prefix = region.toUpperCase();
+      final Chart? sectional =
+          DownloadScreenState.getChartByFilename("${prefix}_SEC");
+      final Chart? plates =
+          DownloadScreenState.getChartByFilename("${prefix}_TPP");
+      final Chart? csup =
+          DownloadScreenState.getChartByFilename("${prefix}_CSUP");
+      if (sectional != null) {
+        candidates.add(sectional);
+      }
+      if (plates != null) {
+        candidates.add(plates);
+      }
+      if (csup != null) {
+        candidates.add(csup);
+      }
+    }
+
+    // Only fetch what is missing (or expired, to keep data current).
+    final List<Chart> needed = [];
+    for (final Chart c in candidates) {
+      final String cycle = await Download.getChartCycleLocal(c);
+      final bool expired = await Download.isChartExpired(c);
+      if (cycle.isEmpty || expired) {
+        needed.add(c);
+      }
+    }
+
+    if (!mounted || needed.isEmpty) {
+      return; // nothing to do
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => ChartDownloadDialog(charts: needed),
+    );
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Widget _buildImage(String assetName, [double width = 350]) {
@@ -688,46 +774,18 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
           bodyWidget: Column(
             children: [
               _buildInfoCard(
-                icon: Icons.download,
-                title: "Download Required",
+                icon: Icons.my_location,
+                title: "Downloading Your Region",
                 description:
-                    "You must download Databases before using the app.",
+                    "AvareX automatically downloads the databases plus the Sectional, Plates, and CSUP for your current GPS region whenever any of them are missing. You can add more regions later from the Download screen.",
               ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(20),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "How to download:",
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.yellow,
-                          fontSize: 15),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildGpsOption("1", "Press the Download button below"),
-                    _buildGpsOption(
-                        "2", "Select Databases and any maps you need"),
-                    _buildGpsOption("3", "Press Download button (top right)"),
-                    _buildGpsOption("4", "Wait for items to turn green"),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
+              const SizedBox(height: 12),
+              TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, "/download"),
-                icon: const Icon(Icons.download),
-                label: const Text("Open Downloads"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                icon: const Icon(Icons.tune, color: Colors.white),
+                label: const Text(
+                  "Choose Manually",
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
@@ -954,6 +1012,11 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
           decoration: pageDecoration,
         ),
       ],
+      onChange: (index) {
+        if (index == _databasesPageIndex) {
+          _autoDownloadRegionIfNeeded();
+        }
+      },
       skipOrBackFlex: 0,
       nextFlex: 0,
       freeze: !signed,

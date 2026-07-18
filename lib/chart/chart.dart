@@ -23,30 +23,38 @@ class Chart {
 
   Chart(this.name, this.color, this.icon, this.filename, this.state, this.subtitle, this.progress, this.enabled, this.download, this.check);
 
-  static String getChartRegion(int x, int y, int z) {
-    List<(LatLngBounds, String)> regionCoordinates = [
-      (LatLngBounds(const LatLng(71, -180), const LatLng(51, -126)), "ak"),   // Alaska
-      (LatLngBounds(const LatLng(24, -162), const LatLng(18, -152)), "pac"),   // Pacific
-      (LatLngBounds(const LatLng(50, -125), const LatLng(40, -103)), "nw"),   // Northwest
-      (LatLngBounds(const LatLng(40, -125), const LatLng(15, -103)), "sw"),   // Southwest
-      (LatLngBounds(const LatLng(50, -105), const LatLng(37, -90)), "nc"),   // North Central
-      (LatLngBounds(const LatLng(50, -95),  const LatLng(37, -80)), "ec"),   // East Central
-      (LatLngBounds(const LatLng(37, -110), const LatLng(15, -90)), "sc"),   // South Central
-      (LatLngBounds(const LatLng(50, -80),  const LatLng(37, -60)), "ne"),   // Northeast
-      (LatLngBounds(const LatLng(37, -90),  const LatLng(15, -60)), "se"),   // Southeast
-    ];
+  // Bounding boxes for each chart region, mapped to its short region code.
+  // The short code, uppercased, is also the filename prefix used by the
+  // downloadable charts (e.g. "ne" -> NE_SEC, NE_TPP).
+  static final List<(LatLngBounds, String)> regionCoordinates = [
+    (LatLngBounds(const LatLng(71, -180), const LatLng(51, -126)), "ak"),   // Alaska
+    (LatLngBounds(const LatLng(24, -162), const LatLng(18, -152)), "pac"),   // Pacific
+    (LatLngBounds(const LatLng(50, -125), const LatLng(40, -103)), "nw"),   // Northwest
+    (LatLngBounds(const LatLng(40, -125), const LatLng(15, -103)), "sw"),   // Southwest
+    (LatLngBounds(const LatLng(50, -105), const LatLng(37, -90)), "nc"),   // North Central
+    (LatLngBounds(const LatLng(50, -95),  const LatLng(37, -80)), "ec"),   // East Central
+    (LatLngBounds(const LatLng(37, -110), const LatLng(15, -90)), "sc"),   // South Central
+    (LatLngBounds(const LatLng(50, -80),  const LatLng(37, -60)), "ne"),   // Northeast
+    (LatLngBounds(const LatLng(37, -90),  const LatLng(15, -60)), "se"),   // Southeast
+  ];
 
+  // Region short code for a geographic location, or "" if outside coverage.
+  static String getChartRegionFromLocation(double latitude, double longitude) {
+    for (var region in regionCoordinates) {
+      if(region.$1.contains(LatLng(latitude, longitude))) {
+        return region.$2;
+      }
+    }
+    return "";
+  }
+
+  static String getChartRegion(int x, int y, int z) {
     // find lat/lon from tile number, upper left
     num n = pow(2, z);
     double lon = x / n * 360.0 - 180.0;
     double lat = 2 * atan(exp((180 - (y / n) * 360) * pi / 180)) * 180 / pi - 90;
 
-    for (var region in regionCoordinates) {
-      if(region.$1.contains(LatLng(lat, lon))) {
-        return region.$2;
-      }
-    }
-    return "";
+    return getChartRegionFromLocation(lat, lon);
   }
 
 }
