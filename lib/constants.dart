@@ -97,7 +97,6 @@ class Constants {
   static final bool shouldShare = !(Platform.isLinux);
   static final bool shouldShowPdf = !(Platform.isLinux);
   static final bool shouldShowBluetoothSpp = (Platform.isAndroid);
-  static final bool shouldShowDonation = !(Platform.isIOS || Platform.isMacOS);
   static final bool shouldShouldReview = (Platform.isMacOS || Platform.isIOS | Platform.isAndroid || Platform.isWindows);
   static final bool shouldShowProServices = (Platform.isIOS || Platform.isAndroid);
 

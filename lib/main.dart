@@ -1,4 +1,3 @@
-import 'package:avaremp/donate_screen.dart';
 import 'package:avaremp/logbook/logbook_screen.dart';
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
@@ -74,7 +73,6 @@ class MainApp extends StatelessWidget {
               '/performance': (context) => const AircraftPerformanceScreen(),
               '/logbook': (context) => const LogbookScreen(),
               '/pro': (context) => const LoginScreen(),
-              '/donate': (context) => const DonateScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),

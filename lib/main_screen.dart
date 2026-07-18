@@ -359,18 +359,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ],
                       const SizedBox(height: 8),
                       _buildSectionHeader(context, "Support"),
-                      if (Constants.shouldShowDonation)
-                        _buildMenuItem(
-                          context,
-                          icon: Icons.favorite_outline,
-                          iconColor: Colors.red,
-                          title: "Donate",
-                          subtitle: "Support development",
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, '/donate');
-                          },
-                        ),
                       if (Constants.shouldShowPdf)
                         _buildMenuItem(
                           context,

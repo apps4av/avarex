@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 
 /// A single WiFiCrChannel (or discovery) message for the transfer-screen log.

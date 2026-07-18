@@ -16,7 +16,7 @@ import 'package:flutter_material_design_icons/flutter_material_design_icons.dart
 import 'package:path_provider/path_provider.dart';
 
 void main() {
-  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('end-to-end test', () {
     testWidgets('Onboarding and All Screens',

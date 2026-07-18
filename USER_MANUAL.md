@@ -64,7 +64,6 @@ You can reopen onboarding later from the drawer header icon.
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
-| Donate screen                                                                                    | Not available on iOS/macOS |
 
 ---
 
@@ -93,7 +92,6 @@ Open from MAP with **Menu** button (bottom-left):
 - Check Lists
 - Log Book
 - IO (Android only)
-- Donate (not iOS/macOS)
 - Help (opens User Manual PDF; not available on Linux)
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
@@ -596,7 +594,7 @@ Tap a category (e.g. **Sectional**) to expand and see regional charts that can b
 
 ![Sectional category expanded — pick one or more regions, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
-**Free vs. Pro downloads** (iOS/Android): the free version lets you download **one region per chart category**. Selecting a second region in the same category prompts you to subscribe to **Pro Services**, which unlocks unlimited regions in every category. Charts you have already downloaded are never affected and can still be updated. The **Databases** category is always free. On platforms without Pro Services (desktop/web), downloads are unrestricted.
+**Free vs. Pro downloads** (iOS/Android): the free version lets you keep **one downloaded chart per category**. Selecting a second chart in the same category shows a prompt explaining you must either **delete the chart you already have** in that category, or **subscribe to Pro** (the prompt has a **Subscribe / Log In** button that opens the Pro/login flow). Pro unlocks unlimited charts in every category. Charts you have already downloaded are never affected and can still be updated. The **Databases** category is always free. On platforms without Pro Services (desktop/web), downloads are unrestricted.
 
 Major download categories include:
 
@@ -904,15 +902,7 @@ Functions:
 Connected stream feeds external data input into app parser for GPS, traffic, weather, AHRS.
 Also used for autopilot output of navigation data.
 
-### 9.7 Donate (not iOS/macOS)
-
-Open: **Menu → Donate**
-
-- Shows donation information and links
-- Selectable donation URL: apps4av.com/donate
-- Supports app development
-
-### 9.8 Help
+### 9.7 Help
 
 Open: **Menu → Help**
 
@@ -1314,7 +1304,6 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
-| Donate | `MAP → Menu → Donate` (not iOS/macOS) |
 | CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Wind Vectors slider > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider) |
@@ -1347,7 +1336,7 @@ Without **DatabasesX** the airport database is empty and the FIND/PLAN tabs retu
 
 ![Step 5 — Sectional category expanded; tap regions to queue them, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
-6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared). On iOS/Android, free users can queue **one region per category**; selecting a second region prompts to subscribe to **Pro**.
+6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared). On iOS/Android, free users can keep **one chart per category**; trying to add a second prompts you to delete the existing one or subscribe to **Pro** (with a **Subscribe / Log In** button).
 7. Press **Download** in the app bar. A progress ring appears next to each item; the **Status Summary Card** updates the **Current / Expired / To Download / To Delete** counts.
 8. Wait for downloads to complete before leaving the screen — exiting can abort an in-flight download.
 9. To refresh expired data later, just press **Update** instead — it queues every expired item automatically.
