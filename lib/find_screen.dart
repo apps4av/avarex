@@ -173,7 +173,39 @@ class FindScreenState extends State<FindScreen> {
                           child: Card(
                             margin: const EdgeInsets.symmetric(vertical: 2),
                             child: ListTile(
-                              leading: DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary),
+                              leading: InkWell(
+                                // Tapping the icon does a Direct-To, same as the
+                                // "->D" button on the destination long-press popup.
+                                onTap: () async {
+                                  // List items come straight from the DB query and are
+                                  // not expanded into their concrete types (airway,
+                                  // procedure, airport, etc). Expand first so the plan
+                                  // can process the destination correctly.
+                                  Destination expanded = await DestinationFactory.make(item);
+                                  Storage().setDestination(expanded);
+                                  if (Destination.isAirport(expanded.type)) {
+                                    Storage().settings.setCurrentPlateAirport(expanded.locationID);
+                                  }
+                                  MapScreenState.showOnMap(expanded.coordinate);
+                                  MainScreenState.gotoMap();
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary),
+                                    Text(
+                                      "\u2192D",
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               title: Row(
                                 children: [
                                   Text(

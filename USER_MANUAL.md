@@ -522,6 +522,10 @@ The `Transfer` sub-page exchanges flight plans with a panel-mounted **Avidyne IF
 
 When within 2nm of a waypoint and moving away from it, the plan automatically advances to the next waypoint.
 
+### 7.7 Automatic plan resume after restart or crash
+
+The active plan and the waypoint you are currently flying to are saved automatically as they change. If the app is closed or crashes, the next launch **reloads the same plan and resumes on the waypoint** (and airway/procedure leg) you were on. No action is required; there is no button to press. Clearing the plan clears the saved copy as well.
+
 ---
 
 ## 8) FIND Tab
@@ -550,6 +554,7 @@ Type into the **Search** box to find airports, navaids, fixes, or procedures by 
 ### 8.3 Row actions
 
 - Tap row: opens destination popup/details
+- Tap left icon (marked `→D`): **Direct-To** the destination (same as the `→D` button on the destination popup) — sets it as your active target, shows it on the map, and switches to MAP
 - Right-side bearing@distance button: centers map on item and switches to MAP
 - Swipe right-to-left to delete recent entry
 - For GPS-type recents, tap edit icon to modify custom facility name

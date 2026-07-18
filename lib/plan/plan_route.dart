@@ -386,6 +386,15 @@ class PlanRoute {
     update();
   }
 
+  // Restore the sub-index within the current waypoint's airway/procedure. Used
+  // when reloading a saved plan so we resume on the exact leg we were flying.
+  void setCurrentWaypointDestinationIndex(int index) {
+    if(_current != null && index >= 0 && index < _current!.destinationsOnRoute.length) {
+      _current!.currentDestinationIndex = index;
+      update();
+    }
+  }
+
   void setCurrentWaypointFromDestinationIndex(int index) {
     if(_allDestinations.length > index) {
       Destination d = _allDestinations[index];

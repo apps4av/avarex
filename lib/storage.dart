@@ -119,6 +119,52 @@ class Storage {
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
+  // Signature of the last active plan persisted to settings. Used to only write
+  // to user.db when the plan or its current index actually changes.
+  String _lastSavedPlanSignature = "";
+
+  // Build a cheap signature of the current plan state (waypoint ids + current
+  // waypoint index + airway sub-index) so we can detect changes without
+  // re-serializing the whole plan every second.
+  String _planSignature() {
+    return "${_route.toString()}|${_route.currentWaypointIndex}|${_route.getCurrentWaypoint()?.currentDestinationIndex ?? 0}";
+  }
+
+  // Save the active plan and the waypoint it is on so it can be reloaded after
+  // an app shutdown or crash. Only writes when something changed.
+  void _persistActivePlanIfChanged() {
+    String signature = _planSignature();
+    if(signature == _lastSavedPlanSignature) {
+      return; // nothing changed, avoid a needless db write
+    }
+    _lastSavedPlanSignature = signature;
+    settings.setActivePlanRoute(_route.toJson(_route.name));
+    settings.setActivePlanName(_route.name);
+    settings.setActivePlanIndex(_route.currentWaypointIndex);
+    settings.setActivePlanDestinationIndex(_route.getCurrentWaypoint()?.currentDestinationIndex ?? 0);
+  }
+
+  // Reload the saved active plan into the live route and resume on the waypoint
+  // (and airway sub-index) it was on when the app was last running.
+  Future<void> _restoreActivePlan() async {
+    String json = settings.getActivePlanRoute();
+    if(json.isEmpty || json == "[]") {
+      return; // no saved plan
+    }
+    try {
+      PlanRoute restored = await PlanRoute.fromJson(json, settings.getActivePlanName(), false);
+      _route.copyFrom(restored);
+      int index = settings.getActivePlanIndex();
+      if(index >= 0 && index < _route.length) {
+        _route.setCurrentWaypoint(index);
+        _route.setCurrentWaypointDestinationIndex(settings.getActivePlanDestinationIndex());
+      }
+    }
+    catch(e) {
+      // saved plan is unusable (e.g. corrupt/missing data), start with empty plan
+      _lastSavedPlanSignature = "";
+    }
+  }
   bool gpsNoLock = false;
   int _lastMsGpsSignal = DateTime.now().millisecondsSinceEpoch;
   int get lastMsGpsSignal { return _lastMsExternalSignal; } // read-only timestamp exposed for audible alerts, among any other interested parties
@@ -451,6 +497,10 @@ class Storage {
     // set area
     await area.update(position);
 
+    // reload the active plan (and the waypoint it was on) if the app was
+    // previously closed or crashed while a plan was active
+    await _restoreActivePlan();
+
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // send AP data
       String data = AutoPilot.apCreateSentences();
@@ -487,6 +537,7 @@ class Storage {
       flightStatus.update(position.speed);
 
       route.update(); // change to route
+      _persistActivePlanIfChanged(); // keep plan + current index saved for crash/restart recovery
       int now = DateTime.now().millisecondsSinceEpoch;
 
       // Handle GPS source based on mode

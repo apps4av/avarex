@@ -363,4 +363,40 @@ class AppSettings {
     provider.setString("key-aircraft-icon", value);
   }
 
+  // Active flight plan persisted across restarts/crashes so the app can reload
+  // the plan and resume from the waypoint it was on. Stored as the plan's
+  // destination JSON plus the current waypoint index (and airway/procedure
+  // sub-index for the current waypoint).
+  void setActivePlanRoute(String value) {
+    provider.setString("key-active-plan-route-v1", value);
+  }
+
+  String getActivePlanRoute() {
+    return provider.getValue("key-active-plan-route-v1", defaultValue: "") as String;
+  }
+
+  void setActivePlanName(String value) {
+    provider.setString("key-active-plan-name-v1", value);
+  }
+
+  String getActivePlanName() {
+    return provider.getValue("key-active-plan-name-v1", defaultValue: "New Plan") as String;
+  }
+
+  void setActivePlanIndex(int value) {
+    provider.setInt("key-active-plan-index-v1", value);
+  }
+
+  int getActivePlanIndex() {
+    return provider.getValue("key-active-plan-index-v1", defaultValue: -1) as int;
+  }
+
+  void setActivePlanDestinationIndex(int value) {
+    provider.setInt("key-active-plan-destination-index-v1", value);
+  }
+
+  int getActivePlanDestinationIndex() {
+    return provider.getValue("key-active-plan-destination-index-v1", defaultValue: 0) as int;
+  }
+
 }
