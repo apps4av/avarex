@@ -197,6 +197,78 @@ class Airport {
       );
     }
 
+    String formatUse(String use) {
+      switch (use) {
+        case 'PU':
+          return 'Public';
+        case 'PR':
+          return 'Private';
+        default:
+          return use;
+      }
+    }
+
+    String formatYesNo(String value) {
+      switch (value) {
+        case 'Y':
+          return 'Yes';
+        case 'N':
+          return 'No';
+        default:
+          return value;
+      }
+    }
+
+    String formatCustoms(String customs) {
+      if (customs.length == 2) {
+        final landingRights = customs[0] == 'Y' ? 'Landing rights' : 'No landing rights';
+        final customsService = customs[1] == 'Y' ? 'Customs' : 'No customs';
+        return '$landingRights, $customsService';
+      }
+      return formatYesNo(customs);
+    }
+
+    String formatBeacon(String beacon) {
+      switch (beacon) {
+        case 'W':
+          return 'White';
+        case 'G':
+          return 'Green';
+        case 'WG':
+          return 'White/Green';
+        case 'WGY':
+          return 'White/Green/Yellow';
+        case 'SWG':
+          return 'Split White/Green';
+        case 'WY':
+          return 'White/Yellow';
+        case 'Y':
+          return 'Yellow';
+        default:
+          return beacon;
+      }
+    }
+
+    String formatSegCircle(String segCircle) {
+      switch (segCircle) {
+        case 'Y':
+          return 'Yes';
+        case 'N':
+          return 'No';
+        case 'Y-L':
+          return 'Yes, left traffic';
+        default:
+          return segCircle;
+      }
+    }
+
+    String formatPatternAltitude(String altitude) {
+      if (altitude.isEmpty) {
+        return '';
+      }
+      return '$altitude ft';
+    }
+
     DateTime? sunset;
     DateTime? sunrise;
     (sunrise, sunset) = TwilightCalculator.calculateTwilight(airport.coordinate.latitude, airport.coordinate.longitude);
@@ -253,8 +325,16 @@ class Airport {
       if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(automated))),
       if(remark.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("RMK", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(remark))),
       for(ListTile t in rs) t,
-      if(sunrise != null) ListTile(leading:           const SizedBox(width: 64, child: Text("SRISE", style: TextStyle(fontSize: 16))), title: Text("${sunrise.hour.toString().padLeft(2, '0')}:${sunrise.minute.toString().padLeft(2, '0')}Z")),
-      if(sunset != null) ListTile(leading:            const SizedBox(width: 64, child: Text("SSET", style: TextStyle(fontSize: 16))), title: Text("${sunset.hour.toString().padLeft(2, '0')}:${sunset.minute.toString().padLeft(2, '0')}Z")),
+      if(airport.fuelTypes.isNotEmpty) ListTile(leading:               const SizedBox(width: 64, child: Text("FUEL", style: TextStyle(fontSize: 16))), title: Text(airport.fuelTypes)),
+      if(airport.use.isNotEmpty) ListTile(leading:                     const SizedBox(width: 64, child: Text("USE", style: TextStyle(fontSize: 16))), title: Text(formatUse(airport.use))),
+      if(airport.customs.isNotEmpty) ListTile(leading:                 const SizedBox(width: 64, child: Text("CUST", style: TextStyle(fontSize: 16))), title: Text(formatCustoms(airport.customs))),
+      if(airport.beacon.isNotEmpty) ListTile(leading:                  const SizedBox(width: 64, child: Text("BCN", style: TextStyle(fontSize: 16))), title: Text(formatBeacon(airport.beacon))),
+      if(airport.segCircle.isNotEmpty) ListTile(leading:               const SizedBox(width: 64, child: Text("SEGC", style: TextStyle(fontSize: 16))), title: Text(formatSegCircle(airport.segCircle))),
+      if(airport.trafficPatternAltitude.isNotEmpty) ListTile(leading:  const SizedBox(width: 64, child: Text("PATT", style: TextStyle(fontSize: 16))), title: Text(formatPatternAltitude(airport.trafficPatternAltitude))),
+      if(airport.atct.isNotEmpty) ListTile(leading:                    const SizedBox(width: 64, child: Text("ATCT", style: TextStyle(fontSize: 16))), title: Text(formatYesNo(airport.atct))),
+      if(airport.nonCommercialLandingFee.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("FEE", style: TextStyle(fontSize: 16))), title: Text(formatYesNo(airport.nonCommercialLandingFee))),
+      if(sunrise != null) ListTile(leading:                            const SizedBox(width: 64, child: Text("SRISE", style: TextStyle(fontSize: 16))), title: Text("${sunrise.hour.toString().padLeft(2, '0')}:${sunrise.minute.toString().padLeft(2, '0')}Z")),
+      if(sunset != null) ListTile(leading:                             const SizedBox(width: 64, child: Text("SSET", style: TextStyle(fontSize: 16))), title: Text("${sunset.hour.toString().padLeft(2, '0')}:${sunset.minute.toString().padLeft(2, '0')}Z")),
 
     ]);
     return view;

@@ -304,6 +304,14 @@ class AirportDestination extends Destination {
   final List<Map<String, dynamic>> awos;
   final String unicom;
   final String ctaf;
+  final String use;
+  final String fuelTypes;
+  final String customs;
+  final String beacon;
+  final String segCircle;
+  final String trafficPatternAltitude;
+  final String atct;
+  final String nonCommercialLandingFee;
 
   AirportDestination({
     required super.locationID,
@@ -314,7 +322,15 @@ class AirportDestination extends Destination {
     required this.awos,
     required this.runways,
     required this.unicom,
-    required this.ctaf
+    required this.ctaf,
+    required this.use,
+    required this.fuelTypes,
+    required this.customs,
+    required this.beacon,
+    required this.segCircle,
+    required this.trafficPatternAltitude,
+    required this.atct,
+    required this.nonCommercialLandingFee,
   });
 
   factory AirportDestination.fromMap(Map<String, dynamic> maps,
@@ -330,13 +346,23 @@ class AirportDestination extends Destination {
       AppLog.logMessage("Error parsing elevation for airport: $e");
     }
 
+    String str(dynamic value) => (value ?? '').toString().trim();
+
     AirportDestination d = AirportDestination(
         locationID: maps['LocationID'] as String,
         facilityName: maps['FacilityName'] as String,
         coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double),
         type: maps['Type'] as String,
-        ctaf: maps['CTAFFrequency'] as String,
-        unicom: maps['UNICOMFrequencies'] as String,
+        ctaf: str(maps['CTAFFrequency']),
+        unicom: str(maps['UNICOMFrequencies']),
+        use: str(maps['Use']),
+        fuelTypes: str(maps['FuelTypes']),
+        customs: str(maps['Customs']),
+        beacon: str(maps['Beacon']),
+        segCircle: str(maps['SegCircle']),
+        trafficPatternAltitude: str(maps['TrafficPatternAltitude']),
+        atct: str(maps['ATCT']),
+        nonCommercialLandingFee: str(maps['NonCommercialLandingFee']),
         frequencies: mapsFreq,
         awos: mapsAwos,
         runways: mapsRunways
