@@ -25,23 +25,6 @@ class RevenueCatService {
     return info;
   }
 
-  /// Returns whether the current user has an active Pro entitlement, without
-  /// presenting any paywall. Returns false on platforms without in-app
-  /// purchases, or when the entitlement cannot be resolved.
-  static Future<bool> isPro() async {
-    if (!(Platform.isIOS || Platform.isAndroid)) {
-      return false;
-    }
-    try {
-      final CustomerInfo info = await Purchases.getCustomerInfo();
-      final entitlement = info.entitlements.all[entitlementId];
-      return entitlement != null && entitlement.isActive;
-    }
-    catch(e) {
-      return false;
-    }
-  }
-
   static Future<void> logOut() async {
     await Purchases.logOut();
   }

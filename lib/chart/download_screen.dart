@@ -1,7 +1,5 @@
 
 import 'package:avaremp/utils/faa_dates.dart';
-import 'package:avaremp/services/login_screen.dart';
-import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
@@ -39,11 +37,6 @@ class DownloadScreenState extends State<DownloadScreen> {
   bool _nextCycle = false;
   bool _backupServer = false;
 
-  // Free users may keep at most one downloaded chart per category; additional
-  // charts in the same category require a Pro subscription (Databases exempt).
-  static const int _freeChartsPerCategory = 1;
-  bool _isPro = false;
-
   @override
   void initState() {
     super.initState();
@@ -54,85 +47,6 @@ class DownloadScreenState extends State<DownloadScreen> {
       }
     }
     Storage().downloadManager.downloads.addListener(_finishedListener);
-    _refreshProStatus();
-  }
-
-  Future<void> _refreshProStatus() async {
-    if (!Constants.shouldShowProServices) {
-      return; // no Pro concept on this platform; downloads are unrestricted
-    }
-    bool pro = await RevenueCatService.isPro();
-    if (mounted) {
-      setState(() {
-        _isPro = pro;
-      });
-    }
-  }
-
-  // Whether the given category is subject to the free one-chart limit.
-  bool _isCategoryProLimited(ChartCategory cg) {
-    return Constants.shouldShowProServices &&
-        cg.title != ChartCategory.databases;
-  }
-
-  ChartCategory _categoryOf(Chart chart) {
-    for (ChartCategory cg in _allCharts) {
-      if (cg.charts.contains(chart)) {
-        return cg;
-      }
-    }
-    return _allCharts.first;
-  }
-
-  // Number of charts in the category that will end up present after the
-  // currently queued operations are applied: installed (and not queued for
-  // delete) plus newly queued downloads.
-  int _categoryPresentCount(ChartCategory cg) {
-    int count = 0;
-    for (Chart c in cg.charts) {
-      switch (c.state) {
-        case _stateCurrentNone:
-        case _stateCurrentDownload:
-        case _stateExpiredNone:
-        case _stateExpiredDownload:
-        case _stateAbsentDownload:
-          count++;
-          break;
-        default:
-          break;
-      }
-    }
-    return count;
-  }
-
-  void _promptForPro(ChartCategory cg) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("One Chart Per Category"),
-          content: Text(
-              "The free version allows only one downloaded chart in the ${cg.title} category.\n\n"
-              "To download another ${cg.title} chart, either delete the one you already have, "
-              "or subscribe to Pro for unlimited downloads in every category."),
-          actions: <Widget>[
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text("Subscribe / Log In"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                LoginScreenState.showPaywallThen(context, (ctx) {
-                  _refreshProStatus();
-                });
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -530,18 +444,6 @@ class DownloadScreenState extends State<DownloadScreen> {
   }
 
   void _chartTouched(Chart chart) {
-    // Enforce the free one-chart-per-category limit when selecting a new,
-    // not-yet-installed chart for download. Already installed charts (current /
-    // expired) are unaffected, so users can still update or delete what they own.
-    if (chart.state == _stateAbsentNone) {
-      final ChartCategory cg = _categoryOf(chart);
-      if (_isCategoryProLimited(cg) &&
-          !_isPro &&
-          _categoryPresentCount(cg) >= _freeChartsPerCategory) {
-        _promptForPro(cg);
-        return;
-      }
-    }
     switch (chart.state) {
       case _stateAbsentNone:
         chart.state = _stateAbsentDownload;
@@ -690,21 +592,6 @@ class DownloadScreenState extends State<DownloadScreen> {
     if(Storage().downloadManager.total() != 0) {
       Toast.showToast(context, "Please wait for ${Storage().downloadManager.total()} downloads to finish", null, 3);
       return;
-    }
-    // Re-check entitlement and enforce the free one-chart-per-category limit as
-    // a safety net (selection is already gated in _chartTouched).
-    await _refreshProStatus();
-    if (!mounted) {
-      return;
-    }
-    if (!_isPro) {
-      for (ChartCategory cg in _allCharts) {
-        if (_isCategoryProLimited(cg) &&
-            _categoryPresentCount(cg) > _freeChartsPerCategory) {
-          _promptForPro(cg);
-          return;
-        }
-      }
     }
     for (int category = 0; category < _allCharts.length; category++) {
       for (int chart = 0; chart < _allCharts[category].charts.length; chart++) {

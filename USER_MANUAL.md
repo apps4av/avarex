@@ -594,8 +594,6 @@ Tap a category (e.g. **Sectional**) to expand and see regional charts that can b
 
 ![Sectional category expanded — pick one or more regions, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
-**Free vs. Pro downloads** (iOS/Android): the free version lets you keep **one downloaded chart per category**. Selecting a second chart in the same category shows a prompt explaining you must either **delete the chart you already have** in that category, or **subscribe to Pro** (the prompt has a **Subscribe / Log In** button that opens the Pro/login flow). Pro unlocks unlimited charts in every category. Charts you have already downloaded are never affected and can still be updated. The **Databases** category is always free. On platforms without Pro Services (desktop/web), downloads are unrestricted.
-
 Major download categories include:
 
 - **Databases**: DatabasesX (required for core nav data; fetched automatically during onboarding for your GPS region)
@@ -989,7 +987,6 @@ From MAP top-right account icon, or by routed requests from some features (e.g.,
 - Sign in/register with email authentication (Firebase)
 - Paywall handled through RevenueCat entitlement (`Pro`)
 - After login, bottom sheet shows available Pro features
-- Pro also unlocks **unlimited chart-region downloads** (free users are limited to one region per category)
 
 ### 11.3 Flight Intelligence (AI)
 
@@ -1229,7 +1226,6 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 ## 13) Data Lifecycle and Auto-Update Behavior
 
 - On reaching the onboarding **Databases and Maps** page, AvareX automatically downloads the **DatabasesX** package plus the **Sectional**, **Plates**, and **CSUP** for your current GPS region whenever any of them are missing/expired (skips items already current).
-- Chart downloads are limited to **one region per category** for free users on iOS/Android; Pro Services unlocks unlimited regions.
 - Weather downloads refresh periodically (10-minute cycle in storage timer).
 - GPS source modes (tap `SRC` tile to cycle):
   - **Auto**: Prefers external GPS when available, falls back to internal after 30s timeout. Shows `Internal-A` or `External-A`.
@@ -1336,7 +1332,7 @@ Without **DatabasesX** the airport database is empty and the FIND/PLAN tabs retu
 
 ![Step 5 — Sectional category expanded; tap regions to queue them, then press Download](assets/docs/screenshots/06_download_sectional_expanded.png)
 
-6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared). On iOS/Android, free users can keep **one chart per category**; trying to add a second prompts you to delete the existing one or subscribe to **Pro** (with a **Subscribe / Log In** button).
+6. Tap individual regions inside each category (e.g. *NE_SEC*, *SE_SEC*) — each tap toggles the queue state (download icon → trash icon → cleared).
 7. Press **Download** in the app bar. A progress ring appears next to each item; the **Status Summary Card** updates the **Current / Expired / To Download / To Delete** counts.
 8. Wait for downloads to complete before leaving the screen — exiting can abort an in-flight download.
 9. To refresh expired data later, just press **Update** instead — it queues every expired item automatically.
