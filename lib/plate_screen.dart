@@ -34,65 +34,105 @@ class PlateScreen extends StatefulWidget {
 }
 
 // give plate name like "RNAV RWY 27" find if the procedure name like "R27.AYBEE" applies to this plate and return false if not
+// Approaches contain a runway ("... RWY 27") or are circling ("VOR-A").
+// SIDs/STARs (e.g. "REVSS SIX (RNAV)") contain neither.
+bool _isApproachName(String name) {
+  return RegExp(r'RWY\s*\d').hasMatch(name) || RegExp(r'-[A-Z]$').hasMatch(name.trim());
+}
+
+// Runway token like "27" or "22L" from a chart name, or null.
+String? _runwayToken(String name) {
+  final Match? m = RegExp(r'RWY\s*(\d{1,2})\s*([LRC]?)').firstMatch(name);
+  return m == null ? null : "${m.group(1)}${m.group(2)}";
+}
+
+// Approach variant letter (X/Y/Z) that precedes "RWY", or "".
+String _variantToken(String name) {
+  final int idx = name.indexOf("RWY");
+  final String head = idx >= 0 ? name.substring(0, idx) : name;
+  final Match? m = RegExp(r'(?:^|\s)([XYZ])(?:\s|$)').firstMatch(head);
+  return m?.group(1) ?? "";
+}
+
+// Trailing circling letter, e.g. "A" in "VOR-A", or "".
+String _circlingLetter(String name) {
+  final Match? m = RegExp(r'-([A-Z])$').firstMatch(name.trim());
+  return m?.group(1) ?? "";
+}
+
+// Approach type keywords present in a chart name.
+Set<String> _approachTokens(String name) {
+  const List<String> types = [
+    "RNAV", "RNP", "GPS", "ILS", "LOC", "LDA", "SDF", "VOR", "NDB", "TACAN", "GLS",
+  ];
+  return types.where((t) => name.contains(t)).toSet();
+}
+
 bool doesProcedureBelongsToThisPlate(String plateName, String procedureName) {
 
   if(plateName.isEmpty || procedureName.isEmpty) {
     return false;
   }
 
-  // of the form "IAP-MA-ILS RWY 27"
+  // of the form "IAP-MA-ILS RWY 27" / "STR-MA-OOSHN FIVE (RNAV)".
+  // d-TPP chart codes: IAP, DP, ODP, STR (arrivals; not "STAR").
   RegExp exp = RegExp(r"([A-Z0-9]+)-[A-Z][A-Z]-(.*)");
   Match? match = exp.firstMatch(plateName);
   if(match == null) {
     return false;
   }
-  String plate = match.group(2) ?? "";
+  // Strip continuation suffix ("..., CONT.1") so it matches the CIFP chart name.
+  String plate = (match.group(2) ?? "")
+      .toUpperCase()
+      .replaceFirst(RegExp(r',\s*CONT\.\d+$'), "")
+      .trim();
   String plateType = match.group(1) ?? "";
 
   List<String> procedureParts = procedureName.split(".");
   if(procedureParts.length < 2) {
     return false;
   }
+  String proc = procedureParts[1].toUpperCase().trim();
 
-  // there could be a better way to do it but there is no mapping from d-tpp to cifp. For now less than perfect is fine
+  // The procedure name is the d-TPP chart name, the same source as the plate
+  // name, so an exact match is the common, unambiguous case.
+  if(proc == plate) {
+    return true;
+  }
+
   if(plateType == "IAP") {
-    if((procedureParts[1] == plate)) {
-      return true; // simple straight match
+    // Only approaches belong to an approach plate; this excludes SIDs/STARs
+    // (e.g. "REVSS SIX (RNAV)") that would otherwise slip through.
+    if(!_isApproachName(proc)) {
+      return false;
     }
-    if(
-        (plate.startsWith("LOC") && procedureParts[1].startsWith("L")) ||
-        (plate.startsWith("COPTER") && procedureParts[1].startsWith("H")) ||
-        (plate.startsWith("VOR AND DME") && procedureParts[1].startsWith("D")) ||
-        (plate.startsWith("LOC AND DME BC") && procedureParts[1].startsWith("LBC")) ||
-        (plate.startsWith("LOC BC") && procedureParts[1].startsWith("B")) ||
-        (plate.startsWith("ILS") && procedureParts[1].startsWith("I")) ||
-        (plate.startsWith("RNAV") && procedureParts[1].startsWith("R")) ||
-        (plate.startsWith("NDB") && procedureParts[1].startsWith("N")) ||
-        (plate.startsWith("VOR") && procedureParts[1].startsWith("S")) ||
-        (plate.startsWith("VOR") && procedureParts[1].startsWith("V")) ||
-        (plate.startsWith("LDA") && procedureParts[1].startsWith("X")) ||
-        false
-    ) {
-      String runway = procedureParts[1].substring(1);
-      // just keep the number of the runway, for example "27" from "27-Y"
-      runway = runway.replaceAll(RegExp(r'[^0-9LRC]'), '');
-      if(plate.contains(runway)) {
-        return true;
-      }
+    final String? procRwy = _runwayToken(proc);
+    final String? plateRwy = _runwayToken(plate);
+    if((procRwy != null || plateRwy != null) && procRwy != plateRwy) {
+      return false;
     }
-    return false;
+    if(_variantToken(proc) != _variantToken(plate)) {
+      return false;
+    }
+    if(_circlingLetter(proc) != _circlingLetter(plate)) {
+      return false;
+    }
+    // Same runway/variant; require a shared approach type (RNAV vs ILS etc.).
+    return _approachTokens(proc).intersection(_approachTokens(plate)).isNotEmpty;
   }
-  else if(plateType == "DP") {
-    if(procedureParts[1].length > 4) {
-      String proc = procedureParts[1].substring(0, 5);
-      if(plate.startsWith(proc)) {
-        return true;
-      }
+  else if(plateType == "DP" || plateType == "ODP" || plateType == "STR" || plateType == "STAR") {
+    // Approaches do not belong on SID/STAR plates.
+    if(_isApproachName(proc)) {
+      return false;
     }
-    return false;
+    // SIDs/STARs share the leading computer code / name (e.g. "OOSHN", "REVSS").
+    final String procFirst = proc.split(RegExp(r'\s+')).first;
+    final String plateFirst = plate.split(RegExp(r'\s+')).first;
+    return procFirst.isNotEmpty && procFirst == plateFirst;
   }
 
-  return true;
+  // Unknown plate types (APD, MIN, HOT, ...) have no procedure profile.
+  return false;
 
 }
 
@@ -826,7 +866,7 @@ class PlateScreenState extends State<PlateScreen> {
       return Icons.flight_takeoff;
     } else if (name.startsWith("IAP")) {
       return Icons.flight_land;
-    } else if (name.startsWith("STAR")) {
+    } else if (name.startsWith("STAR") || name.startsWith("STR")) {
       return Icons.trending_down;
     } else if (name.startsWith("MIN")) {
       return Icons.vertical_align_bottom;
@@ -854,7 +894,7 @@ class PlateScreenState extends State<PlateScreen> {
     else if(name.startsWith("IAP")) {
       return Colors.purpleAccent;
     }
-    else if(name.startsWith("STAR")) {
+    else if(name.startsWith("STAR") || name.startsWith("STR")) {
       return Colors.cyan;
     }
     else if(name.startsWith("MIN")) {

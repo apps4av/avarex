@@ -400,10 +400,10 @@ class ProcedureDestination extends Destination {
     // airway has multiple entries for sequences
     List<Destination> ret = List.generate(maps.length, (i) {
       return Destination(
-        locationID: (maps[i]['fix_identifier'] as String).trim(),
-        facilityName: (maps[i]['fix_identifier'] as String).trim(),
+        locationID: (maps[i]['fix'] as String).trim(),
+        facilityName: (maps[i]['fix'] as String).trim(),
         type: Destination.typeProcedure,
-        coordinate: LatLng(maps[i]['Latitude'] as double, maps[i]['Longitude'] as double),
+        coordinate: LatLng(maps[i]['latitude'] as double, maps[i]['longitude'] as double),
       );
     });
 

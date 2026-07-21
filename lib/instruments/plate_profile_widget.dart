@@ -91,6 +91,8 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
       name: point.fixIdentifier,
       coordinate: point.coordinate,
       altitudeFt: point.altitudeFt,
+      altitudeType: point.altitudeType,
+      altitude2Ft: point.altitude2Ft,
     ))
         .toList();
     final LatLng? runway = await _findRunwayCoordinate(procedureName, profilePoints);
@@ -229,11 +231,15 @@ class _VerticalProfilePoint {
   final String name;
   final LatLng coordinate;
   final double? altitudeFt;
+  final String altitudeType;
+  final double? altitude2Ft;
   double distanceNm = 0;
   _VerticalProfilePoint({
     required this.name,
     required this.coordinate,
     required this.altitudeFt,
+    this.altitudeType = "",
+    this.altitude2Ft,
   });
 }
 
@@ -247,6 +253,8 @@ class _VerticalProfilePainter extends CustomPainter {
   final Paint _linePaint;
   final Paint _pointPaint;
   final Paint _planePaint;
+  final Paint _constraintPaint;
+  final Paint _bandPaint;
 
   _VerticalProfilePainter(
       ValueNotifier repaint,
@@ -275,6 +283,13 @@ class _VerticalProfilePainter extends CustomPainter {
         _planePaint = Paint()
           ..style = PaintingStyle.fill
           ..color = planeColor,
+        _constraintPaint = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..color = lineColor,
+        _bandPaint = Paint()
+          ..style = PaintingStyle.fill
+          ..color = lineColor.withValues(alpha: 0.25),
         super(repaint: repaint);
 
   @override
@@ -397,7 +412,32 @@ class _VerticalProfilePainter extends CustomPainter {
       }
       final double x = _xForDistance(chart, point.distanceNm, minDistance, totalDistance, hasRunwayCrossing);
       final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
+
+      // Window/block constraint: shade the band between the two altitudes.
+      if (point.altitudeType == "window" && point.altitude2Ft != null) {
+        final double y2 = _yForAltitude(chart, point.altitude2Ft!, minAlt, maxAlt);
+        canvas.drawRect(
+          Rect.fromLTRB(x - 3, min(y, y2), x + 3, max(y, y2)),
+          _bandPaint,
+        );
+        canvas.drawLine(Offset(x, min(y, y2)), Offset(x, max(y, y2)), _constraintPaint);
+        canvas.drawCircle(Offset(x, y2), 2.0, _pointPaint);
+      }
+
       canvas.drawCircle(Offset(x, y), 2.5, _pointPaint);
+
+      // Chart-style constraint bars: a line under "at or above", over "at or
+      // below", and both for a mandatory "at".
+      const double halfW = 5;
+      const double offY = 4;
+      final bool barAbove = point.altitudeType == "at" || point.altitudeType == "below";
+      final bool barBelow = point.altitudeType == "at" || point.altitudeType == "above";
+      if (barAbove) {
+        canvas.drawLine(Offset(x - halfW, y - offY), Offset(x + halfW, y - offY), _constraintPaint);
+      }
+      if (barBelow) {
+        canvas.drawLine(Offset(x - halfW, y + offY), Offset(x + halfW, y + offY), _constraintPaint);
+      }
     }
 
     double lastLabelRight = -double.infinity;
@@ -568,9 +608,15 @@ class ProcedureProfilePoint {
   final String fixIdentifier;
   final LatLng coordinate;
   final double? altitudeFt;
+  // Altitude constraint: "at", "above", "below", "window", or "".
+  final String altitudeType;
+  // Second altitude (bottom of a "window", or glideslope altitude).
+  final double? altitude2Ft;
   const ProcedureProfilePoint({
     required this.fixIdentifier,
     required this.coordinate,
     required this.altitudeFt,
+    this.altitudeType = "",
+    this.altitude2Ft,
   });
 }

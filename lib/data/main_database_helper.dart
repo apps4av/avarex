@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:avaremp/instruments/plate_profile_widget.dart';
 import 'package:universal_io/io.dart';
 import 'dart:math';
-import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:latlong2/latlong.dart';
@@ -65,12 +64,12 @@ class MainDatabaseHelper {
   Future<List<String>> findProcedures(String airportIdentifier) async {
     final db = await database;
     if (db != null) {
-      String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
-          " trim(airport_identifier) = '$airportIdentifier'";
+      String qry = "select distinct LocationID, procedure, ifix from cifp where"
+          " trim(LocationID) = '$airportIdentifier'";
       return DbGeneral.query(db, qry).then((maps) {
         return List.generate(maps.length, (i) {
-          String id = (maps[i]['sid_star_approach_identifier'] as String).trim();
-          String transition = (maps[i]['transition_identifier'] as String).trim();
+          String id = (maps[i]['procedure'] as String).trim();
+          String transition = (maps[i]['ifix'] as String).trim();
           return "$airportIdentifier.$id${transition.isEmpty ? '' : '.'}$transition"; // transition is optional
         });
       });
@@ -149,16 +148,16 @@ class MainDatabaseHelper {
         String match = "";
         if(segments.length == 2) {
           match = exact ?
-            " and trim(sid_star_approach_identifier) =    '${segments[1].toUpperCase()}'  and trim(transition_identifier) = ''" :
-            " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%'";
+            " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = ''" :
+            " and trim(procedure) like '${segments[1].toUpperCase()}%'";
         }
         else if(segments.length >= 3) {
           match = exact ?
-            " and trim(sid_star_approach_identifier) =    '${segments[1].toUpperCase()}'  and trim(transition_identifier) = '${segments[2].toUpperCase()}'" :
-            " and trim(sid_star_approach_identifier) like '${segments[1].toUpperCase()}%' and trim(transition_identifier) like '${segments[2].toUpperCase()}%'";
+            " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = '${segments[2].toUpperCase()}'" :
+            " and trim(procedure) like '${segments[1].toUpperCase()}%' and trim(ifix) like '${segments[2].toUpperCase()}%'";
         }
-        String qry = "select distinct airport_identifier, sid_star_approach_identifier, transition_identifier from cifp_sid_star_app where"
-          " trim(airport_identifier) = '$airport' $match";
+        String qry = "select distinct LocationID, procedure, ifix from cifp where"
+          " trim(LocationID) = '$airport' $match";
         mapsProcedures = await DbGeneral.query(db, qry);
       }
     }
@@ -183,9 +182,9 @@ class MainDatabaseHelper {
       if(null != da) {
         // all procedures get airport coordinate, procedures always 3 segments airport.sid.transition
         List<Destination> d = List.generate(mapsProcedures.length, (i) {
-          String lid = (mapsProcedures[i]['airport_identifier'] as String).trim();
-          String transition = (mapsProcedures[i]['transition_identifier'] as String).trim();
-          String id = (mapsProcedures[i]['sid_star_approach_identifier'] as String).trim();
+          String lid = (mapsProcedures[i]['LocationID'] as String).trim();
+          String transition = (mapsProcedures[i]['ifix'] as String).trim();
+          String id = (mapsProcedures[i]['procedure'] as String).trim();
           String name = "$lid.$id${transition.isEmpty ? '' : '.'}$transition"; // transition is optional
           return Destination(locationID: name,
               facilityName: name,
@@ -439,7 +438,6 @@ class MainDatabaseHelper {
     List<Map<String, dynamic>> maps = [];
     List<String> segments = procedureName.split(".");
     String? qry;
-    String lastId = "";
     if(segments.length < 2) {
       return null;
     }
@@ -448,10 +446,10 @@ class MainDatabaseHelper {
     }
 
     // sid/star/transition
-    qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}'"
-        " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'"
-        " and trim(transition_identifier) = '${segments[2].toUpperCase()}'"
-        " order by trim(sequence_number) asc";
+    qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
+        " and trim(procedure) = '${segments[1].toUpperCase()}'"
+        " and trim(ifix) = '${segments[2].toUpperCase()}'"
+        " order by trim(sequence) asc";
     final db = await database;
     if (db != null) {
       maps = await DbGeneral.query(db, qry);
@@ -460,41 +458,7 @@ class MainDatabaseHelper {
       return null;
     }
 
-    // resolve everything and add to the list
-    List<Map<String, dynamic>> mapsCombined = [];
-    for(var m in maps) {
-      String id = m['fix_identifier'].trim();
-      if(id == lastId) {
-        // duplicates, need to remove
-        continue;
-      }
-      Destination? d;
-      d = await findFix(id);
-      if(null == d) {
-        d = await findNav(id);
-        if(null == d) {
-          // runway
-          // find runway if not a fix or a nav
-          AirportDestination? da = await findAirport(segments[0]);
-          if(da != null) {
-            LatLng? ll = await Airport.findCoordinatesFromRunway(da, id);
-            if(ll != null) {
-              d = GpsDestination(locationID: id, type: Destination.typeGps, facilityName: id, coordinate: ll);
-            }
-          }
-        }
-      }
-      if(null == d) {
-        continue;
-      }
-      Map<String, dynamic> m2 = Map.from(m);
-      // name is required so is lat/lon
-      m2["Latitude"] = d.coordinate.latitude;
-      m2["Longitude"] = d.coordinate.longitude;
-      mapsCombined.add(m2);
-      lastId = id;
-    }
-    return ProcedureDestination.fromMap(procedureName, mapsCombined);
+    return ProcedureDestination.fromMap(procedureName, maps);
   }
 
   Future<(double, double)> getGeoInfo(LatLng ll) async {
@@ -513,21 +477,14 @@ class MainDatabaseHelper {
 
   Future<List<ProcedureProfilePoint>> findProcedureProfile(String procedureName) async {
 
-    String? readCifpValue(Map<String, dynamic> map, List<String> keys) {
-      for (final key in keys) {
-        if (!map.containsKey(key)) {
-          continue;
-        }
-        final value = map[key];
-        if (value == null) {
-          continue;
-        }
-        final String text = value.toString().trim();
-        if (text.isNotEmpty) {
-          return text;
-        }
+    double? toCoordinate(dynamic value) {
+      if (value == null) {
+        return null;
       }
-      return null;
+      if (value is num) {
+        return value.toDouble();
+      }
+      return double.tryParse(value.toString().trim());
     }
 
     double? parseAltitudeValue(String? raw) {
@@ -550,21 +507,6 @@ class MainDatabaseHelper {
       return isFlightLevel ? value * 100 : value;
     }
 
-    double? parseCifpAltitudeFt(Map<String, dynamic> map) {
-      final String? altitude1 = readCifpValue(map, [
-        'altitude_1',
-        'altitude1',
-        'altitude',
-      ]);
-      final String? altitude2 = readCifpValue(map, [
-        'altitude_2',
-        'altitude2',
-      ]);
-      final double? alt1 = parseAltitudeValue(altitude1);
-      final double? alt2 = parseAltitudeValue(altitude2);
-      return alt1 ?? alt2;
-    }
-
     List<Map<String, dynamic>> maps = [];
     List<String> segments = procedureName.split(".");
     if (segments.length < 2) {
@@ -574,10 +516,10 @@ class MainDatabaseHelper {
       segments.add("");
     }
 
-    String qry = "select * from cifp_sid_star_app where trim(airport_identifier) = '${segments[0].toUpperCase()}'"
-        " and trim(sid_star_approach_identifier) = '${segments[1].toUpperCase()}'"
-        " and trim(transition_identifier) = '${segments[2].toUpperCase()}'"
-        " order by trim(sequence_number) asc";
+    String qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
+        " and trim(procedure) = '${segments[1].toUpperCase()}'"
+        " and trim(ifix) = '${segments[2].toUpperCase()}'"
+        " order by trim(sequence) asc";
     final db = await database;
     if (db != null) {
       maps = await DbGeneral.query(db, qry);
@@ -589,32 +531,22 @@ class MainDatabaseHelper {
     List<ProcedureProfilePoint> points = [];
     String lastId = "";
     for (final m in maps) {
-      String id = (m['fix_identifier'] as String).trim();
+      String id = (m['fix'] as String).trim();
       if (id.isEmpty || id == lastId) {
         continue;
       }
-      Destination? d;
-      d = await findFix(id);
-      if (d == null) {
-        d = await findNav(id);
-        if (d == null) {
-          AirportDestination? da = await findAirport(segments[0]);
-          if (da != null) {
-            LatLng? ll = await Airport.findCoordinatesFromRunway(da, id);
-            if (ll != null) {
-              d = GpsDestination(locationID: id, type: Destination.typeGps, facilityName: id, coordinate: ll);
-            }
-          }
-        }
-      }
-      if (d == null) {
+      // Coordinates and altitude come straight from the cifp table row.
+      final double? lat = toCoordinate(m['latitude']);
+      final double? lon = toCoordinate(m['longitude']);
+      if (lat == null || lon == null) {
         continue;
       }
-      double? altitudeFt = parseCifpAltitudeFt(m);
       points.add(ProcedureProfilePoint(
         fixIdentifier: id,
-        coordinate: d.coordinate,
-        altitudeFt: altitudeFt,
+        coordinate: LatLng(lat, lon),
+        altitudeFt: parseAltitudeValue(m['altitude']?.toString()),
+        altitudeType: (m['altitude_type'] ?? "").toString().trim(),
+        altitude2Ft: parseAltitudeValue(m['altitude2']?.toString()),
       ));
       lastId = id;
     }
