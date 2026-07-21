@@ -10,7 +10,7 @@ class Toast {
     final colorScheme = theme.colorScheme;
     Toastification().dismissAll();
     Toastification().show(
-      alignment: Alignment.bottomRight,
+      alignment: Alignment.centerRight,
       context: context,
       closeOnClick: true,
       closeButton: ToastCloseButton(showType: CloseButtonShowType.none),

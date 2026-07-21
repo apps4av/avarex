@@ -115,23 +115,23 @@ class Airport {
       return input[0];
     }
 
-    String getRunwayInfo(Map<String, dynamic> r, String side, [MapRunway? mr]) {
-      // process both ends of the runway separately, add pattern, ils, vgsi, lights, displaced threshold, length, and surface type
-      String pattern = r['${side}Pattern'] == 'Y' ? 'Pattern: Right\n' : 'Pattern: Left\n';
-      String elevation = r['${side}Elevation'].isEmpty ? "" : "Elevation: ${r['${side}Elevation']}\n";
-      String ils = r['${side}ILS'].isEmpty ? "" : "ILS: ${r['${side}ILS']}\n";
-      String vgsi = r['${side}VGSI'].isEmpty ? "" : "VGSI: ${r['${side}VGSI']}\n";
-      String lights = r['${side}Lights'].isEmpty ? "" : "Lights: ${r['${side}Lights']}\n";
-      String dt = r['${side}DT'].isEmpty ? "" : "Threshold: ${r['${side}DT']}\n";
-      String info = "$pattern$elevation$ils$vgsi$lights$dt";
+    Map<String, String> getRunwayInfo(Map<String, dynamic> r, String side, [MapRunway? mr]) {
+      // process both ends of the runway separately, add ils, vgsi, lights, displaced threshold, length, and surface type
+      Map<String, String> ret = {};
+      ret['Elevation'] = r['${side}Elevation'].isEmpty ? "" : r['${side}Elevation'];
+      ret['ILS'] = r['${side}ILS'].isEmpty ? "" : r['${side}ILS'];
+      ret['VGSI'] = r['${side}VGSI'].isEmpty ? "" : r['${side}VGSI'];
+      ret['Lights'] = r['${side}Lights'].isEmpty ? "" : r['${side}Lights'];
+      ret['Threshold'] = r['${side}DT'].isEmpty ? "" : r['${side}DT'];
       if(mr != null) {
         // add head and cross wind components
         if(mr.headWind != null && mr.crossWind != null) {
-          info += "Head Wind: ${mr.headWind!.toStringAsFixed(0)}\nCross Wind: ${mr.crossWind!.toStringAsFixed(0)}";
+          ret["Head Wind"] = mr.headWind!.toStringAsFixed(0);
+          ret["Cross Wind"] = mr.crossWind!.toStringAsFixed(0);
         }
       }
 
-      return info;
+      return ret;
     }
 
     String getRunwayInfoCommon(Map<String, dynamic> r) {
@@ -145,6 +145,56 @@ class Airport {
     String getRunwayIdent(Map<String, dynamic> r, String side) {
       String ident = r['${side}Ident'].isEmpty ? "" : "${r['${side}Ident']}";
       return ident;
+    }
+
+    String getRunwayPatternArrow(Map<String, dynamic> r, String side) {
+      return r['${side}Pattern'] == 'Y' ? '\u2192' : '\u2190';
+    }
+
+    Widget runwayLeading(String ident, bool best, Map<String, dynamic> r, String side) {
+      return SizedBox(
+        width: 64,
+        height: 64,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: CircleAvatar(
+            radius: 24,
+            backgroundColor: best ? Colors.green : Colors.purple,
+            child: Text(
+              "$ident\n${getRunwayPatternArrow(r, side)}",
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget runwayInfoTable(Map<String, String> info) {
+      const labelColumnWidth = 96.0; // fits longest label: "Cross Wind"
+      final entries = info.entries.where((e) => e.value.isNotEmpty).toList();
+      if (entries.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return Table(
+        columnWidths: const {
+          0: FixedColumnWidth(labelColumnWidth),
+          1: FlexColumnWidth(),
+        },
+        defaultVerticalAlignment: TableCellVerticalAlignment.top,
+        children: [
+          for (final entry in entries)
+            TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(entry.key),
+                ),
+                Text(entry.value),
+              ],
+            ),
+        ],
+      );
     }
 
     DateTime? sunset;
@@ -174,38 +224,34 @@ class Airport {
       }
       if(identLE.isNotEmpty) {
         rs.add(ListTile(
-          leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: le != null && le.best ? Colors.green : Colors.purple,
-                  child: Text(identLE,
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,))),
-          title: Text(getRunwayInfoCommon(r)),
-          subtitle: Text(getRunwayInfo(r, 'LE', le)),
+          isThreeLine: true,
+          visualDensity: VisualDensity.compact,
+          leading: runwayLeading(identLE, le != null && le.best, r, 'LE'),
+          title: Text(getRunwayInfoCommon(r), style: TextStyle(decoration: TextDecoration.underline,)),
+          subtitle: runwayInfoTable(getRunwayInfo(r, 'LE', le)),
         ));
       }
       if(identHE.isNotEmpty) {
         rs.add(ListTile(
-          leading: SizedBox(width: 64,
-              child: CircleAvatar(backgroundColor: he != null && he.best ? Colors.green : Colors.purple,
-                  child: Text(identHE,
-                    style: TextStyle(color: Colors.white),
-                    textAlign: TextAlign.center,))),
-          title: Text(getRunwayInfoCommon(r)),
-          subtitle: Text(getRunwayInfo(r, 'HE', he)),
+          isThreeLine: true,
+          visualDensity: VisualDensity.compact,
+          leading: runwayLeading(identHE, he != null && he.best, r, 'HE'),
+          title: Text(getRunwayInfoCommon(r), style: TextStyle(decoration: TextDecoration.underline,)),
+          subtitle: runwayInfoTable(getRunwayInfo(r, 'HE', he)),
         ));
       }
     }
 
     ListView view = ListView(children: [
-      if(atis.isNotEmpty) ListTile(leading:           const SizedBox(width: 64, child: Text("ATIS", style: TextStyle(fontSize: 16))), title: Text(format(atis))),
-      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("TWR", style: TextStyle(fontSize: 16))), title: Text(format(tower))),
-      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND", style: TextStyle(fontSize: 16))),   title: Text(format(ground))),
-      if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC", style: TextStyle(fontSize: 16))), title: Text(format(clearance))),
-      if(appDep.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("AP/DP", style: TextStyle(fontSize: 16))), title: Text(format(appDep))),
-      if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF", style: TextStyle(fontSize: 16))), title: Text(format([airport.ctaf]))),
-      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM", style: TextStyle(fontSize: 16))), title: Text(format([airport.unicom]))),
-      if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO", style: TextStyle(fontSize: 16))), title: Text(format(automated))),
-      if(remark.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("RMK", style: TextStyle(fontSize: 16))), title: Text(format(remark))),
+      if(atis.isNotEmpty) ListTile(leading:           const SizedBox(width: 64, child: Text("ATIS", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(atis))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("TWR", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(tower))),
+      if(ground.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("GND", style: TextStyle(fontSize: 16, color: Colors.blue))),   title: Text(format(ground))),
+      if(clearance.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("CLNC", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(clearance))),
+      if(appDep.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("AP/DP", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(appDep))),
+      if(airport.ctaf.isNotEmpty) ListTile(leading:   const SizedBox(width: 64, child: Text("CTAF", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format([airport.ctaf]))),
+      if(airport.unicom.isNotEmpty) ListTile(leading: const SizedBox(width: 64, child: Text("UCOM", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format([airport.unicom]))),
+      if(automated.isNotEmpty) ListTile(leading:      const SizedBox(width: 64, child: Text("AUTO", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(automated))),
+      if(remark.isNotEmpty) ListTile(leading:         const SizedBox(width: 64, child: Text("RMK", style: TextStyle(fontSize: 16, color: Colors.blue))), title: Text(format(remark))),
       for(ListTile t in rs) t,
       if(sunrise != null) ListTile(leading:           const SizedBox(width: 64, child: Text("SRISE", style: TextStyle(fontSize: 16))), title: Text("${sunrise.hour.toString().padLeft(2, '0')}:${sunrise.minute.toString().padLeft(2, '0')}Z")),
       if(sunset != null) ListTile(leading:            const SizedBox(width: 64, child: Text("SSET", style: TextStyle(fontSize: 16))), title: Text("${sunset.hour.toString().padLeft(2, '0')}:${sunset.minute.toString().padLeft(2, '0')}Z")),
