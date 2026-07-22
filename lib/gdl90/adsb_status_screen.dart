@@ -1,8 +1,10 @@
 import 'package:avaremp/gdl90/adsb_status.dart';
 import 'package:avaremp/gdl90/ground_station_cache.dart';
+import 'package:avaremp/gdl90/stratus_open_mode.dart';
 import 'package:avaremp/gdl90/traffic_report_message.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -28,6 +30,37 @@ class _AdsbStatusScreenState extends State<AdsbStatusScreen> {
     super.initState();
     // Run the log live while the screen is open.
     Storage().adsbStatus.logPaused = false;
+  }
+
+  Future<void> _sendStratusOpenMode() async {
+    bool ok = await StratusOpenMode.send();
+    if(!mounted) {
+      return;
+    }
+    if(ok) {
+      Toast.showToast(context, "Sent Stratus Open ADS-B Mode command",
+          const Icon(Icons.check, color: Colors.green), 3);
+    }
+    else {
+      Toast.showToast(context, "Failed to send Stratus Open ADS-B Mode command",
+          const Icon(Icons.error, color: Colors.red), 4);
+    }
+  }
+
+  // One-shot control to put a Stratus 3 / 3i into Open ADS-B (GDL90) mode.
+  Widget _stratusOpenModeButton() {
+    return Card(
+      child: ListTile(
+        dense: true,
+        leading: const Icon(Icons.wifi_tethering),
+        title: const Text("Stratus Open ADS-B Mode"),
+        subtitle: const Text("Send once while on Stratus Wi-Fi"),
+        trailing: TextButton(
+          onPressed: _sendStratusOpenMode,
+          child: const Text("Send"),
+        ),
+      ),
+    );
   }
 
   @override
@@ -308,6 +341,7 @@ class _AdsbStatusScreenState extends State<AdsbStatusScreen> {
                         s.towerCount > 0 ? Colors.green : Colors.grey,
                       ),
                       _stationList(s),
+                      _stratusOpenModeButton(),
                       _diagnostics(s),
                     ],
                   );
