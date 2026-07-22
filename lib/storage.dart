@@ -20,6 +20,7 @@ import 'package:avaremp/gdl90/adsb_status.dart';
 import 'package:avaremp/gdl90/gdl90_buffer.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/gdl90/message_factory.dart';
+import 'package:avaremp/gdl90/fis_block_cache.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/gdl90/ownship_message.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
@@ -94,6 +95,7 @@ class Storage {
   late AirSigmetCache airSigmet;
   late NotamCache notam;
   final NexradCache nexradCache = NexradCache();
+  final FisBlockCache fisBlockCache = FisBlockCache();
   final Area area = Area();
   late TrafficCache trafficCache;
   final StackWithOne<Position> _gpsStack = StackWithOne(Gps.fromLatLng(LatLng(0, 0)));

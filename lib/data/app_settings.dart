@@ -141,17 +141,17 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v50", defaultValue:
-        "Nav,Circles,Chart,Topo,Vector Map,CAP Grid,Elevation,Weather,Radar,TFR,Game TFR,Wind Vectors,Ceiling,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
+    return (provider.getValue("key-layers-v52", defaultValue:
+        "Nav,Circles,Chart,Topo,Vector Map,CAP Grid,Elevation,Weather,TFR,Game TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
   }
 
   List<double> getLayersOpacity() {
-    return (provider.getValue("key-layers-opacity-v50", defaultValue:
-        "1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
+    return (provider.getValue("key-layers-opacity-v52", defaultValue:
+        "1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
   }
 
   void setLayersOpacity(List<double> opacity) {
-    provider.setString("key-layers-opacity-v50", opacity.map((double e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-opacity-v52", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
@@ -397,6 +397,27 @@ class AppSettings {
 
   int getActivePlanDestinationIndex() {
     return provider.getValue("key-active-plan-destination-index-v1", defaultValue: 0) as int;
+  }
+
+  /// Weather overlay products under the Weather layer.
+  /// Same pattern as [getLayers]: comma-separated Title Case names.
+  List<String> getWeatherProducts() {
+    return (provider.getValue("key-weather-products-v2", defaultValue:
+        "ADS-B Radar,ADS-B Cloud Tops,ADS-B Icing,ADS-B Turbulence,ADS-B Lightning,Radar,Ceiling,Wind Vectors") as String).split(",");
+  }
+
+  void setWeatherProducts(List<String> products) {
+    provider.setString("key-weather-products-v2", products.join(","));
+  }
+
+  /// Per-product opacity (0–1), parallel to [getLayersOpacity].
+  List<double> getWeatherProductsOpacity() {
+    return (provider.getValue("key-weather-products-opacity-v2", defaultValue:
+        "0,0,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
+  }
+
+  void setWeatherProductsOpacity(List<double> opacity) {
+    provider.setString("key-weather-products-opacity-v2", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
 }

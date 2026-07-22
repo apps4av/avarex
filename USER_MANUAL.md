@@ -150,9 +150,9 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
   - L: 1000 aircraft, 30000 ft, 500 NM
 
 #### Altitude slider (right side)
-- Appears when **Ceiling** or **Wind Vectors** layer is on.
+- Appears with the **Weather** layer when the product menu is set to Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
 - Range: 0 to 30,000 ft (1,000 ft increments).
-- Adjusts planning altitude used by those overlays.
+- Product menu: with the **Weather** layer on, tap the cloud button on the right (above the traffic **S/M/L** control, below the altitude slider when shown) to open per-product opacity controls (same pattern as map layers). Enable any combination of **ADS-B Radar**, **ADS-B Cloud Tops**, **ADS-B Icing**, **ADS-B Turbulence**, **ADS-B Lightning**, **Radar**, **Ceiling**, and **Wind Vectors**. ADS-B items show an antenna icon; Radar, Ceiling, and Wind Vectors show an internet/radar icon. **Radar** is internet Mesonet radar animation.
 
 ### 4.4 Map chart types
 
@@ -183,11 +183,8 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
 | **Topo** | USGS topo online base map (max zoom 16). |
 | **Elevation** | Downloaded elevation tiles with color-coded terrain. |
-| **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols + ADS-B weather overlays (NEXRAD from GDL90/FIS-B). Color-coded by flight category (green=VFR, blue=MVFR, red=IFR, purple=LIFR). |
-| **Radar** | Internet radar animation tiles from Iowa State Mesonet (loops through 5 time frames: -40m, -30m, -20m, -10m, now, cycling every 250ms). |
+| **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) from the right-side **Weather** menu: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
 | **TFR** | Temporary flight restriction shapes/markers with time validity. Red=active, orange=future. |
-| **Wind Vectors** | Animated wind particle field overlay at selected altitude (from Winds Aloft data). |
-| **Ceiling** | Black overlay showing areas where METAR ceiling is below your selected altitude. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
 | **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
 | **Obstacles** | Obstacle markers (red squares) in your vicinity. |
@@ -239,7 +236,9 @@ Interactions:
   - **FIS-B uplink**: ground station position, position-valid flag, slot ID, TIS-B site ID, and each weather product carried in the frame, decoded individually:
     - **METAR/SPECI/TAF/PIREP/Winds Aloft**: the full textual report.
     - **NOTAM / NOTAM-TFR**: NOTAM text, or for TFRs the report number, polygon vertex count, altitude band, and effective/expiry times.
+    - **D-ATIS / TWIP**: airport digital ATIS and terminal weather text (also stored for the airport **NOTAM** tab).
     - **NEXRAD radar** (regional or CONUS): the bin block number and whether the block carries precipitation or is empty.
+    - **Icing / Turbulence / Cloud tops / Lightning**: block number, scale, altitude band (icing and turbulence), and whether the block carries data or is empty.
     - **SIGMET / AIRMET / SUA**: location, polygon vertex count, effective times, and any embedded text.
   - **Device report**: battery charge percentage and charging state.
 
@@ -499,7 +498,7 @@ The `Transfer` sub-page exchanges flight plans with a panel-mounted **Avidyne IF
 - Below the device list, a scrolling **Messages** log shows the last 50 WiFiCrChannel packets exchanged with the IFD during Send/Get — **TX** (AvareX → IFD) and **RX** (IFD → AvareX), newest first. Tap a row to expand the **raw bytes** as selectable hex. Use **Pause** / **Resume** to freeze the log, and **Clear** to empty it.
 - **iOS only**: the **Local Network** permission must be granted for discovery and transfer to work.
 
-**Avidyne ADS-B (Capstone):** While AvareX is running on the same Wi-Fi network as an IFD equipped with an ADS-B receiver, it also receives the IFD's **Capstone** ADS-B stream automatically. Capstone is GDL90-format data, so traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and receiver status appear the same way as with any other GDL90 device — no separate setup is needed beyond being on the IFD's network (and, on iOS, the **Local Network** permission).
+**Avidyne ADS-B (Capstone):** While AvareX is running on the same Wi-Fi network as an IFD equipped with an ADS-B receiver, it also receives the IFD's **Capstone** ADS-B stream automatically. Capstone is GDL90-format data, so traffic, ADS-B weather (NEXRAD/METAR/TAF/D-ATIS/TWIP/icing/turbulence/cloud tops/lightning/AIRMET/SIGMET via FIS-B), and receiver status appear the same way as with any other GDL90 device — no separate setup is needed beyond being on the IFD's network (and, on iOS, the **Local Network** permission).
 
 ### 7.5 Route building details
 
@@ -1304,8 +1303,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
-| Enable wind vectors | `MAP → Layers → Wind Vectors slider > 0` (use altitude slider) |
-| Enable ceiling overlay | `MAP → Layers → Ceiling slider > 0` (use altitude slider) |
+| Enable wind vectors | `MAP → Layers → Weather > 0` → product menu **Wind** (use altitude slider) |
+| Enable ceiling overlay | `MAP → Layers → Weather > 0` → product menu **Ceil** (use altitude slider) |
 | Change GPS source mode | Tap `SRC` tile in instrument overlay |
 | Measure distances | `MAP → Ruler icon → long-press map to add points` |
 | Rubber band waypoints | `MAP → Rubber banding icon → long-press and drag waypoints` |
@@ -1819,9 +1818,9 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 ### FAQ-03: Where do I enable new wind/ceiling map features?
 
-- `MAP → Layers`:
-  - Enable **Wind Vectors** and/or **Ceiling**
-  - Use right-side altitude slider to change displayed altitude context
+- `MAP → Layers → Weather` (opacity > 0)
+- Right-side product menu: choose **Wind** or **Ceil**
+- Use the altitude slider to change displayed altitude context
 - Source threads:
   - New features v83/v84:  
     `https://groups.google.com/g/apps4av-forum/c/qac4-Bb-gVE`  

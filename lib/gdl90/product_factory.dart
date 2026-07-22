@@ -5,10 +5,16 @@ import 'package:avaremp/gdl90/sua_product.dart';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'airmet_product.dart';
+import 'cloud_tops_product.dart';
+import 'datis_product.dart';
+import 'icing_product.dart';
+import 'lightning_product.dart';
 import 'textual_weather_product.dart';
 import 'nexrad_high_product.dart';
 import 'nexrad_medium_product.dart';
 import 'notam_product.dart';
+import 'turbulence_product.dart';
+import 'twip_product.dart';
 
 class ProductFactory {
 
@@ -78,8 +84,10 @@ class ProductFactory {
         p = NotamProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);  // NOTAM graphics
         break;
       case 9:
+        p = DatisProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
         break;
       case 10:
+        p = TwipProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
         break;
       case 11:
         p = AirmetProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);  // AIRMET graphics
@@ -95,6 +103,24 @@ class ProductFactory {
         break;
       case 64:
         p = NexradMediumProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
+        break;
+      case 70:
+        p = IcingProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag, high: false);
+        break;
+      case 71:
+        p = IcingProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag, high: true);
+        break;
+      case 84:
+        p = CloudTopsProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
+        break;
+      case 90:
+        p = TurbulenceProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag, high: false);
+        break;
+      case 91:
+        p = TurbulenceProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag, high: true);
+        break;
+      case 103:
+        p = LightningProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag);
         break;
       case 413:
         p = TextualWeatherProduct(time, data, coordinate, productFileId, productFileLength, apduNumber, segFlag); // MEATR, TAF, SPECI, WINDS, PIREP

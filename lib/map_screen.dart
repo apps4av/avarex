@@ -67,6 +67,8 @@ class MapScreenState extends State<MapScreen> {
   // get layers and states from settings
   final List<String> _layers = Storage().settings.getLayers();
   final List<double> _layersOpacity = Storage().settings.getLayersOpacity();
+  final List<String> _weatherProducts = Storage().settings.getWeatherProducts();
+  final List<double> _weatherProductsOpacity = Storage().settings.getWeatherProductsOpacity();
   final int _disableClusteringAtZoom = 10;
   final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
@@ -74,7 +76,6 @@ class MapScreenState extends State<MapScreen> {
   final CeilingLayer _ceilingLayer = CeilingLayer();
   final CapGridLayer _capGridLayer = CapGridLayer();
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
-  double _nexradOpacity = 0;
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
   int _cacheBustElevation = 0;
   // memoization for the distance circles and the to-waypoint great-circle path,
@@ -458,6 +459,7 @@ class MapScreenState extends State<MapScreen> {
     double opacity = 1.0;
 
     bool showAltitudeSlider = false;
+    bool showWeatherProductSelector = false;
 
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
     // this is called many times on the map so we need to be efficient.
@@ -619,77 +621,152 @@ class MapScreenState extends State<MapScreen> {
       layers.add(Opacity(opacity: opacity, child: _makeGeoJsonCluster()));
     }
 
-    lIndex = _layers.indexOf('Radar');
-    opacity = _layersOpacity[lIndex];
-    _nexradOpacity = opacity;
-    if (opacity > 0) {
-      layers.add(Opacity(opacity: _nexradOpacity,
-        child: ValueListenableBuilder<int>(
-          valueListenable: Storage().timeRadarChange,
-          builder: (context, value, _) {
-            int index = value % (_mesonets.length * 2);
-            if(index > _mesonets.length - 1) {
-              index = _mesonets.length - 1; // give 2 times the time for latest to stay on
-            }
-            _nexradLayer = TileLayer(
-              userAgentPackageName: 'com.apps4av.avarex',
-              maxNativeZoom: 5,
-              keepBuffer: 1, // hold fewer off-screen tiles decoded in memory
-              urlTemplate: _mesonets[index],
-              tileProvider: NetworkTileProvider(),
-            );
-            return _nexradLayer;
-          },
-        )));
+    // Radar, Ceiling, and Wind Vectors are selected from the Weather products
+    // menu (right-side), not as separate map layers.
 
-      layers.add(// nexrad slider
-          Opacity(opacity: opacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
-            child: ValueListenableBuilder<int>(
-              valueListenable: Storage().timeRadarChange,
-              builder: (context, value, _) {
-                int index = value % (_mesonets.length * 2);
-                if(index > _mesonets.length - 1) {
-                  index = _mesonets.length - 1; // give 2 times the time for latest to stay on
-                }
-                return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
-          }),
-      )));
-    }
-
-    lIndex = _layers.indexOf('Ceiling');
+    lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      showAltitudeSlider = true;
-      layers.add(
-        IgnorePointer(
-          child: Opacity(
-            opacity: opacity,
-            child: ValueListenableBuilder<int>(
-              valueListenable: Storage().metar.change,
-              builder: (context, value, _) {
-                List<Metar> metars = Storage().metar.getAll().map((e) => e as Metar).toList();
-                return _ceilingLayer.build(
-                  altitudeFt: Storage().route.altitude,
-                  metarRevision: Storage().metar.change.value,
-                  current: Gps.toLatLng(Storage().position),
-                  metars: metars,
-                );
-              },
-            ),
-          ),
-        ),
-      );
-    }
-
-    lIndex = _layers.indexOf('Wind Vectors');
-    if (lIndex >= 0) {
-      opacity = _layersOpacity[lIndex];
-      if (opacity > 0) {
+      showWeatherProductSelector = true;
+      final bool needsAltitude = _weatherProductOn("ADS-B Cloud Tops") ||
+          _weatherProductOn("ADS-B Icing") ||
+          _weatherProductOn("ADS-B Turbulence") ||
+          _weatherProductOn("Ceiling") ||
+          _weatherProductOn("Wind Vectors");
+      if (needsAltitude) {
         showAltitudeSlider = true;
+      }
+
+      // Internet radar (Iowa Mesonet).
+      if (_weatherProductOn("Radar")) {
+        final double productOpacity = opacity * _weatherProductOpacity("Radar");
+        layers.add(Opacity(opacity: productOpacity,
+          child: ValueListenableBuilder<int>(
+            valueListenable: Storage().timeRadarChange,
+            builder: (context, value, _) {
+              int index = value % (_mesonets.length * 2);
+              if(index > _mesonets.length - 1) {
+                index = _mesonets.length - 1;
+              }
+              _nexradLayer = TileLayer(
+                userAgentPackageName: 'com.apps4av.avarex',
+                maxNativeZoom: 5,
+                keepBuffer: 1,
+                urlTemplate: _mesonets[index],
+                tileProvider: NetworkTileProvider(),
+              );
+              return _nexradLayer;
+            },
+          )));
+
+        layers.add(
+            Opacity(opacity: productOpacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+              child: ValueListenableBuilder<int>(
+                valueListenable: Storage().timeRadarChange,
+                builder: (context, value, _) {
+                  int index = value % (_mesonets.length * 2);
+                  if(index > _mesonets.length - 1) {
+                    index = _mesonets.length - 1;
+                  }
+                  return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
+            }),
+        )));
+      }
+
+      // ADS-B NEXRAD.
+      if (_weatherProductOn("ADS-B Radar")) {
+        final double productOpacity = opacity * _weatherProductOpacity("ADS-B Radar");
+        layers.add(
+          IgnorePointer(child: Opacity(opacity: productOpacity, child: ValueListenableBuilder<int>(
+            valueListenable: Storage().timeChange,
+            builder: (context, value, _) {
+              final bool conus = _controller.camera.zoom < 7;
+              final List<NexradImage> images = conus
+                  ? Storage().nexradCache.getNexradConus()
+                  : Storage().nexradCache.getNexrad();
+              return OverlayImageLayer(
+                overlayImages: images
+                    .where((e) => e.getProvider() != null)
+                    .map((e) => OverlayImage(
+                          imageProvider: e.getProvider()!,
+                          bounds: e.getBounds(),
+                        ))
+                    .toList(),
+              );
+            },
+          ))),
+        );
+      }
+
+      // FIS-B block products (any combination).
+      for (final String name in const [
+        "ADS-B Cloud Tops",
+        "ADS-B Icing",
+        "ADS-B Turbulence",
+        "ADS-B Lightning",
+      ]) {
+        if (!_weatherProductOn(name)) {
+          continue;
+        }
+        final double productOpacity = opacity * _weatherProductOpacity(name);
+        final String kind = switch (name) {
+          "ADS-B Cloud Tops" => "cloudTops",
+          "ADS-B Icing" => "icing",
+          "ADS-B Turbulence" => "turbulence",
+          _ => "lightning",
+        };
+        layers.add(
+          IgnorePointer(child: Opacity(opacity: productOpacity, child: ValueListenableBuilder<int>(
+            valueListenable: Storage().timeChange,
+            builder: (context, value, _) {
+              final int altFt = Storage().route.altitude;
+              final List<NexradImage> images = kind == "lightning"
+                  ? Storage().fisBlockCache.get("lightning")
+                  : Storage().fisBlockCache.get(kind, altitudeFt: altFt);
+              return OverlayImageLayer(
+                overlayImages: images
+                    .where((e) => e.getProvider() != null)
+                    .map((e) => OverlayImage(
+                          imageProvider: e.getProvider()!,
+                          bounds: e.getBounds(),
+                        ))
+                    .toList(),
+              );
+            },
+          ))),
+        );
+      }
+
+      if (_weatherProductOn("Ceiling")) {
+        final double productOpacity = opacity * _weatherProductOpacity("Ceiling");
         layers.add(
           IgnorePointer(
             child: Opacity(
-              opacity: opacity,
+              opacity: productOpacity,
+              child: ValueListenableBuilder<int>(
+                valueListenable: Storage().metar.change,
+                builder: (context, value, _) {
+                  final List<Metar> metars =
+                      Storage().metar.getAll().map((e) => e as Metar).toList();
+                  return _ceilingLayer.build(
+                    altitudeFt: Storage().route.altitude,
+                    metarRevision: Storage().metar.change.value,
+                    current: Gps.toLatLng(Storage().position),
+                    metars: metars,
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      }
+
+      if (_weatherProductOn("Wind Vectors")) {
+        final double productOpacity = opacity * _weatherProductOpacity("Wind Vectors");
+        layers.add(
+          IgnorePointer(
+            child: Opacity(
+              opacity: productOpacity,
               child: WindVectorLayer(
                 mapController: _controller,
               ),
@@ -697,30 +774,6 @@ class MapScreenState extends State<MapScreen> {
           ),
         );
       }
-    }
-
-    lIndex = _layers.indexOf('Weather');
-    opacity = _layersOpacity[lIndex];
-    if (opacity > 0) {
-      layers.add(
-        // nexrad layer
-          IgnorePointer(child:Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-            valueListenable: Storage().timeChange,
-            builder: (context, value, _) {
-              bool conus = true;
-              // show conus above zoom level 7
-              conus = _controller.camera.zoom < 7 ? true : false;
-              List<NexradImage> images = conus ? Storage().nexradCache.getNexradConus() : Storage().nexradCache.getNexrad();
-              return OverlayImageLayer(
-                overlayImages: images.map((e) {
-                  return OverlayImage(imageProvider: e.getProvider()!,
-                      bounds: e.getBounds());
-                }).toList(),
-              );
-            },
-          ),
-          ))
-      );
 
       layers.add(Opacity(opacity: opacity, child: _makeMetarCluster()));
 
@@ -1393,14 +1446,42 @@ class MapScreenState extends State<MapScreen> {
 
                 ),
               ),
-              if(_layersOpacity[_layers.indexOf("Traffic")] > 0)
+              if(showAltitudeSlider || showWeatherProductSelector || _layersOpacity[_layers.indexOf("Traffic")] > 0)
               Positioned(
                 child: Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
-                        child:
-                            IconButton(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (showAltitudeSlider)
+                              RotatedBox(quarterTurns: -1, child:
+                                SizedBox(width: 192, height: 64, child:
+                                  Slider(
+                                    label: "${(Storage().route.altitude / 1000).toInt()}K ft",
+                                    max: 30000,
+                                    min: 0,
+                                    divisions: 30,
+                                    value: Storage().route.altitude.toDouble(),
+                                    onChanged: (double value) {
+                                      setState(() {
+                                        Storage().route.altitude = value.toInt();
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            if (showWeatherProductSelector)
+                              IconButton(
+                                tooltip: "Select weather products to show on the Map screen",
+                                onPressed: () => _showWeatherProductSelector(context),
+                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    child: const Icon(Icons.cloud)),
+                              ),
+                            if (_layersOpacity[_layers.indexOf("Traffic")] > 0)
+                              IconButton(
                                 tooltip: "Traffic Volume:\n"
                                     "S: 20 Aircraft, 3000ft, 10NM\n"
                                     "M: 200 Aircraft, 6000ft, 50NM\n"
@@ -1412,8 +1493,10 @@ class MapScreenState extends State<MapScreen> {
                                   Storage().trafficCache.changeArea(Storage().settings.getTrafficPuckSize());
                                 },
                                 icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                    child: Text(Storage().settings.getTrafficPuckSize()))
-                            ),
+                                    child: Text(Storage().settings.getTrafficPuckSize())),
+                              ),
+                          ],
+                        ),
                       )
                     )
                 ),
@@ -1605,19 +1688,6 @@ class MapScreenState extends State<MapScreen> {
                       )
                   )
               ),
-
-              if(showAltitudeSlider)
-                // altitude slider
-                Positioned(child: Align(
-                    alignment: Alignment.centerRight, child:
-                      RotatedBox(quarterTurns: -1, child:
-                        SizedBox(width: 192, height: 64, child:
-                          Slider(label: "${(Storage().route.altitude / 1000).toInt()}K ft", max: 30000, min: 0, divisions: 30, value: Storage().route.altitude.toDouble(), onChanged: (double value) { setState(() {
-                            Storage().route.altitude = value.toInt();
-                          });}),
-                        )
-                      )
-                )),
             ]
         )
     );
@@ -1652,6 +1722,61 @@ class MapScreenState extends State<MapScreen> {
               _type = chart;
               Storage().settings.setChartType(chart);
             });
+          },
+        ),
+      ),
+    );
+  }
+
+  static const Set<String> _adsbWeatherProducts = {
+    "ADS-B Radar",
+    "ADS-B Cloud Tops",
+    "ADS-B Icing",
+    "ADS-B Turbulence",
+    "ADS-B Lightning",
+  };
+
+  double _weatherProductOpacity(String name) {
+    final int index = _weatherProducts.indexOf(name);
+    if (index < 0 || index >= _weatherProductsOpacity.length) {
+      return 0;
+    }
+    return _weatherProductsOpacity[index];
+  }
+
+  bool _weatherProductOn(String name) => _weatherProductOpacity(name) > 0;
+
+  IconData _weatherProductIcon(String name) {
+    if (_adsbWeatherProducts.contains(name)) {
+      return Icons.settings_input_antenna;
+    }
+    switch (name) {
+      case "Radar":
+        return MdiIcons.radar;
+      case "Ceiling":
+        return MdiIcons.weatherCloudy;
+      case "Wind Vectors":
+        return MdiIcons.weatherWindy;
+      default:
+        return Icons.language;
+    }
+  }
+
+  void _showWeatherProductSelector(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black26,
+        pageBuilder: (context, _, __) => _WeatherProductSelectorOverlay(
+          products: _weatherProducts,
+          productsOpacity: _weatherProductsOpacity,
+          getProductIcon: _weatherProductIcon,
+          onProductChange: (index, value) {
+            setState(() {
+              _weatherProductsOpacity[index] = value;
+            });
+            Storage().settings.setWeatherProductsOpacity(_weatherProductsOpacity);
           },
         ),
       ),
@@ -2071,11 +2196,23 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                   ),
                 ),
                 Flexible(
-                  child: ListView.builder(
+                  child: Builder(
+                    builder: (context) {
+                      // Radar / Ceiling / Wind Vectors moved to Weather product dropdown.
+                      final List<int> visible = [];
+                      for (int i = 0; i < widget.layers.length; i++) {
+                        final String name = widget.layers[i];
+                        if (name == "Radar" || name == "Ceiling" || name == "Wind Vectors") {
+                          continue;
+                        }
+                        visible.add(i);
+                      }
+                      return ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     shrinkWrap: true,
-                    itemCount: widget.layers.length,
-                    itemBuilder: (context, index) {
+                    itemCount: visible.length,
+                    itemBuilder: (context, visibleIndex) {
+                      final int index = visible[visibleIndex];
                       final isOn = _localOpacity[index] > 0;
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -2161,6 +2298,230 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Theme.of(context).colorScheme.outline,
+                                ),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WeatherProductSelectorOverlay extends StatefulWidget {
+  final List<String> products;
+  final List<double> productsOpacity;
+  final IconData Function(String) getProductIcon;
+  final void Function(int, double) onProductChange;
+
+  const _WeatherProductSelectorOverlay({
+    required this.products,
+    required this.productsOpacity,
+    required this.getProductIcon,
+    required this.onProductChange,
+  });
+
+  @override
+  State<_WeatherProductSelectorOverlay> createState() =>
+      _WeatherProductSelectorOverlayState();
+}
+
+class _WeatherProductSelectorOverlayState
+    extends State<_WeatherProductSelectorOverlay> {
+  late List<double> _localOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _localOpacity = List.from(widget.productsOpacity);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: 8,
+          top: Constants.screenHeightForInstruments(context) + 50,
+          bottom: Constants.bottomPaddingSize(context) + 60,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 340,
+            constraints: BoxConstraints(
+              maxHeight: Constants.screenHeight(context) * 0.7,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50),
+                  blurRadius: 12,
+                  offset: const Offset(-2, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer
+                        .withAlpha(100),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud,
+                          size: 24,
+                          color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Weather Products",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close,
+                            size: 24,
+                            color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    shrinkWrap: true,
+                    itemCount: widget.products.length,
+                    itemBuilder: (context, index) {
+                      final isOn = _localOpacity[index] > 0;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 3),
+                        child: Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                final double newValue = isOn ? 0.0 : 1.0;
+                                setState(() {
+                                  _localOpacity[index] = newValue;
+                                });
+                                widget.onProductChange(index, newValue);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isOn
+                                      ? Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(
+                                  widget.getProductIcon(widget.products[index]),
+                                  size: 22,
+                                  color: isOn
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.outline,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 2,
+                              child: GestureDetector(
+                                onTap: () {
+                                  final double newValue = isOn ? 0.0 : 1.0;
+                                  setState(() {
+                                    _localOpacity[index] = newValue;
+                                  });
+                                  widget.onProductChange(index, newValue);
+                                },
+                                child: Text(
+                                  widget.products[index],
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: isOn
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isOn
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .outline,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: SliderTheme(
+                                data: SliderThemeData(
+                                  trackHeight: 4,
+                                  thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 8),
+                                  overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 14),
+                                  activeTrackColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  inactiveTrackColor: Theme.of(context)
+                                      .colorScheme
+                                      .outline
+                                      .withAlpha(40),
+                                  thumbColor:
+                                      Theme.of(context).colorScheme.primary,
+                                ),
+                                child: Slider(
+                                  min: 0,
+                                  max: 1,
+                                  divisions: 4,
+                                  value: _localOpacity[index],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _localOpacity[index] = value;
+                                    });
+                                    widget.onProductChange(index, value);
+                                  },
+                                ),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 40,
+                              child: Text(
+                                "${(_localOpacity[index] * 100).round()}%",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color:
+                                      Theme.of(context).colorScheme.outline,
                                 ),
                                 textAlign: TextAlign.right,
                               ),
