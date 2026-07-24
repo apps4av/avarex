@@ -719,13 +719,48 @@ service cloud.firestore {
 
       function isValidSchedMemberDoc() {
         return request.resource.data.keys().hasOnly([
-          'displayName', 'role', 'status', 'joinedAt'
+          'displayName', 'role', 'status', 'joinedAt',
+          'clubRole', 'assignedInstructorUid', 'assignedInstructorName'
         ])
           && request.resource.data.displayName is string
           && request.resource.data.displayName.size() <= 60
           && request.resource.data.role in ['owner', 'member']
           && request.resource.data.status in ['active', 'pending']
+          && request.resource.data.clubRole in
+               ['pilot', 'student', 'instructor', 'dispatcher']
+          && (request.resource.data.get('assignedInstructorUid', null) == null
+              || (request.resource.data.assignedInstructorUid is string
+                  && request.resource.data.assignedInstructorUid.size() <= 128))
+          && (request.resource.data.get('assignedInstructorName', null) == null
+              || (request.resource.data.assignedInstructorName is string
+                  && request.resource.data.assignedInstructorName.size() <= 60))
           && isValidTimestamp(request.resource.data.joinedAt);
+      }
+
+      function isSchedMemberClubRoleUpdate() {
+        return request.resource.data.diff(resource.data).changedKeys()
+                 .hasOnly([
+                   'clubRole',
+                   'assignedInstructorUid',
+                   'assignedInstructorName'
+                 ])
+          && request.resource.data.clubRole in
+               ['pilot', 'student', 'instructor', 'dispatcher']
+          && (request.resource.data.get('assignedInstructorUid', null) == null
+              || (request.resource.data.assignedInstructorUid is string
+                  && request.resource.data.assignedInstructorUid.size() <= 128))
+          && (request.resource.data.get('assignedInstructorName', null) == null
+              || (request.resource.data.assignedInstructorName is string
+                  && request.resource.data.assignedInstructorName.size() <= 60));
+      }
+
+      function isSchedDispatcher() {
+        return isSchedActiveMember(sgid)
+          && schedMemberData(sgid, request.auth.uid).clubRole == 'dispatcher';
+      }
+
+      function canSchedDispatch() {
+        return isSchedOwner(sgid) || isSchedDispatcher();
       }
 
       match /members/{uid} {
@@ -741,34 +776,41 @@ service cloud.firestore {
           // scheduler exists only the real owner can write an owner doc.
           (request.resource.data.role == 'owner'
            && request.resource.data.status == 'active'
+           && request.resource.data.clubRole == 'dispatcher'
            && (!exists(/databases/$(database)/documents/schedulerGroups/$(sgid))
                || schedGroupData(sgid).ownerUid == request.auth.uid))
 
           || (request.resource.data.role == 'member'
               && schedVisibility(sgid) == 'public'
-              && request.resource.data.status == 'active')
+              && request.resource.data.status == 'active'
+              && request.resource.data.clubRole == 'pilot')
 
           || (request.resource.data.role == 'member'
               && schedVisibility(sgid) == 'private'
-              && request.resource.data.status == 'pending')
+              && request.resource.data.status == 'pending'
+              && request.resource.data.clubRole == 'pilot')
         );
 
-        allow update: if isSchedOwner(sgid)
-          && request.resource.data.diff(resource.data).changedKeys()
-               .hasOnly(['status'])
-          && resource.data.status == 'pending'
-          && request.resource.data.status == 'active';
+        allow update: if
+          (isSchedOwner(sgid)
+            && request.resource.data.diff(resource.data).changedKeys()
+                 .hasOnly(['status'])
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'active')
+          || (isSchedOwner(sgid) && isSchedMemberClubRoleUpdate());
 
         allow delete: if isSelf(uid) || isSchedOwner(sgid);
       }
 
       // -----------------------------------------------------
-      // Resources (owner-managed)
+      // Resources (owner-managed; dispatchers may update status)
       // -----------------------------------------------------
 
       function isValidResource() {
         return request.resource.data.keys().hasOnly([
-          'name', 'type', 'identifier', 'available', 'createdAt'
+          'name', 'type', 'identifier', 'available', 'createdAt',
+          'hobbs', 'tach', 'annualDue', 'hundredHourDueHobbs',
+          'transponderDue', 'eltDue', 'mxNotes'
         ])
           && request.resource.data.name is string
           && request.resource.data.name.size() >= 1
@@ -778,7 +820,22 @@ service cloud.firestore {
               || (request.resource.data.identifier is string
                   && request.resource.data.identifier.size() <= 20))
           && request.resource.data.available is bool
-          && isValidTimestamp(request.resource.data.createdAt);
+          && isValidTimestamp(request.resource.data.createdAt)
+          && (request.resource.data.get('hobbs', null) == null
+              || request.resource.data.hobbs is number)
+          && (request.resource.data.get('tach', null) == null
+              || request.resource.data.tach is number)
+          && (request.resource.data.get('annualDue', null) == null
+              || isValidTimestamp(request.resource.data.annualDue))
+          && (request.resource.data.get('hundredHourDueHobbs', null) == null
+              || request.resource.data.hundredHourDueHobbs is number)
+          && (request.resource.data.get('transponderDue', null) == null
+              || isValidTimestamp(request.resource.data.transponderDue))
+          && (request.resource.data.get('eltDue', null) == null
+              || isValidTimestamp(request.resource.data.eltDue))
+          && (request.resource.data.get('mxNotes', null) == null
+              || (request.resource.data.mxNotes is string
+                  && request.resource.data.mxNotes.size() <= 500));
       }
 
       match /resources/{rid} {
@@ -788,7 +845,12 @@ service cloud.firestore {
           || isSchedOwner(sgid)
         );
 
-        allow create, update: if isSchedOwner(sgid) && isValidResource();
+        allow create: if isSchedOwner(sgid) && isValidResource();
+
+        allow update: if canSchedDispatch() && isValidResource()
+          && request.resource.data.name == resource.data.name
+          && request.resource.data.type == resource.data.type
+          && request.resource.data.createdAt == resource.data.createdAt;
 
         allow delete: if isSchedOwner(sgid);
       }
@@ -800,7 +862,9 @@ service cloud.firestore {
       function isValidReservation() {
         return request.resource.data.keys().hasOnly([
           'resourceId', 'resourceName', 'schedulerUid', 'schedulerName',
-          'start', 'end', 'isBackup', 'backupOrder', 'note', 'createdAt'
+          'start', 'end', 'isBackup', 'backupOrder', 'note', 'createdAt',
+          'instructorUid', 'instructorName', 'studentUid', 'studentName',
+          'lessonPackId'
         ])
           && request.resource.data.resourceId is string
           && request.resource.data.resourceName is string
@@ -816,6 +880,21 @@ service cloud.firestore {
           && (request.resource.data.get('note', null) == null
               || (request.resource.data.note is string
                   && request.resource.data.note.size() <= 200))
+          && (request.resource.data.get('instructorUid', null) == null
+              || (request.resource.data.instructorUid is string
+                  && request.resource.data.instructorUid.size() <= 128))
+          && (request.resource.data.get('instructorName', null) == null
+              || (request.resource.data.instructorName is string
+                  && request.resource.data.instructorName.size() <= 60))
+          && (request.resource.data.get('studentUid', null) == null
+              || (request.resource.data.studentUid is string
+                  && request.resource.data.studentUid.size() <= 128))
+          && (request.resource.data.get('studentName', null) == null
+              || (request.resource.data.studentName is string
+                  && request.resource.data.studentName.size() <= 60))
+          && (request.resource.data.get('lessonPackId', null) == null
+              || (request.resource.data.lessonPackId is string
+                  && request.resource.data.lessonPackId.size() <= 128))
           && isValidTimestamp(request.resource.data.createdAt);
       }
 
@@ -857,6 +936,130 @@ service cloud.firestore {
           resource.data.schedulerUid == request.auth.uid
           || isSchedOwner(sgid)
         );
+      }
+
+      // -----------------------------------------------------
+      // Squawks (discrepancy / MX reports)
+      // -----------------------------------------------------
+
+      function isValidSquawkCreate() {
+        return request.resource.data.keys().hasOnly([
+          'resourceId', 'resourceName', 'title', 'description',
+          'severity', 'status', 'reportedByUid', 'reportedByName',
+          'createdAt', 'resolvedAt', 'resolvedByUid', 'resolvedByName'
+        ])
+          && request.resource.data.resourceId is string
+          && request.resource.data.resourceName is string
+          && request.resource.data.resourceName.size() <= 40
+          && request.resource.data.title is string
+          && request.resource.data.title.size() >= 1
+          && request.resource.data.title.size() <= 80
+          && request.resource.data.description is string
+          && request.resource.data.description.size() <= 500
+          && request.resource.data.severity in
+               ['grounding', 'caution', 'info']
+          && request.resource.data.status == 'open'
+          && request.resource.data.reportedByUid == request.auth.uid
+          && request.resource.data.reportedByName is string
+          && request.resource.data.reportedByName.size() <= 60
+          && isValidTimestamp(request.resource.data.createdAt)
+          && request.resource.data.resolvedAt == null
+          && request.resource.data.resolvedByUid == null
+          && request.resource.data.resolvedByName == null;
+      }
+
+      function isSquawkResolve() {
+        return request.resource.data.diff(resource.data).changedKeys()
+                 .hasOnly([
+                   'status', 'resolvedAt', 'resolvedByUid', 'resolvedByName'
+                 ])
+          && resource.data.status == 'open'
+          && request.resource.data.status == 'resolved'
+          && isValidTimestamp(request.resource.data.resolvedAt)
+          && request.resource.data.resolvedByUid == request.auth.uid
+          && request.resource.data.resolvedByName is string
+          && request.resource.data.resolvedByName.size() <= 60;
+      }
+
+      match /squawks/{sid} {
+        allow read: if isSignedIn() && (
+          isSchedActiveMember(sgid) || isSchedOwner(sgid)
+        );
+
+        allow create: if isSchedActiveMember(sgid) && isValidSquawkCreate();
+
+        allow update: if isSchedActiveMember(sgid) && isSquawkResolve() && (
+          canSchedDispatch()
+          || resource.data.reportedByUid == request.auth.uid
+        );
+
+        allow delete: if canSchedDispatch();
+      }
+
+      // -----------------------------------------------------
+      // Lesson packs (prepaid student hours)
+      // -----------------------------------------------------
+
+      function isValidLessonPack() {
+        return request.resource.data.keys().hasOnly([
+          'name', 'description', 'totalHours', 'hoursUsed',
+          'studentUid', 'studentName', 'instructorUid', 'instructorName',
+          'status', 'createdAt', 'expiresAt'
+        ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 1
+          && request.resource.data.name.size() <= 60
+          && request.resource.data.description is string
+          && request.resource.data.description.size() <= 280
+          && request.resource.data.totalHours is number
+          && request.resource.data.totalHours > 0
+          && request.resource.data.hoursUsed is number
+          && request.resource.data.hoursUsed >= 0
+          && request.resource.data.studentUid is string
+          && request.resource.data.studentUid.size() <= 128
+          && request.resource.data.studentName is string
+          && request.resource.data.studentName.size() <= 60
+          && (request.resource.data.get('instructorUid', null) == null
+              || (request.resource.data.instructorUid is string
+                  && request.resource.data.instructorUid.size() <= 128))
+          && (request.resource.data.get('instructorName', null) == null
+              || (request.resource.data.instructorName is string
+                  && request.resource.data.instructorName.size() <= 60))
+          && request.resource.data.status in
+               ['active', 'completed', 'cancelled']
+          && isValidTimestamp(request.resource.data.createdAt)
+          && (request.resource.data.get('expiresAt', null) == null
+              || isValidTimestamp(request.resource.data.expiresAt));
+      }
+
+      function isLessonPackHoursLog() {
+        return request.resource.data.diff(resource.data).changedKeys()
+                 .hasOnly(['hoursUsed', 'status'])
+          && request.resource.data.hoursUsed is number
+          && request.resource.data.hoursUsed >= resource.data.hoursUsed
+          && request.resource.data.status in
+               ['active', 'completed', 'cancelled'];
+      }
+
+      match /lessonPacks/{pid} {
+        allow read: if isSignedIn() && (
+          isSchedActiveMember(sgid) || isSchedOwner(sgid)
+        );
+
+        allow create: if isSchedOwner(sgid) && isValidLessonPack()
+          && request.resource.data.hoursUsed == 0
+          && request.resource.data.status == 'active';
+
+        allow update: if isValidLessonPack() && (
+          isSchedOwner(sgid)
+          || (isSchedActiveMember(sgid)
+              && isLessonPackHoursLog()
+              && (canSchedDispatch()
+                  || resource.data.studentUid == request.auth.uid
+                  || resource.data.instructorUid == request.auth.uid))
+        );
+
+        allow delete: if isSchedOwner(sgid);
       }
     }
 

@@ -25,6 +25,14 @@
       ]
     },
     {
+      "collectionGroup": "squawks",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "resourceId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "airportBusinesses",
       "queryScope": "COLLECTION",
       "fields": [

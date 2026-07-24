@@ -22,6 +22,13 @@ class Reservation {
   final String? note;
   final DateTime createdAt;
 
+  /// Optional dual / training assignment on this booking.
+  final String? instructorUid;
+  final String? instructorName;
+  final String? studentUid;
+  final String? studentName;
+  final String? lessonPackId;
+
   const Reservation({
     required this.id,
     required this.resourceId,
@@ -34,9 +41,16 @@ class Reservation {
     this.backupOrder = 0,
     this.note,
     required this.createdAt,
+    this.instructorUid,
+    this.instructorName,
+    this.studentUid,
+    this.studentName,
+    this.lessonPackId,
   });
 
   bool get isMain => !isBackup;
+  bool get hasTrainingAssignment =>
+      instructorUid != null || studentUid != null || lessonPackId != null;
 
   /// True if this reservation's time window overlaps [otherStart, otherEnd).
   bool overlaps(DateTime otherStart, DateTime otherEnd) {
@@ -54,6 +68,11 @@ class Reservation {
         "backupOrder": backupOrder,
         "note": note,
         "createdAt": Timestamp.fromDate(createdAt),
+        "instructorUid": instructorUid,
+        "instructorName": instructorName,
+        "studentUid": studentUid,
+        "studentName": studentName,
+        "lessonPackId": lessonPackId,
       };
 
   factory Reservation.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -73,6 +92,11 @@ class Reservation {
       backupOrder: (data["backupOrder"] as int?) ?? 0,
       note: data["note"] as String?,
       createdAt: c is Timestamp ? c.toDate() : DateTime.now(),
+      instructorUid: data["instructorUid"] as String?,
+      instructorName: data["instructorName"] as String?,
+      studentUid: data["studentUid"] as String?,
+      studentName: data["studentName"] as String?,
+      lessonPackId: data["lessonPackId"] as String?,
     );
   }
 }

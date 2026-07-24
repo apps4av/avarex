@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import '../constants.dart';
 import '../utils/toast.dart';
 import 'data/scheduler_repository.dart';
+import 'models/lesson_pack.dart';
 import 'models/reservation.dart';
 import 'models/schedulable_resource.dart';
 import 'models/scheduler_group.dart';
 import 'models/scheduler_member.dart';
 import 'scheduler_admin_screen.dart';
+import 'scheduler_dispatch_screen.dart';
 import 'scheduler_members_screen.dart';
 import 'widgets/schedule_grid.dart';
 import 'widgets/scheduler_join_leave_button.dart';
@@ -124,7 +126,7 @@ class _SchedulerDetailBody extends StatelessWidget {
         : const SizedBox.shrink();
 
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Constants.appBarBackgroundColor,
@@ -169,6 +171,7 @@ class _SchedulerDetailBody extends StatelessWidget {
             isScrollable: true,
             tabs: [
               const Tab(icon: Icon(Icons.calendar_month), text: "Schedule"),
+              const Tab(icon: Icon(Icons.local_airport), text: "Dispatch"),
               const Tab(icon: Icon(Icons.event_note), text: "Mine"),
               Tab(
                 icon: Stack(
@@ -194,6 +197,13 @@ class _SchedulerDetailBody extends StatelessWidget {
                     group: group,
                     isOwner: _isOwner,
                     canBook: _isActive,
+                  ),
+                  SchedulerDispatchScreen(
+                    groupId: group.id,
+                    canDispatch: membership?.canDispatch ?? false,
+                    isOwner: _isOwner,
+                    canUse: _isActive,
+                    embedded: true,
                   ),
                   _MyReservationsTab(group: group),
                   SchedulerMembersScreen(
@@ -396,6 +406,33 @@ class _ScheduleTabState extends State<_ScheduleTab> {
     final firstDate = DateTime.now().subtract(const Duration(days: 1));
     final lastDate = DateTime.now().add(const Duration(days: 365));
 
+    // Training assignment options (aircraft bookings).
+    final members = await SchedulerRepository.instance
+        .watchMembers(widget.group.id)
+        .first;
+    final instructors =
+        members.where((m) => m.isActive && m.isInstructor).toList();
+    final packs = resource.isAircraft
+        ? (await SchedulerRepository.instance
+                .watchLessonPacks(widget.group.id)
+                .first)
+            .where((p) => p.isActive && p.hoursRemaining > 0)
+            .toList()
+        : <LessonPack>[];
+    final myMembership = members.cast<SchedulerMember?>().firstWhere(
+          (m) => m?.uid == FirebaseAuth.instance.currentUser?.uid,
+          orElse: () => null,
+        );
+    SchedulerMember? selectedInstructor;
+    if (myMembership?.assignedInstructorUid != null) {
+      selectedInstructor = instructors.cast<SchedulerMember?>().firstWhere(
+            (i) => i?.uid == myMembership!.assignedInstructorUid,
+            orElse: () => null,
+          );
+    }
+    String? selectedPackId;
+
+    if (!context.mounted) return;
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) {
@@ -505,6 +542,59 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                     }),
                     hourRow("Time", endHour,
                         (v) => setLocal(() => endHour = v)),
+                    if (resource.isAircraft &&
+                        (instructors.isNotEmpty || packs.isNotEmpty)) ...[
+                      const SizedBox(height: 12),
+                      Text("Training (optional)",
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                              color: scheme.primary)),
+                      if (instructors.isNotEmpty)
+                        DropdownButtonFormField<SchedulerMember?>(
+                          initialValue: selectedInstructor,
+                          decoration: const InputDecoration(
+                            labelText: "Instructor",
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                                value: null, child: Text("None")),
+                            for (final i in instructors)
+                              DropdownMenuItem(
+                                  value: i, child: Text(i.displayName)),
+                          ],
+                          onChanged: (v) =>
+                              setLocal(() => selectedInstructor = v),
+                        ),
+                      if (packs.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String?>(
+                          initialValue: selectedPackId,
+                          decoration: const InputDecoration(
+                            labelText: "Lesson pack",
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                                value: null, child: Text("None")),
+                            for (final p in packs)
+                              DropdownMenuItem(
+                                value: p.id,
+                                child: Text(
+                                  "${p.name} (${p.hoursRemaining.toStringAsFixed(1)} hrs)",
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) =>
+                              setLocal(() => selectedPackId = v),
+                        ),
+                      ],
+                    ],
                     const SizedBox(height: 10),
                     Text(
                       "${_fmtDay(start)} ${_fmtHour(start.hour)}  →  "
@@ -564,6 +654,9 @@ class _ScheduleTabState extends State<_ScheduleTab> {
         resource: resource,
         start: start,
         end: end,
+        instructorUid: selectedInstructor?.uid,
+        instructorName: selectedInstructor?.displayName,
+        lessonPackId: selectedPackId,
       );
       if (!context.mounted) return;
       if (r.isBackup) {
@@ -630,6 +723,19 @@ class _ScheduleTabState extends State<_ScheduleTab> {
                   _fmtRange(r.start, r.end),
                   style: TextStyle(color: scheme.outline, fontSize: 13),
                 ),
+                if (r.instructorName != null) ...[
+                  const SizedBox(height: 6),
+                  Text("Instructor: ${r.instructorName}"),
+                ],
+                if (r.studentName != null) ...[
+                  const SizedBox(height: 2),
+                  Text("Student: ${r.studentName}"),
+                ],
+                if (r.lessonPackId != null) ...[
+                  const SizedBox(height: 2),
+                  Text("Lesson pack linked",
+                      style: TextStyle(fontSize: 12, color: scheme.outline)),
+                ],
                 if (r.note != null && r.note!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(r.note!),
@@ -1236,8 +1342,10 @@ class _AboutTab extends StatelessWidget {
                   "the backup queue and are promoted automatically if the "
                   "main reservation is cancelled.\n"
                   "• Only you or the owner can cancel your reservation.\n"
-                  "• The owner adds resources and can mark them unavailable "
-                  "(shown in red) for maintenance.",
+                  "• Use the Dispatch tab for shared fleet status, hobbs/tach "
+                  "and MX due, squawks, and student lesson packs.\n"
+                  "• The owner (or a dispatcher) can mark aircraft unavailable "
+                  "and update meters; grounding squawks block booking.",
                   style: TextStyle(fontSize: 12),
                 ),
               ],

@@ -5,7 +5,8 @@ import '../utils/toast.dart';
 import 'data/scheduler_repository.dart';
 import 'models/scheduler_member.dart';
 
-/// Members list with owner-only approve/remove controls.
+/// Members list with owner-only approve/remove controls and club-role
+/// assignment (student → instructor).
 ///
 /// Can be used as a top-level screen or embedded inside a TabBarView via the
 /// [embedded] flag.
@@ -47,6 +48,7 @@ class SchedulerMembersScreen extends StatelessWidget {
         final all = allSnap.data ?? const [];
         final active = all.where((m) => m.isActive).toList();
         final pending = all.where((m) => m.isPending).toList();
+        final instructors = active.where((m) => m.isInstructor).toList();
         return ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),
           children: [
@@ -55,6 +57,7 @@ class SchedulerMembersScreen extends StatelessWidget {
               ...pending.map((m) => _memberTile(
                     context,
                     m,
+                    instructors: instructors,
                     actions: [
                       IconButton(
                         tooltip: "Approve",
@@ -82,8 +85,15 @@ class SchedulerMembersScreen extends StatelessWidget {
                 (m) => _memberTile(
                   context,
                   m,
+                  instructors: instructors,
                   actions: isOwner && !m.isOwner
                       ? [
+                          IconButton(
+                            tooltip: "Club role",
+                            icon: const Icon(Icons.badge_outlined),
+                            onPressed: () =>
+                                _editClubRole(context, m, instructors),
+                          ),
                           IconButton(
                             tooltip: "Remove",
                             icon: const Icon(Icons.person_remove,
@@ -91,7 +101,16 @@ class SchedulerMembersScreen extends StatelessWidget {
                             onPressed: () => _confirmRemove(context, m),
                           ),
                         ]
-                      : null,
+                      : (isOwner && m.isOwner
+                          ? [
+                              IconButton(
+                                tooltip: "Club role",
+                                icon: const Icon(Icons.badge_outlined),
+                                onPressed: () =>
+                                    _editClubRole(context, m, instructors),
+                              ),
+                            ]
+                          : null),
                 ),
               ),
           ],
@@ -124,8 +143,12 @@ class SchedulerMembersScreen extends StatelessWidget {
     );
   }
 
-  Widget _memberTile(BuildContext context, SchedulerMember m,
-      {List<Widget>? actions}) {
+  Widget _memberTile(
+    BuildContext context,
+    SchedulerMember m, {
+    required List<SchedulerMember> instructors,
+    List<Widget>? actions,
+  }) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
       leading: CircleAvatar(
@@ -156,16 +179,117 @@ class SchedulerMembersScreen extends StatelessWidget {
                 label: Text("Owner", style: TextStyle(fontSize: 10)),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Chip(
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              label: Text(clubRoleLabel(m.clubRole),
+                  style: const TextStyle(fontSize: 10)),
+            ),
+          ),
         ],
       ),
       subtitle: Text(
-        "joined ${m.joinedAt.toLocal().toString().split(' ').first}",
+        [
+          "joined ${m.joinedAt.toLocal().toString().split(' ').first}",
+          if (m.isStudent && m.assignedInstructorName != null)
+            "CFI: ${m.assignedInstructorName}",
+        ].join(" · "),
         style: TextStyle(fontSize: 11, color: scheme.outline),
       ),
       trailing: actions == null
           ? null
           : Row(mainAxisSize: MainAxisSize.min, children: actions),
     );
+  }
+
+  Future<void> _editClubRole(
+    BuildContext context,
+    SchedulerMember m,
+    List<SchedulerMember> instructors,
+  ) async {
+    ClubRole role = m.clubRole;
+    SchedulerMember? assigned = instructors
+        .cast<SchedulerMember?>()
+        .firstWhere(
+          (i) => i?.uid == m.assignedInstructorUid,
+          orElse: () => null,
+        );
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setLocal) {
+          return AlertDialog(
+            title: Text("Role for ${m.displayName}"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<ClubRole>(
+                  initialValue: role,
+                  decoration: const InputDecoration(
+                    labelText: "Club role",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    for (final r in ClubRole.values)
+                      DropdownMenuItem(
+                          value: r, child: Text(clubRoleLabel(r))),
+                  ],
+                  onChanged: (v) => setLocal(() => role = v ?? role),
+                ),
+                if (role == ClubRole.student) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<SchedulerMember?>(
+                    initialValue: assigned,
+                    decoration: const InputDecoration(
+                      labelText: "Assigned instructor",
+                      border: OutlineInputBorder(),
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                          value: null, child: Text("None")),
+                      for (final i in instructors.where((x) => x.uid != m.uid))
+                        DropdownMenuItem(
+                            value: i, child: Text(i.displayName)),
+                    ],
+                    onChanged: (v) => setLocal(() => assigned = v),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Cancel")),
+              FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: const Text("Save")),
+            ],
+          );
+        });
+      },
+    );
+    if (ok != true || !context.mounted) return;
+    try {
+      await SchedulerRepository.instance.updateMemberClubRole(
+        groupId,
+        m.uid,
+        clubRole: role,
+        assignedInstructorUid: assigned?.uid,
+        assignedInstructorName: assigned?.displayName,
+      );
+      if (context.mounted) {
+        Toast.showToast(context, "Updated ${m.displayName}",
+            const Icon(Icons.check, color: Colors.green), 2);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Toast.showToast(context, "Could not update role: $e",
+            const Icon(Icons.error, color: Colors.red), 4);
+      }
+    }
   }
 
   Future<void> _approve(BuildContext context, SchedulerMember m) async {

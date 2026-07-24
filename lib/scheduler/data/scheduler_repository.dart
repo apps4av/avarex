@@ -2,10 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../../community/data/community_repository.dart';
+import '../models/lesson_pack.dart';
 import '../models/reservation.dart';
 import '../models/schedulable_resource.dart';
 import '../models/scheduler_group.dart';
 import '../models/scheduler_member.dart';
+import '../models/squawk.dart';
 
 /// Outcome of a booking attempt so the UI can tell the member whether they
 /// got the slot outright or were queued as a backup.
@@ -23,6 +25,8 @@ class BookingResult {
 ///   schedulerGroups/{sgid}/members/{uid}            -> SchedulerMember
 ///   schedulerGroups/{sgid}/resources/{rid}          -> SchedulableResource
 ///   schedulerGroups/{sgid}/reservations/{resvId}    -> Reservation
+///   schedulerGroups/{sgid}/squawks/{sid}            -> Squawk
+///   schedulerGroups/{sgid}/lessonPacks/{pid}        -> LessonPack
 ///   userSchedulerGroups/{uid}/groups/{sgid}         -> denormalized index
 class SchedulerRepository {
   SchedulerRepository._();
@@ -70,6 +74,12 @@ class SchedulerRepository {
 
   CollectionReference<Map<String, dynamic>> _reservationsCol(String sgid) =>
       _groupRef(sgid).collection("reservations");
+
+  CollectionReference<Map<String, dynamic>> _squawksCol(String sgid) =>
+      _groupRef(sgid).collection("squawks");
+
+  CollectionReference<Map<String, dynamic>> _lessonPacksCol(String sgid) =>
+      _groupRef(sgid).collection("lessonPacks");
 
   DocumentReference<Map<String, dynamic>> _userGroupRef(
           String uid, String sgid) =>
@@ -167,6 +177,7 @@ class SchedulerRepository {
       displayName: displayName,
       role: SchedulerRole.owner,
       status: SchedulerMemberStatus.active,
+      clubRole: ClubRole.dispatcher,
       joinedAt: now,
     );
 
@@ -197,6 +208,8 @@ class SchedulerRepository {
     final members = await _membersCol(sgid).get();
     final resources = await _resourcesCol(sgid).get();
     final reservations = await _reservationsCol(sgid).get();
+    final squawks = await _squawksCol(sgid).get();
+    final packs = await _lessonPacksCol(sgid).get();
 
     final batch = _db.batch();
     for (final m in members.docs) {
@@ -208,6 +221,12 @@ class SchedulerRepository {
     }
     for (final r in reservations.docs) {
       batch.delete(r.reference);
+    }
+    for (final s in squawks.docs) {
+      batch.delete(s.reference);
+    }
+    for (final p in packs.docs) {
+      batch.delete(p.reference);
     }
     batch.delete(_groupRef(sgid));
     await batch.commit();
@@ -357,6 +376,45 @@ class SchedulerRepository {
     await batch.commit();
   }
 
+  /// Owner sets a member's club role and optional student→instructor link.
+  Future<void> updateMemberClubRole(
+    String sgid,
+    String memberUid, {
+    required ClubRole clubRole,
+    String? assignedInstructorUid,
+    String? assignedInstructorName,
+  }) async {
+    final uid = _requireUid();
+    await _assertOwner(sgid, uid);
+    final memberSnap = await _membersCol(sgid).doc(memberUid).get();
+    if (!memberSnap.exists) {
+      throw StateError("Member not found");
+    }
+
+    String? instructorUid = assignedInstructorUid;
+    String? instructorName = assignedInstructorName;
+    if (clubRole != ClubRole.student) {
+      instructorUid = null;
+      instructorName = null;
+    } else if (instructorUid != null && instructorUid.isNotEmpty) {
+      final iSnap = await _membersCol(sgid).doc(instructorUid).get();
+      if (!iSnap.exists) {
+        throw StateError("Assigned instructor is not a member");
+      }
+      final instructor = SchedulerMember.fromDoc(iSnap);
+      instructorName = instructor.displayName;
+    } else {
+      instructorUid = null;
+      instructorName = null;
+    }
+
+    await _membersCol(sgid).doc(memberUid).update({
+      "clubRole": clubRoleToString(clubRole),
+      "assignedInstructorUid": instructorUid,
+      "assignedInstructorName": instructorName,
+    });
+  }
+
   Future<SchedulerGroup> _assertOwner(String sgid, String uid) async {
     final snap = await _groupRef(sgid).get();
     if (!snap.exists) throw StateError("Scheduler not found");
@@ -365,6 +423,21 @@ class SchedulerRepository {
       throw StateError("Only the owner can do that");
     }
     return g;
+  }
+
+  Future<SchedulerMember> _assertCanDispatch(String sgid, String uid) async {
+    final memberSnap = await _membersCol(sgid).doc(uid).get();
+    if (!memberSnap.exists) {
+      throw StateError("Join this scheduler first");
+    }
+    final member = SchedulerMember.fromDoc(memberSnap);
+    if (!member.isActive) {
+      throw StateError("Membership pending owner approval");
+    }
+    if (!member.canDispatch) {
+      throw StateError("Only the owner or a dispatcher can do that");
+    }
+    return member;
   }
 
   // -------------------- Resources --------------------
@@ -388,6 +461,8 @@ class SchedulerRepository {
     required ResourceType type,
     String? identifier,
     bool available = true,
+    double? hobbs,
+    double? tach,
   }) async {
     final uid = _requireUid();
     await _assertOwner(sgid, uid);
@@ -399,6 +474,8 @@ class SchedulerRepository {
       identifier: identifier?.trim().isEmpty ?? true ? null : identifier!.trim(),
       available: available,
       createdAt: DateTime.now(),
+      hobbs: type == ResourceType.aircraft ? hobbs : null,
+      tach: type == ResourceType.aircraft ? tach : null,
     );
     final batch = _db.batch();
     batch.set(ref, resource.toMap());
@@ -412,8 +489,56 @@ class SchedulerRepository {
   Future<void> setResourceAvailability(
       String sgid, String resourceId, bool available) async {
     final uid = _requireUid();
-    await _assertOwner(sgid, uid);
+    await _assertCanDispatch(sgid, uid);
     await _resourcesCol(sgid).doc(resourceId).update({"available": available});
+  }
+
+  /// Owner/dispatcher updates aircraft meters and MX due fields.
+  Future<void> updateResourceDispatchStatus(
+    String sgid,
+    String resourceId, {
+    double? hobbs,
+    double? tach,
+    DateTime? annualDue,
+    double? hundredHourDueHobbs,
+    DateTime? transponderDue,
+    DateTime? eltDue,
+    String? mxNotes,
+    bool clearAnnualDue = false,
+    bool clearHundredHourDueHobbs = false,
+    bool clearTransponderDue = false,
+    bool clearEltDue = false,
+  }) async {
+    final uid = _requireUid();
+    await _assertCanDispatch(sgid, uid);
+    final Map<String, dynamic> patch = {};
+    if (hobbs != null) patch["hobbs"] = hobbs;
+    if (tach != null) patch["tach"] = tach;
+    if (clearAnnualDue) {
+      patch["annualDue"] = null;
+    } else if (annualDue != null) {
+      patch["annualDue"] = Timestamp.fromDate(annualDue);
+    }
+    if (clearHundredHourDueHobbs) {
+      patch["hundredHourDueHobbs"] = null;
+    } else if (hundredHourDueHobbs != null) {
+      patch["hundredHourDueHobbs"] = hundredHourDueHobbs;
+    }
+    if (clearTransponderDue) {
+      patch["transponderDue"] = null;
+    } else if (transponderDue != null) {
+      patch["transponderDue"] = Timestamp.fromDate(transponderDue);
+    }
+    if (clearEltDue) {
+      patch["eltDue"] = null;
+    } else if (eltDue != null) {
+      patch["eltDue"] = Timestamp.fromDate(eltDue);
+    }
+    if (mxNotes != null) {
+      patch["mxNotes"] = mxNotes.trim().isEmpty ? null : mxNotes.trim();
+    }
+    if (patch.isEmpty) return;
+    await _resourcesCol(sgid).doc(resourceId).update(patch);
   }
 
   /// Owner removes a resource along with all its reservations.
@@ -480,6 +605,11 @@ class SchedulerRepository {
     required DateTime start,
     required DateTime end,
     String? note,
+    String? instructorUid,
+    String? instructorName,
+    String? studentUid,
+    String? studentName,
+    String? lessonPackId,
   }) async {
     final uid = _requireUid();
     final displayName = await _myDisplayName();
@@ -494,6 +624,10 @@ class SchedulerRepository {
     if (!resource.available) {
       throw StateError("${resource.name} is currently unavailable");
     }
+    if (resource.isAircraft && resource.hundredHourOverdue) {
+      throw StateError(
+          "${resource.name} is past its 100-hour inspection hobbs");
+    }
 
     // Membership check.
     final memberSnap = await _membersCol(sgid).doc(uid).get();
@@ -503,6 +637,23 @@ class SchedulerRepository {
     final member = SchedulerMember.fromDoc(memberSnap);
     if (!member.isActive) {
       throw StateError("Membership pending owner approval");
+    }
+
+    // Open grounding squawk blocks aircraft dispatch.
+    if (resource.isAircraft) {
+      final openSquawks = await _squawksCol(sgid)
+          .where("resourceId", isEqualTo: resource.id)
+          .where("status", isEqualTo: "open")
+          .get();
+      final grounding = openSquawks.docs
+          .map(Squawk.fromDoc)
+          .where((s) => s.isGrounding)
+          .toList();
+      if (grounding.isNotEmpty) {
+        throw StateError(
+            "${resource.name} has an open grounding squawk: "
+            "${grounding.first.title}");
+      }
     }
 
     // Enforce the owner's booking rules. The owner themselves is exempt so
@@ -539,6 +690,39 @@ class SchedulerRepository {
           }
         }
       }
+    }
+
+    // Default student→instructor from membership when booking as a student.
+    String? resolvedInstructorUid = instructorUid;
+    String? resolvedInstructorName = instructorName;
+    String? resolvedStudentUid = studentUid;
+    String? resolvedStudentName = studentName;
+    if (member.isStudent) {
+      resolvedStudentUid ??= uid;
+      resolvedStudentName ??= displayName;
+      if (resolvedInstructorUid == null &&
+          member.assignedInstructorUid != null) {
+        resolvedInstructorUid = member.assignedInstructorUid;
+        resolvedInstructorName = member.assignedInstructorName;
+      }
+    }
+
+    if (lessonPackId != null) {
+      final packSnap = await _lessonPacksCol(sgid).doc(lessonPackId).get();
+      if (!packSnap.exists) {
+        throw StateError("Lesson pack not found");
+      }
+      final pack = LessonPack.fromDoc(packSnap);
+      if (!pack.isActive) {
+        throw StateError("Lesson pack is not active");
+      }
+      if (pack.hoursRemaining <= 0) {
+        throw StateError("Lesson pack has no hours remaining");
+      }
+      resolvedStudentUid ??= pack.studentUid;
+      resolvedStudentName ??= pack.studentName;
+      resolvedInstructorUid ??= pack.instructorUid;
+      resolvedInstructorName ??= pack.instructorName;
     }
 
     // Find existing reservations on this resource that overlap the requested
@@ -586,6 +770,11 @@ class SchedulerRepository {
       backupOrder: backupOrder,
       note: (note?.trim().isEmpty ?? true) ? null : note!.trim(),
       createdAt: DateTime.now(),
+      instructorUid: resolvedInstructorUid,
+      instructorName: resolvedInstructorName,
+      studentUid: resolvedStudentUid,
+      studentName: resolvedStudentName,
+      lessonPackId: lessonPackId,
     );
     await ref.set(reservation.toCreateMap());
     return BookingResult(isBackup: isBackup, backupOrder: backupOrder);
@@ -632,5 +821,208 @@ class SchedulerRepository {
       "isBackup": false,
       "backupOrder": 0,
     });
+  }
+
+  // -------------------- Squawks --------------------
+
+  Stream<List<Squawk>> watchSquawks(String sgid, {SquawkStatus? status}) {
+    Query<Map<String, dynamic>> q = _squawksCol(sgid);
+    if (status != null) {
+      q = q.where("status", isEqualTo: squawkStatusToString(status));
+    }
+    return q.snapshots().map((s) {
+      final list = s.docs.map(Squawk.fromDoc).toList();
+      list.sort((a, b) {
+        if (a.isOpen != b.isOpen) return a.isOpen ? -1 : 1;
+        if (a.severity != b.severity) {
+          return a.severity.index.compareTo(b.severity.index);
+        }
+        return b.createdAt.compareTo(a.createdAt);
+      });
+      return list;
+    });
+  }
+
+  Stream<List<Squawk>> watchOpenSquawksForResource(
+      String sgid, String resourceId) {
+    return _squawksCol(sgid)
+        .where("resourceId", isEqualTo: resourceId)
+        .where("status", isEqualTo: "open")
+        .snapshots()
+        .map((s) {
+      final list = s.docs.map(Squawk.fromDoc).toList();
+      list.sort((a, b) => a.severity.index.compareTo(b.severity.index));
+      return list;
+    });
+  }
+
+  /// Any active member can file a squawk on a fleet aircraft.
+  Future<void> createSquawk(
+    String sgid, {
+    required SchedulableResource resource,
+    required String title,
+    required String description,
+    required SquawkSeverity severity,
+  }) async {
+    final uid = _requireUid();
+    final displayName = await _myDisplayName();
+    final memberSnap = await _membersCol(sgid).doc(uid).get();
+    if (!memberSnap.exists || !SchedulerMember.fromDoc(memberSnap).isActive) {
+      throw StateError("Join this scheduler before filing a squawk");
+    }
+    if (!resource.isAircraft) {
+      throw StateError("Squawks apply to aircraft only");
+    }
+    final trimmed = title.trim();
+    if (trimmed.isEmpty) {
+      throw StateError("Enter a squawk title");
+    }
+    final ref = _squawksCol(sgid).doc();
+    final squawk = Squawk(
+      id: ref.id,
+      resourceId: resource.id,
+      resourceName: resource.name,
+      title: trimmed,
+      description: description.trim(),
+      severity: severity,
+      status: SquawkStatus.open,
+      reportedByUid: uid,
+      reportedByName: displayName,
+      createdAt: DateTime.now(),
+    );
+    // Grounding squawks block booking via open-squawk checks and show as
+    // GROUNDED on the fleet board; availability toggle remains owner/dispatcher.
+    await ref.set(squawk.toCreateMap());
+  }
+
+  /// Reporter, owner, or dispatcher can resolve an open squawk.
+  Future<void> resolveSquawk(String sgid, Squawk squawk) async {
+    final uid = _requireUid();
+    final displayName = await _myDisplayName();
+    final memberSnap = await _membersCol(sgid).doc(uid).get();
+    if (!memberSnap.exists) {
+      throw StateError("Not a member of this scheduler");
+    }
+    final member = SchedulerMember.fromDoc(memberSnap);
+    if (!member.isActive) {
+      throw StateError("Membership pending owner approval");
+    }
+    if (!member.canDispatch && squawk.reportedByUid != uid) {
+      throw StateError("Only the reporter, owner, or dispatcher can resolve");
+    }
+    await _squawksCol(sgid).doc(squawk.id).update({
+      "status": "resolved",
+      "resolvedAt": Timestamp.fromDate(DateTime.now()),
+      "resolvedByUid": uid,
+      "resolvedByName": displayName,
+    });
+  }
+
+  Future<void> deleteSquawk(String sgid, String squawkId) async {
+    final uid = _requireUid();
+    await _assertCanDispatch(sgid, uid);
+    await _squawksCol(sgid).doc(squawkId).delete();
+  }
+
+  // -------------------- Lesson packs --------------------
+
+  Stream<List<LessonPack>> watchLessonPacks(String sgid) {
+    return _lessonPacksCol(sgid).snapshots().map((s) {
+      final list = s.docs.map(LessonPack.fromDoc).toList();
+      list.sort((a, b) {
+        if (a.isActive != b.isActive) return a.isActive ? -1 : 1;
+        return a.studentName
+            .toLowerCase()
+            .compareTo(b.studentName.toLowerCase());
+      });
+      return list;
+    });
+  }
+
+  /// Owner creates a prepaid lesson block for a student.
+  Future<void> createLessonPack(
+    String sgid, {
+    required String name,
+    String description = "",
+    required double totalHours,
+    required String studentUid,
+    required String studentName,
+    String? instructorUid,
+    String? instructorName,
+    DateTime? expiresAt,
+  }) async {
+    final uid = _requireUid();
+    await _assertOwner(sgid, uid);
+    if (totalHours <= 0) {
+      throw StateError("Lesson pack hours must be greater than zero");
+    }
+    final ref = _lessonPacksCol(sgid).doc();
+    final pack = LessonPack(
+      id: ref.id,
+      name: name.trim().isEmpty ? "Lesson pack" : name.trim(),
+      description: description.trim(),
+      totalHours: totalHours,
+      hoursUsed: 0,
+      studentUid: studentUid,
+      studentName: studentName,
+      instructorUid: instructorUid,
+      instructorName: instructorName,
+      status: LessonPackStatus.active,
+      createdAt: DateTime.now(),
+      expiresAt: expiresAt,
+    );
+    await ref.set(pack.toCreateMap());
+  }
+
+  /// Owner / assigned instructor logs hours against a pack (e.g. after a lesson).
+  Future<void> logLessonPackHours(
+    String sgid,
+    String packId, {
+    required double hours,
+  }) async {
+    final uid = _requireUid();
+    if (hours <= 0) {
+      throw StateError("Hours must be greater than zero");
+    }
+    final packSnap = await _lessonPacksCol(sgid).doc(packId).get();
+    if (!packSnap.exists) throw StateError("Lesson pack not found");
+    final pack = LessonPack.fromDoc(packSnap);
+    if (!pack.isActive) throw StateError("Lesson pack is not active");
+
+    final memberSnap = await _membersCol(sgid).doc(uid).get();
+    if (!memberSnap.exists) throw StateError("Not a member");
+    final member = SchedulerMember.fromDoc(memberSnap);
+    final allowed = member.isOwner ||
+        member.isDispatcher ||
+        (pack.instructorUid != null && pack.instructorUid == uid) ||
+        pack.studentUid == uid;
+    if (!allowed) {
+      throw StateError("Not allowed to log hours on this pack");
+    }
+
+    final used = pack.hoursUsed + hours;
+    final Map<String, dynamic> patch = {"hoursUsed": used};
+    if (used >= pack.totalHours) {
+      patch["status"] = lessonPackStatusToString(LessonPackStatus.completed);
+    }
+    await _lessonPacksCol(sgid).doc(packId).update(patch);
+  }
+
+  Future<void> setLessonPackStatus(
+    String sgid,
+    String packId,
+    LessonPackStatus status,
+  ) async {
+    final uid = _requireUid();
+    await _assertOwner(sgid, uid);
+    await _lessonPacksCol(sgid).doc(packId).update({
+      "status": lessonPackStatusToString(status),
+    });
+  }
+
+  Future<void> deleteLessonPack(String sgid, String packId) async {
+    final uid = _requireUid();
+    await _assertOwner(sgid, uid);
+    await _lessonPacksCol(sgid).doc(packId).delete();
   }
 }
