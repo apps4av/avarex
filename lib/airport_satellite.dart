@@ -42,6 +42,18 @@ class AirportSatellite {
     return File(p).exists();
   }
 
+  /// Removes the stored satellite plate for [airportId], if present.
+  static Future<void> delete(String airportId) async {
+    if (kIsWeb) {
+      return;
+    }
+    final String p = await getPath(airportId);
+    final File f = File(p);
+    if (await f.exists()) {
+      await f.delete();
+    }
+  }
+
   /// Stitches Google satellite tiles around [center], georeferences the result
   /// and writes it to disk.
   static Future<void> download(String airportId, LatLng center) async {

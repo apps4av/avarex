@@ -425,6 +425,26 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
+  Future<void> _deleteSatellite(AirportDestination airport) async {
+    try {
+      await AirportSatellite.delete(airport.locationID);
+      if (Storage().currentPlate == AirportSatellite.plateName) {
+        Storage().currentPlate = "";
+      }
+      if (mounted) {
+        setState(() {
+          _transformationController.value = Matrix4.identity();
+        });
+        Toast.showToast(context, "Deleted ${AirportSatellite.plateName}", null, 3);
+      }
+    }
+    catch (e) {
+      if (mounted) {
+        Toast.showToast(context, "Unable to delete satellite view: $e", null, 4);
+      }
+    }
+  }
+
   Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<AirportBusiness> business, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
@@ -605,6 +625,7 @@ class PlateScreenState extends State<PlateScreen> {
                     items: plates.map((String item) {
                       final bool isSelected = item == Storage().currentPlate;
                       final bool isSatellitePlaceholder = item == AirportSatellite.plateName && !satelliteDownloaded;
+                      final bool isSatelliteDownloaded = item == AirportSatellite.plateName && satelliteDownloaded;
                       return DropdownMenuItem<String>(
                         value: item,
                         child: Container(
@@ -629,6 +650,20 @@ class PlateScreenState extends State<PlateScreen> {
                                   ),
                                 ),
                               ),
+                              if (isSatelliteDownloaded)
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  tooltip: "Delete aerial view",
+                                  onPressed: () {
+                                    // Close the plate selector, then delete.
+                                    Navigator.of(context).pop();
+                                    if (airportDestination != null) {
+                                      _deleteSatellite(airportDestination);
+                                    }
+                                  },
+                                ),
                             ],
                           ),
                         ),

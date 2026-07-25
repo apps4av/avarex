@@ -1,6 +1,7 @@
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/gpws_alerts.dart';
+import 'package:avaremp/instruments/runway_awareness.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -23,6 +24,7 @@ class Area {
   ValueNotifier<int> change = ValueNotifier(0);
   GlideProfile glideProfile = GlideProfile();
   GpwsAlerts? _gpwsAlerts;
+  RunwayAwareness? _runwayAwareness;
 
   Future<void> update(Position position) async {
     double geo = 0;
@@ -76,6 +78,23 @@ class Area {
         _gpwsAlerts = null;
       }
     }
+  }
+
+  /// Runway crossing alerts. Driven at 1 Hz from Storage, not from update().
+  Future<void> updateRunwayAwareness() async {
+    if(!Storage().settings.isAudibleAlertsEnabled()) {
+      if(null != _runwayAwareness) {
+        await RunwayAwareness.stop();
+        _runwayAwareness = null;
+      }
+      return;
+    }
+    _runwayAwareness ??= await RunwayAwareness.getAndStart();
+    if(null == _runwayAwareness) return;
+    await _runwayAwareness!.update(
+      position: Storage().position,
+      closestAirport: closestAirport,
+    );
   }
 
   (double?, double?) getWind(double altitude) {

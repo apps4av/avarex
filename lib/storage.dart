@@ -557,6 +557,9 @@ class Storage {
         gpsNoLock = false;
       }
 
+      // runway crossings are too brief for the 10 second area cadence
+      area.updateRunwayAwareness();
+
       if((timeChange.value % 10) == 0) {
         // update area every 10 seconds
         area.update(position);

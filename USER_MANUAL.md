@@ -132,7 +132,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 - **Menu** button: opens drawer list (Download, Documents, etc.)
 
 #### Bottom-right control row (scrollable)
-- **Mute** (volume icon): toggle audible alerts (traffic, GPWS) on/off.
+- **Mute** (volume icon): toggle audible alerts (traffic, GPWS, runway awareness) on/off.
 - **Ruler** (compass icon): toggle measure mode; long-press map to add points. Red when active.
 - **North-up / Track-up toggle**: switches orientation mode.
 - **Rubber banding toggle**: enables dragging route waypoints directly on map. Red when active.
@@ -259,6 +259,23 @@ Interactions:
 - Audible "PULL UP" alerts
 - Requires: 30+ knot ground speed, Elevation data downloaded
 
+### 4.7.1 Runway awareness (crossing alert)
+
+Announces "approaching runway" when your ground track is about to meet a runway centerline, so you get a callout before taxiing onto an active runway.
+
+Runways come from the **closest airport** to ownship (updated with the normal area refresh).
+
+The callout fires when all of these hold:
+
+- Ownship flight phase is **Taxi** (not Airborne) and moving at least 3 knots.
+- Within about 250 ft of the runway centerline, or already on the pavement.
+- Tracking across the runway rather than along it (heading more than 25° off the runway heading).
+- The projected path meets the centerline within about 15 seconds, between the two runway ends.
+
+A takeoff or landing roll — aligned on a runway above 15 knots — suppresses the alert, so rolling through an intersecting runway stays quiet. Once the flight phase is Airborne there is no crossing callout. Each runway announces once per approach and re-arms after you are clear of it.
+
+Alerts share the global **Mute** control with traffic and GPWS. This is an advisory aid only, not a substitute for ATC clearances or looking outside.
+
 ### 4.8 Weather marker interactions
 
 - **METAR tap**: Shows full METAR text with flight category icon
@@ -333,7 +350,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 ### 6.3 Controls
 
 - **Airport selector** (bottom-right): choose airport from recent airports list
-- **Plate selector** (bottom-left, always shown): choose plate within airport (color-coded by type). Always contains an `APS-AERIAL VIEW` entry — once downloaded it loads the georeferenced Google Maps satellite picture like any other plate; until then it appears as an `APS-AERIAL VIEW (Get)` placeholder that downloads the image when selected. The picture is stored in the airport's plates folder as `APS-AERIAL VIEW.png` with ownship drawn on it
+- **Plate selector** (bottom-left, always shown): choose plate within airport (color-coded by type). Always contains an `APS-AERIAL VIEW` entry — once downloaded it loads the georeferenced Google Maps satellite picture like any other plate; until then it appears as an `APS-AERIAL VIEW (Get)` placeholder that downloads the image when selected. When downloaded, a trash icon on that entry **deletes** the stored picture immediately; you can download it again later. The picture is stored in the airport's plates folder as `APS-AERIAL VIEW.png` with ownship drawn on it
 - **Procedure menu** (plus icon near bottom-right):
   - Show procedure profile
   - `+Plan` adds procedure waypoint sequence to plan
@@ -1269,7 +1286,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
-| Get airport satellite view | `PLATE tab → Plate selector → Get Satellite View` |
+| Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
+| Delete airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW → trash icon` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
@@ -1277,6 +1295,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
+| Runway crossing alert | Automatic when Mute is off; uses closest-airport runways |
 | Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
