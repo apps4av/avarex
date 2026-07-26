@@ -352,9 +352,18 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - **Airport selector** (bottom-right): choose airport from recent airports list
 - **Plate selector** (bottom-left, always shown): choose plate within airport (color-coded by type). Always contains an `APS-AERIAL VIEW` entry — once downloaded it loads the georeferenced Google Maps satellite picture like any other plate; until then it appears as an `APS-AERIAL VIEW (Get)` placeholder that downloads the image when selected. When downloaded, a trash icon on that entry **deletes** the stored picture immediately; you can download it again later. The picture is stored in the airport's plates folder as `APS-AERIAL VIEW.png` with ownship drawn on it
 - **Procedure menu** (plus icon near bottom-right):
-  - Tap a procedure to show its profile and add its waypoint sequence to the plan
+  - Tap a procedure to show its profile, draw its green route on georeferenced plates, and add its waypoint sequence to the plan
 - **Instrument overlay show/hide** toggle (top-right arrow icon)
-- **Profile close (X)** closes procedure profile card
+- **Profile close (X)** closes procedure profile card and clears the green route overlay
+
+### 6.3a Procedure route on plate
+
+When you select a procedure from the plate procedure menu (`+` / road icon):
+
+- The vertical profile card appears
+- On **georeferenced** plates, a **green route** connects the procedure fixes in sequence (green dots at each fix)
+- Closing the profile (X), or changing airport, removes the overlay
+- Non-georeferenced plates show the profile only (no route overlay)
 
 ### 6.4 Plate type color coding
 
@@ -1511,10 +1520,10 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 1. Open `PLATE` tab.
 2. Select airport (bottom-right selector).
 3. Select desired plate (bottom-left selector, color-coded by type).
-4. Use procedure menu (plus icon):
-   - Choose a procedure to show its profile card and append it to the route.
+4. Use procedure menu (plus/road icon):
+   - Choose a procedure to show its profile card, draw a **green route** of its fixes on georeferenced plates, and append it to the route.
 5. Keep instruments visible on plate using top-right show/hide toggle.
-6. Close profile card with X button when done.
+6. Close profile card with X button when done (clears the green route).
 
 ### UC-10: Save your flown track and retrieve it from Documents
 

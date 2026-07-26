@@ -198,7 +198,11 @@ class PlateScreenState extends State<PlateScreen> {
 
     final ProcedureDestination? procedure =
         await MainDatabaseHelper.db.findProcedure(procedureName);
-    if (!mounted || procedure == null) {
+    if (!mounted) {
+      return;
+    }
+    _setProcedureRoute(procedureName, procedure);
+    if (procedure == null) {
       return;
     }
     Storage().route.addWaypoint(Waypoint(procedure));
@@ -206,9 +210,64 @@ class PlateScreenState extends State<PlateScreen> {
         context, "Added ${procedure.facilityName} to Plan", null, 3);
   }
 
+  void _clearProcedureRoute() {
+    if (_procedureRoute.isEmpty && _loadedProcedureRoute.isEmpty) {
+      return;
+    }
+    _procedureRoute.clear();
+    _loadedProcedureRoute = "";
+    _notifyPaint();
+  }
+
+  void _setProcedureRoute(String procedureName, ProcedureDestination? procedure) {
+    final List<LatLng> points = [];
+    if (procedure != null) {
+      for (final Destination point in procedure.points) {
+        if (points.isNotEmpty &&
+            points.last.latitude == point.coordinate.latitude &&
+            points.last.longitude == point.coordinate.longitude) {
+          continue;
+        }
+        points.add(point.coordinate);
+      }
+    }
+    _procedureRoute
+      ..clear()
+      ..addAll(points);
+    _loadedProcedureRoute = procedureName;
+    _notifyPaint();
+  }
+
+  Future<void> _ensureProcedureRouteLoaded() async {
+    if (!Storage().settings.isPlateProfileVisible()) {
+      _clearProcedureRoute();
+      return;
+    }
+    final String procedureName = Storage().settings.getPlateProfile();
+    if (procedureName.isEmpty) {
+      _clearProcedureRoute();
+      return;
+    }
+    if (procedureName == _loadedProcedureRoute) {
+      return;
+    }
+    final ProcedureDestination? procedure =
+        await MainDatabaseHelper.db.findProcedure(procedureName);
+    if (!mounted) {
+      return;
+    }
+    // Selection may have changed while the query was in flight.
+    if (procedureName != Storage().settings.getPlateProfile() ||
+        !Storage().settings.isPlateProfileVisible()) {
+      return;
+    }
+    _setProcedureRoute(procedureName, procedure);
+  }
 
   final ValueNotifier _notifier = ValueNotifier(0);
   final List<_PlateTerrainCell> _terrainCells = [];
+  final List<LatLng> _procedureRoute = [];
+  String _loadedProcedureRoute = "";
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
   final TransformationController _transformationController = TransformationController();
@@ -407,6 +466,7 @@ class PlateScreenState extends State<PlateScreen> {
     }
 
     _loadPlate();
+    _ensureProcedureRouteLoaded();
 
     // plate load notification, repaint
     Storage().plateChange.addListener(_notifyPaint);
@@ -518,7 +578,7 @@ class PlateScreenState extends State<PlateScreen> {
             child: SizedBox(
               height: Constants.screenHeight(context),
               width: Constants.screenWidth(context),
-              child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity)),
+              child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity, _procedureRoute)),
             ),
           ),
 
@@ -843,8 +903,9 @@ class PlateScreenState extends State<PlateScreen> {
                         onChanged: (value) {
                           setState(() {
                             Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
-                            Storage().settings.setPlateProfileVisible(true);
-                            Storage().settings.setPlateProfile(value ?? "");
+                            Storage().settings.setPlateProfileVisible(false);
+                            Storage().settings.setPlateProfile("");
+                            _clearProcedureRoute();
                             _transformationController.value = Matrix4.identity();
                           });
                         },
@@ -878,6 +939,7 @@ class PlateScreenState extends State<PlateScreen> {
                           setState(() {
                             Storage().settings.setPlateProfileVisible(false);
                             Storage().settings.setPlateProfile("");
+                            _clearProcedureRoute();
                           });
                         },
                       ),
@@ -956,6 +1018,7 @@ class _PlatePainter extends CustomPainter {
   double? _variation;
   double opacity;
   final List<_PlateTerrainCell> _terrainCells;
+  final List<LatLng> _procedureRoute;
 
   // Define a paint object
   final _paint = Paint()
@@ -982,7 +1045,26 @@ class _PlatePainter extends CustomPainter {
   final _paintTerrain = Paint()
     ..style = PaintingStyle.fill;
 
-  _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity): super(repaint: repaint);
+  final _paintRoute = Paint()
+    ..isAntiAlias = true
+    ..strokeWidth = 5
+    ..color = const Color.fromARGB(220, 0, 180, 0)
+    ..style = PaintingStyle.stroke
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round;
+
+  final _paintRouteFix = Paint()
+    ..isAntiAlias = true
+    ..style = PaintingStyle.fill
+    ..color = const Color.fromARGB(230, 0, 160, 0);
+
+  final _paintRouteFixOutline = Paint()
+    ..isAntiAlias = true
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.5
+    ..color = Colors.white;
+
+  _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity, this._procedureRoute): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
     double lon = ll.longitude;
@@ -1062,6 +1144,9 @@ class _PlatePainter extends CustomPainter {
         (offsetCircle, _) = _calculateOffset(center.coordinate);
         (offsetPlane, angle) = _calculateOffset(Gps.toLatLng(Storage().position));
 
+        // draw selected procedure route (from vertical profile)
+        _drawProcedureRoute(canvas);
+
         // draw circle at center of airport
         canvas.drawCircle(offsetCircle, 16  , _paintCenter);
 
@@ -1095,6 +1180,24 @@ class _PlatePainter extends CustomPainter {
         _paintLine.shader = null;
       }
       canvas.restore();
+    }
+  }
+
+  void _drawProcedureRoute(Canvas canvas) {
+    if (_procedureRoute.isEmpty || _matrix == null) {
+      return;
+    }
+    final List<Offset> offsets = [];
+    for (final LatLng ll in _procedureRoute) {
+      final (Offset offset, _) = _calculateOffset(ll);
+      offsets.add(offset);
+    }
+    for (int i = 1; i < offsets.length; i++) {
+      canvas.drawLine(offsets[i - 1], offsets[i], _paintRoute);
+    }
+    for (final Offset offset in offsets) {
+      canvas.drawCircle(offset, 6, _paintRouteFix);
+      canvas.drawCircle(offset, 6, _paintRouteFixOutline);
     }
   }
 
