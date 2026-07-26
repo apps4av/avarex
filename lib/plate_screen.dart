@@ -190,6 +190,22 @@ class PlatesFuture {
 }
 
 class PlateScreenState extends State<PlateScreen> {
+  Future<void> _showProcedureProfileAndAddToPlan(String procedureName) async {
+    setState(() {
+      Storage().settings.setPlateProfileVisible(true);
+      Storage().settings.setPlateProfile(procedureName);
+    });
+
+    final ProcedureDestination? procedure =
+        await MainDatabaseHelper.db.findProcedure(procedureName);
+    if (!mounted || procedure == null) {
+      return;
+    }
+    Storage().route.addWaypoint(Waypoint(procedure));
+    Toast.showToast(
+        context, "Added ${procedure.facilityName} to Plan", null, 3);
+  }
+
 
   final ValueNotifier _notifier = ValueNotifier(0);
   final List<_PlateTerrainCell> _terrainCells = [];
@@ -777,29 +793,14 @@ class PlateScreenState extends State<PlateScreen> {
                               value: item,
                               child: ListTile(
                                 dense: true,
-                                leading: TextButton(
-                                  child: const Text("+Plan"),
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    MainDatabaseHelper.db.findProcedure(item).then((ProcedureDestination? procedure) {
-                                      if (procedure != null) {
-                                        Storage().route.addWaypoint(Waypoint(procedure));
-                                        setState(() {
-                                          Toast.showToast(context, "Added ${procedure.facilityName} to Plan", null, 3);
-                                        });
-                                      }
-                                    });
-                                  },
-                                ),
                                 title: AutoSizeText(item, minFontSize: 8, maxLines: 1),
                               ),
                             );
                           }).toList(),
                           onChanged: (value) {
-                            setState(() {
-                              Storage().settings.setPlateProfileVisible(true);
-                              Storage().settings.setPlateProfile(value ?? "");
-                            });
+                            if (value != null) {
+                              _showProcedureProfileAndAddToPlan(value);
+                            }
                           },
                         ),
                       ),

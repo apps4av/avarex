@@ -153,6 +153,10 @@ class FindScreenState extends State<FindScreen> {
                           item.geoVariation ?? 0,
                         ).round();
                         final distance = geo.calculateDistance(item.coordinate, position).round();
+                        final bool showFacilityName =
+                            item.facilityName.trim().isNotEmpty &&
+                            item.facilityName.trim().toUpperCase() !=
+                                item.locationID.trim().toUpperCase();
 
                         return Dismissible(
                           background: Container(
@@ -206,24 +210,26 @@ class FindScreenState extends State<FindScreen> {
                                   ],
                                 ),
                               ),
-                              title: Row(
-                                children: [
-                                  Text(
-                                    item.locationID,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item.facilityName,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                              title: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: item.locationID,
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
                                     ),
-                                  ),
-                                ],
+                                    if (showFacilityName)
+                                      TextSpan(
+                                        text: "  ${item.facilityName}",
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.normal,
+                                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               subtitle: Row(
                                 children: [
