@@ -177,7 +177,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | Layer | Description |
 |-------|-------------|
 | **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. |
-| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range) + labels. |
+| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range) + labels. The 10 NM ring carries a magnetic compass rose with ticks every 5° and labels at `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
 | **Chart** | Downloaded FAA chart tiles (offline chart base). |
 | **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. |
 | **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
@@ -1883,7 +1883,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-06: What are the colored rings on map?
 
 - In the `Circles` layer:
-  - **Black rings**: fixed 2/5/10 NM reference rings
+  - **Black rings**: fixed 2/5/10 NM reference rings; the 10 NM ring is marked with a magnetic compass rose (ticks every 5°, labels at `N` / `NE` / `E` / `SE` / `S` / `SW` / `W` / `NW`)
   - **Blue ring**: speed-based 1-minute travel distance
   - **Purple ring**: glide circle based on aircraft sink rate, winds aloft, terrain, and altitude
 - Source thread:  

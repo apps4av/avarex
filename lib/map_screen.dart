@@ -15,6 +15,7 @@ import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
+import 'package:avaremp/utils/compass_rose.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
@@ -922,29 +923,32 @@ class MapScreenState extends State<MapScreen> {
                   "${Storage().area.change.value}";
               if (_circlesKey != key || _circlesLayer == null) {
                 _circlesKey = key;
+                final LatLng center = Gps.toLatLng(value);
+                final GeoCalculations geo = GeoCalculations();
                 _circlesLayer = PolylineLayer(
                   polylines: [
-                    // 10 nm circle
+                    // 10 nm circle + magnetic compass ticks
                     Polyline(
-                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 10),
+                      points: geo.calculateCircle(center, 10),
                       color: Constants.distanceCircleColor,
                       strokeWidth: 3,
                     ),
+                    ...CompassRose.ticks(center, Storage().area.variation),
                     // 5 nm circle
                     Polyline(
-                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 5),
+                      points: geo.calculateCircle(center, 5),
                       color: Constants.distanceCircleColor,
                       strokeWidth: 3,
                     ),
                     // 2 nm circle
                     Polyline(
-                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), 2),
+                      points: geo.calculateCircle(center, 2),
                       color: Constants.distanceCircleColor,
                       strokeWidth: 3,
                     ),
                     // speed marker
                     Polyline(
-                      points: GeoCalculations().calculateCircle(Gps.toLatLng(value), GeoCalculations.convertSpeed(value.speed) / 60),
+                      points: geo.calculateCircle(center, GeoCalculations.convertSpeed(value.speed) / 60),
                       color: Constants.speedCircleColor,
                       strokeWidth: 3,
                     ),
@@ -966,31 +970,24 @@ class MapScreenState extends State<MapScreen> {
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<Position>(
             valueListenable: Storage().gpsChange,
             builder: (context, value, _) {
+              final LatLng center = Gps.toLatLng(value);
+              final double labelAngle = _northUp ? 0 : Storage().position.heading * pi / 180;
               return MarkerLayer(
                 markers: [
+                  ...CompassRose.labelMarkers(
+                      center, Storage().area.variation, labelAngle),
                   Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 10, -30),
+                      center, 5, -30),
                       child: Transform.rotate(
-                          angle: _northUp ? 0 : Storage().position.heading * pi /
-                              180, child:
-                      CircleAvatar(
-                          backgroundColor: Constants.bottomNavBarBackgroundColor,
-                          child: const Text("10", style: TextStyle(fontSize: 14,
-                            color: Colors.white,),)))),
-                  Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 5, -30),
-                      child: Transform.rotate(
-                          angle: _northUp ? 0 : Storage().position.heading * pi /
-                              180, child:
+                          angle: labelAngle, child:
                       CircleAvatar(
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("5", style: TextStyle(fontSize: 14,
                             color: Colors.white,),)))),
                   Marker(point: GeoCalculations().calculateOffset(
-                      Gps.toLatLng(value), 2, -30),
+                      center, 2, -30),
                       child: Transform.rotate(
-                          angle: _northUp ? 0 : Storage().position.heading * pi /
-                              180, child:
+                          angle: labelAngle, child:
                       CircleAvatar(
                           backgroundColor: Constants.bottomNavBarBackgroundColor,
                           child: const Text("2", style: TextStyle(fontSize: 14,
@@ -998,8 +995,7 @@ class MapScreenState extends State<MapScreen> {
                   Marker(point: Storage().area.glideProfile.getGlidePoint(),
                       width: 64,
                       child: Transform.rotate(
-                          angle: _northUp ? 0 : Storage().position.heading * pi /
-                              180, child:
+                          angle: labelAngle, child:
                       AutoSizeText(Storage().area.glideProfile.label, style: TextStyle(
                             color: Colors.white, backgroundColor: Constants.bottomNavBarBackgroundColor),))),
                 ],
