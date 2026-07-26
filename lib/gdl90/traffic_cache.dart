@@ -417,7 +417,7 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
   /// in-memory image cache (in [AbstractCachedCustomPainter]) does not return a
   /// stale rasterization across hot reloads. Increment when the format string,
   /// fonts, sizes, or layout offsets are changed.
-  static const int _formatVersion = 2;
+  static const int _formatVersion = 3;
 
   final int _flightLevelDiff;
   final int _vspeedDirection;
@@ -453,7 +453,9 @@ class TrafficVerticalStatusPainter extends AbstractCachedCustomPainter {
     final String directionText = (_vspeedDirection > 0 ? "↑" : (_vspeedDirection < 0 ? "↓": ""));
     // Draw transluscent bounding box for greater visibility (especially sectionals)
     final ui.Path statusBoundingBox = ui.Path()
-      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(vertLocationMsg.length+directionText.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+24));
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(vertLocationMsg.length+directionText.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+24),
+        const Radius.circular(6)));
     canvas.drawPath(statusBoundingBox, _boundingBoxPaint);
     // Paint vertical position. Use unbounded maxWidth so text never wraps and
     // hides a leading-zero digit (e.g. "+060" being collapsed to "+06" / "+0").
@@ -505,7 +507,9 @@ class TrafficIdPainter extends AbstractCachedCustomPainter {
     }
     // paint transluscent bounding box
     final ui.Path statusBoundingBox = ui.Path()
-      ..addRect(Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(_trafficId.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+32));
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTRB(_offsetX, _offsetY, _offsetX+(_trafficId.length)*_charPixeslWidth+_charPixeslWidth, _offsetY+32),
+        const Radius.circular(6)));
     canvas.drawPath(statusBoundingBox, _boundingBoxPaint);
     // paint traffic ID
     final trafficIdTextPainter = TextPainter(text: TextSpan(text: _trafficId, style: _trafficIdTextStyle), textDirection: TextDirection.ltr);

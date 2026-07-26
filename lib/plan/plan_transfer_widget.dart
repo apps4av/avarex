@@ -147,10 +147,12 @@ class PlanTransferWidgetState extends State<PlanTransferWidget> {
                 Row(children: [
                   _sectionTitle("Avidyne IFD (Wi-Fi)"),
                   const Spacer(),
-                  TextButton(
+                  IconButton(
+                    icon: const Icon(Icons.search),
+                    tooltip: "Search for Avidyne IFDs",
                     onPressed: () => _searchIfds(),
-                    child: const Text("Search"),
                   ),
+                  const SizedBox(width: 10),
                 ]),
                 const Text(
                     "Send the active flight plan to an Avidyne IFD440/540/550 over "

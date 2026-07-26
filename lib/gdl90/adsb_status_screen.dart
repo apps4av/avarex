@@ -47,22 +47,6 @@ class _AdsbStatusScreenState extends State<AdsbStatusScreen> {
     }
   }
 
-  // One-shot control to put a Stratus 3 / 3i into Open ADS-B (GDL90) mode.
-  Widget _stratusOpenModeButton() {
-    return Card(
-      child: ListTile(
-        dense: true,
-        leading: const Icon(Icons.wifi_tethering),
-        title: const Text("Stratus Open ADS-B Mode"),
-        subtitle: const Text("Send once while on Stratus Wi-Fi"),
-        trailing: TextButton(
-          onPressed: _sendStratusOpenMode,
-          child: const Text("Send"),
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     // Leaving the screen pauses the message log so it stops scrolling/updating.
@@ -305,6 +289,14 @@ class _AdsbStatusScreenState extends State<AdsbStatusScreen> {
       appBar: AppBar(
         backgroundColor: Constants.appBarBackgroundColor,
         title: const Text("ADS-B Status"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.wifi_tethering),
+            tooltip: "Stratus Open ADS-B Mode — send once while on Stratus Wi-Fi",
+            onPressed: _sendStratusOpenMode,
+          ),
+          const SizedBox(width: 10),
+        ],
       ),
       body: Column(
         children: [
@@ -341,7 +333,6 @@ class _AdsbStatusScreenState extends State<AdsbStatusScreen> {
                         s.towerCount > 0 ? Colors.green : Colors.grey,
                       ),
                       _stationList(s),
-                      _stratusOpenModeButton(),
                       _diagnostics(s),
                     ],
                   );

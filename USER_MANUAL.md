@@ -248,7 +248,7 @@ Interactions:
 
 - **Ground stations**: under the **Ground stations received** count, each currently-heard FIS-B ground station (tower) is listed, nearest first, showing its identity (**TIS-B site** number when it provides TIS-B, plus its UAT **slot**), its **distance and bearing** from your position, its latitude/longitude, and how many seconds ago it was last heard. Distance/bearing are shown only when your position is known.
 
-- **Stratus Open ADS-B Mode**: a one-shot **Send** button that broadcasts the command to put an Appareo **Stratus 3 / 3i** into Open ADS-B (standard GDL90) mode so AvareX can receive its traffic and weather. Join the Stratus Wi-Fi network first (and grant **Local Network** on iOS). Tap **Send** once; a toast confirms the command was sent. Official configuration is also available in Appareo's **Stratus Horizon Pro** app.
+- **Stratus Open ADS-B Mode**: a one-shot command via the antenna icon (top-right of the ADS-B Status screen) that broadcasts the command to put an Appareo **Stratus 3 / 3i** into Open ADS-B (standard GDL90) mode so AvareX can receive its traffic and weather. Join the Stratus Wi-Fi network first (and grant **Local Network** on iOS). Tap the icon once; a toast confirms the command was sent. Official configuration is also available in Appareo's **Stratus Horizon Pro** app.
 
 - **Diagnostics** (expandable card under the receiver status): reception-quality counters to help debug ADS-B problems. It shows the total decoded messages and average message rate, per-type counts (Heartbeat, Ownship, Traffic, Uplink), how long ago the last heartbeat/ownship/traffic message was seen, the uplink/traffic counts reported by the latest heartbeat, how many aircraft are currently tracked, how many traffic targets were filtered (ownship-match vs out-of-range), and error counts (**CRC**, **frame**, and **parse** errors — highlighted red when non-zero). Tap **Reset** to zero the counters. Use these to tell, for example, whether traffic is simply not being received versus being received but filtered.
 
@@ -509,7 +509,7 @@ Requires configured 1800wxbrief-compatible account email.
 The `Transfer` sub-page exchanges flight plans with a panel-mounted **Avidyne IFD440/540/550** over Wi-Fi, in both directions.
 
 - Connect your device to the **same Wi-Fi network** as the IFD (use the IFD's Maintenance-mode network page to configure it).
-- AvareX automatically searches for IFDs; discovered units appear in a list showing their IP address and software version. Each has two buttons:
+- AvareX automatically searches for IFDs; tap the **search icon** (top-right of the Avidyne section) to re-broadcast discovery. Discovered units appear in a list showing their IP address and software version. Each has two buttons:
   - **Send** — uploads the active AvareX plan to the IFD as a stored route. Requires a route with at least 2 waypoints, and the IFD must have flight-plan input enabled (the list notes when it is not). The uploaded route reproduces the AvareX waypoints on the IFD ("stick route"); review and activate it on the IFD.
   - **Get** — downloads the IFD's flight plan and loads it into the active AvareX plan (replacing the current one). Each downloaded waypoint is matched to the AvareX database by identifier (closest to the IFD's coordinate); waypoints that cannot be matched are added as GPS coordinate points. Airway/procedure legs are reproduced as their coordinate waypoints.
 - Below the device list, a scrolling **Messages** log shows the last 50 WiFiCrChannel packets exchanged with the IFD during Send/Get — **TX** (AvareX → IFD) and **RX** (IFD → AvareX), newest first. Tap a row to expand the **raw bytes** as selectable hex. Use **Pause** / **Resume** to freeze the log, and **Clear** to empty it.
@@ -1302,7 +1302,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
 | Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
 | Check ADS-B receiver status | `MAP → ADSB instrument tile` (movable; tap opens ADS-B Status screen) |
-| Enable Stratus 3 Open ADS-B Mode | `MAP → ADSB instrument tile → Stratus Open ADS-B Mode → Send` |
+| Enable Stratus 3 Open ADS-B Mode | `MAP → ADSB instrument tile → antenna icon (top-right)` |
 | Notes/drawing | `MAP → Notes icon` |
 | Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template` |
 | Notes number keypad | `MAP → Notes icon → dialpad icon` |
@@ -1389,7 +1389,7 @@ Best when your receiver broadcasts GDL90/NMEA over local network.
 3. Open AvareX and go to `MAP`.
 4. **iOS only — first launch on a new device**: when iOS shows the *"AvareX would like to find and connect to devices on your local network"* prompt, tap **Allow**. Without this permission iOS will silently drop all ADS-B/GPS UDP packets and traffic/weather will never appear, even though ownship over internal GPS still works. If the prompt was previously dismissed or denied, enable it under `Settings → Privacy & Security → Local Network → AvareX`.
 5. Wait for incoming data on supported UDP ports: `4000`, `43211`, or `49002` (automatic listener).
-6. **Stratus 3 / 3i only**: if the receiver is not in Open ADS-B mode, open `MAP → ADSB` tile → **ADS-B Status**, then tap **Send** on **Stratus Open ADS-B Mode**. Confirm the toast, then wait for the Receiver status to show Connected.
+6. **Stratus 3 / 3i only**: if the receiver is not in Open ADS-B mode, open `MAP → ADSB` tile → **ADS-B Status**, then tap the antenna icon (top-right). Confirm the toast, then wait for the Receiver status to show Connected.
 7. Turn on useful map layers:
    - `Traffic`
    - `Weather`
@@ -1833,7 +1833,7 @@ The following FAQs are derived from recent threads in the Apps4Av forum and mapp
 ### FAQ-01: How do I connect an external ADS-B / GPS receiver?
 
 - For Wi-Fi receivers: connect the device to receiver network and AvareX auto-listens on UDP `4000`, `43211`, `49002`.
-- **Stratus 3 / 3i**: if traffic/weather never appear, put the unit in Open ADS-B mode from `MAP → ADSB` tile → **Stratus Open ADS-B Mode** → **Send** (or via Appareo Stratus Horizon Pro).
+- **Stratus 3 / 3i**: if traffic/weather never appear, put the unit in Open ADS-B mode from `MAP → ADSB` tile → antenna icon (top-right) (or via Appareo Stratus Horizon Pro).
 - For Bluetooth receivers (Android): `Menu → IO`, pair/connect, then return to map.
 - **iOS only**: AvareX must have **Local Network** permission enabled (`Settings → Privacy & Security → Local Network → AvareX`). Without it, iOS silently blocks all ADS-B/GDL90 broadcasts and traffic/weather will never show, even though ownship from the internal phone GPS still works. The first time you launch AvareX after install you should see a prompt — tap **Allow**. See FAQ-16.
 - Source threads:
