@@ -352,18 +352,29 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - **Airport selector** (bottom-right): choose airport from recent airports list
 - **Plate selector** (bottom-left, always shown): choose plate within airport (color-coded by type). Always contains an `APS-AERIAL VIEW` entry — once downloaded it loads the georeferenced Google Maps satellite picture like any other plate; until then it appears as an `APS-AERIAL VIEW (Get)` placeholder that downloads the image when selected. When downloaded, a trash icon on that entry **deletes** the stored picture immediately; you can download it again later. The picture is stored in the airport's plates folder as `APS-AERIAL VIEW.png` with ownship drawn on it
 - **Procedure menu** (plus icon near bottom-right):
-  - Tap a procedure to show its profile, draw its green route on georeferenced plates, and add its waypoint sequence to the plan
+  - Tap a procedure to show its profile, draw the CIFP route on georeferenced plates (progress-colored), and add its waypoint sequence to the plan
 - **Instrument overlay show/hide** toggle (top-right arrow icon)
-- **Profile close (X)** closes procedure profile card and clears the green route overlay
+- **Profile close (X)** closes procedure profile card and clears the route overlay
+- **IAF chips** (black with white text, above profile when multiple transitions exist): switch IAF without re-adding to the plan
 
 ### 6.3a Procedure route on plate
 
 When you select a procedure from the plate procedure menu (`+` / road icon):
 
 - The vertical profile card appears
-- On **georeferenced** plates, a **green route** connects the procedure fixes in sequence (green dots at each fix)
+- On **georeferenced** plates, the CIFP route is drawn with colors counted back from the final fix (same on the vertical profile):
+  - **Green** — final leg
+  - **Yellow** — 1 before final
+  - **Brown** — 2 before final
+  - **Blue** — 3 before final
+  - **Red** — 4 before final
+  - **Orange** — 5+ before final
+- Fix names are not drawn on the plate (keeps chart symbology clear)
+- When the chart has multiple IAFs, **black chips** (white text) above the profile switch transitions (without re-adding to the plan)
 - Closing the profile (X), or changing airport, removes the overlay
 - Non-georeferenced plates show the profile only (no route overlay)
+
+Route geometry follows the CIFP fix sequence in the databases (great-circle chords between fixes). Path-terminator arcs/holds are not drawn until those ARINC fields ship in a future DatabasesX cycle.
 
 ### 6.4 Plate type color coding
 
@@ -1521,9 +1532,11 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. Select airport (bottom-right selector).
 3. Select desired plate (bottom-left selector, color-coded by type).
 4. Use procedure menu (plus/road icon):
-   - Choose a procedure to show its profile card, draw a **green route** of its fixes on georeferenced plates, and append it to the route.
-5. Keep instruments visible on plate using top-right show/hide toggle.
-6. Close profile card with X button when done (clears the green route).
+   - Choose a procedure to show its profile card, draw the **CIFP route** on georeferenced plates (green→yellow→brown→blue→red→orange from final back, matched on the vertical profile), and append it to the plan.
+5. If other IAFs exist for the same chart, tap a **black IAF chip** to switch transition (route and profile update; plan is not duplicated).
+6. Fly the approach using the colored route overlay and vertical profile.
+7. Keep instruments visible on plate using top-right show/hide toggle.
+8. Close profile card with X button when done (clears the route overlay).
 
 ### UC-10: Save your flown track and retrieve it from Documents
 

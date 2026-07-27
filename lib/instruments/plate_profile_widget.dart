@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -8,6 +7,7 @@ import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/instruments/plate_cifp_route.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
@@ -33,6 +33,23 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
   ValueNotifier<int> notifier = ValueNotifier(0);
 
   @override
+  void initState() {
+    super.initState();
+    Storage().gpsChange.addListener(_onGps);
+  }
+
+  @override
+  void dispose() {
+    Storage().gpsChange.removeListener(_onGps);
+    notifier.dispose();
+    super.dispose();
+  }
+
+  void _onGps() {
+    notifier.value++;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: loadProfile(widget.selectedProcedure),
@@ -54,7 +71,6 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
     final Color background = Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.8);
     final Color textColor = Theme.of(context).colorScheme.onSurface;
     final Color axisColor = Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4);
-    final Color lineColor = Theme.of(context).colorScheme.secondary;
     final Color planeColor = Constants.planeColor.withValues(alpha: 0.9);
 
     return Container(
@@ -72,7 +88,6 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
           label: widget.selectedProcedure,
           textColor: textColor,
           axisColor: axisColor,
-          lineColor: lineColor,
           planeColor: planeColor,
         ),
       ),
@@ -250,8 +265,6 @@ class _VerticalProfilePainter extends CustomPainter {
   final Color textColor;
   final Paint _axisPaint;
   final Paint _gridPaint;
-  final Paint _linePaint;
-  final Paint _pointPaint;
   final Paint _planePaint;
   final Paint _constraintPaint;
   final Paint _bandPaint;
@@ -262,7 +275,6 @@ class _VerticalProfilePainter extends CustomPainter {
         required this.label,
         required this.textColor,
         required Color axisColor,
-        required Color lineColor,
         required Color planeColor,
       }) :
         _axisPaint = Paint()
@@ -273,23 +285,16 @@ class _VerticalProfilePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1
           ..color = axisColor.withValues(alpha: 0.3),
-        _linePaint = Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2
-          ..color = lineColor,
-        _pointPaint = Paint()
-          ..style = PaintingStyle.fill
-          ..color = lineColor,
         _planePaint = Paint()
           ..style = PaintingStyle.fill
           ..color = planeColor,
         _constraintPaint = Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
-          ..color = lineColor,
+          ..color = ProcedureRouteColors.finalLeg,
         _bandPaint = Paint()
           ..style = PaintingStyle.fill
-          ..color = lineColor.withValues(alpha: 0.25),
+          ..color = ProcedureRouteColors.finalLeg.withValues(alpha: 0.25),
         super(repaint: repaint);
 
   @override
@@ -386,32 +391,40 @@ class _VerticalProfilePainter extends CustomPainter {
       align: TextAlign.right,
     );
 
-    final ui.Path path = ui.Path();
-    bool hasStarted = false;
-    for (final point in points) {
-      final double? altitude = point.altitudeFt;
-      if (altitude == null) {
-        hasStarted = false;
+    // Draw segments colored by legs-from-final (same palette as the plate route).
+    for (int i = 1; i < points.length; i++) {
+      final double? alt0 = points[i - 1].altitudeFt;
+      final double? alt1 = points[i].altitudeFt;
+      if (alt0 == null || alt1 == null) {
         continue;
       }
-      final double x = _xForDistance(chart, point.distanceNm, minDistance, totalDistance, hasRunwayCrossing);
-      final double y = _yForAltitude(chart, altitude, minAlt, maxAlt);
-      if (!hasStarted) {
-        path.moveTo(x, y);
-        hasStarted = true;
-      }
-      else {
-        path.lineTo(x, y);
-      }
+      final Color color = ProcedureRouteColors.forSegmentEndingAt(i, points.length);
+      final double x0 = _xForDistance(chart, points[i - 1].distanceNm, minDistance, totalDistance, hasRunwayCrossing);
+      final double y0 = _yForAltitude(chart, alt0, minAlt, maxAlt);
+      final double x1 = _xForDistance(chart, points[i].distanceNm, minDistance, totalDistance, hasRunwayCrossing);
+      final double y1 = _yForAltitude(chart, alt1, minAlt, maxAlt);
+      canvas.drawLine(
+        Offset(x0, y0),
+        Offset(x1, y1),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = (i == points.length - 1) ? 3.0 : 2.5
+          ..strokeCap = StrokeCap.round
+          ..color = color,
+      );
     }
-    canvas.drawPath(path, _linePaint);
 
-    for (final point in points) {
+    for (int i = 0; i < points.length; i++) {
+      final point = points[i];
       if (point.altitudeFt == null) {
         continue;
       }
       final double x = _xForDistance(chart, point.distanceNm, minDistance, totalDistance, hasRunwayCrossing);
       final double y = _yForAltitude(chart, point.altitudeFt!, minAlt, maxAlt);
+      final Color fixColor = ProcedureRouteColors.forSegmentEndingAt(i, points.length);
+      final Paint pointPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = fixColor;
 
       // Window/block constraint: shade the band between the two altitudes.
       if (point.altitudeType == "window" && point.altitude2Ft != null) {
@@ -421,10 +434,10 @@ class _VerticalProfilePainter extends CustomPainter {
           _bandPaint,
         );
         canvas.drawLine(Offset(x, min(y, y2)), Offset(x, max(y, y2)), _constraintPaint);
-        canvas.drawCircle(Offset(x, y2), 2.0, _pointPaint);
+        canvas.drawCircle(Offset(x, y2), 2.0, pointPaint);
       }
 
-      canvas.drawCircle(Offset(x, y), 2.5, _pointPaint);
+      canvas.drawCircle(Offset(x, y), 2.5, pointPaint);
 
       // Chart-style constraint bars: a line under "at or above", over "at or
       // below", and both for a mandatory "at".

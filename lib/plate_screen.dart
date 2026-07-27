@@ -8,6 +8,7 @@ import 'package:avaremp/business/airport_businesses_gate.dart';
 import 'package:avaremp/business/models/airport_business.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/instruments/plate_cifp_route.dart';
 import 'package:avaremp/instruments/plate_profile_widget.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
@@ -201,8 +202,8 @@ class PlateScreenState extends State<PlateScreen> {
     if (!mounted) {
       return;
     }
-    _setProcedureRoute(procedureName, procedure);
-    if (procedure == null) {
+    await _applyProcedureOverlay(procedureName, procedure);
+    if (!mounted || procedure == null) {
       return;
     }
     Storage().route.addWaypoint(Waypoint(procedure));
@@ -210,16 +211,61 @@ class PlateScreenState extends State<PlateScreen> {
         context, "Added ${procedure.facilityName} to Plan", null, 3);
   }
 
+  Future<void> _switchProcedureTransition(String procedureName) async {
+    setState(() {
+      Storage().settings.setPlateProfileVisible(true);
+      Storage().settings.setPlateProfile(procedureName);
+    });
+    final ProcedureDestination? procedure =
+        await MainDatabaseHelper.db.findProcedure(procedureName);
+    if (!mounted) {
+      return;
+    }
+    await _applyProcedureOverlay(procedureName, procedure);
+  }
+
   void _clearProcedureRoute() {
-    if (_procedureRoute.isEmpty && _loadedProcedureRoute.isEmpty) {
+    if (_procedureRoute.isEmpty &&
+        _procedureTransitions.isEmpty &&
+        _loadedProcedureRoute.isEmpty) {
       return;
     }
     _procedureRoute.clear();
+    _procedureTransitions.clear();
     _loadedProcedureRoute = "";
     _notifyPaint();
   }
 
-  void _setProcedureRoute(String procedureName, ProcedureDestination? procedure) {
+  /// Sibling IAFs for the same chart: same airport + procedure, different ifix.
+  List<String> _siblingTransitions(String procedureName, List<String> allProcedures) {
+    final List<String> segments = procedureName.split(".");
+    if (segments.length < 2) {
+      return [];
+    }
+    final String airport = segments[0].toUpperCase();
+    final String procedure = segments[1].toUpperCase();
+    final String currentIfix = segments.length >= 3 ? segments[2].toUpperCase() : "";
+    final List<String> out = [];
+    for (final String name in allProcedures) {
+      final List<String> parts = name.split(".");
+      if (parts.length < 3) {
+        continue;
+      }
+      if (parts[0].toUpperCase() != airport || parts[1].toUpperCase() != procedure) {
+        continue;
+      }
+      final String ifix = parts[2].toUpperCase();
+      if (ifix.isEmpty || ifix == currentIfix) {
+        continue;
+      }
+      out.add(name);
+    }
+    out.sort();
+    return out;
+  }
+
+  Future<void> _applyProcedureOverlay(
+      String procedureName, ProcedureDestination? procedure) async {
     final List<LatLng> points = [];
     if (procedure != null) {
       for (final Destination point in procedure.points) {
@@ -231,10 +277,26 @@ class PlateScreenState extends State<PlateScreen> {
         points.add(point.coordinate);
       }
     }
+    final String airport = procedureName.split(".").first;
+    final List<String> all =
+        airport.isEmpty ? <String>[] : await MainDatabaseHelper.db.findProcedures(airport);
+    if (!mounted) {
+      return;
+    }
+    if (procedureName != Storage().settings.getPlateProfile() ||
+        !Storage().settings.isPlateProfileVisible()) {
+      return;
+    }
     _procedureRoute
       ..clear()
       ..addAll(points);
+    _procedureTransitions
+      ..clear()
+      ..addAll(_siblingTransitions(procedureName, all));
     _loadedProcedureRoute = procedureName;
+    if (mounted) {
+      setState(() {});
+    }
     _notifyPaint();
   }
 
@@ -256,17 +318,13 @@ class PlateScreenState extends State<PlateScreen> {
     if (!mounted) {
       return;
     }
-    // Selection may have changed while the query was in flight.
-    if (procedureName != Storage().settings.getPlateProfile() ||
-        !Storage().settings.isPlateProfileVisible()) {
-      return;
-    }
-    _setProcedureRoute(procedureName, procedure);
+    await _applyProcedureOverlay(procedureName, procedure);
   }
 
   final ValueNotifier _notifier = ValueNotifier(0);
   final List<_PlateTerrainCell> _terrainCells = [];
   final List<LatLng> _procedureRoute = [];
+  final List<String> _procedureTransitions = [];
   String _loadedProcedureRoute = "";
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
@@ -578,7 +636,12 @@ class PlateScreenState extends State<PlateScreen> {
             child: SizedBox(
               height: Constants.screenHeight(context),
               width: Constants.screenWidth(context),
-              child: CustomPaint(painter: _PlatePainter(notifier, _terrainCells, opacity, _procedureRoute)),
+              child: CustomPaint(painter: _PlatePainter(
+                notifier,
+                _terrainCells,
+                opacity,
+                _procedureRoute,
+              )),
             ),
           ),
 
@@ -916,34 +979,68 @@ class PlateScreenState extends State<PlateScreen> {
             ),
           ),
 
-          // Plate profile widget
+          // Plate profile widget + sibling IAF chips
           if (Storage().settings.isPlateProfileVisible())
             Positioned(
               bottom: Constants.bottomPaddingSize(context) + 70,
               right: 0,
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
-                  Positioned(
-                    top: 0,
-                    right: 8,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: overlayBg,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        iconSize: 18,
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          setState(() {
-                            Storage().settings.setPlateProfileVisible(false);
-                            Storage().settings.setPlateProfile("");
-                            _clearProcedureRoute();
-                          });
-                        },
+                  if (_procedureTransitions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8, bottom: 6),
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: _procedureTransitions.map((name) {
+                          final String ifix = name.split(".").last;
+                          return ActionChip(
+                            visualDensity: VisualDensity.compact,
+                            label: Text(
+                              ifix,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            backgroundColor: Colors.black.withValues(alpha: 0.85),
+                            side: BorderSide.none,
+                            onPressed: () {
+                              _switchProcedureTransition(name);
+                            },
+                          );
+                        }).toList(),
                       ),
                     ),
+                  Stack(
+                    children: [
+                      IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
+                      Positioned(
+                        top: 0,
+                        right: 8,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: overlayBg,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            iconSize: 18,
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                Storage().settings.setPlateProfileVisible(false);
+                                Storage().settings.setPlateProfile("");
+                                _clearProcedureRoute();
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1045,26 +1142,12 @@ class _PlatePainter extends CustomPainter {
   final _paintTerrain = Paint()
     ..style = PaintingStyle.fill;
 
-  final _paintRoute = Paint()
-    ..isAntiAlias = true
-    ..strokeWidth = 5
-    ..color = const Color.fromARGB(220, 0, 180, 0)
-    ..style = PaintingStyle.stroke
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
-
-  final _paintRouteFix = Paint()
-    ..isAntiAlias = true
-    ..style = PaintingStyle.fill
-    ..color = const Color.fromARGB(230, 0, 160, 0);
-
-  final _paintRouteFixOutline = Paint()
-    ..isAntiAlias = true
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.5
-    ..color = Colors.white;
-
-  _PlatePainter(ValueNotifier repaint, this._terrainCells, this.opacity, this._procedureRoute): super(repaint: repaint);
+  _PlatePainter(
+    ValueNotifier repaint,
+    this._terrainCells,
+    this.opacity,
+    this._procedureRoute,
+  ): super(repaint: repaint);
 
   (Offset, double) _calculateOffset(LatLng ll) {
     double lon = ll.longitude;
@@ -1188,17 +1271,14 @@ class _PlatePainter extends CustomPainter {
       return;
     }
     final List<Offset> offsets = [];
-    for (final LatLng ll in _procedureRoute) {
-      final (Offset offset, _) = _calculateOffset(ll);
+    for (final LatLng point in _procedureRoute) {
+      final (Offset offset, _) = _calculateOffset(point);
       offsets.add(offset);
     }
-    for (int i = 1; i < offsets.length; i++) {
-      canvas.drawLine(offsets[i - 1], offsets[i], _paintRoute);
-    }
-    for (final Offset offset in offsets) {
-      canvas.drawCircle(offset, 6, _paintRouteFix);
-      canvas.drawCircle(offset, 6, _paintRouteFixOutline);
-    }
+    paintProcedureRoute(
+      canvas: canvas,
+      offsets: offsets,
+    );
   }
 
   void _drawTerrainOverlay(Canvas canvas) {
