@@ -430,6 +430,7 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 - **Insert waypoint**: tap a waypoint to select it, then press the **+** button to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
 - Long press (grab) a waypoint to move it up and down
 - Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
+- **Delete entire plan** (trash icon, top-right of header): confirms, then removes all waypoints from the active plan (hidden when the plan is empty)
 - Airways and procedures show as expandable items with nested waypoints
 
 Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the plan calculation controls:
@@ -1297,6 +1298,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight` |
 | Create folder for documents | `MAP → Menu → Documents → folder icon in app bar` |
 | Build or modify plan | `PLAN tab` |
+| Delete entire plan | `PLAN tab` → trash icon (top-right of header) |
 | File FAA plan | `PLAN → Brief & File` |
 | Manage filed plans | `PLAN → Manage` |
 | Load reversed plan | `PLAN → Load & Save → 3-dot menu → Load Reversed` |

@@ -504,6 +504,14 @@ class PlanRoute {
   // default constructor creates empty route
   PlanRoute(this.name);
 
+  // clear all waypoints from this plan
+  void clear() {
+    name = "New Plan";
+    _setCurrent(null);
+    _waypoints.clear();
+    _update(true);
+  }
+
   // copy a plan into this
   void copyFrom(PlanRoute other) {
     name = other.name;

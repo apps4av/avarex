@@ -299,7 +299,7 @@ class Airport {
           isThreeLine: true,
           visualDensity: VisualDensity.compact,
           leading: runwayLeading(identLE, le != null && le.best, r, 'LE'),
-          title: Text(getRunwayInfoCommon(r), style: TextStyle(decoration: TextDecoration.underline,)),
+          title: Text(getRunwayInfoCommon(r)),
           subtitle: runwayInfoTable(getRunwayInfo(r, 'LE', le)),
         ));
       }
@@ -308,7 +308,7 @@ class Airport {
           isThreeLine: true,
           visualDensity: VisualDensity.compact,
           leading: runwayLeading(identHE, he != null && he.best, r, 'HE'),
-          title: Text(getRunwayInfoCommon(r), style: TextStyle(decoration: TextDecoration.underline,)),
+          title: Text(getRunwayInfoCommon(r)),
           subtitle: runwayInfoTable(getRunwayInfo(r, 'HE', he)),
         ));
       }

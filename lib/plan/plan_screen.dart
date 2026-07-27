@@ -308,6 +308,31 @@ class PlanScreenState extends State<PlanScreen> {
     }
   }
 
+  Future<void> _confirmDeleteEntirePlan() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete plan?"),
+        content: const Text(
+            "Delete the entire plan? All waypoints will be removed. This cannot be undone."),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Cancel")),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() {
+      Storage().route.clear();
+    });
+  }
+
   Widget _buildPlanEditor(PlanRoute route) {
     return Column(
       children: [
@@ -316,14 +341,28 @@ class PlanScreenState extends State<PlanScreen> {
           child: ValueListenableBuilder<int>( // update in plan change
             valueListenable: route.change,
             builder: (context, value, _) {
-              return ListTile( // header
-                  key: Key(Storage().getKey()),
-                  leading: GestureDetector(child: Icon(Icons.add), onTap: () {
-                    Storage().planSearch = true;
-                    MainScreenState.gotoFind();
-                  },),
-                  title: PlanLineWidgetState.getHeading(),
-                  subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations));
+              return Stack(
+                children: [
+                  ListTile( // header
+                      key: Key(Storage().getKey()),
+                      leading: GestureDetector(child: Icon(Icons.add), onTap: () {
+                        Storage().planSearch = true;
+                        MainScreenState.gotoFind();
+                      },),
+                      title: PlanLineWidgetState.getHeading(),
+                      subtitle: PlanLineWidgetState.getFieldsFromCalculations(Storage().route.totalCalculations)),
+                  if (route.length > 0)
+                    Positioned(
+                      top: 0,
+                      right: 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        tooltip: "Delete entire plan",
+                        onPressed: _confirmDeleteEntirePlan,
+                      ),
+                    ),
+                ],
+              );
             }),
         ),
         Expanded(
