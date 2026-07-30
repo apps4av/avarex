@@ -1030,7 +1030,7 @@ From MAP top-right account icon, or by routed requests from some features (e.g.,
 
 Screen title: **Flight Intelligence**
 
-Powered by Gemini 3.1 Pro with Google Search integration.
+Powered by Gemini 3.6 Flash with Google Search integration.
 
 Capabilities:
 
@@ -1953,7 +1953,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 - Current Pro AI workflows are targeted for iOS/Android only.
 - Access from map account icon → Pro Services → Flight Intelligence.
-- Uses Gemini 3.1 Pro with Google Search integration.
+- Uses Gemini 3.6 Flash with Google Search integration.
 - Source threads:
   - AI feature thread:  
     `https://groups.google.com/g/apps4av-forum/c/wWZUn6TNG1w`
