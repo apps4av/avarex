@@ -22,7 +22,13 @@ class AiScreen extends StatefulWidget {
 class AiScreenState extends State<AiScreen> {
 
   bool _clear = false;
-  final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro', tools: [Tool.googleSearch()]);
+  // gemini-2.5-pro retires Oct 2026. Use stable Gemini 3.6 Flash (Vertex
+  // recommended migration path) rather than gemini-3.1-pro-preview, which
+  // previously failed on Vertex with "attachment is not supported".
+  final _model = FirebaseAI.vertexAI().generativeModel(
+    model: 'gemini-3.6-flash',
+    tools: [Tool.googleSearch()],
+  );
   bool _isSending = false;
   final TextEditingController _editingController = TextEditingController();
 
