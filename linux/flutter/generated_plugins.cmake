@@ -4,9 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_linux
-  desktop_webview_auth
   file_selector_linux
-  gtk
+  flutter_secure_storage_linux
   sqlite3_flutter_libs
   syncfusion_pdfviewer_linux
   url_launcher_linux

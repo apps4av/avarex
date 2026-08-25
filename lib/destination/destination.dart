@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'destination_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/aeronautical_database.dart';
 
 class Destination {
 
@@ -16,6 +17,9 @@ class Destination {
   final String type;
   final String facilityName;
   final LatLng coordinate;
+  final String source;
+  final String sourceRegion;
+  final String sourceCycle;
   double? elevation;
   double? geoAltitude;
   double? geoVariation;
@@ -27,11 +31,16 @@ class Destination {
     required this.type,
     required this.facilityName,
     required this.coordinate,
+    this.source = 'FAA',
+    this.sourceRegion = '',
+    this.sourceCycle = '',
   }) {
-    MainDatabaseHelper.db.getGeoInfo(coordinate).then((value) {
-      geoAltitude = value.$1;
-      geoVariation = value.$2;
-    });
+    if (source == 'FAA') {
+      MainDatabaseHelper.db.getGeoInfo(coordinate).then((value) {
+        geoAltitude = value.$1;
+        geoVariation = value.$2;
+      });
+    }
   }
 
   @override
@@ -182,7 +191,10 @@ class Destination {
   }
 
   static bool isFix(String type) {
-    return type == "YREP-PT" ||
+    return type == "FIX" ||
+        type == "VFR-MRP" ||
+        type == "MOUNTAIN-PASS" ||
+        type == "YREP-PT" ||
         type == "YRNAV-WP" ||
         type == "NARTCC-BDRY" ||
         type == "NAWY-INTXN" ||
@@ -212,6 +224,9 @@ class Destination {
       locationID: maps['LocationID'] as String,
       facilityName: maps['FacilityName'] as String,
       type: maps['Type'] as String,
+      source: (maps['Source'] ?? 'FAA').toString(),
+      sourceRegion: (maps['SourceRegion'] ?? '').toString(),
+      sourceCycle: (maps['SourceCycle'] ?? '').toString(),
       coordinate: LatLng(maps['ARPLatitude'] as double, maps['ARPLongitude'] as double));
   }
 
@@ -222,6 +237,9 @@ class Destination {
       "Type": type,
       "ARPLatitude": coordinate.latitude,
       "ARPLongitude": coordinate.longitude,
+      "Source": source,
+      "SourceRegion": sourceRegion,
+      "SourceCycle": sourceCycle,
     };
     return map;
   }
@@ -245,6 +263,9 @@ class NavDestination extends Destination {
     required super.type,
     required super.facilityName,
     required super.coordinate,
+    super.source,
+    super.sourceRegion,
+    super.sourceCycle,
     required this.class_,
     required this.hiwas,});
 
@@ -277,7 +298,10 @@ class FixDestination extends Destination {
     required super.locationID,
     required super.type,
     required super.facilityName,
-    required super.coordinate,});
+    required super.coordinate,
+    super.source,
+    super.sourceRegion,
+    super.sourceCycle,});
 
   factory FixDestination.fromMap(Map<String, dynamic> maps) {
     return FixDestination(
@@ -318,6 +342,9 @@ class AirportDestination extends Destination {
     required super.type,
     required super.facilityName,
     required super.coordinate,
+    super.source,
+    super.sourceRegion,
+    super.sourceCycle,
     required this.frequencies,
     required this.awos,
     required this.runways,
@@ -450,7 +477,17 @@ class DestinationFactory {
     String type = d.type;
     Destination ret = d;
 
-    if (Destination.isNav(type)) {
+    if ((d.source == 'OFM' || d.source == 'openAIP') && Destination.isAirport(type)) {
+      final destination = await AeronauticalDatabase.instance.findAirport(
+        d.locationID,
+        source: d.source,
+      );
+      ret = destination ?? d;
+    }
+    else if (d.source == 'OFM' || d.source == 'openAIP') {
+      ret = d;
+    }
+    else if (Destination.isNav(type)) {
       NavDestination? destination = await MainDatabaseHelper.db.findNav(d.locationID);
       ret = destination ?? d;
     }

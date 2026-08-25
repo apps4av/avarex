@@ -90,7 +90,7 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 7,
+          version: 8,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion <= 4 && newVersion > 4) {
               await db.execute("create table aiQueries("
@@ -124,6 +124,9 @@ class UserDatabaseHelper {
                   "ALTER TABLE aircraft ADD COLUMN icon TEXT DEFAULT 'plane';");
               await db.execute(
                   "ALTER TABLE aircraft ADD COLUMN wnbData TEXT DEFAULT '';");
+            }
+            if (oldVersion <= 7 && newVersion > 7) {
+              await migrateRecentSourceSchema(db);
             }
           },
 
@@ -177,7 +180,10 @@ class UserDatabaseHelper {
                 "Type         text, "
                 "ARPLatitude  float, "
                 "ARPLongitude float, "
-                "unique(LocationID, Type) on conflict replace);");
+                "Source       text default 'FAA', "
+                "SourceRegion text, "
+                "SourceCycle  text, "
+                "unique(LocationID, Type, Source) on conflict replace);");
 
             await db.execute("create table plan ("
                 "id           integer primary key autoincrement, "
@@ -237,6 +243,37 @@ class UserDatabaseHelper {
                 "unique(tail) on conflict replace);");
           },
           onOpen: (db) {});
+  }
+
+  static Future<void> migrateRecentSourceSchema(Database db) async {
+    final columns = await db.rawQuery('pragma table_info(recent)');
+    final names = columns.map((row) => row['name']).toSet();
+    if (names.contains('Source')) {
+      return;
+    }
+    await db.transaction((transaction) async {
+      await transaction.execute('alter table recent rename to recent_legacy');
+      await transaction.execute('''
+create table recent (
+  id integer primary key autoincrement,
+  LocationID text,
+  FacilityName text,
+  Type text,
+  ARPLatitude float,
+  ARPLongitude float,
+  Source text default 'FAA',
+  SourceRegion text,
+  SourceCycle text,
+  unique(LocationID, Type, Source) on conflict replace
+)
+''');
+      await transaction.execute('''
+insert into recent(id, LocationID, FacilityName, Type, ARPLatitude, ARPLongitude, Source)
+select id, LocationID, FacilityName, Type, ARPLatitude, ARPLongitude, 'FAA'
+from recent_legacy
+''');
+      await transaction.execute('drop table recent_legacy');
+    });
   }
 
   Future<void> addRecent(Destination recent) async {

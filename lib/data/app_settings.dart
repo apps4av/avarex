@@ -1,6 +1,8 @@
 import 'package:avaremp/chart/chart.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/data/settings_cache_provider.dart';
+import 'package:avaremp/ofm/ofm_constants.dart';
+import 'package:avaremp/openaip/openaip_constants.dart';
 
 class AppSettings {
 
@@ -44,6 +46,16 @@ class AppSettings {
 
   void setLightMode(bool lightMode) {
     provider.setBool("key-light-mode", lightMode);
+  }
+
+  // Weather threat-coloring profile for the decoded METAR view.
+  // "IFR" (default) or "VFR"; governs the thresholds in MetarDecoder.
+  String getWeatherProfile() {
+    return provider.getValue("key-weather-profile", defaultValue: "IFR") as String;
+  }
+
+  void setWeatherProfile(String profile) {
+    provider.setString("key-weather-profile", profile);
   }
 
   void setZoom(double zoom) {
@@ -141,17 +153,53 @@ class AppSettings {
   }
 
   List<String> getLayers() {
-    return (provider.getValue("key-layers-v52", defaultValue:
-        "Nav,Circles,Chart,Topo,Vector Map,CAP Grid,Elevation,Weather,TFR,Game TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
+    final legacyLayers = provider.getValue("key-layers-v54", defaultValue:
+        "Nav,Circles,Chart,Topo,Vector Map,${OfmConstants.layerName},${OfmConstants.dataLayerName},CAP Grid,Elevation,Weather,TFR,Game TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String;
+    final layers = (provider.getValue("key-layers-v55", defaultValue: legacyLayers) as String).split(",");
+    final legacy = layers.indexOf(OfmConstants.legacyLayerName);
+    if (legacy >= 0) layers[legacy] = OfmConstants.layerName;
+    if (!layers.contains(OpenAipConstants.dataLayerName)) {
+      final ofmData = layers.indexOf(OfmConstants.dataLayerName);
+      layers.insert(ofmData < 0 ? layers.length : ofmData + 1, OpenAipConstants.dataLayerName);
+    }
+    return layers;
   }
 
   List<double> getLayersOpacity() {
-    return (provider.getValue("key-layers-opacity-v52", defaultValue:
-        "1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();
+    final legacy = provider.getValue("key-layers-opacity-v54", defaultValue:
+        "1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0") as String;
+    final v55 = provider.getValue("key-layers-opacity-v55", defaultValue: legacy) as String;
+    final bool hasSavedPreference =
+        provider.containsKey("key-layers-opacity-v56") ||
+        provider.containsKey("key-layers-opacity-v55") ||
+        provider.containsKey("key-layers-opacity-v54");
+    final resolved = provider.getValue("key-layers-opacity-v56",
+        defaultValue: resolveLayersOpacityDefault(hasSavedPreference, v55)) as String;
+    final opacity = resolved.split(",").map((String e) => double.parse(e)).toList();
+    if (opacity.length < getLayers().length) opacity.insert(7, 0);
+    return opacity;
+  }
+
+  // Fresh installs default the Europe map layers ON: OFM VFR Chart (index 5),
+  // OFM Interactive Data (6) and openAIP Interactive Data (7). These layers
+  // render nothing until the corresponding regional data is installed, so this
+  // is harmless for US-only users. Users who already saved a layer-opacity set
+  // (v54/v55/v56) keep their existing choices untouched.
+  //
+  // Order matches getLayers():
+  //   Nav,Circles,Chart,Topo,Vector Map,OFM VFR Chart,OFM Interactive Data,
+  //   openAIP Interactive Data,CAP Grid,Elevation,Weather,TFR,Game TFR,Plate,
+  //   Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks
+  static const String europeOnLayersOpacityDefault =
+      "1,0,1,1,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0";
+
+  static String resolveLayersOpacityDefault(
+      bool hasSavedPreference, String savedOrLegacy) {
+    return hasSavedPreference ? savedOrLegacy : europeOnLayersOpacityDefault;
   }
 
   void setLayersOpacity(List<double> opacity) {
-    provider.setString("key-layers-opacity-v52", opacity.map((double e) => e.toString()).toList().join(","));
+    provider.setString("key-layers-opacity-v56", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
   void setCurrentPlateAirport(String name) {
@@ -418,6 +466,16 @@ class AppSettings {
 
   void setWeatherProductsOpacity(List<double> opacity) {
     provider.setString("key-weather-products-opacity-v2", opacity.map((double e) => e.toString()).toList().join(","));
+  }
+
+  /// RainViewer radar color scheme ID (0..8). Only used by the EU build's
+  /// internet Radar product. Defaults to 4 (The Weather Channel).
+  int getRadarColorScheme() {
+    return (provider.getValue("key-rainviewer-color-scheme", defaultValue: 4) as int);
+  }
+
+  void setRadarColorScheme(int id) {
+    provider.setInt("key-rainviewer-color-scheme", id);
   }
 
 }

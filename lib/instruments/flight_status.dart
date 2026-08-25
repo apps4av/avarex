@@ -3,7 +3,7 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../data/main_database_helper.dart';
+import '../data/aeronautical_database.dart';
 import '../destination/destination.dart';
 import '../utils/geo_calculations.dart';
 
@@ -30,7 +30,7 @@ class FlightStatus {
       return;
     }
     // on landing, add to recent the airport we landed at, then set it as current airport
-    List<Destination> airports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(
+    List<Destination> airports = await AeronauticalDatabase.instance.findNearestAirportsWithRunways(
         LatLng(Storage().position.latitude, Storage().position.longitude), 0);
     if (airports.isNotEmpty) {
       String? plate = await PathUtils.getAirportDiagram(Storage().dataDir, airports[0].locationID);

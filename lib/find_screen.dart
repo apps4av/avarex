@@ -7,7 +7,8 @@ import 'package:latlong2/latlong.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'io/gps.dart';
-import 'data/main_database_helper.dart';
+
+import 'data/aeronautical_database.dart';
 import 'main_screen.dart';
 
 class FindScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class FindScreenState extends State<FindScreen> {
   Widget build(BuildContext context) {
     bool searching = true;
     return FutureBuilder(
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)),
+      future: _searchText.isNotEmpty? (AeronauticalDatabase.instance.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : AeronauticalDatabase.instance.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
@@ -244,6 +245,17 @@ class FindScreenState extends State<FindScreen> {
                                       style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
                                     ),
                                   ),
+                                  if (item.source == 'OFM' || item.source == 'openAIP') ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text('${item.source} ${item.sourceRegion}', style: const TextStyle(fontSize: 11)),
+                                    ),
+                                  ],
                                   if (item.type == Destination.typeGps)
                                     IconButton(
                                       icon: Icon(Icons.edit, size: 16, color: Theme.of(context).colorScheme.outline),

@@ -14,17 +14,32 @@ import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/documents_screen.dart';
 import 'package:avaremp/gdl90/nexrad_cache.dart';
+import 'package:avaremp/gdl90/opensky_credentials.dart';
+import 'package:avaremp/gdl90/opensky_service.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/utils/compass_rose.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
-import 'package:avaremp/data/main_database_helper.dart';
+
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/ofm/ofm_attribution.dart';
+import 'package:avaremp/ofm/ofm_constants.dart';
+import 'package:avaremp/ofm/ofm_map_layer.dart';
+import 'package:avaremp/ofm/ofm_airspace_layer.dart';
+import 'package:avaremp/openaip/openaip_airspace_layer.dart';
+import 'package:avaremp/openaip/openaip_attribution.dart';
+import 'package:avaremp/openaip/openaip_changes.dart';
+import 'package:avaremp/openaip/openaip_constants.dart';
+import 'package:avaremp/openaip/openaip_database.dart';
+import 'package:avaremp/utils/map_controller_guard.dart';
+import 'package:avaremp/ofm/ofm_data_provider.dart';
+import 'package:avaremp/data/aeronautical_database.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
 import 'package:avaremp/weather/game_tfr.dart';
+import 'package:avaremp/weather/rainviewer_radar.dart';
 import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
@@ -62,6 +77,7 @@ class MapScreenState extends State<MapScreen> {
   bool _rubberBanding = false;
   final Ruler _ruler = Ruler();
   final MBTilesLayerManager _mbtilesManager = MBTilesLayerManager();
+  final OfmMapLayer _ofmMapLayer = OfmMapLayer();
   String _type = Storage().settings.getChartType();
   int _maxZoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType());
   final MapController _controller = MapController();
@@ -79,6 +95,8 @@ class MapScreenState extends State<MapScreen> {
   final ValueNotifier<(List<LatLng>, List<String>)> _tapeNotifier = ValueNotifier<(List<LatLng>, List<String>)>(([],[]));
   ElevationTileProvider elevationTileProvider = ElevationTileProvider();
   int _cacheBustElevation = 0;
+  bool _ofmLoadInProgress = false;
+  bool _mapReady = false;
   // memoization for the distance circles and the to-waypoint great-circle path,
   // which otherwise recompute trig every second even when nothing has changed
   String? _circlesKey;
@@ -101,6 +119,14 @@ class MapScreenState extends State<MapScreen> {
     userAgentPackageName: 'com.apps4av.avarex',
     tileProvider: NetworkTileProvider(),
   );
+
+  // Periodic RainViewer index refresh (EU build only).
+  Timer? _rainViewerTimer;
+
+  // Periodic OpenSky internet-traffic poll (active only when the pilot has
+  // enabled it with their own credentials). Advisory only.
+  Timer? _openSkyTimer;
+  bool _openSkyActive = false;
 
   final TileLayer _topoLayer = TileLayer(
     maxNativeZoom: 16,
@@ -163,8 +189,30 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.addListener(_airSigmetListen);
     Storage().tfr.change.addListener(_tfrListen);
     Storage().geoParser.change.addListener(_geoJsonListen);
+    OfmMapLayer.changes.addListener(_ofmChanged);
+    OpenAipChanges.notifier.addListener(_openAipChanged);
+    // EU build: keep the RainViewer radar index fresh (new frames ~every 10
+    // min). Refresh now and periodically; the service self-throttles.
+    if (Constants.isEu) {
+      RainViewerRadar.instance.refresh();
+      _rainViewerTimer = Timer.periodic(
+          const Duration(minutes: 5), (_) => RainViewerRadar.instance.refresh());
+    }
+    // Optional internet (ADS-B) traffic via OpenSky, using the pilot's own
+    // credentials. Polls only when enabled; the service self-throttles and
+    // no-ops when disabled/unconfigured. Advisory only.
+    _refreshOpenSkyActive();
+    _openSkyTimer = Timer.periodic(const Duration(seconds: 12), (_) async {
+      await OpenSkyService.instance.poll();
+      _refreshOpenSkyActive();
+    });
     // load vector tiles
     _mbtilesManager.loadMBTiles(PathUtils.getFilePath(Storage().dataDir, PathUtils.getFilePath("maps", "nasr.mbtiles")));
+    _ofmMapLayer.loadInstalled(Storage().dataDir).then((loaded) {
+      if (loaded && mounted) {
+        setState(() {});
+      }
+    });
 
     super.initState();
   }
@@ -179,9 +227,35 @@ class MapScreenState extends State<MapScreen> {
     Storage().airSigmet.change.removeListener(_airSigmetListen);
     Storage().tfr.change.removeListener(_tfrListen);
     Storage().geoParser.change.removeListener(_geoJsonListen);
+    OfmMapLayer.changes.removeListener(_ofmChanged);
+    OpenAipChanges.notifier.removeListener(_openAipChanged);
     _previousPosition = null;
+    _rainViewerTimer?.cancel();
+    _openSkyTimer?.cancel();
     _mbtilesManager.close();
+    _ofmMapLayer.close();
     super.dispose();
+  }
+
+  void _ofmChanged() {
+    _ofmMapLayer.loadInstalled(Storage().dataDir, force: true).then((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  // Refreshes whether the OpenSky internet-traffic layer is currently active
+  // (enabled + credentials present), for the advisory banner. Cheap; reads
+  // secure storage off the poll timer.
+  void _refreshOpenSkyActive() {
+    const OpenSkyCredentials().isActive().then((active) {
+      if (mounted && active != _openSkyActive) {
+        setState(() => _openSkyActive = active);
+      }
+    });
+  }
+
+  void _openAipChanged() {
+    if (mounted) setState(() {});
   }
 
   // for measuring tape
@@ -506,12 +580,19 @@ class MapScreenState extends State<MapScreen> {
       // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Storage().settings.isLightMode() ? Constants.mapBackgroundColorLight: Constants.mapBackgroundColorDark,
+      onMapReady: () {
+        if (mounted) {
+          setState(() => _mapReady = true);
+        } else {
+          _mapReady = true;
+        }
+      },
       onLongPress: (tap, point) async {
         if(_ruler.isMeasuring()) {
           _ruler.setPoint(point); // on long press when measuring, set ruler point
         }
         else { // otherwise show destination screen
-          List<Destination> items = await MainDatabaseHelper.db.findNear(point);
+          List<Destination> items = await AeronauticalDatabase.instance.findNear(point);
           setState(() {
             showDestination(this.context, items);
           });
@@ -560,6 +641,64 @@ class MapScreenState extends State<MapScreen> {
       final mbtilesWidget = _mbtilesManager.buildVectorTileLayer(opacity: opacity);
       if (mbtilesWidget != null) {
         layers.add(mbtilesWidget);
+      }
+    }
+
+    lIndex = _layers.indexOf(OfmConstants.layerName);
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        if (!_ofmMapLayer.isLoaded && !_ofmLoadInProgress) {
+          _ofmLoadInProgress = true;
+          _ofmMapLayer.loadInstalled(Storage().dataDir).then((loaded) {
+            _ofmLoadInProgress = false;
+            if (loaded && mounted) {
+              setState(() {});
+            }
+          });
+        }
+        layers.addAll(_ofmMapLayer.buildLayers(opacity: opacity));
+      }
+    }
+
+    lIndex = _layers.indexOf(OfmConstants.dataLayerName);
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      final camera = MapControllerGuard.cameraIfReady(_controller, _mapReady);
+      if (opacity > 0 && camera != null) {
+        final bounds = camera.visibleBounds;
+        layers.add(FutureBuilder<List<OfmAirspace>>(
+          future: OfmDataProvider(dataDir: Storage().dataDir).findAirspacesInBounds(
+            minLat: bounds.south,
+            maxLat: bounds.north,
+            minLon: bounds.west,
+            maxLon: bounds.east,
+          ),
+          builder: (context, snapshot) => PolygonLayer(
+            polygons: OfmAirspaceLayer.polygons(snapshot.data ?? const [], opacity: opacity),
+          ),
+        ));
+      }
+    }
+
+    lIndex = _layers.indexOf(OpenAipConstants.dataLayerName);
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      final camera = MapControllerGuard.cameraIfReady(_controller, _mapReady);
+      if (opacity > 0 && camera != null) {
+        final bounds = camera.visibleBounds;
+        layers.add(FutureBuilder<List<OpenAipAirspace>>(
+          future: OpenAipDatabase.open(Storage().dataDir).then((db) =>
+              OpenAipDatabase(database: db).findAirspacesInBounds(
+                minLat: bounds.south,
+                maxLat: bounds.north,
+                minLon: bounds.west,
+                maxLon: bounds.east,
+              )),
+          builder: (context, snapshot) => PolygonLayer(
+            polygons: OpenAipAirspaceLayer.polygons(snapshot.data ?? const [], opacity: opacity),
+          ),
+        ));
       }
     }
 
@@ -638,40 +777,89 @@ class MapScreenState extends State<MapScreen> {
         showAltitudeSlider = true;
       }
 
-      // Internet radar (Iowa Mesonet).
+      // Internet radar. EU build uses RainViewer (global, animated, user-
+      // selectable color scheme); other builds use the US-only Iowa Mesonet
+      // NEXRAD mosaic.
       if (_weatherProductOn("Radar")) {
         final double productOpacity = opacity * _weatherProductOpacity("Radar");
-        layers.add(Opacity(opacity: productOpacity,
-          child: ValueListenableBuilder<int>(
-            valueListenable: Storage().timeRadarChange,
-            builder: (context, value, _) {
-              int index = value % (_mesonets.length * 2);
-              if(index > _mesonets.length - 1) {
-                index = _mesonets.length - 1;
-              }
-              _nexradLayer = TileLayer(
-                userAgentPackageName: 'com.apps4av.avarex',
-                maxNativeZoom: 5,
-                keepBuffer: 1,
-                urlTemplate: _mesonets[index],
-                tileProvider: NetworkTileProvider(),
-              );
-              return _nexradLayer;
-            },
-          )));
+        if (Constants.isEu) {
+          final int colorScheme = Storage().settings.getRadarColorScheme();
+          layers.add(Opacity(opacity: productOpacity,
+            child: ValueListenableBuilder<int>(
+              // Rebuild both when a new index arrives and on each animation
+              // tick so the loop advances through the available frames.
+              valueListenable: Storage().timeRadarChange,
+              builder: (context, value, _) {
+                final int frames = RainViewerRadar.instance.frameCount;
+                if (frames == 0) {
+                  return const SizedBox.shrink();
+                }
+                final int frameIndex = value % frames;
+                final String? template = RainViewerRadar.instance.tileUrlTemplate(
+                  frameIndex: frameIndex,
+                  colorScheme: colorScheme,
+                );
+                if (template == null) {
+                  return const SizedBox.shrink();
+                }
+                _nexradLayer = TileLayer(
+                  userAgentPackageName: 'com.apps4av.avarex',
+                  maxNativeZoom: 7,
+                  keepBuffer: 1,
+                  urlTemplate: template,
+                  tileProvider: NetworkTileProvider(),
+                );
+                return _nexradLayer;
+              },
+            )));
 
-        layers.add(
-            Opacity(opacity: productOpacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
-              child: ValueListenableBuilder<int>(
-                valueListenable: Storage().timeRadarChange,
-                builder: (context, value, _) {
-                  int index = value % (_mesonets.length * 2);
-                  if(index > _mesonets.length - 1) {
-                    index = _mesonets.length - 1;
-                  }
-                  return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
-            }),
-        )));
+          layers.add(
+              Opacity(opacity: productOpacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: Storage().timeRadarChange,
+                  builder: (context, value, _) {
+                    final int frames = RainViewerRadar.instance.frameCount;
+                    if (frames <= 1) {
+                      return const SizedBox.shrink();
+                    }
+                    final int frameIndex = value % frames;
+                    return Slider(value: frameIndex / (frames - 1), onChanged: (double value) {  });
+              }),
+          )));
+        }
+        else {
+          layers.add(Opacity(opacity: productOpacity,
+            child: ValueListenableBuilder<int>(
+              valueListenable: Storage().timeRadarChange,
+              builder: (context, value, _) {
+                int index = value % (_mesonets.length * 2);
+                if(index > _mesonets.length - 1) {
+                  index = _mesonets.length - 1;
+                }
+                _nexradLayer = TileLayer(
+                  userAgentPackageName: 'com.apps4av.avarex',
+                  maxNativeZoom: 5,
+                  keepBuffer: 1,
+                  urlTemplate: _mesonets[index],
+                  tileProvider: NetworkTileProvider(),
+                );
+                return _nexradLayer;
+              },
+            )));
+
+          layers.add(
+              Opacity(opacity: productOpacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: Storage().timeRadarChange,
+                  builder: (context, value, _) {
+                    int index = value % (_mesonets.length * 2);
+                    if(index > _mesonets.length - 1) {
+                      index = _mesonets.length - 1;
+                    }
+                    return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
+              }),
+          )));
+        }
       }
 
       // ADS-B NEXRAD.
@@ -1396,6 +1584,65 @@ class MapScreenState extends State<MapScreen> {
         body: Stack(
             children: [
               RepaintBoundary(child: map), // map
+              if(_layers.contains(OfmConstants.layerName) &&
+                  _layersOpacity[_layers.indexOf(OfmConstants.layerName)] > 0 &&
+                  _ofmMapLayer.isLoaded)
+                OfmAttribution(opacity: _layersOpacity[_layers.indexOf(OfmConstants.layerName)]),
+              if (_layers.contains(OpenAipConstants.dataLayerName) &&
+                  _layersOpacity[_layers.indexOf(OpenAipConstants.dataLayerName)] > 0)
+                OpenAipAttribution(
+                  opacity: _layersOpacity[_layers.indexOf(OpenAipConstants.dataLayerName)],
+                ),
+              // RainViewer radar attribution (EU build, when the internet Radar
+              // product is enabled). Required by RainViewer's free API terms.
+              if (Constants.isEu && _weatherProductOn("Radar"))
+                Positioned(
+                  bottom: Constants.bottomPaddingSize(context) + 2,
+                  left: 6,
+                  child: IgnorePointer(
+                    child: Text(
+                      RainViewerRadar.attribution,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Theme.of(context).colorScheme.onSurface,
+                        backgroundColor:
+                            Theme.of(context).scaffoldBackgroundColor.withAlpha(160),
+                      ),
+                    ),
+                  ),
+                ),
+              // Internet-traffic advisory banner: shown only when the OpenSky
+              // layer is active AND the Traffic map layer is on. Internet
+              // traffic is delayed/incomplete and not for separation.
+              if (_openSkyActive && _layersOpacity[_layers.indexOf("Traffic")] > 0)
+                Positioned(
+                  top: Constants.screenHeightForInstruments(context) + 4,
+                  left: 6,
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer.withAlpha(210),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.wifi_tethering, size: 12,
+                              color: Theme.of(context).colorScheme.onErrorContainer),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Internet traffic (OpenSky) — advisory, delayed; not for separation",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Theme.of(context).colorScheme.onErrorContainer,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               if(_layersOpacity[_layers.indexOf('PFD')] > 0)
                 ValueListenableBuilder<int>(
                   valueListenable: Storage().pfdChange,
@@ -1430,7 +1677,7 @@ class MapScreenState extends State<MapScreen> {
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(0, Constants.screenHeightForInstruments(context) + 5, 5, 5),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.end, children:[
-                          if(Constants.shouldShowProServices) IconButton(icon: CircleAvatar(child: Icon(MdiIcons.accountTieHat)), onPressed: () { Navigator.pushNamed(context, '/pro');}),
+                          if(Constants.shouldShowAi) IconButton(icon: CircleAvatar(child: Icon(MdiIcons.robot)), tooltip: "Flight Intelligence", onPressed: () { Navigator.pushNamed(context, '/ai');}),
                           ValueListenableBuilder<bool>(
                             valueListenable: Storage().warningChange,
                             builder: (context, value, _) {
@@ -2337,11 +2584,54 @@ class _WeatherProductSelectorOverlay extends StatefulWidget {
 class _WeatherProductSelectorOverlayState
     extends State<_WeatherProductSelectorOverlay> {
   late List<double> _localOpacity;
+  int _radarColorScheme = Storage().settings.getRadarColorScheme();
 
   @override
   void initState() {
     super.initState();
     _localOpacity = List.from(widget.productsOpacity);
+  }
+
+  // RainViewer radar color scheme picker (EU build only). Persists immediately
+  // so the map's next animation tick picks up the new scheme.
+  Widget _buildRadarColorSchemePicker(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Icon(Icons.palette, size: 20, color: scheme.primary),
+          const SizedBox(width: 10),
+          Text(
+            "Radar colors",
+            style: TextStyle(fontSize: 14, color: scheme.onSurface),
+          ),
+          const Spacer(),
+          DropdownButton<int>(
+            value: _radarColorScheme,
+            isDense: true,
+            underline: const SizedBox.shrink(),
+            items: [
+              for (int i = 0; i < Constants.rainViewerColorSchemes.length; i++)
+                DropdownMenuItem<int>(
+                  value: i,
+                  child: Text(
+                    Constants.rainViewerColorSchemes[i],
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+              setState(() => _radarColorScheme = value);
+              Storage().settings.setRadarColorScheme(value);
+              // Nudge the radar layer to rebuild with the new scheme.
+              Storage().timeRadarChange.value++;
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -2410,6 +2700,7 @@ class _WeatherProductSelectorOverlayState
                     ],
                   ),
                 ),
+                if (Constants.isEu) _buildRadarColorSchemePicker(context),
                 Flexible(
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 6),
@@ -2528,6 +2819,27 @@ class _WeatherProductSelectorOverlayState
                     },
                   ),
                 ),
+                if (Constants.isEu)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            size: 14,
+                            color: Theme.of(context).colorScheme.outline),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "${RainViewerRadar.attribution} — advisory only.",
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 8),
               ],
             ),

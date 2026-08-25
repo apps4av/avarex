@@ -10,8 +10,10 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 class PdfViewer extends StatefulWidget {
 
   final String url;
+  final String? title;
+  final String? notice;
 
-  const PdfViewer(this.url, {super.key});
+  const PdfViewer(this.url, {this.title, this.notice, super.key});
 
   @override
   State<StatefulWidget> createState() => PdfViewerState();
@@ -91,7 +93,7 @@ class PdfViewerState extends State<PdfViewer> {
       )
           : AppBar(
         title: Text(
-          PathUtils.filename(widget.url),
+          widget.title ?? PathUtils.filename(widget.url),
         ),
         leading:  const BackButton(),
         actions: [
@@ -117,6 +119,19 @@ class PdfViewerState extends State<PdfViewer> {
             controller: _pdfViewerController,
             canShowScrollHead: _showScrollHead,
           ),
+          if (widget.notice != null)
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  color: Colors.black.withAlpha(180),
+                  child: Text(widget.notice!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+                ),
+              ),
+            ),
           Visibility(
             visible: _textSearchKey.currentState?._showToast ?? false,
             child: Align(

@@ -37,6 +37,18 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+.deps/
+/android/build/
+
+# Local emulator/debug captures
+*-logcat.txt
+failure-screenshot.png
+flutter-map-error*.png
+map-ready-fixed*.png
+openaip-*.png
+openaip-*.xml
+tap-menu-after.png
+ui-window*.xml
 
 # Symbolication related
 app.*.symbols
@@ -56,4 +68,7 @@ firepit-log.txt
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
+
+# oh-my-codex local agent workspace (not part of the app)
+.omc/
 

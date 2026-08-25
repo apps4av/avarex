@@ -223,7 +223,6 @@ class WindsCache extends WeatherCache {
   }
 
   static String? locateNearestStation(LatLng location) {
-    // find distance
     GeoCalculations geo = GeoCalculations();
     double distanceMin = double.maxFinite;
     String? station;
@@ -235,6 +234,17 @@ class WindsCache extends WeatherCache {
       }
     }
     return station;
+  }
+
+  // Coordinate of a winds-aloft station by its key. Tolerates a trailing
+  // forecast-hour suffix (e.g. "BOS06H") so callers can pass either form.
+  static LatLng? stationLatLng(String station) {
+    if (_stationMap.containsKey(station)) {
+      return _stationMap[station];
+    }
+    final RegExpMatch? m = RegExp(r'^(.*?)(\d{2}H)?$').firstMatch(station);
+    final String bare = m?.group(1) ?? station;
+    return _stationMap[bare];
   }
 
   // dir, speed

@@ -1,14 +1,17 @@
+import 'dart:convert';
+
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/ai/ai_credentials.dart';
+import 'package:avaremp/ai/ai_settings_screen.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
-import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:firebase_ai/firebase_ai.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 
@@ -22,7 +25,8 @@ class AiScreen extends StatefulWidget {
 class AiScreenState extends State<AiScreen> {
 
   bool _clear = false;
-  final _model = FirebaseAI.vertexAI().generativeModel(model: 'gemini-2.5-pro', tools: [Tool.googleSearch()]);
+  static const _credentials = AiCredentials();
+  AiConfig _config = const AiConfig(baseUrl: '', apiKey: '', model: '');
   bool _isSending = false;
   final TextEditingController _editingController = TextEditingController();
 
@@ -37,7 +41,23 @@ class AiScreenState extends State<AiScreen> {
   @override
   void initState() {
     super.initState();
+    _loadConfig();
     _loadQueries();
+  }
+
+  Future<void> _loadConfig() async {
+    final config = await _credentials.read();
+    if (mounted) {
+      setState(() => _config = config);
+    }
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AiSettingsScreen()),
+    );
+    await _loadConfig();
   }
 
   Future<void> _loadQueries() async {
@@ -74,31 +94,34 @@ class AiScreenState extends State<AiScreen> {
       if(myQuery.isEmpty) {
         return "Please enter a question first";
       }
-      final prompt = TextPart(myQuery);
-      List<Part> parts = [];
-      parts.add(prompt);
+      if(!_config.isUsable) {
+        return "No AI provider is configured. Tap the settings icon to add your provider URL, API key and model.";
+      }
+      if(myQuery.length > 8192) {
+        return "Question length must be less than 8192 characters";
+      }
+
+      // Assemble the user message from the question plus any opted-in context.
+      final StringBuffer content = StringBuffer(myQuery);
 
       if(includeAircraft) {
         List<Aircraft> aircraft = await UserDatabaseHelper.db.getAllAircraft();
         if(aircraft.isNotEmpty) {
           Aircraft ac = aircraft.first;
-          final acText = "Use aircraft ${ac.tail} and make/mode ${ac.type}";
-          parts.add(TextPart(acText));
+          content.write("\n\nUse aircraft ${ac.tail} and make/mode ${ac.type}");
         }
       }
       if(includeLogbook) {
         List<LogEntry> entries = await UserDatabaseHelper.db.getAllLogbook();
         if(entries.isNotEmpty) {
-          String logText = "Last 50 log book entries are:\n";
-          logText += "${entries.first.toMap().keys.join(",")}\n";
+          content.write("\n\nLast 50 log book entries are:\n");
+          content.write("${entries.first.toMap().keys.join(",")}\n");
           for(int i = 0; i < entries.length && i < 50; i++) {
-            logText += "${entries[i].toMap().values.join(",")}\n";
+            content.write("${entries[i].toMap().values.join(",")}\n");
           }
-          parts.add(TextPart(logText));
         }
       }
       if(includeWeather) {
-        String weatherText = "";
         PlanRoute route = Storage().route;
         if (route.isNotEmpty) {
           LatLng start = route.getAllDestinations().first.coordinate;
@@ -106,44 +129,55 @@ class AiScreenState extends State<AiScreen> {
           String? windsStart = WindsCache.getWindsAtAll(start, 6);
           String? windsEnd = WindsCache.getWindsAtAll(end, 6);
           if (windsStart != null) {
-            weatherText += "Winds at departure:\n$windsStart\n";
+            content.write("\n\nWinds at departure:\n$windsStart\n");
           }
           if (windsEnd != null) {
-            weatherText += "Winds at destination:\n$windsStart\n";
+            content.write("Winds at destination:\n$windsEnd\n");
           }
-          parts.add(TextPart(weatherText));
         }
       }
       if(includePlan) {
         PlanRoute route = Storage().route;
         if(route.isNotEmpty) {
-          String planText = "Plan is: ${route.toString()}\n";
-          parts.add(TextPart(planText));
+          content.write("\n\nPlan is: ${route.toString()}\n");
         }
       }
+
       String ret = "Unable to get an answer.";
       try {
-        final query = Content.multi(parts);
-        final responseT = await _model.countTokens([query]);
-        final totalTokens = responseT.totalTokens;
-        if(myQuery.length > 2048) {
-          ret = "Question length must be less than 2048 characters";
-        }
-        else if (totalTokens > 10000) {
-          ret = "Please reduce the amount of context included to 10000 tokens - total tokens $totalTokens";
-        }
-        else {
-          final response = await _model.generateContent([query]);
-          if (response.text == null) {
-            ret = "Error: no response from the server";
-          }
-          else {
-            ret = response.text!;
+        final response = await http.post(
+          _config.chatCompletionsUri,
+          headers: {
+            'Content-Type': 'application/json',
+            if (_config.apiKey.isNotEmpty)
+              'Authorization': 'Bearer ${_config.apiKey}',
+          },
+          body: jsonEncode({
+            'model': _config.model,
+            'messages': [
+              {
+                'role': 'system',
+                'content':
+                    'You are an aviation assistant for pilots. Be concise and accurate.'
+              },
+              {'role': 'user', 'content': content.toString()},
+            ],
+          }),
+        );
+        if (response.statusCode != 200) {
+          ret = "Provider error: HTTP ${response.statusCode}. Check your AI provider settings.";
+        } else {
+          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          final text = decoded['choices']?[0]?['message']?['content'];
+          if (text is String && text.trim().isNotEmpty) {
+            ret = text.trim();
+          } else {
+            ret = "Error: no response from the provider.";
           }
         }
       }
       catch(e) {
-        ret = "Internet connection needed.";
+        ret = "Internet connection needed, or the provider is unreachable.";
       }
       await UserDatabaseHelper.db.insertAiQueries(myQuery, ret);
       _loadQueries();
@@ -286,6 +320,11 @@ class AiScreenState extends State<AiScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: _isSending ? null : _openSettings,
+            icon: const Icon(Icons.settings),
+            tooltip: "AI provider settings",
+          ),
           IconButton(
             onPressed: _isSending ? null : () => scaffoldKey.currentState!.openEndDrawer(),
             icon: const Icon(Icons.history),
@@ -551,10 +590,10 @@ class AiScreenState extends State<AiScreen> {
   }
 
   static void teleportToAiScreen(BuildContext context, String query) {
-    if(Constants.shouldShowProServices) {
+    if(Constants.shouldShowAi) {
       UserDatabaseHelper.db.insertAiQueries(query, '').then((value) {
         if(context.mounted) {
-          LoginScreenState.showPaywall(context, "/ai");
+          Navigator.pushNamed(context, "/ai");
         }
       });
     }

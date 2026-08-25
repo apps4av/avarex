@@ -1,4 +1,5 @@
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/aeronautical_database.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/gpws_alerts.dart';
 import 'package:avaremp/instruments/runway_awareness.dart';
@@ -32,7 +33,7 @@ class Area {
     (geo, declination) = await MainDatabaseHelper.db.getGeoInfo(Gps.toLatLng(position));
     geoAltitude = geo;
     variation = declination;
-    List<Destination> d = await MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(position), 1000);
+    List<Destination> d = await AeronauticalDatabase.instance.findNearestAirportsWithRunways(Gps.toLatLng(position), 1000);
     if(d.isNotEmpty) {
       closestAirport = d[0];
     }
@@ -41,7 +42,7 @@ class Area {
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     int lIndex = layers.indexOf('Obstacles');
     if(layersOpacity[lIndex] > 0) {
-      obstacles = await MainDatabaseHelper.db.findObstacles(Gps.toLatLng(position), GeoCalculations.convertAltitude(position.altitude));
+      obstacles = await AeronauticalDatabase.instance.findObstacles(Gps.toLatLng(position), GeoCalculations.convertAltitude(position.altitude));
     }
     // get surface wind from nearest airport
     String wind = WindsCache.getWind0kFromMetar(Gps.toLatLng(position));

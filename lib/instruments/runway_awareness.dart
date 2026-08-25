@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/aeronautical_database.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/flight_status.dart';
 import 'package:avaremp/io/gps.dart';
@@ -324,7 +324,10 @@ class RunwayAwareness {
     }
     if (id == _airportId && !stale && _runways.isNotEmpty) return;
 
-    final AirportDestination? ap = await MainDatabaseHelper.db.findAirport(id);
+    final AirportDestination? ap = await AeronauticalDatabase.instance.findAirport(
+      id,
+      source: closest?.source,
+    );
     _airportId = id;
     _airport = ap;
     _airportLoadedAt = now;

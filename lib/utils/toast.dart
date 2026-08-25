@@ -16,7 +16,7 @@ class Toast {
       closeButton: ToastCloseButton(showType: CloseButtonShowType.none),
       description: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(text, style: TextStyle(fontWeight: FontWeight.w500),),
-        if(Constants.shouldShowProServices && translate)
+        if(Constants.shouldShowAi && translate)
           TextButton(onPressed:() {
             Toastification().dismissAll();
             // put in database for AI query history to pick up, go to pro screen

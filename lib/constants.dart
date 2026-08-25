@@ -98,11 +98,31 @@ class Constants {
   static final bool shouldShowPdf = !(Platform.isLinux);
   static final bool shouldShowBluetoothSpp = (Platform.isAndroid);
   static final bool shouldShouldReview = (Platform.isMacOS || Platform.isIOS | Platform.isAndroid || Platform.isWindows);
-  static final bool shouldShowProServices = (Platform.isIOS || Platform.isAndroid);
 
-  // Whether the Firebase-backed cloud features (e.g. Airport Businesses &
-  // Reviews) are available. Firebase is only initialized on these platforms
-  // (see main.dart), so this is a capability gate, NOT a Pro/paywall gate.
-  static final bool firebaseAvailable = (Platform.isIOS || Platform.isAndroid);
+  // Whether the Flight Intelligence (AI) feature is offered. It talks to a
+  // user-supplied OpenAI-compatible endpoint over plain HTTP, so it works on
+  // every platform and needs no login or cloud backend.
+  static final bool shouldShowAi = true;
+
+  // Whether this is the AvareX-EU build. This fork ships the EU app
+  // (applicationId com.naresh.avarex.eu), so it defaults to true; upstream/US
+  // builds can override with --dart-define=AVAREX_EU=false. When true, the
+  // internet "Radar" product is sourced from RainViewer (global coverage,
+  // animated) instead of the US-only Iowa Mesonet NEXRAD mosaic.
+  static const bool isEu = bool.fromEnvironment('AVAREX_EU', defaultValue: true);
+
+  // RainViewer radar color scheme IDs (0..8) and their display names.
+  // See https://www.rainviewer.com/api/color-schemes.html
+  static const List<String> rainViewerColorSchemes = [
+    "Black and White",   // 0
+    "Original",          // 1
+    "Universal Blue",    // 2
+    "TITAN",             // 3
+    "The Weather Channel", // 4
+    "Meteored",          // 5
+    "NEXRAD Level III",  // 6
+    "Rainbow (SELEX-SI)", // 7
+    "Dark Sky",          // 8
+  ];
 
 }

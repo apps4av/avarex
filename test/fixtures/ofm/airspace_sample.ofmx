@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OFMX-Snapshot regions="LF" effective="2026-01-22T00:00:00Z" expiration="2026-02-19T00:00:00Z">
+  <Ase><AseUid region="LF" mid="airspace-1"><codeType>CTR</codeType><codeId>LFBG</codeId></AseUid><txtName>COGNAC</txtName><codeClass>D</codeClass><codeDistVerUpper>ALT</codeDistVerUpper><valDistVerUpper>1500</valDistVerUpper><uomDistVerUpper>FT</uomDistVerUpper><codeDistVerLower>HEI</codeDistVerLower><valDistVerLower>0</valDistVerLower><uomDistVerLower>FT</uomDistVerLower><codeSelAvbl>Y</codeSelAvbl><txtRmk>Fixture airspace</txtRmk></Ase>
+  <Abd><AbdUid mid="boundary-1"><AseUid region="LF" mid="airspace-1"><codeType>CTR</codeType><codeId>LFBG</codeId></AseUid></AbdUid>
+    <Avx><codeType>GRC</codeType><geoLat>45.70000000N</geoLat><geoLong>000.40000000W</geoLong><codeDatum>WGE</codeDatum></Avx>
+    <Avx><codeType>CCA</codeType><geoLat>45.80000000N</geoLat><geoLong>000.30000000W</geoLong><geoLatArc>45.75000000N</geoLatArc><geoLongArc>000.35000000W</geoLongArc><codeDatum>WGE</codeDatum></Avx>
+    <Avx><codeType>GRC</codeType><geoLat>45.70000000N</geoLat><geoLong>000.20000000W</geoLong><codeDatum>WGE</codeDatum></Avx>
+  </Abd>
+</OFMX-Snapshot>

@@ -4,8 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/airport_satellite.dart';
-import 'package:avaremp/business/airport_businesses_gate.dart';
-import 'package:avaremp/business/models/airport_business.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/plate_cifp_route.dart';
@@ -142,7 +140,6 @@ class PlatesFuture {
   List<String> _plates = [];
   List<String> _airports = [];
   List<String> _procedures = [];
-  List<AirportBusiness> _businesses = [];
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
@@ -168,12 +165,6 @@ class PlatesFuture {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
       _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
       _airportDestination = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
-      // Businesses drawn on the airport diagram come from the crowd-sourced
-      // cloud directory; the gate handles platform/sign-in and returns empty
-      // when unavailable.
-      _businesses = await AirportBusinessesGate.businessesForPlate(
-          _currentPlateAirport,
-          origin: _airportDestination?.coordinate);
     }
   }
 
@@ -185,7 +176,6 @@ class PlatesFuture {
   AirportDestination? get airportDestination => _airportDestination;
   List<String> get airports => _airports;
   List<String> get plates => _plates;
-  List<AirportBusiness> get business => _businesses;
   List<String> get procedures => _procedures;
   String get currentPlateAirport => _currentPlateAirport;
 }
@@ -509,11 +499,10 @@ class PlateScreenState extends State<PlateScreen> {
     double height = 0;
 
     if(future == null || future.airports.isEmpty) {
-      return makePlateView([], [], [], [], height, _notifier, null);
+      return makePlateView([], [], [], height, _notifier, null);
     }
 
     List<String> plates = future.plates;
-    List<AirportBusiness> business = future.business;
     List<String> airports = future.airports;
     List<String> procedures = future.procedures;
     Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
@@ -538,7 +527,7 @@ class PlateScreenState extends State<PlateScreen> {
       }
     }
 
-    return makePlateView(airports, plates, procedureNames, business, height, _notifier, future.airportDestination);
+    return makePlateView(airports, plates, procedureNames, height, _notifier, future.airportDestination);
   }
 
   Future<void> _downloadSatellite(AirportDestination airport) async {
@@ -579,13 +568,9 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
-  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, List<AirportBusiness> business, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
+  Widget makePlateView(List<String> airports, List<String> plates, List<String> procedures, double height, ValueNotifier notifier, AirportDestination? airportDestination) {
 
     bool notAd = !PathUtils.isAirportDiagram(Storage().currentPlate);
-    if (notAd) {
-      // The business marker only makes sense on the airport diagram.
-      Storage().business = null;
-    }
 
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
@@ -827,56 +812,6 @@ class PlateScreenState extends State<PlateScreen> {
               ),
             ),
 
-          // Business selector (center right, only on airport diagrams)
-          if (business.isNotEmpty && !notAd)
-            Positioned(
-              right: 8,
-              top: Constants.screenHeight(context) / 2 - 20,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: overlayBg,
-                  shape: BoxShape.circle,
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton2<String>(
-                    isDense: true,
-                    customButton: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(Icons.business, color: Theme.of(context).colorScheme.primary),
-                    ),
-                    buttonStyleData: ButtonStyleData(
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
-                    ),
-                    dropdownStyleData: DropdownStyleData(
-                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
-                      width: Constants.screenWidth(context) * 0.75,
-                    ),
-                    isExpanded: false,
-                    value: business.any((b) => b.id == Storage().business?.id)
-                        ? Storage().business!.id
-                        : business[0].id,
-                    items: business.map((AirportBusiness item) {
-                      return DropdownMenuItem<String>(
-                        value: item.id,
-                        child: ListTile(
-                          dense: true,
-                          leading: const Icon(Icons.location_on, size: 18),
-                          title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        Storage().business = value == null
-                            ? business[0]
-                            : business.firstWhere((element) => element.id == value, orElse: () => business[0]);
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ),
-
           // Airport selector and procedures (bottom right)
           Positioned(
             bottom: Constants.bottomPaddingSize(context) + 8,
@@ -1109,7 +1044,6 @@ class PlateScreenState extends State<PlateScreen> {
 class _PlatePainter extends CustomPainter {
 
   List<double>? _matrix;
-  AirportBusiness? _business;
   ui.Image? _image;
   ui.Image? _imagePlane;
   double? _variation;
@@ -1133,11 +1067,6 @@ class _PlatePainter extends CustomPainter {
   final _paintCompass = Paint()
     ..strokeWidth = 3
     ..color = Colors.red;
-
-  final _paintBusiness = Paint()
-    ..strokeWidth = 3
-    ..color = Colors.blueAccent.withAlpha(200)
-    ..style = PaintingStyle.fill;
 
   final _paintTerrain = Paint()
     ..style = PaintingStyle.fill;
@@ -1189,7 +1118,6 @@ class _PlatePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
 
     _image = Storage().imagePlate;
-    _business = Storage().business;
     _variation = Storage().area.variation;
     _imagePlane = Storage().imagePlane;
     _matrix = Storage().matrixPlate;
@@ -1232,19 +1160,6 @@ class _PlatePainter extends CustomPainter {
 
         // draw circle at center of airport
         canvas.drawCircle(offsetCircle, 16  , _paintCenter);
-
-        if(_business != null && _business!.hasLocation) {
-          // draw selected business
-          Offset offsetBiz = const Offset(0, 0);
-          (offsetBiz, _) = _calculateOffset(_business!.coordinate);
-          canvas.drawCircle(offsetBiz, 10, _paintBusiness);
-          offsetBiz = Offset(offsetBiz.dx + 12, offsetBiz.dy - 12);
-          TextSpan span = TextSpan(text: _business!.name.substring(0, min(_business!.name.length, 24)),
-              style: TextStyle(color: Colors.red, backgroundColor: Colors.white, fontWeight: FontWeight.bold, fontSize: 12));
-          TextPainter tp = TextPainter(text: span, textAlign: TextAlign.left, textDirection: TextDirection.ltr);
-          tp.layout();
-          tp.paint(canvas, offsetBiz);
-        }
 
         //draw airplane
         canvas.translate(offsetPlane.dx, offsetPlane.dy);

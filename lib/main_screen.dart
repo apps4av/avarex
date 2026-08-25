@@ -301,6 +301,66 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       _buildMenuItem(
                         context,
+                        icon: MdiIcons.mapMarkerPath,
+                        title: "OpenFlightMaps",
+                        subtitle: "Regional OFM VFR map layers",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/ofm_download');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.public,
+                        title: "openAIP",
+                        subtitle: "Supplementary EU airports, navaids & obstacles",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/openaip');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.air,
+                        title: "Open-Meteo Winds",
+                        subtitle: "Global winds aloft outside US coverage",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/open_meteo');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.warning_amber,
+                        title: "NOTAMs (FlyBrief)",
+                        subtitle: "European NOTAMs for offline use",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/flybrief');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: MdiIcons.airplaneMarker,
+                        title: "Internet Traffic (OpenSky)",
+                        subtitle: "Advisory ADS-B traffic without hardware",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/opensky');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.terrain,
+                        title: "Terrain (Elevation)",
+                        subtitle: "Build offline terrain/GPWS by country",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/terrain');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
                         icon: MdiIcons.fileDocument,
                         title: "Documents",
                         subtitle: "Weather, manuals, notes, tracks",
@@ -380,6 +440,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             }
                           },
                         ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.info_outline,
+                        title: "About & Credits",
+                        subtitle: "Version, data sources & licenses",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/about');
+                        },
+                      ),
                     ],
                   ),
                 ),

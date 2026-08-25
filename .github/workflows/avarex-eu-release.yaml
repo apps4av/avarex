@@ -1,0 +1,242 @@
+name: AvareX-EU Release
+
+on:
+  push:
+    tags:
+      - '**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: avarex-eu-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate tag and set release names
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [[ ! "$TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+            echo "Tag '$TAG' cannot be used safely in a release filename."
+            exit 1
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "APK_NAME=AvareX-EU-$TAG.apk" >> "$GITHUB_ENV"
+          echo "APK_UNSIGNED_NAME=AvareX-EU-$TAG-unsigned.apk" >> "$GITHUB_ENV"
+          echo "AAB_NAME=AvareX-EU-$TAG.aab" >> "$GITHUB_ENV"
+          echo "AAB_UNSIGNED_NAME=AvareX-EU-$TAG-unsigned.aab" >> "$GITHUB_ENV"
+          echo "SOURCE_BASENAME=AvareX-EU-$TAG-source" >> "$GITHUB_ENV"
+          echo "CHANGELOG_NAME=CHANGELOG-$TAG.md" >> "$GITHUB_ENV"
+
+      - name: Generate changelist
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          PREVIOUS_TAG="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          {
+            echo "# AvareX-EU $TAG"
+            echo
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+              echo "Changes since $PREVIOUS_TAG:"
+              echo
+              git log --no-merges --pretty='- %s (`%h`)' "$PREVIOUS_TAG..HEAD"
+            else
+              echo "Changes included in this release:"
+              echo
+              git log --no-merges --pretty='- %s (`%h`)' HEAD
+            fi
+          } > "dist/$CHANGELOG_NAME"
+
+      - name: Create source archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          STAGING="dist/$SOURCE_BASENAME"
+          mkdir -p "$STAGING"
+          git archive HEAD | tar -x -C "$STAGING"
+          cp "dist/$CHANGELOG_NAME" "$STAGING/CHANGELOG-RELEASE.md"
+          tar -C dist -czf "dist/$SOURCE_BASENAME.tar.gz" "$SOURCE_BASENAME"
+          (cd dist && zip -qr "$SOURCE_BASENAME.zip" "$SOURCE_BASENAME")
+          rm -rf "$STAGING"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.1'
+          cache: true
+
+      - name: Inject optional app service credentials
+        shell: bash
+        env:
+          FAA_NMS_API_CLIENT_ID_SECRET: ${{ secrets.FAA_NMS_API_CLIENT_ID_SECRET }}
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import os
+          from pathlib import Path
+
+          replacements = {
+              '@@__faa_nms_api_client_id_secret__@@': os.environ.get('FAA_NMS_API_CLIENT_ID_SECRET', ''),
+          }
+          for path in Path('.').rglob('*.dart'):
+              text = path.read_text(encoding='utf-8')
+              updated = text
+              for needle, replacement in replacements.items():
+                  updated = updated.replace(needle, replacement)
+              if updated != text:
+                  path.write_text(updated, encoding='utf-8')
+          "
+
+      - name: Install project dependencies
+        run: flutter pub get
+
+      - name: Run tests and analyzer
+        run: |
+          flutter test
+          flutter analyze --no-fatal-infos
+
+      - name: Ensure Android cmdline-tools (apkanalyzer) for AAB build
+        shell: bash
+        run: |
+          set -euo pipefail
+          # `flutter build appbundle` runs apkanalyzer to strip debug symbols;
+          # without cmdline-tools it fails with a misleading
+          # "failed to strip debug symbols". Make sure it's installed.
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          if ! find "$SDK_ROOT/cmdline-tools" -type f -name apkanalyzer 2>/dev/null | grep -q .; then
+            echo "apkanalyzer not found; installing cmdline-tools;latest"
+            yes | "$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "cmdline-tools;latest" 2>/dev/null \
+              || (command -v sdkmanager >/dev/null && yes | sdkmanager "cmdline-tools;latest") \
+              || echo "Could not auto-install cmdline-tools; relying on preinstalled tooling."
+          fi
+          find "$SDK_ROOT" -type f -name apkanalyzer -print 2>/dev/null | head -1 || true
+
+      - name: Build release APK and AAB
+        run: |
+          flutter build apk --release
+          flutter build appbundle --release
+
+      - name: Sign and name release artifacts (APK + AAB, signed + unsigned)
+        shell: bash
+        env:
+          SIGNING_KEY_BASE64: ${{ secrets.KEY_STORE }}
+          KEY_ALIAS: ${{ secrets.KEY_STORE_ALIAS }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEY_STORE_PASS }}
+          KEY_PASSWORD: ${{ secrets.KEY_STORE_PASS }}
+        run: |
+          set -euo pipefail
+
+          # --- Locate the built artifacts (names vary with signingConfig) ---
+          RELEASE_APK=""
+          for candidate in \
+            "build/app/outputs/apk/release/app-release.apk" \
+            "build/app/outputs/apk/release/app-release-unsigned.apk" \
+            "build/app/outputs/flutter-apk/app-release.apk"; do
+            if [[ -f "$candidate" ]]; then RELEASE_APK="$candidate"; break; fi
+          done
+          if [[ -z "$RELEASE_APK" ]]; then
+            echo "No release APK was generated under build/app/outputs"
+            find build/app/outputs -type f -name '*.apk' -print || true
+            exit 1
+          fi
+          RELEASE_AAB=""
+          for candidate in \
+            "build/app/outputs/bundle/release/app-release.aab" \
+            "build/app/outputs/bundle/release/app.aab"; do
+            if [[ -f "$candidate" ]]; then RELEASE_AAB="$candidate"; break; fi
+          done
+          if [[ -z "$RELEASE_AAB" ]]; then
+            echo "No release AAB was generated under build/app/outputs/bundle"
+            find build/app/outputs/bundle -type f -name '*.aab' -print || true
+            exit 1
+          fi
+          echo "APK: $RELEASE_APK"
+          echo "AAB: $RELEASE_AAB"
+
+          # --- Publish the unsigned artifacts verbatim ---
+          cp "$RELEASE_APK" "dist/$APK_UNSIGNED_NAME"
+          cp "$RELEASE_AAB" "dist/$AAB_UNSIGNED_NAME"
+
+          # --- Locate signing tools ---
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          ZIPALIGN="$(find "$SDK_ROOT/build-tools" -maxdepth 2 -type f -name zipalign 2>/dev/null | sort -V | tail -1 || true)"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -maxdepth 2 -type f -name apksigner 2>/dev/null | sort -V | tail -1 || true)"
+          if [[ ! -x "$ZIPALIGN" || ! -x "$APKSIGNER" ]]; then
+            echo "Android build-tools signing utilities were not found under $SDK_ROOT/build-tools"
+            find "$SDK_ROOT/build-tools" -maxdepth 2 -type f \( -name zipalign -o -name apksigner \) -print || true
+            exit 1
+          fi
+          echo "zipalign: $ZIPALIGN"
+          echo "apksigner: $APKSIGNER"
+
+          # --- Prepare the keystore (repo secret, else a generated fallback) ---
+          KEYSTORE="${RUNNER_TEMP:-/tmp}/avarex-eu-release.jks"
+          KS_ALIAS=""; KS_STOREPASS=""; KS_KEYPASS=""
+          if [[ -n "$SIGNING_KEY_BASE64" && -n "$KEY_ALIAS" && -n "$KEYSTORE_PASSWORD" && -n "$KEY_PASSWORD" ]] \
+              && printf '%s' "$SIGNING_KEY_BASE64" | base64 --decode --ignore-garbage > "$KEYSTORE" 2>/dev/null \
+              && keytool -list -keystore "$KEYSTORE" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "Using repository signing key."
+            KS_ALIAS="$KEY_ALIAS"; KS_STOREPASS="$KEYSTORE_PASSWORD"; KS_KEYPASS="$KEY_PASSWORD"
+          else
+            echo "Repository signing secrets missing/invalid; generating a fallback signing key."
+            KEYSTORE="${RUNNER_TEMP:-/tmp}/avarex-eu-release-generated.jks"
+            KS_ALIAS="avarex-eu-release"; KS_STOREPASS="avarex-eu-release-pass"; KS_KEYPASS="avarex-eu-release-pass"
+            keytool -genkeypair -keystore "$KEYSTORE" -storepass "$KS_STOREPASS" -keypass "$KS_KEYPASS" \
+              -alias "$KS_ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=AvareX EU GitHub Release, O=AvareX, C=US"
+          fi
+
+          # --- Sign the APK (zipalign + apksigner) ---
+          ALIGNED_APK="${RUNNER_TEMP:-/tmp}/aligned.apk"
+          "$ZIPALIGN" -f -p 4 "$RELEASE_APK" "$ALIGNED_APK"
+          "$APKSIGNER" sign \
+            --ks "$KEYSTORE" --ks-key-alias "$KS_ALIAS" \
+            --ks-pass "pass:$KS_STOREPASS" --key-pass "pass:$KS_KEYPASS" \
+            --out "dist/$APK_NAME" "$ALIGNED_APK"
+          "$APKSIGNER" verify --verbose --print-certs "dist/$APK_NAME"
+
+          # --- Sign the AAB (jarsigner; apksigner does not handle AABs) ---
+          # `flutter build appbundle` already signs the bundle via Gradle's
+          # signingConfig (debug cert in CI, since there is no key.properties).
+          # jarsigner ADDS a signature rather than replacing it, so signing the
+          # bundle as-is leaves TWO certificate chains in META-INF and Play
+          # rejects it with "more than 1 certificate chain". Strip any existing
+          # signature block first so the bundle carries exactly one chain.
+          cp "$RELEASE_AAB" "dist/$AAB_NAME"
+          zip -qd "dist/$AAB_NAME" 'META-INF/*.RSA' 'META-INF/*.DSA' \
+            'META-INF/*.EC' 'META-INF/*.SF' 2>/dev/null || true
+          jarsigner -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore "$KEYSTORE" -storepass "$KS_STOREPASS" -keypass "$KS_KEYPASS" \
+            "dist/$AAB_NAME" "$KS_ALIAS"
+          jarsigner -verify "dist/$AAB_NAME"
+
+          rm -f "$KEYSTORE" "$ALIGNED_APK"
+          echo "Artifacts:"; ls -la dist/*.apk dist/*.aab
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: AvareX-EU ${{ github.ref_name }}
+          body_path: dist/${{ env.CHANGELOG_NAME }}
+          files: |
+            dist/${{ env.APK_NAME }}
+            dist/${{ env.APK_UNSIGNED_NAME }}
+            dist/${{ env.AAB_NAME }}
+            dist/${{ env.AAB_UNSIGNED_NAME }}
+            dist/${{ env.SOURCE_BASENAME }}.tar.gz
+            dist/${{ env.SOURCE_BASENAME }}.zip
+            dist/${{ env.CHANGELOG_NAME }}
+          fail_on_unmatched_files: true

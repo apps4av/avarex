@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OFMX-Snapshot regions="EB" effective="2026-01-22T00:00:00Z" expiration="2026-02-19T00:00:00Z">
+  <Ahp source="fixture">
+    <AhpUid region="EB" mid="airport-1"><codeId>EBAW</codeId></AhpUid>
+    <txtName>ANTWERPEN/DEURNE</txtName><codeIcao>EBAW</codeIcao><codeIata>ANR</codeIata><codeGps>EBDEURNE</codeGps><codeType>AH</codeType>
+    <geoLat>51.18945833N</geoLat><geoLong>004.46039722E</geoLong><valElev>39</valElev><uomDistVer>FT</uomDistVer><txtNameCitySer>ANTWERPEN</txtNameCitySer><valMagVar>-1.02</valMagVar><valTransitionAlt>4500</valTransitionAlt><uomTransitionAlt>FT</uomTransitionAlt>
+  </Ahp>
+  <Aha><AhaUid mid="comm-1"><AhpUid mid="airport-1"><codeId>EBAW</codeId></AhpUid><codeType>RADIO</codeType><noSeq>1</noSeq></AhaUid><txtAddress>135.2</txtAddress><txtRmk>A/A outside HOR TWR</txtRmk></Aha>
+  <Rwy><RwyUid mid="runway-1"><AhpUid mid="airport-1"><codeId>EBAW</codeId></AhpUid><txtDesig>11/29</txtDesig></RwyUid><valLen>1510</valLen><valWid>45</valWid><uomDimRwy>M</uomDimRwy><codeComposition>ASPH</codeComposition><codeCondSfc>GOOD</codeCondSfc></Rwy>
+  <Rdn><RdnUid mid="end-11"><RwyUid mid="runway-1"><AhpUid mid="airport-1"><codeId>EBAW</codeId></AhpUid><txtDesig>11/29</txtDesig></RwyUid><txtDesig>11</txtDesig></RdnUid><geoLat>51.19186111N</geoLat><geoLong>004.454775E</geoLong><valTrueBrg>109.8</valTrueBrg><valMagBrg>112</valMagBrg><valElevTdz>39</valElevTdz><uomElevTdz>FT</uomElevTdz><codeTypeVasis>PAPI</codeTypeVasis><codeVfrPattern>E</codeVfrPattern></Rdn>
+</OFMX-Snapshot>

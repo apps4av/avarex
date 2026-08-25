@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AvareX-EU — European Electronic Flight Bag (EFB) | VFR Charts, ADS-B, Weather</title>
+<meta name="description" content="AvareX-EU is a free, open-source European electronic flight bag (EFB): VFR/IFR moving map with OpenFlightMaps and openAIP data, geo-referenced plates, internet ADS-B traffic, RainViewer weather and flight planning. No accounts, no ads, no tracking. Android, iOS, Windows, macOS & Linux." />
+<meta name="keywords" content="AvareX EU, European EFB, OpenFlightMaps, openAIP, VFR charts Europe, ADS-B traffic, aviation app, foreflight alternative, RainViewer, OpenSky, open source EFB" />
+<meta name="author" content="AvareX-EU" />
+<meta name="robots" content="index, follow, max-image-preview:large" />
+<link rel="canonical" href="https://wolverine2k.github.io/avarex/eu/" />
+<link rel="icon" type="image/png" href="../logo.png" />
+<meta name="theme-color" content="#0a2540" />
+
+<!-- Open Graph -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="AvareX-EU" />
+<meta property="og:title" content="AvareX-EU — European Electronic Flight Bag (EFB)" />
+<meta property="og:description" content="Free, open-source European EFB: OpenFlightMaps & openAIP charts, geo-referenced plates, internet ADS-B traffic, RainViewer weather & flight planning. No accounts, no ads, no tracking." />
+<meta property="og:url" content="https://wolverine2k.github.io/avarex/eu/" />
+<meta property="og:image" content="https://wolverine2k.github.io/avarex/img/eu/map-malmo.png" />
+<meta property="og:image:alt" content="AvareX-EU moving map with ownship on a European VFR chart" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="AvareX-EU — European Electronic Flight Bag (EFB)" />
+<meta name="twitter:description" content="Free, open-source European EFB: OpenFlightMaps & openAIP charts, ADS-B traffic, RainViewer weather & flight planning. No accounts, no ads, no tracking." />
+<meta name="twitter:image" content="https://wolverine2k.github.io/avarex/img/eu/map-malmo.png" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "AvareX-EU",
+      "alternateName": "AvareX EU",
+      "operatingSystem": "Android, iOS, Windows, macOS, Linux, Raspberry Pi",
+      "applicationCategory": "TravelApplication",
+      "applicationSubCategory": "Electronic Flight Bag (EFB) / Aviation navigation",
+      "description": "AvareX-EU is a free, open-source European electronic flight bag (EFB) fork of AvareX. It adds optional European aeronautical data from OpenFlightMaps and openAIP, internet ADS-B traffic from OpenSky, and RainViewer weather radar, alongside a VFR/IFR moving map, geo-referenced plates and flight planning. It has no accounts, no advertising and no tracking.",
+      "url": "https://wolverine2k.github.io/avarex/eu/",
+      "isBasedOn": "https://github.com/apps4av/avarex",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+      "author": { "@type": "Person", "name": "AvareX-EU maintainer" },
+      "featureList": [
+        "European VFR/IFR moving map with georeferenced ownship",
+        "OpenFlightMaps VFR charts and OFMX aeronautical data",
+        "openAIP airports, navaids, airspace and obstacles",
+        "Internet ADS-B traffic (advisory) via OpenSky",
+        "RainViewer animated internet weather radar",
+        "Geo-referenced approach plates and airport diagrams",
+        "Flight planning with nav log",
+        "Works offline once charts are downloaded",
+        "No accounts, no ads, no tracking"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is AvareX-EU?", "acceptedAnswer": { "@type": "Answer", "text": "AvareX-EU is a free, open-source European fork of AvareX. It keeps AvareX's electronic flight bag features and adds optional European aeronautical data from OpenFlightMaps and openAIP, internet ADS-B traffic from OpenSky, and RainViewer weather radar. European data is downloaded on demand rather than bundled in the app." } },
+        { "@type": "Question", "name": "How is European chart data provided?", "acceptedAnswer": { "@type": "Answer", "text": "AvareX-EU uses OpenFlightMaps for primary European VFR charts and aeronautical data, with openAIP as an optional supplementary source using your own personal API key. Data is downloaded per region and AIRAC cycle on demand, so the app package itself stays small." } },
+        { "@type": "Question", "name": "Does AvareX-EU track me or show ads?", "acceptedAnswer": { "@type": "Answer", "text": "No. AvareX-EU has no user accounts, no analytics, no advertising and no tracking SDKs. Your routes, logbook and settings stay on your device, and the app only contacts the internet when you download data or fetch live weather and traffic." } },
+        { "@type": "Question", "name": "Is AvareX-EU certified for navigation?", "acceptedAnswer": { "@type": "Answer", "text": "No. AvareX-EU is not a certified GPS or navigation system and must not be used as a sole means of navigation. European data added by this fork is complementary and not certified. Always cross-check with official sources and certified equipment." } }
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+  :root{
+    --navy:#0a2540; --navy2:#0d2c52; --ink:#0f1c2e; --muted:#5a6b82;
+    --line:#e4ebf3; --bg:#ffffff; --bg-alt:#f4f8fc;
+    --blue:#1d6fe0; --blue-d:#155bbd; --green:#16a34a; --green-d:#12823b;
+    --radius:16px; --max:1140px; --shadow:0 18px 50px rgba(13,44,82,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  img{display:block;max-width:100%}
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+  .eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:12.5px;font-weight:800;color:var(--blue)}
+
+  .btn{display:inline-flex;align-items:center;gap:9px;padding:13px 20px;border-radius:12px;
+    font-weight:700;font-size:15px;border:1.5px solid var(--line);background:#fff;color:var(--ink);
+    transition:.16s;cursor:pointer;white-space:nowrap}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(13,44,82,.12)}
+  .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  .btn.primary:hover{background:var(--blue-d)}
+  .btn.ghost-light{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
+  .btn .sub{display:block;font-size:10.5px;font-weight:600;opacity:.8;line-height:1.05}
+  .btn .big{font-size:15px;font-weight:800;line-height:1.1}
+  .store-row{display:flex;flex-wrap:wrap;gap:12px}
+
+  .site-header{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);
+    backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid transparent;transition:.2s}
+  .site-header.scrolled{border-bottom-color:var(--line);box-shadow:0 4px 20px rgba(13,44,82,.05)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:66px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:850;font-size:20px;letter-spacing:-.2px}
+  .brand img{width:30px;height:30px}
+  .brand .eu{background:linear-gradient(135deg,#1d6fe0,#16a34a);color:#fff;font-size:12px;font-weight:800;
+    padding:2px 8px;border-radius:999px;letter-spacing:.04em}
+  .nav-links{display:flex;align-items:center;gap:28px}
+  .nav-links a{color:var(--muted);font-weight:600;font-size:15px}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-cta{display:flex;align-items:center;gap:12px}
+
+  .hero{background:radial-gradient(1100px 520px at 78% -8%, #15396b 0%, var(--navy) 60%);color:#fff;
+    padding:74px 0 90px;position:relative;overflow:hidden}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+  .hero .pill{display:inline-flex;align-items:center;gap:8px;background:rgba(22,163,74,.16);
+    border:1px solid rgba(22,163,74,.4);color:#86efac;font-weight:700;font-size:13px;
+    padding:6px 13px;border-radius:999px;margin-bottom:20px}
+  .hero h1{font-size:50px;line-height:1.05;font-weight:850;letter-spacing:-1.2px}
+  .hero h1 .g{background:linear-gradient(120deg,#7cc4ff,#86efac);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lede{color:#cfe0f5;font-size:18.5px;margin:18px 0 28px;max-width:44ch}
+  .hero .micro{color:#9fb6d6;font-size:13.5px;margin-top:14px}
+  .hero-visual{justify-self:center;position:relative}
+
+  .device{width:100%;max-width:560px;border-radius:16px;background:#0d1626;padding:8px;
+    box-shadow:0 30px 70px rgba(13,44,82,.32);border:1px solid rgba(255,255,255,.10)}
+  .device img{width:100%;height:auto;display:block;border-radius:10px;background:#000;aspect-ratio:4/3;object-fit:cover}
+  .phone{width:296px;max-width:74vw;border-radius:46px;background:#0b1220;padding:11px;
+    box-shadow:0 38px 80px rgba(13,44,82,.40);border:1px solid rgba(255,255,255,.12)}
+  .phone img{width:100%;height:auto;display:block;border-radius:36px;background:#000}
+
+  .strip{background:var(--bg-alt);border-bottom:1px solid var(--line)}
+  .strip .wrap{display:flex;align-items:center;justify-content:center;gap:14px 30px;flex-wrap:wrap;
+    padding:20px 22px;color:var(--muted);font-weight:700;font-size:14.5px}
+  .strip b{color:var(--ink)}
+  .strip .sep{width:5px;height:5px;border-radius:50%;background:#c2cfde}
+
+  section{padding:84px 0}
+  .section-head{text-align:center;max-width:660px;margin:0 auto 50px}
+  .section-head h2{font-size:38px;font-weight:850;letter-spacing:-.6px;margin:10px 0 12px}
+  .section-head p{color:var(--muted);font-size:18px}
+  .alt-bg{background:var(--bg-alt)}
+
+  .pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .pillar{text-align:center;padding:8px}
+  .pillar .ic{width:54px;height:54px;margin:0 auto 14px;border-radius:14px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#e8f1ff,#e7f7ee);font-size:26px}
+  .pillar h3{font-size:17px;margin-bottom:5px}
+  .pillar p{color:var(--muted);font-size:14.5px}
+
+  .feature{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin:0 auto;max-width:var(--max)}
+  .feature + .feature{margin-top:96px}
+  .feature.rev .f-text{order:2}
+  .feature.rev .f-media{order:1}
+  .feature h3{font-size:30px;font-weight:850;letter-spacing:-.5px;margin:12px 0 14px}
+  .feature p{color:var(--muted);font-size:17px;margin-bottom:18px}
+  .flist{list-style:none;display:grid;gap:10px}
+  .flist li{display:flex;gap:10px;align-items:flex-start;color:var(--ink);font-size:15.5px}
+  .flist li::before{content:"✓";color:var(--green);font-weight:800;margin-top:1px}
+  .f-media{display:flex;justify-content:center}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:24px;transition:.16s}
+  .card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+  .card .ic{font-size:24px;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+    background:linear-gradient(135deg,#e8f1ff,#e7f7ee);margin-bottom:14px}
+  .card h3{font-size:17px;margin-bottom:6px}
+  .card p{color:var(--muted);font-size:14.5px}
+
+  .privacy-band{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:900px;margin:0 auto}
+  .pc{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:22px;text-align:center}
+  .pc .ic{font-size:26px;margin-bottom:8px}
+  .pc h3{font-size:16px;margin-bottom:5px}
+  .pc p{color:var(--muted);font-size:14px}
+
+  .steps{max-width:820px;margin:0 auto;display:grid;gap:14px}
+  .step{display:flex;gap:16px;align-items:flex-start;background:#fff;border:1px solid var(--line);
+    border-radius:14px;padding:18px 20px}
+  .step .n{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--green));
+    color:#fff;font-weight:800;display:grid;place-items:center}
+  .step h3{font-size:16.5px;margin-bottom:3px}
+  .step p{color:var(--muted);font-size:14.5px}
+
+  .faq{max-width:820px;margin:0 auto}
+  .faq details{background:#fff;border:1px solid var(--line);border-radius:14px;padding:0 20px;margin-bottom:12px}
+  .faq summary{cursor:pointer;list-style:none;padding:18px 0;font-weight:700;font-size:16.5px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::after{content:"+";color:var(--blue);font-size:24px;font-weight:700;line-height:1}
+  .faq details[open] summary::after{content:"–"}
+  .faq details p{color:var(--muted);font-size:15.5px;padding:0 0 20px}
+
+  .cta-band{background:radial-gradient(900px 400px at 50% -40%, #15396b, var(--navy));color:#fff;
+    border-radius:26px;padding:56px 30px;text-align:center;max-width:var(--max);margin:0 auto}
+  .cta-band h2{font-size:36px;font-weight:850;letter-spacing:-.6px}
+  .cta-band p{color:#cfe0f5;font-size:18px;margin:10px auto 26px;max-width:52ch}
+  .cta-band .store-row{justify-content:center}
+
+  footer{background:var(--navy);color:#aac1de;padding:56px 0 30px;margin-top:84px}
+  .fgrid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:30px}
+  footer .brand{color:#fff;margin-bottom:12px}
+  footer p.tag{color:#8aa6c9;font-size:14.5px;max-width:34ch}
+  footer h4{color:#fff;font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+  footer ul{list-style:none;display:grid;gap:10px}
+  footer ul a{color:#aac1de;font-size:14.5px}
+  footer ul a:hover{color:#fff}
+  .fbar{border-top:1px solid rgba(255,255,255,.12);margin-top:40px;padding-top:22px;
+    display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:#8aa6c9}
+  .disc{max-width:62ch}
+
+  @media(max-width:920px){
+    .hero .wrap,.feature{grid-template-columns:1fr;gap:40px;text-align:center}
+    .hero{padding:54px 0 64px}
+    .hero h1{font-size:38px}
+    .hero p.lede{margin-left:auto;margin-right:auto}
+    .hero .store-row{justify-content:center}
+    .feature .f-media{order:-1}
+    .flist{display:inline-grid;text-align:left}
+    .pillars{grid-template-columns:repeat(2,1fr)}
+    .grid,.privacy-band{grid-template-columns:1fr 1fr}
+    .fgrid{grid-template-columns:1fr 1fr}
+    .nav-links{display:none}
+    .section-head h2{font-size:30px}
+  }
+  @media(max-width:560px){
+    .grid,.pillars,.fgrid,.privacy-band{grid-template-columns:1fr}
+    .hero h1{font-size:32px}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top"><img src="../logo.png" alt="AvareX-EU logo"> AvareX <span class="eu">EU</span></a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#data">EU data</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#faq">FAQ</a>
+      <a href="privacy.html">Privacy policy</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn primary" href="https://github.com/wolverine2k/avarex/releases">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div>
+        <span class="pill">● Free &amp; open source · No ads · No tracking</span>
+        <h1>The European electronic flight bag that <span class="g">flies free.</span></h1>
+        <p class="lede">AvareX-EU brings European charts and data to AvareX: OpenFlightMaps VFR charts, openAIP
+          airspace, internet ADS-B traffic and animated weather radar — with a georeferenced moving map, plates
+          and flight planning. Your data stays on your device.</p>
+        <div class="store-row">
+          <a class="btn primary" href="https://github.com/wolverine2k/avarex/releases">
+            <span><span class="sub">Get the latest</span><span class="big">AvareX-EU release</span></span>
+          </a>
+          <a class="btn ghost-light" href="https://github.com/wolverine2k/avarex">
+            <span><span class="sub">Browse the</span><span class="big">Source on GitHub</span></span>
+          </a>
+        </div>
+        <p class="micro">Android, iOS, Windows, macOS, Linux &amp; Raspberry Pi · Works offline once charts are downloaded</p>
+      </div>
+      <div class="hero-visual">
+        <div class="phone"><img src="../img/eu/map-malmo.png" alt="AvareX-EU moving map showing OpenFlightMaps VFR chart of Malmö (ESMS) with Malmö TMA/CTR airspace, openAIP data and flight instrument tiles" /></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLATFORM STRIP -->
+  <div class="strip">
+    <div class="wrap">
+      <span>A community European fork of <b>AvareX</b> (Apps4Av)</span><span class="sep"></span>
+      <span><b>Android</b></span><span class="sep"></span>
+      <span><b>iOS</b></span><span class="sep"></span>
+      <span><b>Windows</b></span><span class="sep"></span>
+      <span><b>macOS</b></span><span class="sep"></span>
+      <span><b>Linux</b></span><span class="sep"></span>
+      <span><b>Raspberry Pi</b></span>
+    </div>
+  </div>
+
+  <!-- PILLARS -->
+  <section style="padding-bottom:30px">
+    <div class="wrap">
+      <div class="pillars">
+        <div class="pillar"><div class="ic">🗺️</div><h3>European charts</h3><p>OpenFlightMaps VFR charts &amp; OFMX data, downloaded per region &amp; AIRAC cycle.</p></div>
+        <div class="pillar"><div class="ic">🛩️</div><h3>openAIP data</h3><p>Airports, navaids, airspace &amp; obstacles via your own openAIP key.</p></div>
+        <div class="pillar"><div class="ic">📡</div><h3>ADS-B traffic</h3><p>Optional internet ADS-B (advisory) from OpenSky, plus GDL90 receivers.</p></div>
+        <div class="pillar"><div class="ic">🌧️</div><h3>Weather radar</h3><p>Animated global internet radar from RainViewer, right on the map.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Everything you fly with</div>
+        <h2>A complete cockpit, tuned for Europe</h2>
+        <p>All the AvareX electronic flight bag features, with optional European data providers added on top.</p>
+      </div>
+
+      <div class="feature">
+        <div class="f-text">
+          <div class="eyebrow">Charts &amp; moving map</div>
+          <h3>European VFR charts and a moving map you can trust</h3>
+          <p>Fly OpenFlightMaps VFR charts with a georeferenced ownship — track-up or north-up, with range, speed
+             and glide rings. Regional chart data downloads on demand, so the app stays small.</p>
+          <ul class="flist">
+            <li>OpenFlightMaps VFR chart tiles &amp; OFMX aeronautical data</li>
+            <li>Movable instrument tiles: GS, ALT, track, ETA, ETE &amp; more</li>
+            <li>Region &amp; AIRAC-cycle selection with progress and removal</li>
+            <li>Download once, then fly fully offline</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="phone"><img src="../img/eu/data-download.png" alt="AvareX-EU OpenFlightMaps data screen with VFR map layer, high-resolution @2x toggle, OFMX data and selectable German VFR chart sheets" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature rev">
+        <div class="f-text">
+          <div class="eyebrow">Traffic &amp; weather</div>
+          <h3>Internet ADS-B traffic and animated radar</h3>
+          <p>See advisory ADS-B traffic from the OpenSky Network over the internet, and layer animated RainViewer
+             radar for a quick go/no-go picture — no external hardware required.</p>
+          <ul class="flist">
+            <li>Internet ADS-B traffic (advisory) via OpenSky, plus GDL90 receivers over Wi-Fi</li>
+            <li>Animated RainViewer internet radar with selectable color schemes</li>
+            <li>METAR, TAF, winds and TFR products where available</li>
+            <li>Audible traffic alerts and terrain awareness</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="phone"><img src="../img/eu/ownship-airspace.png" alt="AvareX-EU moving map with red ownship symbol over Malmö, showing ESR130 restricted area and stepped CTR/TMA airspace on the OpenFlightMaps VFR chart" loading="lazy"></div></div>
+      </div>
+
+      <div class="feature">
+        <div class="f-text">
+          <div class="eyebrow">openAIP &amp; plates</div>
+          <h3>openAIP airspace and geo-referenced plates</h3>
+          <p>Add optional openAIP airports, navaids, VFR reporting points, airspace and obstacles using your own
+             personal API key, and shoot approaches with your ownship drawn right on the plate.</p>
+          <ul class="flist">
+            <li>openAIP country data via your own authenticated API key</li>
+            <li>Airspace display as a toggle-able interactive data layer</li>
+            <li>Geo-referenced approach plates &amp; airport diagrams</li>
+            <li>Data cached offline once downloaded</li>
+          </ul>
+        </div>
+        <div class="f-media"><div class="phone"><img src="../img/eu/flight-plan.png" alt="AvareX-EU flight plan nav log for a Sweden route from ESMS to ESSK with distance, ground speed, course, time and fuel per leg" loading="lazy"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EU DATA -->
+  <section id="data">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Bring your own data</div>
+        <h2>European data, downloaded on demand</h2>
+        <p>European data is fetched only when you ask for it, and stored locally — not bundled into the app package.</p>
+      </div>
+      <div class="grid">
+        <div class="card"><div class="ic">🗺️</div><h3>OpenFlightMaps</h3><p>Primary European VFR charts and OFMX airport, runway, comms, navaid, reporting-point and airspace data. Region and AIRAC-cycle aware.</p></div>
+        <div class="card"><div class="ic">🛩️</div><h3>openAIP</h3><p>Optional supplementary airports, navaids, reporting points, airspace and obstacles using your own openAIP Core API key — no shared credential.</p></div>
+        <div class="card"><div class="ic">📡</div><h3>OpenSky Network</h3><p>Optional internet ADS-B traffic layer for situational awareness (advisory only). Enable it when you want it; leave it off otherwise.</p></div>
+        <div class="card"><div class="ic">🌧️</div><h3>RainViewer</h3><p>Animated internet weather radar with global coverage, the default radar product in the EU build, with selectable color schemes.</p></div>
+        <div class="card"><div class="ic">📄</div><h3>Supplementary docs</h3><p>Optional aeronautical documents and data from providers such as flybrief and AIP sources, fetched on request.</p></div>
+        <div class="card"><div class="ic">🤖</div><h3>Flight Intelligence (AI)</h3><p>Optional AI assistant that talks to an OpenAI-compatible endpoint you configure with your own key. Off until you set it up.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section id="privacy" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Privacy by design</div>
+        <h2>Your flying data stays yours</h2>
+        <p>AvareX-EU has no backend that we operate. Nothing about your flights is sent to us — ever.</p>
+      </div>
+      <div class="privacy-band">
+        <div class="pc"><div class="ic">🔒</div><h3>No accounts</h3><p>No sign-up, no login. Just install and fly.</p></div>
+        <div class="pc"><div class="ic">🚫</div><h3>No tracking or ads</h3><p>No analytics, crash-reporting or advertising SDKs of any kind.</p></div>
+        <div class="pc"><div class="ic">📱</div><h3>On-device only</h3><p>Routes, logbook, settings and keys stay in local storage on your device.</p></div>
+      </div>
+      <div class="section-head" style="margin-top:36px;margin-bottom:0">
+        <a class="btn primary" href="privacy.html">Read the full privacy policy →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- GET STARTED -->
+  <section id="get">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Get started</div>
+        <h2>Flying with European data in four steps</h2>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="n">1</div><div><h3>Install AvareX-EU</h3><p>Grab the latest build from the <a href="https://github.com/wolverine2k/avarex/releases">GitHub releases</a> page for your platform.</p></div></div>
+        <div class="step"><div class="n">2</div><div><h3>Download a region</h3><p>Open <strong>Menu → Data</strong> and download an OpenFlightMaps region and AIRAC cycle for the area you fly.</p></div></div>
+        <div class="step"><div class="n">3</div><div><h3>Add openAIP (optional)</h3><p>Enter your own openAIP API key, test the connection, and download country data by ISO code (e.g. <code>DE</code>, <code>FR</code>, <code>SE</code>).</p></div></div>
+        <div class="step"><div class="n">4</div><div><h3>Enable the layers you want</h3><p>Turn on OFM VFR Chart, openAIP interactive data, internet ADS-B traffic and RainViewer radar in the map controls.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="alt-bg">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Questions</div>
+        <h2>Frequently asked questions</h2>
+      </div>
+      <div class="faq">
+        <details open><summary>What is AvareX-EU?</summary><p>AvareX-EU is a free, open-source European fork of AvareX (by Apps4Av). It keeps AvareX's electronic flight bag features and adds optional European aeronautical data from OpenFlightMaps and openAIP, internet ADS-B traffic from OpenSky, and RainViewer weather radar. European data downloads on demand rather than being bundled in the app.</p></details>
+        <details><summary>How do I get European charts?</summary><p>Open Menu → Data and download an OpenFlightMaps region for the AIRAC cycle you need. For supplementary airspace and obstacle data, enter your own openAIP API key and download country data by ISO code. Everything is stored locally on your device.</p></details>
+        <details><summary>Does AvareX-EU track me or show ads?</summary><p>No. There are no accounts, no analytics, no crash-reporting, no advertising and no tracking SDKs. Your routes, logbook, settings and any API keys stay on your device. The app only reaches the internet when you download data or fetch live weather and traffic. See the <a href="privacy.html">privacy policy</a> for details.</p></details>
+        <details><summary>Is it certified for navigation?</summary><p>No. AvareX-EU is not a certified GPS or navigation system and must not be used as a sole means of navigation. European data added by this fork is complementary and not certified. Always cross-check with official sources and certified equipment.</p></details>
+        <details><summary>What does it cost?</summary><p>AvareX-EU is free and open source. You may need your own free openAIP account/API key for openAIP data, and any AI features use an endpoint and key that you supply.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section style="padding-top:0">
+    <div class="cta-band">
+      <h2>Ready to fly with AvareX-EU?</h2>
+      <p>Free and open source. Download the latest build and add the European data you need.</p>
+      <div class="store-row">
+        <a class="btn primary" href="https://github.com/wolverine2k/avarex/releases">
+          <span><span class="sub">Get the latest</span><span class="big">AvareX-EU release</span></span>
+        </a>
+        <a class="btn ghost-light" href="privacy.html">
+          <span><span class="sub">Read the</span><span class="big">Privacy policy</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="fgrid">
+      <div>
+        <div class="brand"><img src="../logo.png" alt="" style="width:28px;height:28px"> AvareX <span class="eu" style="font-size:11px">EU</span></div>
+        <p class="tag">A community European fork of AvareX (Apps4Av), adding OpenFlightMaps, openAIP, OpenSky and RainViewer. Open source.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#data">EU data</a></li>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Get it</h4>
+        <ul>
+          <li><a href="https://github.com/wolverine2k/avarex/releases">Releases</a></li>
+          <li><a href="https://github.com/wolverine2k/avarex">Source (GitHub)</a></li>
+          <li><a href="privacy.html">Privacy policy</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Data providers</h4>
+        <ul>
+          <li><a href="https://www.openflightmaps.org/">OpenFlightMaps</a></li>
+          <li><a href="https://www.openaip.net/">openAIP</a></li>
+          <li><a href="https://opensky-network.org/">OpenSky Network</a></li>
+          <li><a href="https://www.rainviewer.com/">RainViewer</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="fbar">
+      <p class="disc"><strong>Safety notice:</strong> AvareX-EU is not a certified GPS and must not be used as a sole
+        means of navigation. European data added by this fork is complementary and not certified. Aviation is inherently
+        risky — always cross-check with official sources and certified equipment.</p>
+      <p>© <span id="yr"></span> AvareX-EU · Not affiliated with any aviation authority</p>
+    </div>
+  </div>
+</footer>
+<script>
+  document.getElementById('yr').textContent=new Date().getFullYear();
+  var hdr=document.querySelector('.site-header');
+  var onScroll=function(){hdr.classList.toggle('scrolled',window.scrollY>8);};
+  window.addEventListener('scroll',onScroll);onScroll();
+</script>
+</body>
+</html>
