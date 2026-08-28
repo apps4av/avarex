@@ -4,6 +4,7 @@ import 'package:avaremp/plan/plan_action_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/full_screen.dart';
 import 'package:avaremp/writing_screen.dart';
 import 'aircraft/aircraft_performance_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -32,6 +33,7 @@ void main() {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
   Storage().init().then((accentColor) async {
+    await FullScreen.applySaved();
     if(Constants.shouldShowProServices) {
       try {
         await Firebase.initializeApp(

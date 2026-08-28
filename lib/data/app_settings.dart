@@ -244,6 +244,14 @@ class AppSettings {
     provider.setBool("key-signed", value);
   }
 
+  bool getFullScreen() {
+    return provider.getValue("key-full-screen", defaultValue: true) as bool;
+  }
+
+  void setFullScreen(bool value) {
+    provider.setBool("key-full-screen", value);
+  }
+
   String getTrafficPuckSize() {
     return provider.getValue("key-traffic-puck-size", defaultValue: "S") as String;
   }

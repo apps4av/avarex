@@ -62,6 +62,7 @@ You can reopen onboarding later from the drawer header icon.
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
+| Full screen toggle                                                                               | **Desktop only** (Linux, macOS, Windows) |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
 
@@ -139,6 +140,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 - **Notes icon**: opens handwriting Notes screen.
 - **Chart type popup**: selects chart source type.
 - **Layers popup**: per-layer on/off via opacity slider.
+- **Full screen toggle** (desktop only): switches the app window between full screen and windowed. The choice is remembered for the next launch. Starts in full screen.
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
@@ -1317,6 +1319,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
 | Runway crossing alert | Automatic when Mute is off; uses closest-airport runways |
+| Toggle full screen (desktop) | `MAP → bottom-right control row → full screen icon` |
 | Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |

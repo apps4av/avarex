@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
+import 'package:avaremp/utils/full_screen.dart';
 import 'package:avaremp/utils/image_utils.dart';
 import 'package:avaremp/utils/mbtiles_layer.dart';
 import 'package:avaremp/utils/path_utils.dart';
@@ -1678,6 +1679,17 @@ class MapScreenState extends State<MapScreen> {
                                         child: const Icon(Icons.layers)),
                                     onPressed: () => _showLayerSelector(context),
                                   ),
+
+                                  if (FullScreen.supported)
+                                    ValueListenableBuilder<bool>(
+                                      valueListenable: FullScreen.state,
+                                      builder: (context, on, _) => IconButton(
+                                        tooltip: on ? "Leave full screen" : "Enter full screen",
+                                        icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                            child: Icon(on ? Icons.fullscreen_exit : Icons.fullscreen)),
+                                        onPressed: () => FullScreen.set(!on),
+                                      ),
+                                    ),
                                 ]
                               ),
                           )

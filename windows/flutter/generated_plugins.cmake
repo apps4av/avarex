@@ -13,10 +13,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_storage
   geolocator_windows
   msvcredist
+  screen_retriever_windows
   share_plus
   sqlite3_flutter_libs
   syncfusion_pdfviewer_windows
   url_launcher_windows
+  window_manager
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
