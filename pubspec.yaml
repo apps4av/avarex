@@ -46,6 +46,7 @@ dependencies:
   geolocator: ^14.0.2
   geolocator_linux: ^0.2.0+1
   wakelock_plus: ^1.1.4
+  window_manager: ^0.5.2
   dio: ^5.3.4
   archive: ^4.0.7
   http: any
