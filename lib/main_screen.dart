@@ -1,6 +1,8 @@
+import 'package:avaremp/community/notifications_screen.dart';
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
+import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
 import 'package:flutter/material.dart';
@@ -67,6 +69,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     required String subtitle,
     required VoidCallback onTap,
     Color? iconColor,
+    Widget? trailing,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -114,6 +117,10 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                     ],
                   ),
                 ),
+                if (trailing != null) ...[
+                  trailing,
+                  const SizedBox(width: 8),
+                ],
                 Icon(
                   Icons.chevron_right,
                   size: 20,
@@ -353,6 +360,51 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                           Navigator.pushNamed(context, '/logbook');
                         },
                       ),
+                      if (Constants.firebaseAvailable) ...[
+                        const SizedBox(height: 8),
+                        _buildSectionHeader(context, "Cloud"),
+                        _buildMenuItem(
+                          context,
+                          icon: MdiIcons.account,
+                          title: "Account",
+                          subtitle: "Sign in, profile, sign out",
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/pro');
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: MdiIcons.cloudSync,
+                          title: "Backup/Sync",
+                          subtitle: "Cloud backup & restore",
+                          onTap: () {
+                            Navigator.pop(context);
+                            LoginScreenState.openCloudFeature(context, '/backup');
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: MdiIcons.accountGroup,
+                          title: "Community",
+                          subtitle: "Pilot groups, posts, shared plans",
+                          trailing: const CommunityNotificationsBadge(),
+                          onTap: () {
+                            Navigator.pop(context);
+                            LoginScreenState.openCloudFeature(context, '/community');
+                          },
+                        ),
+                        _buildMenuItem(
+                          context,
+                          icon: MdiIcons.calendarClock,
+                          title: "Scheduler",
+                          subtitle: "Aircraft booking & dispatch",
+                          onTap: () {
+                            Navigator.pop(context);
+                            LoginScreenState.openCloudFeature(context, '/scheduler');
+                          },
+                        ),
+                      ],
                       if (Constants.shouldShowBluetoothSpp) ...[
                         const SizedBox(height: 8),
                         _buildSectionHeader(context, "Connectivity"),

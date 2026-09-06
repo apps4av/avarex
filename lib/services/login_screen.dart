@@ -1,4 +1,3 @@
-import 'package:avaremp/community/notifications_screen.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
@@ -30,6 +29,13 @@ class LoginScreenState extends State<LoginScreen> {
     showPaywallThen(context, (ctx) => Navigator.pushNamed(ctx, route));
   }
 
+  /// Opens a Cloud feature (Backup/Sync, Community, Scheduler).
+  /// Sign-in is required so the action is tied to an account. These features
+  /// are free — they do not use the Pro paywall.
+  static void openCloudFeature(BuildContext context, String route) {
+    requireSignInThen(context, (ctx) => Navigator.pushNamed(ctx, route));
+  }
+
   /// Sign-in-only gate (no Pro entitlement required). Runs [onSignedIn] when
   /// the user is authenticated, otherwise sends them to the sign-in screen.
   /// Used by features that are free but still need an accountable identity
@@ -45,8 +51,7 @@ class LoginScreenState extends State<LoginScreen> {
 
   /// Like [showPaywall] but runs [onEntitled] once the user is signed in and
   /// has an active Pro entitlement, instead of navigating to a fixed named
-  /// route. Used by features (e.g. Airport Businesses) that need to open a
-  /// screen with runtime arguments.
+  /// route. Used by Flight Intelligence.
   static void showPaywallThen(
       BuildContext context, void Function(BuildContext context) onEntitled) async {
     if(FirebaseAuth.instance.currentUser == null) {
@@ -68,7 +73,7 @@ class LoginScreenState extends State<LoginScreen> {
         });
       }
       catch (e) {
-        Storage().setException("Unable to initialize Pro Services: $e");
+        Storage().setException("Unable to initialize Account: $e");
       }
     }
   }
@@ -78,7 +83,7 @@ class LoginScreenState extends State<LoginScreen> {
     final providers = [EmailAuthProvider()];
 
     final user = FirebaseAuth.instance.currentUser;
-    if(user != null) {
+    if(user != null && Constants.shouldShowProServices) {
       RevenueCatService.logIn(
         user.uid,
         email: user.email,
@@ -86,81 +91,55 @@ class LoginScreenState extends State<LoginScreen> {
       );
     }
 
-    return Scaffold(
-        appBar: AppBar(
-            backgroundColor: Constants.appBarBackgroundColor,
-            title: const Text("Pro Services"),
-        ),
-        bottomSheet: SizedBox(
-          height: 58,
-          child: isLoggedIn ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
+    final accountAppBar = AppBar(
+      backgroundColor: Constants.appBarBackgroundColor,
+      title: const Text("Account"),
+    );
+
+    if (isLoggedIn) {
+      return ProfileScreen(
+        providers: providers,
+        appBar: accountAppBar,
+        actions: [
+          SignedOutAction((context) {
+            setState(() {});
+          }),
+        ],
+        children: [
+          if (Constants.shouldShowProServices)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TextButton(
                 child: const Text("Flight Intelligence"),
                 onPressed: () {
-                  // Offerings and purchase options
                   showPaywall(context, '/ai');
                 },
               ),
-              TextButton(
-                child: const Text("Backup/Sync"),
-                onPressed: () {
-                  showPaywall(context, '/backup');
-                },
-              ),
-              // Community entry carries a notifications bell on top of the
-              // label so unread replies are visible from the login screen.
-              Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.topCenter,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: TextButton(
-                      child: const Text("Community"),
-                      onPressed: () {
-                        showPaywall(context, '/community');
-                      },
-                    ),
-                  ),
-                  const Positioned(
-                    top: 0,
-                    child: CommunityNotificationsBadge(),
-                  ),
-                ],
-              ),
-              TextButton(
-                child: const Text("Scheduler"),
-                onPressed: () {
-                  showPaywall(context, '/scheduler');
-                },
-              ),
-            ],
-          )) : Padding(padding: EdgeInsets.all(10), child:Text("Please register/sign in to access Pro Services")),
+            ),
+        ],
+      );
+    }
+
+    return Scaffold(
+        appBar: accountAppBar,
+        bottomSheet: const SizedBox(
+          height: 58,
+          child: Padding(
+            padding: EdgeInsets.all(10),
+            child: Text("Please register/sign in to access cloud services"),
+          ),
         ),
-        body: isLoggedIn ?
-          ProfileScreen(
-            providers: providers,
-            actions: [
-              SignedOutAction((context) {
-                setState(() {});
-              }),
-            ],
-          ) :
-          SignInScreen(
-            providers: providers,
-            actions: [
-              AuthStateChangeAction<UserCreated>((context, state) {
-                setState(() {});
-              }),
-              AuthStateChangeAction<SignedIn>((context, state) {
-                setState(() {});
-              }),
-            ],
-          )
+        body: SignInScreen(
+          providers: providers,
+          actions: [
+            AuthStateChangeAction<UserCreated>((context, state) {
+              setState(() {});
+            }),
+            AuthStateChangeAction<SignedIn>((context, state) {
+              setState(() {});
+            }),
+          ],
+        )
     );
   }
 }

@@ -21,6 +21,7 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
@@ -1432,7 +1433,7 @@ class MapScreenState extends State<MapScreen> {
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(0, Constants.screenHeightForInstruments(context) + 5, 5, 5),
                         child: Column(crossAxisAlignment: CrossAxisAlignment.end, children:[
-                          if(Constants.shouldShowProServices) IconButton(icon: CircleAvatar(child: Icon(MdiIcons.accountTieHat)), onPressed: () { Navigator.pushNamed(context, '/pro');}),
+                          if(Constants.shouldShowProServices) IconButton(icon: CircleAvatar(child: Icon(MdiIcons.accountTieHat)), onPressed: () { LoginScreenState.showPaywall(context, '/ai');}),
                           ValueListenableBuilder<bool>(
                             valueListenable: Storage().warningChange,
                             builder: (context, value, _) {

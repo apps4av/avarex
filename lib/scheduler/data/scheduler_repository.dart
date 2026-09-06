@@ -52,7 +52,7 @@ class SchedulerRepository {
   }
 
   // Reuse the Community profile so display names are consistent across the
-  // app's Pro features.
+  // app's cloud features.
   Future<String> _myDisplayName() async {
     final profile = await CommunityRepository.instance.ensureMyProfile();
     return profile.displayName;

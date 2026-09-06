@@ -60,7 +60,8 @@ You can reopen onboarding later from the drawer header icon.
 | Bluetooth IO screen                                                                              | **Android only** |
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
-| Pro Services (Flight Intelligence + Backup/Sync + Community + Aircraft Scheduler )               | **iOS and Android only** |
+| Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
+| Cloud drawer section (Backup/Sync, Community, Aircraft Scheduler)                                | **iOS and Android only** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -92,6 +93,10 @@ Open from MAP with **Menu** button (bottom-left):
 - Check Lists
 - Aircraft & Performance
 - Log Book
+- Account (iOS/Android only, under `CLOUD`; sign in, profile, sign out)
+- Backup/Sync (iOS/Android only, under `CLOUD`)
+- Community (iOS/Android only, under `CLOUD`; carries the unread notifications bell)
+- Scheduler (iOS/Android only, under `CLOUD`)
 - IO (Android only)
 - Help (opens User Manual PDF; not available on Linux)
 
@@ -121,7 +126,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 ### 4.3 Map controls (buttons and menus)
 
 #### Top-right
-- **Pro icon** (iOS/Android): opens Pro Services login/paywall flow.
+- **Pro icon** (iOS/Android): opens `Flight Intelligence` when you are signed in, or the `Account` sign-in screen if you are not. Manage the account from `MAP → Menu → Cloud → Account`.
 - **Red warning icon** (if active): opens troubleshooting drawer.
 
 #### Bottom center
@@ -1038,21 +1043,30 @@ Tap the dialpad icon in the toolbar to display an on-screen keypad:
 
 ---
 
-## 11) Pro Services (iOS/Android only)
+## 11) Account and Cloud Features
 
 ### 11.1 Access
 
-From MAP top-right account icon, or by routed requests from some features (e.g., translate actions).
+Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) and Flight Intelligence run on **iOS and Android** only. They are not available on macOS, Windows, Linux, or Snap.
+
+They are reached from two places:
+
+- **Account screen** — `MAP → Menu → Cloud → Account`. Sign in, view profile, and sign out. The screen title is `Account`.
+- **Pro icon** (iOS/Android) — `MAP top-right account icon`. Opens `Flight Intelligence` when signed in (paywall if needed), or the `Account` sign-in screen if not. Some features also route here on demand (e.g., translate actions).
+- **`CLOUD` drawer section** — `MAP → Menu → Cloud`. Holds `Account`, `Backup/Sync`, `Community`, and `Scheduler`. These Cloud features are free; tapping one signs you in if needed. There is no Pro paywall.
 
 ### 11.2 Login and subscription flow
 
 - Sign in/register with email authentication (Firebase)
-- Paywall handled through RevenueCat entitlement (`Pro`)
-- After login, bottom sheet shows available Pro features
+- Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS and Android
+- `Flight Intelligence` uses the RevenueCat entitlement (`Pro`) paywall
+- After login, the Account screen can open `Flight Intelligence`
 
 ### 11.3 Flight Intelligence (AI)
 
 Screen title: **Flight Intelligence**
+
+**Access**: `MAP top-right account icon` (opens `Flight Intelligence` when signed in, or `Account` sign-in if not)
 
 Powered by Gemini 2.5 Pro with Google Search integration.
 
@@ -1081,7 +1095,9 @@ Capabilities:
 
 Screen title: **Pilot Community**
 
-A pilot-only social network backed by Firebase. Pilots can build a public profile, create groups, and join existing ones. **Private** groups require owner approval; **public** groups are open to all signed-in Pro users.
+**Access**: `MAP → Menu → Cloud → Community`
+
+A pilot-only social network backed by Firebase. Pilots can build a public profile, create groups, and join existing ones. **Private** groups require owner approval; **public** groups are open to all signed-in users. This is a free Cloud feature (sign-in required, no Pro subscription).
 
 **Disclaimer** (shown as a strip at the top of the screen and via the info icon in the app bar):
 
@@ -1124,10 +1140,10 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 
 **Visibility rules**:
 
-- Public groups are discoverable and any signed-in Pro user can read the feed.
+- Public groups are discoverable and any signed-in user can read the feed.
 - Private groups are discoverable by name but the feed is hidden from non-members. Owners get a red badge over the **Members** tab when pending requests exist.
 
-**Notifications**: in-app only (no push). A **bell icon** appears both in the `Pilot Community` app bar and above the `Community` button on the Pro Services screen; it shows an unread count and opens the **Notifications** screen. You are notified when:
+**Notifications**: in-app only (no push). A **bell icon** appears both in the `Pilot Community` app bar and on the `Community` row in the drawer's `CLOUD` section; it shows an unread count and opens the **Notifications** screen. You are notified when:
 
 - someone **replies to a topic you started**, or
 - someone **replies to any post in a group you own**.
@@ -1137,6 +1153,10 @@ On the Notifications screen, unread items are shown in **bold** with a dot. You 
 ### 11.5 Aircraft Scheduler
 
 Screen title: **Aircraft Scheduler**
+
+**Access**: `MAP → Menu → Cloud → Scheduler`
+
+This is a free Cloud feature (sign-in required, no Pro subscription).
 
 A shared booking calendar and club dispatch board for flying clubs, partnerships, and flight schools, backed by Firebase. It works like the Pilot Community: an owner creates a scheduler, members request to join, and members reserve the resources the owner adds. **All schedulers are private** — they are discoverable by name, but the owner approves every member, and the schedule and roster are hidden from non-members.
 
@@ -1199,6 +1219,10 @@ Limits are enforced when a member books; exceeding a limit shows an explanatory 
 
 Screen title: **Backup/Sync**
 
+**Access**: `MAP → Menu → Cloud → Backup/Sync`
+
+This is a free Cloud feature (sign-in required, no Pro subscription).
+
 Cloud operations for `user.db` using Firebase Storage:
 
 - **Backup** (upload icon): upload local database to cloud storage
@@ -1216,9 +1240,8 @@ Business names are pre-seeded from the app's built-in business database;
 everything else is contributed by signed-in pilots.
 
 **This is a free feature** — it is **not** part of a Pro subscription. It only
-requires a signed-in account (the same account used for Pro Services) so that
-contributions are accountable rather than anonymous. It is available on iOS and
-Android, where cloud accounts are supported.
+requires a signed-in account (the same Cloud `Account`) so that
+contributions are accountable rather than anonymous. It is available on iOS and Android only.
 
 **Access**: destination popup → `Business` tab. When you are signed in, the
 airport's businesses are listed **directly inside the tab** — there is no
@@ -1352,21 +1375,22 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Notes/drawing | `MAP → Menu → Write a Note` |
 | Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
 | Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
-| Pro AI | `MAP top-right account icon → Flight Intelligence` |
-| Pro Community | `MAP top-right account icon → Community` |
-| Create a pilot group | `MAP top-right account icon → Community → New Group` |
-| Join a public group | `MAP top-right account icon → Community → Discover → tap group → Join` |
+| Pro AI | `MAP top-right account icon` (iOS/Android; sign-in screen if not logged in) |
+| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android) |
+| Pro Community | `MAP → Menu → Cloud → Community` |
+| Create a pilot group | `MAP → Menu → Cloud → Community → New Group` |
+| Join a public group | `MAP → Menu → Cloud → Community → Discover → tap group → Join` |
 | Approve pending members (owner) | `Community → group → Members tab → Approve / Reject` |
-| Edit your pilot profile | `MAP top-right account icon → Community → Profile → edit icon` |
+| Edit your pilot profile | `MAP → Menu → Cloud → Community → Profile → edit icon` |
 | Post a photo to a group | `Community → group → Post → Photo → choose source` |
 | Share your current flight plan | `Community → group → Post → Attach plan` |
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
 | Reply to a topic | `Community → group → tap topic → Reply` |
 | View a topic's discussion thread | `Community → group → tap a topic in the Feed` |
-| View notifications | `Community → bell icon` (also shown on the bell above the `Community` button on the Pro Services screen) |
+| View notifications | `Community → bell icon` (also shown on the `Community` row in the drawer's `CLOUD` section) |
 | Turn reply notifications off / mute a group | `Community → bell icon → gear icon` |
-| Aircraft Scheduler | `MAP top-right account icon → Scheduler` |
-| Create a scheduler (private) | `MAP top-right account icon → Scheduler → New Scheduler` |
+| Aircraft Scheduler | `MAP → Menu → Cloud → Scheduler` |
+| Create a scheduler (private) | `MAP → Menu → Cloud → Scheduler → New Scheduler` |
 | Add an aircraft/instructor (owner) | `Scheduler → scheduler → Schedule tab → Add resource` |
 | Book a resource | `Scheduler → scheduler → Schedule tab → tap a green slot → Book` |
 | View / cancel my reservations | `Scheduler → scheduler → Mine tab` |
@@ -1383,7 +1407,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Add services/fuel/hours to a business | `Business tab → tap listing → Edit details` |
 | Set fuel prices for a business | `Business tab → tap listing → Set fuel prices` |
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
-| Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
+| Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
@@ -1620,16 +1644,15 @@ Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either dire
 4. To **send**: build your route with at least 2 waypoints, then tap **Send** next to the IFD. Wait for the success toast, then **review and activate** the uploaded route on the IFD.
 5. To **get**: tap **Get** next to the IFD. AvareX downloads the IFD's flight plan and loads it into the active plan (replacing the current one). Matched waypoints keep their database type; unmatched ones become GPS coordinate points.
 
-### UC-13: Back up and restore app data (Pro)
+### UC-13: Back up and restore app data
 
-1. Open Pro Services from account icon on MAP (top-right).
-2. Sign in and pass entitlement/paywall if required.
-3. Open `Backup/Sync` (from bottom buttons after login).
-4. Use:
+1. Open `MAP → Menu → Cloud → Backup/Sync`.
+2. Sign in if prompted; the `Backup/Sync` screen opens right after.
+3. Use:
    - **Backup** (upload icon) to upload local `user.db`
    - **Restore** (download icon) to overwrite local data from cloud copy
-5. Confirm prompts carefully (both operations overwrite existing data).
-6. Progress percentage shows during transfer.
+4. Confirm prompts carefully (both operations overwrite existing data).
+5. Progress percentage shows during transfer.
 
 ### UC-14: Get flight help from community resources
 
@@ -1824,23 +1847,22 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 8. For custom aircraft, use **Edit** to modify envelope points and station definitions.
 9. If your aircraft uses the **helicopter** map icon, check the lateral CG chart and lateral columns as well; all four CG checks must pass for a green status.
 
-### UC-24: Create a pilot community group (Pro)
+### UC-24: Create a pilot community group
 
-1. Open Pro Services from the account icon on MAP (top-right).
-2. Sign in and pass the entitlement/paywall if required.
-3. Tap **Community** in the Pro bottom sheet.
-4. Tap the **New Group** floating action button.
-5. Fill in:
+1. Open `MAP → Menu → Cloud → Community`.
+2. Sign in if prompted.
+3. Tap the **New Group** floating action button.
+4. Fill in:
    - **Group name** (3–60 characters)
    - **Description** (optional, up to 280 characters)
    - **Home airport** (optional ICAO, e.g. `KBED`)
-6. Choose **Visibility**:
+5. Choose **Visibility**:
    - **Public** — anyone can join immediately.
    - **Private** — discoverable by name, but you approve every new member.
-7. Tap **Create Group**. You land on the new group's **Feed** tab as the owner.
-8. Tap **Post** to share your first message; optionally attach an airport ICAO to the post.
+6. Tap **Create Group**. You land on the new group's **Feed** tab as the owner.
+7. Tap **Post** to share your first message; optionally attach an airport ICAO to the post.
 
-### UC-25: Join a private pilot group (Pro)
+### UC-25: Join a private pilot group
 
 1. Open `Community → Discover` and search for the group by name.
 2. Tap the group to open it. Private groups show a lock icon and the feed is hidden.
@@ -1849,21 +1871,20 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 5. When approved, the **Feed** unlocks and you can post immediately. You can leave at any time with the **Leave** button.
 6. To cancel a pending request, tap **Requested** to withdraw it.
 
-### UC-26: Set up an aircraft scheduler and book a flight (Pro)
+### UC-26: Set up an aircraft scheduler and book a flight
 
-1. Open Pro Services from the account icon on MAP (top-right).
-2. Sign in and pass the entitlement/paywall if required.
-3. Tap **Scheduler** in the Pro bottom sheet.
-4. Tap the **New Scheduler** floating action button, fill in the name (and optional description/home airport), then tap **Create Scheduler**. Every scheduler is private; you land on the new scheduler as the owner.
-5. On the **Schedule** tab, tap **Add resource** to add your aircraft (e.g. `Cessna 172`, tail `N12345`) and any instructors. They appear as rows, with time across the top.
-6. (Optional) Tap the **tune** icon in the app bar to open **Booking Rules** and set how many reservations — and how many weekend reservations — each member may hold at once (0 = unlimited). The owner is exempt from these limits.
-7. Share the scheduler name with your members; they open `Scheduler → Discover`, search the name, and **Request to Join**. Approve them on the **Members** tab. Use the badge icon to set **Student** / **Instructor** / **Dispatcher** roles and assign students to instructors.
-8. On **Dispatch → Fleet**, tap an aircraft and **Update meters / MX** to set hobbs, tach, and inspection due dates for the shared fleet.
-9. (Optional) On **Dispatch → Lessons**, create a **lesson pack** of prepaid hours for a student.
-10. To book, a member taps a **green** slot on a resource row, picks a **start date/time** and **end date/time** (bookings can span multiple days, up to 14), optionally picks an instructor / lesson pack, then taps **Book**. The slot turns **blue**. Members can review their bookings on the **Mine** tab.
-11. If that time is already taken, the member is added to the **backup** queue. If the main reservation is later cancelled, the first backup is promoted automatically.
-12. To cancel, tap the reservation block (or use the **Mine** tab) and choose **Cancel**. Only the member who booked it or the owner can cancel a reservation.
-13. For discrepancies, use **Dispatch → Squawks → File squawk**. A **Grounding** squawk blocks booking and shows as GROUNDED on the fleet board. For a hard maintenance hold, turn off **Available for booking** from Schedule or Dispatch (owner/dispatcher).
+1. Open `MAP → Menu → Cloud → Scheduler`.
+2. Sign in if prompted.
+3. Tap the **New Scheduler** floating action button, fill in the name (and optional description/home airport), then tap **Create Scheduler**. Every scheduler is private; you land on the new scheduler as the owner.
+4. On the **Schedule** tab, tap **Add resource** to add your aircraft (e.g. `Cessna 172`, tail `N12345`) and any instructors. They appear as rows, with time across the top.
+5. (Optional) Tap the **tune** icon in the app bar to open **Booking Rules** and set how many reservations — and how many weekend reservations — each member may hold at once (0 = unlimited). The owner is exempt from these limits.
+6. Share the scheduler name with your members; they open `Scheduler → Discover`, search the name, and **Request to Join**. Approve them on the **Members** tab. Use the badge icon to set **Student** / **Instructor** / **Dispatcher** roles and assign students to instructors.
+7. On **Dispatch → Fleet**, tap an aircraft and **Update meters / MX** to set hobbs, tach, and inspection due dates for the shared fleet.
+8. (Optional) On **Dispatch → Lessons**, create a **lesson pack** of prepaid hours for a student.
+9. To book, a member taps a **green** slot on a resource row, picks a **start date/time** and **end date/time** (bookings can span multiple days, up to 14), optionally picks an instructor / lesson pack, then taps **Book**. The slot turns **blue**. Members can review their bookings on the **Mine** tab.
+10. If that time is already taken, the member is added to the **backup** queue. If the main reservation is later cancelled, the first backup is promoted automatically.
+11. To cancel, tap the reservation block (or use the **Mine** tab) and choose **Cancel**. Only the member who booked it or the owner can cancel a reservation.
+12. For discrepancies, use **Dispatch → Squawks → File squawk**. A **Grounding** squawk blocks booking and shows as GROUNDED on the fleet board. For a hard maintenance hold, turn off **Available for booking** from Schedule or Dispatch (owner/dispatcher).
 
 ---
 
@@ -1980,7 +2001,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-11: Is Flight Intelligence (AI) available on desktop?
 
 - Current Pro AI workflows are targeted for iOS/Android only.
-- Access from map account icon → Pro Services → Flight Intelligence.
+- Access from map account icon (opens Flight Intelligence when signed in, or Account sign-in if not).
 - Uses Gemini 2.5 Pro with Google Search integration.
 - Source threads:
   - AI feature thread:  

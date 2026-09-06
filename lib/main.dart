@@ -32,7 +32,7 @@ void main() {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
   Storage().init().then((accentColor) async {
-    if(Constants.shouldShowProServices) {
+    if(Constants.firebaseAvailable) {
       try {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
@@ -40,7 +40,9 @@ void main() {
         FirebaseUIAuth.configureProviders([
           EmailAuthProvider(),
         ]);
-        await RevenueCatService.initPlatformState();
+        if(Constants.shouldShowProServices) {
+          await RevenueCatService.initPlatformState();
+        }
       }
       catch (e) {
         // ignore errors here
