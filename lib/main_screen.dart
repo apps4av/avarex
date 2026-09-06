@@ -313,6 +313,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       _buildSectionHeader(context, "Flight"),
                       _buildMenuItem(
                         context,
+                        icon: MdiIcons.transcribe,
+                        title: "Write a Note",
+                        subtitle: "Handwriting notes & aviation sheets",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/notes');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",

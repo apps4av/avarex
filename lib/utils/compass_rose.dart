@@ -20,25 +20,18 @@ class CompassRose {
     315: "NW",
   };
 
-  /// Outward ticks every 5° magnetic (longer/thicker at 15° and 45°).
+  /// Outward ticks at the eight cardinal / intercardinal points (magnetic).
   static List<Polyline> ticks(LatLng center, double variation) {
     final GeoCalculations geo = GeoCalculations();
     return [
-      for (int mag = 0; mag < 360; mag += 5)
+      for (final int mag in _labels.keys)
         Polyline(
           points: [
             geo.calculateOffset(center, ringNm, mag + variation),
-            geo.calculateOffset(
-                center,
-                mag % 45 == 0
-                    ? 11.15
-                    : (mag % 15 == 0 ? 10.9 : 10.4),
-                mag + variation),
+            geo.calculateOffset(center, 11.15, mag + variation),
           ],
           color: Constants.distanceCircleColor,
-          strokeWidth: mag % 45 == 0
-              ? 4.5
-              : (mag % 15 == 0 ? 3.5 : 3.0),
+          strokeWidth: 4.5,
         ),
     ];
   }

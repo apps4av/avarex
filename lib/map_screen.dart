@@ -1494,8 +1494,9 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
-                          child: TextButton(
+                          padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
+                          // same box height as the icon row on the right so the labels line up with the circle buttons
+                          child: SizedBox(height: iconRadius * 2 + 16, child: Center(child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
                               backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
@@ -1523,7 +1524,7 @@ class MapScreenState extends State<MapScreen> {
                               }
                             },
                             child: const Text("Center"),
-                          )
+                          )))
                       )
                   )
               ),
@@ -1532,8 +1533,9 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomLeft,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(35, 0, 0, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10),
-                          child: Row(children:[
+                          padding: EdgeInsets.fromLTRB(35, 0, 0, Constants.bottomPaddingSize(context)),
+                          // same box height as the icon row on the right so the labels line up with the circle buttons
+                          child: SizedBox(height: iconRadius * 2 + 16, child: Row(children:[
                             // menu
                             TextButton(
                               onPressed: () {
@@ -1578,7 +1580,7 @@ class MapScreenState extends State<MapScreen> {
                               ),
                               child: const Text("Menu"),
                             ),
-                          ])
+                          ]))
                       )
                   )
               ),
@@ -1592,72 +1594,10 @@ class MapScreenState extends State<MapScreen> {
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
                                   IconButton(
-                                    tooltip: "Mute audible alerts",
-                                    onPressed: () {
-                                      setState(() {
-                                        Storage().settings.setAudibleAlertsEnabled(!Storage().settings.isAudibleAlertsEnabled());
-                                      });
-                                    },
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                    child: Storage().settings.isAudibleAlertsEnabled() ? const Icon(Icons.volume_up) : const Icon(Icons.volume_off))),
-
-                                  IconButton(
-                                    tooltip: "Measure distances and bearings",
-                                    onPressed: () {
-                                      setState(() {
-                                        if(_ruler.isMeasuring()) {
-                                          _ruler.init();
-                                        }
-                                        else {
-                                          _ruler.init();
-                                          _ruler.startMeasure();
-                                        }
-                                      });
-                                    },
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                      child: Icon(MdiIcons.mathCompass, color: _ruler.color() == Colors.white ? Theme.of(context).colorScheme.primary : Colors.red, ))),
-
-                                  // north up
-                                  IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _northUp = _northUp ? false : true;
-                                        });
-                                        Storage().settings.setNorthUp(_northUp); // save
-                                      },
-                                      icon: ValueListenableBuilder<Position>(
-                                          valueListenable: Storage().gpsChange,
-                                          builder: (context, value, _) {
-                                            return CircleAvatar(
-                                                radius: iconRadius,
-                                                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                                // in track up, rotate icon
-                                                child: _northUp ? Tooltip(message: "Press to enable track up navigation", child: Icon(MdiIcons.navigation)) :
-                                                Transform.rotate(
-                                                    angle: value.heading * pi / 180,
-                                                    child: Tooltip(message: "Press to enable North up navigation", child: Icon(MdiIcons.arrowUpThinCircleOutline))));
-                                          }
-                                      )),
-
-                                  IconButton(
-                                    tooltip: "Enable rubber banding",
-                                    onPressed: () {
-                                      setState(() {
-                                        Storage().settings.isRubberBanding() ? Storage().settings.setRubberBanding(false) : Storage().settings.setRubberBanding(true);
-                                      });
-                                    },
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                      child: Icon(MdiIcons.arrowDecisionOutline, color: Storage().settings.isRubberBanding() ? Colors.red : Theme.of(context).colorScheme.primary))),
-
-                                  IconButton(
-                                      tooltip: "Write a note",
-                                      onPressed: () {
-                                        setState(() {
-                                          Navigator.pushNamed(context, '/notes');
-                                        });
-                                      },
+                                      tooltip: "Map settings",
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                          child: Icon(MdiIcons.transcribe))),
+                                          child: const Icon(Icons.settings)),
+                                      onPressed: () => _showSettingSelector(context)),
 
                                   IconButton(
                                     tooltip: "Select the chart type",
@@ -1680,6 +1620,71 @@ class MapScreenState extends State<MapScreen> {
               ),
             ]
         )
+    );
+  }
+
+  List<_MapSetting> _buildSettings() {
+    final bool alerts = Storage().settings.isAudibleAlertsEnabled();
+    final bool measuring = _ruler.isMeasuring();
+    final bool rubberBanding = Storage().settings.isRubberBanding();
+    return [
+      _MapSetting(
+        icon: MdiIcons.mathCompass,
+        label: measuring ? "Measure Distance On" : "Measure Distance Off",
+        isOn: measuring,
+        onTap: () {
+          setState(() {
+            _ruler.init();
+            if (!measuring) {
+              _ruler.startMeasure();
+            }
+          });
+        },
+      ),
+      _MapSetting(
+        icon: MdiIcons.arrowDecisionOutline,
+        label: rubberBanding ? "Rubber Banding On" : "Rubber Banding Off",
+        isOn: rubberBanding,
+        onTap: () {
+          setState(() {
+            Storage().settings.setRubberBanding(!rubberBanding);
+          });
+        },
+      ),
+      _MapSetting(
+        icon: alerts ? Icons.volume_up : Icons.volume_off,
+        label: alerts ? "Audible Alerts On" : "Audible Alerts Off",
+        isOn: alerts,
+        onTap: () {
+          setState(() {
+            Storage().settings.setAudibleAlertsEnabled(!alerts);
+          });
+        },
+      ),
+      _MapSetting(
+        icon: _northUp ? MdiIcons.navigation : MdiIcons.arrowUpThinCircleOutline,
+        label: _northUp ? "North Up" : "Track Up",
+        isOn: !_northUp,
+        onTap: () {
+          setState(() {
+            _northUp = !_northUp;
+          });
+          Storage().settings.setNorthUp(_northUp); // save
+        },
+      ),
+    ];
+  }
+
+  void _showSettingSelector(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierDismissible: true,
+        barrierColor: Colors.black26,
+        pageBuilder: (_, __, ___) => _SettingSelectorOverlay(
+          buildSettings: _buildSettings,
+        ),
+      ),
     );
   }
 
@@ -1964,6 +1969,149 @@ class ChartTileProvider extends TileProvider {
       return assetImage;
     }
     return AssetImage("assets/images/dl_$name.png");
+  }
+}
+
+class _MapSetting {
+  final IconData icon;
+  final String label;
+  final bool isOn;
+  final VoidCallback onTap;
+
+  const _MapSetting({
+    required this.icon,
+    required this.label,
+    required this.isOn,
+    required this.onTap,
+  });
+}
+
+class _SettingSelectorOverlay extends StatefulWidget {
+  final List<_MapSetting> Function() buildSettings;
+
+  const _SettingSelectorOverlay({required this.buildSettings});
+
+  @override
+  State<_SettingSelectorOverlay> createState() => _SettingSelectorOverlayState();
+}
+
+class _SettingSelectorOverlayState extends State<_SettingSelectorOverlay> {
+
+  @override
+  Widget build(BuildContext context) {
+    final List<_MapSetting> settings = widget.buildSettings();
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: EdgeInsets.only(
+          right: 8,
+          top: Constants.screenHeightForInstruments(context) + 50,
+          bottom: Constants.bottomPaddingSize(context) + 60,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 280,
+            constraints: BoxConstraints(
+              maxHeight: Constants.screenHeight(context) * 0.6,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(50),
+                  blurRadius: 12,
+                  offset: const Offset(-2, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.settings, size: 24, color: Theme.of(context).colorScheme.primary),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Map Settings",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, size: 24, color: Theme.of(context).colorScheme.outline),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    shrinkWrap: true,
+                    itemCount: settings.length,
+                    itemBuilder: (context, index) {
+                      final _MapSetting setting = settings[index];
+                      return InkWell(
+                        onTap: () {
+                          setting.onTap();
+                          setState(() {}); // refresh the on/off state of the settings
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: setting.isOn
+                                ? Theme.of(context).colorScheme.primaryContainer.withAlpha(150)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                setting.icon,
+                                size: 24,
+                                color: setting.isOn
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  setting.label,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: setting.isOn ? FontWeight.w600 : FontWeight.normal,
+                                    color: setting.isOn
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).colorScheme.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

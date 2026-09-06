@@ -88,8 +88,9 @@ Open from MAP with **Menu** button (bottom-left):
 
 - Download
 - Documents
-- Aircraft & Performance
+- Write a Note
 - Check Lists
+- Aircraft & Performance
 - Log Book
 - IO (Android only)
 - Help (opens User Manual PDF; not available on Linux)
@@ -106,7 +107,7 @@ Tap bottom tab **MAP**.
 
 ![MAP tab with sectional chart, ownship, instrument strip, and bottom controls](assets/docs/screenshots/01_map_tab.png)
 
-The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT…); each tile can be dragged anywhere and its position is remembered. Bottom-left is **Menu** (drawer); bottom-center is **Center**; bottom-right has **Mute, Ruler, Track-up toggle, Rubber-banding, Notes, Chart Type, Layers**, plus the warning icon top-right.
+The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, PRV, NXT, DIS, BRG, GEL, ETA, ETE, VSR, UPT…); each tile can be dragged anywhere and its position is remembered. All map controls sit on a single bottom row: **Menu** (drawer) at the left, **Center** in the middle, and **Map Settings, Chart Type, Layers** at the right, plus the warning icon top-right.
 
 ### 4.2 Core interactions
 
@@ -132,13 +133,17 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 - **Menu** button: opens drawer list (Download, Documents, etc.)
 
 #### Bottom-right control row (scrollable)
-- **Mute** (volume icon): toggle audible alerts (traffic, GPWS, runway awareness) on/off.
-- **Ruler** (compass icon): toggle measure mode; long-press map to add points. Red when active.
-- **North-up / Track-up toggle**: switches orientation mode.
-- **Rubber banding toggle**: enables dragging route waypoints directly on map. Red when active.
-- **Notes icon**: opens handwriting Notes screen.
+- **Map Settings popup** (gear icon): opens the `Map Settings` list described below.
 - **Chart type popup**: selects chart source type.
 - **Layers popup**: per-layer on/off via opacity slider.
+
+#### Map Settings popup
+Tap the gear icon in the bottom-right control row to open the `Map Settings` list. Each label shows that setting's current state, and active settings are highlighted. Tap the close (X) icon or outside the popup to dismiss it.
+
+- **Measure Distance On / Measure Distance Off**: toggles measure mode; long-press map to add points.
+- **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
+- **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
+- **North Up / Track Up**: shows the current orientation mode; tap to switch.
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
@@ -177,7 +182,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | Layer | Description |
 |-------|-------------|
 | **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. |
-| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks every 5° and labels at `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
+| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
 | **Chart** | Downloaded FAA chart tiles (offline chart base). |
 | **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. |
 | **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
@@ -274,7 +279,7 @@ The callout fires when all of these hold:
 
 A takeoff or landing roll — aligned on a runway above 15 knots — suppresses the alert, so rolling through an intersecting runway stays quiet. Once the flight phase is Airborne there is no crossing callout. Each runway announces once per approach and re-arms after you are clear of it.
 
-Alerts share the global **Mute** control with traffic and GPWS. This is an advisory aid only, not a substitute for ATC clearances or looking outside.
+Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with traffic and GPWS. This is an advisory aid only, not a substitute for ATC clearances or looking outside.
 
 ### 4.8 Weather marker interactions
 
@@ -286,14 +291,14 @@ Alerts share the global **Mute** control with traffic and GPWS. This is an advis
 
 ### 4.9 Ruler/measurement tool
 
-- Activate via compass icon (turns red when active)
+- Activate via `Measure Distance Off` in the `Map Settings` popup (the row reads `Measure Distance On` and is highlighted when active)
 - Long-press map to add measurement points
 - Shows distance (NM) and bearing (degrees) between points
 - Multiple segments supported
 
 ### 4.10 Rubber banding
 
-- Activate via toggle button (turns red when active)
+- Activate via `Rubber Banding Off` in the `Map Settings` popup (the row reads `Rubber Banding On` and is highlighted when active)
 - Long-press and drag waypoint icons to reposition
 - On release, snaps to nearest navaid/fix from database
 - Must be explicitly enabled to prevent accidental edits
@@ -963,7 +968,7 @@ Open: **Menu → Help**
 
 ### 10.1 How to access
 
-On MAP tab, tap the notes/pen (transcribe) icon in bottom-right controls.
+On MAP tab, open **Menu** (bottom-left) and tap `Write a Note` under the `Flight` section.
 
 ![Notes screen — blank canvas with color picker, broom-eraser, dialpad, undo/redo, eraser, and save (disk) icons](assets/docs/screenshots/16_notes_screen.png)
 
@@ -1329,7 +1334,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
-| Runway crossing alert | Automatic when Mute is off; uses closest-airport runways |
+| Runway crossing alert | Automatic when `Audible Alerts` is on; uses closest-airport runways |
 | Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
@@ -1337,9 +1342,9 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
 | Check ADS-B receiver status | `MAP → ADSB instrument tile` (movable; tap opens ADS-B Status screen) |
 | Enable Stratus 3 Open ADS-B Mode | `MAP → ADSB instrument tile → antenna icon (top-right)` |
-| Notes/drawing | `MAP → Notes icon` |
-| Notes with aviation sheet | `MAP → Notes icon → sheet icon → select template` |
-| Notes number keypad | `MAP → Notes icon → dialpad icon` |
+| Notes/drawing | `MAP → Menu → Write a Note` |
+| Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
+| Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
 | Pro AI | `MAP top-right account icon → Flight Intelligence` |
 | Pro Community | `MAP top-right account icon → Community` |
 | Create a pilot group | `MAP top-right account icon → Community → New Group` |
@@ -1377,8 +1382,10 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Enable wind vectors | `MAP → Layers → Weather > 0` → product menu **Wind** (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0` → product menu **Ceil** (use altitude slider) |
 | Change GPS source mode | Tap `SRC` tile in instrument overlay |
-| Measure distances | `MAP → Ruler icon → long-press map to add points` |
-| Rubber band waypoints | `MAP → Rubber banding icon → long-press and drag waypoints` |
+| Measure distances | `MAP → Map Settings → Measure Distance Off → long-press map to add points` |
+| Rubber band waypoints | `MAP → Map Settings → Rubber Banding Off → long-press and drag waypoints` |
+| Mute audible alerts | `MAP → Map Settings → Audible Alerts On` (label flips to `Audible Alerts Off`) |
+| North-up / track-up orientation | `MAP → Map Settings → North Up / Track Up` |
 | Insert waypoint at position | `PLAN → long-press waypoint row → FIND → select destination` |
 | View winds & terrain analysis | `PLAN → analytics icon → tap diagram for details` |
 
@@ -1450,7 +1457,7 @@ Use this to adjust waypoints graphically.
 
 1. Ensure your route has waypoints (`PLAN` tab or destination popup `+Plan`).
 2. Go to `MAP`.
-3. Tap the **rubber banding** icon (decision arrow) to enable it (icon turns red).
+3. Tap the **gear** icon in the bottom-right controls, then tap `Rubber Banding Off` to enable it (the row changes to `Rubber Banding On` and is highlighted).
 4. Long-press a waypoint marker or label and drag to a new position.
 5. Release to snap/update from database lookup and rebuild route geometry.
 6. Turn rubber banding off when done to avoid accidental edits.
@@ -1570,7 +1577,7 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 
 ### UC-10b: Use aviation sheets for IFR clearance copydown
 
-1. On `MAP`, tap the notes/pen icon (in the bottom-right control row).
+1. On `MAP`, open **Menu** and tap `Write a Note` (under `Flight`).
 
 ![Step 2 — the Notes screen opens with a blank canvas](assets/docs/screenshots/16_notes_screen.png)
 
@@ -1696,11 +1703,11 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
 
 ### UC-19: Measure distance and bearing on the map
 
-1. On `MAP`, tap the **Ruler** icon (compass) to enable measure mode (turns red).
+1. On `MAP`, tap the gear icon, then tap `Measure Distance Off` to enable measure mode (the row changes to `Measure Distance On` and is highlighted).
 2. Long-press on the map to place your first point.
 3. Long-press again to add additional points.
 4. Distance (NM) and bearing (degrees) are shown between points.
-5. Tap the Ruler icon again to disable and clear measurements.
+5. Tap `Measure Distance On` to disable and clear measurements.
 
 ### UC-20: Insert a waypoint at a specific position in your plan
 
@@ -1920,7 +1927,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-06: What are the colored rings on map?
 
 - In the `Circles` layer:
-  - **Black rings**: fixed 2/5/10 NM reference rings; the 10 NM ring is marked with a magnetic compass rose (ticks every 5°, labels at `N` / `NE` / `E` / `SE` / `S` / `SW` / `W` / `NW`)
+  - **Black rings**: fixed 2/5/10 NM reference rings; the 10 NM ring is marked with a magnetic compass rose (ticks and labels at the eight major points: `N` / `NE` / `E` / `SE` / `S` / `SW` / `W` / `NW`)
   - **Blue ring**: speed-based 1-minute travel distance
   - **Purple ring**: glide circle based on the selected aircraft's best glide speed and sink rate, plus winds aloft, terrain, and altitude
 - Source thread:  
