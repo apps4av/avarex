@@ -7,7 +7,7 @@ import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:avaremp/weather/winds_cache.dart';
-import 'package:firebase_ai/firebase_ai.dart';
+import 'package:firebase_ai/firebase_ai.dart' hide LatLng;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart' show LatLng;
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';

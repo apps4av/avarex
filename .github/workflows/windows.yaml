@@ -58,10 +58,10 @@ jobs:
           echo -n ${{ secrets.GOOGLE_SERVICES_KEY }} | base64 -d > key.json
           export GOOGLE_APPLICATION_CREDENTIALS="key.json"
           dart pub global activate flutterfire_cli
-          export PATH="$PATH:$LOCALAPPDATA/Pub/Cache/bin:$HOME/AppData/Local/Pub/Cache/bin"
-          # Redirect stdin so any unexpected prompt fails fast instead of
-          # hanging the runner waiting on interactive input.
-          flutterfire configure --project avarex-479ae --platforms windows --yes < /dev/null
+          # Windows Git Bash cannot see the pub-cache .bat shim as `flutterfire`.
+          # Invoke the CLI through Dart so PATH is not required.
+          dart pub global run flutterfire_cli:flutterfire configure \
+            --project avarex-479ae --platforms windows --yes < /dev/null
 
       - name: Build artifacts
         run: flutter build windows --release

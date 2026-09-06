@@ -26,6 +26,30 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 
 flutter_macos_podfile_setup
 
+# FlutterFire still ships some macos podspecs as 10.13 (storage/auth/firestore/
+# app_check) while Firebase iOS SDK 12.x requires 10.15. CocoaPods then fails
+# with "Firebase/Storage requires a higher minimum macOS deployment version
+# than the plugin's reported minimum version." Patch the ephemeral copies
+# Flutter already linked before resolution.
+def raise_flutterfire_macos_pod_platforms!(min_version)
+  plugins_dir = File.join(__dir__, 'Flutter', 'ephemeral', '.symlinks', 'plugins')
+  return unless Dir.exist?(plugins_dir)
+
+  Dir.glob(File.join(plugins_dir, '*', 'macos', '*.podspec')).each do |podspec|
+    plugin = File.basename(File.dirname(File.dirname(podspec)))
+    next unless plugin.start_with?('firebase_', 'cloud_firestore')
+
+    original = File.read(podspec)
+    updated = original.gsub(
+      /s\.platform\s*=\s*:osx,\s*['"]10\.\d+['"]/,
+      "s.platform = :osx, '#{min_version}'",
+    )
+    File.write(podspec, updated) if updated != original
+  end
+end
+
+raise_flutterfire_macos_pod_platforms!('10.15')
+
 target 'Runner' do
   use_frameworks!
 
@@ -38,5 +62,8 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_macos_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] ||= '12.4'
+    end
   end
 end
