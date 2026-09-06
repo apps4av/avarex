@@ -94,7 +94,9 @@ dependencies:
 
   yaml: any
   firebase_core: ^4.2.1
-  firebase_auth: ^6.1.2
+  # 6.6.x migrates iOS to Swift and requires FlutterSceneLifeCycleDelegate
+  # (Flutter 3.38+). CI and local builds are on Flutter 3.35.1.
+  firebase_auth: 6.5.7
   firebase_ui_auth: ^3.0.1
   firebase_ai: ^3.6.0
   firebase_storage: ^13.0.4
