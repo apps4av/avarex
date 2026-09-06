@@ -40,7 +40,8 @@ class Area {
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
     int lIndex = layers.indexOf('Obstacles');
-    if(layersOpacity[lIndex] > 0) {
+    int navIndex = layers.indexOf('Nav'); // obstacles are drawn under the Nav layer
+    if(layersOpacity[lIndex] > 0 && layersOpacity[navIndex] > 0) {
       obstacles = await MainDatabaseHelper.db.findObstacles(Gps.toLatLng(position), GeoCalculations.convertAltitude(position.altitude));
     }
     // get surface wind from nearest airport

@@ -148,6 +148,10 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
 
+#### Nav sub-layers (in the Layers popup)
+- With the **Nav** layer above 0%, **Obstacles**, **Tape**, **Circles**, and **CAP Grid** appear indented under it, each with its own opacity slider.
+- Each one's effective opacity is its own slider multiplied by the **Nav** slider, so turning **Nav** off hides the route and all four.
+
 #### Weather products (in the Layers popup)
 - With the **Weather** layer above 0%, the weather products appear indented under it, each with its own opacity slider. Enable any combination of **ADS-B Radar**, **ADS-B Cloud Tops**, **ADS-B Icing**, **ADS-B Turbulence**, **ADS-B Lightning**, **Radar**, **Ceiling**, and **Wind Vectors**. ADS-B items show an antenna icon; Radar, Ceiling, and Wind Vectors show an internet/radar icon. **Radar** is internet Mesonet radar animation.
 - Each product's effective opacity is its own slider multiplied by the **Weather** layer slider, so turning **Weather** down dims all products.
@@ -184,19 +188,19 @@ Layer list from settings (with per-layer opacity 0-100%):
 
 | Layer | Description |
 |-------|-------------|
-| **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. |
-| **Circles** | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
+| **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. **Obstacles**, **Tape**, **Circles**, and **CAP Grid** are listed under **Nav** in this popup, each with its own opacity slider. |
+| **Circles** (under Nav) | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
 | **Chart** | Downloaded FAA chart tiles (offline chart base). |
 | **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. |
-| **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
+| **CAP Grid** (under Nav) | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
 | **Topo** | USGS topo online base map (max zoom 16). |
 | **Elevation** | Downloaded elevation tiles with color-coded terrain. |
 | **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) listed under **Weather** in this popup: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
 | **TFR** | Temporary flight restriction shapes/markers with time validity. Red=active, orange=future. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
 | **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
-| **Obstacles** | Obstacle markers (red squares) in your vicinity. |
-| **Tape** | Distance tape labels from ownship upward in NM. |
+| **Obstacles** (under Nav) | Obstacle markers (red squares) in your vicinity. |
+| **Tape** (under Nav) | Distance tape labels from ownship upward in NM. |
 | **GeoJSON** | Imported user GeoJSON polygons/markers. |
 | **PFD** | Inset Primary Flight Display panel (artificial horizon, speed/altitude tapes, VSI, compass, CDI/VDI, AOA indicator, turn coordinator). Requires AHRS data. |
 | **Tracks** | Ownship breadcrumb/polyline track recording (green line). |
@@ -1381,7 +1385,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
-| CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
+| CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |
 | Change traffic volume (S/M/L) | `MAP → Layers → Traffic > 0 → Volume` |
@@ -1641,7 +1645,7 @@ Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either dire
 ### UC-15: Use the CAP Grid overlay for search and rescue
 
 1. Go to `MAP → Layers`.
-2. Set **CAP Grid** opacity > 0.
+2. Make sure **Nav** opacity > 0, then set **CAP Grid** opacity > 0 in the sub-list under **Nav**.
 3. Zoom to level 9 or higher (grid only renders at sufficient zoom).
 4. Grid squares appear with identifiers (e.g., BOS42, SEA123).
 5. Use grid coordinates for communication with ground teams or other aircraft.
@@ -1995,7 +1999,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 - Civil Air Patrol grid overlay for search and rescue operations.
 - Shows grid identifiers (e.g., BOS42, SEA123) at zoom level 9+.
-- Enable via `MAP → Layers → CAP Grid` opacity > 0.
+- Enable via `MAP → Layers → Nav` opacity > 0, then **CAP Grid** opacity > 0 in the sub-list under **Nav**.
 - Covers all US sectional chart areas.
 
 ### FAQ-14: How do I view my flight in 3D?

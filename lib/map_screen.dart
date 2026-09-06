@@ -187,9 +187,12 @@ class MapScreenState extends State<MapScreen> {
   // for measuring tape
   void _handleEvent(MapEvent mapEvent) {
     // The tape markers are only consumed by the Tape layer. Skip the trig loop
-    // entirely (it otherwise runs on every pan/zoom frame) when Tape is off.
+    // entirely (it otherwise runs on every pan/zoom frame) when Tape is off,
+    // including when its parent Nav layer is off.
     final int tapeIndex = _layers.indexOf('Tape');
-    if (tapeIndex < 0 || _layersOpacity[tapeIndex] <= 0) {
+    final int navIndex = _layers.indexOf('Nav');
+    if (tapeIndex < 0 || _layersOpacity[tapeIndex] <= 0 ||
+        navIndex < 0 || _layersOpacity[navIndex] <= 0) {
       return;
     }
     LatLng center = Gps.toLatLng(Storage().gpsChange.value);
@@ -464,6 +467,9 @@ class MapScreenState extends State<MapScreen> {
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
     // this is called many times on the map so we need to be efficient.
     Storage().cachedTrafficLayerOn = _layersOpacity[_layers.indexOf("Traffic")] > 0;
+    // Obstacles / Tape / Circles / CAP Grid hang off Nav, like the weather
+    // products hang off Weather, so they are scaled by the Nav opacity.
+    final double navOpacity = _layersOpacity[_layers.indexOf('Nav')];
 
     //add layers
     final List<Widget> layers = [];
@@ -563,7 +569,7 @@ class MapScreenState extends State<MapScreen> {
     }
 
     lIndex = _layers.indexOf('CAP Grid');
-    opacity = _layersOpacity[lIndex];
+    opacity = navOpacity * _layersOpacity[lIndex];
     if (opacity > 0) {
       layers.add(
         IgnorePointer(
@@ -905,7 +911,7 @@ class MapScreenState extends State<MapScreen> {
     }
 
     lIndex = _layers.indexOf('Circles');
-    opacity = _layersOpacity[lIndex];
+    opacity = navOpacity * _layersOpacity[lIndex];
     if(opacity > 0) {
 
       layers.add( // circle layer
@@ -998,7 +1004,7 @@ class MapScreenState extends State<MapScreen> {
     }
 
     lIndex = _layers.indexOf('Tape');
-    opacity = _layersOpacity[lIndex];
+    opacity = navOpacity * _layersOpacity[lIndex];
     if(opacity > 0) {
       layers.add( // tape
           IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<(List<LatLng>, List<String>)>(
@@ -1024,7 +1030,7 @@ class MapScreenState extends State<MapScreen> {
 
 
       lIndex = _layers.indexOf('Obstacles');
-      opacity = _layersOpacity[lIndex];
+      opacity = navOpacity * _layersOpacity[lIndex];
       if (opacity > 0) {
         //obstacles
         layers.add(
@@ -2248,6 +2254,10 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
   late List<double> _localProductOpacity;
   late String _puck;
 
+  // layers that are listed under a parent layer rather than on their own
+  static const List<String> _weatherSubLayers = ["Radar", "Ceiling", "Wind Vectors"];
+  static const List<String> _navSubLayers = ["Obstacles", "Tape", "Circles", "CAP Grid"];
+
   // traffic volume choices, shown under the Traffic layer
   static const Map<String, String> _puckSizes = {
     "S": "20 aircraft, 3000 ft, 10 NM",
@@ -2473,8 +2483,8 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                       final List<Widget> rows = [];
                       for (int i = 0; i < widget.layers.length; i++) {
                         final String name = widget.layers[i];
-                        // Radar / Ceiling / Wind Vectors are weather products, listed under Weather.
-                        if (name == "Radar" || name == "Ceiling" || name == "Wind Vectors") {
+                        // these are listed indented under their parent layer instead
+                        if (_weatherSubLayers.contains(name) || _navSubLayers.contains(name)) {
                           continue;
                         }
                         final int index = i;
@@ -2508,6 +2518,26 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                         }
                         if (name == "Traffic" && _localOpacity[index] > 0) {
                           rows.add(_trafficVolumeRow(26));
+                        }
+                        if (name == "Nav" && _localOpacity[index] > 0) {
+                          for (final String subName in _navSubLayers) {
+                            final int subIndex = widget.layers.indexOf(subName);
+                            if (subIndex < 0) {
+                              continue;
+                            }
+                            rows.add(_opacityRow(
+                              icon: widget.getLayerIcon(subName),
+                              label: subName,
+                              value: _localOpacity[subIndex],
+                              indent: 26,
+                              onChanged: (value) {
+                                setState(() {
+                                  _localOpacity[subIndex] = value;
+                                });
+                                widget.onLayerChange(subIndex, value);
+                              },
+                            ));
+                          }
                         }
                       }
                       return ListView(
