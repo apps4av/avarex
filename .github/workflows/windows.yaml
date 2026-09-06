@@ -27,6 +27,15 @@ jobs:
           encoding: 'utf8'
           max-parallelism: 10
 
+      - name: Find and Replace App Check Windows debug token
+        uses: richardrigutins/replace-in-files@v2
+        with:
+          files: '**/*.dart'
+          search-text: '@@__app_check_windows_debug_token__@@'
+          replacement-text: ${{ secrets.APP_CHECK_WINDOWS_DEBUG_TOKEN }}
+          encoding: 'utf8'
+          max-parallelism: 10
+
       - name: Install project dependencies
         run: flutter pub get
 

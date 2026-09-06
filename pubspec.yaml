@@ -102,6 +102,7 @@ dependencies:
   purchases_flutter: ^9.9.9
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^9.9.9
+  firebase_app_check: ^0.4.7
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true

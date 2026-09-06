@@ -1,6 +1,7 @@
 import 'package:avaremp/logbook/logbook_screen.dart';
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
+import 'package:avaremp/services/app_check.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/services/revenue_cat.dart';
 import 'package:avaremp/storage.dart';
@@ -37,6 +38,7 @@ void main() {
         await Firebase.initializeApp(
           options: DefaultFirebaseOptions.currentPlatform,
         );
+        await AppCheckService.activate();
         FirebaseUIAuth.configureProviders([
           EmailAuthProvider(),
         ]);
