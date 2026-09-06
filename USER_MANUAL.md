@@ -148,16 +148,19 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
 
-#### Traffic-only controls (show when Traffic layer > 0)
-- **Traffic puck size** cycles: `S`, `M`, `L`
-  - S: 20 aircraft, 3000 ft, 10 NM
-  - M: 200 aircraft, 6000 ft, 50 NM
-  - L: 1000 aircraft, 30000 ft, 500 NM
+#### Weather products (in the Layers popup)
+- With the **Weather** layer above 0%, the weather products appear indented under it, each with its own opacity slider. Enable any combination of **ADS-B Radar**, **ADS-B Cloud Tops**, **ADS-B Icing**, **ADS-B Turbulence**, **ADS-B Lightning**, **Radar**, **Ceiling**, and **Wind Vectors**. ADS-B items show an antenna icon; Radar, Ceiling, and Wind Vectors show an internet/radar icon. **Radar** is internet Mesonet radar animation.
+- Each product's effective opacity is its own slider multiplied by the **Weather** layer slider, so turning **Weather** down dims all products.
+
+#### Traffic volume (in the Layers popup)
+- With the **Traffic** layer above 0%, a **Volume** row appears indented under it with three choices:
+  - `S`: 20 aircraft, 3000 ft, 10 NM
+  - `M`: 200 aircraft, 6000 ft, 50 NM
+  - `L`: 1000 aircraft, 30000 ft, 500 NM
 
 #### Altitude slider (right side)
-- Appears with the **Weather** layer when the product menu is set to Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
+- Appears with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
 - Range: 0 to 30,000 ft (1,000 ft increments).
-- Product menu: with the **Weather** layer on, tap the cloud button on the right (above the traffic **S/M/L** control, below the altitude slider when shown) to open per-product opacity controls (same pattern as map layers). Enable any combination of **ADS-B Radar**, **ADS-B Cloud Tops**, **ADS-B Icing**, **ADS-B Turbulence**, **ADS-B Lightning**, **Radar**, **Ceiling**, and **Wind Vectors**. ADS-B items show an antenna icon; Radar, Ceiling, and Wind Vectors show an internet/radar icon. **Radar** is internet Mesonet radar animation.
 
 ### 4.4 Map chart types
 
@@ -188,7 +191,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **CAP Grid** | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
 | **Topo** | USGS topo online base map (max zoom 16). |
 | **Elevation** | Downloaded elevation tiles with color-coded terrain. |
-| **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) from the right-side **Weather** menu: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
+| **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) listed under **Weather** in this popup: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
 | **TFR** | Temporary flight restriction shapes/markers with time validity. Red=active, orange=future. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
 | **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
@@ -1379,8 +1382,9 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Cloud backup/restore | `MAP top-right account icon → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | CAP Grid overlay | `MAP → Layers → CAP Grid slider > 0` (zoom to level 9+) |
-| Enable wind vectors | `MAP → Layers → Weather > 0` → product menu **Wind** (use altitude slider) |
-| Enable ceiling overlay | `MAP → Layers → Weather > 0` → product menu **Ceil** (use altitude slider) |
+| Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
+| Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |
+| Change traffic volume (S/M/L) | `MAP → Layers → Traffic > 0 → Volume` |
 | Change GPS source mode | Tap `SRC` tile in instrument overlay |
 | Measure distances | `MAP → Map Settings → Measure Distance Off → long-press map to add points` |
 | Rubber band waypoints | `MAP → Map Settings → Rubber Banding Off → long-press and drag waypoints` |
@@ -1900,7 +1904,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-03: Where do I enable new wind/ceiling map features?
 
 - `MAP → Layers → Weather` (opacity > 0)
-- Right-side product menu: choose **Wind** or **Ceil**
+- In the sub-list that appears under **Weather**, raise **Wind Vectors** or **Ceiling** above 0%
 - Use the altitude slider to change displayed altitude context
 - Source threads:
   - New features v83/v84:  

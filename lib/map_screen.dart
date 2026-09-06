@@ -460,7 +460,6 @@ class MapScreenState extends State<MapScreen> {
     double opacity = 1.0;
 
     bool showAltitudeSlider = false;
-    bool showWeatherProductSelector = false;
 
     _maxZoom = ChartCategory.chartTypeToZoom(_type);
     // this is called many times on the map so we need to be efficient.
@@ -622,13 +621,12 @@ class MapScreenState extends State<MapScreen> {
       layers.add(Opacity(opacity: opacity, child: _makeGeoJsonCluster()));
     }
 
-    // Radar, Ceiling, and Wind Vectors are selected from the Weather products
-    // menu (right-side), not as separate map layers.
+    // Radar, Ceiling, and Wind Vectors are selected from the Weather sub-list
+    // in the layer selector, not as separate map layers.
 
     lIndex = _layers.indexOf('Weather');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      showWeatherProductSelector = true;
       final bool needsAltitude = _weatherProductOn("ADS-B Cloud Tops") ||
           _weatherProductOn("ADS-B Icing") ||
           _weatherProductOn("ADS-B Turbulence") ||
@@ -1436,56 +1434,27 @@ class MapScreenState extends State<MapScreen> {
 
                 ),
               ),
-              if(showAltitudeSlider || showWeatherProductSelector || _layersOpacity[_layers.indexOf("Traffic")] > 0)
+              if(showAltitudeSlider)
               Positioned(
                 child: Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(
                         padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (showAltitudeSlider)
-                              RotatedBox(quarterTurns: -1, child:
-                                SizedBox(width: 192, height: 64, child:
-                                  Slider(
-                                    label: "${(Storage().route.altitude / 1000).toInt()}K ft",
-                                    max: 30000,
-                                    min: 0,
-                                    divisions: 30,
-                                    value: Storage().route.altitude.toDouble(),
-                                    onChanged: (double value) {
-                                      setState(() {
-                                        Storage().route.altitude = value.toInt();
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                            if (showWeatherProductSelector)
-                              IconButton(
-                                tooltip: "Select weather products to show on the Map screen",
-                                onPressed: () => _showWeatherProductSelector(context),
-                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                    child: const Icon(Icons.cloud)),
-                              ),
-                            if (_layersOpacity[_layers.indexOf("Traffic")] > 0)
-                              IconButton(
-                                tooltip: "Traffic Volume:\n"
-                                    "S: 20 Aircraft, 3000ft, 10NM\n"
-                                    "M: 200 Aircraft, 6000ft, 50NM\n"
-                                    "L: 1000 Aircraft, 30000ft, 500NM",
-                                onPressed: () {
-                                  setState(() {
-                                    Storage().settings.setTrafficPuckSize(TrafficCache.adjustPuck(Storage().settings.getTrafficPuckSize()));
-                                  });
-                                  Storage().trafficCache.changeArea(Storage().settings.getTrafficPuckSize());
-                                },
-                                icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                    child: Text(Storage().settings.getTrafficPuckSize())),
-                              ),
-                          ],
+                        child: RotatedBox(quarterTurns: -1, child:
+                          SizedBox(width: 192, height: 64, child:
+                            Slider(
+                              label: "${(Storage().route.altitude / 1000).toInt()}K ft",
+                              max: 30000,
+                              min: 0,
+                              divisions: 30,
+                              value: Storage().route.altitude.toDouble(),
+                              onChanged: (double value) {
+                                setState(() {
+                                  Storage().route.altitude = value.toInt();
+                                });
+                              },
+                            ),
+                          ),
                         ),
                       )
                     )
@@ -1757,27 +1726,6 @@ class MapScreenState extends State<MapScreen> {
     }
   }
 
-  void _showWeatherProductSelector(BuildContext context) {
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: false,
-        barrierDismissible: true,
-        barrierColor: Colors.black26,
-        pageBuilder: (context, _, __) => _WeatherProductSelectorOverlay(
-          products: _weatherProducts,
-          productsOpacity: _weatherProductsOpacity,
-          getProductIcon: _weatherProductIcon,
-          onProductChange: (index, value) {
-            setState(() {
-              _weatherProductsOpacity[index] = value;
-            });
-            Storage().settings.setWeatherProductsOpacity(_weatherProductsOpacity);
-          },
-        ),
-      ),
-    );
-  }
-
   IconData _getLayerIcon(String layer) {
     switch (layer) {
       case "Chart": return Icons.map;
@@ -1814,6 +1762,22 @@ class MapScreenState extends State<MapScreen> {
           layers: _layers,
           layersOpacity: _layersOpacity,
           getLayerIcon: _getLayerIcon,
+          weatherProducts: _weatherProducts,
+          weatherProductsOpacity: _weatherProductsOpacity,
+          getProductIcon: _weatherProductIcon,
+          onProductChange: (index, value) {
+            setState(() {
+              _weatherProductsOpacity[index] = value;
+            });
+            Storage().settings.setWeatherProductsOpacity(_weatherProductsOpacity);
+          },
+          trafficPuckSize: Storage().settings.getTrafficPuckSize(),
+          onTrafficPuckChange: (size) {
+            setState(() {
+              Storage().settings.setTrafficPuckSize(size);
+            });
+            Storage().trafficCache.changeArea(size);
+          },
           onLayerChange: (index, value) {
             double last = _layersOpacity[index];
             if (_layers[index] == "Tracks") {
@@ -2255,12 +2219,24 @@ class _LayerSelectorOverlay extends StatefulWidget {
   final List<double> layersOpacity;
   final IconData Function(String) getLayerIcon;
   final void Function(int, double) onLayerChange;
+  final List<String> weatherProducts;
+  final List<double> weatherProductsOpacity;
+  final IconData Function(String) getProductIcon;
+  final void Function(int, double) onProductChange;
+  final String trafficPuckSize;
+  final void Function(String) onTrafficPuckChange;
 
   const _LayerSelectorOverlay({
     required this.layers,
     required this.layersOpacity,
     required this.getLayerIcon,
     required this.onLayerChange,
+    required this.weatherProducts,
+    required this.weatherProductsOpacity,
+    required this.getProductIcon,
+    required this.onProductChange,
+    required this.trafficPuckSize,
+    required this.onTrafficPuckChange,
   });
 
   @override
@@ -2269,11 +2245,168 @@ class _LayerSelectorOverlay extends StatefulWidget {
 
 class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
   late List<double> _localOpacity;
+  late List<double> _localProductOpacity;
+  late String _puck;
+
+  // traffic volume choices, shown under the Traffic layer
+  static const Map<String, String> _puckSizes = {
+    "S": "20 aircraft, 3000 ft, 10 NM",
+    "M": "200 aircraft, 6000 ft, 50 NM",
+    "L": "1000 aircraft, 30000 ft, 500 NM",
+  };
 
   @override
   void initState() {
     super.initState();
     _localOpacity = List.from(widget.layersOpacity);
+    _localProductOpacity = List.from(widget.weatherProductsOpacity);
+    _puck = widget.trafficPuckSize;
+  }
+
+  // one icon / label / opacity slider line, used for layers and for the
+  // weather products nested under the Weather layer
+  Widget _opacityRow({
+    required IconData icon,
+    required String label,
+    required double value,
+    required void Function(double) onChanged,
+    double indent = 0,
+  }) {
+    final bool isOn = value > 0;
+    void toggle() => onChanged(isOn ? 0.0 : 1.0);
+    return Padding(
+      padding: EdgeInsets.only(left: 10 + indent, right: 10, top: 3, bottom: 3),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: toggle,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: isOn
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: isOn
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            flex: 2,
+            child: GestureDetector(
+              onTap: toggle,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isOn ? FontWeight.w600 : FontWeight.normal,
+                  color: isOn
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.outline,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: SliderTheme(
+              data: SliderThemeData(
+                trackHeight: 4,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: Theme.of(context).colorScheme.primary,
+                inactiveTrackColor: Theme.of(context).colorScheme.outline.withAlpha(40),
+                thumbColor: Theme.of(context).colorScheme.primary,
+              ),
+              child: Slider(
+                min: 0,
+                max: 1,
+                divisions: 4,
+                value: value,
+                onChanged: onChanged,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 40,
+            child: Text(
+              "${(value * 100).round()}%",
+              style: TextStyle(
+                fontSize: 14,
+                color: Theme.of(context).colorScheme.outline,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // traffic volume S / M / L, nested under the Traffic layer
+  Widget _trafficVolumeRow(double indent) {
+    return Padding(
+      padding: EdgeInsets.only(left: 10 + indent, right: 10, top: 3, bottom: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              "Volume",
+              style: TextStyle(
+                fontSize: 15,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          for (final MapEntry<String, String> size in _puckSizes.entries)
+            Tooltip(
+              message: "${size.key}: ${size.value}",
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _puck = size.key;
+                  });
+                  widget.onTrafficPuckChange(size.key);
+                },
+                child: Container(
+                  width: 38,
+                  margin: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _puck == size.key
+                        ? Theme.of(context).colorScheme.primaryContainer
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: _puck == size.key
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline.withAlpha(80),
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    size.key,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: _puck == size.key ? FontWeight.w700 : FontWeight.normal,
+                      color: _puck == size.key
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -2289,7 +2422,8 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 340,
+            // wider than the other overlays to fit the indented sub-lists
+            width: (Constants.screenWidth(context) - 24).clamp(0.0, 380.0),
             constraints: BoxConstraints(
               maxHeight: Constants.screenHeight(context) * 0.7,
             ),
@@ -2336,336 +2470,50 @@ class _LayerSelectorOverlayState extends State<_LayerSelectorOverlay> {
                 Flexible(
                   child: Builder(
                     builder: (context) {
-                      // Radar / Ceiling / Wind Vectors moved to Weather product dropdown.
-                      final List<int> visible = [];
+                      final List<Widget> rows = [];
                       for (int i = 0; i < widget.layers.length; i++) {
                         final String name = widget.layers[i];
+                        // Radar / Ceiling / Wind Vectors are weather products, listed under Weather.
                         if (name == "Radar" || name == "Ceiling" || name == "Wind Vectors") {
                           continue;
                         }
-                        visible.add(i);
+                        final int index = i;
+                        rows.add(_opacityRow(
+                          icon: widget.getLayerIcon(name),
+                          label: name,
+                          value: _localOpacity[index],
+                          onChanged: (value) {
+                            setState(() {
+                              _localOpacity[index] = value;
+                            });
+                            widget.onLayerChange(index, value);
+                          },
+                        ));
+                        if (name == "Weather" && _localOpacity[index] > 0) {
+                          for (int p = 0; p < widget.weatherProducts.length && p < _localProductOpacity.length; p++) {
+                            final int productIndex = p;
+                            rows.add(_opacityRow(
+                              icon: widget.getProductIcon(widget.weatherProducts[p]),
+                              label: widget.weatherProducts[p],
+                              value: _localProductOpacity[productIndex],
+                              indent: 26,
+                              onChanged: (value) {
+                                setState(() {
+                                  _localProductOpacity[productIndex] = value;
+                                });
+                                widget.onProductChange(productIndex, value);
+                              },
+                            ));
+                          }
+                        }
+                        if (name == "Traffic" && _localOpacity[index] > 0) {
+                          rows.add(_trafficVolumeRow(26));
+                        }
                       }
-                      return ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    shrinkWrap: true,
-                    itemCount: visible.length,
-                    itemBuilder: (context, visibleIndex) {
-                      final int index = visible[visibleIndex];
-                      final isOn = _localOpacity[index] > 0;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                double newValue = isOn ? 0.0 : 1.0;
-                                setState(() {
-                                  _localOpacity[index] = newValue;
-                                });
-                                widget.onLayerChange(index, newValue);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: isOn
-                                      ? Theme.of(context).colorScheme.primaryContainer
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  widget.getLayerIcon(widget.layers[index]),
-                                  size: 22,
-                                  color: isOn
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 2,
-                              child: GestureDetector(
-                                onTap: () {
-                                  double newValue = isOn ? 0.0 : 1.0;
-                                  setState(() {
-                                    _localOpacity[index] = newValue;
-                                  });
-                                  widget.onLayerChange(index, newValue);
-                                },
-                                child: Text(
-                                  widget.layers[index],
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: isOn ? FontWeight.w600 : FontWeight.normal,
-                                    color: isOn
-                                        ? Theme.of(context).colorScheme.onSurface
-                                        : Theme.of(context).colorScheme.outline,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 4,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                                  activeTrackColor: Theme.of(context).colorScheme.primary,
-                                  inactiveTrackColor: Theme.of(context).colorScheme.outline.withAlpha(40),
-                                  thumbColor: Theme.of(context).colorScheme.primary,
-                                ),
-                                child: Slider(
-                                  min: 0,
-                                  max: 1,
-                                  divisions: 4,
-                                  value: _localOpacity[index],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _localOpacity[index] = value;
-                                    });
-                                    widget.onLayerChange(index, value);
-                                  },
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 40,
-                              child: Text(
-                                "${(_localOpacity[index] * 100).round()}%",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Theme.of(context).colorScheme.outline,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WeatherProductSelectorOverlay extends StatefulWidget {
-  final List<String> products;
-  final List<double> productsOpacity;
-  final IconData Function(String) getProductIcon;
-  final void Function(int, double) onProductChange;
-
-  const _WeatherProductSelectorOverlay({
-    required this.products,
-    required this.productsOpacity,
-    required this.getProductIcon,
-    required this.onProductChange,
-  });
-
-  @override
-  State<_WeatherProductSelectorOverlay> createState() =>
-      _WeatherProductSelectorOverlayState();
-}
-
-class _WeatherProductSelectorOverlayState
-    extends State<_WeatherProductSelectorOverlay> {
-  late List<double> _localOpacity;
-
-  @override
-  void initState() {
-    super.initState();
-    _localOpacity = List.from(widget.productsOpacity);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Padding(
-        padding: EdgeInsets.only(
-          right: 8,
-          top: Constants.screenHeightForInstruments(context) + 50,
-          bottom: Constants.bottomPaddingSize(context) + 60,
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 340,
-            constraints: BoxConstraints(
-              maxHeight: Constants.screenHeight(context) * 0.7,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor.withAlpha(240),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(50),
-                  blurRadius: 12,
-                  offset: const Offset(-2, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .primaryContainer
-                        .withAlpha(100),
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud,
-                          size: 24,
-                          color: Theme.of(context).colorScheme.primary),
-                      const SizedBox(width: 12),
-                      Text(
-                        "Weather Products",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Icon(Icons.close,
-                            size: 24,
-                            color: Theme.of(context).colorScheme.outline),
-                      ),
-                    ],
-                  ),
-                ),
-                Flexible(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 6),
-                    shrinkWrap: true,
-                    itemCount: widget.products.length,
-                    itemBuilder: (context, index) {
-                      final isOn = _localOpacity[index] > 0;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 3),
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                final double newValue = isOn ? 0.0 : 1.0;
-                                setState(() {
-                                  _localOpacity[index] = newValue;
-                                });
-                                widget.onProductChange(index, newValue);
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: isOn
-                                      ? Theme.of(context)
-                                          .colorScheme
-                                          .primaryContainer
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Icon(
-                                  widget.getProductIcon(widget.products[index]),
-                                  size: 22,
-                                  color: isOn
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.outline,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              flex: 2,
-                              child: GestureDetector(
-                                onTap: () {
-                                  final double newValue = isOn ? 0.0 : 1.0;
-                                  setState(() {
-                                    _localOpacity[index] = newValue;
-                                  });
-                                  widget.onProductChange(index, newValue);
-                                },
-                                child: Text(
-                                  widget.products[index],
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: isOn
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                    color: isOn
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .outline,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 4,
-                                  thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 8),
-                                  overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 14),
-                                  activeTrackColor:
-                                      Theme.of(context).colorScheme.primary,
-                                  inactiveTrackColor: Theme.of(context)
-                                      .colorScheme
-                                      .outline
-                                      .withAlpha(40),
-                                  thumbColor:
-                                      Theme.of(context).colorScheme.primary,
-                                ),
-                                child: Slider(
-                                  min: 0,
-                                  max: 1,
-                                  divisions: 4,
-                                  value: _localOpacity[index],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _localOpacity[index] = value;
-                                    });
-                                    widget.onProductChange(index, value);
-                                  },
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 40,
-                              child: Text(
-                                "${(_localOpacity[index] * 100).round()}%",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color:
-                                      Theme.of(context).colorScheme.outline,
-                                ),
-                                textAlign: TextAlign.right,
-                              ),
-                            ),
-                          ],
-                        ),
+                      return ListView(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        shrinkWrap: true,
+                        children: rows,
                       );
                     },
                   ),
