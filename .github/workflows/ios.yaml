@@ -13,10 +13,9 @@ jobs:
       - name: Set app version
         run: |
           echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
-      - uses: futureware-tech/simulator-action@v4
-        with:
-          model: 'iPhone 17'
 
+      # No simulator is booted here: a release IPA is a device build and nothing
+      # in this job runs on a simulator.
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
@@ -59,7 +58,10 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-          xcodebuild -downloadPlatform iOS 
+          # No `xcodebuild -downloadPlatform iOS` here: the macos-26 image ships
+          # the iOS platform and simulator runtimes, and the command fails with
+          # "Unable to connect to simulator" (exit 70) once a simulator is
+          # booted. A release IPA is a device build and needs no runtime.
 
       - name: Install project dependencies
         run: flutter pub get
