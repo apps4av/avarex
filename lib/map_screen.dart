@@ -955,11 +955,15 @@ class MapScreenState extends State<MapScreen> {
                       points: geo.calculateCircle(center, GeoCalculations.convertSpeed(value.speed) / 60),
                       color: Constants.speedCircleColor,
                       strokeWidth: 3,
+                      borderColor: Constants.speedCircleHaloColor,
+                      borderStrokeWidth: 4, // halo, 2 px either side of the ring
                     ),
                     Polyline(
                       points: Storage().area.glideProfile.getGlideCircle(),
                       color: Constants.glideCircleColor,
                       strokeWidth: 3,
+                      borderColor: Constants.glideCircleHaloColor,
+                      borderStrokeWidth: 4, // halo, 2 px either side of the ring
                     ),
                   ],
                 );

@@ -45,8 +45,12 @@ class Constants {
   static Color bottomNavBarIconColor = Colors.white;
 
   static const Color distanceCircleColor = Color.fromARGB(255, 58, 58, 58);
-  static const Color speedCircleColor = Color.fromARGB(255, 0, 0, 180);
-  static const Color glideCircleColor = Color.fromARGB(255, 150, 0, 150);
+  static const Color speedCircleColor = Color.fromARGB(255, 0, 0, 255);
+  static const Color glideCircleColor = Color.fromARGB(255, 255, 255, 255);
+  // halos drawn under the glide and 1 minute rings, which are otherwise hard to
+  // pick out against the chart
+  static const Color glideCircleHaloColor = Color.fromARGB(255, 255, 140, 0);
+  static const Color speedCircleHaloColor = Color.fromARGB(255, 255, 235, 0);
   static const Color planCurrentColor = Colors.purpleAccent;
   static const Color planNextColor = Colors.grey;
   static const Color planPassedColor = Colors.cyanAccent;

@@ -189,7 +189,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | Layer | Description |
 |-------|-------------|
 | **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. **Obstacles**, **Tape**, **Circles**, and **CAP Grid** are listed under **Nav** in this popup, each with its own opacity slider. |
-| **Circles** (under Nav) | Range rings (10/5/2 NM black rings), speed ring (blue, 1-minute travel distance), glide circle (purple, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
+| **Circles** (under Nav) | Range rings (10/5/2 NM black rings), speed ring (blue with a yellow halo, 1-minute travel distance), glide circle (white with an orange halo, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
 | **Chart** | Downloaded FAA chart tiles (offline chart base). |
 | **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. |
 | **CAP Grid** (under Nav) | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
@@ -1936,8 +1936,8 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 - In the `Circles` layer:
   - **Black rings**: fixed 2/5/10 NM reference rings; the 10 NM ring is marked with a magnetic compass rose (ticks and labels at the eight major points: `N` / `NE` / `E` / `SE` / `S` / `SW` / `W` / `NW`)
-  - **Blue ring**: speed-based 1-minute travel distance
-  - **Purple ring**: glide circle based on the selected aircraft's best glide speed and sink rate, plus winds aloft, terrain, and altitude
+  - **Blue ring with a yellow halo**: speed-based 1-minute travel distance
+  - **White ring with an orange halo**: glide circle based on the selected aircraft's best glide speed and sink rate, plus winds aloft, terrain, and altitude
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/VJ0S3ejWPC8`
 
