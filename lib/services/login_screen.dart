@@ -105,18 +105,6 @@ class LoginScreenState extends State<LoginScreen> {
             setState(() {});
           }),
         ],
-        children: [
-          if (Constants.shouldShowProServices)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: TextButton(
-                child: const Text("Flight Intelligence"),
-                onPressed: () {
-                  showPaywall(context, '/ai');
-                },
-              ),
-            ),
-        ],
       );
     }
 

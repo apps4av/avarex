@@ -404,6 +404,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             LoginScreenState.openCloudFeature(context, '/scheduler');
                           },
                         ),
+                        _buildMenuItem(
+                          context,
+                          icon: MdiIcons.robot,
+                          title: "Flight Intelligence",
+                          subtitle: "Ask aviation questions (Pro)",
+                          onTap: () {
+                            Navigator.pop(context);
+                            LoginScreenState.showPaywall(context, '/ai');
+                          },
+                        ),
                       ],
                       if (Constants.shouldShowBluetoothSpp) ...[
                         const SizedBox(height: 8),

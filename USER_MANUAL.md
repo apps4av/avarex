@@ -61,7 +61,7 @@ You can reopen onboarding later from the drawer header icon.
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
-| Cloud drawer section (Backup/Sync, Community, Aircraft Scheduler)                                | **iOS and Android only** |
+| Cloud drawer section (Backup/Sync, Community, Aircraft Scheduler, Flight Intelligence)           | **iOS and Android only** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -97,6 +97,7 @@ Open from MAP with **Menu** button (bottom-left):
 - Backup/Sync (iOS/Android only, under `CLOUD`)
 - Community (iOS/Android only, under `CLOUD`; carries the unread notifications bell)
 - Scheduler (iOS/Android only, under `CLOUD`)
+- Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
 - IO (Android only)
 - Help (opens User Manual PDF; not available on Linux)
 
@@ -1053,20 +1054,20 @@ They are reached from two places:
 
 - **Account screen** — `MAP → Menu → Cloud → Account`. Sign in, view profile, and sign out. The screen title is `Account`.
 - **Pro icon** (iOS/Android) — `MAP top-right account icon`. Opens `Flight Intelligence` when signed in (paywall if needed), or the `Account` sign-in screen if not. Some features also route here on demand (e.g., translate actions).
-- **`CLOUD` drawer section** — `MAP → Menu → Cloud`. Holds `Account`, `Backup/Sync`, `Community`, and `Scheduler`. These Cloud features are free; tapping one signs you in if needed. There is no Pro paywall.
+- **`CLOUD` drawer section** — `MAP → Menu → Cloud`. Holds `Account`, `Backup/Sync`, `Community`, `Scheduler`, and `Flight Intelligence`. `Account`, `Backup/Sync`, `Community`, and `Scheduler` are free (sign-in only). `Flight Intelligence` still uses the Pro paywall.
 
 ### 11.2 Login and subscription flow
 
 - Sign in/register with email authentication (Firebase)
 - Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS and Android
 - `Flight Intelligence` uses the RevenueCat entitlement (`Pro`) paywall
-- After login, the Account screen can open `Flight Intelligence`
+- After login, open `Flight Intelligence` from the MAP top-right account icon or from `MAP → Menu → Cloud → Flight Intelligence`
 
 ### 11.3 Flight Intelligence (AI)
 
 Screen title: **Flight Intelligence**
 
-**Access**: `MAP top-right account icon` (opens `Flight Intelligence` when signed in, or `Account` sign-in if not)
+**Access**: `MAP → Menu → Cloud → Flight Intelligence`, or `MAP top-right account icon` (opens `Flight Intelligence` when signed in, or `Account` sign-in if not)
 
 Powered by Gemini 2.5 Pro with Google Search integration.
 
@@ -1375,7 +1376,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Notes/drawing | `MAP → Menu → Write a Note` |
 | Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
 | Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
-| Pro AI | `MAP top-right account icon` (iOS/Android; sign-in screen if not logged in) |
+| Pro AI | `MAP → Menu → Cloud → Flight Intelligence` or `MAP top-right account icon` (iOS/Android) |
 | Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android) |
 | Pro Community | `MAP → Menu → Cloud → Community` |
 | Create a pilot group | `MAP → Menu → Cloud → Community → New Group` |
@@ -2001,7 +2002,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-11: Is Flight Intelligence (AI) available on desktop?
 
 - Current Pro AI workflows are targeted for iOS/Android only.
-- Access from map account icon (opens Flight Intelligence when signed in, or Account sign-in if not).
+- Access from `MAP → Menu → Cloud → Flight Intelligence` or the map account icon (opens Flight Intelligence when signed in, or Account sign-in if not).
 - Uses Gemini 2.5 Pro with Google Search integration.
 - Source threads:
   - AI feature thread:  
