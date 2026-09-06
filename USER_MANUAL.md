@@ -61,8 +61,8 @@ You can reopen onboarding later from the drawer header icon.
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
-| Cloud drawer section (Backup/Sync, Community, Aircraft Scheduler, Flight Intelligence)           | **iOS and Android only** |
-| Airport Businesses & Reviews (free, sign-in required)                                            | **iOS and Android only** |
+| Cloud drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                       | **iOS, Android, and Windows** |
+| Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, and Windows** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
 
@@ -93,10 +93,10 @@ Open from MAP with **Menu** button (bottom-left):
 - Check Lists
 - Aircraft & Performance
 - Log Book
-- Account (iOS/Android only, under `CLOUD`; sign in, profile, sign out)
-- Backup/Sync (iOS/Android only, under `CLOUD`)
-- Community (iOS/Android only, under `CLOUD`; carries the unread notifications bell)
-- Scheduler (iOS/Android only, under `CLOUD`)
+- Account (iOS/Android/Windows, under `CLOUD`; sign in, profile, sign out)
+- Backup/Sync (iOS/Android/Windows, under `CLOUD`)
+- Community (iOS/Android/Windows, under `CLOUD`; carries the unread notifications bell)
+- Scheduler (iOS/Android/Windows, under `CLOUD`)
 - Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
 - IO (Android only)
 - Help (opens User Manual PDF; not available on Linux)
@@ -362,7 +362,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
 - Displays downloaded plates/diagrams/CSUP
 - Draws ownship and heading on georeferenced plates
-- Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android, sign-in required)
+- Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android/Windows, sign-in required)
 - Supports zoom/pan via InteractiveViewer (up to 8x)
 
 ### 6.3 Controls
@@ -420,7 +420,7 @@ On airport diagrams, when businesses with a known location exist for the airport
 - Select a business from the crowd-sourced Airport Businesses directory
 - See its location marked on the airport diagram, with its name labeled next to the marker
 
-The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android and when you are signed in.
+The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android/Windows and when you are signed in.
 
 ### 6.7 Automatic behavior on landing
 
@@ -1048,7 +1048,7 @@ Tap the dialpad icon in the toolbar to display an on-screen keypad:
 
 ### 11.1 Access
 
-Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) and Flight Intelligence run on **iOS and Android** only. They are not available on macOS, Windows, Linux, or Snap.
+Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) run on **iOS, Android, and Windows**. Flight Intelligence runs on **iOS and Android** only. Cloud features are not available on macOS, Linux, or Snap.
 
 They are reached from two places:
 
@@ -1059,7 +1059,7 @@ They are reached from two places:
 ### 11.2 Login and subscription flow
 
 - Sign in/register with email authentication (Firebase)
-- Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS and Android
+- Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS, Android, and Windows
 - `Flight Intelligence` uses the RevenueCat entitlement (`Pro`) paywall
 - After login, open `Flight Intelligence` from the MAP top-right account icon or from `MAP → Menu → Cloud → Flight Intelligence`
 
@@ -1242,7 +1242,7 @@ everything else is contributed by signed-in pilots.
 
 **This is a free feature** — it is **not** part of a Pro subscription. It only
 requires a signed-in account (the same Cloud `Account`) so that
-contributions are accountable rather than anonymous. It is available on iOS and Android only.
+contributions are accountable rather than anonymous. It is available on iOS, Android, and Windows.
 
 **Access**: destination popup → `Business` tab. When you are signed in, the
 airport's businesses are listed **directly inside the tab** — there is no
@@ -1377,7 +1377,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
 | Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
 | Pro AI | `MAP → Menu → Cloud → Flight Intelligence` or `MAP top-right account icon` (iOS/Android) |
-| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android) |
+| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android/Windows) |
 | Pro Community | `MAP → Menu → Cloud → Community` |
 | Create a pilot group | `MAP → Menu → Cloud → Community → New Group` |
 | Join a public group | `MAP → Menu → Cloud → Community → Discover → tap group → Join` |
@@ -1950,7 +1950,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-05: Where are FBO/business details?
 
 - In the destination popup, open the **Business** tab (free; sign-in required). The airport's businesses are listed inline; tap one to view and contribute services, fuel, hours, and star reviews per airport (see Section 11.7).
-- On the `PLATE` screen, when an airport diagram is active, use the right-side business selector (business icon) to mark a business's location on the diagram. It draws from the same crowd-sourced directory (iOS/Android, sign-in required).
+- On the `PLATE` screen, when an airport diagram is active, use the right-side business selector (business icon) to mark a business's location on the diagram. It draws from the same crowd-sourced directory (iOS/Android/Windows, sign-in required).
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/oMOR-gaIqis`
 

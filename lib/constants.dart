@@ -107,6 +107,8 @@ class Constants {
   // Whether the Firebase-backed cloud features (e.g. Airport Businesses &
   // Reviews) are available. Firebase is only initialized on these platforms
   // (see main.dart), so this is a capability gate, NOT a Pro/paywall gate.
-  static final bool firebaseAvailable = (Platform.isIOS || Platform.isAndroid);
+  // Flight Intelligence stays on shouldShowProServices (iOS/Android).
+  static final bool firebaseAvailable =
+      (Platform.isIOS || Platform.isAndroid || Platform.isWindows || Platform.isMacOS);
 
 }
