@@ -379,8 +379,11 @@ class PlanScreenState extends State<PlanScreen> {
         ),
         Expanded(
           flex: 5,
-          child: route.length == 0
-              ? Center(
+          child: ValueListenableBuilder<int>(
+            valueListenable: route.change,
+            builder: (context, value, _) {
+              if (route.length == 0) {
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -403,8 +406,9 @@ class PlanScreenState extends State<PlanScreen> {
                       ),
                     ],
                   ),
-                )
-              : ReorderableListView(
+                );
+              }
+              return ReorderableListView(
                   scrollController: _scrollController,
                   scrollDirection: Axis.vertical,
                   buildDefaultDragHandles: false,
@@ -430,25 +434,20 @@ class PlanScreenState extends State<PlanScreen> {
                               route.removeWaypointAt(index);
                             });
                           },
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: route.change,
-                            builder: (context, value, _) {
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 2),
-                                color: route.isCurrent(index)
-                                    ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
-                                    : null,
-                                child: PlanItemWidget(
-                                  waypoint: route.getWaypointAt(index),
-                                  current: route.isCurrent(index),
-                                  onTap: () {
-                                    setState(() {
-                                      Storage().route.setCurrentWaypoint(index);
-                                    });
-                                  },
-                                ),
-                              );
-                            },
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            color: route.isCurrent(index)
+                                ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
+                                : null,
+                            child: PlanItemWidget(
+                              waypoint: route.getWaypointAt(index),
+                              current: route.isCurrent(index),
+                              onTap: () {
+                                setState(() {
+                                  Storage().route.setCurrentWaypoint(index);
+                                });
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -461,7 +460,9 @@ class PlanScreenState extends State<PlanScreen> {
                       route.moveWaypoint(oldIndex, newIndex);
                     });
                   },
-                ),
+                );
+            },
+          ),
         ),
       ],
     );
