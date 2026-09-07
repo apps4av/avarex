@@ -441,11 +441,8 @@ class PlanScreenState extends State<PlanScreen> {
                         ),
                       ),
                   ],
-                  onReorder: (int oldIndex, int newIndex) {
+                  onReorderItem : (int oldIndex, int newIndex) {
                     setState(() {
-                      if (oldIndex < newIndex) {
-                        newIndex -= 1;
-                      }
                       route.moveWaypoint(oldIndex, newIndex);
                     });
                   },
@@ -801,13 +798,13 @@ class _NavLogContentState extends State<_NavLogContent> {
     
     // Find position of each waypoint along the path
     for (final Destination dest in destinations) {
-      final LatLng coord = dest.coordinate;
+      final LatLng coordinate = dest.coordinate;
       
       // Find the closest point on the path to this waypoint
       double minDist = double.infinity;
       int closestIndex = 0;
       for (int i = 0; i < path.length; i++) {
-        final double dist = GeoCalculations().calculateDistance(path[i], coord);
+        final double dist = GeoCalculations().calculateDistance(path[i], coordinate);
         if (dist < minDist) {
           minDist = dist;
           closestIndex = i;
