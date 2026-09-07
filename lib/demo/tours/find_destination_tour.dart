@@ -26,14 +26,14 @@ final DemoTour findDestinationTour = DemoTour(
     const GoTab.findWith(caption: 'FIND searches airports, navaids, fixes, and recent destinations.'),
     const Narrate('Use the filters for Recent and Nearest, or type an identifier.'),
     const Tap(DemoIds.findNearest, caption: 'Nearest lists airports around ownship.'),
-    const Wait.seconds(1),
+    Wait.seconds(1),
     TypeText(
       DemoIds.findSearch,
       'KBOS',
       textOf: () => DemoEngine.instance.sampleIdent,
       caption: 'Type an identifier to search the aviation database.',
     ),
-    const Wait.seconds(2),
+    Wait.seconds(2),
     Prepare(() async {
       if (!DemoTargets.isMounted(DemoIds.findFirstResult)) {
         DemoEngine.instance.overlay.value = DemoEngine.instance.overlay.value.copyWith(

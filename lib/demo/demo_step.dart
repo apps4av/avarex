@@ -32,7 +32,7 @@ class Wait extends DemoStep {
 
   const Wait(this.duration);
 
-  const Wait.seconds(int seconds) : duration = Duration(seconds: seconds);
+  factory Wait.seconds(int seconds) => Wait(Duration(seconds: seconds));
 }
 
 /// Switch the main bottom tab. Indices match [MainScreenState] tab constants.

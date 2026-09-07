@@ -32,7 +32,7 @@ final DemoTour buildPlanTour = DemoTour(
     const GoTab.planWith(caption: 'PLAN is where you build, edit, and file a route.'),
     const Narrate('These tabs switch between the waypoint list and plan tools.'),
     const Tap(DemoIds.planCreateTab, caption: 'Create turns a typed route into a plan.'),
-    const Wait.seconds(1),
+    Wait.seconds(1),
     TypeText(
       DemoIds.planRouteField,
       'KBOS KORH',
@@ -40,7 +40,7 @@ final DemoTour buildPlanTour = DemoTour(
       caption: 'Type waypoints separated by spaces.',
     ),
     const Tap(DemoIds.planCreateAsEntered, caption: 'Create As Entered uses the waypoints exactly as typed.'),
-    const Wait.seconds(3),
+    Wait.seconds(3),
     const Narrate('The waypoint list is your plan. Swipe to delete a leg; tap a row to make it active.'),
     const Narrate('Brief & File is for FAA filing — this demo does not file anything.'),
   ],
