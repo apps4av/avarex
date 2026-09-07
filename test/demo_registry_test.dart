@@ -1,4 +1,7 @@
+import 'package:avaremp/demo/demo_engine.dart';
+import 'package:avaremp/demo/demo_host.dart';
 import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_overlay.dart';
 import 'package:avaremp/demo/demo_registry.dart';
 import 'package:avaremp/demo/demo_step.dart';
 import 'package:avaremp/demo/demo_target.dart';
@@ -45,5 +48,28 @@ void main() {
     expect(GoTab.plate.index, 1);
     expect(GoTab.plan.index, 2);
     expect(GoTab.find.index, 3);
+  });
+
+  testWidgets('demo chrome tooltips build above the navigator', (tester) async {
+    addTearDown(() {
+      DemoEngine.instance.overlay.value = DemoOverlayState.hidden;
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => DemoHost(child: child ?? const SizedBox.shrink()),
+        home: const Scaffold(body: Text('home')),
+      ),
+    );
+    DemoEngine.instance.overlay.value = const DemoOverlayState(
+      visible: true,
+      caption: 'The MAP tab is your moving map.',
+      tourTitle: 'Map controls',
+      stepIndex: 1,
+      stepCount: 3,
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('The MAP tab is your moving map.'), findsOneWidget);
+    expect(find.byTooltip('Exit demo'), findsOneWidget);
   });
 }
