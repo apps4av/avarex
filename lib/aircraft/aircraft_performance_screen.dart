@@ -3,6 +3,8 @@ import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
@@ -896,7 +898,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: DropdownButtonHideUnderline(
+            child: DemoTarget(
+              id: DemoIds.perfAircraftPicker,
+              child: DropdownButtonHideUnderline(
               child: DropdownButton2<AircraftPerformanceData>(
                 buttonStyleData: ButtonStyleData(
                   decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
@@ -909,7 +913,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 value: _selectedAircraft,
                 items: _allAircraft.map((a) => DropdownMenuItem<AircraftPerformanceData>(
                   value: a,
-                  child: Text(a.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)),
+                  child: a.name == CommonAircraftData.cessna172sp.name
+                      ? DemoTarget(
+                          id: DemoIds.perfC172,
+                          child: Text(a.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)),
+                        )
+                      : Text(a.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)),
                 )).toList(),
                 onChanged: (value) {
                   if (value != null) {
@@ -925,6 +934,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 },
               ),
             ),
+            ),
           ),
         ],
       ),
@@ -939,7 +949,9 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   for (int i = 0; i < pageLabels.length; i++)
-                    TextButton(
+                    _maybePerfTabTarget(
+                      pageLabels[i],
+                      TextButton(
                       style: _pageIndex == i
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
@@ -955,6 +967,7 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                         }
                       },
                       child: Text(pageLabels[i]),
+                    ),
                     ),
                 ],
               ),
@@ -994,13 +1007,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               _ResultRow('Density Altitude', '${densityAlt.round()} ft'),
             ],
             groundRoll > 3000 ? Colors.red : (groundRoll > 2000 ? Colors.orange : Colors.green),
+            demoId: DemoIds.perfTakeoffResults,
           ),
           const SizedBox(height: 16),
           _buildInputCard(
             'Input Parameters',
             Icons.tune,
             [
-              _buildTextField('Pressure Altitude (ft)', _takeoffPressureAltController, keyboard: TextInputType.number),
+              _buildTextField('Pressure Altitude (ft)', _takeoffPressureAltController, keyboard: TextInputType.number, demoId: DemoIds.perfTakeoffAltitude),
               _buildTextField('Temperature (°C)', _takeoffTempController, keyboard: const TextInputType.numberWithOptions(signed: true, decimal: true)),
               _buildTextField('Takeoff Weight (lbs)', _takeoffWeightController, keyboard: TextInputType.number),
               _buildTextField('Headwind (negative=tailwind)', _takeoffHeadwindController, keyboard: const TextInputType.numberWithOptions(signed: true)),
@@ -1043,13 +1057,14 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               _ResultRow('Density Altitude', '${densityAlt.round()} ft'),
             ],
             groundRoll > 2500 ? Colors.red : (groundRoll > 1500 ? Colors.orange : Colors.green),
+            demoId: DemoIds.perfLandingResults,
           ),
           const SizedBox(height: 16),
           _buildInputCard(
             'Input Parameters',
             Icons.tune,
             [
-              _buildTextField('Pressure Altitude (ft)', _landingPressureAltController, keyboard: TextInputType.number),
+              _buildTextField('Pressure Altitude (ft)', _landingPressureAltController, keyboard: TextInputType.number, demoId: DemoIds.perfLandingAltitude),
               _buildTextField('Temperature (°C)', _landingTempController, keyboard: const TextInputType.numberWithOptions(signed: true, decimal: true)),
               _buildTextField('Landing Weight (lbs)', _landingWeightController, keyboard: TextInputType.number),
               _buildTextField('Headwind (negative=tailwind)', _landingHeadwindController, keyboard: const TextInputType.numberWithOptions(signed: true)),
@@ -2718,8 +2733,18 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
   }
 
-  Widget _buildResultCard(String title, IconData icon, List<_ResultRow> results, Color statusColor) {
-    return Card(
+  Widget _maybePerfTabTarget(String label, Widget button) {
+    if (label == 'T/O') {
+      return DemoTarget(id: DemoIds.perfTakeoffTab, child: button);
+    }
+    if (label == 'L/D') {
+      return DemoTarget(id: DemoIds.perfLandingTab, child: button);
+    }
+    return button;
+  }
+
+  Widget _buildResultCard(String title, IconData icon, List<_ResultRow> results, Color statusColor, {String? demoId}) {
+    Widget card = Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -2772,6 +2797,10 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         ),
       ),
     );
+    if (demoId != null) {
+      return DemoTarget(id: demoId, child: card);
+    }
+    return card;
   }
 
   Widget _buildInputCard(String title, IconData icon, List<Widget> children) {
@@ -2803,8 +2832,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {TextInputType? keyboard, String? tooltip}) {
-    return Padding(
+  Widget _buildTextField(String label, TextEditingController controller, {TextInputType? keyboard, String? tooltip, String? demoId}) {
+    Widget field = Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: TextFormField(
         controller: controller,
@@ -2824,6 +2853,10 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
         onChanged: (_) => setState(() {}),
       ),
     );
+    if (demoId != null) {
+      field = DemoTarget(id: demoId, child: field);
+    }
+    return field;
   }
   
   Widget _buildSectionCard(String title, IconData icon, List<Widget> children) {

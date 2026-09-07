@@ -32,4 +32,19 @@ class DemoIds {
   static const findSearch = 'find.search';
   static const findFirstResult = 'find.firstResult';
   static const findNearest = 'find.nearest';
+
+  static const drawerPerformance = 'drawer.performance';
+  static const perfAircraftPicker = 'perf.aircraftPicker';
+  static const perfC172 = 'perf.c172';
+  static const perfTakeoffTab = 'perf.takeoffTab';
+  static const perfLandingTab = 'perf.landingTab';
+  static const perfTakeoffAltitude = 'perf.takeoffAltitude';
+  static const perfTakeoffResults = 'perf.takeoffResults';
+  static const perfLandingAltitude = 'perf.landingAltitude';
+  static const perfLandingResults = 'perf.landingResults';
+
+  static const tilesMenu = 'tiles.menu';
+  static const tilesLock = 'tiles.lock';
+  static const tilesToggleGs = 'tiles.toggleGs';
+  static const tilesGs = 'tiles.gs';
 }

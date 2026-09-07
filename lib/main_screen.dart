@@ -355,6 +355,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         icon: MdiIcons.airplane,
                         title: "Aircraft & Performance",
                         subtitle: "Aircraft, W&B, takeoff, landing, cruise",
+                        demoId: DemoIds.drawerPerformance,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/performance');
@@ -554,7 +555,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         return AlertDialog(
           title: const Text('Watch a demo?'),
           content: const Text(
-            'AvareX can press the real buttons to show you MAP, PLAN, FIND, notes, and checklists. You can replay this anytime from Menu → Watch Demo.',
+            'AvareX can press the real buttons to show you MAP, PLAN, FIND, notes, checklists, takeoff and landing, and instrument tiles. You can replay this anytime from Menu → Watch Demo.',
           ),
           actions: <Widget>[
             TextButton(

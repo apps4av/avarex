@@ -14,6 +14,8 @@ import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../constants.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/destination/destination.dart';
 import '../io/gps.dart';
 
@@ -572,7 +574,9 @@ class InstrumentListState extends State<InstrumentList> {
       top: frac.dy * screenH,
       width: width,
       height: height,
-      child: GestureDetector(
+      child: _maybeTileTarget(
+        code,
+        GestureDetector(
         onTap: cb,
         onPanUpdate: Storage().settings.isInstrumentsLocked() ? null : (details) {
           Offset cur = _positions[code] ?? const Offset(0, 0);
@@ -593,7 +597,15 @@ class InstrumentListState extends State<InstrumentList> {
             ]),
         ),
       ),
+      ),
     );
+  }
+
+  Widget _maybeTileTarget(String code, Widget child) {
+    if (code == "GS") {
+      return DemoTarget(id: DemoIds.tilesGs, child: child);
+    }
+    return child;
   }
 
   // corner menu: tile sizing, reset layout, and help. Lives top-left and is fixed.
@@ -601,7 +613,9 @@ class InstrumentListState extends State<InstrumentList> {
     return Positioned(
       left: 5,
       top: 5,
-      child: DropdownButtonHideUnderline(
+      child: DemoTarget(
+        id: DemoIds.tilesMenu,
+        child: DropdownButtonHideUnderline(
         child: DropdownButton2<String>(
           dropdownStyleData: DropdownStyleData(
             decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
@@ -667,9 +681,12 @@ class InstrumentListState extends State<InstrumentList> {
                   Storage().settings.setInstrumentsLocked(!Storage().settings.isInstrumentsLocked());
                 });
               },
-              child: Storage().settings.isInstrumentsLocked()
-                  ? _menuRow(Icons.lock_open, "Unlock Tiles")
-                  : _menuRow(Icons.lock_outline, "Lock Tiles"),
+              child: DemoTarget(
+                id: DemoIds.tilesLock,
+                child: Storage().settings.isInstrumentsLocked()
+                    ? _menuRow(Icons.lock_open, "Unlock Tiles")
+                    : _menuRow(Icons.lock_outline, "Lock Tiles"),
+              ),
             ),
             DropdownMenuItem(
               value: "3",
@@ -680,10 +697,16 @@ class InstrumentListState extends State<InstrumentList> {
               DropdownMenuItem(
                 value: "toggle-$code",
                 onTap: () => _toggleTile(code),
-                child: _menuRow(_visible.contains(code) ? Icons.remove_circle_outline : Icons.add_circle_outline, code),
+                child: code == "GS"
+                    ? DemoTarget(
+                        id: DemoIds.tilesToggleGs,
+                        child: _menuRow(_visible.contains(code) ? Icons.remove_circle_outline : Icons.add_circle_outline, code),
+                      )
+                    : _menuRow(_visible.contains(code) ? Icons.remove_circle_outline : Icons.add_circle_outline, code),
               ),
           ],
         )
+      ),
       ),
     );
   }

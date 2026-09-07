@@ -84,6 +84,25 @@ class Pop extends DemoStep {
   const Pop({this.after = const Duration(milliseconds: 400)});
 }
 
+/// Drag [targetId] by [dx]/[dy] pixels with a real pointer pan.
+class Drag extends DemoStep {
+  final String targetId;
+  final double dx;
+  final double dy;
+  final String? caption;
+  final Duration timeout;
+  final Duration after;
+
+  const Drag(
+    this.targetId, {
+    required this.dx,
+    required this.dy,
+    this.caption,
+    this.timeout = const Duration(seconds: 4),
+    this.after = const Duration(milliseconds: 700),
+  });
+}
+
 /// Run setup/teardown code (plan snapshot, pick sample airports, …).
 class Prepare extends DemoStep {
   final Future<void> Function() run;

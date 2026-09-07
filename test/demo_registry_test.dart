@@ -11,13 +11,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('registry has the core tours with unique ids', () {
-    expect(DemoRegistry.tours.length, 5);
-    expect(DemoRegistry.tours.map((t) => t.id).toSet().length, 5);
+    expect(DemoRegistry.tours.length, 7);
+    expect(DemoRegistry.tours.map((t) => t.id).toSet().length, 7);
     expect(DemoRegistry.byId('map_controls'), isNotNull);
     expect(DemoRegistry.byId('build_plan'), isNotNull);
     expect(DemoRegistry.byId('find_destination'), isNotNull);
     expect(DemoRegistry.byId('write_notes'), isNotNull);
     expect(DemoRegistry.byId('checklists'), isNotNull);
+    expect(DemoRegistry.byId('takeoff_landing'), isNotNull);
+    expect(DemoRegistry.byId('instrument_tiles'), isNotNull);
     expect(DemoRegistry.byId('missing'), isNull);
   });
 
@@ -87,6 +89,50 @@ void main() {
         typed,
         containsAll(
             <String>[DemoIds.checklistNameField, DemoIds.checklistStepsField]));
+  });
+
+  test('takeoff and tiles tours hit the new targets', () {
+    final DemoTour perf = DemoRegistry.byId('takeoff_landing')!;
+    final DemoTour tiles = DemoRegistry.byId('instrument_tiles')!;
+    final List<String> perfTaps =
+        perf.steps.whereType<Tap>().map((Tap s) => s.targetId).toList();
+    expect(
+      perfTaps,
+      containsAll(<String>[
+        DemoIds.drawerPerformance,
+        DemoIds.perfAircraftPicker,
+        DemoIds.perfC172,
+        DemoIds.perfTakeoffTab,
+        DemoIds.perfLandingTab,
+        DemoIds.perfTakeoffResults,
+        DemoIds.perfLandingResults,
+      ]),
+    );
+    final List<String> typed = perf.steps
+        .whereType<TypeText>()
+        .map((TypeText s) => s.targetId)
+        .toList();
+    expect(
+      typed,
+      containsAll(
+          <String>[DemoIds.perfTakeoffAltitude, DemoIds.perfLandingAltitude]),
+    );
+
+    final List<String> tileTaps =
+        tiles.steps.whereType<Tap>().map((Tap s) => s.targetId).toList();
+    expect(
+      tileTaps,
+      containsAll(<String>[
+        DemoIds.tilesMenu,
+        DemoIds.tilesLock,
+        DemoIds.tilesToggleGs,
+      ]),
+    );
+    final List<Drag> drags = tiles.steps.whereType<Drag>().toList();
+    expect(drags, isNotEmpty);
+    expect(drags.first.targetId, DemoIds.tilesGs);
+    expect(tiles.steps.whereType<Tap>().any((Tap s) => s.targetId.contains('reset')),
+        isFalse);
   });
 
   test('GoTab indices match the main shell', () {

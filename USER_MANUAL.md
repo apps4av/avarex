@@ -44,7 +44,7 @@ On first run, complete onboarding pages:
 5. When you reach the **Databases and Maps** page, AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. (Use **Choose Manually** to open the full Download screen if you want to pick specific data.)
 6. Optional: open **Download** later to add more chart regions (IFR, TAC, Helicopter, etc.).
 7. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
-8. After you tap **Done**, AvareX offers a **Watch a demo?** popup. **Watch** plays the MAP, PLAN, FIND, notes, and checklists tours; **Choose a topic** opens the demo list; **Not now** skips it. You can start a demo later from `MAP → Menu → Watch Demo`.
+8. After you tap **Done**, AvareX offers a **Watch a demo?** popup. **Watch** plays the registered tours (MAP, PLAN, FIND, notes, checklists, takeoff and landing, and instrument tiles); **Choose a topic** opens the demo list; **Not now** skips it. You can start a demo later from `MAP → Menu → Watch Demo`.
 
 You can reopen onboarding later from the drawer header icon.
 
@@ -101,7 +101,7 @@ Open from MAP with **Menu** button (bottom-left):
 - Scheduler (iOS/Android/Windows, under `CLOUD`)
 - Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
 - IO (Android only)
-- Watch Demo (app presses the real buttons to show MAP, PLAN, FIND, notes, and checklists)
+- Watch Demo (app presses the real buttons to show MAP, PLAN, FIND, notes, checklists, takeoff and landing, and instrument tiles)
 - Help (opens User Manual PDF; not available on Linux)
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
@@ -978,12 +978,14 @@ Open: **Menu → Watch Demo**
 
 AvareX can play a guided demo that **presses the real on-screen buttons** (the same `onPressed` as a tap) with a spotlight, moving pointer, and **spoken** narration (no caption card).
 
-- **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination, Write a note, Check lists.
+- **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination, Write a note, Check lists, Takeoff and landing, Instrument tiles.
 - Or tap one topic to play just that tour.
 - Overlay controls: **Pause**, **Skip** (next step), **Exit**.
 - After first-run onboarding, a **Watch a demo?** popup offers the same choices. Existing users who already finished onboarding do not see that popup; use this drawer item instead.
 - The plan tour snapshots your current route and restores it when the demo session ends or you tap **Exit**. It does **not** file an FAA plan or start a chart download.
 - The notes tour does **not** tap **Clear** or **Save**. The checklists tour creates a sample `Demo Preflight` list (replacing a leftover one of that name) and does **not** open the file picker or swipe-delete.
+- The takeoff and landing tour selects a Cessna 172 so the `T/O` and `L/D` tabs stay visible, then types sample altitudes. Your previous airplane selection is restored when the demo ends.
+- The instrument tiles tour snapshots lock, visibility, and positions, then locks, unlocks, drags `GS`, hides it, and shows it again. It does **not** tap **Reset Layout**. Your tiles are restored when the demo ends.
 - Developers add a new topic by wrapping a control in `DemoTarget`, writing a `DemoTour` step list, and appending it to `DemoRegistry.tours`.
 
 ### 9.8 Help
@@ -1430,6 +1432,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | Watch Demo | `MAP → Menu → Watch Demo` |
+| Instrument tiles menu | `MAP` → top-left arrow: **Lock Tiles** / **Unlock Tiles**, **+** / **−** per tile, drag a tile to move it |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |
@@ -1911,9 +1914,9 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 
 1. After first-run onboarding, tap **Watch** on the **Watch a demo?** popup, or skip and do this later.
 2. Open `MAP → Menu → Watch Demo`.
-3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`, `Write a note`, `Check lists`).
-4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, `Write a Note`, `Check Lists`, and other controls. The app **speaks** what each control does. Use **Pause**, **Skip**, or **Exit** at the top right.
-5. When the session ends (or you **Exit**), any route created by the plan tour is restored to what you had before the demo.
+3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`, `Write a note`, `Check lists`, `Takeoff and landing`, `Instrument tiles`).
+4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, `Write a Note`, `Check Lists`, `Aircraft & Performance`, instrument tiles, and other controls. The app **speaks** what each control does. Use **Pause**, **Skip**, or **Exit** at the top right.
+5. When the session ends (or you **Exit**), the plan tour restores your route, the takeoff tour restores your airplane selection, and the tiles tour restores lock, visibility, and positions.
 
 ---
 

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
-import 'package:flutter/gestures.dart';
+import 'package:flutter/gestures.dart' hide Drag;
 import 'package:flutter/material.dart';
 
 import 'demo_overlay.dart';
@@ -33,6 +33,13 @@ class DemoEngine {
   String sampleRoute = 'KBOS KORH';
   String sampleIdent = 'KBOS';
 
+  String? _perfAircraftSnapshot;
+  String? _aircraftIconSnapshot;
+  String? _tilesVisibleSnapshot;
+  String? _tilesPosPortraitSnapshot;
+  String? _tilesPosLandscapeSnapshot;
+  bool? _tilesLockedSnapshot;
+
   Future<void> playAll() => playTours(DemoRegistry.tours);
 
   Future<void> playTour(DemoTour tour) => playTours(<DemoTour>[tour]);
@@ -55,6 +62,8 @@ class DemoEngine {
       }
     } finally {
       await restorePlanIfNeeded();
+      restoreTilesIfNeeded();
+      restorePerfAircraftIfNeeded();
       await DemoSpeech.instance.stop();
       isRunning = false;
       paused = false;
@@ -123,6 +132,50 @@ class DemoEngine {
     _planSnapshotName = null;
   }
 
+  void snapshotTiles() {
+    if (_tilesVisibleSnapshot != null) {
+      return;
+    }
+    _tilesVisibleSnapshot = Storage().settings.getInstrumentVisible();
+    _tilesPosPortraitSnapshot = Storage().settings.getInstrumentPositions(true);
+    _tilesPosLandscapeSnapshot = Storage().settings.getInstrumentPositions(false);
+    _tilesLockedSnapshot = Storage().settings.isInstrumentsLocked();
+  }
+
+  void restoreTilesIfNeeded() {
+    if (_tilesVisibleSnapshot == null) {
+      return;
+    }
+    Storage().settings.setInstrumentVisible(_tilesVisibleSnapshot!);
+    Storage().settings.setInstrumentPositions(true, _tilesPosPortraitSnapshot ?? '');
+    Storage().settings.setInstrumentPositions(false, _tilesPosLandscapeSnapshot ?? '');
+    Storage().settings.setInstrumentsLocked(_tilesLockedSnapshot ?? false);
+    _tilesVisibleSnapshot = null;
+    _tilesPosPortraitSnapshot = null;
+    _tilesPosLandscapeSnapshot = null;
+    _tilesLockedSnapshot = null;
+  }
+
+  void snapshotPerfAircraft() {
+    if (_perfAircraftSnapshot != null) {
+      return;
+    }
+    _perfAircraftSnapshot = Storage().settings.getLastPerformanceAircraft();
+    _aircraftIconSnapshot = Storage().settings.getAircraftIcon();
+  }
+
+  void restorePerfAircraftIfNeeded() {
+    if (_perfAircraftSnapshot == null) {
+      return;
+    }
+    Storage().settings.setLastPerformanceAircraft(_perfAircraftSnapshot!);
+    if (_aircraftIconSnapshot != null) {
+      Storage().settings.setAircraftIcon(_aircraftIconSnapshot!);
+    }
+    _perfAircraftSnapshot = null;
+    _aircraftIconSnapshot = null;
+  }
+
   Future<void> _playTour(DemoTour tour) async {
     final int total = tour.steps.length;
     for (int i = 0; i < tour.steps.length; i++) {
@@ -182,6 +235,24 @@ class DemoEngine {
         await _typeInto(typeStep.targetId, typeStep.resolved());
         FocusManager.instance.primaryFocus?.unfocus();
         await _hold(const Duration(milliseconds: 400));
+      case Drag(
+          :final targetId,
+          :final dx,
+          :final dy,
+          :final caption,
+          :final timeout,
+          :final after
+        ):
+        final Rect? rect = await _waitForTarget(targetId, timeout);
+        if (rect == null) {
+          return;
+        }
+        await _announce(caption ?? overlay.value.caption, highlight: rect);
+        if (_cancelled) {
+          return;
+        }
+        await _dragRect(rect, Offset(dx, dy));
+        await _hold(after);
       case Pop(:final after):
         Storage().navigatorKey.currentState?.maybePop();
         await _hold(after);
@@ -281,6 +352,51 @@ class DemoEngine {
     await Future<void>.delayed(const Duration(milliseconds: 70));
     GestureBinding.instance.handlePointerEvent(
       PointerUpEvent(pointer: pointer, position: position),
+    );
+  }
+
+  Future<void> _dragRect(Rect start, Offset delta) async {
+    final Offset from = start.center;
+    final Offset to = from + delta;
+    final int pointer = _pointerId++;
+    const int steps = 14;
+    GestureBinding.instance.handlePointerEvent(
+      PointerDownEvent(
+        pointer: pointer,
+        position: from,
+        buttons: kPrimaryButton,
+      ),
+    );
+    Offset previous = from;
+    for (int i = 1; i <= steps; i++) {
+      if (_cancelled) {
+        break;
+      }
+      await _yieldPaused();
+      if (_cancelled) {
+        break;
+      }
+      final Offset next = Offset.lerp(from, to, i / steps)!;
+      overlay.value = overlay.value.copyWith(
+        highlight: Rect.fromCenter(
+          center: next,
+          width: start.width,
+          height: start.height,
+        ),
+      );
+      GestureBinding.instance.handlePointerEvent(
+        PointerMoveEvent(
+          pointer: pointer,
+          position: next,
+          delta: next - previous,
+          buttons: kPrimaryButton,
+        ),
+      );
+      previous = next;
+      await Future<void>.delayed(const Duration(milliseconds: 28));
+    }
+    GestureBinding.instance.handlePointerEvent(
+      PointerUpEvent(pointer: pointer, position: previous),
     );
   }
 
