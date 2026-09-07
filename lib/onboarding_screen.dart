@@ -48,6 +48,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
   }
 
   void _onIntroEnd(BuildContext context) {
+    Storage().settings.setPendingDemoOffer(true);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const MainScreen()),
     );

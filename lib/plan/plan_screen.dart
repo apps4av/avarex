@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
@@ -262,21 +264,24 @@ class PlanScreenState extends State<PlanScreen> {
 
   Widget _planButton() {
     final bool active = _actionTab == null;
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: TextButton(
-        style: active
-            ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
-            : null,
-        onPressed: () => setState(() => _actionTab = null),
-        child: const Text("Plan"),
+    return DemoTarget(
+      id: DemoIds.planPlanTab,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: TextButton(
+          style: active
+              ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
+              : null,
+          onPressed: () => setState(() => _actionTab = null),
+          child: const Text("Plan"),
+        ),
       ),
     );
   }
 
   Widget _actionButton(String label, int tab) {
     final bool active = _actionTab == tab;
-    return Padding(
+    final Widget button = Padding(
       padding: const EdgeInsets.only(right: 4),
       child: TextButton(
         style: active
@@ -286,6 +291,10 @@ class PlanScreenState extends State<PlanScreen> {
         child: Text(label),
       ),
     );
+    if (label == "Create") {
+      return DemoTarget(id: DemoIds.planCreateTab, child: button);
+    }
+    return button;
   }
 
   void _returnToPlan() {
@@ -328,6 +337,9 @@ class PlanScreenState extends State<PlanScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    if (Storage().isDemoRunning) {
+      return;
+    }
     setState(() {
       Storage().route.clear();
     });

@@ -2,6 +2,8 @@
 import 'plan_lmfs.dart';
 import 'plan_route.dart';
 import 'package:flutter/material.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/storage.dart';
 
 class PlanCreateWidget extends StatefulWidget {
@@ -30,7 +32,9 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextFormField(
+                      child: DemoTarget(
+                        id: DemoIds.planRouteField,
+                        child: TextFormField(
                         // 1. Explicitly turns off the native platform spell checker
                         spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
 
@@ -50,6 +54,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                           isDense: true,
                         ),
                         textCapitalization: TextCapitalization.characters,
+                      ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -76,7 +81,9 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             children: [
-              Card(
+              DemoTarget(
+                id: DemoIds.planCreateAsEntered,
+                child: Card(
                 child: ListTile(
                   leading: const Icon(Icons.check_circle_outline),
                   title: const Text('Create As Entered'),
@@ -95,6 +102,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                     });
                   },
                 ),
+              ),
               ),
               Card(
                 child: ListTile(

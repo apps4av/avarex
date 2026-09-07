@@ -44,6 +44,7 @@ On first run, complete onboarding pages:
 5. When you reach the **Databases and Maps** page, AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. (Use **Choose Manually** to open the full Download screen if you want to pick specific data.)
 6. Optional: open **Download** later to add more chart regions (IFR, TAC, Helicopter, etc.).
 7. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
+8. After you tap **Done**, AvareX offers a **Watch a demo?** popup. **Watch** plays the MAP, PLAN, and FIND tours; **Choose a topic** opens the demo list; **Not now** skips it. You can start a demo later from `MAP → Menu → Watch Demo`.
 
 You can reopen onboarding later from the drawer header icon.
 
@@ -65,6 +66,7 @@ You can reopen onboarding later from the drawer header icon.
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, and Windows** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
+| Watch Demo (in-app guided tour)                                                                  | All supported platforms |
 
 ---
 
@@ -99,6 +101,7 @@ Open from MAP with **Menu** button (bottom-left):
 - Scheduler (iOS/Android/Windows, under `CLOUD`)
 - Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
 - IO (Android only)
+- Watch Demo (app presses the real buttons to show MAP, PLAN, and FIND)
 - Help (opens User Manual PDF; not available on Linux)
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
@@ -968,7 +971,20 @@ Functions:
 Connected stream feeds external data input into app parser for GPS, traffic, weather, AHRS.
 Also used for autopilot output of navigation data.
 
-### 9.7 Help
+### 9.7 Watch Demo
+
+Open: **Menu → Watch Demo**
+
+AvareX can play a guided demo that **presses the real on-screen buttons** (the same `onPressed` as a tap) with a spotlight, moving pointer, and captions.
+
+- **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination.
+- Or tap one topic to play just that tour.
+- Overlay controls: **Pause**, **Skip** (next step), **Exit**.
+- After first-run onboarding, a **Watch a demo?** popup offers the same choices. Existing users who already finished onboarding do not see that popup; use this drawer item instead.
+- The plan tour snapshots your current route and restores it when the demo session ends or you tap **Exit**. It does **not** file an FAA plan or start a chart download.
+- Developers add a new topic by wrapping a control in `DemoTarget`, writing a `DemoTour` step list, and appending it to `DemoRegistry.tours`.
+
+### 9.8 Help
 
 Open: **Menu → Help**
 
@@ -1410,6 +1426,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
+| Watch Demo | `MAP → Menu → Watch Demo` |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |
@@ -1886,6 +1903,14 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 10. If that time is already taken, the member is added to the **backup** queue. If the main reservation is later cancelled, the first backup is promoted automatically.
 11. To cancel, tap the reservation block (or use the **Mine** tab) and choose **Cancel**. Only the member who booked it or the owner can cancel a reservation.
 12. For discrepancies, use **Dispatch → Squawks → File squawk**. A **Grounding** squawk blocks booking and shows as GROUNDED on the fleet board. For a hard maintenance hold, turn off **Available for booking** from Schedule or Dispatch (owner/dispatcher).
+
+### UC-27: Watch or replay an in-app demo
+
+1. After first-run onboarding, tap **Watch** on the **Watch a demo?** popup, or skip and do this later.
+2. Open `MAP → Menu → Watch Demo`.
+3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`).
+4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, and other controls. Use **Pause**, **Skip**, or **Exit** at the top right.
+5. When the session ends (or you **Exit**), any route created by the plan tour is restored to what you had before the demo.
 
 ---
 

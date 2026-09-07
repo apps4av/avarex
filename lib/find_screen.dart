@@ -1,3 +1,5 @@
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/map_screen.dart';
@@ -24,6 +26,13 @@ class FindScreenState extends State<FindScreen> {
   String _searchText = "";
   bool _recent = true;
   int _runwayLength = 0;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   String _getFilterLabel() {
     if (_searchText.isNotEmpty) return "Search Results";
@@ -58,7 +67,10 @@ class FindScreenState extends State<FindScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
-              child: TextFormField(
+              child: DemoTarget(
+                id: DemoIds.findSearch,
+                child: TextFormField(
+                controller: _searchController,
                 // 1. Explicitly turns off the native platform spell checker
                 spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
 
@@ -73,10 +85,11 @@ class FindScreenState extends State<FindScreen> {
                   hintText: "Airport, navaid, fix, address...",
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchText.isNotEmpty
-                      ? IconButton(
+                          ? IconButton(
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             setState(() {
+                              _searchController.clear();
                               _searchText = "";
                             });
                           },
@@ -90,6 +103,7 @@ class FindScreenState extends State<FindScreen> {
                     items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
                   });
                 },
+              ),
               ),
             ),
             Padding(
@@ -158,7 +172,7 @@ class FindScreenState extends State<FindScreen> {
                             item.facilityName.trim().toUpperCase() !=
                                 item.locationID.trim().toUpperCase();
 
-                        return Dismissible(
+                        final Widget tile = Dismissible(
                           background: Container(
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 16),
@@ -330,6 +344,10 @@ class FindScreenState extends State<FindScreen> {
                             ),
                           ),
                         );
+                        if (index == 0) {
+                          return DemoTarget(id: DemoIds.findFirstResult, child: tile);
+                        }
+                        return tile;
                       },
                     ),
             ),
@@ -346,13 +364,16 @@ class FindScreenState extends State<FindScreen> {
                       onPressed: () {
                         setState(() {
                           _recent = true;
+                          _searchController.clear();
                           _searchText = "";
                         });
                       },
                       child: const Text("Recent"),
                     ),
                     const SizedBox(width: 4),
-                    TextButton(
+                    DemoTarget(
+                      id: DemoIds.findNearest,
+                      child: TextButton(
                       style: !_recent && _runwayLength == 0 && _searchText.isEmpty
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
@@ -360,10 +381,12 @@ class FindScreenState extends State<FindScreen> {
                         setState(() {
                           _recent = false;
                           _runwayLength = 0;
+                          _searchController.clear();
                           _searchText = "";
                         });
                       },
                       child: const Text("Nearest"),
+                    ),
                     ),
                     const SizedBox(width: 4),
                     TextButton(
@@ -374,6 +397,7 @@ class FindScreenState extends State<FindScreen> {
                         setState(() {
                           _runwayLength = 2000;
                           _recent = false;
+                          _searchController.clear();
                           _searchText = "";
                         });
                       },
@@ -388,6 +412,7 @@ class FindScreenState extends State<FindScreen> {
                         setState(() {
                           _runwayLength = 4000;
                           _recent = false;
+                          _searchController.clear();
                           _searchText = "";
                         });
                       },

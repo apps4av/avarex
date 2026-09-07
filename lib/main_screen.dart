@@ -1,4 +1,8 @@
 import 'package:avaremp/community/notifications_screen.dart';
+import 'package:avaremp/demo/demo_engine.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_picker_screen.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
@@ -70,8 +74,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     required VoidCallback onTap,
     Color? iconColor,
     Widget? trailing,
+    String? demoId,
   }) {
-    return Padding(
+    final Widget item = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
         color: Colors.transparent,
@@ -132,6 +137,10 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         ),
       ),
     );
+    if (demoId == null) {
+      return item;
+    }
+    return DemoTarget(id: demoId, child: item);
   }
 
   static void gotoPlate() {
@@ -301,6 +310,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         icon: Icons.download,
                         title: "Download",
                         subtitle: "Charts & databases",
+                        demoId: DemoIds.drawerDownload,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/download');
@@ -432,6 +442,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ],
                       const SizedBox(height: 8),
                       _buildSectionHeader(context, "Support"),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.play_circle_outline,
+                        title: "Watch Demo",
+                        subtitle: "See how the app works",
+                        onTap: () {
+                          Navigator.pop(context);
+                          DemoPickerScreen.open(context);
+                        },
+                      ),
                       if (Constants.shouldShowPdf)
                         _buildMenuItem(
                           context,
@@ -463,7 +483,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         body: Center(
           child: _widgetOptions.elementAt(_selectedIndex),
         ),
-        bottomNavigationBar: Container(
+        bottomNavigationBar: DemoTarget(
+          id: DemoIds.navBar,
+          child: Container(
           padding: const EdgeInsets.all(5),
           child:BottomNavigationBar(
             key: Storage().globalKeyBottomNavigationBar,
@@ -496,6 +518,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             currentIndex: _selectedIndex,
             onTap: mOnItemTapped,
           ),
+        ),
         )
       )
     );
@@ -513,6 +536,47 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     super.initState();
     Storage().startIO();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeOfferDemo();
+    });
+  }
+
+  void _maybeOfferDemo() {
+    if (!mounted || !Storage().settings.pendingDemoOffer()) {
+      return;
+    }
+    Storage().settings.setPendingDemoOffer(false);
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Watch a demo?'),
+          content: const Text(
+            'AvareX can press the real buttons to show you MAP, PLAN, and FIND. You can replay this anytime from Menu → Watch Demo.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Not now'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                DemoPickerScreen.open(context);
+              },
+              child: const Text('Choose a topic'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                DemoEngine.instance.playAll();
+              },
+              child: const Text('Watch'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override

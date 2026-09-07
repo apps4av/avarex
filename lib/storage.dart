@@ -237,6 +237,10 @@ class Storage {
 
   // for navigation on tabs
   final GlobalKey globalKeyBottomNavigationBar = GlobalKey();
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  /// True while the in-app demo engine is playing a tour.
+  bool isDemoRunning = false;
 
   void setDestination(Destination? destination) {
     if(destination != null) {
