@@ -36,9 +36,8 @@ final DemoTour findDestinationTour = DemoTour(
     Wait.seconds(2),
     Prepare(() async {
       if (!DemoTargets.isMounted(DemoIds.findFirstResult)) {
-        DemoEngine.instance.overlay.value = DemoEngine.instance.overlay.value.copyWith(
-          caption:
-              'No results — download Databases from Menu → Download so FIND and PLAN can resolve identifiers.',
+        await DemoEngine.instance.speak(
+          'No results. Download Databases from Menu, Download so FIND and PLAN can resolve identifiers.',
         );
       }
     }),

@@ -69,7 +69,7 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('The MAP tab is your moving map.'), findsOneWidget);
+    expect(find.text('The MAP tab is your moving map.'), findsNothing);
     expect(find.byTooltip('Exit demo'), findsOneWidget);
   });
 }

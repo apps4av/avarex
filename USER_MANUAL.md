@@ -975,7 +975,7 @@ Also used for autopilot output of navigation data.
 
 Open: **Menu → Watch Demo**
 
-AvareX can play a guided demo that **presses the real on-screen buttons** (the same `onPressed` as a tap) with a spotlight, moving pointer, and captions.
+AvareX can play a guided demo that **presses the real on-screen buttons** (the same `onPressed` as a tap) with a spotlight, moving pointer, and **spoken** narration (no caption card).
 
 - **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination.
 - Or tap one topic to play just that tour.
@@ -1909,7 +1909,7 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 1. After first-run onboarding, tap **Watch** on the **Watch a demo?** popup, or skip and do this later.
 2. Open `MAP → Menu → Watch Demo`.
 3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`).
-4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, and other controls. Use **Pause**, **Skip**, or **Exit** at the top right.
+4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, and other controls. The app **speaks** what each control does. Use **Pause**, **Skip**, or **Exit** at the top right.
 5. When the session ends (or you **Exit**), any route created by the plan tour is restored to what you had before the demo.
 
 ---

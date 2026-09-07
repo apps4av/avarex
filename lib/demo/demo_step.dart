@@ -8,7 +8,7 @@ class Narrate extends DemoStep {
   final String text;
   final Duration hold;
 
-  const Narrate(this.text, {this.hold = const Duration(milliseconds: 2600)});
+  const Narrate(this.text, {this.hold = const Duration(milliseconds: 400)});
 }
 
 /// Highlight [targetId], move the pointer, and dispatch a real tap.

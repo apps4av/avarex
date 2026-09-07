@@ -83,86 +83,40 @@ class DemoOverlay extends StatelessWidget {
         ),
         Positioned(
           top: 0,
-          left: 0,
           right: 0,
           child: SafeArea(
-          child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (state.caption.isNotEmpty)
-                      Expanded(
-                        child: IgnorePointer(
-                          child: Material(
-                            elevation: 4,
-                            color: theme.colorScheme.surface.withValues(alpha: 0.94),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (state.tourTitle != null)
-                                    Text(
-                                      state.tourTitle!,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.colorScheme.primary,
-                                        letterSpacing: 0.4,
-                                      ),
-                                    ),
-                                  if (state.tourTitle != null) const SizedBox(height: 4),
-                                  Text(
-                                    state.caption,
-                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-                                  ),
-                                  if (state.stepCount > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 6),
-                                      child: Text(
-                                        '${state.stepIndex} / ${state.stepCount}',
-                                        style: TextStyle(fontSize: 11, color: theme.colorScheme.outline),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      const Spacer(),
-                    const SizedBox(width: 8),
-                    Material(
-                      elevation: 4,
-                      color: theme.colorScheme.surface.withValues(alpha: 0.96),
-                      borderRadius: BorderRadius.circular(24),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: state.paused ? 'Resume' : 'Pause',
-                            icon: Icon(state.paused ? Icons.play_arrow : Icons.pause),
-                            onPressed: onPauseResume,
-                          ),
-                          IconButton(
-                            tooltip: 'Skip step',
-                            icon: const Icon(Icons.skip_next),
-                            onPressed: onSkip,
-                          ),
-                          IconButton(
-                            tooltip: 'Exit demo',
-                            icon: const Icon(Icons.close),
-                            onPressed: onExit,
-                          ),
-                        ],
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Semantics(
+                liveRegion: true,
+                label: state.caption,
+                child: Material(
+                  elevation: 4,
+                  color: theme.colorScheme.surface.withValues(alpha: 0.96),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: state.paused ? 'Resume' : 'Pause',
+                        icon: Icon(state.paused ? Icons.play_arrow : Icons.pause),
+                        onPressed: onPauseResume,
                       ),
-                    ),
-                  ],
+                      IconButton(
+                        tooltip: 'Skip step',
+                        icon: const Icon(Icons.skip_next),
+                        onPressed: onSkip,
+                      ),
+                      IconButton(
+                        tooltip: 'Exit demo',
+                        icon: const Icon(Icons.close),
+                        onPressed: onExit,
+                      ),
+                    ],
+                  ),
                 ),
               ),
+            ),
           ),
         ),
       ],

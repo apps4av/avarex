@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 
 import 'demo_overlay.dart';
 import 'demo_registry.dart';
+import 'demo_speech.dart';
 import 'demo_step.dart';
 import 'demo_target.dart';
 import 'demo_tour.dart';
@@ -44,6 +45,7 @@ class DemoEngine {
     paused = false;
     _exitRequested = false;
     Storage().isDemoRunning = true;
+    await DemoSpeech.instance.init();
     try {
       for (final DemoTour tour in tours) {
         if (_exitRequested) {
@@ -53,6 +55,7 @@ class DemoEngine {
       }
     } finally {
       await restorePlanIfNeeded();
+      await DemoSpeech.instance.stop();
       isRunning = false;
       paused = false;
       Storage().isDemoRunning = false;
@@ -66,6 +69,7 @@ class DemoEngine {
     }
     paused = true;
     overlay.value = overlay.value.copyWith(paused: true);
+    DemoSpeech.instance.stop();
   }
 
   void resume() {
@@ -86,12 +90,14 @@ class DemoEngine {
 
   void skip() {
     _skipRequested = true;
+    DemoSpeech.instance.stop();
   }
 
   void exit() {
     _exitRequested = true;
     _skipRequested = true;
     paused = false;
+    DemoSpeech.instance.stop();
   }
 
   Future<void> snapshotPlan() async {
@@ -138,15 +144,14 @@ class DemoEngine {
   Future<void> _runStep(DemoStep step) async {
     switch (step) {
       case Narrate(:final text, :final hold):
-        _showCaption(text, highlight: null);
+        await _announce(text, highlight: null);
         await _hold(hold);
       case Tap(:final targetId, :final caption, :final timeout, :final after):
         final Rect? rect = await _waitForTarget(targetId, timeout);
         if (rect == null) {
           return;
         }
-        _showCaption(caption ?? overlay.value.caption, highlight: rect);
-        await _hold(const Duration(milliseconds: 450));
+        await _announce(caption ?? overlay.value.caption, highlight: rect);
         if (_cancelled) {
           return;
         }
@@ -155,11 +160,10 @@ class DemoEngine {
       case Wait(:final duration):
         await _hold(duration);
       case GoTab(:final index, :final caption):
-        _showCaption(
+        await _announce(
           caption ?? _tabCaption(index),
           highlight: DemoTargets.rectOf('nav.bar'),
         );
-        await _hold(const Duration(milliseconds: 500));
         if (_cancelled) {
           return;
         }
@@ -170,8 +174,7 @@ class DemoEngine {
         if (rect == null) {
           return;
         }
-        _showCaption(typeStep.caption ?? overlay.value.caption, highlight: rect);
-        await _hold(const Duration(milliseconds: 300));
+        await _announce(typeStep.caption ?? overlay.value.caption, highlight: rect);
         if (_cancelled) {
           return;
         }
@@ -193,7 +196,10 @@ class DemoEngine {
 
   bool get _cancelled => _exitRequested || _skipRequested;
 
-  void _showCaption(String text, {Rect? highlight}) {
+  /// Speaks [text] and updates the spotlight. Used by tours and the engine.
+  Future<void> speak(String text) => _announce(text);
+
+  Future<void> _announce(String text, {Rect? highlight}) async {
     overlay.value = overlay.value.copyWith(
       visible: true,
       highlight: highlight,
@@ -201,6 +207,18 @@ class DemoEngine {
       caption: text,
       paused: paused,
     );
+    if (text.trim().isEmpty || _cancelled) {
+      return;
+    }
+    final bool spoken = await DemoSpeech.instance.speak(text);
+    if (_cancelled) {
+      return;
+    }
+    await _yieldPaused();
+    if (!spoken) {
+      // No TTS on this platform — still pause so the highlight is readable.
+      await _hold(Duration(milliseconds: (800 + text.length * 35).clamp(800, 3500).toInt()));
+    }
   }
 
   String _tabCaption(int index) {

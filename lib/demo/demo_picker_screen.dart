@@ -31,7 +31,7 @@ class DemoPickerScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
         children: [
           Text(
-            'The app presses the real buttons so you can see how each screen works. Pause, skip, or exit anytime.',
+            'The app presses the real buttons and speaks what each control does. Pause, skip, or exit anytime.',
             style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 16),
