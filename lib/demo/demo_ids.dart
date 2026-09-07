@@ -9,6 +9,20 @@ class DemoIds {
   static const mapLayers = 'map.layers';
 
   static const drawerDownload = 'drawer.download';
+  static const drawerNotes = 'drawer.notes';
+  static const drawerChecklists = 'drawer.checklists';
+
+  static const notesSheetPicker = 'notes.sheetPicker';
+  static const notesSheetCraft = 'notes.sheetCraft';
+  static const notesColorRed = 'notes.colorRed';
+  static const notesKeypad = 'notes.keypad';
+
+  static const checklistNew = 'checklist.new';
+  static const checklistNameField = 'checklist.nameField';
+  static const checklistStepsField = 'checklist.stepsField';
+  static const checklistCreate = 'checklist.create';
+  static const checklistFirstItem = 'checklist.firstItem';
+  static const checklistReset = 'checklist.reset';
 
   static const planPlanTab = 'plan.planTab';
   static const planCreateTab = 'plan.createTab';

@@ -333,6 +333,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         icon: MdiIcons.transcribe,
                         title: "Write a Note",
                         subtitle: "Handwriting notes & aviation sheets",
+                        demoId: DemoIds.drawerNotes,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/notes');
@@ -343,6 +344,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",
+                        demoId: DemoIds.drawerChecklists,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/checklists');
@@ -552,7 +554,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         return AlertDialog(
           title: const Text('Watch a demo?'),
           content: const Text(
-            'AvareX can press the real buttons to show you MAP, PLAN, and FIND. You can replay this anytime from Menu → Watch Demo.',
+            'AvareX can press the real buttons to show you MAP, PLAN, FIND, notes, and checklists. You can replay this anytime from Menu → Watch Demo.',
           ),
           actions: <Widget>[
             TextButton(

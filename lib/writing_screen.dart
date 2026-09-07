@@ -4,6 +4,8 @@ import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
@@ -245,27 +247,33 @@ class WritingScreenState extends State<WritingScreen> {
 
   List<Widget> _buildActions(BuildContext context) {
     return [
-      PopupMenuButton<BackgroundSheet>(
+      DemoTarget(
+        id: DemoIds.notesSheetPicker,
+        child: PopupMenuButton<BackgroundSheet>(
         icon: const Icon(Icons.note_alt_outlined),
         tooltip: "Background Sheet",
         onSelected: (BackgroundSheet sheet) {
           _switchSheet(sheet);
         },
         itemBuilder: (context) => BackgroundSheet.values.map((sheet) {
+          final Widget row = Row(
+            children: [
+              if (_selectedSheet == sheet)
+                const Icon(Icons.check, size: 18)
+              else
+                const SizedBox(width: 18),
+              const SizedBox(width: 8),
+              Text(sheet.label),
+            ],
+          );
           return PopupMenuItem<BackgroundSheet>(
             value: sheet,
-            child: Row(
-              children: [
-                if (_selectedSheet == sheet)
-                  const Icon(Icons.check, size: 18)
-                else
-                  const SizedBox(width: 18),
-                const SizedBox(width: 8),
-                Text(sheet.label),
-              ],
-            ),
+            child: sheet == BackgroundSheet.ifrCraft
+                ? DemoTarget(id: DemoIds.notesSheetCraft, child: row)
+                : row,
           );
         }).toList(),
+      ),
       ),
       ValueListenableBuilder(
         valueListenable: notifier,
@@ -324,7 +332,7 @@ class WritingScreenState extends State<WritingScreen> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         _buildColorButton(context, color: Theme.of(context).brightness == Brightness.light ? Colors.black: Colors.white),
-        _buildColorButton(context, color: Colors.red),
+        _buildColorButton(context, color: Colors.red, demoId: DemoIds.notesColorRed),
         _buildColorButton(context, color: Colors.green),
         _buildEraserButton(context),
         const SizedBox(width: 16),
@@ -334,7 +342,9 @@ class WritingScreenState extends State<WritingScreen> {
   }
 
   Widget _buildKeypadButton(BuildContext context) {
-    return ColorButton(
+    return DemoTarget(
+      id: DemoIds.notesKeypad,
+      child: ColorButton(
       color: _showKeypad ? Colors.blue : Colors.transparent,
       outlineColor: Theme.of(context).brightness == Brightness.light ? Colors.black : Colors.white,
       isActive: _showKeypad,
@@ -344,6 +354,7 @@ class WritingScreenState extends State<WritingScreen> {
         });
       },
       child: const Icon(Icons.dialpad),
+    ),
     );
   }
 
@@ -595,8 +606,9 @@ class WritingScreenState extends State<WritingScreen> {
   Widget _buildColorButton(
       BuildContext context, {
         required Color color,
+        String? demoId,
       }) {
-    return ValueListenableBuilder(
+    Widget button = ValueListenableBuilder(
       valueListenable: notifier.select(
               (value) => value is Drawing && value.selectedColor == color.intValue),
       builder: (context, value, child) => Padding(
@@ -608,6 +620,10 @@ class WritingScreenState extends State<WritingScreen> {
         ),
       ),
     );
+    if (demoId != null) {
+      button = DemoTarget(id: demoId, child: button);
+    }
+    return button;
   }
 }
 

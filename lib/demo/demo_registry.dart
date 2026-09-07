@@ -1,7 +1,9 @@
 import 'demo_tour.dart';
 import 'tours/build_plan_tour.dart';
+import 'tours/checklists_tour.dart';
 import 'tours/find_destination_tour.dart';
 import 'tours/map_controls_tour.dart';
+import 'tours/write_notes_tour.dart';
 
 /// All playable demos.
 ///
@@ -15,6 +17,8 @@ class DemoRegistry {
     mapControlsTour,
     buildPlanTour,
     findDestinationTour,
+    writeNotesTour,
+    checklistsTour,
   ];
 
   static DemoTour? byId(String id) {

@@ -44,7 +44,7 @@ On first run, complete onboarding pages:
 5. When you reach the **Databases and Maps** page, AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. (Use **Choose Manually** to open the full Download screen if you want to pick specific data.)
 6. Optional: open **Download** later to add more chart regions (IFR, TAC, Helicopter, etc.).
 7. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
-8. After you tap **Done**, AvareX offers a **Watch a demo?** popup. **Watch** plays the MAP, PLAN, and FIND tours; **Choose a topic** opens the demo list; **Not now** skips it. You can start a demo later from `MAP → Menu → Watch Demo`.
+8. After you tap **Done**, AvareX offers a **Watch a demo?** popup. **Watch** plays the MAP, PLAN, FIND, notes, and checklists tours; **Choose a topic** opens the demo list; **Not now** skips it. You can start a demo later from `MAP → Menu → Watch Demo`.
 
 You can reopen onboarding later from the drawer header icon.
 
@@ -101,7 +101,7 @@ Open from MAP with **Menu** button (bottom-left):
 - Scheduler (iOS/Android/Windows, under `CLOUD`)
 - Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
 - IO (Android only)
-- Watch Demo (app presses the real buttons to show MAP, PLAN, and FIND)
+- Watch Demo (app presses the real buttons to show MAP, PLAN, FIND, notes, and checklists)
 - Help (opens User Manual PDF; not available on Linux)
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
@@ -893,17 +893,18 @@ Open: **Menu → Check Lists**
 
 ![Check Lists screen — Import button, info icon, and the dropdown for selecting an active checklist](assets/docs/screenshots/08_checklists_screen.png)
 
+- **New**: create a checklist in the app. A popup asks for a **Name** (up to 24 characters) and **Steps** (one per line). **Create** saves the list and opens it.
 - **Progress bar**: shows completion percentage with completed/total count
 - **Checkbox items**: tap to check off steps
 - **Visual feedback**:
   - Checked items: green background, strikethrough text
   - All complete: green progress bar and background
-- **Reset button**: reset all items to unchecked
+- **Reset all**: appears after at least one item is checked; resets every item to unchecked
 - **Multiple checklists**: dropdown to switch between saved checklists
-- Import checklist from `.txt` (first line is title, following lines are steps)
-- Swipe delete to remove checklist
+- **Import**: load a `.txt` file (first line is title, following lines are steps)
+- Swipe **Delete** at the bottom to remove the active checklist
 - Info tooltip explaining import format
-- Persistent state during session
+- Persistent check state during the session
 
 ### 9.5 Log Book
 
@@ -977,11 +978,12 @@ Open: **Menu → Watch Demo**
 
 AvareX can play a guided demo that **presses the real on-screen buttons** (the same `onPressed` as a tap) with a spotlight, moving pointer, and **spoken** narration (no caption card).
 
-- **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination.
+- **Play all** runs the registered tours in order: Map controls, Build a plan, Find a destination, Write a note, Check lists.
 - Or tap one topic to play just that tour.
 - Overlay controls: **Pause**, **Skip** (next step), **Exit**.
 - After first-run onboarding, a **Watch a demo?** popup offers the same choices. Existing users who already finished onboarding do not see that popup; use this drawer item instead.
 - The plan tour snapshots your current route and restores it when the demo session ends or you tap **Exit**. It does **not** file an FAA plan or start a chart download.
+- The notes tour does **not** tap **Clear** or **Save**. The checklists tour creates a sample `Demo Preflight` list (replacing a leftover one of that name) and does **not** open the file picker or swipe-delete.
 - Developers add a new topic by wrapping a control in `DemoTarget`, writing a `DemoTour` step list, and appending it to `DemoRegistry.tours`.
 
 ### 9.8 Help
@@ -1377,6 +1379,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Set best glide / sink rate | `MAP → Menu → Aircraft & Performance → My Aircraft tab` (Best Glide Speed, Sink Rate) |
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
+| Create a checklist | `MAP → Menu → Check Lists → New` |
 | Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
@@ -1908,8 +1911,8 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 
 1. After first-run onboarding, tap **Watch** on the **Watch a demo?** popup, or skip and do this later.
 2. Open `MAP → Menu → Watch Demo`.
-3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`).
-4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, and other controls. The app **speaks** what each control does. Use **Pause**, **Skip**, or **Exit** at the top right.
+3. Tap **Play all** or a single topic (`Map controls`, `Build a plan`, `Find a destination`, `Write a note`, `Check lists`).
+4. Watch the spotlight and pointer tap **Menu**, **Center**, plan **Create**, FIND search, `Write a Note`, `Check Lists`, and other controls. The app **speaks** what each control does. Use **Pause**, **Skip**, or **Exit** at the top right.
 5. When the session ends (or you **Exit**), any route created by the plan tour is restored to what you had before the demo.
 
 ---

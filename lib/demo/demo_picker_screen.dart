@@ -42,7 +42,7 @@ class DemoPickerScreen extends StatelessWidget {
                 child: const Icon(Icons.playlist_play),
               ),
               title: const Text('Play all'),
-              subtitle: const Text('Map, plan, and find — in order'),
+              subtitle: const Text('Map, plan, find, notes, and checklists — in order'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _start(context, DemoEngine.instance.playAll),
             ),
