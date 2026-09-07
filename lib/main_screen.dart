@@ -344,7 +344,6 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",
-                        demoId: DemoIds.drawerChecklists,
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/checklists');
@@ -555,7 +554,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
         return AlertDialog(
           title: const Text('Watch a demo?'),
           content: const Text(
-            'AvareX can press the real buttons to show you MAP, PLAN, FIND, notes, checklists, takeoff and landing, and instrument tiles. You can replay this anytime from Menu → Watch Demo.',
+            'AvareX can press the real buttons to show you MAP, PLAN, FIND, notes, takeoff and landing, and instrument tiles. You can replay this anytime from Menu → Watch Demo.',
           ),
           actions: <Widget>[
             TextButton(

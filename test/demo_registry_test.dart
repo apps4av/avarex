@@ -11,15 +11,15 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('registry has the core tours with unique ids', () {
-    expect(DemoRegistry.tours.length, 7);
-    expect(DemoRegistry.tours.map((t) => t.id).toSet().length, 7);
+    expect(DemoRegistry.tours.length, 6);
+    expect(DemoRegistry.tours.map((t) => t.id).toSet().length, 6);
     expect(DemoRegistry.byId('map_controls'), isNotNull);
     expect(DemoRegistry.byId('build_plan'), isNotNull);
     expect(DemoRegistry.byId('find_destination'), isNotNull);
     expect(DemoRegistry.byId('write_notes'), isNotNull);
-    expect(DemoRegistry.byId('checklists'), isNotNull);
     expect(DemoRegistry.byId('takeoff_landing'), isNotNull);
     expect(DemoRegistry.byId('instrument_tiles'), isNotNull);
+    expect(DemoRegistry.byId('checklists'), isNull);
     expect(DemoRegistry.byId('missing'), isNull);
   });
 
@@ -48,9 +48,8 @@ void main() {
     expect(rect.height, greaterThan(0));
   });
 
-  test('write notes and checklists tours hit the new targets', () {
+  test('write notes tour hits the notes targets', () {
     final DemoTour notes = DemoRegistry.byId('write_notes')!;
-    final DemoTour checks = DemoRegistry.byId('checklists')!;
     final List<String> noteTaps =
         notes.steps.whereType<Tap>().map((Tap s) => s.targetId).toList();
     expect(
@@ -68,27 +67,6 @@ void main() {
         noteTaps
             .any((String id) => id.contains('clear') || id.contains('save')),
         isFalse);
-
-    final List<String> checkTaps =
-        checks.steps.whereType<Tap>().map((Tap s) => s.targetId).toList();
-    expect(
-      checkTaps,
-      containsAll(<String>[
-        DemoIds.drawerChecklists,
-        DemoIds.checklistNew,
-        DemoIds.checklistCreate,
-        DemoIds.checklistFirstItem,
-        DemoIds.checklistReset,
-      ]),
-    );
-    final List<String> typed = checks.steps
-        .whereType<TypeText>()
-        .map((TypeText s) => s.targetId)
-        .toList();
-    expect(
-        typed,
-        containsAll(
-            <String>[DemoIds.checklistNameField, DemoIds.checklistStepsField]));
   });
 
   test('takeoff and tiles tours hit the new targets', () {

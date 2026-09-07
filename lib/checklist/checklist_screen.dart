@@ -2,8 +2,6 @@ import 'package:universal_io/io.dart';
 
 import 'package:avaremp/checklist/checklist.dart';
 import 'package:avaremp/data/user_database_helper.dart';
-import 'package:avaremp/demo/demo_ids.dart';
-import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/storage.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
@@ -46,15 +44,6 @@ class ChecklistScreenState extends State<ChecklistScreen> {
   List<Widget> _makeAction(List<Checklist>? items) {
     List<Widget> ret = [];
     ret.add(const Tooltip(showDuration: Duration(seconds: 30), triggerMode: TooltipTriggerMode.tap, message: "Import a text (.txt) checklist, with the first line as the title and the subsequent lines as the steps.", child: Icon(Icons.info)));
-    ret.add(
-      DemoTarget(
-        id: DemoIds.checklistNew,
-        child: TextButton(
-          onPressed: _showNewChecklistPopup,
-          child: const Text("New"),
-        ),
-      ),
-    );
     ret.add(
       TextButton(onPressed: () {
         _pickFile().then((lines) => setState(() {
@@ -169,17 +158,14 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                       ),
                     ),
                     if(completed > 0)
-                      DemoTarget(
-                        id: DemoIds.checklistReset,
-                        child: IconButton(
-                          icon: const Icon(Icons.refresh),
-                          tooltip: "Reset all",
-                          onPressed: () {
-                            setState1(() {
-                              Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
-                            });
-                          },
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.refresh),
+                        tooltip: "Reset all",
+                        onPressed: () {
+                          setState1(() {
+                            Storage().activeChecklistSteps = List.generate(active.steps.length, (index) => false);
+                          });
+                        },
                       ),
                   ],
                 ),
@@ -191,7 +177,7 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                 itemBuilder: (context, index) {
                   if(index < active.steps.length) {
                     bool isChecked = Storage().activeChecklistSteps[index];
-                    Widget tile = Card(
+                    return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4),
                       color: isChecked ? Colors.green.withAlpha(30) : null,
                       child: CheckboxListTile(
@@ -213,10 +199,6 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                         },
                       ),
                     );
-                    if (index == 0) {
-                      tile = DemoTarget(id: DemoIds.checklistFirstItem, child: tile);
-                    }
-                    return tile;
                   } else {
                     return Padding(
                       padding: const EdgeInsets.all(20),
@@ -275,152 +257,6 @@ class ChecklistScreenState extends State<ChecklistScreen> {
     return lines;
   }
 
-  Future<void> _showNewChecklistPopup() async {
-    await showDialog<void>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return _NewChecklistPopup(
-          onCreate: (String name, String steps) async {
-            await _createChecklist(name, steps);
-            if (dialogContext.mounted) {
-              Navigator.pop(dialogContext);
-            }
-          },
-          onCancel: () => Navigator.pop(dialogContext),
-        );
-      },
-    );
-  }
-
-  Future<void> _createChecklist(String rawName, String rawSteps) async {
-    String name = rawName.trim();
-    if (name.isEmpty) {
-      name = DateTime.now().toIso8601String();
-    } else if (name.length > 24) {
-      name = name.substring(0, 24);
-    }
-    final List<String> lines = rawSteps
-        .split('\n')
-        .map((String line) => line.trim())
-        .where((String line) => line.isNotEmpty)
-        .toList();
-    final Checklist list = Checklist(name, "", lines);
-    await UserDatabaseHelper.db.deleteChecklist(name);
-    await UserDatabaseHelper.db.addChecklist(list);
-    Storage().settings.setChecklist(name);
-    if (mounted) {
-      setState(() {
-        _selected = name;
-      });
-    }
-  }
-
-}
-
-class _NewChecklistPopup extends StatefulWidget {
-  final Future<void> Function(String name, String steps) onCreate;
-  final VoidCallback onCancel;
-
-  const _NewChecklistPopup({
-    required this.onCreate,
-    required this.onCancel,
-  });
-
-  @override
-  State<_NewChecklistPopup> createState() => _NewChecklistPopupState();
-}
-
-class _NewChecklistPopupState extends State<_NewChecklistPopup> {
-  late final TextEditingController _name;
-  late final TextEditingController _steps;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _name = TextEditingController();
-    _steps = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _name.dispose();
-    _steps.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (_saving) {
-      return;
-    }
-    setState(() {
-      _saving = true;
-    });
-    try {
-      await widget.onCreate(_name.text, _steps.text);
-    } finally {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text("New Check List"),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DemoTarget(
-              id: DemoIds.checklistNameField,
-              child: TextField(
-                controller: _name,
-                maxLength: 24,
-                enabled: !_saving,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: "Name",
-                  hintText: "Preflight",
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            DemoTarget(
-              id: DemoIds.checklistStepsField,
-              child: TextField(
-                controller: _steps,
-                minLines: 5,
-                maxLines: 12,
-                enabled: !_saving,
-                decoration: const InputDecoration(
-                  labelText: "Steps",
-                  hintText: "One step per line",
-                  alignLabelWithHint: true,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : widget.onCancel,
-          child: const Text("Cancel"),
-        ),
-        DemoTarget(
-          id: DemoIds.checklistCreate,
-          child: TextButton(
-            onPressed: _saving ? null : _submit,
-            child: const Text("Create"),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 

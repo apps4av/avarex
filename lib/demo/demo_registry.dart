@@ -1,6 +1,5 @@
 import 'demo_tour.dart';
 import 'tours/build_plan_tour.dart';
-import 'tours/checklists_tour.dart';
 import 'tours/find_destination_tour.dart';
 import 'tours/instrument_tiles_tour.dart';
 import 'tours/map_controls_tour.dart';
@@ -20,7 +19,6 @@ class DemoRegistry {
     buildPlanTour,
     findDestinationTour,
     writeNotesTour,
-    checklistsTour,
     takeoffLandingTour,
     instrumentTilesTour,
   ];
