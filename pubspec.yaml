@@ -93,18 +93,16 @@ dependencies:
       ref: main   
 
   yaml: any
-  firebase_core: ^4.2.1
-  # 6.6.x migrates iOS to Swift and requires FlutterSceneLifeCycleDelegate
-  # (Flutter 3.38+). CI and local builds are on Flutter 3.35.1.
-  firebase_auth: 6.5.7
+  firebase_core: ^4.14.0
+  firebase_auth: ^6.6.1
+  firebase_app_check: ^0.4.7
+  firebase_storage: ^13.5.0
+  cloud_firestore: ^6.9.0
+  firebase_ai: ^3.15.0
   firebase_ui_auth: ^3.0.1
-  firebase_ai: ^3.6.0
-  firebase_storage: ^13.0.4
-  cloud_firestore: ^6.0.0
   purchases_flutter: ^9.9.9
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^9.9.9
-  firebase_app_check: ^0.4.7
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -150,6 +148,12 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Flutter 3.44+ enables SwiftPM by default. Mixing it with CocoaPods
+  # dual-links FirebaseFirestore and crashes macOS at launch:
+  # dyld Symbol not found: _FIRFirestoreErrorDomain.
+  # Several plugins also still lack SwiftPM (purchases_flutter_ui, etc.).
+  config:
+    enable-swift-package-manager: false
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

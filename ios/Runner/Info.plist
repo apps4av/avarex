@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -22,7 +24,47 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_gdl90._udp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>AvareX needs access to your local network to receive ADS-B traffic, weather, and GPS data from devices like Stratux, Stratus, ForeFlight, and X-Plane over Wi-Fi (GDL90 on UDP 4000, ForeFlight on UDP 43211, X-Plane on UDP 49002), and to send flight plans to Avidyne IFD units over Wi-Fi. Without this permission, traffic and other ADS-B data will not appear on the map and flight plans cannot be sent to the IFD.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs continuous access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app does not use the microphone for any purpose, but an SDK used for developing this app may contain calls to the microphone API.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to show images on a map.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -40,27 +82,6 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app does not use the microphone for any purpose, but an SDK used for developing this app may contain calls to the microphone API.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs continuous access to your GPS location to show your position on the Map and Plate screens. If you deny this permission, you will still be able to use the app, but your position on the map will not change during your flight. Your location is not shared with Apps4Av.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs access to photo library to show images on a map.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>AvareX needs access to your local network to receive ADS-B traffic, weather, and GPS data from devices like Stratux, Stratus, ForeFlight, and X-Plane over Wi-Fi (GDL90 on UDP 4000, ForeFlight on UDP 43211, X-Plane on UDP 49002), and to send flight plans to Avidyne IFD units over Wi-Fi. Without this permission, traffic and other ADS-B data will not appear on the map and flight plans cannot be sent to the IFD.</string>
-	<key>NSBonjourServices</key>
-	<array>
-		<string>_http._tcp</string>
-		<string>_gdl90._udp</string>
 	</array>
 </dict>
 </plist>
