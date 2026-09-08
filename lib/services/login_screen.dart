@@ -102,7 +102,9 @@ class LoginScreenState extends State<LoginScreen> {
         appBar: accountAppBar,
         actions: [
           SignedOutAction((context) {
-            setState(() {});
+            setState(() {
+              isLoggedIn = false;
+            });
           }),
         ],
       );
