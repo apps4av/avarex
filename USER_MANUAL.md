@@ -33,19 +33,20 @@ AvareX displays an in-app Terms of Use during onboarding that states this is **n
 
 ### 1.3 First-run onboarding checklist
 
-On first run, complete onboarding pages:
+On first run, complete onboarding pages (titles match the screens):
 
-1. **Sign Terms of Use** (required to continue).
-2. Select **Day/Night theme**.
-3. Select units:
-   - Maritime (NM/knots/feet)
-   - Imperial (SM/MPH/feet)
-4. Confirm GPS permissions/settings.
-5. When you reach the **Databases and Maps** page, AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. (Use **Choose Manually** to open the full Download screen if you want to pick specific data.)
-6. Optional: open **Download** later to add more chart regions (IFR, TAC, Helicopter, etc.).
-7. Optional: register your 1800wxbrief.com email for FAA flight-plan workflows.
+1. **Sign the Terms of Use** (required to continue; swipe is blocked until you sign).
+2. **Welcome to AvareX!**:
+   - **Display Theme**: `Night` / `Day`
+   - **Measurement Units**: `NM / Knots` (Maritime) or `SM / MPH` (Imperial)
+3. **Internet and GPS**: confirm GPS permissions (`GPS Permissions`) and note that GPS can come from the device or an external ADS-B/GPS stream.
+4. **Databases and Maps**: AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. Use **Choose Manually** to open the full `Download` screen if you want to pick specific data.
+5. **Keep Warnings in Check**: when the red warning icon appears, tap it for troubleshooting.
+6. **Optimize Performance**: turn off unused map layers (layers icon on the MAP screen) for best performance.
+7. **File Flight Plans** (optional): enter the same email you use at 1800wxbrief.com to register for FAA flight-plan workflows.
+8. **Join the Community**: Apps4Av forum at `https://groups.google.com/g/apps4av-forum`.
 
-You can reopen onboarding later from the drawer header icon.
+You can reopen onboarding later from the drawer header icon (`Show intro screens`).
 
 ---
 
@@ -61,8 +62,8 @@ You can reopen onboarding later from the drawer header icon.
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
-| Cloud drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                       | **iOS, Android, and Windows** |
-| Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, and Windows** |
+| Cloud drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                       | **iOS, Android, Windows, and macOS** |
+| Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, Windows, and macOS** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
 
@@ -85,21 +86,14 @@ After onboarding, the app opens to `MainScreen` with:
 
 ### 3.2 Drawer menu entries
 
-Open from MAP with **Menu** button (bottom-left):
+Open from MAP with **Menu** button (bottom-left). Items are grouped by section headers:
 
-- Download
-- Documents
-- Write a Note
-- Check Lists
-- Aircraft & Performance
-- Log Book
-- Account (iOS/Android/Windows, under `CLOUD`; sign in, profile, sign out)
-- Backup/Sync (iOS/Android/Windows, under `CLOUD`)
-- Community (iOS/Android/Windows, under `CLOUD`; carries the unread notifications bell)
-- Scheduler (iOS/Android/Windows, under `CLOUD`)
-- Flight Intelligence (iOS/Android only, under `CLOUD`; Pro)
-- IO (Android only)
-- Help (opens User Manual PDF; not available on Linux)
+- **DATA**: `Download` (Charts & databases), `Documents` (Weather, manuals, notes, tracks)
+- **FLIGHT**: `Write a Note`, `Check Lists`, `Aircraft & Performance`
+- **RECORDS**: `Log Book`
+- **CLOUD** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
+- **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
+- **SUPPORT**: `Help` (User manual PDF; not available on Linux)
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
 
@@ -203,6 +197,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **Elevation** | Downloaded elevation tiles with color-coded terrain. |
 | **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) listed under **Weather** in this popup: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
 | **TFR** | Temporary flight restriction shapes/markers with time validity. Red=active, orange=future. |
+| **Game TFR** | Stadium / motor speedway TFRs (14 CFR 99.7): orange 3 NM rings and a stadium marker at NFL, MLB, NCAA Division I football, and major speedway venues. Applies when the event is in progress, SFC–3000 ft AGL. Tap a marker for the venue name. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
 | **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
 | **Obstacles** (under Nav) | Obstacle markers (red squares) in your vicinity. |
@@ -301,6 +296,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 - **PIREP tap**: Shows pilot report
 - **AIRMET/SIGMET tap**: Shows advisory text. **Long-press**: toggles shape visibility on map
 - **TFR tap**: Shows TFR details (altitudes, times)
+- **Game TFR tap**: Shows venue name and `Game TFR (3 NM, SFC-3000' AGL when active)`
 
 ### 4.9 Ruler/measurement tool
 
@@ -362,7 +358,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
 - Displays downloaded plates/diagrams/CSUP
 - Draws ownship and heading on georeferenced plates
-- Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android/Windows, sign-in required)
+- Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android/Windows/macOS, sign-in required)
 - Supports zoom/pan via InteractiveViewer (up to 8x)
 
 ### 6.3 Controls
@@ -420,7 +416,7 @@ On airport diagrams, when businesses with a known location exist for the airport
 - Select a business from the crowd-sourced Airport Businesses directory
 - See its location marked on the airport diagram, with its name labeled next to the marker
 
-The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android/Windows and when you are signed in.
+The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android/Windows/macOS and when you are signed in.
 
 ### 6.7 Automatic behavior on landing
 
@@ -1048,18 +1044,20 @@ Tap the dialpad icon in the toolbar to display an on-screen keypad:
 
 ### 11.1 Access
 
-Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) run on **iOS, Android, and Windows**. Flight Intelligence runs on **iOS and Android** only. Cloud features are not available on macOS, Linux, or Snap.
+Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) run on **iOS, Android, Windows, and macOS**. Flight Intelligence runs on **iOS and Android** only. Cloud features are not available on Linux or Snap.
 
-They are reached from two places:
+They are reached from:
 
-- **Account screen** — `MAP → Menu → Cloud → Account`. Sign in, view profile, and sign out. The screen title is `Account`.
+- **Account screen** — `MAP → Menu → Cloud → Account`. Sign in, view profile, sign out, or delete the account. The screen title is `Account`. After you **Sign out** (or delete the account), the same `Account` screen switches to the sign-in form — you are not sent back to the map.
 - **Pro icon** (iOS/Android) — `MAP top-right account icon`. Opens `Flight Intelligence` when signed in (paywall if needed), or the `Account` sign-in screen if not. Some features also route here on demand (e.g., translate actions).
 - **`CLOUD` drawer section** — `MAP → Menu → Cloud`. Holds `Account`, `Backup/Sync`, `Community`, `Scheduler`, and `Flight Intelligence`. `Account`, `Backup/Sync`, `Community`, and `Scheduler` are free (sign-in only). `Flight Intelligence` still uses the Pro paywall.
 
 ### 11.2 Login and subscription flow
 
-- Sign in/register with email authentication (Firebase)
-- Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS, Android, and Windows
+- Sign in/register with email authentication (Firebase) on the `Account` screen
+- While signed in, `Account` shows your profile (avatar, display name, sign-in methods), **Sign out**, and **Delete account**
+- After sign-out, `Account` shows the sign-in form again (same route, title still `Account`)
+- Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS, Android, Windows, and macOS
 - `Flight Intelligence` uses the RevenueCat entitlement (`Pro`) paywall
 - After login, open `Flight Intelligence` from the MAP top-right account icon or from `MAP → Menu → Cloud → Flight Intelligence`
 
@@ -1242,7 +1240,7 @@ everything else is contributed by signed-in pilots.
 
 **This is a free feature** — it is **not** part of a Pro subscription. It only
 requires a signed-in account (the same Cloud `Account`) so that
-contributions are accountable rather than anonymous. It is available on iOS, Android, and Windows.
+contributions are accountable rather than anonymous. It is available on iOS, Android, Windows, and macOS.
 
 **Access**: destination popup → `Business` tab. When you are signed in, the
 airport's businesses are listed **directly inside the tab** — there is no
@@ -1350,7 +1348,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | File FAA plan | `PLAN → Brief & File` |
 | Manage filed plans | `PLAN → Manage` |
 | Load reversed plan | `PLAN → Load & Save → 3-dot menu → Load Reversed` |
-| Create IFR preferred route | `PLAN → Create → Create IFR Preferred Route` |
+| Create IFR preferred route | `PLAN → Create → Create IFR Route` |
 | Show recent ATC routes | `PLAN → Create → Show IFR ATC Routes` |
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
@@ -1377,8 +1375,9 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
 | Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
 | Pro AI | `MAP → Menu → Cloud → Flight Intelligence` or `MAP top-right account icon` (iOS/Android) |
-| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android/Windows) |
-| Pro Community | `MAP → Menu → Cloud → Community` |
+| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android/Windows/macOS) |
+| Sign out / delete account | `MAP → Menu → Cloud → Account` → **Sign out** or **Delete account** (returns to the sign-in form on the same `Account` screen) |
+| Community | `MAP → Menu → Cloud → Community` |
 | Create a pilot group | `MAP → Menu → Cloud → Community → New Group` |
 | Join a public group | `MAP → Menu → Cloud → Community → Discover → tap group → Join` |
 | Approve pending members (owner) | `Community → group → Members tab → Approve / Reject` |
@@ -1410,6 +1409,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
+| Enable Game TFR overlay | `MAP → Layers → Game TFR slider > 0` |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |
@@ -1538,7 +1538,7 @@ Alternative add methods (used after the plan exists):
 1. Open `PLAN → Create`.
 2. In Route field:
    - Enter route text and use **Create As Entered**, or
-   - Enter `DEPART DEST` and use **Create IFR Preferred Route**, or
+   - Enter `DEPART DEST` and use **Create IFR Route**, or
    - Use **Show IFR ATC Routes** to view recent ATC route options.
 3. When route is loaded, return to `PLAN` to review/reorder waypoints.
 
@@ -1950,7 +1950,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-05: Where are FBO/business details?
 
 - In the destination popup, open the **Business** tab (free; sign-in required). The airport's businesses are listed inline; tap one to view and contribute services, fuel, hours, and star reviews per airport (see Section 11.7).
-- On the `PLATE` screen, when an airport diagram is active, use the right-side business selector (business icon) to mark a business's location on the diagram. It draws from the same crowd-sourced directory (iOS/Android/Windows, sign-in required).
+- On the `PLATE` screen, when an airport diagram is active, use the right-side business selector (business icon) to mark a business's location on the diagram. It draws from the same crowd-sourced directory (iOS/Android/Windows/macOS, sign-in required).
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/oMOR-gaIqis`
 
