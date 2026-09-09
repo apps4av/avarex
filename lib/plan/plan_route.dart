@@ -380,7 +380,7 @@ class PlanRoute {
   }
 
   void setCurrentWaypoint(int index) {
-    if(_waypoints.isNotEmpty) {
+    if(index >= 0 && index < _waypoints.length) {
       _setCurrent(_waypoints[index]);
     }
     update();
@@ -516,10 +516,12 @@ class PlanRoute {
   void copyFrom(PlanRoute other) {
     name = other.name;
     _setCurrent(null);
-    _waypoints.removeRange(0, _waypoints.length);
-    for(Waypoint w in other._waypoints) {
-      addWaypoint(w);
+    _waypoints.clear();
+    for (Waypoint w in other._waypoints) {
+      UserDatabaseHelper.db.addRecent(w.destination);
+      _waypoints.add(w);
     }
+    _update(true);
   }
 
   // convert json to Route

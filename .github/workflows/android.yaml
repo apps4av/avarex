@@ -99,8 +99,9 @@ jobs:
       - name: Prepare upload artifacts
         run: |
           mkdir -p build/artifacts
-          cp "${{ steps.sign_apk.outputs.signedReleaseFile }}" "build/artifacts/avarex_android_${APP_VERSION}_${{ github.ref_name }}.apk"
-          cp "${{ steps.sign_aab.outputs.signedReleaseFile }}" "build/artifacts/avarex_android_${APP_VERSION}_${{ github.ref_name }}.aab"
+          SAFE_REF="${GITHUB_REF_NAME//\//-}"
+          cp "${{ steps.sign_apk.outputs.signedReleaseFile }}" "build/artifacts/avarex_android_${APP_VERSION}_${SAFE_REF}.apk"
+          cp "${{ steps.sign_aab.outputs.signedReleaseFile }}" "build/artifacts/avarex_android_${APP_VERSION}_${SAFE_REF}.aab"
 
       - name: Upload release
         uses: appleboy/scp-action@v0.1.7

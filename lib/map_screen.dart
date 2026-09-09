@@ -22,6 +22,8 @@ import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
 import 'package:avaremp/services/login_screen.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
 import 'package:avaremp/weather/airsigmet.dart';
@@ -1476,7 +1478,7 @@ class MapScreenState extends State<MapScreen> {
                       child: Padding(
                           padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
                           // same box height as the icon row on the right so the labels line up with the circle buttons
-                          child: SizedBox(height: iconRadius * 2 + 16, child: Center(child: TextButton(
+                          child: SizedBox(height: iconRadius * 2 + 16, child: Center(child: DemoTarget(id: DemoIds.mapCenter, child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
                               backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
@@ -1504,7 +1506,7 @@ class MapScreenState extends State<MapScreen> {
                               }
                             },
                             child: const Text("Center"),
-                          )))
+                          ))))
                       )
                   )
               ),
@@ -1517,9 +1519,9 @@ class MapScreenState extends State<MapScreen> {
                           // same box height as the icon row on the right so the labels line up with the circle buttons
                           child: SizedBox(height: iconRadius * 2 + 16, child: Row(children:[
                             // menu
-                            TextButton(
+                            DemoTarget(id: DemoIds.mapMenu, child: TextButton(
                               onPressed: () {
-                                if(Storage().settings.shouldShowReview() && Constants.shouldShouldReview) {
+                                if(!Storage().isDemoRunning && Storage().settings.shouldShowReview() && Constants.shouldShouldReview) {
                                   showDialog(context: context, builder: (BuildContext context) {
                                     return AlertDialog(
                                       title: const Text('Review AvareX?'),
@@ -1559,7 +1561,7 @@ class MapScreenState extends State<MapScreen> {
                                 backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)
                               ),
                               child: const Text("Menu"),
-                            ),
+                            )),
                           ]))
                       )
                   )
@@ -1573,25 +1575,25 @@ class MapScreenState extends State<MapScreen> {
                           child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
-                                  IconButton(
+                                  DemoTarget(id: DemoIds.mapSettings, child: IconButton(
                                       tooltip: "Map settings",
                                       icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: const Icon(Icons.settings)),
-                                      onPressed: () => _showSettingSelector(context)),
+                                      onPressed: () => _showSettingSelector(context))),
 
-                                  IconButton(
+                                  DemoTarget(id: DemoIds.mapChart, child: IconButton(
                                     tooltip: "Select the chart type",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.map)),
                                     onPressed: () => _showChartSelector(context),
-                                  ),
+                                  )),
 
-                                  IconButton(
+                                  DemoTarget(id: DemoIds.mapLayers, child: IconButton(
                                     tooltip: "Select the layers to show on the Map screen",
                                     icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.layers)),
                                     onPressed: () => _showLayerSelector(context),
-                                  ),
+                                  )),
                                 ]
                               ),
                           )

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:avaremp/demo/demo_ids.dart';
+import 'package:avaremp/demo/demo_target.dart';
 import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/constants.dart';
@@ -262,21 +264,24 @@ class PlanScreenState extends State<PlanScreen> {
 
   Widget _planButton() {
     final bool active = _actionTab == null;
-    return Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: TextButton(
-        style: active
-            ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
-            : null,
-        onPressed: () => setState(() => _actionTab = null),
-        child: const Text("Plan"),
+    return DemoTarget(
+      id: DemoIds.planPlanTab,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: TextButton(
+          style: active
+              ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
+              : null,
+          onPressed: () => setState(() => _actionTab = null),
+          child: const Text("Plan"),
+        ),
       ),
     );
   }
 
   Widget _actionButton(String label, int tab) {
     final bool active = _actionTab == tab;
-    return Padding(
+    final Widget button = Padding(
       padding: const EdgeInsets.only(right: 4),
       child: TextButton(
         style: active
@@ -286,6 +291,10 @@ class PlanScreenState extends State<PlanScreen> {
         child: Text(label),
       ),
     );
+    if (label == "Create") {
+      return DemoTarget(id: DemoIds.planCreateTab, child: button);
+    }
+    return button;
   }
 
   void _returnToPlan() {
@@ -328,6 +337,9 @@ class PlanScreenState extends State<PlanScreen> {
       ),
     );
     if (ok != true || !mounted) return;
+    if (Storage().isDemoRunning) {
+      return;
+    }
     setState(() {
       Storage().route.clear();
     });
@@ -367,8 +379,11 @@ class PlanScreenState extends State<PlanScreen> {
         ),
         Expanded(
           flex: 5,
-          child: route.length == 0
-              ? Center(
+          child: ValueListenableBuilder<int>(
+            valueListenable: route.change,
+            builder: (context, value, _) {
+              if (route.length == 0) {
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -391,8 +406,9 @@ class PlanScreenState extends State<PlanScreen> {
                       ),
                     ],
                   ),
-                )
-              : ReorderableListView(
+                );
+              }
+              return ReorderableListView(
                   scrollController: _scrollController,
                   scrollDirection: Axis.vertical,
                   buildDefaultDragHandles: false,
@@ -418,25 +434,20 @@ class PlanScreenState extends State<PlanScreen> {
                               route.removeWaypointAt(index);
                             });
                           },
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: route.change,
-                            builder: (context, value, _) {
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 2),
-                                color: route.isCurrent(index)
-                                    ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
-                                    : null,
-                                child: PlanItemWidget(
-                                  waypoint: route.getWaypointAt(index),
-                                  current: route.isCurrent(index),
-                                  onTap: () {
-                                    setState(() {
-                                      Storage().route.setCurrentWaypoint(index);
-                                    });
-                                  },
-                                ),
-                              );
-                            },
+                          child: Card(
+                            margin: const EdgeInsets.symmetric(vertical: 2),
+                            color: route.isCurrent(index)
+                                ? Theme.of(context).colorScheme.primaryContainer.withAlpha(100)
+                                : null,
+                            child: PlanItemWidget(
+                              waypoint: route.getWaypointAt(index),
+                              current: route.isCurrent(index),
+                              onTap: () {
+                                setState(() {
+                                  Storage().route.setCurrentWaypoint(index);
+                                });
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -446,7 +457,9 @@ class PlanScreenState extends State<PlanScreen> {
                       route.moveWaypoint(oldIndex, newIndex);
                     });
                   },
-                ),
+                );
+            },
+          ),
         ),
       ],
     );

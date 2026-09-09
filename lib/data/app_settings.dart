@@ -260,6 +260,15 @@ class AppSettings {
     provider.setBool("key-intro", value);
   }
 
+  /// Set only when onboarding finishes so existing users never see the demo popup.
+  bool pendingDemoOffer() {
+    return provider.getValue("key-pending-demo-offer", defaultValue: false) as bool;
+  }
+
+  void setPendingDemoOffer(bool value) {
+    provider.setBool("key-pending-demo-offer", value);
+  }
+
   void setDocumentPage(String name) {
     provider.setString("key-document-page-v1", name);
   }

@@ -22,6 +22,7 @@ import 'io/io_screen.dart';
 import 'main_screen.dart';
 import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
+import 'demo/demo_host.dart';
 import 'services/backup_screen.dart';
 
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
@@ -65,6 +66,8 @@ class MainApp extends StatelessWidget {
         builder: (context, value, child) {
           return SafeArea(child: MaterialApp(
             debugShowCheckedModeBanner: false,
+            navigatorKey: Storage().navigatorKey,
+            builder: (context, child) => DemoHost(child: child ?? const SizedBox.shrink()),
             initialRoute: '/',
             routes: {
               '/': (context) =>
