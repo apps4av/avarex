@@ -27,6 +27,37 @@ import 'services/backup_screen.dart';
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
   @override
   ImageCache createImageCache() => Storage().imageCache;
+
+  final List<EmailVerificationController> _emailVerificationControllers = [];
+
+  @override
+  void addObserver(WidgetsBindingObserver observer) {
+    if (observer is EmailVerificationController) {
+      _emailVerificationControllers.add(observer);
+    }
+    super.addObserver(observer);
+  }
+
+  @override
+  bool removeObserver(WidgetsBindingObserver observer) {
+    if (observer is EmailVerificationController) {
+      _emailVerificationControllers.remove(observer);
+    }
+    return super.removeObserver(observer);
+  }
+
+  @override
+  void handleAppLifecycleStateChanged(AppLifecycleState state) {
+    // ProfileScreen never disposes EmailVerificationController; after sign-out
+    // it still receives resume and hits currentUser!. Drop it first.
+    for (final controller in List<EmailVerificationController>.of(
+        _emailVerificationControllers)) {
+      if (controller.auth.currentUser == null) {
+        controller.dispose();
+      }
+    }
+    super.handleAppLifecycleStateChanged(state);
+  }
 }
 
 void main() {
