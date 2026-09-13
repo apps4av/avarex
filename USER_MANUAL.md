@@ -15,6 +15,10 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.123**
+
+- Bug fixes.
+
 **0.0.122**
 
 - Bug fixes.

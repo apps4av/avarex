@@ -144,9 +144,15 @@ jobs:
             echo "MSIX_DIR is empty; cannot upload the Windows Store draft."
             exit 1
           fi
+          MSIX_ABS="$(cd "$MSIX_DIR" && pwd)"
+          echo "Publishing MSIX from $MSIX_ABS:"
+          ls -la "$MSIX_ABS"
           msstore submission delete 9MX4HKL30MWW --no-confirm || \
             echo "No pending draft to delete (or delete skipped)."
-          msstore publish \
-            --inputDirectory "$MSIX_DIR" \
+          # Point pathOrUrl at the MSIX folder (not the Flutter repo). Otherwise
+          # the Flutter publisher copies the last published packages and the
+          # draft version does not change.
+          msstore publish "$MSIX_ABS" \
             --appId 9MX4HKL30MWW \
-            --noCommit
+            --noCommit \
+            --uploadTimeout 600
