@@ -13,6 +13,22 @@ This manual documents all features in the current AvareX app, including:
 
 ---
 
+## AvareX Releases
+
+**0.0.121**
+
+- Bug fixes.
+
+**0.0.120**
+
+- Enable Cloud features on Windows and macOS.
+- Fix Plan waypoint reorder so drops land on the intended index.
+- Fix sign-in.
+- Rearrange weather, traffic, and nav buttons.
+- Bug fixes.
+
+---
+
 ## 1) Before You Start
 
 ### 1.1 Safety and intended use

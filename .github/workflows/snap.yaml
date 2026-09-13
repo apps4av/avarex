@@ -9,6 +9,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Set snap version
         run: |
           echo "APP_VERSION=$(sed -n 's/^version: //p' snap/snapcraft.yaml)" >> "$GITHUB_ENV"
@@ -78,3 +80,17 @@ jobs:
           strip_components: 2
           source: build/artifacts/*
           target: /home/apps4av/builds
+
+      - name: Decide store upload
+        id: store
+        env:
+          VERSION_FILE: snap/snapcraft.yaml
+          VERSION_PATTERN: '^\+version:'
+          REQUIRED_SECRET: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: bash .github/scripts/should-publish-store.sh
+
+      - name: Upload to Snap Store (edge)
+        if: steps.store.outputs.publish == 'true'
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: snapcraft upload --release=edge "build/artifacts/avarex_snap_${APP_VERSION}_${{ github.ref_name }}.snap"

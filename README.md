@@ -72,6 +72,17 @@ Windows: https://apps.microsoft.com/detail/9mx4hkl30mww?hl=en-us&gl=US
 
 Github Actions builds all store builds.
 
+On `master`, a version change in `pubspec.yaml` uploads Android to the Play **internal** track, iOS to **TestFlight**, and Windows to a Partner Center **package flight**. A version change in `snap/snapcraft.yaml` uploads Linux to Snap **edge**. Builds still go to apps4av.org on every push. Nothing is sent to production, stable, or a public store listing.
+
+Play and TestFlight “What’s new” is generated from the **AvareX Releases** section in `USER_MANUAL.md` (`bash .github/scripts/update-whatsnew.sh`). Do not hand-edit `store/whatsnew/whatsnew-en-US`.
+
+Required secrets (that store is skipped if the credential is unset):
+
+- Play internal: `PLAY_STORE_SERVICE_ACCOUNT_JSON`
+- TestFlight: `APPSTORE_ISSUER_ID`, `APPSTORE_API_KEY_ID`, `APPSTORE_API_PRIVATE_KEY`
+- Snap edge: `SNAPCRAFT_STORE_CREDENTIALS` (`snapcraft export-login --snaps=avarex --channels=edge snapcraft-login.txt`)
+- Windows package flight: `PARTNER_CENTER_TENANT_ID`, `PARTNER_CENTER_SELLER_ID`, `PARTNER_CENTER_CLIENT_ID`, `PARTNER_CENTER_CLIENT_SECRET`, `WINDOWS_STORE_FLIGHT_ID`
+
 Microsoft version scheme: pubspec.yaml (versions go like 1.0.9.0, last digit must be 0)
 
 Apple version scheme: pubspec.yaml 0.0.9+9

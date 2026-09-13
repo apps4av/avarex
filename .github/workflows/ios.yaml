@@ -10,6 +10,8 @@ jobs:
     steps:
 
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Set app version
         run: |
           echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
@@ -107,6 +109,46 @@ jobs:
           scp -o StrictHostKeyChecking=accept-new build/artifacts/* apps4av@apps4av.org:/home/apps4av/builds/
         env:
           MAMBA_PASSWORD: ${{ secrets.MAMBA_PASSWORD }}
+
+      - name: Update TestFlight whatsnew from user manual
+        run: bash .github/scripts/update-whatsnew.sh
+
+      - name: Decide store upload
+        id: store
+        env:
+          VERSION_FILE: pubspec.yaml
+          VERSION_PATTERN: '^\+version:'
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+          APPSTORE_API_PRIVATE_KEY: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+        run: |
+          if [[ -n "${APPSTORE_ISSUER_ID}" && -n "${APPSTORE_API_KEY_ID}" && -n "${APPSTORE_API_PRIVATE_KEY}" ]]; then
+            export REQUIRED_SECRET=set
+          else
+            export REQUIRED_SECRET=
+          fi
+          bash .github/scripts/should-publish-store.sh
+
+      - name: Read TestFlight notes
+        if: steps.store.outputs.publish == 'true'
+        id: notes
+        run: |
+          {
+            echo "notes<<EOF"
+            cat store/whatsnew/whatsnew-en-US
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upload to TestFlight
+        if: steps.store.outputs.publish == 'true'
+        uses: apple-actions/upload-testflight-build@v5
+        with:
+          app-path: build/artifacts/avarex_ios_${{ env.APP_VERSION }}_${{ github.ref_name }}.ipa
+          issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          api-key-id: ${{ secrets.APPSTORE_API_KEY_ID }}
+          api-private-key: ${{ secrets.APPSTORE_API_PRIVATE_KEY }}
+          release-notes: ${{ steps.notes.outputs.notes }}
+          wait-for-processing: 'false'
 
       - name: Clean up keychain and provisioning profile
         if: ${{ always() }}

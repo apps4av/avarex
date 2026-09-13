@@ -9,6 +9,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Set app version
         shell: bash
         run: |
@@ -78,6 +80,13 @@ jobs:
         run: |
           mkdir -p build/artifacts
           cp "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" "build/artifacts/avarex_windows_${APP_VERSION}_${{ github.ref_name }}.zip"
+          MSIX="$(find . \( -name '*.msix' -o -name '*.msixupload' \) ! -path './.git/*' | head -1 || true)"
+          if [[ -n "$MSIX" ]]; then
+            cp "$MSIX" "build/artifacts/avarex_windows_${APP_VERSION}_${{ github.ref_name }}.msix"
+            echo "MSIX_PATH=$MSIX" >> "$GITHUB_ENV"
+          else
+            echo "No MSIX found after msix:create; Windows store upload will fail if attempted."
+          fi
       - name: Windows Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -97,3 +106,47 @@ jobs:
           scp -o StrictHostKeyChecking=accept-new build/artifacts/* apps4av@apps4av.org:/home/apps4av/builds/
         env:
           MAMBA_PASSWORD: ${{ secrets.MAMBA_PASSWORD }}
+
+      - name: Decide store upload
+        id: store
+        shell: bash
+        env:
+          VERSION_FILE: pubspec.yaml
+          VERSION_PATTERN: '^\+\s*(version:|msix_version:)'
+          CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+          FLIGHT_ID: ${{ secrets.WINDOWS_STORE_FLIGHT_ID }}
+        run: |
+          if [[ -n "${CLIENT_SECRET}" && -n "${FLIGHT_ID}" ]]; then
+            export REQUIRED_SECRET=set
+          else
+            export REQUIRED_SECRET=
+          fi
+          bash .github/scripts/should-publish-store.sh
+
+      - name: Setup Microsoft Store Developer CLI
+        if: steps.store.outputs.publish == 'true'
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Upload to Windows Store (package flight)
+        if: steps.store.outputs.publish == 'true'
+        shell: bash
+        env:
+          PARTNER_CENTER_TENANT_ID: ${{ secrets.PARTNER_CENTER_TENANT_ID }}
+          PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
+          PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
+          PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+          WINDOWS_STORE_FLIGHT_ID: ${{ secrets.WINDOWS_STORE_FLIGHT_ID }}
+        run: |
+          msstore reconfigure \
+            --tenantId "$PARTNER_CENTER_TENANT_ID" \
+            --sellerId "$PARTNER_CENTER_SELLER_ID" \
+            --clientId "$PARTNER_CENTER_CLIENT_ID" \
+            --clientSecret "$PARTNER_CENTER_CLIENT_SECRET"
+          if [[ -z "${MSIX_PATH:-}" ]]; then
+            echo "MSIX_PATH is empty; cannot upload to the Windows package flight."
+            exit 1
+          fi
+          msstore publish \
+            --inputFile "$MSIX_PATH" \
+            --appId 9MX4HKL30MWW \
+            --flightId "$WINDOWS_STORE_FLIGHT_ID"

@@ -9,6 +9,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
       - name: Set app version
         run: |
           echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
@@ -112,3 +114,25 @@ jobs:
           strip_components: 2
           source: build/artifacts/*
           target: /home/apps4av/builds
+
+      - name: Update Play whatsnew from user manual
+        run: bash .github/scripts/update-whatsnew.sh
+
+      - name: Decide store upload
+        id: store
+        env:
+          VERSION_FILE: pubspec.yaml
+          VERSION_PATTERN: '^\+version:'
+          REQUIRED_SECRET: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+        run: bash .github/scripts/should-publish-store.sh
+
+      - name: Upload to Google Play (internal)
+        if: steps.store.outputs.publish == 'true'
+        uses: r0adkll/upload-google-play@v1.1.3
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT_JSON }}
+          packageName: com.apps4av.avaremp
+          releaseFiles: build/artifacts/avarex_android_${{ env.APP_VERSION }}_${{ github.ref_name }}.aab
+          track: internal
+          status: completed
+          whatsNewDirectory: store/whatsnew

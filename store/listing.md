@@ -131,12 +131,13 @@ Reuse the Google Play full description above (it is within Apple's limit). The a
 
 ### What's New (per version)
 
+Do not edit this by hand. It is generated from the latest **AvareX Releases** entry in `USER_MANUAL.md`:
+
+```bash
+bash .github/scripts/update-whatsnew.sh
 ```
-• Performance and stability improvements
-• Updated charts, plates, and weather products
-• Bug fixes
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
-```
+
+Paste from `store/whatsnew/whatsnew-en-US` (Play’s 500-character limit).
 
 ---
 
