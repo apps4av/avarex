@@ -126,7 +126,7 @@ jobs:
         if: steps.store.outputs.publish == 'true'
         uses: microsoft/microsoft-store-apppublisher@v1.1
 
-      - name: Upload to Windows Store (draft, not published)
+      - name: Upload to Windows Store (manual publish)
         if: steps.store.outputs.publish == 'true'
         shell: bash
         env:
@@ -155,6 +155,8 @@ jobs:
           # Using the MSIX folder as pathOrUrl fails with exit 127:
           # "could not find a project publisher". Using the repo without
           # --inputDirectory copies the last published Store packages.
+          # --noCommit uploads only; the follow-up script sets Manual and
+          # commits so Partner Center shows the new version without going live.
           msstore publish "$REPO" \
             --inputDirectory "$MSIX_ABS" \
             --appId 9MX4HKL30MWW \

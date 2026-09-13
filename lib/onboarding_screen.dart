@@ -2,6 +2,7 @@ import 'package:avaremp/chart/chart.dart';
 import 'package:avaremp/chart/chart_download_dialog.dart';
 import 'package:avaremp/chart/download.dart';
 import 'package:avaremp/chart/download_screen.dart';
+import 'package:avaremp/legal/terms_of_use.dart';
 import 'package:avaremp/plan/plan_lmfs.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/unit_conversion.dart';
@@ -405,7 +406,7 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
       safeAreaList: const [false, false, true, false],
       pages: [
         PageViewModel(
-          title: "Sign the Terms of Use",
+          title: TermsOfUse.pageTitle,
           bodyWidget:
               Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             // Scroll indicator at the top (only if not signed)
@@ -456,34 +457,45 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
                 ),
               ),
 
-            // Terms content in a card
+            // Conspicuous summary, then the full waiver and privacy notice.
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(20),
+                color: Colors.red.shade900.withAlpha(160),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.yellow.withAlpha(180)),
               ),
               child: const Text(
-                "This is not an FAA certified GPS. You must assume this software will fail when life and/or property are at risk. The authors of this software are not liable for any injuries to persons, or damages to aircraft or property including devices, related to its use.",
+                TermsOfUse.summary,
                 textAlign: TextAlign.left,
-                style: TextStyle(fontSize: 15, color: Colors.white),
+                style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    height: 1.35),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Privacy sections
-            _buildTermsSection("What Information We Collect",
-                "The Apps4Av online service collects identifiable account set-up information in the form of account username (e-mail address). This information must be provided in order to register and use our platform."),
-            _buildTermsSection("Sharing Your Personal Information",
-                "We do not sell or share your personal information to third parties for marketing purposes unless you have granted us permission to do so."),
-            _buildTermsSection("Security",
-                "We utilize generally accepted security measures (such as encryption / HTTPS) to protect against the misuse or unauthorized disclosure of any personal information you submit to us."),
-            _buildTermsSection("Enforcement",
-                "If you believe for any reason that we have not followed these privacy principles, please contact us at apps4av@gmail.com."),
+            ...TermsOfUse.liabilitySections
+                .map((s) => _buildTermsSection(s.title, s.body)),
+            _buildTermsSection("Privacy",
+                "The following describes account information only. Separate in-app notices apply to Pilot Community and other cloud features."),
+            ...TermsOfUse.privacySections
+                .map((s) => _buildTermsSection(s.title, s.body)),
 
             const SizedBox(height: 24),
+
+            if (!signed)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Text(
+                  "By signing, you confirm you have read, understood, and agree to the Terms of Use and Liability Waiver above, including the release of Apps4Av Inc. and its people from liability.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 13, height: 1.35),
+                ),
+              ),
 
             // Sign button with animated pointer
             if (!signed)

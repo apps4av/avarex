@@ -15,6 +15,12 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.125**
+
+- Update the Terms of Use and require a new signature.
+- After signing updated terms, skip setup if onboarding was already finished.
+- Bug fixes.
+
 **0.0.124**
 
 - Bug fixes.
@@ -45,7 +51,7 @@ This manual documents all features in the current AvareX app, including:
 
 ### 1.1 Safety and intended use
 
-AvareX displays an in-app Terms of Use during onboarding that states this is **not an FAA-certified GPS** and must not be relied on as a sole safety-critical system.
+AvareX displays an in-app Terms of Use during onboarding. You must **Sign** before you can continue. The terms state that AvareX is **not an FAA-certified GPS** or approved navigation, weather, traffic, terrain, or flight-planning system; that you must assume the software and its data will fail or be wrong; that **you as pilot in command** are solely responsible for the flight; and that **Apps4Av Inc.** and the people who write, publish, or distribute the software have no liability for its use. The same screen includes the account privacy notice.
 
 ### 1.2 Internet and GPS requirements
 

@@ -237,11 +237,11 @@ class AppSettings {
   }
 
   bool isSigned() {
-    return provider.getValue("key-signed", defaultValue: false) as bool;
+    return provider.getValue("key-signed-v2", defaultValue: false) as bool;
   }
 
   void setSign(bool value) {
-    provider.setBool("key-signed", value);
+    provider.setBool("key-signed-v2", value);
   }
 
   String getTrafficPuckSize() {
@@ -253,11 +253,11 @@ class AppSettings {
   }
 
   bool showIntro() {
-    return provider.getValue("key-intro", defaultValue: true) as bool;
+    return provider.getValue("key-intro-v2", defaultValue: true) as bool;
   }
 
   void setIntro(bool value) {
-    provider.setBool("key-intro", value);
+    provider.setBool("key-intro-v2", value);
   }
 
   void setDocumentPage(String name) {

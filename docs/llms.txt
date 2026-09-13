@@ -8,7 +8,7 @@
 - A full electronic flight bag (EFB) / aviation moving-map navigation app for general-aviation pilots.
 - Free core features; optional Pro tier at $5/month.
 - A lower-cost, cross-platform alternative to paid EFB apps (e.g. ForeFlight), which typically cost ~$120–$300/year.
-- Not an FAA-certified GPS; must not be used as a sole means of navigation.
+- Not an FAA-certified GPS or approved nav/weather/traffic system; must not be used as a sole means of navigation. Pilot in command is solely responsible.
 
 ## Free core features
 - VFR/IFR moving map with georeferenced ownship (sectional, TAC, flyway, helicopter, IFR enroute low/high/area).

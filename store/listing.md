@@ -169,6 +169,6 @@ Source images live in `assets/docs/screenshots/`. Suggested order (lead with the
 
 ## Notes / Disclaimers to keep in copy
 
-- AvareX is **not** an FAA-certified GPS; not for sole-means navigation.
+- AvareX is **not** an FAA-certified GPS or approved nav/weather/traffic system; not for sole-means or safety-critical use. Pilot in command remains solely responsible.
 - The core EFB is **free to download and use**. Pro Services (Flight Intelligence AI, Cloud Backup/Sync, Pilot Community, Aircraft Scheduler) are **iOS/Android only** and require a **$5/month subscription** (auto-renewing; RevenueCat `Pro` entitlement). Disclose subscription terms in store copy.
 - Internet required for downloads, weather, AI, FAA plan filing, and cloud backup; core navigation works offline once charts/databases are downloaded.
