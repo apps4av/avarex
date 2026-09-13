@@ -1,6 +1,8 @@
 name: Windows
 
-on: push
+on:
+  push:
+  workflow_dispatch:
 
 jobs:
 
@@ -116,21 +118,15 @@ jobs:
         env:
           VERSION_FILE: pubspec.yaml
           VERSION_PATTERN: '^\+\s*(version:|msix_version:)'
-          CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
-          FLIGHT_ID: ${{ secrets.WINDOWS_STORE_FLIGHT_ID }}
-        run: |
-          if [[ -n "${CLIENT_SECRET}" && -n "${FLIGHT_ID}" ]]; then
-            export REQUIRED_SECRET=set
-          else
-            export REQUIRED_SECRET=
-          fi
-          bash .github/scripts/should-publish-store.sh
+          REQUIRED_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
+          FORCE_STORE_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && 'true' || '' }}
+        run: bash .github/scripts/should-publish-store.sh
 
       - name: Setup Microsoft Store Developer CLI
         if: steps.store.outputs.publish == 'true'
         uses: microsoft/microsoft-store-apppublisher@v1.1
 
-      - name: Upload to Windows Store (package flight)
+      - name: Upload to Windows Store (draft, not published)
         if: steps.store.outputs.publish == 'true'
         shell: bash
         env:
@@ -138,7 +134,6 @@ jobs:
           PARTNER_CENTER_SELLER_ID: ${{ secrets.PARTNER_CENTER_SELLER_ID }}
           PARTNER_CENTER_CLIENT_ID: ${{ secrets.PARTNER_CENTER_CLIENT_ID }}
           PARTNER_CENTER_CLIENT_SECRET: ${{ secrets.PARTNER_CENTER_CLIENT_SECRET }}
-          WINDOWS_STORE_FLIGHT_ID: ${{ secrets.WINDOWS_STORE_FLIGHT_ID }}
         run: |
           msstore reconfigure \
             --tenantId "$PARTNER_CENTER_TENANT_ID" \
@@ -146,10 +141,12 @@ jobs:
             --clientId "$PARTNER_CENTER_CLIENT_ID" \
             --clientSecret "$PARTNER_CENTER_CLIENT_SECRET"
           if [[ -z "${MSIX_DIR:-}" ]]; then
-            echo "MSIX_DIR is empty; cannot upload to the Windows package flight."
+            echo "MSIX_DIR is empty; cannot upload the Windows Store draft."
             exit 1
           fi
+          msstore submission delete 9MX4HKL30MWW --no-confirm || \
+            echo "No pending draft to delete (or delete skipped)."
           msstore publish \
             --inputDirectory "$MSIX_DIR" \
             --appId 9MX4HKL30MWW \
-            --flightId "$WINDOWS_STORE_FLIGHT_ID"
+            --noCommit

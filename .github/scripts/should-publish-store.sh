@@ -15,6 +15,9 @@ reason="not master"
 if [[ "${GITHUB_REF:-}" == refs/heads/master ]]; then
   if [[ -z "${REQUIRED_SECRET:-}" ]]; then
     reason="store credentials not set"
+  elif [[ "${FORCE_STORE_UPLOAD:-}" == "true" ]]; then
+    publish=true
+    reason="manual retry"
   elif git rev-parse --verify HEAD^ >/dev/null 2>&1 && \
      git diff HEAD^ HEAD -- "$VERSION_FILE" | grep -qE "$VERSION_PATTERN"; then
     publish=true
