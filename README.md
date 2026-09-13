@@ -72,7 +72,7 @@ Windows: https://apps.microsoft.com/detail/9mx4hkl30mww?hl=en-us&gl=US
 
 Github Actions builds all store builds.
 
-On `master`, a version change in `pubspec.yaml` uploads Android to the Play **internal** track, iOS to **TestFlight**, and Windows to a Partner Center **draft** submission (package uploaded, not committed). A version change in `snap/snapcraft.yaml` uploads Linux to Snap **edge**. Builds still go to apps4av.org on every push. Nothing is sent to production, stable, or a public store listing until you submit the Windows draft in Partner Center.
+On `master`, a version change in `pubspec.yaml` uploads Android to the Play **internal** track, iOS to **TestFlight**, and Windows to a Partner Center **draft** submission (package uploaded, not committed, publish mode Manual). A version change in `snap/snapcraft.yaml` uploads Linux to Snap **edge**. Builds still go to apps4av.org on every push. Nothing is sent to production, stable, or a public store listing until you submit the Windows draft in Partner Center. The live listing still shows the last published package until that draft is submitted; check the draft's packages, not the published listing.
 
 To retry a Windows draft upload without bumping the version: **Actions → Windows → Run workflow** (branch `master`).
 

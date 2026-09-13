@@ -144,15 +144,25 @@ jobs:
             echo "MSIX_DIR is empty; cannot upload the Windows Store draft."
             exit 1
           fi
+          REPO="${GITHUB_WORKSPACE:-.}"
           MSIX_ABS="$(cd "$MSIX_DIR" && pwd)"
-          echo "Publishing MSIX from $MSIX_ABS:"
+          echo "Publishing MSIX from $MSIX_ABS using Flutter project $REPO"
           ls -la "$MSIX_ABS"
           msstore submission delete 9MX4HKL30MWW --no-confirm || \
             echo "No pending draft to delete (or delete skipped)."
-          # Point pathOrUrl at the MSIX folder (not the Flutter repo). Otherwise
-          # the Flutter publisher copies the last published packages and the
-          # draft version does not change.
-          msstore publish "$MSIX_ABS" \
+          # pathOrUrl must be the Flutter repo (needs a project publisher).
+          # --inputDirectory is the folder that contains only the new .msix.
+          # Using the MSIX folder as pathOrUrl fails with exit 127:
+          # "could not find a project publisher". Using the repo without
+          # --inputDirectory copies the last published Store packages.
+          msstore publish "$REPO" \
+            --inputDirectory "$MSIX_ABS" \
             --appId 9MX4HKL30MWW \
             --noCommit \
-            --uploadTimeout 600
+            --uploadTimeout 600 \
+            -v
+          if command -v python3 >/dev/null 2>&1; then
+            python3 .github/scripts/windows-store-keep-draft.py
+          else
+            python .github/scripts/windows-store-keep-draft.py
+          fi
