@@ -82,8 +82,11 @@ jobs:
           cp "build/windows/x64/runner/Release/${{ github.ref_name }}-windows.zip" "build/artifacts/avarex_windows_${APP_VERSION}_${{ github.ref_name }}.zip"
           MSIX="$(find . \( -name '*.msix' -o -name '*.msixupload' \) ! -path './.git/*' | head -1 || true)"
           if [[ -n "$MSIX" ]]; then
+            mkdir -p build/store-msix
             cp "$MSIX" "build/artifacts/avarex_windows_${APP_VERSION}_${{ github.ref_name }}.msix"
+            cp "$MSIX" "build/store-msix/$(basename "$MSIX")"
             echo "MSIX_PATH=$MSIX" >> "$GITHUB_ENV"
+            echo "MSIX_DIR=build/store-msix" >> "$GITHUB_ENV"
           else
             echo "No MSIX found after msix:create; Windows store upload will fail if attempted."
           fi
@@ -142,11 +145,11 @@ jobs:
             --sellerId "$PARTNER_CENTER_SELLER_ID" \
             --clientId "$PARTNER_CENTER_CLIENT_ID" \
             --clientSecret "$PARTNER_CENTER_CLIENT_SECRET"
-          if [[ -z "${MSIX_PATH:-}" ]]; then
-            echo "MSIX_PATH is empty; cannot upload to the Windows package flight."
+          if [[ -z "${MSIX_DIR:-}" ]]; then
+            echo "MSIX_DIR is empty; cannot upload to the Windows package flight."
             exit 1
           fi
           msstore publish \
-            --inputFile "$MSIX_PATH" \
+            --inputDirectory "$MSIX_DIR" \
             --appId 9MX4HKL30MWW \
             --flightId "$WINDOWS_STORE_FLIGHT_ID"
