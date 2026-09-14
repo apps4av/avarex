@@ -83,9 +83,9 @@ void main() {
           file.sublist(rec0 + 9, rec0 + 9 + 12).where((b) => b != 0)).trim();
       expect(lat0, '42.36435');
 
-      // Second record: Direct (kind 3), fix kind Airport.
+      // Second record: Destination (kind 2), fix kind Airport.
       final int rec1 = 17 + 39;
-      expect(file[rec1], 3); // eDirect
+      expect(file[rec1], 2); // eDestArpt
       expect(file[rec1 + 1], AvidyneStoredRoute.fixAirport);
       final String id1 = String.fromCharCodes(
           file.sublist(rec1 + 2, rec1 + 2 + 7).where((b) => b != 0));
@@ -109,6 +109,28 @@ void main() {
       expect(file[bodyEnd + 1], (crc >> 16) & 0xFF);
       expect(file[bodyEnd + 2], (crc >> 8) & 0xFF);
       expect(file[bodyEnd + 3], crc & 0xFF);
+    });
+
+    test('SDK 5 receiver keeps using the documented backward-compatible layout', () {
+      final points = <AvidyneRoutePoint>[
+        const AvidyneRoutePoint(
+            id: 'KMMU',
+            latitude: 40.79993,
+            longitude: -74.41489,
+            fixKind: AvidyneStoredRoute.fixAirport),
+        const AvidyneRoutePoint(
+            id: 'KAVP',
+            latitude: 41.33847,
+            longitude: -75.72333,
+            fixKind: AvidyneStoredRoute.fixAirport),
+      ];
+      final Uint8List file = AvidyneStoredRoute.buildRouteFileFromPoints(
+          'TEST', points,
+          sdkVersion: 5)!;
+      expect(file.length, 5013);
+      expect(file[16], 2);
+      expect(file[17], 1); // eOrigin
+      expect(file[17 + 39], 2); // eDestArpt
     });
 
     test('encodes an airway as a single airway leg (name + exit fix)', () {

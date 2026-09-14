@@ -117,7 +117,8 @@ class AvidyneIfd {
       return "This IFD is not configured to accept flight plans.";
     }
 
-    final Uint8List? file = AvidyneStoredRoute.buildRouteFile(route);
+    final Uint8List? file = AvidyneStoredRoute.buildRouteFile(
+        route, sdkVersion: device.sdkVersion);
     if (file == null) {
       return "Flight plan needs at least two waypoints.";
     }
@@ -145,6 +146,9 @@ class AvidyneIfd {
     if (_transferInProgress) {
       return (null, "A transfer is already in progress.");
     }
+    if (!device.providesFlightPlans) {
+      return (null, "This IFD is not configured to provide flight plans.");
+    }
 
     _transferInProgress = true;
     change.value++;
@@ -159,7 +163,8 @@ class AvidyneIfd {
         return (null, "No flight plan received from the IFD.");
       }
 
-      final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
+      final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(
+          bytes, sdkVersion: device.sdkVersion);
       if (parsed == null || parsed.points.isEmpty) {
         return (null, "The IFD did not return a usable flight plan.");
       }

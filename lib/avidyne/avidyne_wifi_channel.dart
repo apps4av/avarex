@@ -246,12 +246,37 @@ class AvidyneWifiChannel {
             continue; // resend on a garbled reply
           }
           if (ack[0] == _respDone && lastPacket) {
+            // Some IFD versions use Done as the response to the final data
+            // packet. In that case the transaction is already complete.
+            if (ack[5] != _subSuccess) {
+              return "IFD failed to complete the upload "
+                  "(${_subCodeName(ack[5])}).";
+            }
             acked = true;
             offset += payloadSize;
           } else if (ack[0] == _respPacketAck) {
+            if (ack[5] != _subSuccess || ack[6] != packetId) {
+              return "IFD upload acknowledgement was out of sequence.";
+            }
             acked = true;
             offset += payloadSize;
             packetId = (packetId + 1) & 0xFF;
+
+            if (lastPacket) {
+              // An ordinary ACK of the last packet is not the end of the
+              // transaction. Consume the final Done before closing the socket
+              // so the IFD returns the command/response channel to idle.
+              final Uint8List done =
+                  await _recvResponse(reader, responseTimeout);
+              if (done.length < 8 ||
+                  !_checksumIsGood(done, done.length)) {
+                return "IFD gave a malformed upload completion response.";
+              }
+              if (done[0] != _respDone || done[5] != _subSuccess) {
+                return "IFD failed to complete the upload "
+                    "(${_subCodeName(done[5])}).";
+              }
+            }
           } else if (ack[0] == _respPacketNak) {
             continue; // resend this packet
           } else {
@@ -415,6 +440,18 @@ class AvidyneWifiChannel {
         expectedPacketId = (expectedPacketId + 1) & 0xFF;
       }
 
+      // ACKing the final Download-Data packet does not complete the
+      // command/response transaction. The IFD follows it with Done; consume
+      // that response before parsing the file or closing the connection.
+      final Uint8List done = await _recvResponse(reader, responseTimeout);
+      if (done.length < 8 || !_checksumIsGood(done, done.length)) {
+        return (null, "IFD gave a malformed download completion response.");
+      }
+      if (done[0] != _respDone || done[5] != _subSuccess) {
+        return (null,
+            "IFD failed to complete the download (${_subCodeName(done[5])}).");
+      }
+
       final Uint8List raw = bodyBuilder.toBytes();
       final Uint8List? file = AvidyneStoredRoute.decompressDownload(raw);
       if (file == null) {
@@ -499,6 +536,10 @@ class AvidyneWifiChannel {
     final int packetSize = 5 + 2 + payloadSize + 1;
     final Uint8List b = Uint8List(packetSize);
     _populateHeader(b, _cmdUploadData, packetSize);
+    // Data packets are part of the transfer identified by uid. This mirrors
+    // Start-Download/Download-Data, where the protocol uses the transfer uid
+    // as both the message id and the explicit uid field.
+    b[1] = uid & 0xFF;
     b[5] = uid & 0xFF;
     b[6] = packetId & 0xFF;
     for (int i = 0; i < payloadSize; i++) {

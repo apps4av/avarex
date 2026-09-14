@@ -97,7 +97,7 @@ class AvidyneStoredRoute {
   /// fix at which the route leaves it) rather than expanded into every fix
   /// along the airway, so "KBOS BOS V1 HFD" is sent as KBOS, BOS, V1(→HFD).
   /// Procedures (SID/STAR/approach) are still expanded into their fixes.
-  static Uint8List? buildRouteFile(PlanRoute route) {
+  static Uint8List? buildRouteFile(PlanRoute route, {int sdkVersion = 0}) {
     final List<AvidyneRoutePoint> points = [];
     final int n = route.length;
     int i = 0;
@@ -126,13 +126,14 @@ class AvidyneStoredRoute {
       points.add(_toPoint(d));
       i += 1;
     }
-    return buildRouteFileFromPoints(route.name, points);
+    return buildRouteFileFromPoints(route.name, points,
+        sdkVersion: sdkVersion);
   }
 
   /// Builds the upload file from a plain list of route points. Exposed so the
   /// wire format can be verified independently of the app database.
   static Uint8List? buildRouteFileFromPoints(
-      String name, List<AvidyneRoutePoint> points) {
+      String name, List<AvidyneRoutePoint> points, {int sdkVersion = 0}) {
     if (points.length < 2) {
       return null;
     }
@@ -140,13 +141,15 @@ class AvidyneStoredRoute {
     final List<Uint8List> records = [];
     for (int i = 0; i < points.length && records.length < _maxRecords; i++) {
       final AvidyneRoutePoint p = points[i];
-      // The very first airport becomes the route origin; everything else is a
-      // simple "direct" leg. The IFD navigates by the embedded lat/lon so this
-      // reliably reproduces the AvareX flight plan on the IFD ("stick route").
+      // Preserve the SDK's route semantics for the endpoints: an airport at
+      // the beginning is an Origin and an airport at the end is a VFR
+      // Destination. Intermediate fixes remain Direct records.
       if (p.isAirway) {
         records.add(_packAirway(p));
       } else if (i == 0 && p.fixKind == _fixAirport) {
         records.add(_packOrigin(p));
+      } else if (i == points.length - 1 && p.fixKind == _fixAirport) {
+        records.add(_packDestination(p));
       } else {
         records.add(_packDirect(p));
       }
@@ -157,6 +160,15 @@ class AvidyneStoredRoute {
     }
 
     final int numRecords = records.length;
+
+    // SDK version 5 (IFD 10.3.2.2+) adds the V001 stored-route format, but the
+    // SDK explicitly documents it as backward compatible with previous stored
+    // route formats. Keep emitting the legacy fixed layout until the complete
+    // V001 byte layout is available; choosing a guessed V001 layout would be
+    // less compatible than the documented legacy format. The sdkVersion
+    // parameter is intentionally carried here so V001 can be added without
+    // changing callers.
+
     final BytesBuilder builder = BytesBuilder();
 
     // Route name (16 bytes). Fall back to the IFD default name if empty.
@@ -214,6 +226,15 @@ class AvidyneStoredRoute {
   static Uint8List _packOrigin(AvidyneRoutePoint p) {
     final BytesBuilder b = BytesBuilder();
     b.addByte(_kindOrigin);
+    b.addByte(_fixAirport);
+    b.add(_packFix(p.id, p.latitude, p.longitude));
+    b.add(Uint8List(_ref3Len)); // no runway
+    return _padRecord(b.toBytes());
+  }
+
+  static Uint8List _packDestination(AvidyneRoutePoint p) {
+    final BytesBuilder b = BytesBuilder();
+    b.addByte(_kindDestArpt);
     b.addByte(_fixAirport);
     b.add(_packFix(p.id, p.latitude, p.longitude));
     b.add(Uint8List(_ref3Len)); // no runway
@@ -350,7 +371,13 @@ class AvidyneStoredRoute {
   /// while the IFD Trainer prefixes a ";V001" version tag, a timestamped id and
   /// the route title. Because the records always sit at the tail, they are
   /// located by scanning candidate counts from the end of the file.
-  static AvidyneParsedRoute? parseRouteFile(Uint8List bytes) {
+  static AvidyneParsedRoute? parseRouteFile(Uint8List bytes,
+      {int sdkVersion = 0}) {
+    // Do not select the parser solely from sdkVersion. SDK 5 is backward
+    // compatible, so a 10.3.2.2+ IFD may still return the legacy layout.
+    // Detect the actual file shape instead. `sdkVersion` is retained so the
+    // parser can add version-specific handling later without changing callers.
+
     // Preferred: the fixed StoredRoute layout that real IFDs return and that we
     // also upload -- a 16 byte route name, a 1 byte record count, then that
     // many 39 byte records. The IFD zero-pads the record area out to 128 slots,

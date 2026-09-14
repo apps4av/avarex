@@ -34,6 +34,9 @@ class AvidyneDevice {
   // SwCaps bit 0: IFD can accept input flight plans ("stored routes").
   bool get acceptsFlightPlans => (swCaps & (1 << 0)) != 0;
 
+  // SwCaps bit 1: IFD can send output flight plans.
+  bool get providesFlightPlans => (swCaps & (1 << 1)) != 0;
+
   // SwCaps bit 3: IFD can accept user waypoints.
   bool get acceptsUserWaypoints => (swCaps & (1 << 3)) != 0;
 
