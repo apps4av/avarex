@@ -575,16 +575,24 @@ class AvidyneStoredRoute {
     final Uint8List payload =
         Uint8List.sublistView(raw, start + 5, start + 5 + payloadLen);
 
-    if (isRle == 1) {
-      final List<int> computed = _fletcher16(payload);
-      final int c0 = raw[start + 5 + payloadLen];
-      final int c1 = raw[start + 5 + payloadLen + 1];
-      if (computed[0] != c0 || computed[1] != c1) {
-        return null;
-      }
-      return _rleUncompress(payload, fileSize);
-    }
 
+if (isRle == 1) {
+  final List<int> computed = _fletcher16(payload);
+  final int c0 = raw[start + 5 + payloadLen];
+  final int c1 = raw[start + 5 + payloadLen + 1];
+  if (computed[0] != c0 || computed[1] != c1) {
+    return null;
+  }
+
+  final Uint8List? result = _rleUncompress(payload, fileSize);
+
+  if (result != null) {
+    print('AVIDYNE STORED ROUTE (${result.length} bytes): '
+        '${result.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}');
+  }
+
+  return result;
+}
     if (onlyRle) {
       return null;
     }

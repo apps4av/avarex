@@ -372,6 +372,8 @@ class AvidyneWifiChannel {
       }
 
       final Uint8List raw = bodyBuilder.toBytes();
+print('AVIDYNE DOWNLOAD RAW (${raw.length} bytes): '
+    '${raw.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ')}');
       final Uint8List? file = AvidyneStoredRoute.decompressDownload(raw);
       if (file == null) {
         return (null, "The downloaded flight plan was corrupt.");
