@@ -100,9 +100,9 @@ dependencies:
   cloud_firestore: ^6.9.0
   firebase_ai: ^3.15.0
   firebase_ui_auth: ^3.0.1
-  purchases_flutter: ^9.9.9
+  purchases_flutter: ^10.12.0
   purchases_flutter_ui: ^0.0.1
-  purchases_ui_flutter: ^9.9.9
+  purchases_ui_flutter: ^10.12.0
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
