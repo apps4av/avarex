@@ -127,6 +127,23 @@ class MainDatabaseHelper {
       return [GpsDestination(locationID: Destination.toSexagesimal(coordinate), type: Destination.typeGps, facilityName: "", coordinate: coordinate)];
     }
     final db = await database;
+print('AVIDYNE DB: ${db?.path}');
+
+if (db != null) {
+  final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+  print('AVIDYNE DB TABLES: ${tables.map((e) => e['name']).join(', ')}');
+
+  for (final table in ['airports', 'nav', 'fix', 'airways']) {
+    try {
+      final count =
+          await db.rawQuery('SELECT count(*) AS n FROM $table');
+      print('AVIDYNE DB $table COUNT: ${count.first['n']}');
+    } catch (e) {
+      print('AVIDYNE DB $table ERROR: $e');
+    }
+  }
+}
     String eMatch = exact ? " = '$match'" : "like '$match%'";
     if (db != null) {
       maps = await DbGeneral.query(db,
