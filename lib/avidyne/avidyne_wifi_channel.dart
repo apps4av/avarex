@@ -14,8 +14,8 @@ import 'package:universal_io/io.dart';
 ///   1. sending a Request-Upload command carrying the file length,
 ///   2. receiving a Ready response that assigns an upload id,
 ///   3. sending the file as a sequence of <=247 byte data packets, each of
-///      which is acknowledged, and
-///   4. receiving a Done response after the final packet.
+///      which is acknowledged. Some IFD versions may return Done in place of
+///      the final packet acknowledgement.
 ///
 /// A download runs the mirror image: a Request-Download command, a Ready
 /// response carrying the (compressed) file length and a download id, a
@@ -34,7 +34,6 @@ class AvidyneWifiChannel {
   static const int _cmdRequestUpload = 0x00;
   static const int _cmdRequestDownload = 0x01;
   static const int _cmdStartDownload = 0x04;
-  static const int _cmdResetSession = 0x3F;
   static const int _cmdUploadData = 0x40;
   static const int _cmdDownloadData = 0x41;
 
@@ -155,30 +154,6 @@ class AvidyneWifiChannel {
     return packet;
   }
 
-  // True if the IFD refused a request because a transfer session is still
-  // active (eUnable/eFail with the eBusy sub code).
-  bool _isBusy(Uint8List response) {
-    return response.length >= 8 &&
-        (response[0] == _respUnable || response[0] == _respFail) &&
-        response[5] == _subBusy;
-  }
-
-  // Sends a reset-session command to return the IFD channel to its idle state
-  // and waits for the eReady acknowledgement. Returns null on success.
-  Future<String?> _resetSession(
-      Socket socket, _SocketReader reader, Duration timeout) async {
-    _send(socket, _buildResetSession());
-    await socket.flush();
-    final Uint8List resp = await _recvResponse(reader, timeout);
-    if (resp.length < 8 || !_checksumIsGood(resp, resp.length)) {
-      return "IFD gave a malformed reset response.";
-    }
-    if (resp[0] != _respReady) {
-      return "IFD could not clear its busy session (${_subCodeName(resp[5])}).";
-    }
-    return null;
-  }
-
   /// Uploads [fileBytes] as the given [dataset] to the IFD at [ipAddress].
   ///
   /// Returns null on success, or a human readable error string on failure.
@@ -201,23 +176,9 @@ class AvidyneWifiChannel {
       await socket.flush();
 
       // Step 2: read the Ready response and extract the upload id.
-      Uint8List response = await _recvResponse(reader, responseTimeout);
+      final Uint8List response = await _recvResponse(reader, responseTimeout);
       if (response.length < 8 || !_checksumIsGood(response, response.length)) {
         return "IFD gave a malformed response.";
-      }
-      // A stale session left over from an interrupted transfer makes the IFD
-      // answer "unable: busy". Reset the channel and request the upload again.
-      if (_isBusy(response)) {
-        final String? resetError = await _resetSession(socket, reader, responseTimeout);
-        if (resetError != null) {
-          return resetError;
-        }
-        _send(socket, _buildUploadRequest(dataset, fileLength));
-        await socket.flush();
-        response = await _recvResponse(reader, responseTimeout);
-        if (response.length < 8 || !_checksumIsGood(response, response.length)) {
-          return "IFD gave a malformed response.";
-        }
       }
       if (response[0] != _respReady) {
         return "IFD refused the upload (${_subCodeName(response[5])}).";
@@ -262,21 +223,6 @@ class AvidyneWifiChannel {
             offset += payloadSize;
             packetId = (packetId + 1) & 0xFF;
 
-            if (lastPacket) {
-              // An ordinary ACK of the last packet is not the end of the
-              // transaction. Consume the final Done before closing the socket
-              // so the IFD returns the command/response channel to idle.
-              final Uint8List done =
-                  await _recvResponse(reader, responseTimeout);
-              if (done.length < 8 ||
-                  !_checksumIsGood(done, done.length)) {
-                return "IFD gave a malformed upload completion response.";
-              }
-              if (done[0] != _respDone || done[5] != _subSuccess) {
-                return "IFD failed to complete the upload "
-                    "(${_subCodeName(done[5])}).";
-              }
-            }
           } else if (ack[0] == _respPacketNak) {
             continue; // resend this packet
           } else {
@@ -323,31 +269,16 @@ class AvidyneWifiChannel {
 
       // Step 1: request the download. Remember the message id so we can match
       // it against the Ready response.
-      Uint8List request = _buildDownloadRequest(dataset);
-      int requestId = request[1];
+      final Uint8List request = _buildDownloadRequest(dataset);
+      final int requestId = request[1];
       _send(socket, request);
       await socket.flush();
 
       // Step 2: read the Ready response (eReady is 11 bytes with the file length
       // and uid; a refusal is a shorter message with the reason in byte 5).
-      Uint8List ready = await _recvResponse(reader, responseTimeout);
+      final Uint8List ready = await _recvResponse(reader, responseTimeout);
       if (ready.length < 8 || !_checksumIsGood(ready, ready.length)) {
         return (null, "IFD gave a malformed download response.");
-      }
-      // Clear a stale/busy session and ask again (see upload()).
-      if (_isBusy(ready)) {
-        final String? resetError = await _resetSession(socket, reader, responseTimeout);
-        if (resetError != null) {
-          return (null, resetError);
-        }
-        request = _buildDownloadRequest(dataset);
-        requestId = request[1];
-        _send(socket, request);
-        await socket.flush();
-        ready = await _recvResponse(reader, responseTimeout);
-        if (ready.length < 8 || !_checksumIsGood(ready, ready.length)) {
-          return (null, "IFD gave a malformed download response.");
-        }
       }
       if (ready[0] != _respReady) {
         return (null, "IFD refused the download (${_subCodeName(ready[5])}).");
@@ -440,18 +371,6 @@ class AvidyneWifiChannel {
         expectedPacketId = (expectedPacketId + 1) & 0xFF;
       }
 
-      // ACKing the final Download-Data packet does not complete the
-      // command/response transaction. The IFD follows it with Done; consume
-      // that response before parsing the file or closing the connection.
-      final Uint8List done = await _recvResponse(reader, responseTimeout);
-      if (done.length < 8 || !_checksumIsGood(done, done.length)) {
-        return (null, "IFD gave a malformed download completion response.");
-      }
-      if (done[0] != _respDone || done[5] != _subSuccess) {
-        return (null,
-            "IFD failed to complete the download (${_subCodeName(done[5])}).");
-      }
-
       final Uint8List raw = bodyBuilder.toBytes();
       final Uint8List? file = AvidyneStoredRoute.decompressDownload(raw);
       if (file == null) {
@@ -479,13 +398,6 @@ class AvidyneWifiChannel {
     b[5] = dataset & 0xFF;
     b[6] = 0; // meta data
     b[7] = _checksum(b, 7);
-    return b;
-  }
-
-  Uint8List _buildResetSession() {
-    final Uint8List b = Uint8List(6);
-    _populateHeader(b, _cmdResetSession, 6);
-    b[5] = _checksum(b, 5);
     return b;
   }
 
