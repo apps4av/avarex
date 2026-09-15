@@ -552,7 +552,7 @@ static Future<PlanRoute> fromLine(String name, String line) async {
     }
 
     List<Destination> destinations =
-        await MainDatabaseHelper.db.findDestinations(s, exact: true);
+        await MainDatabaseHelper.db.findDestinations(s);
 
     print('AVIDYNE LOOKUP "$s": ${destinations.length} result(s)');
 
