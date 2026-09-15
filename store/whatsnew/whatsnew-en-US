@@ -1,4 +1,3 @@
-Update the Terms of Use and require a new signature.
-After signing updated terms, skip setup if onboarding was already finished.
+Fetch airport NOTAMs from the FAA production NOTAM service.
 Bug fixes.
 Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
