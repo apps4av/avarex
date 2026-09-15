@@ -540,24 +540,41 @@ class PlanRoute {
   }
 
   // convert json to Route
-  static Future<PlanRoute> fromLine(String name, String line) async {
-    PlanRoute route = PlanRoute(name);
-    List<String> split = line.split(" ");
+static Future<PlanRoute> fromLine(String name, String line) async {
+  PlanRoute route = PlanRoute(name);
+  List<String> split = line.split(" ");
 
-    for (String s in split) {
-      if(s.isEmpty) { // skip empty spaces
-        continue;
-      }
-      List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s, exact: true);
-      if(destinations.isEmpty) {
-        continue;
-      }
-      Destination expanded = await DestinationFactory.make(destinations[0]);
-      Waypoint w = Waypoint(expanded);
-      route.addWaypoint(w);
+  print('AVIDYNE ROUTE LINE: "$line"');
+
+  for (String s in split) {
+    if(s.isEmpty) {
+      continue;
     }
-    return route;
+
+    List<Destination> destinations =
+        await MainDatabaseHelper.db.findDestinations(s, exact: true);
+
+    print('AVIDYNE LOOKUP "$s": ${destinations.length} result(s)');
+
+    if(destinations.isEmpty) {
+      continue;
+    }
+
+    print('AVIDYNE LOOKUP "$s": '
+        'id=${destinations[0].locationID} '
+        'type=${destinations[0].type}');
+
+    Destination expanded =
+        await DestinationFactory.make(destinations[0]);
+
+    Waypoint w = Waypoint(expanded);
+    route.addWaypoint(w);
   }
+
+  print('AVIDYNE ROUTE RESULT: ${route.length} waypoint(s)');
+
+  return route;
+}
 
   // Build a route between two airports (enter "DEPART DEST").
   //
