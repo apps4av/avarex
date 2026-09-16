@@ -86,6 +86,16 @@ class AvidyneWifiChannel {
   static const int _sdkOneSecondTicks = 20;
   static const Duration _sdkRunPeriod = Duration(milliseconds: 50);
 
+  // Physical-IFD compatibility timing.
+  //
+  // Keep the SDK state machine and wire protocol unchanged, but allow the
+  // physical IFD more time to produce Ready, packet 0, and Reset responses.
+  // Packet NAKs remain on the SDK's nominal one-second cadence.
+  static const int _downloadReadyWaitTicks = 80; // nominal 4 seconds
+  static const int _downloadResetWaitTicks = 100; // nominal 5 seconds
+  static const int _downloadPacketWaitTicks = _sdkOneSecondTicks;
+  static const int _downloadMaxRetries = 12;
+
   Timer? _downloadRunTimer;
   _SdkDownloadState _sdkDownloadState = _SdkDownloadState.machineIdle;
   Completer<(Uint8List?, String?)>? _downloadCompleter;
@@ -595,7 +605,7 @@ class AvidyneWifiChannel {
         final Uint8List request = _buildDownloadRequest(_downloadDataset);
         _downloadMessageId = request[1];
         _send(socket, request);
-        _downloadWaitCount = _sdkOneSecondTicks;
+        _downloadWaitCount = _downloadReadyWaitTicks;
         _downloadLastBufferedLength = reader.bufferedLength;
         _sdkDownloadState = _SdkDownloadState.waitingForDownloadStart;
         debugPrint('AVIDYNE SDK -> eWaitingForDownloadStart '
@@ -613,7 +623,7 @@ class AvidyneWifiChannel {
       case _SdkDownloadState.resettingChannel:
         final Uint8List reset = _buildResetSession();
         _send(socket, reset);
-        _downloadWaitCount = _sdkOneSecondTicks;
+        _downloadWaitCount = _downloadResetWaitTicks;
         _downloadLastBufferedLength = reader.bufferedLength;
         _sdkDownloadState = _SdkDownloadState.waitingForReset;
         debugPrint('AVIDYNE SDK -> eWaitingForReset '
@@ -692,8 +702,8 @@ class AvidyneWifiChannel {
       _downloadBytesRemaining = _downloadFileLength;
       _downloadBody = BytesBuilder();
       _downloadNextPacketId = 0;
-      _downloadRetryCount = _maxRetries;
-      _downloadWaitCount = _sdkOneSecondTicks;
+      _downloadRetryCount = _downloadMaxRetries;
+      _downloadWaitCount = _downloadPacketWaitTicks;
       _downloadLastBufferedLength = reader.bufferedLength;
       _sdkDownloadState = _SdkDownloadState.receivingPacket;
 
@@ -824,7 +834,7 @@ class AvidyneWifiChannel {
     final int buffered = reader.bufferedLength;
     if (buffered > _downloadLastBufferedLength) {
       _downloadLastBufferedLength = buffered;
-      _downloadWaitCount = _sdkOneSecondTicks;
+      _downloadWaitCount = _downloadPacketWaitTicks;
       return;
     }
 
@@ -838,9 +848,11 @@ class AvidyneWifiChannel {
       if (--_downloadRetryCount < 0) {
         responseKind = _respFail;
         responseSubCode = _subTimedOut;
-        _sdkDownloadState = _SdkDownloadState.machineIdle;
+        _downloadFailureAfterReset =
+            'Timed out receiving the flight plan from the IFD.';
+        _sdkDownloadState = _SdkDownloadState.resettingChannel;
       } else {
-        _downloadWaitCount = _sdkOneSecondTicks;
+        _downloadWaitCount = _downloadPacketWaitTicks;
       }
 
       _send(
@@ -854,9 +866,8 @@ class AvidyneWifiChannel {
       );
 
       if (responseKind == _respFail) {
-        debugPrint('AVIDYNE SDK packet $responsePacketId retries exhausted');
-        _completeSdkDownloadError(
-            'Timed out receiving the flight plan from the IFD.');
+        debugPrint('AVIDYNE SDK packet $responsePacketId retries exhausted; '
+            'Reset()');
       } else {
         debugPrint('AVIDYNE SDK packet $responsePacketId timeout; '
             'NAK, retries remaining=$_downloadRetryCount');
