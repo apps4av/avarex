@@ -35,13 +35,20 @@ class AvidyneMessageLog {
     if (logPaused || bytes.isEmpty) {
       return;
     }
-    _log.add(AvidyneLogEntry(
+
+    final AvidyneLogEntry entry = AvidyneLogEntry(
       DateTime.now(),
       outbound,
       describeCommand(bytes[0]),
       summarizePacket(bytes),
       toHex(bytes),
-    ));
+    );
+
+    _log.add(entry);
+
+    debugPrint(
+        'AVIDYNE ${entry.directionLabel} ${entry.type} ${entry.summary}: ${entry.raw}');
+
     if (_log.length > _maxLog) {
       _log.removeAt(0);
     }

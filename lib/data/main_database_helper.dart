@@ -143,7 +143,11 @@ class MainDatabaseHelper {
 
       // CIFP procedures all separated by .
       List<String> segments = match.split(".");
-      if(segments.isNotEmpty) {
+      // Only search CIFP procedures when the identifier actually contains
+      // a procedure component, e.g. KABC.SID or KABC.SID.TRANSITION.
+      // A plain identifier such as KABC must not return every procedure
+      // associated with that airport.
+      if(segments.length >= 2) {
         airport = segments[0].toUpperCase();
         String match = "";
         if(segments.length == 2) {

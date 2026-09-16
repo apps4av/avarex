@@ -32,6 +32,11 @@ class AvidyneIfd {
   final ValueNotifier<int> change = ValueNotifier<int>(0);
 
   final Map<String, AvidyneDevice> _devices = {};
+
+  // Keep one WiFi command/response channel per IFD so successive transfers
+  // reuse the same TCP connection, matching the AviSDK WiFiCrChannel model.
+  final Map<String, AvidyneWifiChannel> _channels = {};
+
   AvidyneDiscovery? _discovery;
   Timer? _expiryTimer;
   bool _transferInProgress = false;
@@ -70,6 +75,12 @@ class AvidyneIfd {
     _discovery = null;
     _expiryTimer?.cancel();
     _expiryTimer = null;
+
+    for (final AvidyneWifiChannel channel in _channels.values) {
+      await channel.close();
+    }
+    _channels.clear();
+
     _devices.clear();
     change.value++;
   }
@@ -99,8 +110,7 @@ class AvidyneIfd {
   void _expireDevices() {
     final DateTime now = DateTime.now();
     final int before = _devices.length;
-    _devices.removeWhere(
-        (_, d) => now.difference(d.lastSeen) > _deviceTimeout);
+    _devices.removeWhere((_, d) => now.difference(d.lastSeen) > _deviceTimeout);
     if (_devices.length != before) {
       change.value++;
     }
@@ -149,9 +159,17 @@ class AvidyneIfd {
     _transferInProgress = true;
     change.value++;
     try {
-      final AvidyneWifiChannel channel = AvidyneWifiChannel();
-      final (Uint8List? bytes, String? error) =
-          await channel.download(device.ipAddress, AvidyneWifiChannel.datasetRoute);
+      final AvidyneWifiChannel channel =
+          _channels.putIfAbsent(device.ipAddress, () => AvidyneWifiChannel());
+
+      debugPrint('AVIDYNE IMPORT download starting');
+
+      final (Uint8List? bytes, String? error) = await channel.download(
+          device.ipAddress, AvidyneWifiChannel.datasetRoute);
+
+      debugPrint(
+          'AVIDYNE IMPORT download returned bytes=${bytes?.length} error=$error');
+
       if (error != null) {
         return (null, error);
       }
@@ -159,7 +177,14 @@ class AvidyneIfd {
         return (null, "No flight plan received from the IFD.");
       }
 
-      final AvidyneParsedRoute? parsed = AvidyneStoredRoute.parseRouteFile(bytes);
+      debugPrint('AVIDYNE IMPORT parseRouteFile starting');
+
+      final AvidyneParsedRoute? parsed =
+          AvidyneStoredRoute.parseRouteFile(bytes);
+
+      debugPrint(
+          'AVIDYNE IMPORT parseRouteFile complete points=${parsed?.points.length}');
+
       if (parsed == null || parsed.points.isEmpty) {
         return (null, "The IFD did not return a usable flight plan.");
       }
@@ -169,15 +194,26 @@ class AvidyneIfd {
       // become "<airway> <exit fix>") and let PlanRoute.fromLine resolve and
       // expand everything, including airways.
       final String line = _routeLine(parsed);
+
+      debugPrint('AVIDYNE IMPORT route line: $line');
+      debugPrint('AVIDYNE IMPORT PlanRoute.fromLine starting');
+
       final PlanRoute route = await PlanRoute.fromLine(
           parsed.name.isEmpty ? "IFD Route" : parsed.name, line);
+
+      debugPrint(
+          'AVIDYNE IMPORT PlanRoute.fromLine complete length=${route.length}');
+
       if (route.length < 1) {
         return (null, "The IFD flight plan had no usable waypoints.");
       }
+
       return (route, null);
     } finally {
+      debugPrint('AVIDYNE IMPORT clearing transferInProgress');
       _transferInProgress = false;
       change.value++;
+      debugPrint('AVIDYNE IMPORT transfer complete');
     }
   }
 

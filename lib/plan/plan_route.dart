@@ -17,6 +17,7 @@ import 'dart:math';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/io/gps.dart';
+import 'package:flutter/foundation.dart';
 
 class PlanRoute {
 
@@ -548,11 +549,33 @@ class PlanRoute {
       if(s.isEmpty) { // skip empty spaces
         continue;
       }
-      List<Destination> destinations = await MainDatabaseHelper.db.findDestinations(s, exact: true);
+
+      final Stopwatch lookupWatch = Stopwatch()..start();
+      debugPrint('AVIDYNE ROUTE lookup starting: $s');
+
+      List<Destination> destinations =
+          await MainDatabaseHelper.db.findDestinations(s, exact: true);
+
+      lookupWatch.stop();
+      debugPrint(
+          'AVIDYNE ROUTE lookup complete: $s '
+          '${lookupWatch.elapsedMilliseconds} ms '
+          'matches=${destinations.length}');
+
       if(destinations.isEmpty) {
         continue;
       }
+
+      final Stopwatch expandWatch = Stopwatch()..start();
+      debugPrint('AVIDYNE ROUTE expand starting: $s');
+
       Destination expanded = await DestinationFactory.make(destinations[0]);
+
+      expandWatch.stop();
+      debugPrint(
+          'AVIDYNE ROUTE expand complete: $s '
+          '${expandWatch.elapsedMilliseconds} ms');
+
       Waypoint w = Waypoint(expanded);
       route.addWaypoint(w);
     }
