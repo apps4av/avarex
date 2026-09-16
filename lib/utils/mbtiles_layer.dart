@@ -191,6 +191,80 @@ class MBTilesLayerManager {
           'fill-opacity': 0.25,
         }
       },
+      // Sector boundaries. Without these every sector of a Class B is filled
+      // the same translucent blue and the whole thing reads as one blob -- the
+      // shelves are indistinguishable. Each NASR sector (AREA B, AREA F, ...)
+      // is its own feature, so outlining them shows the real structure.
+      // Colours follow sectional convention: B solid blue, C solid magenta,
+      // D dashed blue.
+      {
+        'id': '${layerName}_class_b_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'B'],
+        'paint': {
+          'line-color': '#0000CC',
+          'line-width': 2.0,
+        }
+      },
+      {
+        'id': '${layerName}_class_c_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'C'],
+        'paint': {
+          'line-color': '#CC00CC',
+          'line-width': 2.0,
+        }
+      },
+      {
+        'id': '${layerName}_class_d_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'D'],
+        'paint': {
+          'line-color': '#0066CC',
+          'line-width': 1.5,
+          'line-dasharray': [3, 2],
+        }
+      },
+      {
+        'id': '${layerName}_class_e_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'E'],
+        'paint': {
+          'line-color': '#CC00CC',
+          'line-width': 1.0,
+          'line-dasharray': [1, 2],
+        }
+      },
+    ];
+  }
+
+  /// Ceiling-over-floor label, the way a sectional depicts a shelf.
+  ///
+  /// Built from UPPER_VAL / LOWER_VAL, which are plain foot values in the
+  /// tiles. LOWER_DESC is null and UPPER_DESC is only ever 'TI', so neither is
+  /// usable. LOWER_CODE distinguishes a surface sector from an MSL one, and it
+  /// genuinely varies (San Diego AREA F is SFC, AREA P is MSL) -- so a surface
+  /// floor prints "SFC" instead of a misleading "0".
+  static List<dynamic> _altitudeLabel() {
+    return [
+      'concat',
+      ['get', 'UPPER_VAL'],
+      '/',
+      [
+        'match',
+        ['get', 'LOWER_CODE'],
+        'SFC',
+        'SFC',
+        ['get', 'LOWER_VAL'],
+      ],
     ];
   }
 
@@ -280,7 +354,7 @@ class MBTilesLayerManager {
         'source-layer': layerName,
         'filter': ['==', 'CLASS', 'B'],
         'layout': {
-          'text-field': '{NAME}',
+          'text-field': _altitudeLabel(),
           'text-size': 12,
         },
         'paint': {
@@ -296,7 +370,7 @@ class MBTilesLayerManager {
         'source-layer': layerName,
         'filter': ['==', 'CLASS', 'C'],
         'layout': {
-          'text-field': '{NAME}',
+          'text-field': _altitudeLabel(),
           'text-size': 11,
         },
         'paint': {
@@ -312,7 +386,7 @@ class MBTilesLayerManager {
         'source-layer': layerName,
         'filter': ['==', 'CLASS', 'D'],
         'layout': {
-          'text-field': '{NAME}',
+          'text-field': _altitudeLabel(),
           'text-size': 10,
         },
         'paint': {
