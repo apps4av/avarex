@@ -14,6 +14,14 @@ import 'notam.dart';
 
 class NotamCache extends WeatherCache {
 
+  // Auth is on the host without /nmsapi. Data calls use the /nmsapi base path.
+  static const String _authUrl = "https://api-nms.aim.faa.gov/v1/auth/token";
+  static const String _notamsHost = "api-nms.aim.faa.gov";
+  static const String _notamsPath = "/nmsapi/v1/notams";
+
+  String? _accessToken;
+  DateTime? _accessTokenExpiresAt;
+
   NotamCache(super.url, super.dbCall);
 
   /// Parses an AIXM NOTAM XML string and returns a one-line, user-readable
@@ -27,29 +35,27 @@ class NotamCache extends WeatherCache {
     try {
       final doc = xml.XmlDocument.parse(xmlString);
 
-      final notamElements = doc.findAllElements('event:NOTAM');
+      final notamElements = _elementsByLocalName(doc, 'NOTAM');
       if (notamElements.isEmpty) {
         return null;
       }
 
       final List<String> lines = [];
       for (final notam in notamElements) {
-        String t(String name) =>
-            notam.getElement(name)?.innerText.trim() ?? '';
+        String t(String name) => _childText(notam, name);
 
-        final number = t('event:number');
-        final year = t('event:year');
-        final type = t('event:type');
-        final location = t('event:location');
-        final effectiveStart = t('event:effectiveStart');
-        final effectiveEnd = t('event:effectiveEnd');
-        String body = t('event:text');
+        final number = t('number');
+        final year = t('year');
+        final type = t('type');
+        final location = t('location');
+        final effectiveStart = t('effectiveStart');
+        final effectiveEnd = t('effectiveEnd');
+        String body = t('text');
 
         // Translation block (FAA simpleText is the canonical pilot-format line).
         if (body.isEmpty) {
-          for (final tr in notam.findAllElements('event:NOTAMTranslation')) {
-            final st =
-                tr.getElement('event:simpleText')?.innerText.trim() ?? '';
+          for (final tr in _elementsByLocalName(notam, 'NOTAMTranslation')) {
+            final st = _childText(tr, 'simpleText');
             if (st.isNotEmpty) {
               body = st;
               break;
@@ -61,53 +67,31 @@ class NotamCache extends WeatherCache {
         String classification = '';
         String accountId = '';
         final eventEl = notam.ancestors
-            .where((e) => e is xml.XmlElement && e.name.local == 'Event')
-            .cast<xml.XmlElement>()
+            .whereType<xml.XmlElement>()
+            .where((e) => e.name.local == 'Event')
             .firstOrNull;
         if (eventEl != null) {
-          for (final ext in eventEl.findAllElements('fnse:EventExtension')) {
-            classification =
-                ext.getElement('fnse:classification')?.innerText.trim() ?? '';
-            accountId =
-                ext.getElement('fnse:accountId')?.innerText.trim() ?? '';
+          for (final ext in _elementsByLocalName(eventEl, 'EventExtension')) {
+            classification = _childText(ext, 'classification');
+            accountId = _childText(ext, 'accountId');
             if (classification.isNotEmpty || accountId.isNotEmpty) break;
           }
         }
 
-        // Header bits.
-        final List<String> headerBits = [];
-        final yy = year.length >= 2 ? year.substring(year.length - 2) : year;
-        if (number.isNotEmpty || yy.isNotEmpty) {
-          final id = yy.isNotEmpty ? '$yy/$number' : number;
-          headerBits.add('NOTAM $id');
-        } else {
-          headerBits.add('NOTAM');
+        final line = _formatNotamLine(
+          number: number,
+          year: year,
+          type: type,
+          location: location,
+          classification: classification,
+          accountId: accountId,
+          effectiveStart: effectiveStart,
+          effectiveEnd: effectiveEnd,
+          body: body,
+        );
+        if (line.isNotEmpty) {
+          lines.add(line);
         }
-        if (location.isNotEmpty) headerBits.add(location);
-        if (type.isNotEmpty) headerBits.add('[$type]');
-        if (classification.isNotEmpty) headerBits.add('($classification)');
-        if (accountId.isNotEmpty) headerBits.add(accountId);
-
-        // Effective range bit.
-        final start = _formatNotamDate(effectiveStart);
-        final end = _formatNotamDate(effectiveEnd);
-        String range = '';
-        if (start.isNotEmpty && end.isNotEmpty) {
-          range = '$start-$end';
-        } else if (start.isNotEmpty) {
-          range = start;
-        }
-
-        // Compose a single line: collapse any internal whitespace/newlines.
-        final parts = <String>[headerBits.join(' ')];
-        if (range.isNotEmpty) parts.add(range);
-        if (body.isNotEmpty) parts.add(body);
-
-        final line = parts
-            .join(' | ')
-            .replaceAll(RegExp(r'\s+'), ' ')
-            .trim();
-        lines.add(line);
       }
 
       if (lines.isEmpty) return null;
@@ -117,18 +101,184 @@ class NotamCache extends WeatherCache {
     }
   }
 
-  /// Converts a 12-digit YYYYMMDDHHMM NOTAM timestamp into "YYYY-MM-DD HH:MMZ".
-  /// Returns the input unchanged if it isn't 12 digits.
-  String _formatNotamDate(String s) {
-    if (s.length != 12 || int.tryParse(s) == null) {
-      return s;
+  String? _extractGeoJsonText(Map<dynamic, dynamic> feature) {
+    try {
+      final properties = feature['properties'];
+      if (properties is! Map) {
+        return null;
+      }
+      final core = properties['coreNOTAMData'];
+      if (core is! Map) {
+        return null;
+      }
+      final notam = core['notam'];
+      if (notam is! Map) {
+        return null;
+      }
+
+      String body = (notam['text'] ?? '').toString().trim();
+      final translations = core['notamTranslation'];
+      if (body.isEmpty && translations is List) {
+        for (final tr in translations) {
+          if (tr is! Map) {
+            continue;
+          }
+          final st = (tr['simpleText'] ?? '').toString().trim();
+          if (st.isNotEmpty) {
+            body = st;
+            break;
+          }
+        }
+      }
+
+      return _formatNotamLine(
+        number: (notam['number'] ?? '').toString(),
+        year: (notam['year'] ?? '').toString(),
+        type: (notam['type'] ?? '').toString(),
+        location: (notam['location'] ?? '').toString(),
+        classification: (notam['classification'] ?? '').toString(),
+        accountId: (notam['accountId'] ?? '').toString(),
+        effectiveStart: (notam['effectiveStart'] ?? '').toString(),
+        effectiveEnd: (notam['effectiveEnd'] ?? '').toString(),
+        body: body,
+      );
+    } catch (_) {
+      return null;
     }
-    final yyyy = s.substring(0, 4);
-    final mm = s.substring(4, 6);
-    final dd = s.substring(6, 8);
-    final hh = s.substring(8, 10);
-    final mi = s.substring(10, 12);
-    return '$yyyy-$mm-$dd $hh:${mi}Z';
+  }
+
+  String _formatNotamLine({
+    required String number,
+    required String year,
+    required String type,
+    required String location,
+    required String classification,
+    required String accountId,
+    required String effectiveStart,
+    required String effectiveEnd,
+    required String body,
+  }) {
+    final List<String> headerBits = [];
+    if (number.contains('/')) {
+      headerBits.add('NOTAM $number');
+    } else {
+      final yy = year.length >= 2 ? year.substring(year.length - 2) : year;
+      if (number.isNotEmpty || yy.isNotEmpty) {
+        final id = yy.isNotEmpty ? '$yy/$number' : number;
+        headerBits.add('NOTAM $id');
+      } else {
+        headerBits.add('NOTAM');
+      }
+    }
+    if (location.isNotEmpty) headerBits.add(location);
+    if (type.isNotEmpty) headerBits.add('[$type]');
+    if (classification.isNotEmpty) headerBits.add('($classification)');
+    if (accountId.isNotEmpty) headerBits.add(accountId);
+
+    final start = _formatNotamDate(effectiveStart);
+    final end = _formatNotamDate(effectiveEnd);
+    String range = '';
+    if (start.isNotEmpty && end.isNotEmpty) {
+      range = '$start-$end';
+    } else if (start.isNotEmpty) {
+      range = start;
+    }
+
+    final parts = <String>[headerBits.join(' ')];
+    if (range.isNotEmpty) parts.add(range);
+    if (body.isNotEmpty) parts.add(body);
+
+    return parts
+        .join(' | ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// Converts a NOTAM timestamp into "YYYY-MM-DD HH:MMZ".
+  /// Accepts 12-digit YYYYMMDDHHMM and ISO-8601 values from NMS-API.
+  String _formatNotamDate(String s) {
+    final trimmed = s.trim();
+    if (trimmed.isEmpty) {
+      return '';
+    }
+    if (trimmed.length == 12 && int.tryParse(trimmed) != null) {
+      final yyyy = trimmed.substring(0, 4);
+      final mm = trimmed.substring(4, 6);
+      final dd = trimmed.substring(6, 8);
+      final hh = trimmed.substring(8, 10);
+      final mi = trimmed.substring(10, 12);
+      return '$yyyy-$mm-$dd $hh:${mi}Z';
+    }
+    final parsed = DateTime.tryParse(trimmed);
+    if (parsed != null) {
+      final utc = parsed.toUtc();
+      String two(int n) => n.toString().padLeft(2, '0');
+      return '${utc.year}-${two(utc.month)}-${two(utc.day)} ${two(utc.hour)}:${two(utc.minute)}Z';
+    }
+    return trimmed;
+  }
+
+  String _childText(xml.XmlElement parent, String localName) {
+    return parent.childElements
+        .where((e) => e.name.local == localName)
+        .firstOrNull
+        ?.innerText
+        .trim() ?? '';
+  }
+
+  Iterable<xml.XmlElement> _elementsByLocalName(xml.XmlNode node, String localName) {
+    return node.descendants
+        .whereType<xml.XmlElement>()
+        .where((e) => e.name.local == localName);
+  }
+
+  Future<String?> _getAccessToken() async {
+    final now = DateTime.now().toUtc();
+    if (_accessToken != null &&
+        _accessTokenExpiresAt != null &&
+        now.isBefore(_accessTokenExpiresAt!)) {
+      return _accessToken;
+    }
+
+    final creds = base64Encode(utf8.encode(
+        "@@__faa_nms_api_client_id_secret__@@"));
+
+    final tokenResponse = await http.post(
+      Uri.parse(_authUrl),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": "Basic $creds",
+      },
+      body: {
+        "grant_type": "client_credentials",
+      },
+    );
+
+    if (tokenResponse.statusCode != 200) {
+      _accessToken = null;
+      _accessTokenExpiresAt = null;
+      return null;
+    }
+
+    final tokenJson = jsonDecode(tokenResponse.body);
+    if (tokenJson is! Map) {
+      return null;
+    }
+    final accessToken = tokenJson["access_token"]?.toString();
+    if (accessToken == null || accessToken.isEmpty) {
+      return null;
+    }
+
+    final expiresRaw = tokenJson["expires_in"];
+    final expiresIn = expiresRaw is int
+        ? expiresRaw
+        : int.tryParse(expiresRaw?.toString() ?? "") ?? 1799;
+    // Renew a minute early; production tokens last about 30 minutes.
+    final ttl = expiresIn > 60 ? expiresIn - 60 : expiresIn;
+
+    _accessToken = accessToken;
+    _accessTokenExpiresAt = now.add(Duration(seconds: ttl));
+    return _accessToken;
   }
 
   @override
@@ -153,48 +303,30 @@ class NotamCache extends WeatherCache {
       // Store results
       List<String> allNotams = [];
 
-      // ================================
-      // 1. Get OAuth access token
-      // ================================
-      final tokenUrl = Uri.parse(
-          "https://api-staging.cgifederal-aim.com/v1/auth/token");
-
-      // Build Basic Auth header
-      final creds = base64Encode(utf8.encode(
-          "@@__faa_nms_api_client_id_secret__@@"));
-
-      final tokenResponse = await http.post(
-        tokenUrl,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "Authorization": "Basic $creds",
-        },
-        body: {
-          "grant_type": "client_credentials",
-        },
-      );
-
-      if (tokenResponse.statusCode != 200) {
+      final accessToken = await _getAccessToken();
+      if (accessToken == null) {
         return;
       }
 
-      final tokenJson = jsonDecode(tokenResponse.body);
-      final accessToken = tokenJson["access_token"];
-
-      // ================================
-      // 2. Use access token to call NOTAM API
-      // ================================
-      final notamUrl = Uri.parse(
-          "https://api-staging.cgifederal-aim.com/nmsapi/v1/notams?location=${airport.locationID}"
+      final notamUrl = Uri.https(
+        _notamsHost,
+        _notamsPath,
+        {"location": airport.locationID},
       );
 
       final notamResponse = await http.get(
         notamUrl,
         headers: {
           "Authorization": "Bearer $accessToken",
-          "nmsResponseFormat": "AIXM",
+          "nmsResponseFormat": "GEOJSON",
         },
       );
+
+      if (notamResponse.statusCode == 401) {
+        _accessToken = null;
+        _accessTokenExpiresAt = null;
+        return;
+      }
 
       if (notamResponse.statusCode != 200) {
         return;
@@ -202,20 +334,43 @@ class NotamCache extends WeatherCache {
 
       // this is ugly, parse is not used for NOTAMs
 
-      final data = jsonDecode(notamResponse.body)["data"];
-      if(data.isEmpty) {
+      final decoded = jsonDecode(notamResponse.body);
+      if (decoded is! Map) {
         return;
       }
-      final aixm = data["aixm"];
-      if(aixm.isEmpty) {
+      final data = decoded["data"];
+      if (data is! Map) {
         return;
       }
-      for (var item in aixm) {
-        String? txt = extractFormattedText(item);
-        if (null != txt) {
-          allNotams.add(txt);
+
+      final geojson = data["geojson"];
+      if (geojson is List) {
+        for (final item in geojson) {
+          if (item is! Map) {
+            continue;
+          }
+          final txt = _extractGeoJsonText(item);
+          if (txt != null && txt.isNotEmpty) {
+            allNotams.add(txt);
+          }
         }
       }
+
+      if (allNotams.isEmpty) {
+        final aixm = data["aixm"];
+        if (aixm is List) {
+          for (final item in aixm) {
+            if (item is! String) {
+              continue;
+            }
+            String? txt = extractFormattedText(item);
+            if (null != txt) {
+              allNotams.add(txt);
+            }
+          }
+        }
+      }
+
       if(allNotams.isEmpty) {
         return;
       }
@@ -250,4 +405,3 @@ class NotamCache extends WeatherCache {
     return w;
   }
 }
-

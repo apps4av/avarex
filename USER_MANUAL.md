@@ -15,6 +15,11 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.126**
+
+- Fetch airport NOTAMs from the FAA production NOTAM service.
+- Bug fixes.
+
 **0.0.125**
 
 - Update the Terms of Use and require a new signature.
@@ -369,7 +374,7 @@ Possible tabs:
 - **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs)
 - **AD**: airport diagram/runway depiction (interactive viewer with zoom)
 - **METAR**: METAR + TAF text with flight category color indicator
-- **NOTAM**: fetched NOTAM list (downloaded async)
+- **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async)
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
 - **ST**: sounding chart/image for the area (Skew-T diagram)
