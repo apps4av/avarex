@@ -206,9 +206,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                   for (String v in lines)
                     Card(
                       child: ListTile(
-                        leading: Icon(Icons.warning_amber, color: Colors.orange.shade700),
-                        title: Text(v, style: const TextStyle(fontSize: 13)),
-                        trailing: Constants.shouldShowProServices
+                        leading: Constants.shouldShowProServices
                             ? IconButton(
                                 icon: const Icon(Icons.translate),
                                 tooltip: "Translate",
@@ -218,6 +216,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                                 },
                               )
                             : null,
+                        title: Text(v, style: const TextStyle(fontSize: 13)),
                       ),
                     ),
                 ],
