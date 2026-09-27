@@ -70,7 +70,7 @@ FLIGHT PLANNING
 • Send plans to NMEA 0183 devices over Bluetooth (Android)
 
 AIRCRAFT & PERFORMANCE
-• Built-in profiles (C152, C172S, C182T, PA-28, PA-44, Beech A36, Cirrus SR22, DA40) plus your own
+• Built-in profiles (C152, C172S, C182T, PA-28, PA-44, Beech A36, Cirrus SR22, DA40, RV-9A) plus your own
 • Takeoff, landing, and cruise performance with density altitude
 • Weight & balance with interactive CG envelope (fixed-wing and helicopter)
 

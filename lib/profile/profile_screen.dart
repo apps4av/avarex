@@ -67,7 +67,6 @@ class ProfileStore {
           .map((double e) => e.toString())
           .join(','),
       'trafficPuckSize': settings.getTrafficPuckSize(),
-      'audibleAlerts': settings.isAudibleAlertsEnabled().toString(),
       'instruments': settings.getInstruments(),
       'instrumentsVisible': settings.getInstrumentVisible(),
       'instrumentPositionsPortrait': settings.getInstrumentPositions(true),
@@ -112,11 +111,6 @@ class ProfileStore {
     final String? puck = saved['trafficPuckSize'];
     if (puck != null) {
       settings.setTrafficPuckSize(puck);
-    }
-
-    final String? alerts = saved['audibleAlerts'];
-    if (alerts != null) {
-      settings.setAudibleAlertsEnabled(alerts == 'true');
     }
 
     final String? instruments = saved['instruments'];
@@ -281,7 +275,7 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Saves map layers, weather, traffic volume, audible alerts, and instruments.',
+                'Saves map layers, weather, traffic volume, and instruments.',
                 style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant),

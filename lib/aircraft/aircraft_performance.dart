@@ -2284,6 +2284,99 @@ class CommonAircraftData {
     ]),
   );
 
+  // Van's RV-9A (IO-320-D2A 160hp, Sensenich 70CM7S9-0-79 fixed pitch, Max Gross 1850 lbs).
+  // Experimental: no factory tables. Anchored to Van's published 160hp FP figures
+  // (1750 lbs: 475 ft takeoff, 450 ft landing, 186 mph @ 75% / 166 mph @ 55% at 8000 ft)
+  // scaled to 1850 lbs. Verify against the aircraft's own flight test data.
+  static final vansRV9A = AircraftPerformanceData(
+    name: "Van's RV-9A",
+    icaoType: 'RV9',
+    maxGrossWeight: 1850,
+    usableFuel: 32,
+    emptyWeight: 1156,
+    takeoffGroundRoll: PerformanceTable(
+      pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
+      temperatures: [0, 10, 20, 30, 40],
+      values: [
+        [475, 510, 550, 590, 640],      // SL
+        [520, 565, 610, 655, 705],      // 1000
+        [575, 625, 675, 730, 790],      // 2000
+        [640, 695, 750, 815, 885],      // 3000
+        [710, 770, 840, 915, 995],      // 4000
+        [790, 865, 945, 1035, 1135],    // 5000
+        [890, 980, 1080, 1190, 1310],   // 6000
+        [1015, 1125, 1245, 1385, 1545], // 7000
+        [1170, 1310, 1475, 1660, 1885], // 8000
+      ],
+    ),
+    takeoffOver50ft: PerformanceTable(
+      pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
+      temperatures: [0, 10, 20, 30, 40],
+      values: [
+        [905, 970, 1045, 1130, 1220],    // SL
+        [1000, 1080, 1165, 1260, 1365],  // 1000
+        [1115, 1205, 1305, 1420, 1545],  // 2000
+        [1250, 1355, 1480, 1615, 1765],  // 3000
+        [1405, 1535, 1685, 1855, 2045],  // 4000
+        [1595, 1755, 1940, 2150, 2390],  // 5000
+        [1835, 2035, 2270, 2540, 2855],  // 6000
+        [2145, 2405, 2710, 3070, 3500],  // 7000
+        [2565, 2925, 3355, 3865, 4490],  // 8000
+      ],
+    ),
+    landingGroundRoll: PerformanceTable(
+      pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
+      temperatures: [0, 10, 20, 30, 40],
+      values: [
+        [470, 475, 480, 480, 485],   // SL
+        [485, 490, 495, 500, 510],   // 1000
+        [505, 510, 515, 520, 530],   // 2000
+        [520, 530, 535, 540, 550],   // 3000
+        [540, 550, 555, 565, 575],   // 4000
+        [565, 575, 580, 590, 600],   // 5000
+        [590, 600, 605, 615, 625],   // 6000
+        [615, 625, 635, 645, 655],   // 7000
+        [645, 655, 665, 675, 690],   // 8000
+      ],
+    ),
+    landingOver50ft: PerformanceTable(
+      pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
+      temperatures: [0, 10, 20, 30, 40],
+      values: [
+        [1035, 1045, 1050, 1065, 1075],  // SL
+        [1065, 1080, 1090, 1105, 1120],  // 1000
+        [1105, 1120, 1130, 1150, 1165],  // 2000
+        [1145, 1160, 1175, 1190, 1210],  // 3000
+        [1190, 1205, 1225, 1245, 1265],  // 4000
+        [1235, 1255, 1275, 1295, 1320],  // 5000
+        [1290, 1310, 1335, 1360, 1380],  // 6000
+        [1345, 1370, 1395, 1420, 1450],  // 7000
+        [1410, 1440, 1465, 1495, 1525],  // 8000
+      ],
+    ),
+    cruiseTable: CruisePerformanceTable(entries: [
+      // 4000 ft
+      CruiseTableEntry(altitude: 4000, rpm: 2600, percentPower: 75, ktas: 157, gph: 8.9),
+      CruiseTableEntry(altitude: 4000, rpm: 2450, percentPower: 65, ktas: 149, gph: 7.7),
+      CruiseTableEntry(altitude: 4000, rpm: 2300, percentPower: 55, ktas: 139, gph: 6.6),
+      // 6000 ft
+      CruiseTableEntry(altitude: 6000, rpm: 2640, percentPower: 75, ktas: 160, gph: 8.9),
+      CruiseTableEntry(altitude: 6000, rpm: 2480, percentPower: 65, ktas: 151, gph: 7.7),
+      CruiseTableEntry(altitude: 6000, rpm: 2330, percentPower: 55, ktas: 141, gph: 6.6),
+      // 8000 ft (WOT for 75%)
+      CruiseTableEntry(altitude: 8000, rpm: 2680, percentPower: 75, ktas: 162, gph: 8.9),
+      CruiseTableEntry(altitude: 8000, rpm: 2510, percentPower: 65, ktas: 154, gph: 7.7),
+      CruiseTableEntry(altitude: 8000, rpm: 2360, percentPower: 55, ktas: 144, gph: 6.6),
+      // 10000 ft
+      CruiseTableEntry(altitude: 10000, rpm: 2680, percentPower: 69, ktas: 160, gph: 8.2),
+      CruiseTableEntry(altitude: 10000, rpm: 2550, percentPower: 65, ktas: 156, gph: 7.7),
+      CruiseTableEntry(altitude: 10000, rpm: 2400, percentPower: 55, ktas: 146, gph: 6.6),
+      // 12000 ft
+      CruiseTableEntry(altitude: 12000, rpm: 2680, percentPower: 62, ktas: 155, gph: 7.4),
+      CruiseTableEntry(altitude: 12000, rpm: 2440, percentPower: 55, ktas: 148, gph: 6.6),
+    ]),
+  );
+
   static List<AircraftPerformanceData> get all => [
     cessna152,
     cessna172sp,
@@ -2294,6 +2387,7 @@ class CommonAircraftData {
     beechA36,
     cirrusSR22,
     diamondDA40,
+    vansRV9A,
   ];
 
   static AircraftPerformanceData? getByIcao(String icao) {
@@ -2714,6 +2808,8 @@ class CommonWnbData {
       return cirrusSR22Wnb;
     } else if (name.contains('da40') || name.contains('diamond')) {
       return diamondDA40Wnb;
+    } else if (name.contains('rv-9') || name.contains('rv9')) {
+      return vansRV9AWnb;
     }
     
     return null;
@@ -2918,5 +3014,25 @@ class CommonWnbData {
     maxArm: 2.7,
     minWeight: 1500,
     maxWeight: 2700,
+  );
+
+  // Van's RV-9A W&B (datum 70 in forward of wing leading edge)
+  static const vansRV9AWnb = WnbData(
+    stations: [
+      WnbStationDef(name: 'Empty Weight', arm: 77.27, defaultWeight: 1156),
+      WnbStationDef(name: 'Pilot & Passenger', arm: 92.7, defaultWeight: 340),
+      WnbStationDef(name: 'Baggage (75 lbs max)', arm: 122.0, defaultWeight: 0),
+      WnbStationDef(name: 'Fuel (lbs)', arm: 76.75, defaultWeight: 192), // 32 gal usable @ 6 lbs/gal
+    ],
+    envelopePoints: [
+      Offset(77.95, 1100),
+      Offset(84.84, 1100),
+      Offset(84.84, 1850),
+      Offset(77.95, 1850),
+    ],
+    minArm: 76,
+    maxArm: 87,
+    minWeight: 1000,
+    maxWeight: 2000,
   );
 }

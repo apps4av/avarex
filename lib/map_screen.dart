@@ -1662,8 +1662,6 @@ class MapScreenState extends State<MapScreen> {
       return;
     }
     setState(() {
-      _type = Storage().settings.getChartType();
-      _maxZoom = ChartCategory.chartTypeToZoom(_type);
       _layers
         ..clear()
         ..addAll(Storage().settings.getLayers());
@@ -1676,13 +1674,9 @@ class MapScreenState extends State<MapScreen> {
       _weatherProductsOpacity
         ..clear()
         ..addAll(Storage().settings.getWeatherProductsOpacity());
-      _northUp = Storage().settings.getNorthUp();
       _profileGeneration++;
     });
-    final String puck = Storage().settings.getTrafficPuckSize();
-    if (puck == 'S' || puck == 'M' || puck == 'L') {
-      Storage().trafficCache.changeArea(puck);
-    }
+    Storage().trafficCache.changeArea(Storage().settings.getTrafficPuckSize());
   }
 
   void _showSettingSelector(BuildContext context) {

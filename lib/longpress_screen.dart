@@ -203,26 +203,21 @@ class LongPressScreenState extends State<LongPressScreen> {
                       ),
                     ),
                   ),
-                  if (Constants.shouldShowProServices && lines.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          icon: const Icon(Icons.auto_awesome),
-                          label: const Text("Summarize"),
-                          onPressed: () {
-                            String query = "With the given NOTAMs below, what should I be aware of at ${showDestination.facilityName} (${showDestination.locationID}):\n\n${lines.join("\n")}";
-                            AiScreenState.teleportToAiScreen(context, query);
-                          },
-                        ),
-                      ),
-                    ),
                   for (String v in lines)
                     Card(
                       child: ListTile(
                         leading: Icon(Icons.warning_amber, color: Colors.orange.shade700),
                         title: Text(v, style: const TextStyle(fontSize: 13)),
+                        trailing: Constants.shouldShowProServices
+                            ? IconButton(
+                                icon: const Icon(Icons.translate),
+                                tooltip: "Translate",
+                                onPressed: () {
+                                  String query = "Translate this NOTAM for ${showDestination.facilityName} (${showDestination.locationID}) into plain English:\n\n$v";
+                                  AiScreenState.teleportToAiScreen(context, query);
+                                },
+                              )
+                            : null,
                       ),
                     ),
                 ],
