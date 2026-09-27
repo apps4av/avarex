@@ -183,6 +183,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
 - **North Up / Track Up**: shows the current orientation mode; tap to switch.
+- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading. Tap a name to apply that profile's map layers, weather products, traffic volume, audible alerts, and instruments.
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
@@ -937,6 +938,17 @@ Open: **Menu → Check Lists**
 - Info tooltip explaining import format
 - Persistent state during session
 
+### 9.4.1 Profile
+
+Open: **MAP → Map Settings → Profiles**
+
+Stores named snapshots of map layers and opacity, weather products, traffic volume, audible alerts, and the instrument layout.
+
+- **Profile name**: text box for the profile name
+- **Save**: stores the current settings under that name. Saving an existing name replaces it.
+- **Profile list**: tap a name to select it. Slide the **Delete** control at the bottom leftward (same swipe control as Check Lists) to remove the selected profile.
+- Apply a saved profile from the same `Profiles` list in `MAP → Map Settings` by tapping its name. The `Profiles` heading opens this screen.
+
 ### 9.5 Log Book
 
 Open: **Menu → Log Book**
@@ -1398,6 +1410,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Set best glide / sink rate | `MAP → Menu → Aircraft & Performance → My Aircraft tab` (Best Glide Speed, Sink Rate) |
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
+| Save map settings as a profile | `MAP → Map Settings → Profiles` |
+| Apply a saved profile | `MAP → Map Settings → Profiles` |
 | Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |

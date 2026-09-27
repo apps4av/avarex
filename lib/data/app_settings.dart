@@ -145,6 +145,10 @@ class AppSettings {
         "Nav,Circles,Chart,Topo,Vector Map,CAP Grid,Elevation,Weather,TFR,Game TFR,Plate,Traffic,Obstacles,Tape,GeoJSON,PFD,Tracks") as String).split(",");
   }
 
+  void setLayers(List<String> layers) {
+    provider.setString("key-layers-v52", layers.join(","));
+  }
+
   List<double> getLayersOpacity() {
     return (provider.getValue("key-layers-opacity-v52", defaultValue:
         "1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0") as String).split(",").map((String e) => double.parse(e)).toList();

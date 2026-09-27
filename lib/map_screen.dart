@@ -40,6 +40,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
 import 'package:toastification/toastification.dart';
+import 'package:avaremp/profile/profile_screen.dart';
 import 'chart/chart.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -74,6 +75,7 @@ class MapScreenState extends State<MapScreen> {
   final int _disableClusteringAtZoom = 10;
   final int _maxClusterRadius = 160;
   bool _northUp = Storage().settings.getNorthUp();
+  int _profileGeneration = 0;
   final GeoCalculations _calculations = GeoCalculations();
   final CeilingLayer _ceilingLayer = CeilingLayer();
   final CapGridLayer _capGridLayer = CapGridLayer();
@@ -1425,7 +1427,7 @@ class MapScreenState extends State<MapScreen> {
                     );
                   }
                 ),
-              const Positioned.fill(child: RepaintBoundary(child: InstrumentList())),
+              Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration)))),
               // warn
               Positioned(
                 child: Align(
@@ -1655,6 +1657,34 @@ class MapScreenState extends State<MapScreen> {
     ];
   }
 
+  void refresh() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _type = Storage().settings.getChartType();
+      _maxZoom = ChartCategory.chartTypeToZoom(_type);
+      _layers
+        ..clear()
+        ..addAll(Storage().settings.getLayers());
+      _layersOpacity
+        ..clear()
+        ..addAll(Storage().settings.getLayersOpacity());
+      _weatherProducts
+        ..clear()
+        ..addAll(Storage().settings.getWeatherProducts());
+      _weatherProductsOpacity
+        ..clear()
+        ..addAll(Storage().settings.getWeatherProductsOpacity());
+      _northUp = Storage().settings.getNorthUp();
+      _profileGeneration++;
+    });
+    final String puck = Storage().settings.getTrafficPuckSize();
+    if (puck == 'S' || puck == 'M' || puck == 'L') {
+      Storage().trafficCache.changeArea(puck);
+    }
+  }
+
   void _showSettingSelector(BuildContext context) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -1663,6 +1693,7 @@ class MapScreenState extends State<MapScreen> {
         barrierColor: Colors.black26,
         pageBuilder: (_, __, ___) => _SettingSelectorOverlay(
           buildSettings: _buildSettings,
+          onProfileApplied: refresh,
         ),
       ),
     );
@@ -1963,8 +1994,9 @@ class _MapSetting {
 
 class _SettingSelectorOverlay extends StatefulWidget {
   final List<_MapSetting> Function() buildSettings;
+  final VoidCallback onProfileApplied;
 
-  const _SettingSelectorOverlay({required this.buildSettings});
+  const _SettingSelectorOverlay({required this.buildSettings, required this.onProfileApplied});
 
   @override
   State<_SettingSelectorOverlay> createState() => _SettingSelectorOverlayState();
@@ -2034,8 +2066,11 @@ class _SettingSelectorOverlayState extends State<_SettingSelectorOverlay> {
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     shrinkWrap: true,
-                    itemCount: settings.length,
+                    itemCount: settings.length + 1,
                     itemBuilder: (context, index) {
+                      if (index == settings.length) {
+                        return ProfileToolsList(onApplied: widget.onProfileApplied);
+                      }
                       final _MapSetting setting = settings[index];
                       return InkWell(
                         onTap: () {
