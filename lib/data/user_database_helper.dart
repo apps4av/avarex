@@ -428,8 +428,8 @@ class UserDatabaseHelper {
   Future<Aircraft> getAircraft(String name) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;
-    if(db != null) {
-      maps = await DbGeneral.query(db, "select * from aircraft where tail='$name'"); // most recent first
+    if (db != null) {
+      maps = await db.query("aircraft", where: "tail = ?", whereArgs: [name.toUpperCase()]);
     }
     return Aircraft.fromMap(maps[0]);
   }
@@ -444,9 +444,8 @@ class UserDatabaseHelper {
 
   Future<void> deleteAircraft(String name) async {
     final db = await database;
-
     if (db != null) {
-      await DbGeneral.query(db, "delete from aircraft where tail='$name'");
+      await db.delete("aircraft", where: "tail = ?", whereArgs: [name.toUpperCase()]);
     }
   }
 
@@ -466,17 +465,15 @@ class UserDatabaseHelper {
 
   Future<void> insertSetting(String key, String? value) async {
     final db = await database;
-
-    if(db != null) {
-      await DbGeneral.query(db, "insert into settings (key, value) values ('$key', '$value')");
+    if (db != null) {
+      await DbGeneral.replace(db, "settings", {"key": key, "value": value ?? ""});
     }
   }
 
   Future<void> deleteSetting(String key) async {
     final db = await database;
-
-    if(db != null) {
-      await DbGeneral.query(db, "delete from settings where key=$key;");
+    if (db != null) {
+      await db.delete("settings", where: "key = ?", whereArgs: [key]);
     }
   }
 

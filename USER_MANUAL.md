@@ -15,6 +15,14 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.128**
+
+- Add Van's RV-9A to built-in aircraft performance.
+- Translate one NOTAM from the destination NOTAM tab.
+- Delete a map profile from its three-dot menu.
+- Applying a map profile keeps the current chart, north up, and audible alerts.
+- Bug fixes.
+
 **0.0.127**
 
 - Save and apply named map profiles from Map Settings.
