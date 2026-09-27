@@ -178,7 +178,6 @@ class SettingsProfileScreen extends StatefulWidget {
 class SettingsProfileScreenState extends State<SettingsProfileScreen> {
   final TextEditingController _name = TextEditingController();
   List<SettingsProfile> _profiles = [];
-  String? _selected;
   bool _loading = true;
 
   @override
@@ -201,11 +200,6 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     setState(() {
       _profiles = profiles;
       _loading = false;
-      if (_selected == null ||
-          !profiles
-              .any((SettingsProfile profile) => profile.name == _selected)) {
-        _selected = profiles.isEmpty ? null : profiles.first.name;
-      }
     });
   }
 
@@ -227,7 +221,6 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
       return;
     }
     _name.clear();
-    _selected = stored;
     await _reload();
     if (!mounted) {
       return;
@@ -297,48 +290,32 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     }
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      itemCount: _profiles.length + (_selected != null ? 1 : 0),
+      itemCount: _profiles.length,
       itemBuilder: (BuildContext context, int index) {
-        if (index < _profiles.length) {
-          final SettingsProfile profile = _profiles[index];
-          final bool selected = profile.name == _selected;
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            color: selected
-                ? Theme.of(context).colorScheme.primaryContainer.withAlpha(80)
-                : null,
-            child: ListTile(
-              title: Text(profile.name),
-              selected: selected,
-              onTap: () {
-                setState(() {
-                  _selected = profile.name;
-                });
-              },
+        final SettingsProfile profile = _profiles[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 4),
+          child: ListTile(
+            title: Text(profile.name),
+            trailing: PopupMenuButton<String>(
+              tooltip: '',
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  child: const Text('Delete'),
+                  onTap: () {
+                    ProfileStore.delete(profile.name).then((_) {
+                      if (!mounted) {
+                        return;
+                      }
+                      setState(() {
+                        _profiles.removeWhere((SettingsProfile item) =>
+                            item.name == profile.name);
+                      });
+                    });
+                  },
+                ),
+              ],
             ),
-          );
-        }
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Dismissible(
-            key: ValueKey<String>('delete-$_selected'),
-            background: const Icon(Icons.delete_forever),
-            direction: DismissDirection.endToStart,
-            onDismissed: (DismissDirection direction) {
-              final String? entry = _selected;
-              if (entry != null) {
-                ProfileStore.delete(entry);
-                setState(() {
-                  _profiles.removeWhere(
-                      (SettingsProfile item) => item.name == entry);
-                  _selected = _profiles.isEmpty ? null : _profiles.first.name;
-                });
-              }
-            },
-            child: const Column(children: [
-              Icon(Icons.swipe_left),
-              Text('Delete', style: TextStyle(fontSize: 8))
-            ]),
           ),
         );
       },

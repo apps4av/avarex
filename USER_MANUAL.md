@@ -953,7 +953,7 @@ Stores named snapshots of map layers and opacity, weather products, traffic volu
 
 - **Profile name**: text box for the profile name
 - **Save**: stores the current settings under that name. Saving an existing name replaces it.
-- **Profile list**: tap a name to select it. Slide the **Delete** control at the bottom leftward (same swipe control as Check Lists) to remove the selected profile.
+- **Profile list**: tap the three-dot menu on a profile and choose **Delete** to remove it.
 - Apply a saved profile from the same `Profiles` list in `MAP → Map Settings` by tapping its name. The `Profiles` heading opens this screen.
 
 ### 9.5 Log Book
