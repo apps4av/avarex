@@ -15,6 +15,12 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.127**
+
+- Save and apply named map profiles from Map Settings.
+- Show RP under the runway number for right traffic.
+- Bug fixes.
+
 **0.0.126**
 
 - Fetch airport NOTAMs from the FAA production NOTAM service.
@@ -372,7 +378,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 
 Possible tabs:
 
-- **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs)
+- **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs). Each runway end is a circle (green is best for the current wind). Right traffic shows `RP` under the runway number; left traffic has no pattern mark.
 - **AD**: airport diagram/runway depiction (interactive viewer with zoom)
 - **METAR**: METAR + TAF text with flight category color indicator
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async)

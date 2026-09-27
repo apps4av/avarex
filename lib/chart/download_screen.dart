@@ -327,18 +327,18 @@ class DownloadScreenState extends State<DownloadScreen> {
             bool isDeleting = chart.state == _stateCurrentDelete ||
                               chart.state == _stateExpiredDelete;
 
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-              decoration: BoxDecoration(
-                color: isQueued ? Colors.blue.withAlpha(20) :
-                       isDeleting ? Colors.red.withAlpha(20) : null,
-                borderRadius: BorderRadius.circular(8),
-                border: isQueued || isDeleting ? Border.all(
-                  color: isQueued ? Colors.blue.withAlpha(100) : Colors.red.withAlpha(100),
-                ) : null,
-              ),
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               child: ListTile(
                 dense: true,
+                tileColor: isQueued ? Colors.blue.withAlpha(20) :
+                           isDeleting ? Colors.red.withAlpha(20) : null,
+                shape: isQueued || isDeleting ? RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  side: BorderSide(
+                    color: isQueued ? Colors.blue.withAlpha(100) : Colors.red.withAlpha(100),
+                  ),
+                ) : null,
                 title: Text(chart.name, style: TextStyle(fontWeight: isQueued || isDeleting ? FontWeight.w600 : FontWeight.normal)),
                 subtitle: chart.subtitle.isNotEmpty
                     ? Text(chart.subtitle, style: TextStyle(fontSize: 11, color: chart.color))

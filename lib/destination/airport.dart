@@ -147,24 +147,32 @@ class Airport {
       return ident;
     }
 
-    String getRunwayPatternArrow(Map<String, dynamic> r, String side) {
-      return r['${side}Pattern'] == 'Y' ? '\u2192' : '\u2190';
-    }
-
     Widget runwayLeading(String ident, bool best, Map<String, dynamic> r, String side) {
+      final bool rightPattern = r['${side}Pattern'] == 'Y';
       return SizedBox(
         width: 64,
-        height: 64,
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: CircleAvatar(
-            radius: 24,
-            backgroundColor: best ? Colors.green : Colors.purple,
-            child: Text(
-              "$ident\n${getRunwayPatternArrow(r, side)}",
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+        child: CircleAvatar(
+          radius: 24,
+          backgroundColor: best ? Colors.green : Colors.purple,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                ident,
+                style: const TextStyle(color: Colors.white, fontSize: 14, height: 1),
+                textAlign: TextAlign.center,
+              ),
+              if (rightPattern)
+                const Text(
+                  'RP',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1,
+                  ),
+                ),
+            ],
           ),
         ),
       );
