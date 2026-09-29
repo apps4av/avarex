@@ -15,6 +15,10 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.129**
+
+- Update Flight Intelligence to Gemini 3.8 Flash with Google Search.
+
 **0.0.128**
 
 - Add Van's RV-9A to built-in aircraft performance.

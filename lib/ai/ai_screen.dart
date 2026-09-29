@@ -22,7 +22,9 @@ class AiScreen extends StatefulWidget {
 class AiScreenState extends State<AiScreen> {
 
   bool _clear = false;
-  final _model = FirebaseAI.agentPlatform().generativeModel(model: 'gemini-3.8-flash', tools: [Tool.googleSearch()]);
+  final _model = FirebaseAI.agentPlatform(
+    useLimitedUseAppCheckTokens: true,
+  ).generativeModel(model: 'gemini-3.8-flash', tools: [Tool.googleSearch()]);
   bool _isSending = false;
   final TextEditingController _editingController = TextEditingController();
 
@@ -143,7 +145,7 @@ class AiScreenState extends State<AiScreen> {
         }
       }
       catch(e) {
-        ret = "Internet connection needed.";
+        ret = e.toString();
       }
       await UserDatabaseHelper.db.insertAiQueries(myQuery, ret);
       _loadQueries();
