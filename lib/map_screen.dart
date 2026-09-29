@@ -438,18 +438,56 @@ class MapScreenState extends State<MapScreen> {
     List<Tfr> tfrs = weather.map((e) => e as Tfr).toList();
     _tfrCluster ??= makeCluster([
             for(Tfr t in tfrs)
-              if(t.coordinates.isNotEmpty)
+              if(t.coordinates.isNotEmpty && t.isRelevant())
                 Marker(point: t.coordinates[t.getLabelCoordinate()],
+                    width: 110,
+                    height: 60,
+                    alignment: Alignment.bottomCenter,
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
                           Toast.showToast(context, t.toString(), Icon(MdiIcons.clockAlert, color: Colors.black,), 30);
                         });
                       },
-                      child: Icon(MdiIcons.clockAlert, color: Colors.black,),))
+                      child: _tfrMarkerLabel(t),))
           ],
         );
     return _tfrCluster!;
+  }
+
+  // Icon plus a small label: ceiling/floor, and for a TFR not yet in effect
+  // a countdown. The countdown rides on the one-second timeChange tick so it
+  // stays current between the ten-minute TFR refreshes that rebuild the
+  // cluster; the label text is unchanged most ticks, which Flutter treats as
+  // a no-op.
+  Widget _tfrMarkerLabel(Tfr t) {
+    return ValueListenableBuilder<int>(
+      valueListenable: Storage().timeChange,
+      builder: (context, _, __) {
+        final bool active = t.isInEffect();
+        final Color color = active ? Constants.tfrColor : Constants.tfrColorFuture;
+        final String countdown = active ? "" : t.activeInLabel();
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(MdiIcons.clockAlert, color: Colors.black),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.8),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: color, width: 1),
+              ),
+              child: Text(
+                countdown.isEmpty ? t.altitudeLabel() : "${t.altitudeLabel()}\n$countdown",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, height: 1.1),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   MarkerClusterLayerWidget? _geojsonCluster;
