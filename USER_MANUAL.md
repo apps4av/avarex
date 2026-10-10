@@ -15,6 +15,10 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.130**
+
+- Fixed ETA and ETE to use live ground speed.
+
 **0.0.129**
 
 - Update Flight Intelligence to Gemini 3.8 Flash with Google Search.

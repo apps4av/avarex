@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:avaremp/destination/destination_calculations.dart';
 import 'package:avaremp/gdl90/adsb_status_screen.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
@@ -23,6 +22,13 @@ class InstrumentList extends StatefulWidget {
 
   @override
   State<InstrumentList> createState() => InstrumentListState();
+
+  static double timeToWaypointSeconds(double distance, double groundSpeed) {
+    if (groundSpeed <= 0) {
+      return double.infinity;
+    }
+    return 3600 * distance / groundSpeed;
+  }
 
   static double angularDifference(double hdg, double brg) {
     double absDiff = (hdg - brg).abs();
@@ -111,9 +117,9 @@ class InstrumentListState extends State<InstrumentList> {
     // connect to GPS
     double variation = Storage().area.variation;
     setState(() {
-      double q = GeoCalculations.convertSpeed(Storage().position.speed);
-      _gndSpeed = _truncate(q.round().toString());
-      q = GeoCalculations.convertAltitude(Storage().position.altitude);
+      double groundSpeed = GeoCalculations.convertSpeed(Storage().position.speed);
+      _gndSpeed = _truncate(groundSpeed.round().toString());
+      double q = GeoCalculations.convertAltitude(Storage().position.altitude);
       _altitude = _truncate(q.round().toString());
       q = GeoCalculations.getMagneticHeading(Storage().position.heading, variation);
       _magneticHeading = _truncate("${q.round()}\u00b0");
@@ -184,13 +190,12 @@ class InstrumentListState extends State<InstrumentList> {
           }
         }
 
-        // find time to next, not interested in fuel
-        Destination d = Destination.fromLatLng(Gps.toLatLng(Storage().position));
-        DestinationCalculations calc = DestinationCalculations(d, next.destination,
-            GeoCalculations.convertSpeed(Storage().position.speed), 0, GeoCalculations.convertAltitude(Storage().position.altitude));
-        calc.calculateTo();
-        if(calc.time.isFinite) {
-          Duration time = Duration(seconds: calc.time.round());
+        // Live GPS speed is already ground speed, so do not apply forecast
+        // winds again when calculating time to the active waypoint.
+        double timeSeconds =
+            InstrumentList.timeToWaypointSeconds(distance, groundSpeed);
+        if(timeSeconds.isFinite) {
+          Duration time = Duration(seconds: timeSeconds.round());
           if(time > const Duration(hours: 23)) { // no flight more than this long and saves overflow in instrument
             _eta = "XX:XX";
             _ete = "XX:XX";
