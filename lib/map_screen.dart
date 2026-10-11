@@ -19,6 +19,7 @@ import 'package:avaremp/utils/compass_rose.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
+import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
 import 'package:avaremp/services/login_screen.dart';
@@ -1136,20 +1137,22 @@ class MapScreenState extends State<MapScreen> {
         ),
       )));
 
-      layers.add( // brown track layer for airplane to waypoint
-        IgnorePointer(child: Opacity(opacity: opacity, child: ValueListenableBuilder<int>(
-          valueListenable: Storage().timeChange,
-          builder: (context, value, _) {
-            // The great-circle interpolation only changes when ownship moves or
-            // the active waypoint changes (route.change); reuse the last path
-            // otherwise instead of recomputing findPoints every second.
+      layers.add( // brown track layer for airplane to waypoint (OBS when set)
+        IgnorePointer(child: Opacity(opacity: opacity, child: AnimatedBuilder(
+          animation: Listenable.merge([Storage().timeChange, Storage().pfdChange]),
+          builder: (context, _) {
+            // Recompute when ownship, active waypoint, or OBS course changes.
             final Position p = Storage().position;
+            final double? obs = Storage().pfdData.obs;
             final String key = "${p.latitude.toStringAsFixed(5)},"
                 "${p.longitude.toStringAsFixed(5)},"
-                "${Storage().route.change.value}";
+                "${Storage().route.change.value},"
+                "${obs?.toStringAsFixed(1) ?? ""}";
             if (_toWaypointKey != key) {
               _toWaypointKey = key;
-              _toWaypointPath = Storage().route.getPathFromLocation(p);
+              _toWaypointPath = obs != null
+                  ? Cdi.obsPath()
+                  : Storage().route.getPathFromLocation(p);
             }
             final List<LatLng> path = _toWaypointPath;
             return PolylineLayer(
@@ -1402,30 +1405,23 @@ class MapScreenState extends State<MapScreen> {
             children: [
               RepaintBoundary(child: map), // map
               if(_layersOpacity[_layers.indexOf('PFD')] > 0)
-                ValueListenableBuilder<int>(
-                  valueListenable: Storage().pfdChange,
-                  builder: (context, value, _) {
-                    return Positioned(
-                        top: Constants.screenHeightForInstruments(context),
-                        child:Align(
-                            alignment: Alignment.topLeft,
-                            child: SizedBox(
-                                width:width,
-                                height: height,
-                                child: ClipRRect(
-                                    borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
-                                    child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
-                                        child:RepaintBoundary(child: CustomPaint(
-                                            painter: PfdPainter(
-                                                height: height,
-                                                width: width,
-                                                repaint: Storage().timeChange) // repaint every second
-                                        )))
-                                )
+                Positioned(
+                    top: Constants.screenHeightForInstruments(context),
+                    child:Align(
+                        alignment: Alignment.topLeft,
+                        child: SizedBox(
+                            width:width,
+                            height: height,
+                            child: ClipRRect(
+                                borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
+                                child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
+                                    child:RepaintBoundary(child: PfdView(
+                                        height: height,
+                                        width: width,
+                                    )))
                             )
                         )
-                    );
-                  }
+                    )
                 ),
               Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration)))),
               // warn

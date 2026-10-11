@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/instruments/pfd_runway.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/elevation_tile_provider.dart';
@@ -10,7 +11,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 class PfdPainter extends CustomPainter {
 
 
-  PfdPainter({required ValueNotifier repaint, required height, required width}) : super(repaint: repaint) {
+  PfdPainter({required Listenable repaint, required height, required width}) : super(repaint: repaint) {
     _height = height;
     _width = width;
   }
@@ -45,20 +46,55 @@ class PfdPainter extends CustomPainter {
   /// PAn the whole drawing up with this fraction of screen to utilize maximum screen
   static const double yPan = 0.125;
 
-  /// Xform 0,0 in center, and (100, 100) on top right, and (-100, -100) on bottom left
-  /// @param yval
-  /// @return
-  double _y(double yval) {
-    double yPercent = _height / 200;
-    return _height / 2 - yval * yPercent - _height * yPan;
-  }
+  static const double _obsKnobY = -68;
 
   /// Xform 0,0 in center, and (100, 100) on top right, and (-100, -100) on bottom left
-  /// @param xval
-  /// @return
-  double _x(double xval) {
-    double xPercent = _width / 200;
-    return _width / 2 + xval * xPercent;
+  static double yOf(double yval, double height) {
+    return height / 2 - yval * (height / 200) - height * yPan;
+  }
+
+  static double xOf(double xval, double width) {
+    return width / 2 + xval * (width / 200);
+  }
+
+  double _y(double yval) => yOf(yval, _height);
+
+  double _x(double xval) => xOf(xval, _width);
+
+  static Offset compassCenter(double width, double height) =>
+      Offset(xOf(0, width), yOf(-95, height));
+
+  static double compassRadius(double height) =>
+      (yOf(-65, height) - yOf(-95, height)).abs();
+
+  static double obsKnobRadius(double height) => yOf(0, height) - yOf(3, height);
+
+  static double obsHitRadius(double height) => max(28, obsKnobRadius(height) * 2.5);
+
+  /// True if [local] is on the CDI rose, where OBS can be set.
+  static bool onCompassRing(Offset local, double width, double height) {
+    final double d = (local - compassCenter(width, height)).distance;
+    final double r = compassRadius(height);
+    return d >= r * 0.25 && d <= r * 2.4;
+  }
+
+  /// OBS knob on the CDI rose, at the selected course.
+  static Offset obsKnobOffset(
+      double width, double height, double yaw, double course) {
+    final Offset c = compassCenter(width, height);
+    final double dx = xOf(0, width) - c.dx;
+    final double dy = yOf(_obsKnobY, height) - c.dy;
+    final double a = (course - yaw) * pi / 180;
+    return Offset(c.dx + dx * cos(a) - dy * sin(a),
+        c.dy + dx * sin(a) + dy * cos(a));
+  }
+
+  /// Magnetic heading under a pointer on the compass. 12 o'clock is current yaw.
+  static double headingAt(
+      Offset local, double width, double height, double yaw) {
+    final Offset c = compassCenter(width, height);
+    final double deg = atan2(local.dx - c.dx, c.dy - local.dy) * 180 / pi;
+    return (yaw + deg + 360) % 360;
   }
 
 
@@ -594,6 +630,12 @@ class PfdPainter extends CustomPainter {
     canvas.drawPath(path, paintFill);
     final double cdi = pfd.displayedCdi;
     drawLine(_x(cdi * 5), _y(-105), _x(cdi * 5), _y(-85), paintStroke);
+    // OBS selector knob on the selected course.
+    paintFill.color = pfd.obs == null ? Colors.amber : Colors.cyan;
+    paintStroke.color = Colors.white;
+    paintStroke.strokeWidth = 1.5;
+    drawCircle(_x(0), _y(_obsKnobY), _y(0) - _y(3), paintFill);
+    drawCircle(_x(0), _y(_obsKnobY), _y(0) - _y(3), paintStroke);
     canvas.restore();
 
 
@@ -1072,6 +1114,8 @@ class PfdData {
   double gpsCdi = 0;
   double turnTrend = 0;
   double to = 0;
+  /// Manual OBS course in degrees magnetic. Null follows GPS/route course.
+  double? obs;
   double vdi = 0;
 
   /// Wall clock (ms) of the last ADS-B AHRS pitch/roll and heading samples.
@@ -1130,4 +1174,108 @@ class PfdTerrain {
   /// Same red test as the map Elevation layer (elev ≥ altitude − 500 ft).
   static bool isRed(double elevFt, double altFt) =>
       ElevationImageProvider.isRed(elevFt, altFt);
+}
+
+/// PFD panel with a draggable OBS knob on the CDI compass.
+class PfdView extends StatefulWidget {
+  final double width;
+  final double height;
+
+  const PfdView({super.key, required this.width, required this.height});
+
+  @override
+  State<PfdView> createState() => _PfdViewState();
+}
+
+class _PfdViewState extends State<PfdView> {
+  static const Duration _doubleTap = Duration(milliseconds: 350);
+  static const double _doubleTapSlop = 36;
+  static const double _dragSlop = 8;
+
+  bool _draggingObs = false;
+  bool _obsArmed = false;
+  Offset? _downPos;
+  DateTime? _lastTapAt;
+  Offset? _lastTapPos;
+  late final Listenable _repaint;
+
+  @override
+  void initState() {
+    super.initState();
+    _repaint = Listenable.merge([Storage().timeChange, Storage().pfdChange]);
+  }
+
+  bool _hitObs(Offset local) {
+    final PfdData pfd = Storage().pfdData;
+    final Offset knob = PfdPainter.obsKnobOffset(
+        widget.width, widget.height, pfd.yaw, pfd.to);
+    if ((local - knob).distance <= PfdPainter.obsHitRadius(widget.height)) {
+      return true;
+    }
+    return PfdPainter.onCompassRing(local, widget.width, widget.height);
+  }
+
+  void _dragObs(Offset local) {
+    Cdi.setObs(PfdPainter.headingAt(
+        local, widget.width, widget.height, Storage().pfdData.yaw));
+  }
+
+  void _endPointer() {
+    _draggingObs = false;
+    _obsArmed = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (PointerDownEvent e) {
+        final Offset local = e.localPosition;
+        if (!_hitObs(local)) {
+          return;
+        }
+        final DateTime now = DateTime.now();
+        if (_lastTapAt != null &&
+            now.difference(_lastTapAt!) <= _doubleTap &&
+            _lastTapPos != null &&
+            (local - _lastTapPos!).distance <= _doubleTapSlop) {
+          _lastTapAt = null;
+          _lastTapPos = null;
+          _endPointer();
+          Cdi.setObs(null);
+          return;
+        }
+        _lastTapAt = now;
+        _lastTapPos = local;
+        _downPos = local;
+        _obsArmed = true;
+        _draggingObs = false;
+      },
+      onPointerMove: (PointerMoveEvent e) {
+        final Offset local = e.localPosition;
+        if (_draggingObs) {
+          _dragObs(local);
+          return;
+        }
+        if (_obsArmed &&
+            _downPos != null &&
+            (local - _downPos!).distance >= _dragSlop) {
+          _draggingObs = true;
+          _obsArmed = false;
+          _lastTapAt = null;
+          _dragObs(local);
+        }
+      },
+      onPointerUp: (_) => _endPointer(),
+      onPointerCancel: (_) => _endPointer(),
+      child: CustomPaint(
+        size: Size(widget.width, widget.height),
+        painter: PfdPainter(
+          height: widget.height,
+          width: widget.width,
+          repaint: _repaint,
+        ),
+      ),
+    );
+  }
 }

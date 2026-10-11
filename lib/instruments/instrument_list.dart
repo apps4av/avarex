@@ -109,7 +109,9 @@ class InstrumentListState extends State<InstrumentList> {
       var (distance, bearing) = _getDistanceBearing();
       _distance = _truncate(_distanceFormat(distance));
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
-      Storage().pfdData.to = bearing;
+      if (Storage().pfdData.obs == null) {
+        Storage().pfdData.to = bearing;
+      }
       Cdi.updatePfd();
       Vdi.updatePfd();
 

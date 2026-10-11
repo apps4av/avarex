@@ -44,6 +44,7 @@ class Cdi {
   /// Where a direct-to was activated, so the CDI has a fixed course line.
   static LatLng? _directFrom;
   static String? _directKey;
+  static String? _obsDestKey;
 
   static double angularDifference(double hdg, double brg) {
     final double absDiff = (hdg - brg).abs();
@@ -141,20 +142,93 @@ class Cdi {
     );
   }
 
+  static String? _destKey(Destination? d) {
+    if (d == null) {
+      return null;
+    }
+    return "${d.locationID}|${d.secondaryName ?? ""}|"
+        "${d.coordinate.latitude.toStringAsFixed(4)}|"
+        "${d.coordinate.longitude.toStringAsFixed(4)}";
+  }
+
+  /// True heading of the map segment from dest toward an inbound aircraft.
+  /// OBS is the TO course, so the dest-to-plane radial is the reciprocal.
+  static double obsPathTrueHeading(double magnetic, double variation) {
+    return (magnetic + variation + 180 + 360) % 360;
+  }
+
+  /// Map path for the selected OBS course: from the destination toward
+  /// an inbound aircraft (full 360°, no nearest-reciprocal fold).
+  static List<LatLng> obsPath() {
+    final double? obs = Storage().pfdData.obs;
+    if (obs == null) {
+      return [];
+    }
+    final Destination? dest =
+        Storage().route.getCurrentWaypoint()?.destination;
+    if (dest == null) {
+      return [];
+    }
+    final LatLng plane = Gps.toLatLng(Storage().position);
+    final GeoCalculations geo = GeoCalculations();
+    final double dist = geo.calculateDistance(dest.coordinate, plane);
+    if (dist <= 0) {
+      return [];
+    }
+    final double fromDest = obsPathTrueHeading(obs, Storage().area.variation);
+    final LatLng planeEnd =
+        geo.calculateOffset(dest.coordinate, dist, fromDest);
+    final List<LatLng> points = geo.findPoints(dest.coordinate, planeEnd);
+    return points.isEmpty ? [dest.coordinate, planeEnd] : points;
+  }
+
+  static void setObs(double? magnetic) {
+    Storage().pfdData.obs = magnetic == null ? null : (magnetic + 360) % 360;
+    if (magnetic != null) {
+      Storage().pfdData.to = Storage().pfdData.obs!;
+    }
+    updatePfd();
+    Storage().pfdChange.value++;
+  }
+
   /// Publish the current GPS/route CDI onto [PfdData].
   static void updatePfd() {
+    final Destination? current =
+        Storage().route.getCurrentWaypoint()?.destination;
+    final String? destKey = _destKey(current);
+    if (_obsDestKey != null && destKey != _obsDestKey) {
+      Storage().pfdData.obs = null;
+    }
+    _obsDestKey = destKey;
+
     final CdiLeg? leg = resolve(
       position: Gps.toLatLng(Storage().position),
-      current: Storage().route.getCurrentWaypoint()?.destination,
+      current: current,
       previous: Storage().route.getPreviousDestination(),
       destinations: Storage().route.getAllDestinations(),
     );
     final PfdData pfd = Storage().pfdData;
+    if (pfd.obs != null) {
+      pfd.to = pfd.obs!;
+    } else if (current != null) {
+      pfd.to = GeoCalculations.getMagneticHeading(
+          GeoCalculations().calculateBearing(
+              Gps.toLatLng(Storage().position), current.coordinate),
+          current.geoVariation ?? Storage().area.variation);
+    }
     if (leg == null) {
       pfd.gpsCdi = 0;
       return;
     }
-    final double value = leg.deflection;
+    final double variation = Storage().area.variation;
+    final double courseTrue = pfd.obs != null
+        ? (pfd.obs! + variation + 360) % 360
+        : leg.courseBearing;
+    final double value = deflection(
+      courseBearing: courseTrue,
+      targetBearing: leg.targetBearing,
+      distance: leg.distance,
+    );
     pfd.setCdi(value);
     pfd.gpsCdi = value;
   }
