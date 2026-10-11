@@ -561,6 +561,7 @@ class Storage {
       area.updateRunwayAwareness();
       // runway shown in perspective behind the PFD
       area.updatePfdRunway();
+      area.updatePfdTerrain();
 
       if((timeChange.value % 10) == 0) {
         // update area every 10 seconds

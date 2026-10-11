@@ -91,6 +91,13 @@ class ElevationImageProvider extends ImageProvider<ElevationImageProvider> {
   static const double altitudeFtElevationPerPixelSlopeBase = 80.4711845056;
   static const double altitudeFtElevationPerPixelIntercept = -364.431597044586;
 
+  /// Terrain this many feet below altitude (or higher) is red on the map.
+  static const double redBelowAltitudeFt = 500;
+
+  /// Same test as the Elevation layer: red if elev >= altitude − 500 ft.
+  static bool isRed(double elevFt, double altFt) =>
+      elevFt >= altFt - redBelowAltitudeFt;
+
   static const int _transparentClass = 0;
   static const int _yellowClass = 1;
   static const int _redClass = 2;
@@ -138,7 +145,7 @@ class ElevationImageProvider extends ImageProvider<ElevationImageProvider> {
     final List<int> classes = List<int>.filled(256, _transparentClass);
     final double base = currentAltitude - altitudeFtElevationPerPixelIntercept;
     final double threshold1000 = (base - 1000) / altitudeFtElevationPerPixelSlopeBase;
-    final double threshold500 = (base - 500) / altitudeFtElevationPerPixelSlopeBase;
+    final double threshold500 = (base - redBelowAltitudeFt) / altitudeFtElevationPerPixelSlopeBase;
     for (int red = 0; red < 256; red++) {
       if (red < threshold1000) {
         classes[red] = _transparentClass;

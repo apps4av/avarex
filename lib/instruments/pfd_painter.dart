@@ -2,8 +2,10 @@ import 'dart:math';
 
 import 'package:avaremp/instruments/pfd_runway.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/elevation_tile_provider.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 
 class PfdPainter extends CustomPainter {
 
@@ -105,8 +107,8 @@ class PfdPainter extends CustomPainter {
     paintFill.color = const Color(0xFF624624);
     drawRect(_x(-400), _y(0), _x(400), _y(-pitchDegree * 90), paintFill);
 
-    // synthetic runway, drawn in the same horizon frame so pitch / roll from
-    // the AHRS move it exactly with the horizon line
+    // synthetic terrain then runway, same horizon frame as pitch / roll
+    _drawTerrain(canvas, pfd);
     _drawRunway(canvas, pfd);
 
     //center attitude degrees
@@ -657,10 +659,94 @@ class PfdPainter extends CustomPainter {
 
   static const Color _surfaceColor = Color(0xE6404040);
   static final Color _markingColor = Colors.white.withValues(alpha: 0.9);
+  static const Color _terrainBrown = Color(0xFF624624);
+  static const Color _terrainRed = Color(0xCCFF0000);
 
   /// Focal length in pixels, chosen so one degree of elevation at the center
   /// of view spans the same pixels as one degree on the pitch ladder.
   double get _focalPx => (_height / 200) * pitchDegree / tan(pi / 180);
+
+  void _drawTerrain(Canvas canvas, PfdData pfd) {
+    final PfdTerrain? mesh = pfd.terrain;
+    if (mesh == null || mesh.cols < 2 || mesh.rows < 2) return;
+    final double lat;
+    final double lon;
+    final double altFt;
+    final double trackTrue;
+    try {
+      final pos = Storage().position;
+      lat = pos.latitude;
+      lon = pos.longitude;
+      altFt = GeoCalculations.convertAltitude(pos.altitude);
+      trackTrue = pos.heading;
+    } catch (_) {
+      return;
+    }
+    final double headingTrue = pfd.ahrsHeadingLive
+        ? (pfd.yaw + Storage().area.variation + 360) % 360
+        : trackTrue;
+    final double h = GeoCalculations.toRadians(headingTrue);
+    final double cosH = cos(h);
+    final double sinH = sin(h);
+    final double cosLat = cos(GeoCalculations.toRadians(lat));
+    final double? ground = Storage().area.elevation;
+    // Sit above the surface so a level look still sees a receding 3D floor,
+    // and so hills rise into the sky instead of painting the horizon.
+    final double camUp = max(altFt, ground ?? altFt) + 20;
+    final double f = _focalPx;
+    final double cx = _x(0);
+    final double cy = _y(0);
+
+    _P3 camAt(LatLng p, double elev) {
+      final double n = (p.latitude - lat) * PfdRunwayEnd.ftPerDegLat;
+      final double e = (p.longitude - lon) * PfdRunwayEnd.ftPerDegLat * cosLat;
+      final double dU = elev - camUp - (n * n + e * e) / (2 * PfdRunwayEnd.earthRadiusFt);
+      return _P3(e * cosH - n * sinH, dU, n * cosH + e * sinH);
+    }
+
+    Offset project(_P3 p) => Offset(cx + f * p.x / p.z, cy - f * p.y / p.z);
+
+    Color bandColor(double elev) =>
+        PfdTerrain.isRed(elev, altFt) ? _terrainRed : _terrainBrown;
+
+    final Paint fill = Paint()..style = PaintingStyle.fill;
+    void facet(_P3 a, _P3 b, _P3 c, _P3 d, Color base) {
+      final List<_P3> clip = (a.z > 40 && b.z > 40 && c.z > 40 && d.z > 40)
+          ? [a, b, c, d]
+          : _clipPolygon([a, b, c, d]);
+      if (clip.length < 3) return;
+      fill.color = base;
+      final Path path = Path()..moveTo(project(clip[0]).dx, project(clip[0]).dy);
+      for (int i = 1; i < clip.length; i++) {
+        final Offset o = project(clip[i]);
+        path.lineTo(o.dx, o.dy);
+      }
+      path.close();
+      canvas.drawPath(path, fill);
+    }
+
+    // Far rows first so nearer slopes occlude distant ones.
+    for (int r = mesh.rows - 2; r >= 0; r--) {
+      for (int c = 0; c < mesh.cols - 1; c++) {
+        final int i00 = r * mesh.cols + c;
+        final int i10 = i00 + 1;
+        final int i01 = i00 + mesh.cols;
+        final int i11 = i01 + 1;
+        final double? e00 = mesh.elevFt[i00];
+        final double? e10 = mesh.elevFt[i10];
+        final double? e01 = mesh.elevFt[i01];
+        final double? e11 = mesh.elevFt[i11];
+        if (e00 == null || e10 == null || e01 == null || e11 == null) continue;
+        facet(
+          camAt(mesh.pts[i00], e00),
+          camAt(mesh.pts[i10], e10),
+          camAt(mesh.pts[i11], e11),
+          camAt(mesh.pts[i01], e01),
+          bandColor(max(max(e00, e10), max(e01, e11))),
+        );
+      }
+    }
+  }
 
   void _drawRunway(Canvas canvas, PfdData pfd) {
     final PfdRunwayEnd? rw = pfd.runway;
@@ -991,8 +1077,31 @@ class PfdData {
   /// Runway end chosen for the synthetic-vision background, or null.
   PfdRunwayEnd? runway;
 
+  /// Elevation-tile heightmap for the synthetic-vision ground, or null.
+  PfdTerrain? terrain;
+
   bool get ahrsAttitudeLive =>
       DateTime.now().millisecondsSinceEpoch - lastAttitudeMs < ahrsStaleMs;
   bool get ahrsHeadingLive =>
       DateTime.now().millisecondsSinceEpoch - lastHeadingMs < ahrsStaleMs;
+}
+
+/// Heightmap sampled from elevation tiles. [elevFt] is row-major
+/// (index = row * cols + col). Null elevation means no tile at that point.
+class PfdTerrain {
+  final List<LatLng> pts;
+  final List<double?> elevFt;
+  final int cols;
+  final int rows;
+
+  const PfdTerrain({
+    required this.pts,
+    required this.elevFt,
+    required this.cols,
+    required this.rows,
+  });
+
+  /// Same red test as the map Elevation layer (elev ≥ altitude − 500 ft).
+  static bool isRed(double elevFt, double altFt) =>
+      ElevationImageProvider.isRed(elevFt, altFt);
 }
