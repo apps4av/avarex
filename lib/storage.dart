@@ -559,6 +559,8 @@ class Storage {
 
       // runway crossings are too brief for the 10 second area cadence
       area.updateRunwayAwareness();
+      // runway shown in perspective behind the PFD
+      area.updatePfdRunway();
 
       if((timeChange.value % 10) == 0) {
         // update area every 10 seconds

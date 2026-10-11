@@ -55,6 +55,13 @@ class AhrsMessage extends Message {
     pfd.altitude = altitude == null ? pfd.altitude : altitude!;
     pfd.vsi = vsi == null ? pfd.vsi : vsi!;
     pfd.speed = speed == null ? pfd.speed : speed!;
+    final int now = DateTime.now().millisecondsSinceEpoch;
+    if (pitch != null && roll != null) {
+      pfd.lastAttitudeMs = now;
+    }
+    if (yaw != null) {
+      pfd.lastHeadingMs = now;
+    }
   }
 
   @override

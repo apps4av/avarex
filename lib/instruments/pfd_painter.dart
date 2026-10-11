@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:avaremp/instruments/pfd_runway.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:flutter/material.dart';
 
 class PfdPainter extends CustomPainter {
@@ -102,6 +104,10 @@ class PfdPainter extends CustomPainter {
 
     paintFill.color = const Color(0xFF624624);
     drawRect(_x(-400), _y(0), _x(400), _y(-pitchDegree * 90), paintFill);
+
+    // synthetic runway, drawn in the same horizon frame so pitch / roll from
+    // the AHRS move it exactly with the horizon line
+    _drawRunway(canvas, pfd);
 
     //center attitude degrees
     drawLine(_x(-150), _y(0), _x(150), _y(0), paintStroke);
@@ -634,9 +640,335 @@ class PfdPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
   }
+
+  // ------------------------------------------------------------------
+  // Synthetic runway (pilot's perspective)
+  // ------------------------------------------------------------------
+
+  /// Points closer than this (ft) along the view axis are clipped.
+  static const double _zNear = 3;
+
+  /// Half field of view kept after clipping, as tan(angle). 3 ≈ 71.5°, which
+  /// bounds projected coordinates to about 3.4 × height from the center.
+  static const double _frustumK = 3;
+
+  /// Pilot eye height above the pavement when GPS says we are on / below it.
+  static const double _eyeHeightFt = 6;
+
+  static const Color _surfaceColor = Color(0xE6404040);
+  static final Color _markingColor = Colors.white.withValues(alpha: 0.9);
+
+  /// Focal length in pixels, chosen so one degree of elevation at the center
+  /// of view spans the same pixels as one degree on the pitch ladder.
+  double get _focalPx => (_height / 200) * pitchDegree / tan(pi / 180);
+
+  void _drawRunway(Canvas canvas, PfdData pfd) {
+    final PfdRunwayEnd? rw = pfd.runway;
+    if (rw == null) {
+      return;
+    }
+    final double lat;
+    final double lon;
+    final double altFt;
+    final double trackTrue;
+    try {
+      final pos = Storage().position;
+      lat = pos.latitude;
+      lon = pos.longitude;
+      altFt = GeoCalculations.convertAltitude(pos.altitude);
+      trackTrue = pos.heading;
+    } catch (_) {
+      return; // no position yet
+    }
+
+    // Camera in the runway frame.
+    final (camAlong, camCross) = rw.frameOf(lat, lon);
+    final double camUp = max(altFt, rw.elevationAt(camAlong) + _eyeHeightFt);
+    final double headingTrue = pfd.ahrsHeadingLive
+        ? (pfd.yaw + Storage().area.variation + 360) % 360
+        : trackTrue;
+    final double rel = GeoCalculations.toRadians(headingTrue - rw.headingTrue);
+    final double cosR = cos(rel);
+    final double sinR = sin(rel);
+    final double f = _focalPx;
+    final double cx = _x(0);
+    final double cy = _y(0);
+
+    // Runway frame (along, cross, up) -> camera frame (x right, y up, z fwd).
+    _P3 cam(double along, double cross, [double? up]) {
+      final double dA = along - camAlong;
+      final double dC = cross - camCross;
+      final double dU = (up ?? rw.elevationAt(along)) - camUp
+          - (dA * dA + dC * dC) / (2 * PfdRunwayEnd.earthRadiusFt);
+      return _P3(dC * cosR - dA * sinR, dU, dA * cosR + dC * sinR);
+    }
+
+    Offset project(_P3 p) => Offset(cx + f * p.x / p.z, cy - f * p.y / p.z);
+
+    final Paint fill = Paint()..style = PaintingStyle.fill;
+    final Paint stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = _markingColor;
+
+    void polygon(List<_P3> pts, Color color) {
+      final List<_P3> c = _clipPolygon(pts);
+      if (c.length < 3) return;
+      final Path path = Path()..moveTo(project(c[0]).dx, project(c[0]).dy);
+      for (int i = 1; i < c.length; i++) {
+        final Offset o = project(c[i]);
+        path.lineTo(o.dx, o.dy);
+      }
+      path.close();
+      fill.color = color;
+      canvas.drawPath(path, fill);
+    }
+
+    void line(_P3 a, _P3 b) {
+      final List<_P3>? c = _clipSegment(a, b);
+      if (c == null) return;
+      canvas.drawLine(project(c[0]), project(c[1]), stroke);
+    }
+
+    // Quad in runway frame: along a0..a1, cross c0..c1.
+    void quad(double a0, double a1, double c0, double c1, Color color) {
+      polygon([cam(a0, c0), cam(a0, c1), cam(a1, c1), cam(a1, c0)], color);
+    }
+
+    final double w = rw.widthFt;
+    final double hw = w / 2;
+    final double len = rw.lengthFt;
+    final double thr = rw.displacedFt;
+    final double farThr = len - rw.farDisplacedFt;
+    final double usable = farThr - thr;
+
+    // Pavement and edges.
+    quad(0, len, -hw, hw, _surfaceColor);
+    line(cam(0, -hw), cam(len, -hw));
+    line(cam(0, hw), cam(len, hw));
+    line(cam(0, -hw), cam(0, hw));
+    line(cam(len, -hw), cam(len, hw));
+
+    // Centerline paint width. FAA is 3 ft; that vanishes on a phone-sized PFD,
+    // so we draw a stripe wide enough to read from a couple of miles out.
+    final double clw = max(8.0, w * 0.10);
+
+    // Displaced threshold, AIM FIG 2-3-4: arrows along the former centerline
+    // (shaft + head) and a row of arrowheads just before the 10 ft bar.
+    // No dashed centerline in this area.
+    if (thr > 0) {
+      const double shaftLen = 90;
+      const double headLen = 28;
+      final double headHalf = min(16.0, hw * 0.28);
+      void arrow(double tip) {
+        final double base = tip - headLen;
+        final double tail = base - shaftLen;
+        if (tail < 0) return;
+        quad(tail, base, -clw / 2, clw / 2, _markingColor);
+        polygon([
+          cam(tip, 0),
+          cam(base, -headHalf),
+          cam(base, headHalf),
+        ], _markingColor);
+      }
+      // Space arrows so the last shaft stays clear of the arrowhead row.
+      for (double tip = 40 + shaftLen + headLen; tip < thr - 70; tip += 200) {
+        arrow(tip);
+      }
+      // Four (or six) arrowheads across the width, immediately before the bar.
+      final int heads = w >= 150 ? 6 : 4;
+      final double span = hw * 0.72;
+      final double rowTip = thr - 14;
+      final double rowBase = rowTip - 22;
+      for (int k = 0; k < heads; k++) {
+        final double c = -span + (2 * span) * (k + 0.5) / heads;
+        polygon([
+          cam(rowTip, c),
+          cam(rowBase, c - headHalf * 0.7),
+          cam(rowBase, c + headHalf * 0.7),
+        ], _markingColor);
+      }
+      quad(thr - 10, thr, -hw, hw, _markingColor); // 10 ft threshold bar
+    }
+    line(cam(thr, -hw), cam(thr, hw));
+    line(cam(farThr, -hw), cam(farThr, hw));
+
+    // Threshold stripes, count per FAA runway width table.
+    int stripes = w <= 60 ? 4 : w <= 75 ? 6 : w <= 100 ? 8 : w <= 150 ? 12 : 16;
+    while (stripes > 2 && (stripes / 2) * 11.5 > hw - 3) {
+      stripes -= 2;
+    }
+    void thresholdStripes(double a0, double a1) {
+      for (int k = 0; k < stripes ~/ 2; k++) {
+        final double c0 = 5.75 + k * 11.5;
+        final double c1 = c0 + 5.75;
+        quad(a0, a1, c0, c1, _markingColor);
+        quad(a0, a1, -c1, -c0, _markingColor);
+      }
+    }
+    if (usable > 400) {
+      thresholdStripes(thr + 20, thr + 170);
+      thresholdStripes(farThr - 170, farThr - 20);
+    }
+
+    // Runway designation, AIM: after the threshold stripes, on the centerline.
+    // Leave a gap so the dashed centerline does not run through the numbers.
+    const double numGapAfterStripes = 20;
+    const double numGapBeforeCl = 40;
+    double numH = 60;
+    double nearNum0 = 0, nearNum1 = 0, farNum0 = 0, farNum1 = 0;
+    bool drawNums = usable > 500;
+    if (drawNums) {
+      numH = min(60.0, (usable - 400) / 2).clamp(28.0, 60.0);
+      nearNum0 = thr + 170 + numGapAfterStripes;
+      nearNum1 = nearNum0 + numH;
+      farNum1 = farThr - 170 - numGapAfterStripes;
+      farNum0 = farNum1 - numH;
+      if (farNum0 < nearNum1 + 80) {
+        drawNums = false;
+      }
+    }
+
+    // Thousand-foot (aiming point) markers.
+    if (usable >= 2400) {
+      quad(thr + 1000, thr + 1150, 0.24 * w, 0.44 * w, _markingColor);
+      quad(thr + 1000, thr + 1150, -0.44 * w, -0.24 * w, _markingColor);
+    }
+
+    // Centerline: 120 ft stripes, 80 ft gaps. Starts after the near number
+    // and stops before the far number.
+    final double cl0 = drawNums ? nearNum1 + numGapBeforeCl : thr + 200;
+    final double cl1 = drawNums ? farNum0 - numGapBeforeCl : farThr - 200;
+    for (double a = cl0; a + 120 <= cl1; a += 200) {
+      quad(a, a + 120, -clw / 2, clw / 2, _markingColor);
+    }
+
+    if (drawNums) {
+      _paintRunwayIdent(canvas, rw.ident, nearNum0, nearNum1, w, cam, project);
+      _paintRunwayIdent(canvas, rw.farIdent, farNum1, farNum0, w, cam, project);
+    }
+  }
+
+  /// Paint [ident] on the pavement. [alongBottom] is the threshold side of
+  /// the digits (bottom), [alongTop] the far side (top), so the number reads
+  /// correctly on that approach.
+  void _paintRunwayIdent(
+    Canvas canvas,
+    String ident,
+    double alongBottom,
+    double alongTop,
+    double runwayW,
+    _P3 Function(double, double, [double?]) cam,
+    Offset Function(_P3) project,
+  ) {
+    if (ident.isEmpty) return;
+    paintText.text = TextSpan(
+      text: ident,
+      style: TextStyle(
+        color: _markingColor,
+        fontWeight: FontWeight.w900,
+        fontSize: 120,
+        height: 1.0,
+        letterSpacing: 6,
+      ),
+    );
+    paintText.layout();
+    final double tw = paintText.width;
+    final double th = paintText.height;
+    if (tw < 1 || th < 1) return;
+
+    final double hFt = (alongTop - alongBottom).abs();
+    double wFt = hFt * tw / th;
+    if (wFt > runwayW * 0.62) {
+      wFt = runwayW * 0.62;
+    }
+    final double half = wFt / 2;
+    final _P3 tl = cam(alongTop, -half);
+    final _P3 tr = cam(alongTop, half);
+    final _P3 bl = cam(alongBottom, -half);
+    if (tl.z < _zNear || tr.z < _zNear || bl.z < _zNear) return;
+
+    final Offset ptl = project(tl);
+    final Offset ptr = project(tr);
+    final Offset pbl = project(bl);
+    canvas.save();
+    canvas.transform((Matrix4.identity()
+          ..setEntry(0, 0, (ptr.dx - ptl.dx) / tw)
+          ..setEntry(1, 0, (ptr.dy - ptl.dy) / tw)
+          ..setEntry(0, 1, (pbl.dx - ptl.dx) / th)
+          ..setEntry(1, 1, (pbl.dy - ptl.dy) / th)
+          ..setEntry(0, 3, ptl.dx)
+          ..setEntry(1, 3, ptl.dy))
+        .storage);
+    paintText.paint(canvas, Offset.zero);
+    canvas.restore();
+  }
+
+  /// Signed distance of [p] from each frustum plane; >= 0 is inside.
+  static double _planeDist(int plane, _P3 p) {
+    switch (plane) {
+      case 0: return p.z - _zNear;
+      case 1: return p.z * _frustumK + p.x;
+      case 2: return p.z * _frustumK - p.x;
+      case 3: return p.z * _frustumK + p.y;
+      default: return p.z * _frustumK - p.y;
+    }
+  }
+
+  /// Sutherland–Hodgman polygon clip against the view frustum.
+  static List<_P3> _clipPolygon(List<_P3> input) {
+    List<_P3> out = input;
+    for (int plane = 0; plane < 5 && out.isNotEmpty; plane++) {
+      final List<_P3> inPts = out;
+      out = [];
+      for (int i = 0; i < inPts.length; i++) {
+        final _P3 a = inPts[i];
+        final _P3 b = inPts[(i + 1) % inPts.length];
+        final double da = _planeDist(plane, a);
+        final double db = _planeDist(plane, b);
+        if (da >= 0) out.add(a);
+        if ((da >= 0) != (db >= 0)) {
+          out.add(_P3.lerp(a, b, da / (da - db)));
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Clip a segment against the view frustum; null if fully outside.
+  static List<_P3>? _clipSegment(_P3 a, _P3 b) {
+    double t0 = 0, t1 = 1;
+    for (int plane = 0; plane < 5; plane++) {
+      final double da = _planeDist(plane, a);
+      final double db = _planeDist(plane, b);
+      if (da < 0 && db < 0) return null;
+      if (da >= 0 && db >= 0) continue;
+      final double t = da / (da - db);
+      if (da < 0) {
+        t0 = max(t0, t);
+      } else {
+        t1 = min(t1, t);
+      }
+      if (t0 > t1) return null;
+    }
+    return [_P3.lerp(a, b, t0), _P3.lerp(a, b, t1)];
+  }
+}
+
+class _P3 {
+  final double x;
+  final double y;
+  final double z;
+  const _P3(this.x, this.y, this.z);
+
+  static _P3 lerp(_P3 a, _P3 b, double t) =>
+      _P3(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t);
 }
 
 class PfdData {
+  /// AHRS data older than this is treated as absent.
+  static const int ahrsStaleMs = 5000;
+
   double roll = 0;
   double pitch = 0;
   double yaw = 0;
@@ -651,4 +983,16 @@ class PfdData {
   double turnTrend = 0;
   double to = 0;
   double vdi = 0;
+
+  /// Wall clock (ms) of the last ADS-B AHRS pitch/roll and heading samples.
+  int lastAttitudeMs = 0;
+  int lastHeadingMs = 0;
+
+  /// Runway end chosen for the synthetic-vision background, or null.
+  PfdRunwayEnd? runway;
+
+  bool get ahrsAttitudeLive =>
+      DateTime.now().millisecondsSinceEpoch - lastAttitudeMs < ahrsStaleMs;
+  bool get ahrsHeadingLive =>
+      DateTime.now().millisecondsSinceEpoch - lastHeadingMs < ahrsStaleMs;
 }

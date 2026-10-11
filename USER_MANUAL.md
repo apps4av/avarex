@@ -266,7 +266,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **Obstacles** (under Nav) | Obstacle markers (red squares) in your vicinity. |
 | **Tape** (under Nav) | Distance tape labels from ownship upward in NM. |
 | **GeoJSON** | Imported user GeoJSON polygons/markers. |
-| **PFD** | Inset Primary Flight Display panel (artificial horizon, speed/altitude tapes, VSI, compass, CDI/VDI, AOA indicator, turn coordinator). Requires AHRS data. |
+| **PFD** | Inset Primary Flight Display panel (artificial horizon, speed/altitude tapes, VSI, compass, CDI/VDI, AOA indicator, turn coordinator). Requires AHRS data. Within 10 NM of a runway you are lined up with, the runway is drawn in 3D behind the horizon from the pilot's perspective (pavement, edges, displaced threshold arrows and bar, threshold stripes, 1000-ft aiming point markers, centerline dashes) with the runway number and distance to the threshold. |
 | **Tracks** | Ownship breadcrumb/polyline track recording (green line). |
 
 ![Map Layers popup — adjust opacity sliders for each layer](assets/docs/screenshots/02_map_layers_popup.png)
@@ -275,6 +275,7 @@ Notes:
 
 - Turning **Tracks** layer OFF saves a KML track file into Documents/tracks and clears active track recording.
 - **PFD** requires AHRS data from GDL90-compatible devices to show attitude.
+- The **PFD** synthetic runway is picked automatically from the closest airport (or the plan's active airport waypoint): the runway end whose heading is within 45° of your track, with you inside 35° of its extended centerline, up to 10 NM out. It is positioned from GPS position and altitude and the runway's database coordinates, elevation, and displaced threshold. With live AHRS it moves with pitch, roll, and heading exactly like the horizon line; without AHRS it is drawn level along the GPS track. It is an aid, not a substitute for an approved approach.
 
 ### 4.6 Instrument overlay (movable tiles)
 

@@ -1,6 +1,7 @@
 import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/instruments/gpws_alerts.dart';
+import 'package:avaremp/instruments/pfd_runway.dart';
 import 'package:avaremp/instruments/runway_awareness.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/elevation_cache.dart';
@@ -25,6 +26,7 @@ class Area {
   GlideProfile glideProfile = GlideProfile();
   GpwsAlerts? _gpwsAlerts;
   RunwayAwareness? _runwayAwareness;
+  final PfdRunwaySelector _pfdRunway = PfdRunwaySelector();
 
   Future<void> update(Position position) async {
     double geo = 0;
@@ -36,6 +38,8 @@ class Area {
     if(d.isNotEmpty) {
       closestAirport = d[0];
     }
+    // candidate runways for the PFD synthetic runway
+    await _pfdRunway.loadAirports(closestAirport);
 
     final List<String> layers = Storage().settings.getLayers();
     final List<double> layersOpacity = Storage().settings.getLayersOpacity();
@@ -96,6 +100,11 @@ class Area {
       position: Storage().position,
       closestAirport: closestAirport,
     );
+  }
+
+  /// Pick the runway end to draw behind the PFD. Driven at 1 Hz from Storage.
+  void updatePfdRunway() {
+    _pfdRunway.update(Storage().position);
   }
 
   (double?, double?) getWind(double altitude) {
