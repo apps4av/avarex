@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:avaremp/gdl90/adsb_status_screen.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
-import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/plan/waypoint.dart';
@@ -28,23 +28,6 @@ class InstrumentList extends StatefulWidget {
       return double.infinity;
     }
     return 3600 * distance / groundSpeed;
-  }
-
-  static double angularDifference(double hdg, double brg) {
-    double absDiff = (hdg - brg).abs();
-    if(absDiff > 180) {
-      return 360 - absDiff;
-    }
-    return absDiff;
-  }
-
-  static bool leftOfCourseLine(double bT, double bC) {
-    if(bC <= 180) {
-      return (bT >= bC && bT <= bC + 180);
-    }
-
-    // brgCourse will be > 180 at this point
-    return (bT > bC || bT < bC - 180);
   }
 
 }
@@ -127,68 +110,17 @@ class InstrumentListState extends State<InstrumentList> {
       _distance = _truncate(_distanceFormat(distance));
       _bearing = _truncate("${bearing.round().toString()}\u00b0");
       Storage().pfdData.to = bearing;
+      Cdi.updatePfd();
+      Vdi.updatePfd();
 
-      // CDI
       Waypoint? next = Storage().route.getCurrentWaypoint();
-      Waypoint? prev = Storage().route.getLastWaypoint();
-
-      double cdi = 0;
-      if (next != null && prev != null) {
-        LatLng prevCoordinate = prev.destination.coordinate;
-        LatLng nextCoordinate = next.destination.coordinate;
-
-        // The bearing from our CURRENT location to the target
-        double brgOrg = GeoCalculations.getMagneticHeading(GeoCalculations().calculateBearing(prevCoordinate, nextCoordinate), variation);
-        double brgCur = bearing;
-        double brgDif = InstrumentList.angularDifference(brgOrg, brgCur);
-        // Distance from our CURRENT position to the destination
-        double dstCur = distance;
-
-        // calculate deviation based on bearing diff and distance
-        double deviation = dstCur * sin(brgDif * pi / 180); // nm
-        // now find course deviation in degrees based on distance and deviation
-        cdi = atan2(deviation, dstCur) * 180 / pi;
-
-        // if distance is less than 15 miles then multiple by 4 for LOC sensitivity
-        cdi = dstCur < 15 ? min(cdi * 4, 5) : min(cdi, 5);
-
-        // Now determine whether we are LEFT.
-        // Account for REVERSE SENSING if we are already BEYOND the target (>90deg)
-        bool bLeftOfCourseLine = InstrumentList.leftOfCourseLine(brgCur,  brgOrg);
-        if ((bLeftOfCourseLine && brgDif <= 90) || (!bLeftOfCourseLine && brgDif >= 90)) {
-          cdi = -cdi;
-        }
-      }
-      Storage().pfdData.cdi = -cdi;
-
-      // VDI
-
-      double vdi = 0;
-      double relativeAGL = 0;
-
       if(next != null) {
-        // Fetch the elevation of our destination. If we can't find it
-        // then we don't want to display any vertical information
-        double? destElev = next.destination is AirportDestination ? (next.destination as AirportDestination).elevation : null;
-
-        if(destElev != null) {
-          // Calculate our relative AGL compared to destination. If we are
-          // lower then no display info
-          relativeAGL = Storage().units.mToF * Storage().position.altitude - destElev;
-
-          // Convert the destination distance to feet.
-          double destDist = distance;
-          double destInFeet = destDist * 6076.12;
-
-          // Figure out our glide slope now based on our AGL height and distance
-          vdi = atan(relativeAGL / destInFeet) * 180 / pi;
-          if(vdi >= PfdPainter.vnavHigh) {
-            vdi = PfdPainter.vnavHigh;
-          }
-          else if(vdi <= PfdPainter.vnavLow) {
-            vdi = PfdPainter.vnavLow;
-          }
-        }
+        double? destElev = next.destination is AirportDestination
+            ? (next.destination as AirportDestination).elevation
+            : null;
+        double relativeAGL = destElev == null
+            ? 0
+            : Storage().units.mToF * Storage().position.altitude - destElev;
 
         // Live GPS speed is already ground speed, so do not apply forecast
         // winds again when calculating time to the active waypoint.
@@ -229,7 +161,6 @@ class InstrumentListState extends State<InstrumentList> {
           _vsr = "-";
         }
       }
-      Storage().pfdData.vdi = vdi;
       double? elevation = Storage().area.elevation;
       _gel = elevation == null ? "DL" : _truncate(elevation.round().toString());
     });

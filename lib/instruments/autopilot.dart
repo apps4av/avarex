@@ -1,6 +1,5 @@
-import 'dart:math';
-
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/nmea/bod_packet.dart';
 import 'package:avaremp/nmea/gga_packet.dart';
@@ -42,37 +41,16 @@ class AutoPilot {
 
     List<Destination> destinations = Storage().route.getAllDestinations();
     Waypoint? wp = Storage().route.getCurrentWaypoint();
+    Destination? prev = Storage().route.getPreviousDestination();
+    final CdiLeg? leg = Cdi.resolve(
+      position: currentPosition,
+      current: wp?.destination,
+      previous: prev,
+      destinations: destinations,
+    );
 
-    // there is no concept of destination without plan in X.
-    if (wp != null) {
-      Destination next = wp.destination;
-      Destination? prev = Storage().route.getPreviousDestination();
-      
-      // When on the first leg of a flight plan (no previous waypoint), we need to 
-      // navigate TO the second waypoint using the first waypoint as the origin.
-      // This ensures the autopilot follows the defined course line (purple) between
-      // waypoints, not a direct-to line (brown) from current position.
-      LatLng origin;
-      if (prev != null) {
-        // Normal case: use previous waypoint as origin
-        origin = prev.coordinate;
-      } else if (destinations.length > 1) {
-        // First leg of multi-waypoint plan: origin is first waypoint, 
-        // target is second waypoint
-        int currentIndex = destinations.indexWhere((d) => d == next);
-        if (currentIndex == 0) {
-          // Current waypoint is the first destination - navigate to the second
-          origin = destinations[0].coordinate;
-          next = destinations[1];
-        } else {
-          // Current waypoint is not first, but prev is null (shouldn't happen normally)
-          origin = destinations[0].coordinate;
-        }
-      } else {
-        // True direct-to (single destination) - use current position
-        origin = currentPosition;
-      }
-      
+    if (leg != null) {
+      Destination next = leg.next;
       String startID = prev?.locationID ?? (destinations.isNotEmpty ? destinations[0].locationID : "");
       String endID = next.locationID;
 
@@ -86,73 +64,31 @@ class AutoPilot {
         endID = "gDST";
       }
 
-      double brgOrig = GeoCalculations().calculateBearing(
-          origin,
-          next.coordinate);
-
-      double bearing = GeoCalculations().calculateBearing(
-          currentPosition,
-          next.coordinate);
-
-      double distance = Distance().distance(currentPosition, next.coordinate) / 1851.9993; // in nm
-
-      // Calculate how many nm we are to the side of the course line
-      double deviation = distance *
-          sin(GeoCalculations.toRadians(_angularDifference(brgOrig, bearing)));
-
-      // If we are to the left of the course line, then make our deviation negative.
-      if (_leftOfCourseLine(bearing, brgOrig)) {
-        deviation = -deviation;
-      }
-
       int indexCurrent = destinations.indexWhere((element) => element == next);
       bool planComplete = indexCurrent >= 0 &&
           destinations.length == indexCurrent + 1;
 
-      // We now have all the info to create NMEA packet #3
       RMBPacket rmbPacket = RMBPacket(
-        distance,
-        bearing,
+        leg.distance,
+        leg.targetBearing,
         next.coordinate.longitude,
         next.coordinate.latitude,
         endID,
         startID,
-        deviation,
+        leg.crossTrackNm,
         speedKnots,
         planComplete,
       );
       apText += rmbPacket.packet;
 
-      // Now for the final NMEA packet
       BODPacket bodPacket = BODPacket(
         endID,
         startID,
-        brgOrig,
-        GeoCalculations.getMagneticHeading(brgOrig, (next.geoVariation == null ? Storage().area.variation : next.geoVariation!)),
+        leg.courseBearing,
+        GeoCalculations.getMagneticHeading(leg.courseBearing, (next.geoVariation == null ? Storage().area.variation : next.geoVariation!)),
       );
       apText += bodPacket.packet;
     }
     return apText;
-  }
-
-  static double _angularDifference(double hdg, double brg) {
-    double absDiff = (hdg - brg).abs();
-    if (absDiff > 180) {
-      return 360 - absDiff;
-    }
-    return absDiff;
-  }
-
-  /// Is the brgTrue to the left of the brgCourse line (extended).
-  /// @param bT true bearing to destination from current location
-  /// @param bC bearing on current COURSE line
-  /// @return true if it is LEFT, false if RIGHT
-  static bool _leftOfCourseLine(double bT, double bC) {
-    if (bC <= 180) {
-      return (bT >= bC && bT <= bC + 180);
-    }
-
-    // brgCourse will be > 180 at this point
-    return (bT > bC || bT < bC - 180);
   }
 }

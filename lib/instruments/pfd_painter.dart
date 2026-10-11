@@ -592,7 +592,8 @@ class PfdPainter extends CustomPainter {
     path.lineTo(_x(-5), _y(-80));
     path.lineTo(_x(5), _y(-80));
     canvas.drawPath(path, paintFill);
-    drawLine(_x(pfd.cdi * 5), _y(-105), _x(pfd.cdi * 5), _y(-85), paintStroke);
+    final double cdi = pfd.displayedCdi;
+    drawLine(_x(cdi * 5), _y(-105), _x(cdi * 5), _y(-85), paintStroke);
     canvas.restore();
 
 
@@ -1065,7 +1066,10 @@ class PfdData {
   double altitude = 0;
   double altitudeChange = 0;
   double vsi = 0;
-  double cdi = 0;
+  /// Preferred CDI (dots, ±5). Null until a source publishes one.
+  double? cdi;
+  /// GPS-derived CDI used when [cdi] has been unset for [ahrsStaleMs].
+  double gpsCdi = 0;
   double turnTrend = 0;
   double to = 0;
   double vdi = 0;
@@ -1073,6 +1077,8 @@ class PfdData {
   /// Wall clock (ms) of the last ADS-B AHRS pitch/roll and heading samples.
   int lastAttitudeMs = 0;
   int lastHeadingMs = 0;
+  /// Wall clock (ms) of the last preferred CDI publish.
+  int lastCdiMs = 0;
 
   /// Runway end chosen for the synthetic-vision background, or null.
   PfdRunwayEnd? runway;
@@ -1084,6 +1090,26 @@ class PfdData {
       DateTime.now().millisecondsSinceEpoch - lastAttitudeMs < ahrsStaleMs;
   bool get ahrsHeadingLive =>
       DateTime.now().millisecondsSinceEpoch - lastHeadingMs < ahrsStaleMs;
+  bool get cdiLive =>
+      cdi != null &&
+      DateTime.now().millisecondsSinceEpoch - lastCdiMs < ahrsStaleMs;
+
+  /// Needle value: preferred [cdi] while live, otherwise the GPS calculation.
+  double get displayedCdi {
+    final double value = cdiLive ? cdi! : gpsCdi;
+    if (value > 5) {
+      return 5;
+    }
+    if (value < -5) {
+      return -5;
+    }
+    return value;
+  }
+
+  void setCdi(double value) {
+    cdi = value;
+    lastCdiMs = DateTime.now().millisecondsSinceEpoch;
+  }
 }
 
 /// Heightmap sampled from elevation tiles. [elevFt] is row-major

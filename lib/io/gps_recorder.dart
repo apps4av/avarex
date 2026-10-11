@@ -1,6 +1,6 @@
 
 import 'package:avaremp/utils/geo_calculations.dart';
-import 'package:avaremp/instruments/instrument_list.dart';
+import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
 import 'package:geolocator/geolocator.dart';
@@ -127,7 +127,7 @@ class GpsRecorder {
     }
 
     // If the bearing is 15 degrees or more different - that's 24 samples per 360 turn
-    if(InstrumentList.angularDifference(heading, _last.heading) > 15) {
+    if(Cdi.angularDifference(heading, _last.heading) > 15) {
       recordPoint = true;
     }
 
