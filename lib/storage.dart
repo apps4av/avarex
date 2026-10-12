@@ -27,6 +27,7 @@ import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/nmea/nmea_ownship_message.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/plan/hold.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/utils/stack_with_one.dart';
 import 'package:avaremp/utils/unit_conversion.dart';
@@ -122,6 +123,15 @@ class Storage {
 
   final PlanRoute _route = PlanRoute("New Plan");
   PlanRoute get route => _route;
+
+  /// Holding pattern drawn on the map from the destination popup. One at a time.
+  final ValueNotifier<int> holdChange = ValueNotifier<int>(0);
+  HoldPattern? hold;
+
+  void setHold(HoldPattern? pattern) {
+    hold = pattern;
+    holdChange.value++;
+  }
   // Signature of the last active plan persisted to settings. Used to only write
   // to user.db when the plan or its current index actually changes.
   String _lastSavedPlanSignature = "";

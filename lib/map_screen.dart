@@ -22,6 +22,7 @@ import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/instruments/pfd_painter.dart';
+import 'package:avaremp/plan/hold.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/airep.dart';
@@ -1327,6 +1328,8 @@ class MapScreenState extends State<MapScreen> {
 
     } // all nav layers
 
+    layers.addAll(_holdLayers());
+
     // Ruler — always present at full opacity. Previous code reused the
     // surrounding `opacity` variable (last set by the Nav layer above), so
     // hiding the Nav layer would also hide the ruler.
@@ -1838,6 +1841,106 @@ class MapScreenState extends State<MapScreen> {
             });
             Storage().settings.setLayersOpacity(_layersOpacity);
           },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _holdLayers() {
+    final Listenable listen = Listenable.merge([
+      Storage().holdChange,
+      Storage().gpsChange,
+    ]);
+    HoldShape? shape() {
+      final HoldPattern? hold = Storage().hold;
+      if (hold == null) {
+        return null;
+      }
+      return buildHoldShape(
+        hold: hold,
+        aircraft: Gps.toLatLng(Storage().position),
+        variation: Storage().area.variation,
+      );
+    }
+
+    return [
+      IgnorePointer(child: AnimatedBuilder(
+        animation: listen,
+        builder: (context, _) {
+          final HoldShape? drawn = shape();
+          if (drawn == null) {
+            return const PolylineLayer<Never>(polylines: []);
+          }
+          final List<Polyline<Never>> lines = [
+            Polyline<Never>(
+              points: drawn.pattern,
+              strokeWidth: 4,
+              color: Constants.holdPatternColor,
+              borderStrokeWidth: 2,
+              borderColor: Constants.planBorderColor,
+              strokeCap: StrokeCap.round,
+            ),
+          ];
+          if (drawn.entry.length >= 2) {
+            lines.add(Polyline<Never>(
+              points: drawn.entry,
+              strokeWidth: 4,
+              color: Constants.holdEntryColor,
+              borderStrokeWidth: 2,
+              borderColor: Constants.planBorderColor,
+              strokeCap: StrokeCap.round,
+            ));
+          }
+          return PolylineLayer<Never>(polylines: lines);
+        },
+      )),
+      IgnorePointer(child: AnimatedBuilder(
+        animation: listen,
+        builder: (context, _) {
+          final HoldPattern? hold = Storage().hold;
+          final HoldShape? drawn = shape();
+          if (hold == null || drawn == null) {
+            return const MarkerLayer(markers: []);
+          }
+          return MarkerLayer(
+            markers: [
+              Marker(
+                point: drawn.entryPoint,
+                width: 16,
+                height: 16,
+                alignment: Alignment.center,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Constants.holdEntryColor,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+              for (final HoldArrow arrow in drawn.turnArrows)
+                _holdArrow(arrow, Colors.white),
+              for (final HoldArrow arrow in drawn.entryArrows)
+                _holdArrow(arrow, Colors.white),
+            ],
+          );
+        },
+      )),
+    ];
+  }
+
+  Marker _holdArrow(HoldArrow arrow, Color color) {
+    return Marker(
+      point: arrow.at,
+      width: 22,
+      height: 22,
+      alignment: Alignment.center,
+      child: Transform.rotate(
+        angle: arrow.trueCourse * pi / 180,
+        child: Icon(
+          Icons.arrow_upward,
+          size: 18,
+          color: color,
+          shadows: const [Shadow(color: Colors.black, blurRadius: 2)],
         ),
       ),
     );

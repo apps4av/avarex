@@ -21,6 +21,7 @@ This manual documents all features in the current AvareX app, including:
 - Draw the lined-up runway in 3D on the PFD within 10 NM.
 - Hold the PFD OBS knobs to set a course; the Nav course line and CDI follow, and a double-tap returns to the GPS course.
 - Coast ownship after the last GPS fix until the No GPS lock warning, then freeze.
+- Draw a holding pattern from the Hold button beside a fix or navaid name on the Main tab. A dialog sets the inbound course, turn direction, and a 1.5, 2, 3, or 4 NM leg.
 
 **0.0.130**
 
@@ -404,7 +405,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 
 Possible tabs:
 
-- **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs). Each runway end is a circle (green is best for the current wind). Right traffic shows `RP` under the runway number; left traffic has no pattern mark.
+- **Main**: destination summary (airport info, runway diagram, or VOR/navaid info with nearby VORs). Each runway end is a circle (green is best for the current wind). Right traffic shows `RP` under the runway number; left traffic has no pattern mark. For a fix or navaid, the name and type (such as `YREPPOINT, GPS`) has **Hold** beside it. That opens a dialog for a holding pattern at this fix: inbound course, **Right** (standard) or **Left** turns, and a straight-leg length of **1.5**, **2**, **3**, or **4 NM** (default 4). **Draw on Map** draws a standard-rate racetrack; the turns use your ground speed (90 kt if you are slower than 60). Arrows on the two turns show the direction of flight. An orange dot on the fix is the entry point. Parallel and teardrop draw that entry from the fix, with arrows along it for the direction of travel. **Clear hold** removes it. One hold at a time.
 - **AD**: airport diagram/runway depiction (interactive viewer with zoom)
 - **METAR**: METAR + TAF text with flight category color indicator
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
@@ -1437,6 +1438,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Show recent ATC routes | `PLAN → Create → Show IFR ATC Routes` |
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
+| Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
 | Delete airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW → trash icon` |
@@ -1818,6 +1820,7 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
 5. From the destination popup you can:
    - **→D** Direct-To this destination
    - **+Plan** insert into the current plan after the active waypoint
+   - **Hold** beside the name and type on the Main tab of a fix or navaid opens the holding-pattern dialog
    - **↓Plan** append to the end of the plan
    - **Plates** (airports) jump to PLATE tab at this airport
 

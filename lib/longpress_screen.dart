@@ -7,6 +7,7 @@ import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/place/saa.dart';
+import 'package:avaremp/plan/hold_tab.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/destination/nav.dart';
 import 'package:avaremp/utils/toast.dart';
@@ -236,7 +237,6 @@ class LongPressScreenState extends State<LongPressScreen> {
         },
       );
     } else {
-      String type = "${showDestination.type}\n\n";
       if (future.navs != null && future.navs!.isNotEmpty) {
         List<Widget> navRows = [];
         for (NavDestination nav in future.navs!) {
@@ -280,14 +280,10 @@ class LongPressScreenState extends State<LongPressScreen> {
         Widget navList = ListView(
           children: navRows,
         );
-        pages[labels.indexOf("Main")] =
-            Padding(padding: const EdgeInsets.all(10), child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(type, style: const TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              Expanded(child: navList),
-            ])
-            );
+        pages[labels.indexOf("Main")] = Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+          child: navList,
+        );
       }
     }
 
@@ -365,6 +361,56 @@ class LongPressScreenState extends State<LongPressScreen> {
       pages[labels.indexOf("Business")] = AirportBusinessesTab(
           airport: showDestination.locationID,
           origin: showDestination.coordinate);
+    }
+
+    if (!isAirport) {
+      final int main = labels.indexOf("Main");
+      final Widget? mainPage = pages[main];
+      final String facility = showDestination.facilityName.trim();
+      final String ident = facility.isNotEmpty &&
+              facility.toUpperCase() != showDestination.type.toUpperCase()
+          ? facility
+          : showDestination.locationID.trim();
+      pages[main] = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 4, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "$ident, ${showDestination.type}",
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => HoldSetup.open(
+                    context,
+                    fix: showDestination.coordinate,
+                    name: showDestination.locationID,
+                  ),
+                  child: const Text("Hold"),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: mainPage ?? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, size: 48, color: Theme.of(context).colorScheme.outline),
+                  const SizedBox(height: 8),
+                  Text("No data available", style: TextStyle(color: Theme.of(context).colorScheme.outline)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     return Scaffold(
