@@ -15,6 +15,13 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.131**
+
+- Draw Elevation terrain in 3D behind the PFD horizon.
+- Draw the lined-up runway in 3D on the PFD within 10 NM.
+- Hold the PFD OBS knobs to set a course; the Nav course line and CDI follow, and a double-tap returns to the GPS course.
+- Coast ownship after the last GPS fix until the No GPS lock warning, then freeze.
+
 **0.0.130**
 
 - Fixed ETA and ETE to use live ground speed.
@@ -1490,6 +1497,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
 | Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
+| PFD terrain and synthetic runway | `MAP → Layers → PFD > 0` (Elevation charts for terrain; runway when lined up within 10 NM) |
+| Set an OBS course | `MAP → PFD → hold an OBS knob` (double-tap either knob to return to the GPS course) |
 | Enable Game TFR overlay | `MAP → Layers → Game TFR slider > 0` |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
