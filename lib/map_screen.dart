@@ -1413,7 +1413,7 @@ class MapScreenState extends State<MapScreen> {
                             width:width,
                             height: height,
                             child: ClipRRect(
-                                borderRadius: const BorderRadius.only( bottomRight: Radius.circular(40)),
+                                borderRadius: const BorderRadius.only( bottomRight: Radius.zero),
                                 child:Opacity(opacity: _layersOpacity[_layers.indexOf('PFD')],
                                     child:RepaintBoundary(child: PfdView(
                                         height: height,

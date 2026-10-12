@@ -191,6 +191,12 @@ class Cdi {
     Storage().pfdChange.value++;
   }
 
+  /// Step the OBS course. Starts from the current course when OBS is unset.
+  static void nudgeObs(double deltaDeg) {
+    final PfdData pfd = Storage().pfdData;
+    setObs(((pfd.obs ?? pfd.to) + deltaDeg + 360) % 360);
+  }
+
   /// Publish the current GPS/route CDI onto [PfdData].
   static void updatePfd() {
     final Destination? current =
