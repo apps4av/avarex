@@ -1405,6 +1405,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
   - **Auto**: Prefers external GPS when available, falls back to internal after 30s timeout. Shows `Internal-A` or `External-A`.
   - **Internal**: Uses only internal GPS, discards external GPS data. Shows `Internal` with green background.
   - **External**: Uses only external GPS, discards internal GPS data. Shows `External` with blue background.
+- After the last GPS, ADS-B, or NMEA fix, ownship heading, speed, altitude, and position keep coasting until the **No GPS lock** warning (60 seconds with no fix from either source) so the aircraft symbol does not jump or spin at rest or during a brief signal loss. When that warning appears, coasting stops and ownship freezes.
 - Flight status tracks taxi/airborne transitions and accumulates flight time.
 - External autopilot/NMEA sentence output is generated continuously while app is running and IO connection exists.
 - Track recording continues while Tracks layer is enabled; saves to KML when layer is turned off.

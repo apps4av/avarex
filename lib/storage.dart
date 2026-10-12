@@ -55,6 +55,7 @@ import 'instruments/flight_timer.dart';
 import 'gdl90/message.dart';
 import 'utils/geojson_parser.dart';
 import 'io/gps.dart';
+import 'io/gps_kalman.dart';
 import 'nmea/nmea_buffer.dart';
 import 'nmea/nmea_message.dart';
 import 'nmea/nmea_message_factory.dart';
@@ -200,6 +201,7 @@ class Storage {
 
   // gps
   final _gps = Gps();
+  final GpsKalman _gpsKalman = GpsKalman();
   final _udpReceiver = UdpReceiver();
   // where all data is place. This is set on init in main
   late String dataDir;
@@ -532,7 +534,7 @@ class Storage {
       _adsbWasConnected = adsbConnected;
 
       Position positionIn = _gpsStack.pop(); // used for testing and injecting GPS location
-      position = Gps.clone(positionIn, area.geoAltitude);
+      position = Gps.clone(_gpsKalman.apply(positionIn), area.geoAltitude);
       gpsChange.value = position; // tell everyone
 
       // update flight status
@@ -550,7 +552,7 @@ class Storage {
       }
 
       int diff = now - _lastMsGpsSignal;
-      if (diff > 2 * gpsSwitchoverTimeMs) { // no GPS signal from both sources, send warning
+      if (diff > GpsKalman.predictLimit.inMilliseconds) { // no GPS signal from both sources, send warning
         gpsNoLock = true;
       }
       else {
