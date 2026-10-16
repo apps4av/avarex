@@ -7,6 +7,7 @@ import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/map_screen.dart';
 import 'package:avaremp/place/saa.dart';
+import 'package:avaremp/place/airspace_3d_view.dart';
 import 'package:avaremp/plan/hold_tab.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/destination/nav.dart';
@@ -66,7 +67,7 @@ class LongPressFuture {
 class LongPressScreenState extends State<LongPressScreen> {
 
   int _index = 0;
-  static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "ST", "Business"];
+  static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "3D", "ST", "Business"];
 
   late Future<LongPressFuture> _loadFuture;
 
@@ -336,6 +337,10 @@ class LongPressScreenState extends State<LongPressScreen> {
       }
     }
 
+    pages[labels.indexOf("3D")] = Airspace3DView(
+      center: showDestination.coordinate,
+      ownship: Storage().gpsChange,
+    );
     pages[labels.indexOf("ST")] = Sounding.getSoundingImage(showDestination.coordinate, context);
 
     if (future.saa.isNotEmpty) {

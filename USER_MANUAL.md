@@ -415,6 +415,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A 00-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `00` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 00-500`). The ownship is a dot that moves with the aircraft while it is inside this 25 NM area. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -1442,6 +1443,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Show recent ATC routes | `PLAN → Create → Show IFR ATC Routes` |
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
+| 3D Class B/C/D, restricted, warning, prohibited, and MOA airspace | Destination popup `3D` tab (after `Wind`, before `ST`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
