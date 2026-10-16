@@ -8,9 +8,13 @@ import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 
-/// Which of the live flight items to store with a profile. Each is off unless
-/// the pilot checks it, so applying a profile leaves the others alone.
+/// Which live items to store with a profile. Layers, weather, traffic volume,
+/// and instruments start checked. The others start unchecked.
 class ProfileSaveOptions {
+  final bool layers;
+  final bool weather;
+  final bool traffic;
+  final bool instruments;
   final bool plan;
   final bool plate;
   final bool chartType;
@@ -18,6 +22,10 @@ class ProfileSaveOptions {
   final bool checklist;
 
   const ProfileSaveOptions({
+    this.layers = true,
+    this.weather = true,
+    this.traffic = true,
+    this.instruments = true,
     this.plan = false,
     this.plate = false,
     this.chartType = false,
@@ -113,10 +121,73 @@ class ProfileStore {
     return name.isEmpty ? 'None' : name;
   }
 
-  /// Short line of the optional items a profile will restore.
+  static String currentLayersLabel() {
+    final settings = Storage().settings;
+    return _onNames(settings.getLayers(), settings.getLayersOpacity());
+  }
+
+  static String currentWeatherLabel() {
+    final settings = Storage().settings;
+    return _onNames(
+        settings.getWeatherProducts(), settings.getWeatherProductsOpacity());
+  }
+
+  static String currentTrafficLabel() {
+    final String size = Storage().settings.getTrafficPuckSize().trim();
+    const Map<String, String> detail = {
+      'S': '20 aircraft, 3000 ft, 10 NM',
+      'M': '200 aircraft, 6000 ft, 50 NM',
+      'L': '1000 aircraft, 30000 ft, 500 NM',
+    };
+    if (size.isEmpty) {
+      return 'None';
+    }
+    final String extra = detail[size] ?? '';
+    return extra.isEmpty ? size : '$size · $extra';
+  }
+
+  static String currentInstrumentsLabel() {
+    final String visible = Storage().settings.getInstrumentVisible().trim();
+    return visible.isEmpty ? 'Default' : visible;
+  }
+
+  static String _onNames(List<String> names, List<double> opacity) {
+    final List<String> on = [];
+    for (int i = 0; i < names.length; i++) {
+      final double value = i < opacity.length ? opacity[i] : 0;
+      if (value > 0 && names[i].isNotEmpty) {
+        on.add(names[i]);
+      }
+    }
+    return on.isEmpty ? 'Off' : on.join(', ');
+  }
+
+  /// Profiles saved before the checkboxes have the data and no flag.
+  static bool _included(
+      Map<String, String> saved, String flag, String dataKey) {
+    if (saved[flag] == 'true') {
+      return true;
+    }
+    return !saved.containsKey(flag) && saved.containsKey(dataKey);
+  }
+
+  /// Short line of the items a profile will restore.
   static String includedSummary(SettingsProfile profile) {
     final Map<String, String> saved = profile.settings;
     final List<String> parts = [];
+    if (_included(saved, 'saveLayers', 'layers')) {
+      parts.add('Layers');
+    }
+    if (_included(saved, 'saveWeather', 'weatherProducts')) {
+      parts.add('Weather');
+    }
+    if (_included(saved, 'saveTraffic', 'trafficPuckSize')) {
+      final String size = (saved['trafficPuckSize'] ?? '').trim();
+      parts.add(size.isEmpty ? 'Traffic volume' : 'Traffic: $size');
+    }
+    if (_included(saved, 'saveInstruments', 'instruments')) {
+      parts.add('Instruments');
+    }
     if (saved['savePlan'] == 'true') {
       final String name =
           (saved['planLabel'] ?? saved['planName'] ?? '').trim();
@@ -158,23 +229,37 @@ class ProfileStore {
 
   static Map<String, String> _capture(ProfileSaveOptions options) {
     final settings = Storage().settings;
-    final Map<String, String> captured = {
-      'layers': settings.getLayers().join(','),
-      'layersOpacity':
-          settings.getLayersOpacity().map((double e) => e.toString()).join(','),
-      'weatherProducts': settings.getWeatherProducts().join(','),
-      'weatherProductsOpacity': settings
+    final Map<String, String> captured = {};
+    if (options.layers) {
+      captured['saveLayers'] = 'true';
+      captured['layers'] = settings.getLayers().join(',');
+      captured['layersOpacity'] =
+          settings.getLayersOpacity().map((double e) => e.toString()).join(',');
+    }
+    if (options.weather) {
+      captured['saveWeather'] = 'true';
+      captured['weatherProducts'] = settings.getWeatherProducts().join(',');
+      captured['weatherProductsOpacity'] = settings
           .getWeatherProductsOpacity()
           .map((double e) => e.toString())
-          .join(','),
-      'trafficPuckSize': settings.getTrafficPuckSize(),
-      'instruments': settings.getInstruments(),
-      'instrumentsVisible': settings.getInstrumentVisible(),
-      'instrumentPositionsPortrait': settings.getInstrumentPositions(true),
-      'instrumentPositionsLandscape': settings.getInstrumentPositions(false),
-      'instrumentScaleFactor': settings.getInstrumentScaleFactor().toString(),
-      'instrumentsLocked': settings.isInstrumentsLocked().toString(),
-    };
+          .join(',');
+    }
+    if (options.traffic) {
+      captured['saveTraffic'] = 'true';
+      captured['trafficPuckSize'] = settings.getTrafficPuckSize();
+    }
+    if (options.instruments) {
+      captured['saveInstruments'] = 'true';
+      captured['instruments'] = settings.getInstruments();
+      captured['instrumentsVisible'] = settings.getInstrumentVisible();
+      captured['instrumentPositionsPortrait'] =
+          settings.getInstrumentPositions(true);
+      captured['instrumentPositionsLandscape'] =
+          settings.getInstrumentPositions(false);
+      captured['instrumentScaleFactor'] =
+          settings.getInstrumentScaleFactor().toString();
+      captured['instrumentsLocked'] = settings.isInstrumentsLocked().toString();
+    }
     if (options.plan) {
       final route = Storage().route;
       captured['savePlan'] = 'true';
@@ -218,56 +303,65 @@ class ProfileStore {
       return;
     }
 
-    final List<double>? layerOpacity = _mergedOpacity(
-      savedNames: saved['layers'],
-      savedOpacity: saved['layersOpacity'],
-      currentNames: settings.getLayers(),
-      currentOpacity: settings.getLayersOpacity(),
-    );
-    if (layerOpacity != null) {
-      settings.setLayers(settings.getLayers());
-      settings.setLayersOpacity(layerOpacity);
+    if (_included(saved, 'saveLayers', 'layers')) {
+      final List<double>? layerOpacity = _mergedOpacity(
+        savedNames: saved['layers'],
+        savedOpacity: saved['layersOpacity'],
+        currentNames: settings.getLayers(),
+        currentOpacity: settings.getLayersOpacity(),
+      );
+      if (layerOpacity != null) {
+        settings.setLayers(settings.getLayers());
+        settings.setLayersOpacity(layerOpacity);
+      }
     }
 
-    final List<double>? weatherOpacity = _mergedOpacity(
-      savedNames: saved['weatherProducts'],
-      savedOpacity: saved['weatherProductsOpacity'],
-      currentNames: settings.getWeatherProducts(),
-      currentOpacity: settings.getWeatherProductsOpacity(),
-    );
-    if (weatherOpacity != null) {
-      settings.setWeatherProducts(settings.getWeatherProducts());
-      settings.setWeatherProductsOpacity(weatherOpacity);
+    if (_included(saved, 'saveWeather', 'weatherProducts')) {
+      final List<double>? weatherOpacity = _mergedOpacity(
+        savedNames: saved['weatherProducts'],
+        savedOpacity: saved['weatherProductsOpacity'],
+        currentNames: settings.getWeatherProducts(),
+        currentOpacity: settings.getWeatherProductsOpacity(),
+      );
+      if (weatherOpacity != null) {
+        settings.setWeatherProducts(settings.getWeatherProducts());
+        settings.setWeatherProductsOpacity(weatherOpacity);
+      }
     }
 
-    final String? puck = saved['trafficPuckSize'];
-    if (puck != null) {
-      settings.setTrafficPuckSize(puck);
+    if (_included(saved, 'saveTraffic', 'trafficPuckSize')) {
+      final String? puck = saved['trafficPuckSize'];
+      if (puck != null) {
+        settings.setTrafficPuckSize(puck);
+      }
     }
 
-    final String? instruments = saved['instruments'];
-    if (instruments != null) {
-      settings.setInstruments(instruments);
-    }
-    final String? visible = saved['instrumentsVisible'];
-    if (visible != null) {
-      settings.setInstrumentVisible(visible);
-    }
-    final String? portrait = saved['instrumentPositionsPortrait'];
-    if (portrait != null) {
-      settings.setInstrumentPositions(true, portrait);
-    }
-    final String? landscape = saved['instrumentPositionsLandscape'];
-    if (landscape != null) {
-      settings.setInstrumentPositions(false, landscape);
-    }
-    final double? scale = double.tryParse(saved['instrumentScaleFactor'] ?? '');
-    if (scale != null) {
-      settings.setInstrumentScaleFactor(scale);
-    }
-    final String? locked = saved['instrumentsLocked'];
-    if (locked != null) {
-      settings.setInstrumentsLocked(locked == 'true');
+    if (_included(saved, 'saveInstruments', 'instruments')) {
+      final String? instruments = saved['instruments'];
+      if (instruments != null) {
+        settings.setInstruments(instruments);
+      }
+      final String? visible = saved['instrumentsVisible'];
+      if (visible != null) {
+        settings.setInstrumentVisible(visible);
+      }
+      final String? portrait = saved['instrumentPositionsPortrait'];
+      if (portrait != null) {
+        settings.setInstrumentPositions(true, portrait);
+      }
+      final String? landscape = saved['instrumentPositionsLandscape'];
+      if (landscape != null) {
+        settings.setInstrumentPositions(false, landscape);
+      }
+      final double? scale =
+          double.tryParse(saved['instrumentScaleFactor'] ?? '');
+      if (scale != null) {
+        settings.setInstrumentScaleFactor(scale);
+      }
+      final String? locked = saved['instrumentsLocked'];
+      if (locked != null) {
+        settings.setInstrumentsLocked(locked == 'true');
+      }
     }
 
     if (saved['savePlan'] == 'true' && saved['planRoute'] != null) {
@@ -381,6 +475,10 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
   final TextEditingController _name = TextEditingController();
   List<SettingsProfile> _profiles = [];
   bool _loading = true;
+  bool _saveLayers = true;
+  bool _saveWeather = true;
+  bool _saveTraffic = true;
+  bool _saveInstruments = true;
   bool _savePlan = false;
   bool _savePlate = false;
   bool _saveChartType = false;
@@ -421,6 +519,10 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     final bool saved = await ProfileStore.saveCurrent(
       stored,
       options: ProfileSaveOptions(
+        layers: _saveLayers,
+        weather: _saveWeather,
+        traffic: _saveTraffic,
+        instruments: _saveInstruments,
         plan: _savePlan,
         plate: _savePlate,
         chartType: _saveChartType,
@@ -484,7 +586,7 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Saves map layers, weather, traffic volume, and instruments. Checked items are stored with this profile and restored when it is applied.',
+                'Check the items to store with this profile. Applying the profile restores those items.',
                 style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.onSurfaceVariant),
@@ -523,16 +625,29 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
-          child: Text(
-            'Also save',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
+        _optionTile(
+          label: 'Layers',
+          value: ProfileStore.currentLayersLabel(),
+          checked: _saveLayers,
+          onChanged: (bool value) => setState(() => _saveLayers = value),
+        ),
+        _optionTile(
+          label: 'Weather',
+          value: ProfileStore.currentWeatherLabel(),
+          checked: _saveWeather,
+          onChanged: (bool value) => setState(() => _saveWeather = value),
+        ),
+        _optionTile(
+          label: 'Traffic volume',
+          value: ProfileStore.currentTrafficLabel(),
+          checked: _saveTraffic,
+          onChanged: (bool value) => setState(() => _saveTraffic = value),
+        ),
+        _optionTile(
+          label: 'Instruments',
+          value: ProfileStore.currentInstrumentsLabel(),
+          checked: _saveInstruments,
+          onChanged: (bool value) => setState(() => _saveInstruments = value),
         ),
         _optionTile(
           label: 'Plan',

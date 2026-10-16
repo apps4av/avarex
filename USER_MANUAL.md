@@ -15,14 +15,17 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.132**
+
+- Draw a holding pattern from the Hold button beside a fix or navaid name on the Main tab. A dialog sets the inbound course, turn direction, and a 1.5, 2, 3, or 4 NM leg.
+- A map profile saves whichever items are checked: layers, weather, traffic volume, instruments, plan, plate, chart type, aircraft, and checklist. Applying the profile restores those items.
+
 **0.0.131**
 
 - Draw Elevation terrain in 3D behind the PFD horizon.
 - Draw the lined-up runway in 3D on the PFD within 10 NM.
 - Hold the PFD OBS knobs to set a course; the Nav course line and CDI follow, and a double-tap returns to the GPS course.
 - Coast ownship after the last GPS fix until the No GPS lock warning, then freeze.
-- Draw a holding pattern from the Hold button beside a fix or navaid name on the Main tab. A dialog sets the inbound course, turn direction, and a 1.5, 2, 3, or 4 NM leg.
-- A map profile can also save the current plan, plate, chart type, aircraft, and checklist, and restore them when that profile is applied.
 
 **0.0.130**
 
@@ -215,7 +218,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
 - **North Up / Track Up**: shows the current orientation mode; tap to switch.
-- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply that profile's map layers, weather products, traffic volume, and instruments. If **Plan**, **Plate**, **Chart Type**, **Aircraft**, or **Checklist** was checked when the profile was saved, applying it restores those too.
+- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile.
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
@@ -976,12 +979,11 @@ Open: **Menu → Check Lists**
 
 Open: **MAP → Map Settings → Profiles**
 
-Stores named snapshots of map layers and opacity, weather products, traffic volume, and the instrument layout. It also shows the current **Plan**, **Plate**, **Chart Type**, **Aircraft**, and **Checklist**.
+Each checkbox stores the current value with the profile. **Layers**, **Weather**, **Traffic volume**, and **Instruments** start checked. **Plan**, **Plate**, **Chart Type**, **Aircraft**, and **Checklist** start unchecked. Applying the profile restores the checked items. The value in use is shown under each checkbox.
 
 - **Profile name**: text box for the profile name
-- **Save**: stores the current settings under that name. Saving an existing name replaces it.
-- **Also save**: check **Plan**, **Plate**, **Chart Type**, **Aircraft**, and/or **Checklist** to store the current value with the profile. The value in use is shown under each checkbox. Applying the profile restores only the items that were checked.
-- **Profile list**: tap the three-dot menu on a profile and choose **Delete** to remove it. A profile that includes any of those items shows them under its name.
+- **Save**: stores the checked items under that name. Saving an existing name replaces it.
+- **Profile list**: tap the three-dot menu on a profile and choose **Delete** to remove it. A profile shows the items it will restore under its name.
 - Apply a saved profile from the same `Profiles` list in `MAP → Map Settings` by tapping its name. That list shows the profile name. The `Profiles` heading opens this screen.
 
 ### 9.5 Log Book
