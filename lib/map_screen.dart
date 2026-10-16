@@ -1673,6 +1673,8 @@ class MapScreenState extends State<MapScreen> {
       _weatherProductsOpacity
         ..clear()
         ..addAll(Storage().settings.getWeatherProductsOpacity());
+      _type = Storage().settings.getChartType();
+      _maxZoom = ChartCategory.chartTypeToZoom(_type);
       _profileGeneration++;
     });
     Storage().trafficCache.changeArea(Storage().settings.getTrafficPuckSize());

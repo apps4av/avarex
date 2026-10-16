@@ -2,4 +2,4 @@ Draw Elevation terrain in 3D behind the PFD horizon.
 Draw the lined-up runway in 3D on the PFD within 10 NM.
 Hold the PFD OBS knobs to set a course; the Nav course line and CDI follow, and a double-tap returns to the GPS course.
 Coast ownship after the last GPS fix until the No GPS lock warning, then freeze.
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
+Draw a holding pattern from the Hold button beside a fix or navaid name on the Main tab. A dialog sets the inbound course, turn direction, and a 1.5, 2, 3, or 4 NM leg.
