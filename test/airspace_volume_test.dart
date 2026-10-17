@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 List<String> _tileSeamWalls(AirspaceScene scene, LatLng center) {
   final cosLat = math.cos(center.latitude * math.pi / 180).abs();
@@ -54,6 +55,38 @@ void main() {
     expect(AirspaceShelf.altitudeRange(2000, 4000), '20-40');
     expect(AirspaceShelf.altitudeRange(2500, 4300), '25-43');
     expect(AirspaceShelf.altitudeRange(0, 12500), '00-125');
+  });
+
+  test('obstacles inside 25 NM keep their MSL height in hundreds of feet', () {
+    const center = LatLng(42.9328, -71.4357);
+    final obstacles = obstaclesInView([
+      {'ARPLatitude': 43.17591, 'ARPLongitude': -71.20756, 'Height': 1548},
+      {'ARPLatitude': 42.9328, 'ARPLongitude': -71.4357, 'Height': 2049},
+      {'ARPLatitude': 44.0, 'ARPLongitude': -71.4357, 'Height': 900},
+      {'ARPLatitude': 42.95, 'ARPLongitude': -71.45, 'Height': 0},
+    ], center);
+    expect(obstacles.length, 2);
+    expect(obstacles.first.label, '15');
+    expect(obstacles.first.heightFt, 1548);
+    expect(obstacles.first.e, closeTo(10.02, 0.05));
+    expect(obstacles.first.n, closeTo(14.59, 0.05));
+    expect(obstacles.last.label, '20');
+    expect(
+      AirspaceScene(
+        radiusNm: airspaceViewRadiusNm,
+        shelves: const [],
+        obstacles: [AirspaceObstacle(e: 0, n: 0, heightFt: 6500)],
+      ).maxAltitudeFt,
+      6500,
+    );
+    expect(
+      AirspaceScene(
+        radiusNm: airspaceViewRadiusNm,
+        shelves: const [],
+        obstacles: [AirspaceObstacle(e: 0, n: 0, heightFt: 18000)],
+      ).maxAltitudeFt,
+      airspaceDisplayCapFt,
+    );
   });
 
   test('ownship is kept inside the view and dropped outside it', () {
@@ -137,6 +170,21 @@ void main() {
   });
 
   final mbtiles = Platform.environment['AVAREX_NASR_MBTILES'];
+  final mainDb = Platform.environment['AVAREX_MAIN_DB'];
+
+  test('Manchester obstacles are read from the main database', () async {
+    sqfliteFfiInit();
+    databaseFactory = databaseFactoryFfi;
+    final obstacles = await loadObstacles(mainDb!, const LatLng(42.9328, -71.4357));
+    expect(obstacles, isNotEmpty);
+    expect(obstacles.every((obstacle) => obstacle.e.abs() <= 25 && obstacle.n.abs() <= 25), isTrue);
+    expect(obstacles.every((obstacle) => obstacle.label == AirspaceShelf.altitudeHundreds(obstacle.heightFt)), isTrue);
+    final tallest = obstacles.reduce((a, b) => a.heightFt >= b.heightFt ? a : b);
+    expect(tallest.heightFt, 1548);
+    expect(tallest.label, '15');
+    expect(tallest.n, greaterThan(0));
+    expect(tallest.e, greaterThan(0));
+  }, skip: mainDb == null || mainDb.isEmpty ? 'Set AVAREX_MAIN_DB to the main.db path' : false);
   test('Atlanta Class B is read from the vector map', () {
     final scene = loadClassAirspace(mbtiles!, const LatLng(33.6407, -84.4277));
     expect(scene.message, isNull, reason: scene.message);
@@ -294,6 +342,27 @@ void main() {
       speedAccuracy: 0,
     );
   }
+
+  testWidgets('obstacles paint as part of the view', (tester) async {
+    const center = LatLng(42.9328, -71.4357);
+    final scene = AirspaceScene(
+      radiusNm: airspaceViewRadiusNm,
+      shelves: const [],
+      obstacles: [
+        AirspaceObstacle(e: 10, n: 14, heightFt: 1548),
+        AirspaceObstacle(e: -2, n: 1, heightFt: 2049),
+      ],
+    );
+    Airspace3DView.debugSetScene(center, scene);
+    addTearDown(() => Airspace3DView.debugSetScene(center, null));
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: Airspace3DView(center: center)),
+    ));
+    expect(find.textContaining('Drag to rotate'), findsOneWidget);
+    expect(find.textContaining('No Class B'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('ownship paints inside the area and is dropped outside it', (tester) async {
     const center = LatLng(42.0, -71.0);

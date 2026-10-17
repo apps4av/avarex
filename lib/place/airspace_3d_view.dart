@@ -11,7 +11,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:universal_io/io.dart';
 
-/// 3D Class B/C/D shelves around a long-press point.
+/// 3D Class B/C/D shelves and obstacles around a long-press point.
 ///
 /// Drag rotates, a pinch zooms, and two fingers pan.
 class Airspace3DView extends StatefulWidget {
@@ -110,6 +110,13 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     } else {
       // Yield so the progress indicator can paint before the tile decode.
       scene = await Future(() => loadClassAirspace(path, widget.center));
+      if (scene.message == null) {
+        final obstacles = await loadObstacles(
+          PathUtils.getFilePath(Storage().dataDir, 'main.db'),
+          widget.center,
+        );
+        scene = scene.copyWith(obstacles: obstacles);
+      }
     }
     if (!mounted || generation != _generation) {
       return;
@@ -143,7 +150,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (scene.message != null) {
       return _message(context, scene.message!);
     }
-    if (scene.shelves.isEmpty) {
+    if (scene.shelves.isEmpty && scene.obstacles.isEmpty) {
       return _message(context, 'No Class B, C, or D, restricted, warning, prohibited, or MOA airspace within ${airspaceViewRadiusNm.round()} NM');
     }
 
@@ -395,6 +402,7 @@ class _AirspacePainter extends CustomPainter {
     }
 
     _drawHere(canvas, project, maxAlt);
+    _drawObstacles(canvas, project);
     _drawAirports(canvas, project);
     for (final shelf in scene.shelves) {
       if (shelf.showLabel && shelf.rings.isNotEmpty) {
@@ -657,6 +665,32 @@ class _AirspacePainter extends CustomPainter {
       ..lineTo(head.dx - u.dx * 9 - n.dx * 4.5, head.dy - u.dy * 9 - n.dy * 4.5)
       ..close();
     canvas.drawPath(path, Paint()..color = color);
+  }
+
+  /// Red line from the ground to the obstacle top.
+  void _drawObstacles(Canvas canvas, _Proj Function(double, double, double) project) {
+    final items = <({Offset foot, Offset top, double depth})>[];
+    for (final obstacle in scene.obstacles) {
+      final topFt = math.min(obstacle.heightFt, scene.maxAltitudeFt);
+      final ground = project(obstacle.e, obstacle.n, 0);
+      final top = project(obstacle.e, obstacle.n, topFt);
+      var foot = ground.o;
+      var tip = top.o;
+      final rise = tip - foot;
+      if (rise.distance < 8) {
+        final dir = rise.distance < 0.5 ? const Offset(0, -1) : rise / rise.distance;
+        tip = foot + dir * 8;
+      }
+      items.add((foot: foot, top: tip, depth: (ground.depth + top.depth) / 2));
+    }
+    items.sort((a, b) => b.depth.compareTo(a.depth));
+    final paint = Paint()
+      ..color = const Color(0xFFE53935)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    for (final item in items) {
+      canvas.drawLine(item.foot, item.top, paint);
+    }
   }
 
   void _drawAirports(Canvas canvas, _Proj Function(double, double, double) project) {

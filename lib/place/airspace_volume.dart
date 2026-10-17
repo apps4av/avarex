@@ -2,6 +2,8 @@ import 'dart:math' as math;
 
 import 'package:latlong2/latlong.dart';
 import 'package:mbtiles/mbtiles.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:universal_io/io.dart';
 import 'package:vector_tile/vector_tile.dart';
 
 /// Local east/north position in nautical miles from the long-press point.
@@ -64,9 +66,10 @@ class AirspaceShelf {
 
   /// `2000–4000` is `20-40`. Surface is `00`. Unlimited is `UNL`.
   static String altitudeRange(double floorFt, double ceilingFt, {bool unlimited = false}) =>
-      unlimited ? '${_alt(floorFt)}-UNL' : '${_alt(floorFt)}-${_alt(ceilingFt)}';
+      unlimited ? '${altitudeHundreds(floorFt)}-UNL' : '${altitudeHundreds(floorFt)}-${altitudeHundreds(ceilingFt)}';
 
-  static String _alt(double ft) => ft <= 0 ? '00' : (ft / 100).round().toString();
+  /// Hundreds of feet MSL. `2500` is `25`. Surface is `00`.
+  static String altitudeHundreds(double ft) => ft <= 0 ? '00' : (ft / 100).round().toString();
 
   static String shortSector(String sector) {
     final trimmed = sector.trim();
@@ -142,24 +145,53 @@ class AirspaceAirport {
   });
 }
 
+/// One obstacle from `main.db` `obs`, in nautical miles east/north of the long-press point.
+/// [heightFt] is the obstacle top in feet MSL.
+class AirspaceObstacle {
+  final double e;
+  final double n;
+  final double heightFt;
+
+  const AirspaceObstacle({required this.e, required this.n, required this.heightFt});
+
+  /// Hundreds of feet MSL. `1548` is `15`.
+  String get label => AirspaceShelf.altitudeHundreds(heightFt);
+}
+
 class AirspaceScene {
   final double radiusNm;
   final List<AirspaceShelf> shelves;
   final List<AirspaceAirport> airports;
+  final List<AirspaceObstacle> obstacles;
   final String? message;
 
   const AirspaceScene({
     required this.radiusNm,
     required this.shelves,
     this.airports = const [],
+    this.obstacles = const [],
     this.message,
   });
+
+  AirspaceScene copyWith({List<AirspaceObstacle>? obstacles}) => AirspaceScene(
+        radiusNm: radiusNm,
+        shelves: shelves,
+        airports: airports,
+        obstacles: obstacles ?? this.obstacles,
+        message: message,
+      );
 
   double get maxAltitudeFt {
     var maxFt = 4000.0;
     for (final shelf in shelves) {
       final shown = math.min(shelf.ceilingFt, airspaceDisplayCapFt);
       if (shelf.floorFt < shown && shown > maxFt) {
+        maxFt = shown;
+      }
+    }
+    for (final obstacle in obstacles) {
+      final shown = math.min(obstacle.heightFt, airspaceDisplayCapFt);
+      if (shown > maxFt) {
         maxFt = shown;
       }
     }
@@ -271,6 +303,68 @@ NmPoint? ownshipOffsetNm(LatLng center, LatLng ownship, {double radiusNm = airsp
   }
   return NmPoint(east, north);
 }
+
+/// Obstacles inside the 25 NM square. Rows are `obs` columns `ARPLatitude`, `ARPLongitude`, and `Height` (feet MSL).
+List<AirspaceObstacle> obstaclesInView(List<Map<String, Object?>> rows, LatLng center, {double radiusNm = airspaceViewRadiusNm}) {
+  final cosLat = math.cos(center.latitude * math.pi / 180).abs().clamp(0.2, 1.0);
+  final obstacles = <AirspaceObstacle>[];
+  for (final row in rows) {
+    final lat = _asDouble(row['ARPLatitude']);
+    final lon = _asDouble(row['ARPLongitude']);
+    final height = _asDouble(row['Height']);
+    if (lat == null || lon == null || height == null || height <= 0) {
+      continue;
+    }
+    final east = (lon - center.longitude) * 60.0 * cosLat;
+    final north = (lat - center.latitude) * 60.0;
+    if (east.abs() > radiusNm || north.abs() > radiusNm) {
+      continue;
+    }
+    obstacles.add(AirspaceObstacle(e: east, n: north, heightFt: height));
+  }
+  return obstacles;
+}
+
+double? _asDouble(Object? value) {
+  if (value is num) {
+    return value.toDouble();
+  }
+  if (value is String) {
+    return double.tryParse(value);
+  }
+  return null;
+}
+
+/// Obstacles within [airspaceViewRadiusNm] of [center] from the main database `obs` table.
+///
+/// A missing file or a database without `obs` yields an empty list so the airspace view still opens.
+Future<List<AirspaceObstacle>> loadObstacles(String dbPath, LatLng center) async {
+  if (!File(dbPath).existsSync()) {
+    return const [];
+  }
+  Database? db;
+  try {
+    db = await openDatabase(dbPath, readOnly: true, singleInstance: false);
+    final lat = center.latitude;
+    final lon = center.longitude;
+    final cosLat = math.cos(lat * math.pi / 180).abs().clamp(0.2, 1.0);
+    final dLat = airspaceViewRadiusNm / 60.0;
+    final dLon = airspaceViewRadiusNm / (60.0 * cosLat);
+    final rows = await db.rawQuery(
+      'select ARPLatitude, ARPLongitude, Height from obs '
+      'where ARPLatitude > ? and ARPLatitude < ? and ARPLongitude > ? and ARPLongitude < ?',
+      [lat - dLat, lat + dLat, lon - dLon, lon + dLon],
+    );
+    return obstaclesInView(rows, center);
+  } catch (_) {
+    return const [];
+  } finally {
+    try {
+      await db?.close();
+    } catch (_) {}
+  }
+}
+
 const int _airspaceZoom = 10;
 
 /// Class B, C, and D shelves, plus restricted and warning areas, within [airspaceViewRadiusNm] of [center].
