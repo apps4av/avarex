@@ -3,6 +3,9 @@ import 'dart:math' as math;
 
 import 'package:avaremp/place/airspace_3d_view.dart';
 import 'package:avaremp/place/airspace_volume.dart';
+import 'package:avaremp/utils/mbtiles_layer.dart';
+import 'package:mbtiles/mbtiles.dart';
+import 'package:vector_tile/vector_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -55,6 +58,75 @@ void main() {
     expect(AirspaceShelf.altitudeRange(2000, 4000), '20-40');
     expect(AirspaceShelf.altitudeRange(2500, 4300), '25-43');
     expect(AirspaceShelf.altitudeRange(0, 12500), '00-125');
+    expect(AirspaceShelf.altitudeRange(500, 5000), '05-50');
+  });
+
+  test('vector map labels use hundreds of feet and the airport at the center', () {
+    expect(
+      vectorAirspaceLabel({
+        'CLASS': 'C',
+        'IDENT': 'MHT',
+        'LOWER_VAL': '2500',
+        'LOWER_CODE': 'MSL',
+        'LOWER_UOM': 'FT',
+        'UPPER_VAL': '4300',
+        'UPPER_CODE': 'MSL',
+        'UPPER_UOM': 'FT',
+      }, sua: false),
+      '25-43',
+    );
+    expect(
+      vectorAirspaceLabel({
+        'CLASS': 'C',
+        'IDENT': 'MHT',
+        'LOWER_VAL': '0',
+        'LOWER_CODE': 'SFC',
+        'LOWER_UOM': 'FT',
+        'UPPER_VAL': '4300',
+        'UPPER_CODE': 'MSL',
+        'UPPER_UOM': 'FT',
+      }, sua: false, airportAtCenter: true),
+      'KMHT\n00-43',
+    );
+    expect(
+      vectorAirspaceLabel({
+        'CLASS': 'B',
+        'IDENT': 'BOS',
+        'SECTOR': 'AREA C',
+        'LOWER_VAL': '3000',
+        'LOWER_CODE': 'MSL',
+        'LOWER_UOM': 'FT',
+        'UPPER_VAL': '7000',
+        'UPPER_CODE': 'MSL',
+        'UPPER_UOM': 'FT',
+      }, sua: false),
+      '30-70',
+    );
+    expect(
+      vectorAirspaceLabel({
+        'TYPE': 'RESTRICTED',
+        'DESIGNATOR': 'R4101A',
+        'LOWER_LIMIT': 'GND',
+        'LOWER_UOM': 'FT',
+        'LOWER_REF': 'SFC',
+        'UPPER_LIMIT': '2500',
+        'UPPER_UOM': 'FT',
+        'UPPER_REF': 'MSL',
+      }, sua: true),
+      'R-4101A 00-25',
+    );
+    expect(vectorAirspaceLabel({'CLASS': 'C', 'EXCLUSION': '1'}, sua: false), isNull);
+    expect(MBTilesLayerManager.debugThemeLayerCount(), 18);
+    final spread = airspaceLabelGrid([
+      [
+        [200, 200],
+        [3800, 200],
+        [3800, 3800],
+        [200, 3800],
+      ],
+    ], 4096);
+    expect(spread.length, greaterThan(4));
+    expect(spread.every((point) => point[0] > 150 && point[0] < 3950 && point[1] > 150 && point[1] < 3950), isTrue);
   });
 
   test('obstacles inside 25 NM keep their MSL height in hundreds of feet', () {
@@ -172,6 +244,136 @@ void main() {
   final mbtiles = Platform.environment['AVAREX_NASR_MBTILES'];
   final mainDb = Platform.environment['AVAREX_MAIN_DB'];
 
+  test('New York airport names sit on JFK, Newark, and LaGuardia', () {
+    final db = MbTiles(mbtilesPath: mbtiles!);
+    try {
+      const jfk = ChartAirport('KJFK', 40.6413, -73.7781);
+      const ewr = ChartAirport('KEWR', 40.6895, -74.1745);
+      const lga = ChartAirport('KLGA', 40.7769, -73.8740);
+      final labels = AirspaceLabelSource(db).labels(
+        north: 41.0,
+        south: 40.5,
+        west: -74.4,
+        east: -73.5,
+        centerLat: 40.70,
+        centerLon: -73.94,
+        tileZoom: 10,
+        airports: const [jfk, ewr, lga],
+        placeNamesAtAirports: true,
+      );
+      AirspaceMapLabel named(String ident) => labels.firstWhere((label) => label.text.startsWith(ident));
+      expect(_km(named('KJFK').point, jfk.latitude, jfk.longitude), lessThan(1));
+      expect(_km(named('KEWR').point, ewr.latitude, ewr.longitude), lessThan(1));
+      expect(_km(named('KLGA').point, lga.latitude, lga.longitude), lessThan(1));
+      expect(labels.any((label) => label.text.startsWith('KJFK') && _km(label.point, ewr.latitude, ewr.longitude) < 5), isFalse);
+    } finally {
+      db.dispose();
+    }
+  }, skip: mbtiles == null || mbtiles.isEmpty ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path' : false);
+
+  test('zoomed-out labels stay on the airspace instead of the camera', () {
+    final db = MbTiles(mbtilesPath: mbtiles!);
+    try {
+      const lat = 42.3656;
+      const lon = -71.0096;
+      final source = AirspaceLabelSource(db);
+      final wide = source.labels(
+        north: lat + 4,
+        south: lat - 4,
+        west: lon - 5,
+        east: lon + 5,
+        centerLat: lat,
+        centerLon: lon,
+        tileZoom: 6,
+      );
+      final named = wide.where((label) => label.text.contains('KBOS'));
+      expect(named, isNotEmpty);
+      for (final label in named) {
+        expect(_km(label.point, lat, lon), lessThan(50));
+      }
+      expect(wide.any((label) => label.text.contains('20-70') || label.text.contains('30-70') || label.text.contains('KORH')), isFalse);
+      expect(wide.length, lessThan(41));
+
+      const farLon = lon - 3;
+      final elsewhere = source.labels(
+        north: lat + 0.5,
+        south: lat - 0.5,
+        west: farLon - 0.5,
+        east: farLon + 0.5,
+        centerLat: lat,
+        centerLon: farLon,
+        tileZoom: 6,
+      );
+      expect(elsewhere.any((label) => _km(label.point, lat, farLon) < 30 && label.text.contains('KBOS')), isFalse);
+    } finally {
+      db.dispose();
+    }
+  }, skip: mbtiles == null || mbtiles.isEmpty ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path' : false);
+
+  test('KBOS labels stay visible when the airport is on a tile edge', () {
+    final db = MbTiles(mbtilesPath: mbtiles!);
+    try {
+      const lat = 42.3656;
+      const lon = -71.0096;
+      final source = AirspaceLabelSource(db);
+      final onAirport = source.labels(
+        north: lat + 0.08,
+        south: lat - 0.08,
+        west: lon - 0.08,
+        east: lon + 0.08,
+        centerLat: lat,
+        centerLon: lon,
+        tileZoom: 9,
+      );
+      expect(onAirport.any((label) => label.text.contains('KBOS')), isTrue);
+      expect(onAirport.any((label) => label.text.contains('00-70')), isTrue);
+
+      final zoomedIn = source.labels(
+        north: lat + 0.008,
+        south: lat - 0.008,
+        west: lon - 0.008,
+        east: lon + 0.008,
+        centerLat: lat,
+        centerLon: lon,
+        tileZoom: 10,
+      );
+      expect(zoomedIn.any((label) => label.text.contains('00-70')), isTrue);
+      expect(zoomedIn.any((label) => label.text.contains('20-70') || label.text.contains('30-70')), isFalse);
+    } finally {
+      db.dispose();
+    }
+  }, skip: mbtiles == null || mbtiles.isEmpty ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path' : false);
+
+  test('Manchester vector tiles label each sector and the airport center', () {
+    final db = MbTiles(mbtilesPath: mbtiles!);
+    try {
+      const z = 10;
+      const x = 308;
+      const y = 376;
+      final bytes = db.getTile(z: z, x: x, y: (1 << z) - 1 - y);
+      expect(bytes, isNotNull);
+      final tile = VectorTile.fromBytes(bytes: annotateVectorAirspaceLabels(bytes!));
+      final labels = <String>[];
+      for (final layer in tile.layers) {
+        if (layer.name != 'class_airspace_labels') {
+          continue;
+        }
+        for (final feature in layer.features) {
+          final label = feature.decodeProperties()['LABEL']?.stringValue;
+          if (label != null && label.isNotEmpty) {
+            labels.add(label);
+          }
+        }
+      }
+      expect(labels.where((label) => label == '25-43').length, greaterThan(1));
+      expect(labels, contains('20-43'));
+      expect(labels.where((label) => label.startsWith('KMHT')), ['KMHT\n00-43']);
+      expect(labels.any((label) => label.contains('MANCHESTER')), isFalse);
+    } finally {
+      db.dispose();
+    }
+  }, skip: mbtiles == null || mbtiles.isEmpty ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path' : false);
+
   test('Manchester obstacles are read from the main database', () async {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
@@ -266,7 +468,7 @@ void main() {
     expect(scene.message, isNull, reason: scene.message);
     final labels = scene.shelves.map((shelf) => shelf.label).toList();
     expect(labels, contains('P-56A 00-180'));
-    expect(labels, contains('DEMO 1 5-50'));
+    expect(labels, contains('DEMO 1 05-50'));
     expect(scene.shelves.any((shelf) => shelf.airspaceClass == 'PROHIBITED' && shelf.ident == 'P-56A'), isTrue);
     expect(scene.shelves.any((shelf) => shelf.airspaceClass == 'MOA' && shelf.ident == 'DEMO 1'), isTrue);
     expect(scene.airports.any((mark) => mark.ident == 'P-56A' || mark.ident == 'DEMO 1'), isFalse);
@@ -482,4 +684,13 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
   }, skip: mbtiles == null || mbtiles.isEmpty);
+}
+
+double _km(LatLng point, double latitude, double longitude) {
+  const radius = 6371.0;
+  final dLat = (point.latitude - latitude) * math.pi / 180;
+  final dLon = (point.longitude - longitude) * math.pi / 180;
+  final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+      math.cos(latitude * math.pi / 180) * math.cos(point.latitude * math.pi / 180) * math.sin(dLon / 2) * math.sin(dLon / 2);
+  return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }

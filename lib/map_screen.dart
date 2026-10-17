@@ -567,10 +567,10 @@ class MapScreenState extends State<MapScreen> {
     lIndex = _layers.indexOf('Vector Map');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0 && _mbtilesManager.isLoaded) {
-      final mbtilesWidget = _mbtilesManager.buildVectorTileLayer(opacity: opacity);
-      if (mbtilesWidget != null) {
-        layers.add(mbtilesWidget);
-      }
+      layers.addAll(_mbtilesManager.buildVectorMapLayers(
+        opacity: opacity,
+        airportDbPath: PathUtils.getFilePath(Storage().dataDir, 'main.db'),
+      ));
     }
 
     lIndex = _layers.indexOf('CAP Grid');

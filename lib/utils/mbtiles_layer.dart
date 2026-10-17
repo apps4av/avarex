@@ -1,12 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
+
+import 'package:avaremp/place/airspace_volume.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:mbtiles/mbtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
-import 'package:latlong2/latlong.dart';
-import 'dart:io';
 
 class MBTilesLayerManager {
   MbTiles? _mbtiles;
@@ -80,9 +82,9 @@ class MBTilesLayerManager {
     _layerNames = [];
   }
 
-  Widget? buildVectorTileLayer({double opacity = 1.0}) {
+  List<Widget> buildVectorMapLayers({double opacity = 1.0, String? airportDbPath}) {
     if (_mbtiles == null || !_isVector) {
-      return null;
+      return const [];
     }
 
     final minZ = _metadata?.minZoom?.toInt() ?? 0;
@@ -94,17 +96,25 @@ class MBTilesLayerManager {
       minZoom: minZ,
     );
 
-    return Opacity(
-      opacity: opacity,
-      child: VectorTileLayer(
-        key: const ValueKey('mbtiles_vector_layer'),
-        tileProviders: TileProviders({
-          'mbtiles': provider,
-        }),
-        theme: _buildTheme(_layerNames),
-        layerMode: VectorTileLayerMode.vector,
+    return [
+      Opacity(
+        opacity: opacity,
+        child: VectorTileLayer(
+          key: const ValueKey('mbtiles_vector_layer'),
+          tileProviders: TileProviders({
+            'mbtiles': provider,
+          }),
+          theme: _buildTheme(_layerNames),
+          layerMode: VectorTileLayerMode.vector,
+        ),
       ),
-    );
+      IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: _AirspaceLabelOverlay(mbtiles: _mbtiles!, maxTileZoom: maxZ, airportDbPath: airportDbPath),
+        ),
+      ),
+    ];
   }
 
   Widget? buildRasterTileLayer({double opacity = 1.0}) {
@@ -125,6 +135,15 @@ class MBTilesLayerManager {
     );
   }
 
+  /// Layer count for the NASR airspace theme, including sector outlines.
+  @visibleForTesting
+  static int debugThemeLayerCount() => _buildTheme(const [
+        'class_airspace',
+        'class_airspace_labels',
+        'sua_airspace',
+        'sua_airspace_labels',
+      ]).layers.length;
+
   static vtr.Theme _buildTheme(List<String> layerNames) {
     final List<Map<String, dynamic>> layers = [];
 
@@ -133,10 +152,8 @@ class MBTilesLayerManager {
         layers.addAll(_buildClassAirspaceThemeLayers(layerName));
       } else if (layerName == 'sua_airspace') {
         layers.addAll(_buildSuaAirspaceThemeLayers(layerName));
-      } else if (layerName == 'class_airspace_labels') {
-        layers.addAll(_buildClassAirspaceLabelLayers(layerName));
-      } else if (layerName == 'sua_airspace_labels') {
-        layers.addAll(_buildSuaAirspaceLabelLayers(layerName));
+      } else if (layerName == 'class_airspace_labels' || layerName == 'sua_airspace_labels') {
+        // Drawn by _AirspaceLabelOverlay at the shelf's own location.
       } else {
         layers.addAll(_buildGenericThemeLayers(layerName));
       }
@@ -170,10 +187,22 @@ class MBTilesLayerManager {
         }
       },
       {
+        'id': '${layerName}_class_b_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'filter': ['==', 'CLASS', 'B'],
+        'paint': {
+          'line-color': '#0000FF',
+          'line-width': 1.4,
+        }
+      },
+      {
         'id': '${layerName}_class_c_fill',
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceClassCZoom,
         'filter': ['==', 'CLASS', 'C'],
         'paint': {
           'fill-color': '#FF00FF',
@@ -181,14 +210,39 @@ class MBTilesLayerManager {
         }
       },
       {
+        'id': '${layerName}_class_c_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'minzoom': airspaceClassCZoom,
+        'filter': ['==', 'CLASS', 'C'],
+        'paint': {
+          'line-color': '#FF00FF',
+          'line-width': 1.4,
+        }
+      },
+      {
         'id': '${layerName}_class_d_fill',
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceDetailZoom,
         'filter': ['==', 'CLASS', 'D'],
         'paint': {
           'fill-color': '#0088FF',
           'fill-opacity': 0.25,
+        }
+      },
+      {
+        'id': '${layerName}_class_d_line',
+        'type': 'line',
+        'source': 'mbtiles',
+        'source-layer': layerName,
+        'minzoom': airspaceDetailZoom,
+        'filter': ['==', 'CLASS', 'D'],
+        'paint': {
+          'line-color': '#0088FF',
+          'line-width': 1.4,
         }
       },
     ];
@@ -202,6 +256,7 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceLargeSuaZoom,
         'filter': ['==', 'TYPE', 'MOA'],
         'paint': {
           'fill-color': '#996633',
@@ -214,6 +269,7 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceLargeSuaZoom,
         'filter': ['==', 'TYPE', 'RESTRICTED'],
         'paint': {
           'fill-color': '#0066FF',
@@ -226,6 +282,7 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceLargeSuaZoom,
         'filter': ['==', 'TYPE', 'WARNING'],
         'paint': {
           'fill-color': '#0088FF',
@@ -238,6 +295,7 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceDetailZoom,
         'filter': ['==', 'TYPE', 'ALERT'],
         'paint': {
           'fill-color': '#FF8800',
@@ -250,6 +308,7 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceDetailZoom,
         'filter': ['==', 'TYPE', 'PROHIBITED'],
         'paint': {
           'fill-color': '#FF0000',
@@ -262,167 +321,35 @@ class MBTilesLayerManager {
         'type': 'fill',
         'source': 'mbtiles',
         'source-layer': layerName,
+        'minzoom': airspaceDetailZoom,
         'filter': ['==', 'TYPE', 'NSA'],
         'paint': {
           'fill-color': '#228B22',
           'fill-opacity': 0.25,
         }
       },
+      _outline(layerName, 'moa', 'MOA', '#996633', airspaceLargeSuaZoom),
+      _outline(layerName, 'restricted', 'RESTRICTED', '#0066FF', airspaceLargeSuaZoom),
+      _outline(layerName, 'warning', 'WARNING', '#0088FF', airspaceLargeSuaZoom),
+      _outline(layerName, 'alert', 'ALERT', '#FF8800', airspaceDetailZoom),
+      _outline(layerName, 'prohibited', 'PROHIBITED', '#FF0000', airspaceDetailZoom),
+      _outline(layerName, 'nsa', 'NSA', '#228B22', airspaceDetailZoom),
     ];
   }
 
-  static List<Map<String, dynamic>> _buildClassAirspaceLabelLayers(String layerName) {
-    return [
-      {
-        'id': '${layerName}_class_b',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'B'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 12,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#0000FF',
-          'text-halo-width': 2,
-        }
+  static Map<String, dynamic> _outline(String layerName, String id, String type, String color, int minZoom) {
+    return {
+      'id': '${layerName}_${id}_line',
+      'type': 'line',
+      'source': 'mbtiles',
+      'source-layer': layerName,
+      'minzoom': minZoom,
+      'filter': ['==', 'TYPE', type],
+      'paint': {
+        'line-color': color,
+        'line-width': 1.4,
       },
-      {
-        'id': '${layerName}_class_c',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'C'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 11,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#FF00FF',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_class_d',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'CLASS', 'D'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#0088FF',
-          'text-halo-width': 2,
-        }
-      },
-    ];
-  }
-
-  static List<Map<String, dynamic>> _buildSuaAirspaceLabelLayers(String layerName) {
-    return [
-      {
-        'id': '${layerName}_moa',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'MOA'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#996633',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_restricted',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'RESTRICTED'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#0066FF',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_warning',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'WARNING'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#0088FF',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_alert',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'ALERT'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#FF8800',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_prohibited',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'PROHIBITED'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 11,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#FF0000',
-          'text-halo-width': 2,
-        }
-      },
-      {
-        'id': '${layerName}_nsa',
-        'type': 'symbol',
-        'source': 'mbtiles',
-        'source-layer': layerName,
-        'filter': ['==', 'TYPE', 'NSA'],
-        'layout': {
-          'text-field': '{NAME}',
-          'text-size': 10,
-        },
-        'paint': {
-          'text-color': '#FFFFFF',
-          'text-halo-color': '#228B22',
-          'text-halo-width': 2,
-        }
-      },
-    ];
+    };
   }
 
   static List<Map<String, dynamic>> _buildGenericThemeLayers(String layerName) {
@@ -532,4 +459,174 @@ class MBTilesRasterTileProvider extends TileProvider {
 
     return MemoryImage(data);
   }
+}
+
+class _AirspaceLabelOverlay extends StatefulWidget {
+  final MbTiles mbtiles;
+  final int maxTileZoom;
+  final String? airportDbPath;
+
+  const _AirspaceLabelOverlay({required this.mbtiles, required this.maxTileZoom, this.airportDbPath});
+
+  @override
+  State<_AirspaceLabelOverlay> createState() => _AirspaceLabelOverlayState();
+}
+
+class _AirspaceLabelOverlayState extends State<_AirspaceLabelOverlay> {
+  late AirspaceLabelSource _source = AirspaceLabelSource(widget.mbtiles);
+  List<ChartAirport> _airports = const [];
+  double _south = 0;
+  double _north = 0;
+  double _west = 0;
+  double _east = 0;
+  bool _airportsReady = false;
+  bool _loadingAirports = false;
+
+  @override
+  void didUpdateWidget(covariant _AirspaceLabelOverlay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.mbtiles != widget.mbtiles) {
+      _source = AirspaceLabelSource(widget.mbtiles);
+    }
+    if (oldWidget.airportDbPath != widget.airportDbPath) {
+      _airports = const [];
+      _airportsReady = false;
+      _south = _north = _west = _east = 0;
+    }
+  }
+
+  void _loadAirports(double south, double north, double west, double east) {
+    final path = widget.airportDbPath;
+    if (path == null || path.isEmpty || _loadingAirports) {
+      return;
+    }
+    if (_airportsReady && south >= _south && north <= _north && west >= _west && east <= _east) {
+      return;
+    }
+    final latSpan = (north - south) * 0.5;
+    final lonSpan = (east - west) * 0.5;
+    final padLat = latSpan < 0.4 ? 0.4 : latSpan;
+    final padLon = lonSpan < 0.4 ? 0.4 : lonSpan;
+    final querySouth = south - padLat;
+    final queryNorth = north + padLat;
+    final queryWest = west - padLon;
+    final queryEast = east + padLon;
+    _loadingAirports = true;
+    loadChartAirports(path, south: querySouth, north: queryNorth, west: queryWest, east: queryEast).then((airports) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _airports = airports;
+        _airportsReady = true;
+        _south = querySouth;
+        _north = queryNorth;
+        _west = queryWest;
+        _east = queryEast;
+        _loadingAirports = false;
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final camera = MapCamera.of(context);
+    final bounds = camera.visibleBounds;
+    final tileZoom = camera.zoom.floor().clamp(0, widget.maxTileZoom);
+    final detail = tileZoom >= airspaceDetailZoom;
+    if (detail) {
+      _loadAirports(bounds.south, bounds.north, bounds.west, bounds.east);
+    }
+    final labels = _source.labels(
+      north: bounds.north,
+      south: bounds.south,
+      west: bounds.west,
+      east: bounds.east,
+      centerLat: camera.center.latitude,
+      centerLon: camera.center.longitude,
+      tileZoom: tileZoom,
+      airports: detail ? _airports : const [],
+      placeNamesAtAirports: detail && _airports.isNotEmpty,
+    );
+    final markers = <Marker>[];
+    final placed = <Offset>[];
+    for (final label in labels) {
+      final screen = camera.latLngToScreenOffset(label.point);
+      var slot = 0;
+      for (; slot < 4; slot++) {
+        final shifted = screen.translate(0, slot * 36);
+        final blocked = placed.any((other) => (other.dx - shifted.dx).abs() < 80 && (other.dy - shifted.dy).abs() < 34);
+        if (!blocked) {
+          break;
+        }
+      }
+      placed.add(screen.translate(0, slot * 36));
+      final lines = label.text.split('\n');
+      final height = lines.length > 1 ? 40.0 : 22.0;
+      markers.add(Marker(
+        key: ValueKey('${label.kind}:${label.text}@${label.point.latitude.toStringAsFixed(2)},${label.point.longitude.toStringAsFixed(2)}'),
+        point: label.point,
+        width: 128,
+        height: height,
+        alignment: Marker.computePixelAlignment(
+          width: 128,
+          height: height,
+          left: 64,
+          top: height / 2 - slot * 36,
+        ),
+        rotate: true,
+        child: Text(
+          label.text,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: label.kind == 'B' ? 12 : label.kind == 'C' ? 11 : 10,
+            fontWeight: FontWeight.w500,
+            height: 1.15,
+            shadows: _labelHalo(_labelHaloColor(label.kind)),
+          ),
+        ),
+      ));
+    }
+    return MarkerLayer(markers: markers);
+  }
+}
+
+Color _labelHaloColor(String kind) {
+  switch (kind) {
+    case 'B':
+      return const Color(0xFF0000FF);
+    case 'C':
+      return const Color(0xFFFF00FF);
+    case 'D':
+      return const Color(0xFF0088FF);
+    case 'MOA':
+      return const Color(0xFF996633);
+    case 'RESTRICTED':
+      return const Color(0xFF0066FF);
+    case 'WARNING':
+      return const Color(0xFF0088FF);
+    case 'ALERT':
+      return const Color(0xFFFF8800);
+    case 'PROHIBITED':
+      return const Color(0xFFFF0000);
+    case 'NSA':
+      return const Color(0xFF228B22);
+    default:
+      return const Color(0xFF222222);
+  }
+}
+
+List<Shadow> _labelHalo(Color color) {
+  const shift = 0.7;
+  return [
+    for (final offset in const [
+      Offset(-shift, -shift),
+      Offset(-shift, shift),
+      Offset(shift, -shift),
+      Offset(shift, shift),
+    ])
+      Shadow(color: color, offset: offset),
+    Shadow(color: color, blurRadius: 1.2),
+  ];
 }

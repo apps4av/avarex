@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:latlong2/latlong.dart';
 import 'package:mbtiles/mbtiles.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:universal_io/io.dart';
+import 'package:vector_tile/raw/raw_vector_tile.dart' as vtraw;
+import 'package:vector_tile/util/command.dart';
 import 'package:vector_tile/vector_tile.dart';
 
 /// Local east/north position in nautical miles from the long-press point.
@@ -64,20 +67,12 @@ class AirspaceShelf {
 
   String get displayIdent => ident.isEmpty ? airspaceClass : ident;
 
-  /// `2000–4000` is `20-40`. Surface is `00`. Unlimited is `UNL`.
+  /// `2000–4000` is `20-40`. `500` is `05`. Surface is `00`. Unlimited is `UNL`.
   static String altitudeRange(double floorFt, double ceilingFt, {bool unlimited = false}) =>
       unlimited ? '${altitudeHundreds(floorFt)}-UNL' : '${altitudeHundreds(floorFt)}-${altitudeHundreds(ceilingFt)}';
 
-  /// Hundreds of feet MSL. `2500` is `25`. Surface is `00`.
-  static String altitudeHundreds(double ft) => ft <= 0 ? '00' : (ft / 100).round().toString();
-
-  static String shortSector(String sector) {
-    final trimmed = sector.trim();
-    if (trimmed.isEmpty) {
-      return '';
-    }
-    return trimmed.replaceFirst(RegExp(r'^AREA\s+'), '');
-  }
+  /// Hundreds of feet MSL, at least two digits. `2500` is `25`. `500` is `05`. Surface is `00`.
+  static String altitudeHundreds(double ft) => ft <= 0 ? '00' : (ft / 100).round().toString().padLeft(2, '0');
 }
 
 /// `MHT` is shown as `KMHT`. Idents that are already longer are left as stored.
@@ -99,6 +94,15 @@ String suaChartName(String? name) {
   title = title.replaceFirst(RegExp(r'\s+MOA$'), '');
   return title;
 }
+
+/// Class C shelves and their names appear at this map zoom. Below it, only Class B.
+const airspaceClassCZoom = 7;
+
+/// MOAs, restricted areas, and warning areas appear at this map zoom.
+const airspaceLargeSuaZoom = 6;
+
+/// Class D, small special-use areas, and per-sector altitude labels appear here.
+const airspaceDetailZoom = 9;
 
 /// `R4101A` is shown as `R-4101A`.
 String suaDesignator(String? raw) {
@@ -365,6 +369,926 @@ Future<List<AirspaceObstacle>> loadObstacles(String dbPath, LatLng center) async
   }
 }
 
+/// Label for one vector-map airspace feature, in the same form as the 3D view.
+///
+/// A shelf is `25-43`. The airport ident is included only for the surface
+/// shelf at the center (`KMHT` over `00-43`).
+/// Special-use areas keep the designator, such as `R-4101A 00-25`.
+String? vectorAirspaceLabel(Map<String, String> props, {required bool sua, bool airportAtCenter = false}) {
+  if (props['EXCLUSION'] == '1') {
+    return null;
+  }
+  if (!sua) {
+    final code = props['CLASS'];
+    if (code != 'B' && code != 'C' && code != 'D') {
+      return null;
+    }
+    final floor = parseAirspaceAltitude(props['LOWER_VAL'], props['LOWER_CODE'], props['LOWER_UOM']);
+    final ceiling = parseAirspaceAltitude(props['UPPER_VAL'], props['UPPER_CODE'], props['UPPER_UOM']);
+    if (floor == null || ceiling == null || ceiling <= floor) {
+      return null;
+    }
+    final range = AirspaceShelf.altitudeRange(floor, ceiling);
+    if (!airportAtCenter || floor > 0) {
+      return range;
+    }
+    final ident = airspaceIdent(props['IDENT']);
+    if (ident.isEmpty) {
+      return range;
+    }
+    return '$ident\n$range';
+  }
+  final type = props['TYPE'] ?? '';
+  if (type != 'RESTRICTED' && type != 'WARNING' && type != 'PROHIBITED' && type != 'MOA' && type != 'ALERT' && type != 'NSA') {
+    return null;
+  }
+  final floor = parseSuaLimit(props['LOWER_LIMIT'], props['LOWER_UOM'], props['LOWER_REF']);
+  final ceiling = parseSuaLimit(props['UPPER_LIMIT'], props['UPPER_UOM'], props['UPPER_REF']);
+  if (floor == null || ceiling == null) {
+    final name = (props['NAME'] ?? '').trim();
+    return name.isEmpty ? null : name;
+  }
+  final range = AirspaceShelf.altitudeRange(floor.feet, ceiling.feet, unlimited: ceiling.unlimited);
+  final chart = type == 'MOA' ? suaChartName(props['NAME']) : '';
+  final ident = chart.isEmpty ? suaDesignator(props['DESIGNATOR']) : chart;
+  if (ident.isEmpty) {
+    return range;
+  }
+  return '$ident $range';
+}
+
+/// A towered airport used to place a surface-shelf name on the field itself.
+class ChartAirport {
+  final String ident;
+  final double latitude;
+  final double longitude;
+
+  const ChartAirport(this.ident, this.latitude, this.longitude);
+}
+
+/// Towered airports inside [south]/[north]/[west]/[east], from the main database.
+///
+/// A missing file or a database without `airports` yields an empty list.
+Future<List<ChartAirport>> loadChartAirports(
+  String dbPath, {
+  required double south,
+  required double north,
+  required double west,
+  required double east,
+}) async {
+  if (!File(dbPath).existsSync()) {
+    return const [];
+  }
+  Database? db;
+  try {
+    db = await openDatabase(dbPath, readOnly: true, singleInstance: false);
+    final rows = await db.rawQuery(
+      'select LocationID, ARPLatitude, ARPLongitude from airports '
+      'where Type = ? and ATCT = ? and ARPLatitude > ? and ARPLatitude < ? and ARPLongitude > ? and ARPLongitude < ?',
+      ['AIRPORT', 'Y', south, north, west, east],
+    );
+    return [
+      for (final row in rows)
+        if (row['LocationID'] is String && row['ARPLatitude'] is num && row['ARPLongitude'] is num)
+          ChartAirport(row['LocationID'] as String, (row['ARPLatitude'] as num).toDouble(), (row['ARPLongitude'] as num).toDouble()),
+    ];
+  } catch (_) {
+    return const [];
+  } finally {
+    try {
+      await db?.close();
+    } catch (_) {}
+  }
+}
+
+/// One airspace label placed in geographic coordinates for the vector map.
+class AirspaceMapLabel {
+  final LatLng point;
+  final String text;
+  final String kind;
+
+  const AirspaceMapLabel(this.point, this.text, this.kind);
+}
+
+/// Parsed vector-map shelves, cached by tile, with labels placed for the current view.
+///
+/// The tile renderer keeps a single copy of each label and drops it unless the
+/// whole text box sits inside the tile. KBOS falls on a tile edge at some zooms,
+/// so that copy disappears while the fill remains. These labels follow the view.
+class AirspaceLabelSource {
+  final MbTiles db;
+  final Map<String, Map<String, _MapShelf>> _tiles = {};
+
+  AirspaceLabelSource(this.db);
+
+  List<AirspaceMapLabel> labels({
+    required double north,
+    required double south,
+    required double west,
+    required double east,
+    required double centerLat,
+    required double centerLon,
+    required int tileZoom,
+    List<ChartAirport> airports = const [],
+    bool placeNamesAtAirports = false,
+  }) {
+    if (tileZoom < airspaceLargeSuaZoom || north <= south || east <= west) {
+      return const [];
+    }
+    final z = tileZoom.clamp(0, 22);
+    final detail = z >= airspaceDetailZoom;
+    final span = _tileSpan(z, north, south, west, east, centerLat, centerLon);
+    final merged = <String, _MapShelf>{};
+    for (var x = span.$1; x <= span.$2; x++) {
+      for (var y = span.$3; y <= span.$4; y++) {
+        final shelves = _tileShelves(z, x, y);
+        for (final shelf in shelves.values) {
+          final group = merged.putIfAbsent(shelf.key, () => shelf.bare());
+          group.absorb(shelf);
+        }
+      }
+    }
+    return _placeShelves(
+      merged.values,
+      north,
+      south,
+      west,
+      east,
+      centerLat,
+      centerLon,
+      airports: detail ? airports : const [],
+      placeNamesAtAirports: detail && placeNamesAtAirports,
+      sectorLabels: detail,
+    );
+  }
+
+  (int, int, int, int) _tileSpan(int z, double north, double south, double west, double east, double centerLat, double centerLon) {
+    final nw = _xyz(north, west, z);
+    final se = _xyz(south, east, z);
+    var x0 = math.min(nw.$1, se.$1);
+    var x1 = math.max(nw.$1, se.$1);
+    var y0 = math.min(nw.$2, se.$2);
+    var y1 = math.max(nw.$2, se.$2);
+    final count = (x1 - x0 + 1) * (y1 - y0 + 1);
+    if (count > 25) {
+      final center = _xyz(centerLat, centerLon, z);
+      x0 = center.$1 - 2;
+      x1 = center.$1 + 2;
+      y0 = center.$2 - 2;
+      y1 = center.$2 + 2;
+    } else {
+      x0 -= 1;
+      x1 += 1;
+      y0 -= 1;
+      y1 += 1;
+    }
+    final n = (1 << z) - 1;
+    return (x0.clamp(0, n), x1.clamp(0, n), y0.clamp(0, n), y1.clamp(0, n));
+  }
+
+  Map<String, _MapShelf> _tileShelves(int z, int x, int y) {
+    final key = '$z/$x/$y';
+    final cached = _tiles[key];
+    if (cached != null) {
+      return cached;
+    }
+    if (_tiles.length > 80) {
+      _tiles.clear();
+    }
+    final bytes = db.getTile(z: z, x: x, y: (1 << z) - 1 - y);
+    final shelves = <String, _MapShelf>{};
+    if (bytes != null && bytes.isNotEmpty) {
+      try {
+        _readMapShelves(VectorTile.fromBytes(bytes: bytes), z, x, y, shelves, zoom: z);
+      } catch (_) {}
+    }
+    _tiles[key] = shelves;
+    return shelves;
+  }
+}
+
+class _MapShelf {
+  final String key;
+  final String altitude;
+  final String named;
+  final String kind;
+  LatLng? nameAt;
+  final List<List<List<List<double>>>> polygons = [];
+  double minLat = 90;
+  double maxLat = -90;
+  double minLon = 180;
+  double maxLon = -180;
+
+  _MapShelf(this.key, this.altitude, this.named, this.kind);
+
+  _MapShelf bare() => _MapShelf(key, altitude, named, kind);
+
+  void absorb(_MapShelf other) {
+    polygons.addAll(other.polygons);
+    nameAt ??= other.nameAt;
+    if (other.polygons.isEmpty) {
+      return;
+    }
+    minLat = math.min(minLat, other.minLat);
+    maxLat = math.max(maxLat, other.maxLat);
+    minLon = math.min(minLon, other.minLon);
+    maxLon = math.max(maxLon, other.maxLon);
+  }
+
+  bool contains(double lat, double lon) {
+    for (final polygon in polygons) {
+      var inside = false;
+      for (final ring in polygon) {
+        if (ring.length >= 3 && _lonLatRingContains(ring, lon, lat)) {
+          inside = !inside;
+        }
+      }
+      if (inside) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Airport ident for a class shelf. Empty for special-use airspace.
+  String get ident {
+    final parts = key.split('|');
+    return parts.length >= 3 && parts[0] == 'C' ? parts[2] : '';
+  }
+
+  /// Floor in hundreds of feet. Surface is `0`.
+  double get floorHundreds {
+    final head = altitude.split('\n').last.split('-').first.trim();
+    return double.tryParse(head) ?? double.infinity;
+  }
+}
+
+bool _shownAtZoom(String kind, int zoom) {
+  switch (kind) {
+    case 'B':
+      return true;
+    case 'C':
+      return zoom >= airspaceClassCZoom;
+    case 'MOA':
+    case 'RESTRICTED':
+    case 'WARNING':
+      return zoom >= airspaceLargeSuaZoom;
+    default:
+      return zoom >= airspaceDetailZoom;
+  }
+}
+
+void _readMapShelves(VectorTile tile, int z, int x, int y, Map<String, _MapShelf> shelves, {required int zoom}) {
+  for (final layer in tile.layers) {
+    final sua = layer.name == 'sua_airspace';
+    if (layer.name != 'class_airspace' && !sua) {
+      continue;
+    }
+    final extent = layer.extent == 0 ? 4096 : layer.extent;
+    for (final feature in layer.features) {
+      final props = _stringProps(feature);
+      final altitude = vectorAirspaceLabel(props, sua: sua);
+      if (altitude == null || altitude.isEmpty) {
+        continue;
+      }
+      final kind = sua ? (props['TYPE'] ?? '') : (props['CLASS'] ?? '');
+      if (!_shownAtZoom(kind, zoom)) {
+        continue;
+      }
+      final polygons = _latLonPolygons(feature.decodeGeometry(), z, x, y, extent);
+      if (polygons.isEmpty) {
+        continue;
+      }
+      final named = vectorAirspaceLabel(props, sua: sua, airportAtCenter: true) ?? altitude;
+      final key = _shelfKey(props, sua);
+      final shelf = shelves.putIfAbsent(
+        key,
+        () => _MapShelf(key, altitude, named, kind),
+      );
+      for (final polygon in polygons) {
+        shelf.polygons.add(polygon);
+        for (final ring in polygon) {
+          for (final point in ring) {
+            shelf.minLat = math.min(shelf.minLat, point[1]);
+            shelf.maxLat = math.max(shelf.maxLat, point[1]);
+            shelf.minLon = math.min(shelf.minLon, point[0]);
+            shelf.maxLon = math.max(shelf.maxLon, point[0]);
+          }
+        }
+      }
+    }
+  }
+  for (final layer in tile.layers) {
+    final sua = layer.name == 'sua_airspace_labels';
+    if (layer.name != 'class_airspace_labels' && !sua) {
+      continue;
+    }
+    final extent = layer.extent == 0 ? 4096 : layer.extent;
+    for (final feature in layer.features) {
+      final props = _stringProps(feature);
+      final altitude = vectorAirspaceLabel(props, sua: sua);
+      if (altitude == null || altitude.isEmpty) {
+        continue;
+      }
+      final kind = sua ? (props['TYPE'] ?? '') : (props['CLASS'] ?? '');
+      if (!_shownAtZoom(kind, zoom)) {
+        continue;
+      }
+      final at = _labelLatLng(feature.geometryList, z, x, y, extent);
+      if (at == null) {
+        continue;
+      }
+      final named = vectorAirspaceLabel(props, sua: sua, airportAtCenter: true) ?? altitude;
+      final key = _shelfKey(props, sua);
+      final shelf = shelves.putIfAbsent(
+        key,
+        () => _MapShelf(key, altitude, named, kind),
+      );
+      shelf.nameAt ??= at;
+    }
+  }
+}
+
+List<AirspaceMapLabel> _placeOverview(List<_MapShelf> shelves, double north, double south, double west, double east, double centerLat, double centerLon) {
+  final labels = <AirspaceMapLabel>[];
+  for (final shelf in shelves) {
+    if ((shelf.kind != 'B' && shelf.kind != 'C') || shelf.floorHundreds != 0) {
+      continue;
+    }
+    final nameAt = shelf.nameAt;
+    if (nameAt == null || nameAt.latitude > north || nameAt.latitude < south || nameAt.longitude < west || nameAt.longitude > east) {
+      continue;
+    }
+    labels.add(AirspaceMapLabel(nameAt, shelf.named, shelf.kind));
+  }
+  if (labels.length > 40) {
+    labels.sort((a, b) {
+      final da = (a.point.latitude - centerLat).abs() + (a.point.longitude - centerLon).abs();
+      final db = (b.point.latitude - centerLat).abs() + (b.point.longitude - centerLon).abs();
+      return da.compareTo(db);
+    });
+    labels.removeRange(40, labels.length);
+  }
+  return labels;
+}
+
+List<AirspaceMapLabel> _placeShelves(
+  Iterable<_MapShelf> shelves,
+  double north,
+  double south,
+  double west,
+  double east,
+  double centerLat,
+  double centerLon, {
+  required List<ChartAirport> airports,
+  required bool placeNamesAtAirports,
+  required bool sectorLabels,
+}) {
+  final all = shelves.toList(growable: false);
+  if (!sectorLabels) {
+    return _placeOverview(all, north, south, west, east, centerLat, centerLon);
+  }
+  final labels = <AirspaceMapLabel>[];
+  final airportNames = placeNamesAtAirports ? _namesAtAirports(all, airports, north, south, west, east) : const <AirspaceMapLabel>[];
+  labels.addAll(airportNames);
+  for (final shelf in all) {
+    if (shelf.polygons.isNotEmpty && (shelf.maxLat < south || shelf.minLat > north || shelf.maxLon < west || shelf.minLon > east)) {
+      continue;
+    }
+    final nameAt = shelf.nameAt;
+    final nameInView = !placeNamesAtAirports &&
+        nameAt != null &&
+        nameAt.latitude <= north &&
+        nameAt.latitude >= south &&
+        nameAt.longitude >= west &&
+        nameAt.longitude <= east &&
+        !_lowerShelfCovers(all, shelf, nameAt.latitude, nameAt.longitude);
+    if (nameInView) {
+      labels.add(AirspaceMapLabel(nameAt, shelf.named, shelf.kind));
+    }
+    final anchor = _visibleAnchor(all, shelf, north, south, west, east, centerLat, centerLon);
+    if (anchor == null) {
+      continue;
+    }
+    if (nameInView && (anchor.latitude - nameAt.latitude).abs() < 0.12 && (anchor.longitude - nameAt.longitude).abs() < 0.16) {
+      continue;
+    }
+    if (nameInView && shelf.named == shelf.altitude) {
+      continue;
+    }
+    if (_airportNameCovers(airportNames, shelf, anchor)) {
+      continue;
+    }
+    labels.add(AirspaceMapLabel(anchor, shelf.altitude, shelf.kind));
+  }
+  if (labels.length > 60) {
+    labels.sort((a, b) {
+      final name = (a.text.contains('\n') ? 0 : 1).compareTo(b.text.contains('\n') ? 0 : 1);
+      if (name != 0) {
+        return name;
+      }
+      final da = (a.point.latitude - centerLat).abs() + (a.point.longitude - centerLon).abs();
+      final db = (b.point.latitude - centerLat).abs() + (b.point.longitude - centerLon).abs();
+      return da.compareTo(db);
+    });
+    labels.removeRange(60, labels.length);
+  }
+  labels.sort((a, b) => (a.text.contains('\n') ? 0 : 1).compareTo(b.text.contains('\n') ? 0 : 1));
+  return labels;
+}
+
+List<AirspaceMapLabel> _namesAtAirports(List<_MapShelf> shelves, List<ChartAirport> airports, double north, double south, double west, double east) {
+  final labels = <AirspaceMapLabel>[];
+  final seen = <String>{};
+  for (final airport in airports) {
+    if (airport.latitude > north || airport.latitude < south || airport.longitude < west || airport.longitude > east) {
+      continue;
+    }
+    final ident = airspaceIdent(airport.ident);
+    if (ident.isEmpty || !seen.add(ident)) {
+      continue;
+    }
+    _MapShelf? matched;
+    _MapShelf? containing;
+    for (final shelf in shelves) {
+      if (shelf.floorHundreds != 0 || (shelf.kind != 'B' && shelf.kind != 'C' && shelf.kind != 'D')) {
+        continue;
+      }
+      if (shelf.polygons.isEmpty || !shelf.contains(airport.latitude, airport.longitude)) {
+        continue;
+      }
+      if (airspaceIdent(shelf.ident) == ident) {
+        matched = shelf;
+        break;
+      }
+      containing ??= shelf;
+    }
+    final shelf = matched ?? containing;
+    if (shelf == null) {
+      continue;
+    }
+    labels.add(AirspaceMapLabel(LatLng(airport.latitude, airport.longitude), '$ident\n${shelf.altitude}', shelf.kind));
+  }
+  return labels;
+}
+
+bool _airportNameCovers(List<AirspaceMapLabel> names, _MapShelf shelf, LatLng anchor) {
+  for (final name in names) {
+    if (!name.text.endsWith(shelf.altitude)) {
+      continue;
+    }
+    if ((name.point.latitude - anchor.latitude).abs() < 0.12 && (name.point.longitude - anchor.longitude).abs() < 0.16) {
+      return true;
+    }
+  }
+  return false;
+}
+
+LatLng? _visibleAnchor(List<_MapShelf> shelves, _MapShelf shelf, double north, double south, double west, double east, double centerLat, double centerLon) {
+  final nameAt = shelf.nameAt;
+  if (nameAt != null &&
+      nameAt.latitude <= north &&
+      nameAt.latitude >= south &&
+      nameAt.longitude >= west &&
+      nameAt.longitude <= east &&
+      !_lowerShelfCovers(shelves, shelf, nameAt.latitude, nameAt.longitude)) {
+    return nameAt;
+  }
+  if (_anchorInShelf(shelves, shelf, centerLat, centerLon)) {
+    return LatLng(centerLat, centerLon);
+  }
+  LatLng? best;
+  var bestDistance = double.infinity;
+  for (var row = 0; row < 5; row++) {
+    for (var col = 0; col < 5; col++) {
+      final lat = south + (north - south) * (row + 0.5) / 5;
+      final lon = west + (east - west) * (col + 0.5) / 5;
+      if (!_anchorInShelf(shelves, shelf, lat, lon)) {
+        continue;
+      }
+      final distance = (lat - centerLat).abs() + (lon - centerLon).abs();
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = LatLng(lat, lon);
+      }
+    }
+  }
+  return best;
+}
+
+/// A fallback point has to lie in this shelf, and near the shelf's own label.
+///
+/// Low-zoom polygons are coarse. Without the distance limit a shelf from
+/// another state can contain the camera and its name is drawn here.
+bool _anchorInShelf(List<_MapShelf> shelves, _MapShelf shelf, double lat, double lon) {
+  if (!shelf.contains(lat, lon) || _lowerShelfCovers(shelves, shelf, lat, lon)) {
+    return false;
+  }
+  final nameAt = shelf.nameAt;
+  final latReach = math.min(1.0, math.max(0.15, shelf.polygons.isEmpty ? 0.15 : (shelf.maxLat - shelf.minLat) * 0.6));
+  final lonReach = math.min(1.0, math.max(0.15, shelf.polygons.isEmpty ? 0.15 : (shelf.maxLon - shelf.minLon) * 0.6));
+  if (nameAt != null) {
+    return (lat - nameAt.latitude).abs() <= latReach && (lon - nameAt.longitude).abs() <= lonReach;
+  }
+  return lat >= shelf.minLat - latReach && lat <= shelf.maxLat + latReach && lon >= shelf.minLon - lonReach && lon <= shelf.maxLon + lonReach;
+}
+
+/// True when a lower shelf of the same airport already covers [lat]/[lon].
+///
+/// Outer KBOS shelves are drawn as disks, so the airport is inside `00-70`,
+/// `20-70`, and `30-70`. Only the lowest floor is labeled there.
+bool _lowerShelfCovers(List<_MapShelf> shelves, _MapShelf shelf, double lat, double lon) {
+  if (shelf.kind != 'B' && shelf.kind != 'C' && shelf.kind != 'D') {
+    return false;
+  }
+  final ident = shelf.ident;
+  if (ident.isEmpty) {
+    return false;
+  }
+  final floor = shelf.floorHundreds;
+  for (final other in shelves) {
+    if (identical(other, shelf) || other.kind != shelf.kind || other.ident != ident || other.floorHundreds >= floor) {
+      continue;
+    }
+    if (other.contains(lat, lon)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+String _shelfKey(Map<String, String> props, bool sua) {
+  if (sua) {
+    return 'S|${props['TYPE']}|${props['DESIGNATOR']}|${props['NAME']}|${props['LOWER_LIMIT']}|${props['UPPER_LIMIT']}';
+  }
+  return 'C|${props['CLASS']}|${props['IDENT']}|${props['SECTOR']}|${props['LOWER_VAL']}|${props['UPPER_VAL']}';
+}
+
+Map<String, String> _stringProps(VectorTileFeature feature) {
+  final props = <String, String>{};
+  feature.decodeProperties().forEach((key, value) {
+    final text = value.stringValue ?? value.dartIntValue?.toString() ?? value.dartDoubleValue?.toString();
+    if (text != null) {
+      props[key] = text;
+    }
+  });
+  return props;
+}
+
+List<List<List<List<double>>>> _latLonPolygons(Geometry? geometry, int z, int x, int y, int extent) {
+  final source = <List<List<List<double>>>>[];
+  if (geometry is GeometryPolygon) {
+    source.add(geometry.coordinates);
+  } else if (geometry is GeometryMultiPolygon) {
+    source.addAll(geometry.coordinates ?? const []);
+  }
+  final polygons = <List<List<List<double>>>>[];
+  for (final polygon in source) {
+    final rings = <List<List<double>>>[];
+    for (final ring in polygon) {
+      final converted = <List<double>>[];
+      for (final point in ring) {
+        if (point.length < 2) {
+          continue;
+        }
+        final at = _tileToLatLng(z, x, y, point[0], point[1], extent);
+        converted.add([at.longitude, at.latitude]);
+      }
+      if (converted.length >= 3) {
+        rings.add(converted);
+      }
+    }
+    if (rings.isNotEmpty) {
+      polygons.add(rings);
+    }
+  }
+  return polygons;
+}
+
+LatLng? _labelLatLng(List<int>? geometry, int z, int x, int y, int extent) {
+  if (geometry == null || geometry.length < 3 || (geometry[0] & 7) != 1) {
+    return null;
+  }
+  return _tileToLatLng(z, x, y, Command.zigZagDecode(geometry[1]).toDouble(), Command.zigZagDecode(geometry[2]).toDouble(), extent);
+}
+
+LatLng _tileToLatLng(int z, int x, int y, double px, double py, int extent) {
+  final n = 1 << z;
+  final lon = (x + px / extent) / n * 360.0 - 180.0;
+  final mercator = math.pi * (1 - 2 * (y + py / extent) / n);
+  final lat = math.atan((math.exp(mercator) - math.exp(-mercator)) / 2) * 180.0 / math.pi;
+  return LatLng(lat, lon);
+}
+
+(int, int) _xyz(double lat, double lon, int z) {
+  final n = 1 << z;
+  final x = ((lon + 180.0) / 360.0 * n).floor().clamp(0, n - 1);
+  final latRad = lat.clamp(-85.0, 85.0) * math.pi / 180.0;
+  final y = ((1 - math.log(math.tan(latRad) + 1 / math.cos(latRad)) / math.pi) / 2 * n).floor().clamp(0, n - 1);
+  return (x, y);
+}
+
+bool _lonLatRingContains(List<List<double>> ring, double lon, double lat) {
+  var inside = false;
+  for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    final xi = ring[i][0];
+    final yi = ring[i][1];
+    final xj = ring[j][0];
+    final yj = ring[j][1];
+    final crosses = (yi > lat) != (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi;
+    if (crosses) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/// True when a label point sits inside the tile, not on a tile-edge fragment.
+bool vectorLabelPointInside(List<int> geometry, int extent) {
+  if (geometry.length < 3 || (geometry[0] & 7) != 1 || extent <= 0) {
+    return false;
+  }
+  final x = Command.zigZagDecode(geometry[1]);
+  final y = Command.zigZagDecode(geometry[2]);
+  final margin = math.max(48, extent ~/ 24);
+  return x >= margin && y >= margin && x <= extent - margin && y <= extent - margin;
+}
+
+/// Interior points spread through a sector, in tile units.
+///
+/// One centroid disappears once zoom crosses into a part of the sector that
+/// does not contain it. A short grid keeps an altitude in view.
+List<List<int>> airspaceLabelGrid(List<List<List<int>>> rings, int extent) {
+  if (rings.isEmpty || rings.first.length < 3 || extent <= 0) {
+    return const [];
+  }
+  var minX = rings.first.first[0];
+  var maxX = minX;
+  var minY = rings.first.first[1];
+  var maxY = minY;
+  for (final point in rings.first) {
+    minX = math.min(minX, point[0]);
+    maxX = math.max(maxX, point[0]);
+    minY = math.min(minY, point[1]);
+    maxY = math.max(maxY, point[1]);
+  }
+  final margin = math.max(128, extent ~/ 20);
+  minX = math.max(minX, margin);
+  maxX = math.min(maxX, extent - margin);
+  minY = math.max(minY, margin);
+  maxY = math.min(maxY, extent - margin);
+  if (minX >= maxX || minY >= maxY) {
+    return _gridCentroid(rings);
+  }
+  const cells = 4;
+  final stepX = (maxX - minX) / cells;
+  final stepY = (maxY - minY) / cells;
+  final points = <List<int>>[];
+  for (var row = 0; row < cells; row++) {
+    for (var col = 0; col < cells; col++) {
+      final x = (minX + (col + 0.5) * stepX).round();
+      final y = (minY + (row + 0.5) * stepY).round();
+      if (_ringsContain(rings, x, y)) {
+        points.add([x, y]);
+      }
+    }
+  }
+  if (points.isEmpty) {
+    return _gridCentroid(rings);
+  }
+  return points;
+}
+
+List<List<int>> _gridCentroid(List<List<List<int>>> rings) {
+  final ring = rings.first;
+  var x = 0;
+  var y = 0;
+  for (final point in ring) {
+    x += point[0];
+    y += point[1];
+  }
+  final at = [x ~/ ring.length, y ~/ ring.length];
+  if (_ringsContain(rings, at[0], at[1])) {
+    return [at];
+  }
+  return const [];
+}
+
+bool _ringsContain(List<List<List<int>>> rings, int x, int y) {
+  var inside = false;
+  for (final ring in rings) {
+    if (_tileRingContains(ring, x, y)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+bool _tileRingContains(List<List<int>> ring, int x, int y) {
+  var inside = false;
+  for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    final xi = ring[i][0];
+    final yi = ring[i][1];
+    final xj = ring[j][0];
+    final yj = ring[j][1];
+    final crosses = (yi > y) != (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi;
+    if (crosses) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/// Adds a `LABEL` property to airspace label points: `xx-yy`, with the airport at the center.
+Uint8List annotateVectorAirspaceLabels(Uint8List bytes) {
+  if (bytes.isEmpty) {
+    return bytes;
+  }
+  vtraw.VectorTile tile;
+  try {
+    tile = vtraw.VectorTile.fromBuffer(bytes);
+  } catch (_) {
+    return bytes;
+  }
+  var changed = false;
+  for (final layer in tile.layers) {
+    final sua = layer.name == 'sua_airspace_labels';
+    if (layer.name != 'class_airspace_labels' && !sua) {
+      continue;
+    }
+    final extent = layer.extent == 0 ? 4096 : layer.extent;
+    final labelKey = layer.keys.length;
+    layer.keys.add('LABEL');
+    final valueIndex = <String, int>{};
+    for (var i = 0; i < layer.values.length; i++) {
+      if (layer.values[i].hasStringValue()) {
+        valueIndex[layer.values[i].stringValue] = i;
+      }
+    }
+    for (final feature in layer.features) {
+      final props = _rawProps(layer, feature);
+      final label = vectorAirspaceLabel(
+        props,
+        sua: sua,
+        airportAtCenter: !sua && vectorLabelPointInside(feature.geometry, extent),
+      );
+      if (label == null || label.isEmpty) {
+        continue;
+      }
+      final existing = valueIndex[label];
+      final valueKey = existing ?? layer.values.length;
+      if (existing == null) {
+        layer.values.add(vtraw.VectorTile_Value(stringValue: label));
+        valueIndex[label] = valueKey;
+      }
+      feature.tags.add(labelKey);
+      feature.tags.add(valueKey);
+      changed = true;
+    }
+    if (_repeatSectorLabels(tile, layer, labelKey, valueIndex, sua)) {
+      changed = true;
+    }
+  }
+  if (!changed) {
+    return bytes;
+  }
+  return Uint8List.fromList(tile.writeToBuffer());
+}
+
+/// Copies each sector polygon onto a grid of label points in the matching label layer.
+bool _repeatSectorLabels(
+  vtraw.VectorTile tile,
+  vtraw.VectorTile_Layer labelLayer,
+  int labelKey,
+  Map<String, int> valueIndex,
+  bool sua,
+) {
+  final polygonName = sua ? 'sua_airspace' : 'class_airspace';
+  vtraw.VectorTile_Layer? polygons;
+  for (final layer in tile.layers) {
+    if (layer.name == polygonName) {
+      polygons = layer;
+      break;
+    }
+  }
+  if (polygons == null || polygons.features.isEmpty) {
+    return false;
+  }
+  final decoded = VectorTile(layers: [VectorTileLayer.fromRaw(rawLayer: polygons)]);
+  final field = sua ? 'TYPE' : 'CLASS';
+  final fieldKey = _ensureKey(labelLayer, field);
+  final extent = polygons.extent == 0 ? 4096 : polygons.extent;
+  var added = false;
+  for (final feature in decoded.layers.single.features) {
+    final props = <String, String>{};
+    feature.decodeProperties().forEach((key, value) {
+      final text = value.stringValue ?? value.dartIntValue?.toString() ?? value.dartDoubleValue?.toString();
+      if (text != null) {
+        props[key] = text;
+      }
+    });
+    final label = vectorAirspaceLabel(props, sua: sua);
+    final fieldValue = props[field];
+    if (label == null || label.isEmpty || fieldValue == null || fieldValue.isEmpty) {
+      continue;
+    }
+    final geometry = feature.decodeGeometry();
+    final rings = _polygonRings(geometry);
+    for (final ring in rings) {
+      for (final point in airspaceLabelGrid(ring, extent)) {
+        labelLayer.features.add(vtraw.VectorTile_Feature(
+          type: vtraw.VectorTile_GeomType.POINT,
+          tags: [fieldKey, _ensureValue(labelLayer, valueIndex, fieldValue), labelKey, _ensureValue(labelLayer, valueIndex, label)],
+          geometry: [(1 << 3) | 1, Command.zigZagEncode(point[0]), Command.zigZagEncode(point[1])],
+        ));
+        added = true;
+      }
+    }
+  }
+  return added;
+}
+
+int _ensureKey(vtraw.VectorTile_Layer layer, String name) {
+  final index = layer.keys.indexOf(name);
+  if (index >= 0) {
+    return index;
+  }
+  layer.keys.add(name);
+  return layer.keys.length - 1;
+}
+
+int _ensureValue(vtraw.VectorTile_Layer layer, Map<String, int> valueIndex, String text) {
+  final existing = valueIndex[text];
+  if (existing != null) {
+    return existing;
+  }
+  final index = layer.values.length;
+  layer.values.add(vtraw.VectorTile_Value(stringValue: text));
+  valueIndex[text] = index;
+  return index;
+}
+
+List<List<List<List<int>>>> _polygonRings(Geometry? geometry) {
+  if (geometry is GeometryPolygon) {
+    return [_ringInts(geometry.coordinates)];
+  }
+  if (geometry is GeometryMultiPolygon) {
+    return [
+      for (final polygon in geometry.coordinates ?? <List<List<List<double>>>>[]) _ringInts(polygon),
+    ];
+  }
+  return const [];
+}
+
+List<List<List<int>>> _ringInts(List<List<List<double>>> rings) {
+  return [
+    for (final ring in rings)
+      [
+        for (final point in ring)
+          if (point.length >= 2) [point[0].round(), point[1].round()],
+      ],
+  ];
+}
+
+Map<String, String> _rawProps(vtraw.VectorTile_Layer layer, vtraw.VectorTile_Feature feature) {
+  final props = <String, String>{};
+  final tags = feature.tags;
+  for (var i = 0; i + 1 < tags.length; i += 2) {
+    final keyIndex = tags[i];
+    final valueIndex = tags[i + 1];
+    if (keyIndex < 0 || keyIndex >= layer.keys.length || valueIndex < 0 || valueIndex >= layer.values.length) {
+      continue;
+    }
+    final text = _rawValueText(layer.values[valueIndex]);
+    if (text != null) {
+      props[layer.keys[keyIndex]] = text;
+    }
+  }
+  return props;
+}
+
+String? _rawValueText(vtraw.VectorTile_Value value) {
+  if (value.hasStringValue()) {
+    return value.stringValue;
+  }
+  if (value.hasIntValue()) {
+    return value.intValue.toString();
+  }
+  if (value.hasSintValue()) {
+    return value.sintValue.toString();
+  }
+  if (value.hasUintValue()) {
+    return value.uintValue.toString();
+  }
+  if (value.hasDoubleValue()) {
+    return value.doubleValue.toString();
+  }
+  if (value.hasFloatValue()) {
+    return value.floatValue.toString();
+  }
+  return null;
+}
+
 const int _airspaceZoom = 10;
 
 /// Class B, C, and D shelves, plus restricted and warning areas, within [airspaceViewRadiusNm] of [center].
@@ -580,23 +1504,11 @@ void _labelShelves(List<AirspaceShelf> shelves) {
     }
     return a.sector.compareTo(b.sector);
   });
-  final dup = <String, int>{};
   for (final shelf in numbered) {
-    final key = '${shelf.displayIdent}|${shelf.floorFt}|${shelf.ceilingFt}';
-    dup.update(key, (n) => n + 1, ifAbsent: () => 1);
-  }
-  for (var i = 0; i < numbered.length; i++) {
-    final shelf = numbered[i];
-    final key = '${shelf.displayIdent}|${shelf.floorFt}|${shelf.ceilingFt}';
-    final sector = (dup[key] ?? 0) > 1 ? AirspaceShelf.shortSector(shelf.sector) : '';
     final range = AirspaceShelf.altitudeRange(shelf.floorFt, shelf.ceilingFt, unlimited: shelf.unlimitedCeiling);
     final airport = shelf.airspaceClass == 'B' || shelf.airspaceClass == 'C' || shelf.airspaceClass == 'D';
     shelf.showLabel = true;
-    if (airport) {
-      shelf.label = sector.isEmpty ? range : '$sector $range';
-    } else {
-      shelf.label = sector.isEmpty ? '${shelf.displayIdent} $range' : '${shelf.displayIdent} $sector $range';
-    }
+    shelf.label = airport || shelf.displayIdent.isEmpty ? range : '${shelf.displayIdent} $range';
   }
 }
 
