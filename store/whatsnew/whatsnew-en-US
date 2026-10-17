@@ -1,3 +1,5 @@
-Draw a holding pattern from the Hold button beside a fix or navaid name on the Main tab. A dialog sets the inbound course, turn direction, and a 1.5, 2, 3, or 4 NM leg.
-A map profile saves whichever items are checked: layers, weather, traffic volume, instruments, plan, plate, chart type, aircraft, and checklist. Applying the profile restores those items.
-Zoomed out, Vector Map draws Class B first and adds the smaller airspace sectors and altitude labels as you zoom in.
+Open 3D Class B, C, and D airspace, plus restricted, warning, prohibited, and MOA areas, from the destination `3D` tab.
+Shelves are labeled such as `25-43`, with the airport on the ground, a live ownship dot, and obstacles as red lines.
+Airspace above 10,000 ft is cut open so it does not cover the airport.
+Vector Map labels each sector, such as `05-50`, with the airport name at the center.
+Zoomed out, Vector Map draws Class B first and adds smaller sectors and altitude labels as you zoom in.
