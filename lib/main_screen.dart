@@ -1,5 +1,6 @@
 import 'package:avaremp/community/notifications_screen.dart';
 import 'package:avaremp/onboarding_screen.dart';
+import 'package:avaremp/services/app_notice_service.dart';
 import 'package:avaremp/plan/plan_screen.dart';
 import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
@@ -30,6 +31,8 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   bool _drawerOpen = false;
   int _selectedIndex = tabLocationMap; // for various tab screens
+  bool _noticesOpen = false;
+  DateTime _noticesCheckedAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   // define tabs here
   final List<Widget> _widgetOptions = [];
@@ -533,6 +536,28 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     super.initState();
     Storage().startIO();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppNotices();
+    });
+  }
+
+  /// Pull Apps4Av messages from Firestore and show any the pilot has not
+  /// dismissed. Checked on open and when the app returns to the foreground.
+  Future<void> _checkAppNotices() async {
+    if (_noticesOpen || !mounted || !Constants.firebaseAvailable) {
+      return;
+    }
+    final DateTime now = DateTime.now();
+    if (now.difference(_noticesCheckedAt) < const Duration(seconds: 20)) {
+      return;
+    }
+    _noticesCheckedAt = now;
+    _noticesOpen = true;
+    try {
+      await AppNoticeService.instance.present(context);
+    } finally {
+      _noticesOpen = false;
+    }
   }
 
   @override
@@ -542,6 +567,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
       case AppLifecycleState.resumed:
         // start GPS
         Storage().startIO();
+        _checkAppNotices();
         break;
       default:
         Storage().stopIO();

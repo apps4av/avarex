@@ -150,6 +150,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
 | Internet drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                    | **iOS, Android, Windows, and macOS** |
+| Apps4Av message when the app opens                                                               | **iOS, Android, Windows, and macOS** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, Windows, and macOS** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -1430,6 +1431,14 @@ of the usual confirmation).
 from the built-in business database) can be pinned on the `PLATE` airport
 diagram using its business selector — see Section 6.6.
 
+### 11.8 Messages from Apps4Av
+
+On iOS, Android, Windows, and macOS, AvareX checks for a message from Apps4Av when you open the app and again when you bring it back to the foreground. If one is waiting, a popup shows its title and text. No account is required. These messages are separate from the Community reply notifications in Section 11.4.
+
+- **OK**: dismisses the message on this device. It stays dismissed until Apps4Av publishes a new message or updates that one.
+- A web address, when the message includes one, appears under the text. Select it to copy.
+- Nothing appears when there is no current message. A message that has already expired is not shown.
+
 ---
 
 ## 12) Warnings and Troubleshooting Drawer
@@ -1531,6 +1540,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
 | Reply to a topic | `Community → group → tap topic → Reply` |
 | View a topic's discussion thread | `Community → group → tap a topic in the Feed` |
+| Apps4Av message | Shown automatically when you open the app (iOS, Android, Windows, macOS). Tap `OK` |
 | View notifications | `Community → bell icon` (also shown on the `Community` row in the drawer's `INTERNET` section) |
 | Turn reply notifications off / mute a group | `Community → bell icon → gear icon` |
 | Aircraft Scheduler | `MAP → Menu → Internet → Scheduler` |

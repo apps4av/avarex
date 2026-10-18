@@ -1263,5 +1263,31 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // =========================================================
+    // Apps4Av messages shown when the app opens
+    //
+    // Written only from Google Cloud: the Firebase console or the Admin
+    // SDK (both bypass these rules). The app can read them and cannot
+    // create, edit, or delete them. No sign-in is required to read, so a
+    // message can appear for every pilot who opens AvareX.
+    //
+    // Publish a document at appNotices/{id}:
+    //   title      string
+    //   body       string
+    //   active     true
+    //   createdAt  timestamp (now)
+    //   updatedAt  timestamp (now; set again whenever you edit the text)
+    //   expiresAt  timestamp, optional
+    //   url        https string, optional
+    //
+    // Set active to false, or delete the document, to take it down.
+    // Deploy with: firebase deploy --only firestore:rules
+    // =========================================================
+
+    match /appNotices/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }

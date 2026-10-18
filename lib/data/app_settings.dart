@@ -424,4 +424,36 @@ class AppSettings {
     provider.setString("key-weather-products-opacity-v2", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
+  // Apps4Av messages already dismissed on this device. Each entry is a
+  // URL-encoded dismiss key. A new or edited message uses a new key.
+  static const String _dismissedAppNoticesKey = "key-dismissed-app-notices";
+  static const int _dismissedAppNoticesCap = 40;
+
+  Set<String> dismissedAppNoticeKeys() {
+    final String raw = provider.getValue(_dismissedAppNoticesKey, defaultValue: "") as String;
+    if (raw.isEmpty) {
+      return {};
+    }
+    return raw.split(",").where((String entry) => entry.isNotEmpty).map((String entry) {
+      try {
+        return Uri.decodeComponent(entry);
+      } catch (_) {
+        return entry;
+      }
+    }).toSet();
+  }
+
+  void dismissAppNotice(String dismissKey) {
+    final List<String> keys = dismissedAppNoticeKeys().toList();
+    keys.remove(dismissKey);
+    keys.add(dismissKey);
+    final List<String> trimmed = keys.length > _dismissedAppNoticesCap
+        ? keys.sublist(keys.length - _dismissedAppNoticesCap)
+        : keys;
+    provider.setString(
+      _dismissedAppNoticesKey,
+      trimmed.map(Uri.encodeComponent).join(","),
+    );
+  }
+
 }
