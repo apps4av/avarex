@@ -12,7 +12,10 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/main.dart';
+import 'package:avaremp/main_screen.dart';
+import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/path_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,15 +34,22 @@ Future<Directory> _resolveOutputDir() async {
   return d;
 }
 
-Future<void> _shot(WidgetTester tester, String name) async {
-  // Allow rendering to settle a bit; many screens have animations.
-  for (int i = 0; i < 6; i++) {
-    await tester.pump(const Duration(milliseconds: 120));
-  }
+Future<void> _mark(String step) async {
+  debugPrint('SCREENSHOT STEP: $step');
   try {
-    await tester.pumpAndSettle(const Duration(milliseconds: 800));
-  } catch (_) {
-    // pumpAndSettle can throw on screens with continuous animation; ignore.
+    await File('${_outDir.path}/_progress.txt').writeAsString(
+      '${DateTime.now().toIso8601String()} $step\n',
+      mode: FileMode.append,
+    );
+  } catch (_) {}
+}
+
+Future<void> _shot(WidgetTester tester, String name) async {
+  await _mark('shot $name');
+  // Fixed pumps only. pumpAndSettle never returns while the map animates,
+  // and a long encode can drop the test connection.
+  for (int i = 0; i < 8; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
   }
   final ctx = _rootKey.currentContext;
   if (ctx == null) {
@@ -64,6 +74,76 @@ Future<void> _shot(WidgetTester tester, String name) async {
     debugPrint('Screenshot saved: ${file.path} (${bytes.length} bytes)');
   } catch (e) {
     debugPrint('Screenshot $name failed: $e');
+    await _mark('shot $name FAILED: $e');
+  }
+}
+
+Future<void> _press(WidgetTester tester, Finder finder, String label) async {
+  if (!tester.any(finder)) {
+    await _mark('missing $label');
+    return;
+  }
+  final Widget widget = tester.widget(finder.first);
+  final VoidCallback? onPressed = widget is TextButton
+      ? widget.onPressed
+      : widget is IconButton
+          ? widget.onPressed
+          : widget is ListTile
+              ? widget.onTap
+              : null;
+  if (onPressed == null) {
+    await tester.tap(finder.first, warnIfMissed: false);
+  } else {
+    onPressed();
+  }
+  await tester.pump(const Duration(milliseconds: 400));
+}
+
+Future<void> _restorePlan(
+  String savedJson,
+  String savedName,
+  int savedIndex,
+  int savedDest,
+  String savedEntry,
+) async {
+  try {
+    if (savedJson.isEmpty || savedJson == '[]') {
+      Storage().route.clear();
+    } else {
+      final PlanRoute restored = await PlanRoute.fromJson(savedJson, savedName, false);
+      Storage().route.copyFrom(restored);
+      if (savedIndex >= 0 && savedIndex < Storage().route.length) {
+        Storage().route.setCurrentWaypoint(savedIndex);
+        Storage().route.setCurrentWaypointDestinationIndex(savedDest);
+      }
+    }
+  } catch (e) {
+    await _mark('restore plan failed: $e');
+  }
+  Storage().settings.setActivePlanRoute(savedJson);
+  Storage().settings.setActivePlanName(savedName);
+  Storage().settings.setActivePlanIndex(savedIndex);
+  Storage().settings.setActivePlanDestinationIndex(savedDest);
+  Storage().settings.setLastRouteEntry(savedEntry);
+  // The plan is written on a 1-second timer from the in-memory route.
+  await Future.delayed(const Duration(milliseconds: 1200));
+}
+
+Future<void> _closeOverlay(WidgetTester tester) async {
+  try {
+    final close = find.byIcon(Icons.close);
+    if (tester.any(close)) {
+      await tester.tap(close.last, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 400));
+      return;
+    }
+    final back = find.byTooltip('Back');
+    if (tester.any(back)) {
+      await tester.tap(back.first, warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+  } catch (e) {
+    await _mark('close overlay failed: $e');
   }
 }
 
@@ -74,9 +154,22 @@ void main() {
       (tester) async {
     _outDir = await _resolveOutputDir();
     debugPrint('Screenshots will be written to: ${_outDir.path}');
+    final File progress = File('${_outDir.path}/_progress.txt');
+    if (progress.existsSync()) progress.deleteSync();
 
+    String? savedPlanJson;
+    String savedPlanName = 'New Plan';
+    int savedPlanIndex = -1;
+    int savedPlanDest = 0;
+    String savedRouteEntry = '';
+    try {
     // Initialize storage but keep existing user state (databases, signed flag).
     await Storage().init();
+    savedPlanJson = Storage().settings.getActivePlanRoute();
+    savedPlanName = Storage().settings.getActivePlanName();
+    savedPlanIndex = Storage().settings.getActivePlanIndex();
+    savedPlanDest = Storage().settings.getActivePlanDestinationIndex();
+    savedRouteEntry = Storage().settings.getLastRouteEntry();
     // Make sure we don't show the intro pages: capture them in a separate
     // section below by toggling intro back on for a fresh widget tree.
     Storage().settings.setIntro(false);
@@ -109,25 +202,22 @@ void main() {
     }
     await _shot(tester, '01_map_tab');
 
-    // Open layers popup
-    fab = find.byIcon(Icons.layers);
+    // Open layers popup. Tooltip avoids the Chart layer's Icons.map.
+    fab = find.byTooltip('Select the layers to show on the Map screen');
     if (tester.any(fab)) {
-      await tester.tap(fab.first);
+      await tester.tap(fab);
       await tester.pump(const Duration(milliseconds: 600));
       await _shot(tester, '02_map_layers_popup');
-      // Tap somewhere else to dismiss
-      await tester.tapAt(const Offset(50, 50));
-      await tester.pump(const Duration(milliseconds: 400));
+      await _closeOverlay(tester);
     }
 
     // Open chart-type popup
-    fab = find.byIcon(Icons.map);
+    fab = find.byTooltip('Select the chart type');
     if (tester.any(fab)) {
-      await tester.tap(fab.first);
+      await tester.tap(fab);
       await tester.pump(const Duration(milliseconds: 600));
       await _shot(tester, '03_map_chart_types');
-      await tester.tapAt(const Offset(50, 50));
-      await tester.pump(const Duration(milliseconds: 400));
+      await _closeOverlay(tester);
     }
 
     // ===========================================
@@ -177,6 +267,22 @@ void main() {
 
     await goRoute('/documents', '07_documents_screen');
     await goRoute('/checklists', '08_checklists_screen');
+
+    // 3D airspace follows the aircraft. Wait out the vector-database load.
+    navState.pushNamed('/airspace3d');
+    await tester.pump(const Duration(milliseconds: 600));
+    for (int i = 0; i < 25; i++) {
+      await Future.delayed(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 200));
+      final bool waiting = tester.any(find.byType(CircularProgressIndicator)) ||
+          tester.any(find.text('Waiting for a GPS position.'));
+      if (!waiting) break;
+    }
+    await Future.delayed(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 300));
+    await _shot(tester, '33_airspace_3d');
+    navState.pop();
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Aircraft & Performance with all tabs
     navState.pushNamed('/performance');
@@ -233,102 +339,50 @@ void main() {
 
     // ===========================================
     // PLAN tab
+    // The map's Center control sits over the PLAN nav item, so drive the
+    // bar callback. Action tabs are inline buttons, not a separate screen.
     // ===========================================
-    fab = find.byTooltip('Create a flight plan');
+    MainScreenState.gotoPlan();
+    await tester.pump(const Duration(milliseconds: 700));
+    await _shot(tester, '19_plan_tab_empty');
+
+    await _press(tester, find.widgetWithText(TextButton, 'Create'), 'Create');
+    await _shot(tester, '21_plan_create');
+
+    fab = find.ancestor(
+        of: find.text('Route'), matching: find.byType(TextFormField));
     if (tester.any(fab)) {
-      await tester.tap(fab);
-      await tester.pump(const Duration(milliseconds: 700));
-      await _shot(tester, '19_plan_tab_empty');
-    }
-
-    // Build a simple route via Actions → Create
-    fab = find.widgetWithText(TextButton, 'Actions');
-    if (tester.any(fab)) {
-      await tester.tap(fab);
-      await tester.pump(const Duration(milliseconds: 700));
-      await _shot(tester, '20_plan_actions');
-
-      // Go to Create
-      fab = find.widgetWithText(TextButton, 'Create');
-      if (tester.any(fab)) {
-        await tester.tap(fab);
-        await tester.pump(const Duration(milliseconds: 700));
-        await _shot(tester, '21_plan_create');
-
-        // Enter route and create
-        fab = find.ancestor(
-            of: find.text('Route'), matching: find.byType(TextFormField));
-        if (tester.any(fab)) {
-          await tester.enterText(fab, 'KBOS BOS CMK KHPN');
-          await tester.pump(const Duration(milliseconds: 400));
-          fab = find.widgetWithText(ListTile, 'Create As Entered');
-          if (tester.any(fab)) {
-            await tester.tap(fab);
-            await tester.pump(const Duration(milliseconds: 500));
-            await Future.delayed(const Duration(seconds: 2));
-            await tester.pump(const Duration(milliseconds: 600));
-          }
-        }
-        // Navigate back to Plan from Plan Actions
-        fab = find.byTooltip('Back');
-        if (tester.any(fab)) {
-          await tester.tap(fab);
-          await tester.pump(const Duration(milliseconds: 500));
-        }
-      } else {
-        // Fall back to dismissing actions
-        fab = find.byTooltip('Back');
-        if (tester.any(fab)) {
-          await tester.tap(fab);
-          await tester.pump(const Duration(milliseconds: 500));
-        }
-      }
-    }
-    await tester.pump(const Duration(milliseconds: 600));
-    await _shot(tester, '22_plan_with_route');
-
-    // Open Nav Log via analytics_outlined icon in plan
-    fab = find.byIcon(Icons.analytics_outlined);
-    if (tester.any(fab)) {
-      await tester.tap(fab.first);
-      await tester.pump(const Duration(milliseconds: 800));
+      await tester.enterText(fab.first, 'KBOS BOS CMK KHPN');
+      await tester.pump(const Duration(milliseconds: 400));
+      await _shot(tester, '25_plan_actions_create');
+      await _press(
+          tester, find.widgetWithText(ListTile, 'Create As Entered'), 'Create As Entered');
       await Future.delayed(const Duration(seconds: 2));
       await tester.pump(const Duration(milliseconds: 600));
-      await _shot(tester, '23_plan_navlog');
-      fab = find.byTooltip('Back');
-      if (tester.any(fab)) {
-        await tester.tap(fab.first);
-        await tester.pump(const Duration(milliseconds: 600));
-      }
     }
+    await _shot(tester, '22_plan_with_route');
 
-    // Plan Actions sub-screens (Brief & File, Manage, Load & Save)
-    fab = find.widgetWithText(TextButton, 'Actions');
-    if (tester.any(fab)) {
-      await tester.tap(fab);
-      await tester.pump(const Duration(milliseconds: 700));
-      // Default tab is Load & Save
-      await _shot(tester, '24_plan_actions_load_save');
+    final Finder navLog = find.ancestor(
+      of: find.byTooltip('Navigation log and terrain'),
+      matching: find.byType(IconButton),
+    );
+    await _press(tester, navLog, 'nav log');
+    await Future.delayed(const Duration(seconds: 2));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, '23_plan_navlog');
+    await _closeOverlay(tester);
 
-      Future<void> tapActionsTab(String label, String shotName) async {
-        final f = find.widgetWithText(TextButton, label);
-        if (tester.any(f)) {
-          await tester.tap(f);
-          await tester.pump(const Duration(milliseconds: 600));
-          await _shot(tester, shotName);
-        }
-      }
+    await _press(tester, find.widgetWithText(TextButton, 'Load & Save'), 'Load & Save');
+    await _shot(tester, '20_plan_actions');
+    await _shot(tester, '24_plan_actions_load_save');
 
-      await tapActionsTab('Create', '25_plan_actions_create');
-      await tapActionsTab('Brief & File', '26_plan_actions_brief_file');
-      await tapActionsTab('Manage', '27_plan_actions_manage');
+    await _press(tester, find.widgetWithText(TextButton, 'Brief & File'), 'Brief & File');
+    await _shot(tester, '26_plan_actions_brief_file');
 
-      fab = find.byTooltip('Back');
-      if (tester.any(fab)) {
-        await tester.tap(fab);
-        await tester.pump(const Duration(milliseconds: 500));
-      }
-    }
+    await _press(tester, find.widgetWithText(TextButton, 'Manage'), 'Manage');
+    await _shot(tester, '27_plan_actions_manage');
+
+    await _press(tester, find.widgetWithText(TextButton, 'Plan'), 'Plan');
 
     // ===========================================
     // FIND tab
@@ -362,26 +416,69 @@ void main() {
     }
 
     // ===========================================
-    // PLATE tab
+    // PLATE tab — KBVY airport diagram, after the chart has decoded
     // ===========================================
-    fab = find.byTooltip(
-        'Look at approach plates, airport diagrams, CSUP, Minimums, etc.');
-    if (tester.any(fab)) {
-      await tester.tap(fab);
-      await tester.pump(const Duration(milliseconds: 700));
-      await Future.delayed(const Duration(seconds: 1));
-      await tester.pump(const Duration(milliseconds: 500));
-      await _shot(tester, '31_plate_tab');
+    final String savedPlateAirport = Storage().settings.getCurrentPlateAirport();
+    final String savedPlate = Storage().currentPlate;
+    final String savedLastPlate = Storage().lastPlateAirport;
+    Storage().settings.setCurrentPlateAirport('KBVY');
+    Storage().lastPlateAirport = '';
+    final List<String> kbvyPlates =
+        await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, 'KBVY');
+    final String diagram = kbvyPlates.firstWhere(
+      PathUtils.isAirportDiagram,
+      orElse: () => '',
+    );
+    if (diagram.isNotEmpty) {
+      Storage().currentPlate = diagram;
     }
+    await _mark('plate KBVY diagram=$diagram count=${kbvyPlates.length}');
+    if (diagram.isNotEmpty) {
+      await Storage().loadPlate();
+    }
+    MainScreenState.gotoPlate();
+    await tester.pump(const Duration(milliseconds: 400));
+    bool plateReady = false;
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      final ui.Image? img = Storage().imagePlate;
+      plateReady = img != null &&
+          img.width > 200 &&
+          Storage().currentPlate.contains('AIRPORT DIAGRAM') &&
+          tester.any(find.text('KBVY'));
+      if (plateReady) {
+        break;
+      }
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    await _mark('plate ready=$plateReady image=${Storage().imagePlate?.width}x${Storage().imagePlate?.height} plate=${Storage().currentPlate}');
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, '31_plate_tab');
+    Storage().settings.setCurrentPlateAirport(savedPlateAirport);
+    Storage().currentPlate = savedPlate;
+    Storage().lastPlateAirport = savedLastPlate;
 
-    // Back to MAP for final shot
-    fab = find.byTooltip('View the maps and overlays');
-    if (tester.any(fab)) {
-      await tester.tap(fab);
-      await tester.pump(const Duration(milliseconds: 700));
-      await _shot(tester, '32_map_tab_final');
-    }
+    // Back to MAP for final shot. The nav item sits under the plate, so use the bar callback.
+    MainScreenState.gotoMap();
+    await tester.pump(const Duration(milliseconds: 700));
+    await _shot(tester, '32_map_tab_final');
 
     debugPrint('Screenshot test complete. Output dir: ${_outDir.path}');
+    await _mark('complete');
+    } catch (e, st) {
+      debugPrint('SCREENSHOT TEST ERROR: $e\n$st');
+      await _mark('ERROR: $e\n$st');
+    } finally {
+      final String? json = savedPlanJson;
+      if (json != null) {
+        await _restorePlan(
+          json,
+          savedPlanName,
+          savedPlanIndex,
+          savedPlanDest,
+          savedRouteEntry,
+        );
+      }
+    }
   }, timeout: const Timeout(Duration(minutes: 8)));
 }

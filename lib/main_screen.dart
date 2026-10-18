@@ -340,6 +340,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       _buildMenuItem(
                         context,
+                        icon: MdiIcons.airplaneCog,
+                        title: "PFD",
+                        subtitle: "Attitude, speed, altitude, course",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/pfd');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",

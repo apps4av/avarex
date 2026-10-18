@@ -1,4 +1,5 @@
 import 'package:avaremp/logbook/logbook_screen.dart';
+import 'package:avaremp/instruments/pfd_screen.dart';
 import 'package:avaremp/longpress_screen.dart';
 import 'package:avaremp/place/airspace_3d_screen.dart';
 import 'package:avaremp/plan/plan_action_screen.dart';
@@ -112,6 +113,7 @@ class MainApp extends StatelessWidget {
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               '/notes': (context) => const WritingScreen(),
               '/airspace3d': (context) => const Airspace3DScreen(),
+              '/pfd': (context) => const PfdScreen(),
               '/plan_actions': (context) => const PlanActionScreen(),
               '/ai': (context) => const AiScreen(),
               '/backup': (context) => const BackupScreen(),

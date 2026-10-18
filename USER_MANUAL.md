@@ -172,13 +172,15 @@ After onboarding, the app opens to `MainScreen` with:
 Open from MAP with **Menu** button (bottom-left). Items are grouped by section headers:
 
 - **DATA**: `Download` (Charts & databases), `Documents` (Weather, manuals, notes, tracks)
-- **FLIGHT**: `Write a Note`, `3D`, `Check Lists`, `Aircraft & Performance`
+- **FLIGHT**: `Write a Note`, `3D`, `PFD`, `Check Lists`, `Aircraft & Performance`
 - **RECORDS**: `Log Book`
 - **INTERNET** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
 - **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
 - **SUPPORT**: `Help` (User manual PDF; not available on Linux)
 
-`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots.
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. See Section 9.8.
+
+`PFD`, under `3D`, opens the same Primary Flight Display as the map `PFD` layer, on its own screen. The map layer is unchanged. See Section 9.9.
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
 
@@ -441,7 +443,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - Bottom tab **PLATE**, or
 - From destination popup using **Plates**
 
-![PLATE tab — selectors for airport (bottom-right) and plate (bottom-left)](assets/docs/screenshots/31_plate_tab.png)
+![PLATE tab at KBVY — airport diagram on screen, airport selector bottom-right, plate selector bottom-left](assets/docs/screenshots/31_plate_tab.png)
 
 ### 6.2 What it does
 
@@ -1071,6 +1073,30 @@ Open: **Menu → Help**
 - Opens the User Manual PDF for in-app reference.
 - Available on platforms that support PDF viewing (not Linux).
 
+### 9.8 3D
+
+Open: **Menu → 3D** (under `Write a Note`)
+
+![3D screen — airspace around the aircraft, terrain from downloaded Elevation, and ADS-B traffic dots](assets/docs/screenshots/33_airspace_3d.png)
+
+Same view as the destination popup `3D` tab, centered on the aircraft, without the yellow long-press mark.
+
+- **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude
+- **Traffic**: ADS-B targets inside 25 NM, drawn as dots
+- **Drag** to rotate, **pinch** to zoom, **two fingers** to pan
+- **Reset** restores the view
+- Shelf colors, altitude labels, obstacles, and the ownship dot match the destination `3D` tab (Section 5.3)
+
+### 9.9 PFD
+
+Open: **Menu → PFD** (under `3D`)
+
+The same `PFD` drawn by the map layer, sized to this screen. The map `PFD` layer is unchanged.
+
+- Attitude, speed and altitude tapes, VSI, compass, CDI/VDI, AOA, and turn coordinator
+- Hold the **OBS** knobs to set a course; double-tap either knob to return to the GPS course (Section 4)
+- Elevation terrain and the lined-up runway are drawn the same way as on the map `PFD`
+
 ---
 
 ## 10) Notes Screen
@@ -1456,6 +1482,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Destination details | Long-press on map or tap FIND result |
 | 3D Class B/C/D, restricted, warning, prohibited, and MOA airspace, plus obstacles | Destination popup `3D` tab (after `Wind`, before `ST`) |
 | 3D airspace around the aircraft, with terrain and ADS-B traffic | `MAP → Menu → 3D` (under `Write a Note`) |
+| PFD on its own screen | `MAP → Menu → PFD` (under `3D`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
