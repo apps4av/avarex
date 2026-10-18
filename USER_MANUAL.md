@@ -15,6 +15,11 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.134**
+
+- Open the PFD from `Menu`.
+- Show an Apps4Av message when you open the app. Tap `OK`.
+
 **0.0.133**
 
 - Open 3D Class B, C, D, and SUA from the destination `3D` tab.
