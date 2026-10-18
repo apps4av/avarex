@@ -545,6 +545,16 @@ void main() {
     );
   }
 
+  test('TFR altitudes and the glide ring', () {
+    expect(parseTfrAltitude('SFC')?.$1, 0);
+    expect(parseTfrAltitude('050')?.$1, 5000);
+    expect(parseTfrAltitude('3000')?.$1, 3000);
+    expect(parseTfrAltitude('UNL')?.$2, isTrue);
+    expect(parseTfrAltitude('Check NOTAMs'), isNull);
+    expect(glideRingHasReach(const [LatLng(1, 1), LatLng(1, 1)]), isFalse);
+    expect(glideRingHasReach(const [LatLng(42, -71), LatLng(42.1, -71), LatLng(42, -71)]), isTrue);
+  });
+
   test('plan path is cut to the 25 NM square', () {
     final through = clipPathToView(const [NmPoint(-40, -40), NmPoint(40, 40)]);
     expect(through, hasLength(1));
@@ -585,7 +595,15 @@ void main() {
       home: Scaffold(body: Airspace3DView(center: center)),
     ));
     expect(find.textContaining('Drag to rotate'), findsOneWidget);
+    expect(find.text('B'), findsOneWidget);
+    expect(find.text('SUA'), findsOneWidget);
+    expect(find.text('Terrain'), findsOneWidget);
+    expect(find.text('Obstacles'), findsOneWidget);
     expect(find.textContaining('No Class B'), findsNothing);
+    await tester.tap(find.text('Obstacles'));
+    await tester.pump();
+    await tester.tap(find.text('Obstacles'));
+    await tester.pump();
     expect(tester.takeException(), isNull);
   });
 

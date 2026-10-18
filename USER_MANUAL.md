@@ -17,13 +17,16 @@ This manual documents all features in the current AvareX app, including:
 
 **0.0.133**
 
-- Open 3D Class B, C, and D, plus restricted, warning, prohibited, and MOA, from the destination `3D` tab.
-- Shelves use labels such as `25-43` (`SF` is surface), a white ownship dot, and red obstacle lines.
+- Open 3D Class B, C, D, and SUA from the destination `3D` tab.
+- Shelf labels such as `25-43` (`SF` is surface).
 - Airspace above 10,000 ft is cut open.
 - Vector Map labels such as `SF-50`. Zoomed out, Class B is drawn first.
-- Menu `3D` shows that view around the aircraft with terrain and ADS-B dots.
-- The menu section `Cloud` is now `Internet`.
-- The 3D view draws the active plan at its altitude.
+- Menu `3D` adds terrain and ADS-B dots.
+- Menu `Cloud` is `Internet`.
+- 3D draws the plan at its altitude.
+- 3D draws the glide ring, and TFR or Game TFR when on.
+- Ownship pulses once a second.
+- 3D chips hide B, C, D, SUA, terrain, TFR, Game TFR, the plan, or obstacles.
 
 **0.0.132**
 
@@ -179,7 +182,7 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
 - **SUPPORT**: `Help` (User manual PDF; not available on Linux)
 
-`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at its altitude. See Section 9.8.
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at its altitude. The glide ring, and `TFR` and `Game TFR` volumes when those layers are on, are drawn here too. See Section 9.8.
 
 `PFD`, under `3D`, opens the same Primary Flight Display as the map `PFD` layer, on its own screen. The map layer is unchanged. See Section 9.9.
 
@@ -429,7 +432,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
-- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at its altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring that pulses once a second, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at its altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. The glide ring is a white circle with an orange halo on the surface, and an orange cone from the aircraft down to that circle. When the `TFR` layer is on, areas in effect are red volumes and later ones are brown. When `Game TFR` is on, each venue is an orange cylinder 3 NM across, from the surface to 3000 ft above the ground. Chips along the bottom show or hide Class `B`, `C`, and `D`, `SUA` (restricted, warning, prohibited, and MOA), terrain, `TFR`, `Game TFR`, the plan, and obstacles. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -1085,6 +1088,10 @@ Same view as the destination popup `3D` tab, centered on the aircraft, without t
 - **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
 - **Plan**: the active plan at its altitude, cyan behind, purple on the current leg, and grey ahead
+- **Glide ring**: the map glide circle on the surface, and a cone from the aircraft down to it
+- **TFR**: when the `TFR` layer is on, red if in effect and brown if later, from the published floor to the published ceiling
+- **Game TFR**: when that layer is on, an orange 3 NM cylinder from the surface to 3000 ft above the ground
+- **Filters**: `B`, `C`, `D`, `SUA`, `TFR`, `Game`, `Plan`, `Obstacles`, and `Terrain` show or hide those parts. `SUA` is restricted, warning, prohibited, and MOA. `TFR` and `Game` still follow the map layers
 - **Drag** to rotate, **pinch** to zoom, **two fingers** to pan
 - **Reset** restores the view
 - Shelf colors, altitude labels, obstacles, and the ownship dot match the destination `3D` tab (Section 5.3)
@@ -2099,7 +2106,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 - In the `Circles` layer:
   - **Black rings**: fixed 2/5/10 NM reference rings; the 10 NM ring is marked with a magnetic compass rose (ticks and labels at the eight major points: `N` / `NE` / `E` / `SE` / `S` / `SW` / `W` / `NW`)
   - **Blue ring with a yellow halo**: speed-based 1-minute travel distance
-  - **White ring with an orange halo**: glide circle based on the selected aircraft's best glide speed and sink rate, plus winds aloft, terrain, and altitude
+  - **White ring with an orange halo**: glide circle based on the selected aircraft's best glide speed and sink rate, plus winds aloft, terrain, and altitude. The same ring is drawn on the surface in the 3D view, with a cone from the aircraft down to it
 - Source thread:  
   `https://groups.google.com/g/apps4av-forum/c/VJ0S3ejWPC8`
 

@@ -47,15 +47,25 @@ class GlideProfile {
   }
 
   void updateGlide() async {
+    try {
+    final List<double?> next = List<double?>.filled(_directionSteps, null);
+    void publish() {
+      for (int i = 0; i < _directionSteps; i++) {
+        _distanceTotal[i] = next[i];
+      }
+      // area.update notifies before this async work finishes. Notify again
+      // once the ring is actually ready so the map and 3D view redraw it.
+      Storage().area.change.value++;
+    }
 
     // units in feet and seconds
     double altitudeGps = Storage().position.altitude * _feetPerMeter; // feet
     double heading = Storage().position.heading; // track true north
     LatLng ll = Gps.toLatLng(Storage().position);
-    _distanceTotal.fillRange(0, _directionSteps, null);
 
     Aircraft? aircraft = await Aircraft.getActiveAircraft();
     if(aircraft == null) {
+      publish();
       return; // no aircraft, cannot compute glide
     }
     double sinkRate = (double.tryParse(aircraft.sinkRate) ?? 100) / 60.0; // feet per second (sink rate was fpm if not specified use 100 fpm)
@@ -63,15 +73,15 @@ class GlideProfile {
     final double bestGlideSpeed = aircraft.bestGlideSpeed * Storage().units.toMps * _feetPerMeter;
 
     WindsAloft? wa = Storage().area.windsAloft;
-    if(null == wa) {
-      return; // no winds aloft, cannot compute glide
-    }
-    // calculate airspeed from best glide ground speed, direction, and wind speed.
-    double? wSpeed;
-    double? wAngle;
-    (wAngle, wSpeed) = wa.getWindAtAltitude(altitudeGps);
-    if(wSpeed == null || wAngle == null) {
-      return; // no wind at altitude, cannot compute glide
+    // Missing winds still glide, with the wind taken as calm.
+    double wSpeed = 0;
+    double wAngle = 0;
+    if(wa != null) {
+      final (double? angle, double? speed) = wa.getWindAtAltitude(altitudeGps);
+      if(angle != null && speed != null) {
+        wAngle = angle;
+        wSpeed = speed;
+      }
     }
 
     // convert wind speed to feet per second from knots
@@ -83,9 +93,11 @@ class GlideProfile {
     // calculate winds from current altitude to ground.
     for (int dir = 0; dir < _directionSteps; dir++) {
       final double targetAngle = dir * _stepSizeDirection.toDouble();
-      _distanceTotal[dir] = await _findDistanceTo(ll, heading, targetAngle, sinkRate, altitudeGps, asT, wa);
+      next[dir] = await _findDistanceTo(ll, heading, targetAngle, sinkRate, altitudeGps, asT, wa);
       // now we know how far we can glide in each direction
     }
+    publish();
+    } catch (_) {}
   }
 
   /// Shortest angular distance between two headings in degrees in range [0, 180].
@@ -99,7 +111,7 @@ class GlideProfile {
   /// altitudes, airspeed (as), and winds aloft.
   ///
   /// Returns miles (as in original code).
-  static Future<double?> _findDistanceTo(LatLng currentPosition, double heading, double bearingAt, double sinkRate, double altitudeGps, double asT, WindsAloft wa) async {
+  static Future<double?> _findDistanceTo(LatLng currentPosition, double heading, double bearingAt, double sinkRate, double altitudeGps, double asT, WindsAloft? wa) async {
     double distance = 0.0;
     // correct altitude based on direction as turn loses altitude, assume 1 second per 3 degrees, and shortest dir turn
     final double turnAngle = _angularDistance(heading, bearingAt);
@@ -112,11 +124,14 @@ class GlideProfile {
     // calculate ground speed from airspeed, direction, and wind speed.
     final double stepSizeHeight = 100;
     for (double alt = altitude; alt >= 0; alt -= stepSizeHeight) {
-      double? wSpeed;
-      double? wAngle;
-      (wAngle, wSpeed) = wa.getWindAtAltitude(alt);
-      if(wSpeed == null || wAngle == null) {
-        return null; // no wind at altitude, cannot compute glide
+      double wSpeed = 0;
+      double wAngle = 0;
+      if(wa != null) {
+        final (double? angle, double? speed) = wa.getWindAtAltitude(alt);
+        if(angle != null && speed != null) {
+          wAngle = angle;
+          wSpeed = speed;
+        }
       }
 
       wSpeed = (wSpeed * _feetPerNm) / 3600.0;
@@ -134,10 +149,11 @@ class GlideProfile {
       LatLng ll = GeoCalculations().calculateOffset(currentPosition, distance, bearingAt);
       e = await ElevationCache.getElevation(ll);
       if(e == null) {
-        // cannot calculate as elevation data not there
-        return null;
-      }
-      if(e > alt) {
+        // Tiles ran out farther along. Keep the reach already found.
+        if(distance > 0) {
+          return distance;
+        }
+      } else if(e > alt) {
         // we have reached elevation at this distance and cannot glide past
         return distance;
       }
