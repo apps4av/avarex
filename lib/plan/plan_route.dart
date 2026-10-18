@@ -29,7 +29,17 @@ class PlanRoute {
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
-  int altitude = 3000;
+  int _altitude = 3000;
+
+  /// Planned altitude in feet. Notifying keeps the 3D path at the new level.
+  int get altitude => _altitude;
+  set altitude(int value) {
+    if (_altitude == value) {
+      return;
+    }
+    _altitude = value;
+    change.value++;
+  }
   int fore = 6;
   Passage? _passage;
   List<Destination> _allDestinations = [];

@@ -37,6 +37,123 @@ class _AirspaceTrafficDot {
   });
 }
 
+const int _clipWest = 1;
+const int _clipEast = 2;
+const int _clipSouth = 4;
+const int _clipNorth = 8;
+
+int _clipCode(double east, double north, double radius) {
+  var code = 0;
+  if (east < -radius) {
+    code |= _clipWest;
+  } else if (east > radius) {
+    code |= _clipEast;
+  }
+  if (north < -radius) {
+    code |= _clipSouth;
+  } else if (north > radius) {
+    code |= _clipNorth;
+  }
+  return code;
+}
+
+(NmPoint, NmPoint)? _clipSegment(NmPoint a, NmPoint b, double radius) {
+  var e0 = a.e;
+  var n0 = a.n;
+  var e1 = b.e;
+  var n1 = b.n;
+  for (var guard = 0; guard < 8; guard++) {
+    final c0 = _clipCode(e0, n0, radius);
+    final c1 = _clipCode(e1, n1, radius);
+    if ((c0 | c1) == 0) {
+      return (NmPoint(e0, n0), NmPoint(e1, n1));
+    }
+    if ((c0 & c1) != 0) {
+      return null;
+    }
+    final outside = c0 != 0 ? c0 : c1;
+    final de = e1 - e0;
+    final dn = n1 - n0;
+    final double east;
+    final double north;
+    if ((outside & _clipNorth) != 0 && dn != 0) {
+      east = e0 + de * (radius - n0) / dn;
+      north = radius;
+    } else if ((outside & _clipSouth) != 0 && dn != 0) {
+      east = e0 + de * (-radius - n0) / dn;
+      north = -radius;
+    } else if ((outside & _clipEast) != 0 && de != 0) {
+      north = n0 + dn * (radius - e0) / de;
+      east = radius;
+    } else if ((outside & _clipWest) != 0 && de != 0) {
+      north = n0 + dn * (-radius - e0) / de;
+      east = -radius;
+    } else {
+      return null;
+    }
+    if (outside == c0) {
+      e0 = east;
+      n0 = north;
+    } else {
+      e1 = east;
+      n1 = north;
+    }
+  }
+  return null;
+}
+
+/// Pieces of [points] that lie inside the 3D square. A leg that only crosses
+/// the view is cut at the edge instead of being dropped.
+@visibleForTesting
+List<List<NmPoint>> clipPathToView(List<NmPoint> points, {double radiusNm = airspaceViewRadiusNm}) {
+  final pieces = <List<NmPoint>>[];
+  List<NmPoint>? current;
+  for (var i = 0; i < points.length - 1; i++) {
+    final clipped = _clipSegment(points[i], points[i + 1], radiusNm);
+    if (clipped == null) {
+      if (current != null) {
+        pieces.add(current);
+        current = null;
+      }
+      continue;
+    }
+    final start = clipped.$1;
+    final end = clipped.$2;
+    if (current == null || (current.last.e - start.e).abs() > 0.05 || (current.last.n - start.n).abs() > 0.05) {
+      if (current != null) {
+        pieces.add(current);
+      }
+      current = [start, end];
+    } else {
+      current.add(end);
+    }
+  }
+  if (current != null) {
+    pieces.add(current);
+  }
+  return pieces;
+}
+
+List<NmPoint> _planOffsets(LatLng center, List<LatLng> path) {
+  final points = <NmPoint>[];
+  for (final point in path) {
+    final offset = ownshipOffsetNm(center, point, radiusNm: null);
+    if (offset != null) {
+      points.add(offset);
+    }
+  }
+  return points;
+}
+
+bool _planInView(LatLng? center) {
+  if (center == null) {
+    return false;
+  }
+  final route = Storage().route;
+  bool any(List<LatLng> path) => clipPathToView(_planOffsets(center, path)).isNotEmpty;
+  return any(route.getPathPassed()) || any(route.getPathCurrent()) || any(route.getPathNext());
+}
+
 /// 3D Class B/C/D shelves and obstacles.
 ///
 /// The long-press tab passes [center] and [showPressPoint]. The menu screen
@@ -333,7 +450,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (scene.message != null) {
       return _message(context, scene.message!);
     }
-    if (scene.shelves.isEmpty && scene.obstacles.isEmpty && !widget.followAircraft) {
+    if (scene.shelves.isEmpty && scene.obstacles.isEmpty && !widget.followAircraft && !_planInView(_center)) {
       return _message(context, 'No Class B, C, or D, restricted, warning, prohibited, or MOA airspace within ${airspaceViewRadiusNm.round()} NM');
     }
 
@@ -534,7 +651,7 @@ class _AirspacePainter extends CustomPainter {
     required this.hereColor,
     required this.terrain,
     required this.traffic,
-  }) : super(repaint: ownship);
+  }) : super(repaint: Listenable.merge([ownship, Storage().route.change]));
 
   /// Current ownship in this view, or null when it has no fix or is outside 25 NM.
   _Ownship? get _liveOwnship {
@@ -607,6 +724,7 @@ class _AirspacePainter extends CustomPainter {
         _drawLabel(canvas, project, shelf);
       }
     }
+    _drawPlan(canvas, project, maxAlt);
     _drawOwnship(canvas, project, maxAlt);
     _drawTraffic(canvas, project, maxAlt);
   }
@@ -1045,6 +1163,43 @@ class _AirspacePainter extends CustomPainter {
     final at = project(e, n, (floorFt + ceilingFt) / 2);
     final color = _classColor(shelf.airspaceClass);
     _text(canvas, shelf.label, at.o, Color.lerp(color, Colors.white, 0.55)!, 13, FontWeight.w500, outline: Colors.white);
+  }
+
+  void _drawPlan(Canvas canvas, _Proj Function(double, double, double) project, double maxAlt) {
+    final route = Storage().route;
+    final altitude = route.altitude.toDouble().clamp(0.0, maxAlt).toDouble();
+    final border = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..color = Constants.planBorderColor;
+    final line = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    void stroke(List<LatLng> path, Color color) {
+      for (final piece in clipPathToView(_planOffsets(center, path))) {
+        if (piece.length < 2) {
+          continue;
+        }
+        final drawn = ui.Path();
+        final first = project(piece.first.e, piece.first.n, altitude);
+        drawn.moveTo(first.x, first.y);
+        for (final point in piece.skip(1)) {
+          final at = project(point.e, point.n, altitude);
+          drawn.lineTo(at.x, at.y);
+        }
+        canvas.drawPath(drawn, border);
+        line.color = color;
+        canvas.drawPath(drawn, line);
+      }
+    }
+
+    stroke(route.getPathPassed(), Constants.planPassedColor);
+    stroke(route.getPathCurrent(), Constants.planCurrentColor);
+    stroke(route.getPathNext(), Constants.planNextColor);
   }
 
   void _drawOwnship(Canvas canvas, _Proj Function(double, double, double) project, double maxAlt) {

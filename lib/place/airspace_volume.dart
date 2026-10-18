@@ -296,13 +296,16 @@ const double airspaceViewRadiusNm = 25;
 /// Shelves are drawn only up to this altitude. Anything higher is a fading crown, not a solid lid.
 const double airspaceDisplayCapFt = 10000;
 
-/// East/north nautical miles from [center] when [ownship] is inside the 3D view.
-/// Returns null when the aircraft is outside that square.
-NmPoint? ownshipOffsetNm(LatLng center, LatLng ownship, {double radiusNm = airspaceViewRadiusNm}) {
+/// East/north nautical miles from [center].
+///
+/// Returns null when the point is outside the square of [radiusNm]. Pass a
+/// null radius to keep points beyond the 3D view, such as a plan leg that
+/// only crosses the square.
+NmPoint? ownshipOffsetNm(LatLng center, LatLng ownship, {double? radiusNm = airspaceViewRadiusNm}) {
   final cosLat = math.cos(center.latitude * math.pi / 180).abs().clamp(0.2, 1.0);
   final east = (ownship.longitude - center.longitude) * 60.0 * cosLat;
   final north = (ownship.latitude - center.latitude) * 60.0;
-  if (east.abs() > radiusNm || north.abs() > radiusNm) {
+  if (radiusNm != null && (east.abs() > radiusNm || north.abs() > radiusNm)) {
     return null;
   }
   return NmPoint(east, north);

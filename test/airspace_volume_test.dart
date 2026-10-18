@@ -545,6 +545,29 @@ void main() {
     );
   }
 
+  test('plan path is cut to the 25 NM square', () {
+    final through = clipPathToView(const [NmPoint(-40, -40), NmPoint(40, 40)]);
+    expect(through, hasLength(1));
+    expect(through.single.first.e, closeTo(-25, 0.01));
+    expect(through.single.first.n, closeTo(-25, 0.01));
+    expect(through.single.last.e, closeTo(25, 0.01));
+    expect(through.single.last.n, closeTo(25, 0.01));
+
+    final around = clipPathToView(const [
+      NmPoint(-40, 0),
+      NmPoint(40, 0),
+      NmPoint(40, 10),
+      NmPoint(-40, 10),
+    ]);
+    expect(around, hasLength(2));
+    expect(around.first.first.e, closeTo(-25, 0.01));
+    expect(around.first.last.e, closeTo(25, 0.01));
+    expect(around.last.first.n, closeTo(10, 0.01));
+    expect(around.last.last.e, closeTo(-25, 0.01));
+
+    expect(clipPathToView(const [NmPoint(30, 30), NmPoint(40, 40)]), isEmpty);
+  });
+
   testWidgets('obstacles paint as part of the view', (tester) async {
     const center = LatLng(42.9328, -71.4357);
     final scene = AirspaceScene(

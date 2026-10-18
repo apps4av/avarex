@@ -19,10 +19,11 @@ This manual documents all features in the current AvareX app, including:
 
 - Open 3D Class B, C, and D, plus restricted, warning, prohibited, and MOA, from the destination `3D` tab.
 - Shelves use labels such as `25-43` (`SF` is surface), a white ownship dot, and red obstacle lines.
-- Airspace above 10,000 ft is cut open so it does not cover the airport.
-- Vector Map labels sectors such as `SF-50`. Zoomed out it draws Class B first.
-- Menu `3D`, under `Write a Note`, shows that view around the aircraft with terrain and ADS-B dots.
+- Airspace above 10,000 ft is cut open.
+- Vector Map labels such as `SF-50`. Zoomed out, Class B is drawn first.
+- Menu `3D` shows that view around the aircraft with terrain and ADS-B dots.
 - The menu section `Cloud` is now `Internet`.
+- The 3D view draws the active plan at its altitude.
 
 **0.0.132**
 
@@ -178,7 +179,7 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
 - **SUPPORT**: `Help` (User manual PDF; not available on Linux)
 
-`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. See Section 9.8.
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at its altitude. See Section 9.8.
 
 `PFD`, under `3D`, opens the same Primary Flight Display as the map `PFD` layer, on its own screen. The map layer is unchanged. See Section 9.9.
 
@@ -428,7 +429,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
-- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at its altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -1083,6 +1084,7 @@ Same view as the destination popup `3D` tab, centered on the aircraft, without t
 
 - **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
+- **Plan**: the active plan at its altitude, cyan behind, purple on the current leg, and grey ahead
 - **Drag** to rotate, **pinch** to zoom, **two fingers** to pan
 - **Reset** restores the view
 - Shelf colors, altitude labels, obstacles, and the ownship dot match the destination `3D` tab (Section 5.3)
