@@ -57,7 +57,7 @@ void main() {
     expect(airspaceIdent(''), '');
     expect(AirspaceShelf.altitudeRange(2000, 4000), '20-40');
     expect(AirspaceShelf.altitudeRange(2500, 4300), '25-43');
-    expect(AirspaceShelf.altitudeRange(0, 12500), '00-125');
+    expect(AirspaceShelf.altitudeRange(0, 12500), 'SF-125');
     expect(AirspaceShelf.altitudeRange(500, 5000), '05-50');
   });
 
@@ -86,7 +86,7 @@ void main() {
         'UPPER_CODE': 'MSL',
         'UPPER_UOM': 'FT',
       }, sua: false, airportAtCenter: true),
-      'KMHT\n00-43',
+      'KMHT\nSF-43',
     );
     expect(
       vectorAirspaceLabel({
@@ -113,7 +113,7 @@ void main() {
         'UPPER_UOM': 'FT',
         'UPPER_REF': 'MSL',
       }, sua: true),
-      'R-4101A 00-25',
+      'R-4101A SF-25',
     );
     expect(vectorAirspaceLabel({'CLASS': 'C', 'EXCLUSION': '1'}, sua: false), isNull);
     expect(MBTilesLayerManager.debugThemeLayerCount(), 18);
@@ -185,8 +185,8 @@ void main() {
     expect(parseSuaLimit('500', 'FL', 'STD')?.feet, 50000);
     final unlimited = parseSuaLimit('UNL', 'OTHER', 'OTHER');
     expect(unlimited?.unlimited, isTrue);
-    expect(AirspaceShelf.altitudeRange(0, 2500), '00-25');
-    expect(AirspaceShelf.altitudeRange(0, 18000, unlimited: true), '00-UNL');
+    expect(AirspaceShelf.altitudeRange(0, 2500), 'SF-25');
+    expect(AirspaceShelf.altitudeRange(0, 18000, unlimited: true), 'SF-UNL');
   });
 
   test('surface and flight-level altitudes', () {
@@ -326,7 +326,7 @@ void main() {
         tileZoom: 9,
       );
       expect(onAirport.any((label) => label.text.contains('KBOS')), isTrue);
-      expect(onAirport.any((label) => label.text.contains('00-70')), isTrue);
+      expect(onAirport.any((label) => label.text.contains('SF-70')), isTrue);
 
       final zoomedIn = source.labels(
         north: lat + 0.008,
@@ -337,7 +337,7 @@ void main() {
         centerLon: lon,
         tileZoom: 10,
       );
-      expect(zoomedIn.any((label) => label.text.contains('00-70')), isTrue);
+      expect(zoomedIn.any((label) => label.text.contains('SF-70')), isTrue);
       expect(zoomedIn.any((label) => label.text.contains('20-70') || label.text.contains('30-70')), isFalse);
     } finally {
       db.dispose();
@@ -367,7 +367,7 @@ void main() {
       }
       expect(labels.where((label) => label == '25-43').length, greaterThan(1));
       expect(labels, contains('20-43'));
-      expect(labels.where((label) => label.startsWith('KMHT')), ['KMHT\n00-43']);
+      expect(labels.where((label) => label.startsWith('KMHT')), ['KMHT\nSF-43']);
       expect(labels.any((label) => label.contains('MANCHESTER')), isFalse);
     } finally {
       db.dispose();
@@ -453,21 +453,21 @@ void main() {
     expect(edwards.message, isNull, reason: edwards.message);
     final restricted = edwards.shelves.where((shelf) => shelf.airspaceClass == 'RESTRICTED').toList();
     expect(restricted, isNotEmpty);
-    expect(restricted.map((shelf) => shelf.label), contains('R-4101A 00-25'));
+    expect(restricted.map((shelf) => shelf.label), contains('R-4101A SF-25'));
     expect(edwards.airports.any((mark) => mark.ident == 'R-4101A'), isFalse);
     expect(edwards.shelves.where((shelf) => shelf.airspaceClass == 'WARNING'), isEmpty);
 
     final narragansett = loadClassAirspace(mbtiles, const LatLng(41.10, -71.20));
     expect(narragansett.message, isNull, reason: narragansett.message);
     final warning = narragansett.shelves.where((shelf) => shelf.airspaceClass == 'WARNING').toList();
-    expect(warning.map((shelf) => shelf.label), contains('W-105A 00-500'));
+    expect(warning.map((shelf) => shelf.label), contains('W-105A SF-500'));
   }, skip: mbtiles == null || mbtiles.isEmpty ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path' : false);
 
   test('Washington prohibited area and a MOA are included', () {
     final scene = loadClassAirspace(mbtiles!, const LatLng(38.8977, -77.0365));
     expect(scene.message, isNull, reason: scene.message);
     final labels = scene.shelves.map((shelf) => shelf.label).toList();
-    expect(labels, contains('P-56A 00-180'));
+    expect(labels, contains('P-56A SF-180'));
     expect(labels, contains('DEMO 1 05-50'));
     expect(scene.shelves.any((shelf) => shelf.airspaceClass == 'PROHIBITED' && shelf.ident == 'P-56A'), isTrue);
     expect(scene.shelves.any((shelf) => shelf.airspaceClass == 'MOA' && shelf.ident == 'DEMO 1'), isTrue);
@@ -481,7 +481,7 @@ void main() {
     final restricted = scene.shelves.where((shelf) => shelf.ident == 'R-5203').toList();
     expect(restricted, isNotEmpty);
     expect(restricted.first.ceilingFt, greaterThan(airspaceDisplayCapFt));
-    expect(restricted.first.label, 'R-5203 00-500');
+    expect(restricted.first.label, 'R-5203 SF-500');
     expect(scene.shelves.any((shelf) => shelf.ident == 'KROC' && shelf.ceilingFt == 4600), isTrue);
     expect(scene.airports.any((mark) => mark.ident == 'KROC'), isTrue);
     expect(scene.airports.any((mark) => mark.ident == 'R-5203'), isFalse);
@@ -492,7 +492,7 @@ void main() {
     expect(scene.message, isNull, reason: scene.message);
     final lines = scene.shelves.where((shelf) => shelf.ident == 'KMHT').map((shelf) => shelf.label).toList();
     expect(lines, contains('25-43'));
-    expect(lines, contains('00-43'));
+    expect(lines, contains('SF-43'));
     expect(lines.any((text) => text.contains('KMHT')), isFalse);
     final airport = scene.airports.singleWhere((mark) => mark.ident == 'KMHT');
     expect(airport.airspaceClass, 'C');
@@ -630,7 +630,7 @@ void main() {
           ],
           containsCenter: true,
           area: 64,
-          label: 'KROC 00-46',
+          label: 'KROC SF-46',
           showLabel: true,
         ),
         AirspaceShelf(
@@ -648,7 +648,7 @@ void main() {
           ],
           containsCenter: true,
           area: 576,
-          label: 'R-5203 00-500',
+          label: 'R-5203 SF-500',
           showLabel: true,
         ),
       ],
@@ -674,7 +674,7 @@ void main() {
       home: Scaffold(body: Airspace3DView(center: center)),
     ));
 
-    expect(scene.shelves.any((shelf) => shelf.ident == 'KATL' && shelf.label.contains('00-125')), isTrue);
+    expect(scene.shelves.any((shelf) => shelf.ident == 'KATL' && shelf.label.contains('SF-125')), isTrue);
     expect(scene.airports.any((mark) => mark.ident == 'KATL'), isTrue);
     expect(find.textContaining('KATL'), findsNothing);
     expect(find.textContaining('Drag to rotate'), findsOneWidget);

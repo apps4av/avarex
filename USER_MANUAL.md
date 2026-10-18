@@ -17,11 +17,12 @@ This manual documents all features in the current AvareX app, including:
 
 **0.0.133**
 
-- Open 3D Class B, C, and D airspace, plus restricted, warning, prohibited, and MOA areas, from the destination `3D` tab.
-- Shelves are labeled such as `25-43`, with the airport on the ground, a live ownship dot, and obstacles as red lines.
+- Open 3D Class B, C, and D, plus restricted, warning, prohibited, and MOA, from the destination `3D` tab.
+- Shelves use labels such as `25-43` (`SF` is surface), a white ownship dot, and red obstacle lines.
 - Airspace above 10,000 ft is cut open so it does not cover the airport.
-- Vector Map labels each sector, such as `05-50`, with the airport name at the center.
-- Zoomed out, Vector Map draws Class B first and adds smaller sectors and altitude labels as you zoom in.
+- Vector Map labels sectors such as `SF-50`. Zoomed out it draws Class B first.
+- Menu `3D`, under `Write a Note`, shows that view around the aircraft with terrain and ADS-B dots.
+- The menu section `Cloud` is now `Internet`.
 
 **0.0.132**
 
@@ -144,7 +145,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
-| Cloud drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                       | **iOS, Android, Windows, and macOS** |
+| Internet drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                    | **iOS, Android, Windows, and macOS** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, Windows, and macOS** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -171,11 +172,13 @@ After onboarding, the app opens to `MainScreen` with:
 Open from MAP with **Menu** button (bottom-left). Items are grouped by section headers:
 
 - **DATA**: `Download` (Charts & databases), `Documents` (Weather, manuals, notes, tracks)
-- **FLIGHT**: `Write a Note`, `Check Lists`, `Aircraft & Performance`
+- **FLIGHT**: `Write a Note`, `3D`, `Check Lists`, `Aircraft & Performance`
 - **RECORDS**: `Log Book`
-- **CLOUD** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
+- **INTERNET** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
 - **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
 - **SUPPORT**: `Help` (User manual PDF; not available on Linux)
+
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots.
 
 ![Drawer menu opened from MAP](assets/docs/screenshots/04_drawer_menu.png)
 
@@ -203,7 +206,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 ### 4.3 Map controls (buttons and menus)
 
 #### Top-right
-- **Pro icon** (iOS/Android): opens `Flight Intelligence` when you are signed in, or the `Account` sign-in screen if you are not. Manage the account from `MAP → Menu → Cloud → Account`.
+- **Pro icon** (iOS/Android): opens `Flight Intelligence` when you are signed in, or the `Account` sign-in screen if you are not. Manage the account from `MAP → Menu → Internet → Account`.
 - **Red warning icon** (if active): opens troubleshooting drawer.
 
 #### Bottom center
@@ -274,7 +277,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **Nav** | Route lines (cyan=passed, purple=current, gray=next), runway depiction, waypoint markers/labels, ownship symbol, wind barb, north indicator. **Obstacles**, **Tape**, **Circles**, and **CAP Grid** are listed under **Nav** in this popup, each with its own opacity slider. |
 | **Circles** (under Nav) | Range rings (10/5/2 NM black rings), speed ring (blue with a yellow halo, 1-minute travel distance), glide circle (white with an orange halo, power-off glide range at the selected aircraft's best glide speed) + labels. The 10 NM ring carries a magnetic compass rose with ticks and labels at the eight major points: `N`, `NE`, `E`, `SE`, `S`, `SW`, `W`, `NW`. |
 | **Chart** | Downloaded FAA chart tiles (offline chart base). |
-| **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. Zoomed out, only Class B is drawn. MOAs, restricted areas, and warning areas appear next, then Class C. Class D, smaller special-use areas, and each sector altitude (`25-43`, `05` is 500 ft, `00` is the surface) appear up close. The airport name, such as `KMHT`, is at the center. |
+| **Vector Map** | NASR vector tiles from MBTiles files, with Class B/C/D airspace and SUA (MOA, Restricted, Warning, Alert, Prohibited, NSA) rendered with standard aviation colors. Zoomed out, only Class B is drawn. MOAs, restricted areas, and warning areas appear next, then Class C. Class D, smaller special-use areas, and each sector altitude (`25-43`, `05` is 500 ft, `SF` is the surface) appear up close. The airport name, such as `KMHT`, is at the center. |
 | **CAP Grid** (under Nav) | Civil Air Patrol grid overlay with grid identifiers (e.g., BOS42, SEA123). Only visible at zoom level 9+. |
 | **Topo** | USGS topo online base map (max zoom 16). |
 | **Elevation** | Downloaded elevation tiles with color-coded terrain. |
@@ -423,7 +426,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
-- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A 00-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `00` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 00-500`). Obstacles from the main database are red lines from the ground to the obstacle top. The ownship is a dot that moves with the aircraft while it is inside this 25 NM area. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -1145,9 +1148,9 @@ Cloud features (Backup/Sync, Community, Scheduler, Airport Businesses) run on **
 
 They are reached from:
 
-- **Account screen** — `MAP → Menu → Cloud → Account`. Sign in, view profile, sign out, or delete the account. The screen title is `Account`. After you **Sign out** (or delete the account), the same `Account` screen switches to the sign-in form — you are not sent back to the map.
+- **Account screen** — `MAP → Menu → Internet → Account`. Sign in, view profile, sign out, or delete the account. The screen title is `Account`. After you **Sign out** (or delete the account), the same `Account` screen switches to the sign-in form — you are not sent back to the map.
 - **Pro icon** (iOS/Android) — `MAP top-right account icon`. Opens `Flight Intelligence` when signed in (paywall if needed), or the `Account` sign-in screen if not. Some features also route here on demand (e.g., translate actions).
-- **`CLOUD` drawer section** — `MAP → Menu → Cloud`. Holds `Account`, `Backup/Sync`, `Community`, `Scheduler`, and `Flight Intelligence`. `Account`, `Backup/Sync`, `Community`, and `Scheduler` are free (sign-in only). `Flight Intelligence` still uses the Pro paywall.
+- **`INTERNET` drawer section** — `MAP → Menu → Internet`. Holds `Account`, `Backup/Sync`, `Community`, `Scheduler`, and `Flight Intelligence`. `Account`, `Backup/Sync`, `Community`, and `Scheduler` are free (sign-in only). `Flight Intelligence` still uses the Pro paywall.
 
 ### 11.2 Login and subscription flow
 
@@ -1156,13 +1159,13 @@ They are reached from:
 - After sign-out, `Account` shows the sign-in form again (same route, title still `Account`)
 - Cloud features (`Backup/Sync`, `Community`, `Scheduler`, Airport Businesses) need a signed-in account only — they are free on iOS, Android, Windows, and macOS
 - `Flight Intelligence` uses the RevenueCat entitlement (`Pro`) paywall
-- After login, open `Flight Intelligence` from the MAP top-right account icon or from `MAP → Menu → Cloud → Flight Intelligence`
+- After login, open `Flight Intelligence` from the MAP top-right account icon or from `MAP → Menu → Internet → Flight Intelligence`
 
 ### 11.3 Flight Intelligence (AI)
 
 Screen title: **Flight Intelligence**
 
-**Access**: `MAP → Menu → Cloud → Flight Intelligence`, or `MAP top-right account icon` (opens `Flight Intelligence` when signed in, or `Account` sign-in if not)
+**Access**: `MAP → Menu → Internet → Flight Intelligence`, or `MAP top-right account icon` (opens `Flight Intelligence` when signed in, or `Account` sign-in if not)
 
 Powered by Gemini 3.8 Flash with Google Search integration.
 
@@ -1192,7 +1195,7 @@ Capabilities:
 
 Screen title: **Pilot Community**
 
-**Access**: `MAP → Menu → Cloud → Community`
+**Access**: `MAP → Menu → Internet → Community`
 
 A pilot-only social network backed by Firebase. Pilots can build a public profile, create groups, and join existing ones. **Private** groups require owner approval; **public** groups are open to all signed-in users. This is a free Cloud feature (sign-in required, no Pro subscription).
 
@@ -1240,7 +1243,7 @@ A pilot-only social network backed by Firebase. Pilots can build a public profil
 - Public groups are discoverable and any signed-in user can read the feed.
 - Private groups are discoverable by name but the feed is hidden from non-members. Owners get a red badge over the **Members** tab when pending requests exist.
 
-**Notifications**: in-app only (no push). A **bell icon** appears both in the `Pilot Community` app bar and on the `Community` row in the drawer's `CLOUD` section; it shows an unread count and opens the **Notifications** screen. You are notified when:
+**Notifications**: in-app only (no push). A **bell icon** appears both in the `Pilot Community` app bar and on the `Community` row in the drawer's `INTERNET` section; it shows an unread count and opens the **Notifications** screen. You are notified when:
 
 - someone **replies to a topic you started**, or
 - someone **replies to any post in a group you own**.
@@ -1251,7 +1254,7 @@ On the Notifications screen, unread items are shown in **bold** with a dot. You 
 
 Screen title: **Aircraft Scheduler**
 
-**Access**: `MAP → Menu → Cloud → Scheduler`
+**Access**: `MAP → Menu → Internet → Scheduler`
 
 This is a free Cloud feature (sign-in required, no Pro subscription).
 
@@ -1316,7 +1319,7 @@ Limits are enforced when a member books; exceeding a limit shows an explanatory 
 
 Screen title: **Backup/Sync**
 
-**Access**: `MAP → Menu → Cloud → Backup/Sync`
+**Access**: `MAP → Menu → Internet → Backup/Sync`
 
 This is a free Cloud feature (sign-in required, no Pro subscription).
 
@@ -1452,6 +1455,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
 | 3D Class B/C/D, restricted, warning, prohibited, and MOA airspace, plus obstacles | Destination popup `3D` tab (after `Wind`, before `ST`) |
+| 3D airspace around the aircraft, with terrain and ADS-B traffic | `MAP → Menu → 3D` (under `Write a Note`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
@@ -1477,24 +1481,24 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Notes/drawing | `MAP → Menu → Write a Note` |
 | Notes with aviation sheet | `MAP → Menu → Write a Note → sheet icon → select template` |
 | Notes number keypad | `MAP → Menu → Write a Note → dialpad icon` |
-| Pro AI | `MAP → Menu → Cloud → Flight Intelligence` or `MAP top-right account icon` (iOS/Android) |
+| Pro AI | `MAP → Menu → Internet → Flight Intelligence` or `MAP top-right account icon` (iOS/Android) |
 | Translate a NOTAM (Pro) | `Destination popup → NOTAM → Translate icon` on a NOTAM (iOS/Android) |
-| Cloud account | `MAP → Menu → Cloud → Account` (iOS/Android/Windows/macOS) |
-| Sign out / delete account | `MAP → Menu → Cloud → Account` → **Sign out** or **Delete account** (returns to the sign-in form on the same `Account` screen) |
-| Community | `MAP → Menu → Cloud → Community` |
-| Create a pilot group | `MAP → Menu → Cloud → Community → New Group` |
-| Join a public group | `MAP → Menu → Cloud → Community → Discover → tap group → Join` |
+| Cloud account | `MAP → Menu → Internet → Account` (iOS/Android/Windows/macOS) |
+| Sign out / delete account | `MAP → Menu → Internet → Account` → **Sign out** or **Delete account** (returns to the sign-in form on the same `Account` screen) |
+| Community | `MAP → Menu → Internet → Community` |
+| Create a pilot group | `MAP → Menu → Internet → Community → New Group` |
+| Join a public group | `MAP → Menu → Internet → Community → Discover → tap group → Join` |
 | Approve pending members (owner) | `Community → group → Members tab → Approve / Reject` |
-| Edit your pilot profile | `MAP → Menu → Cloud → Community → Profile → edit icon` |
+| Edit your pilot profile | `MAP → Menu → Internet → Community → Profile → edit icon` |
 | Post a photo to a group | `Community → group → Post → Photo → choose source` |
 | Share your current flight plan | `Community → group → Post → Attach plan` |
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
 | Reply to a topic | `Community → group → tap topic → Reply` |
 | View a topic's discussion thread | `Community → group → tap a topic in the Feed` |
-| View notifications | `Community → bell icon` (also shown on the `Community` row in the drawer's `CLOUD` section) |
+| View notifications | `Community → bell icon` (also shown on the `Community` row in the drawer's `INTERNET` section) |
 | Turn reply notifications off / mute a group | `Community → bell icon → gear icon` |
-| Aircraft Scheduler | `MAP → Menu → Cloud → Scheduler` |
-| Create a scheduler (private) | `MAP → Menu → Cloud → Scheduler → New Scheduler` |
+| Aircraft Scheduler | `MAP → Menu → Internet → Scheduler` |
+| Create a scheduler (private) | `MAP → Menu → Internet → Scheduler → New Scheduler` |
 | Add an aircraft/instructor (owner) | `Scheduler → scheduler → Schedule tab → Add resource` |
 | Book a resource | `Scheduler → scheduler → Schedule tab → tap a green slot → Book` |
 | View / cancel my reservations | `Scheduler → scheduler → Mine tab` |
@@ -1511,7 +1515,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Add services/fuel/hours to a business | `Business tab → tap listing → Edit details` |
 | Set fuel prices for a business | `Business tab → tap listing → Set fuel prices` |
 | Review an airport business | `Business tab → tap listing → Reviews → Add` |
-| Cloud backup/restore | `MAP → Menu → Cloud → Backup/Sync` |
+| Cloud backup/restore | `MAP → Menu → Internet → Backup/Sync` |
 | User Manual (Help) | `MAP → Menu → Help` |
 | PFD terrain and synthetic runway | `MAP → Layers → PFD > 0` (Elevation charts for terrain; runway when lined up within 10 NM) |
 | Set an OBS course | `MAP → PFD → hold an OBS knob` (double-tap either knob to return to the GPS course) |
@@ -1753,7 +1757,7 @@ Exchange flight plans with a panel-mounted Avidyne IFD440/540/550 in either dire
 
 ### UC-13: Back up and restore app data
 
-1. Open `MAP → Menu → Cloud → Backup/Sync`.
+1. Open `MAP → Menu → Internet → Backup/Sync`.
 2. Sign in if prompted; the `Backup/Sync` screen opens right after.
 3. Use:
    - **Backup** (upload icon) to upload local `user.db`
@@ -1957,7 +1961,7 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 
 ### UC-24: Create a pilot community group
 
-1. Open `MAP → Menu → Cloud → Community`.
+1. Open `MAP → Menu → Internet → Community`.
 2. Sign in if prompted.
 3. Tap the **New Group** floating action button.
 4. Fill in:
@@ -1981,7 +1985,7 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 
 ### UC-26: Set up an aircraft scheduler and book a flight
 
-1. Open `MAP → Menu → Cloud → Scheduler`.
+1. Open `MAP → Menu → Internet → Scheduler`.
 2. Sign in if prompted.
 3. Tap the **New Scheduler** floating action button, fill in the name (and optional description/home airport), then tap **Create Scheduler**. Every scheduler is private; you land on the new scheduler as the owner.
 4. On the **Schedule** tab, tap **Add resource** to add your aircraft (e.g. `Cessna 172`, tail `N12345`) and any instructors. They appear as rows, with time across the top.
@@ -2109,7 +2113,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 ### FAQ-11: Is Flight Intelligence (AI) available on desktop?
 
 - Current Pro AI workflows are targeted for iOS/Android only.
-- Access from `MAP → Menu → Cloud → Flight Intelligence` or the map account icon (opens Flight Intelligence when signed in, or Account sign-in if not).
+- Access from `MAP → Menu → Internet → Flight Intelligence` or the map account icon (opens Flight Intelligence when signed in, or Account sign-in if not).
 - Uses Gemini 3.8 Flash with Google Search integration.
 - Source threads:
   - AI feature thread:  

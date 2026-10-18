@@ -340,6 +340,7 @@ class LongPressScreenState extends State<LongPressScreen> {
     pages[labels.indexOf("3D")] = Airspace3DView(
       center: showDestination.coordinate,
       ownship: Storage().gpsChange,
+      showPressPoint: true,
     );
     pages[labels.indexOf("ST")] = Sounding.getSoundingImage(showDestination.coordinate, context);
 

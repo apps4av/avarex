@@ -1,5 +1,6 @@
-Open 3D Class B, C, and D airspace, plus restricted, warning, prohibited, and MOA areas, from the destination `3D` tab.
-Shelves are labeled such as `25-43`, with the airport on the ground, a live ownship dot, and obstacles as red lines.
+Open 3D Class B, C, and D, plus restricted, warning, prohibited, and MOA, from the destination `3D` tab.
+Shelves use labels such as `25-43` (`SF` is surface), a white ownship dot, and red obstacle lines.
 Airspace above 10,000 ft is cut open so it does not cover the airport.
-Vector Map labels each sector, such as `05-50`, with the airport name at the center.
-Zoomed out, Vector Map draws Class B first and adds smaller sectors and altitude labels as you zoom in.
+Vector Map labels sectors such as `SF-50`. Zoomed out it draws Class B first.
+Menu `3D`, under `Write a Note`, shows that view around the aircraft with terrain and ADS-B dots.
+The menu section `Cloud` is now `Internet`.

@@ -330,6 +330,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       _buildMenuItem(
                         context,
+                        icon: Icons.view_in_ar_outlined,
+                        title: "3D",
+                        subtitle: "Airspace, terrain, and ADS-B traffic",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/airspace3d');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
                         icon: MdiIcons.checkboxMarkedOutline,
                         title: "Check Lists",
                         subtitle: "Pre-flight & procedures",
@@ -362,7 +372,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       if (Constants.firebaseAvailable) ...[
                         const SizedBox(height: 8),
-                        _buildSectionHeader(context, "Cloud"),
+                        _buildSectionHeader(context, "Internet"),
                         _buildMenuItem(
                           context,
                           icon: MdiIcons.account,

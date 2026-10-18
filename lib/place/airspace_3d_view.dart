@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:avaremp/constants.dart';
 import 'package:avaremp/io/gps.dart';
 import 'package:avaremp/place/airspace_volume.dart';
+import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:flutter/foundation.dart';
@@ -11,16 +13,63 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:universal_io/io.dart';
 
-/// 3D Class B/C/D shelves and obstacles around a long-press point.
+/// Elevation samples over the 25 NM square. Row 0 is south, column 0 is west.
+class _AirspaceTerrain {
+  final int cols;
+  final int rows;
+  final List<double?> elevFt;
+
+  const _AirspaceTerrain({required this.cols, required this.rows, required this.elevFt});
+}
+
+/// One ADS-B target already converted into the 3D view.
+class _AirspaceTrafficDot {
+  final double eastNm;
+  final double northNm;
+  final double altitudeFt;
+  final bool threat;
+
+  const _AirspaceTrafficDot({
+    required this.eastNm,
+    required this.northNm,
+    required this.altitudeFt,
+    required this.threat,
+  });
+}
+
+/// 3D Class B/C/D shelves and obstacles.
 ///
+/// The long-press tab passes [center] and [showPressPoint]. The menu screen
+/// sets [followAircraft], [showTerrain], and [showTraffic] on this same view.
 /// Drag rotates, a pinch zooms, and two fingers pan.
 class Airspace3DView extends StatefulWidget {
-  final LatLng center;
+  /// Locked center. Null when [followAircraft] chooses the center from GPS.
+  final LatLng? center;
 
   /// Live ownship. Drawn only when it is inside the 25 NM view.
   final ValueListenable<Position>? ownship;
 
-  const Airspace3DView({super.key, required this.center, this.ownship});
+  /// Yellow stem at the center. Used for the long-press point only.
+  final bool showPressPoint;
+
+  /// Keep the scene on the aircraft and slide it forward after about 8 NM.
+  final bool followAircraft;
+
+  /// Draw downloaded elevation under the shelves.
+  final bool showTerrain;
+
+  /// Draw ADS-B targets as dots.
+  final bool showTraffic;
+
+  const Airspace3DView({
+    super.key,
+    this.center,
+    this.ownship,
+    this.showPressPoint = false,
+    this.followAircraft = false,
+    this.showTerrain = false,
+    this.showTraffic = false,
+  });
 
   /// Seeds the in-memory shelf cache so a test can open the view without the database path.
   @visibleForTesting
@@ -37,11 +86,17 @@ class Airspace3DView extends StatefulWidget {
 class _Airspace3DViewState extends State<Airspace3DView> {
   static const double _pitch0 = 0.85;
   static const double _yaw0 = 0.55;
+  static const int _terrainGrid = 17;
+  static const double _recenterNm = 8;
   static String? _cacheKey;
   static AirspaceScene? _cache;
 
   AirspaceScene? _scene;
   bool _loading = true;
+  LatLng? _center;
+  _AirspaceTerrain? _terrain;
+  List<_AirspaceTrafficDot> _traffic = const [];
+  int _terrainGeneration = 0;
   double _pitch = _pitch0;
   double _yaw = _yaw0;
   double _zoom = 1;
@@ -54,6 +109,24 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   @override
   void initState() {
     super.initState();
+    _center = widget.center;
+    if (widget.followAircraft) {
+      Storage().gpsChange.addListener(_onGps);
+    }
+    if (widget.showTraffic) {
+      Storage().trafficChange.addListener(_onTraffic);
+    }
+    if (widget.followAircraft) {
+      _onGps();
+      if (_center == null) {
+        _loading = false;
+      }
+      return;
+    }
+    if (_center == null) {
+      _loading = false;
+      return;
+    }
     final cached = _cached(_placeKey);
     if (cached != null) {
       _scene = cached;
@@ -61,15 +134,33 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     } else {
       _load();
     }
+    if (widget.showTerrain) {
+      _loadTerrain(_center!);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (widget.followAircraft) {
+      Storage().gpsChange.removeListener(_onGps);
+    }
+    if (widget.showTraffic) {
+      Storage().trafficChange.removeListener(_onTraffic);
+    }
+    super.dispose();
   }
 
   @override
   void didUpdateWidget(Airspace3DView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.center.latitude == widget.center.latitude &&
-        oldWidget.center.longitude == widget.center.longitude) {
+    if (widget.followAircraft || widget.center == null || oldWidget.center == null) {
       return;
     }
+    if (oldWidget.center!.latitude == widget.center!.latitude &&
+        oldWidget.center!.longitude == widget.center!.longitude) {
+      return;
+    }
+    _center = widget.center;
     final cached = _cached(_placeKey);
     if (cached != null) {
       _scene = cached;
@@ -81,10 +172,90 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     _load();
   }
 
+  void _onGps() {
+    if (!widget.followAircraft || !mounted) {
+      return;
+    }
+    final pos = Storage().gpsChange.value;
+    if (Gps.isPositionCloseToZero(pos)) {
+      return;
+    }
+    final here = LatLng(pos.latitude, pos.longitude);
+    final center = _center;
+    if (center != null) {
+      final offset = ownshipOffsetNm(center, here);
+      if (offset != null && offset.e * offset.e + offset.n * offset.n < _recenterNm * _recenterNm) {
+        return;
+      }
+    }
+    setState(() {
+      _center = here;
+      _loading = true;
+      _scene = null;
+    });
+    _load();
+    if (widget.showTerrain) {
+      _loadTerrain(here);
+    }
+    _onTraffic();
+  }
+
+  Future<void> _loadTerrain(LatLng center) async {
+    final generation = ++_terrainGeneration;
+    final cosLat = math.cos(center.latitude * math.pi / 180).abs().clamp(0.2, 1.0);
+    final points = <LatLng>[];
+    for (var row = 0; row < _terrainGrid; row++) {
+      final north = -airspaceViewRadiusNm + 2 * airspaceViewRadiusNm * row / (_terrainGrid - 1);
+      for (var col = 0; col < _terrainGrid; col++) {
+        final east = -airspaceViewRadiusNm + 2 * airspaceViewRadiusNm * col / (_terrainGrid - 1);
+        points.add(LatLng(
+          center.latitude + north / 60.0,
+          center.longitude + east / (60.0 * cosLat),
+        ));
+      }
+    }
+    final heights = await ElevationCache.getElevationOfPoints(points);
+    if (!mounted || generation != _terrainGeneration) {
+      return;
+    }
+    setState(() {
+      _terrain = heights.every((height) => height == null)
+          ? null
+          : _AirspaceTerrain(cols: _terrainGrid, rows: _terrainGrid, elevFt: heights);
+    });
+  }
+
+  void _onTraffic() {
+    final center = _center;
+    if (!widget.showTraffic || !mounted || center == null) {
+      return;
+    }
+    final dots = <_AirspaceTrafficDot>[];
+    for (final target in Storage().trafficCache.getTraffic()) {
+      final offset = ownshipOffsetNm(center, target.message.coordinates);
+      if (offset == null) {
+        continue;
+      }
+      final altitude = target.message.altitude;
+      dots.add(_AirspaceTrafficDot(
+        eastNm: offset.e,
+        northNm: offset.n,
+        altitudeFt: altitude < -200 ? 0 : altitude,
+        threat: target.isThreat,
+      ));
+    }
+    setState(() => _traffic = dots);
+  }
+
   int _generation = 0;
 
-  String get _placeKey =>
-      '${widget.center.latitude.toStringAsFixed(4)},${widget.center.longitude.toStringAsFixed(4)}';
+  String get _placeKey {
+    final center = _center;
+    if (center == null) {
+      return '';
+    }
+    return '${center.latitude.toStringAsFixed(4)},${center.longitude.toStringAsFixed(4)}';
+  }
 
   static AirspaceScene? _cached(String key) {
     if (_cache != null && _cacheKey == key) {
@@ -94,6 +265,10 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   }
 
   Future<void> _load() async {
+    final center = _center;
+    if (center == null) {
+      return;
+    }
     final generation = ++_generation;
     final key = _placeKey;
     final path = PathUtils.getFilePath(
@@ -109,11 +284,11 @@ class _Airspace3DViewState extends State<Airspace3DView> {
       );
     } else {
       // Yield so the progress indicator can paint before the tile decode.
-      scene = await Future(() => loadClassAirspace(path, widget.center));
+      scene = await Future(() => loadClassAirspace(path, center));
       if (scene.message == null) {
         final obstacles = await loadObstacles(
           PathUtils.getFilePath(Storage().dataDir, 'main.db'),
-          widget.center,
+          center,
         );
         scene = scene.copyWith(obstacles: obstacles);
       }
@@ -143,6 +318,14 @@ class _Airspace3DViewState extends State<Airspace3DView> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.followAircraft && _center == null) {
+      return Center(
+        child: Text(
+          'Waiting for a GPS position.',
+          style: TextStyle(color: Theme.of(context).colorScheme.outline),
+        ),
+      );
+    }
     final scene = _scene;
     if (_loading || scene == null) {
       return const Center(child: CircularProgressIndicator());
@@ -150,7 +333,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (scene.message != null) {
       return _message(context, scene.message!);
     }
-    if (scene.shelves.isEmpty && scene.obstacles.isEmpty) {
+    if (scene.shelves.isEmpty && scene.obstacles.isEmpty && !widget.followAircraft) {
       return _message(context, 'No Class B, C, or D, restricted, warning, prohibited, or MOA airspace within ${airspaceViewRadiusNm.round()} NM');
     }
 
@@ -225,11 +408,16 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   static const double _metersToFeet = 3.28084;
 
   Widget _canvas(AirspaceScene scene, bool dark, ColorScheme scheme) {
+    final center = _center;
+    if (center == null) {
+      return const SizedBox.expand();
+    }
     return CustomPaint(
       painter: _AirspacePainter(
         scene: scene,
-        center: widget.center,
-        ownship: widget.ownship,
+        center: center,
+        ownship: widget.followAircraft ? Storage().gpsChange : widget.ownship,
+        showPressPoint: widget.showPressPoint,
         pitch: _pitch,
         yaw: _yaw,
         zoom: _zoom,
@@ -239,6 +427,8 @@ class _Airspace3DViewState extends State<Airspace3DView> {
         gridColor: scheme.outline.withAlpha(110),
         axisColor: scheme.onSurface.withAlpha(200),
         hereColor: const Color(0xFFFF9800),
+        terrain: _terrain,
+        traffic: _traffic,
       ),
       child: const SizedBox.expand(),
     );
@@ -315,6 +505,7 @@ class _AirspacePainter extends CustomPainter {
   final AirspaceScene scene;
   final LatLng center;
   final ValueListenable<Position>? ownship;
+  final bool showPressPoint;
   final double pitch;
   final double yaw;
   final double zoom;
@@ -324,11 +515,14 @@ class _AirspacePainter extends CustomPainter {
   final Color gridColor;
   final Color axisColor;
   final Color hereColor;
+  final _AirspaceTerrain? terrain;
+  final List<_AirspaceTrafficDot> traffic;
 
   _AirspacePainter({
     required this.scene,
     required this.center,
     required this.ownship,
+    required this.showPressPoint,
     required this.pitch,
     required this.yaw,
     required this.zoom,
@@ -338,6 +532,8 @@ class _AirspacePainter extends CustomPainter {
     required this.gridColor,
     required this.axisColor,
     required this.hereColor,
+    required this.terrain,
+    required this.traffic,
   }) : super(repaint: ownship);
 
   /// Current ownship in this view, or null when it has no fix or is outside 25 NM.
@@ -401,7 +597,9 @@ class _AirspacePainter extends CustomPainter {
       face.draw(canvas);
     }
 
-    _drawHere(canvas, project, maxAlt);
+    if (showPressPoint) {
+      _drawHere(canvas, project, maxAlt);
+    }
     _drawObstacles(canvas, project);
     _drawAirports(canvas, project);
     for (final shelf in scene.shelves) {
@@ -410,6 +608,7 @@ class _AirspacePainter extends CustomPainter {
       }
     }
     _drawOwnship(canvas, project, maxAlt);
+    _drawTraffic(canvas, project, maxAlt);
   }
 
   void _drawGround(Canvas canvas, _Proj Function(double, double, double) project, double radius) {
@@ -424,7 +623,10 @@ class _AirspacePainter extends CustomPainter {
       ground.lineTo(c.x, c.y);
     }
     ground.close();
-    canvas.drawPath(ground, Paint()..color = gridColor.withAlpha(28));
+    if (terrain == null) {
+      canvas.drawPath(ground, Paint()..color = gridColor.withAlpha(28));
+    }
+    _drawTerrain(canvas, project);
 
     final grid = Paint()
       ..style = PaintingStyle.stroke
@@ -447,6 +649,78 @@ class _AirspacePainter extends CustomPainter {
     _text(canvas, '5 NM', Offset((scaleA.x + scaleB.x) / 2, (scaleA.y + scaleB.y) / 2 - 12), axisColor, 10, FontWeight.w500);
   }
 
+  void _drawTerrain(Canvas canvas, _Proj Function(double, double, double) project) {
+    final mesh = terrain;
+    if (mesh == null || mesh.cols < 2 || mesh.rows < 2) {
+      return;
+    }
+    final ownAlt = _liveOwnship?.altFt;
+    final radius = scene.radiusNm;
+    final quads = <({ui.Path path, double depth, Color color})>[];
+    for (var row = 0; row < mesh.rows - 1; row++) {
+      for (var col = 0; col < mesh.cols - 1; col++) {
+        final i00 = row * mesh.cols + col;
+        final heights = [
+          mesh.elevFt[i00],
+          mesh.elevFt[i00 + 1],
+          mesh.elevFt[i00 + mesh.cols + 1],
+          mesh.elevFt[i00 + mesh.cols],
+        ];
+        if (heights.any((height) => height == null)) {
+          continue;
+        }
+        final corners = [
+          [col, row, heights[0]!],
+          [col + 1, row, heights[1]!],
+          [col + 1, row + 1, heights[2]!],
+          [col, row + 1, heights[3]!],
+        ];
+        final path = ui.Path();
+        var depth = 0.0;
+        for (var i = 0; i < corners.length; i++) {
+          final east = -radius + 2 * radius * corners[i][0] / (mesh.cols - 1);
+          final north = -radius + 2 * radius * corners[i][1] / (mesh.rows - 1);
+          final at = project(east, north, corners[i][2].toDouble());
+          depth += at.depth;
+          if (i == 0) {
+            path.moveTo(at.x, at.y);
+          } else {
+            path.lineTo(at.x, at.y);
+          }
+        }
+        path.close();
+        final top = heights.whereType<double>().reduce(math.max);
+        quads.add((path: path, depth: depth / 4, color: _terrainColor(top, ownAlt)));
+      }
+    }
+    quads.sort((a, b) => b.depth.compareTo(a.depth));
+    for (final quad in quads) {
+      canvas.drawPath(quad.path, Paint()..color = quad.color);
+    }
+  }
+
+  Color _terrainColor(double elevFt, double? ownAltFt) {
+    if (ownAltFt != null && elevFt >= ownAltFt - 500) {
+      return const Color(0xCCFF0000);
+    }
+    final shade = (elevFt / 8000).clamp(0.0, 1.0);
+    return Color.lerp(const Color(0xFF5D4037), const Color(0xFFD7CCC8), shade)!;
+  }
+
+  void _drawTraffic(Canvas canvas, _Proj Function(double, double, double) project, double maxAlt) {
+    final fill = Paint();
+    final outline = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = Colors.black;
+    for (final dot in traffic) {
+      final at = project(dot.eastNm, dot.northNm, dot.altitudeFt.clamp(0, maxAlt));
+      fill.color = dot.threat ? Constants.trafficColorAlert : Constants.trafficColor;
+      canvas.drawCircle(at.o, 4.5, fill);
+      canvas.drawCircle(at.o, 4.5, outline);
+    }
+  }
+
   void _drawAxis(Canvas canvas, _Proj Function(double, double, double) project, double radius, double maxAlt) {
     final paint = Paint()
       ..color = axisColor
@@ -461,7 +735,7 @@ class _AirspacePainter extends CustomPainter {
       canvas.drawLine(p.o, tick.o, paint);
       final thousands = ft / 1000;
       final label = ft <= 0
-          ? '00'
+          ? 'SF'
           : (thousands == thousands.roundToDouble() ? '${thousands.round()}k' : '${thousands.toStringAsFixed(1)}k');
       _text(canvas, label, p.o + const Offset(-28, -6), axisColor, 10, FontWeight.w500);
     }
@@ -780,7 +1054,15 @@ class _AirspacePainter extends CustomPainter {
     }
     final alt = ship.altFt.clamp(0.0, maxAlt);
     final at = project(ship.offset.e, ship.offset.n, alt);
-    canvas.drawCircle(at.o, 5, Paint()..color = const Color(0xFFE53935));
+    canvas.drawCircle(at.o, 7, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      at.o,
+      7,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..color = Colors.black,
+    );
   }
 
   void _text(Canvas canvas, String text, Offset at, Color color, double size, FontWeight weight, {Color? halo, Color? outline}) {
@@ -831,6 +1113,9 @@ class _AirspacePainter extends CustomPainter {
         oldDelegate.panY != panY ||
         oldDelegate.background != background ||
         oldDelegate.center != center ||
-        oldDelegate.ownship != ownship;
+        oldDelegate.ownship != ownship ||
+        oldDelegate.showPressPoint != showPressPoint ||
+        oldDelegate.terrain != terrain ||
+        oldDelegate.traffic != traffic;
   }
 }

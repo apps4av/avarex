@@ -67,12 +67,12 @@ class AirspaceShelf {
 
   String get displayIdent => ident.isEmpty ? airspaceClass : ident;
 
-  /// `2000–4000` is `20-40`. `500` is `05`. Surface is `00`. Unlimited is `UNL`.
+  /// `2000–4000` is `20-40`. `500` is `05`. Surface is `SF`. Unlimited is `UNL`.
   static String altitudeRange(double floorFt, double ceilingFt, {bool unlimited = false}) =>
       unlimited ? '${altitudeHundreds(floorFt)}-UNL' : '${altitudeHundreds(floorFt)}-${altitudeHundreds(ceilingFt)}';
 
-  /// Hundreds of feet MSL, at least two digits. `2500` is `25`. `500` is `05`. Surface is `00`.
-  static String altitudeHundreds(double ft) => ft <= 0 ? '00' : (ft / 100).round().toString().padLeft(2, '0');
+  /// Hundreds of feet MSL, at least two digits. `2500` is `25`. `500` is `05`. Surface is `SF`.
+  static String altitudeHundreds(double ft) => ft <= 0 ? 'SF' : (ft / 100).round().toString().padLeft(2, '0');
 }
 
 /// `MHT` is shown as `KMHT`. Idents that are already longer are left as stored.
@@ -372,8 +372,8 @@ Future<List<AirspaceObstacle>> loadObstacles(String dbPath, LatLng center) async
 /// Label for one vector-map airspace feature, in the same form as the 3D view.
 ///
 /// A shelf is `25-43`. The airport ident is included only for the surface
-/// shelf at the center (`KMHT` over `00-43`).
-/// Special-use areas keep the designator, such as `R-4101A 00-25`.
+/// shelf at the center (`KMHT` over `SF-43`).
+/// Special-use areas keep the designator, such as `R-4101A SF-25`.
 String? vectorAirspaceLabel(Map<String, String> props, {required bool sua, bool airportAtCenter = false}) {
   if (props['EXCLUSION'] == '1') {
     return null;
@@ -616,9 +616,12 @@ class _MapShelf {
     return parts.length >= 3 && parts[0] == 'C' ? parts[2] : '';
   }
 
-  /// Floor in hundreds of feet. Surface is `0`.
+  /// Floor in hundreds of feet. Surface (`SF`) is `0`.
   double get floorHundreds {
     final head = altitude.split('\n').last.split('-').first.trim();
+    if (head == 'SF' || head == '00') {
+      return 0;
+    }
     return double.tryParse(head) ?? double.infinity;
   }
 }
@@ -895,7 +898,7 @@ bool _anchorInShelf(List<_MapShelf> shelves, _MapShelf shelf, double lat, double
 
 /// True when a lower shelf of the same airport already covers [lat]/[lon].
 ///
-/// Outer KBOS shelves are drawn as disks, so the airport is inside `00-70`,
+/// Outer KBOS shelves are drawn as disks, so the airport is inside `SF-70`,
 /// `20-70`, and `30-70`. Only the lowest floor is labeled there.
 bool _lowerShelfCovers(List<_MapShelf> shelves, _MapShelf shelf, double lat, double lon) {
   if (shelf.kind != 'B' && shelf.kind != 'C' && shelf.kind != 'D') {
