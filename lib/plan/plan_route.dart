@@ -53,11 +53,12 @@ class PlanRoute {
   void _procedureAdjust(Waypoint waypoint) {
     waypoint.currentDestinationIndex = 0; // on change to airway, reset it
     waypoint.destinationsOnRoute = [];
+    if (waypoint.planDestination is! ProcedureDestination) {
+      return;
+    }
     List<Destination> points = [];
 
-    // adjust airways, nothing to do when airway is not in the middle of points
-    int index = _waypoints.indexOf(waypoint);
-    ProcedureDestination procedure = _waypoints[index].destination as ProcedureDestination;
+    ProcedureDestination procedure = waypoint.planDestination as ProcedureDestination;
 
     // procedure
     for(Destination d in procedure.points) {
@@ -79,11 +80,14 @@ class PlanRoute {
 
     waypoint.currentDestinationIndex = 0; // on change to airway, reset it
     waypoint.destinationsOnRoute = [];
+    if (waypoint.planDestination is! AirwayDestination) {
+      return;
+    }
     List<Destination> points = [];
 
     // adjust airways, nothing to do when airway is not in the middle of points
     int index = _waypoints.indexOf(waypoint);
-    AirwayDestination airway = _waypoints[index].destination as AirwayDestination;
+    AirwayDestination airway = waypoint.planDestination as AirwayDestination;
 
     if(index > 0 && index < _waypoints.length - 1) {
       // replace the airway with the new airway with the right points
@@ -549,6 +553,35 @@ class PlanRoute {
     return route;
   }
 
+  // Plan received from another AvareX device. Airways and procedures stay the
+  // airway or procedure. The active waypoint, and the fix inside it, are set
+  // after the route is expanded.
+  static Future<PlanRoute> fromLink(String json, String name, int waypointIndex, int destinationIndex) async {
+    PlanRoute route = PlanRoute(name.isEmpty ? "New Plan" : name);
+    List<dynamic> decoded = jsonDecode(json);
+    for (dynamic entry in decoded) {
+      if (entry is! Map) {
+        continue;
+      }
+      Map<String, dynamic> map = Map<String, dynamic>.from(entry);
+      Object? lat = map["ARPLatitude"];
+      Object? lon = map["ARPLongitude"];
+      if (lat is num) {
+        map["ARPLatitude"] = lat.toDouble();
+      }
+      if (lon is num) {
+        map["ARPLongitude"] = lon.toDouble();
+      }
+      Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
+      route.addWaypoint(Waypoint(expanded));
+    }
+    if (waypointIndex >= 0 && waypointIndex < route.length) {
+      route.setCurrentWaypoint(waypointIndex);
+      route.setCurrentWaypointDestinationIndex(destinationIndex);
+    }
+    return route;
+  }
+
   // convert json to Route
   static Future<PlanRoute> fromLine(String name, String line) async {
     PlanRoute route = PlanRoute(name);
@@ -772,6 +805,20 @@ class PlanRoute {
       route.addWaypoint(w);
     }
     return route;
+  }
+
+  /// `id|type` of each waypoint as entered, one per line.
+  String get linkPointKey {
+    return _waypoints.map((Waypoint w) =>
+        "${w.planDestination.locationID}|${w.planDestination.type}").join("\n");
+  }
+
+  /// JSON array of the plan as entered. Airways and procedures stay the
+  /// airway or procedure, not the fix currently being flown.
+  String toLinkJson() {
+    List<Map<String, Object?>> maps =
+        _waypoints.map((Waypoint w) => w.planDestination.toMap()).toList();
+    return jsonEncode(maps);
   }
 
 }

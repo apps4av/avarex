@@ -9,6 +9,10 @@ class Waypoint {
 
   Waypoint(this._destination);
 
+  /// Waypoint as entered in the plan. An airway or procedure stays that
+  /// airway or procedure, not the fix currently being flown along it.
+  Destination get planDestination => _destination;
+
   Destination get destination {
     return destinationsOnRoute.isNotEmpty ?
     destinationsOnRoute[currentDestinationIndex] : _destination;

@@ -151,6 +151,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 | Vector map layer with airspace                                                                   | All supported platforms |
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
+| Device Link (one device shares the plan with the others over Wi-Fi)                             | Not available on web |
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
@@ -185,7 +186,7 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **FLIGHT**: `Write a Note`, `3D`, `PFD`, `Check Lists`, `Aircraft & Performance`
 - **RECORDS**: `Log Book`
 - **INTERNET** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
-- **CONNECTIVITY** (Android only): `IO` (Bluetooth & connections)
+- **CONNECTIVITY**: `Link` (share the active plan with other AvareX devices on the same Wi-Fi). `IO` (Android only; Bluetooth & connections)
 - **SUPPORT**: `Help` (User manual PDF; not available on Linux)
 
 `3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at its altitude. The glide ring, and `TFR` and `Game TFR` volumes when those layers are on, are drawn here too. See Section 9.8.
@@ -542,6 +543,7 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 - Reorderable waypoint list (long-press and drag to reorder)
 - Swipe row right-to-left to delete waypoint
 - Tap row to set current waypoint (highlighted in purple with "ACTIVE" badge)
+- When this device is a **Slave** in `Link`, the plan and the active waypoint follow the master. Edits made on the slave are replaced by the master's next update.
 - **Insert waypoint**: tap a waypoint to select it, then press the **+** button to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
 - Long press (grab) a waypoint to move it up and down
 - Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
@@ -1112,6 +1114,21 @@ The same `PFD` drawn by the map layer, sized to this screen. The map `PFD` layer
 - Hold the **OBS** knobs to set a course; double-tap either knob to return to the GPS course (Section 4)
 - Elevation terrain and the lined-up runway are drawn the same way as on the map `PFD`
 
+### 9.10 Link
+
+Open: **Menu → Link** (under `Connectivity`). Not available on web.
+
+Shares the active flight plan with other phones and tablets running AvareX on the same Wi-Fi. One device is the **Master**. The others are **Slave** and copy the master's plan, including which waypoint is active.
+
+- **Off**: this device does not announce itself and does not follow a plan. Master, Slave, and Off are remembered after the app restarts.
+- **Master**: sends this device's plan only when it changes. That includes a waypoint added, removed, or reordered, and a change of the active waypoint (including the fix inside an airway or procedure). Discovery still goes out about every 10 seconds.
+- **Slave**: copies the master's plan and sets the same active waypoint. Edits made on a slave are replaced when the master sends the next update.
+- **Name**: the name other devices show for this one.
+- **Devices**: this device, and every other AvareX device heard in the last minute, with its role and address. Masters and slaves announce about every 10 seconds. Off does not. A device leaves the list after a minute with no message.
+- **Messages**: debug log of the JSON going back and forth. **TX** is this device, **RX** is another. Tap a row to read the JSON. **Pause** freezes the log. **Clear** empties it. The antenna icon announces immediately.
+- Every device must be on the same Wi-Fi. On iOS, allow **Local Network** for AvareX. On Windows, allow AvareX on private networks if the firewall asks.
+- Use one master. If two devices are master, slaves follow whichever plan arrives last, and `Link` shows a warning.
+
 ---
 
 ## 10) Notes Screen
@@ -1466,7 +1483,7 @@ If AvareX shows ownship moving but no traffic, no FIS-B weather, and no external
 
 Fix: `Settings → Privacy & Security → Local Network → AvareX → ON`, then force-quit and relaunch AvareX. See FAQ-16 for full details.
 
-This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad and only affects iOS, not Android.
+This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad and only affects iOS, not Android. The same permission is required for `Link` (other AvareX devices on UDP `49090`).
 
 ---
 
@@ -1526,6 +1543,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
 | Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
+| Share the plan with other AvareX devices | `MAP → Menu → Link` |
 | Check ADS-B receiver status | `MAP → ADSB instrument tile` (movable; tap opens ADS-B Status screen) |
 | Enable Stratus 3 Open ADS-B Mode | `MAP → ADSB instrument tile → antenna icon (top-right)` |
 | Notes/drawing | `MAP → Menu → Write a Note` |
@@ -2049,6 +2067,15 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 11. To cancel, tap the reservation block (or use the **Mine** tab) and choose **Cancel**. Only the member who booked it or the owner can cancel a reservation.
 12. For discrepancies, use **Dispatch → Squawks → File squawk**. A **Grounding** squawk blocks booking and shows as GROUNDED on the fleet board. For a hard maintenance hold, turn off **Available for booking** from Schedule or Dispatch (owner/dispatcher).
 
+### UC-27: Keep the same plan on a second phone or tablet
+
+1. Join every device to the same Wi-Fi network. On iOS, allow **Local Network** for AvareX.
+2. On the device that will be edited, open `MAP → Menu → Link` and tap **Master**.
+3. On each other device, open `Link` and tap **Slave**. They appear under **Devices**.
+4. Build or change the plan on the master, and tap the waypoint to fly. Each slave loads that plan and sets the same active waypoint, including the current fix on an airway or procedure.
+5. Open **Messages** on either device to see the JSON sent (**TX**) and received (**RX**). Tap a row to read it.
+6. Tap **Off** on a device to stop following, or to stop sending.
+
 ---
 
 ## 16) Resources and Support
@@ -2206,7 +2233,7 @@ If the IFD has an ADS-B receiver, AvareX also picks up its **Capstone** ADS-B tr
 
 This is a Local Network permission issue, not a bug in your receiver or in AvareX's traffic engine.
 
-Since iOS 14, Apple silently blocks all incoming UDP broadcasts (including GDL90 traffic on UDP `4000`, ForeFlight on `43211`, and X-Plane on `49002`) until the user grants the **Local Network** permission. The internal phone GPS keeps working, so ownship still moves and the map looks correct — that's the trap. ADS-B traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and external GPS lock from your receiver will all be missing.
+Since iOS 14, Apple silently blocks all incoming UDP broadcasts (including GDL90 traffic on UDP `4000`, ForeFlight on `43211`, X-Plane on `49002`, and AvareX Link on `49090`) until the user grants the **Local Network** permission. The internal phone GPS keeps working, so ownship still moves and the map looks correct — that's the trap. ADS-B traffic, ADS-B weather (NEXRAD/METAR/TAF/AIRMET/SIGMET via FIS-B), and external GPS lock from your receiver will all be missing.
 
 Fix:
 

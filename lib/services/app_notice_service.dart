@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:avaremp/services/app_notice.dart';
 import 'package:avaremp/storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +15,7 @@ class AppNoticeService {
   static final AppNoticeService instance = AppNoticeService._();
 
   static const String collection = "appNotices";
+  static const int _dismissedCap = 40;
 
   FirebaseFirestore get _db => FirebaseFirestore.instance;
 
@@ -50,7 +53,7 @@ class AppNoticeService {
     final List<AppNotice> notices;
     try {
       notices = await fetchPending(
-        dismissed: Storage().settings.dismissedAppNoticeKeys(),
+        dismissed: _dismissedKeys(),
       );
     } catch (_) {
       return;
@@ -90,7 +93,47 @@ class AppNoticeService {
       if (!context.mounted) {
         return;
       }
-      Storage().settings.dismissAppNotice(notice.dismissKey);
+      _dismiss(notice.dismissKey);
     }
+  }
+
+  static Set<String> _dismissedKeys() {
+    final String raw = Storage().settings.getDismissedAppNotices();
+    if (raw.isEmpty) {
+      return {};
+    }
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        return {};
+      }
+      return decoded.whereType<String>().where((String item) => item.isNotEmpty).toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static void _dismiss(String dismissKey) {
+    final List<String> kept = [];
+    final String raw = Storage().settings.getDismissedAppNotices();
+    try {
+      if (raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is String && item.isNotEmpty && item != dismissKey) {
+              kept.add(item);
+            }
+          }
+        }
+      }
+    } catch (_) {
+      kept.clear();
+    }
+    kept.add(dismissKey);
+    final List<String> trimmed = kept.length > _dismissedCap
+        ? kept.sublist(kept.length - _dismissedCap)
+        : kept;
+    Storage().settings.setDismissedAppNotices(jsonEncode(trimmed));
   }
 }

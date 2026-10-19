@@ -439,19 +439,31 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             },
                           ),
                       ],
-                      if (Constants.shouldShowBluetoothSpp) ...[
+                      if (Constants.shouldShowBluetoothSpp || Constants.shouldShowDeviceLink) ...[
                         const SizedBox(height: 8),
                         _buildSectionHeader(context, "Connectivity"),
-                        _buildMenuItem(
-                          context,
-                          icon: Icons.compare_arrows_rounded,
-                          title: "IO",
-                          subtitle: "Bluetooth & connections",
-                          onTap: () {
-                            Navigator.pop(context);
-                            Navigator.pushNamed(context, '/io');
-                          },
-                        ),
+                        if (Constants.shouldShowDeviceLink)
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.hub,
+                            title: "Link",
+                            subtitle: "Share the plan with other devices",
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/link');
+                            },
+                          ),
+                        if (Constants.shouldShowBluetoothSpp)
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.compare_arrows_rounded,
+                            title: "IO",
+                            subtitle: "Bluetooth & connections",
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/io');
+                            },
+                          ),
                       ],
                       const SizedBox(height: 8),
                       _buildSectionHeader(context, "Support"),

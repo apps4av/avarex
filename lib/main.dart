@@ -21,6 +21,7 @@ import 'documents_screen.dart';
 import 'chart/download_screen.dart';
 import 'firebase_options.dart';
 import 'io/io_screen.dart';
+import 'link/link_screen.dart';
 import 'main_screen.dart';
 import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
@@ -111,6 +112,7 @@ class MainApp extends StatelessWidget {
               '/logbook': (context) => const LogbookScreen(),
               '/pro': (context) => const LoginScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
+              if(Constants.shouldShowDeviceLink) '/link': (context) => const LinkScreen(),
               '/notes': (context) => const WritingScreen(),
               '/airspace3d': (context) => const Airspace3DScreen(),
               '/pfd': (context) => const PfdScreen(),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
 
 import 'package:flutter/material.dart';
@@ -103,6 +104,8 @@ class Constants {
   static final bool shouldShare = !(Platform.isLinux);
   static final bool shouldShowPdf = !(Platform.isLinux);
   static final bool shouldShowBluetoothSpp = (Platform.isAndroid);
+  // Phones and tablets on the same Wi-Fi can share a plan. No sockets on web.
+  static final bool shouldShowDeviceLink = !kIsWeb;
   static final bool shouldShouldReview = (Platform.isMacOS || Platform.isIOS | Platform.isAndroid || Platform.isWindows);
   static final bool shouldShowProServices = (Platform.isIOS || Platform.isAndroid);
 

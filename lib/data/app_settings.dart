@@ -424,36 +424,37 @@ class AppSettings {
     provider.setString("key-weather-products-opacity-v2", opacity.map((double e) => e.toString()).toList().join(","));
   }
 
-  // Apps4Av messages already dismissed on this device. Each entry is a
-  // URL-encoded dismiss key. A new or edited message uses a new key.
-  static const String _dismissedAppNoticesKey = "key-dismissed-app-notices";
-  static const int _dismissedAppNoticesCap = 40;
-
-  Set<String> dismissedAppNoticeKeys() {
-    final String raw = provider.getValue(_dismissedAppNoticesKey, defaultValue: "") as String;
-    if (raw.isEmpty) {
-      return {};
-    }
-    return raw.split(",").where((String entry) => entry.isNotEmpty).map((String entry) {
-      try {
-        return Uri.decodeComponent(entry);
-      } catch (_) {
-        return entry;
-      }
-    }).toSet();
+  String getDismissedAppNotices() {
+    return provider.getValue("key-dismissed-app-notices", defaultValue: "") as String;
   }
 
-  void dismissAppNotice(String dismissKey) {
-    final List<String> keys = dismissedAppNoticeKeys().toList();
-    keys.remove(dismissKey);
-    keys.add(dismissKey);
-    final List<String> trimmed = keys.length > _dismissedAppNoticesCap
-        ? keys.sublist(keys.length - _dismissedAppNoticesCap)
-        : keys;
-    provider.setString(
-      _dismissedAppNoticesKey,
-      trimmed.map(Uri.encodeComponent).join(","),
-    );
+  void setDismissedAppNotices(String value) {
+    provider.setString("key-dismissed-app-notices", value);
+  }
+
+  // Identity and role for AvareX-to-AvareX plan sync on the local network.
+  String getLinkDeviceId() {
+    return provider.getValue("key-link-device-id", defaultValue: "") as String;
+  }
+
+  void setLinkDeviceId(String value) {
+    provider.setString("key-link-device-id", value);
+  }
+
+  String getLinkDeviceName() {
+    return provider.getValue("key-link-device-name", defaultValue: "") as String;
+  }
+
+  void setLinkDeviceName(String value) {
+    provider.setString("key-link-device-name", value);
+  }
+
+  String getLinkRole() {
+    return provider.getValue("key-link-role", defaultValue: "off") as String;
+  }
+
+  void setLinkRole(String value) {
+    provider.setString("key-link-role", value);
   }
 
 }

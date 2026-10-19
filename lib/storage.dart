@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:avaremp/avidyne/avidyne_ifd.dart';
 import 'package:avaremp/instruments/autopilot.dart';
+import 'package:avaremp/link/link_service.dart';
 import 'package:avaremp/io/io_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
@@ -396,6 +397,8 @@ class Storage {
     // starts streaming its Capstone (GDL90) ADS-B data. That data arrives on
     // UDP 4000 above and flows through the normal GDL90 decoder.
     AvidyneIfd().start();
+    // Find other AvareX devices and, when this one is master, push the plan.
+    LinkService().start();
     try {
       // Have traffic cache listen for GPS changes for distance calc and (resulting) audible alert changes
       gpsChange.addListener(Storage().trafficCache.updateTrafficDistancesAndAlerts);
@@ -416,6 +419,12 @@ class Storage {
     }
     catch(e) {
       AppLog.logMessage("Error stopping Avidyne discovery: $e");
+    }
+    try {
+      LinkService().stop();
+    }
+    catch(e) {
+      AppLog.logMessage("Error stopping device link: $e");
     }
     try {
       _gpsStream?.cancel();
@@ -468,6 +477,7 @@ class Storage {
     DbGeneral.set(); // set database platform
 
     await settings.initSettings();
+    LinkService().load();
     initGpsSourceMode();
     trafficCache = TrafficCache(settings.getTrafficPuckSize());
     themeNotifier = ValueNotifier<ThemeData>(Storage().settings.isLightMode() ? ThemeData.light() : ThemeData.dark());
