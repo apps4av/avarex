@@ -329,6 +329,11 @@ class PlateScreenState extends State<PlateScreen> {
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
   final TransformationController _transformationController = TransformationController();
+  // landing and plate sync both switch the airport while this screen is up
+  final Listenable _plateScreenReload = Listenable.merge([
+    Storage().flightStatus.flightStateChange,
+    Storage().plateAirportChange,
+  ]);
 
   @override
   void initState() {
@@ -353,8 +358,8 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // this is to listen for landing event, show airport diagram on landing when this screen shows
-    return ValueListenableBuilder(valueListenable: Storage().flightStatus.flightStateChange, builder: (BuildContext context, int value, Widget? child) {
+    // landing and plate sync switch the airport from outside this screen
+    return AnimatedBuilder(animation: _plateScreenReload, builder: (BuildContext context, Widget? child) {
       return FutureBuilder(
         future: PlatesFuture().getAll(),
         builder: (context, snapshot) {
@@ -371,9 +376,19 @@ class PlateScreenState extends State<PlateScreen> {
 
   // on change of airport, reload first item of the new airport
   Future _loadPlate() async {
-    // load plate in background
+    // load plate in background. If the airport changed while this was loading
+    // (landing or plate sync), leave lastPlateAirport clear so the next build
+    // selects the new airport's plate instead of keeping this one.
+    final String airport = Storage().settings.getCurrentPlateAirport();
+    final String plate = Storage().currentPlate;
     await Storage().loadPlate();
-    Storage().lastPlateAirport = Storage().settings.getCurrentPlateAirport();
+    if(!mounted) {
+      return;
+    }
+    if(Storage().settings.getCurrentPlateAirport() != airport || Storage().currentPlate != plate) {
+      return;
+    }
+    Storage().lastPlateAirport = airport;
     _refreshTerrainOverlay();
   }
 
@@ -678,33 +693,51 @@ class PlateScreenState extends State<PlateScreen> {
             Positioned(
               top: 60, // sit below the show/hide instruments button (~48px tall at top:8)
               right: 12,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    bool show = Storage().settings.isShowAirportDiagramOnLanding();
-                    Toast.showToast(
-                      context,
-                      show ? "Airport diagram auto switch disabled" : "Airport diagram will be shown automatically on landing",
-                      null,
-                      3,
-                    );
-                    Storage().settings.setShowAirportDiagramOnLanding(!show);
-                  });
-                },
-                child: Container(
+              child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: overlayBg,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Icon(
-                    Storage().settings.isShowAirportDiagramOnLanding() ? Icons.flight_land : Icons.flight_land_outlined,
-                    size: 24,
-                    color: Storage().settings.isShowAirportDiagramOnLanding() ? Theme.of(context).colorScheme.primary : null,
-                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                      tooltip: "Airport diagram on landing",
+                      onPressed: () {
+                        setState(() {
+                          Storage().settings.setShowAirportDiagramOnLanding(!Storage().settings.isShowAirportDiagramOnLanding());
+                          Toast.showToast(
+                            context,
+                            Storage().settings.isShowAirportDiagramOnLanding() ?  "Airport diagram will be shown automatically on landing" : "Airport diagram auto switch disabled",
+                            null,
+                            3,
+                          );
+                        });
+                      },
+                      icon: Icon(Storage().settings.isShowAirportDiagramOnLanding() ? Icons.flight_land : Icons.flight_rounded)),
+
+                    IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        tooltip: "Sync plates with the active waypoint",
+                        onPressed: () {
+                          setState(() {
+                            Storage().settings.setSyncPlateToActiveWaypoint(!Storage().settings.isSyncPlateToActiveWaypoint());
+                            Toast.showToast(
+                              context,
+                              Storage().settings.isSyncPlateToActiveWaypoint() ?  "Sync plates with the current waypoint" : "Disconnect plates from the current waypoint",
+                              null,
+                              3,
+                            );
+                          });
+                        },
+                        icon: Icon(Storage().settings.isSyncPlateToActiveWaypoint() ? Icons.sync : Icons.sync_disabled_sharp)),
+                  ]),
                 ),
               ),
-            ),
 
           // Center button (bottom center)
           Positioned(

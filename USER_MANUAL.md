@@ -19,6 +19,7 @@ This manual documents all features in the current AvareX app, including:
 
 - Open the PFD from `Menu`.
 - Show an Apps4Av message when you open the app. Tap `OK`.
+- Sync plates to the active airport waypoint.
 
 **0.0.133**
 
@@ -427,7 +428,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 - **→D**: set Direct-To destination, center map there, return to map
 - **+Plan**: insert destination into current plan at the current waypoint position
 - **↓Plan**: append destination to the end of the plan
-- **Plates** (airport only): jump to PLATE tab at that airport
+- **Plates** (airport only): jump to the `PLATE` tab for that airport, even when it is not the active waypoint
 
 ### 5.3 Information pages (shown when data exists)
 
@@ -470,6 +471,8 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - **Procedure menu** (plus icon near bottom-right):
   - Tap a procedure to show its profile, draw the CIFP route on georeferenced plates (progress-colored), and add its waypoint sequence to the plan
 - **Instrument overlay show/hide** toggle (top-right arrow icon)
+- **Airport diagram on landing** (top-right, airport diagram only): landing icon under the instrument toggle. On shows the nearest airport diagram after landing. Off leaves the current plate in place.
+- **Sync plates** (directly under the landing icon, airport diagram only): on follows the active waypoint when that waypoint changes to a different airport, including while you are on another tab. The plate becomes that airport's diagram when one is downloaded, otherwise its first plate. A plate already open for that same airport stays. Off leaves whatever plate is showing. Opening `Plates` for a long-pressed airport still shows that airport.
 - **Profile close (X)** closes procedure profile card and clears the route overlay
 - **IAF chips** (black with white text, above profile when multiple transitions exist): switch IAF without re-adding to the plan
 
@@ -520,9 +523,14 @@ On airport diagrams, when businesses with a known location exist for the airport
 
 The businesses come from the shared Firestore directory (see Section 11.7), so this selector appears only on iOS/Android/Windows/macOS and when you are signed in.
 
-### 6.7 Automatic behavior on landing
+### 6.7 Automatic plate changes
 
-Flight-state logic can auto-switch plate context to nearest airport diagram after landing (if available).
+Two controls on an airport diagram, stacked under the instrument toggle, can change which airport is shown. Anything else leaves the current plate alone.
+
+- **Landing** (landing icon): after landing, switch to the nearest airport diagram when that airport has one.
+- **Sync** (sync icon): when the active waypoint changes to a different airport, switch to that airport. This runs on the `PLATE` tab and while another tab is showing. A fix, navaid, airway, or a plate already open for that same airport does not change. `Plates` on a long-pressed airport still opens that airport.
+
+Turning a control off stops only that automatic change. The airport selector, plate selector, and long-press `Plates` button still work.
 
 ---
 
@@ -1525,6 +1533,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | PFD on its own screen | `MAP → Menu → PFD` (under `3D`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
+| Sync plates to the active airport | `PLATE` airport diagram → sync icon |
+| Airport diagram after landing | `PLATE` airport diagram → landing icon |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |
 | Delete airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW → trash icon` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
@@ -1909,7 +1919,7 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
    - **+Plan** insert into the current plan after the active waypoint
    - **Hold** beside the name and type on the Main tab of a fix or navaid opens the holding-pattern dialog
    - **↓Plan** append to the end of the plan
-   - **Plates** (airports) jump to PLATE tab at this airport
+   - **Plates** (airports) jump to the PLATE tab for that airport, even when it is not the active waypoint
 
 ---
 

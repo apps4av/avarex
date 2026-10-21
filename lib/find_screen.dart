@@ -187,9 +187,6 @@ class FindScreenState extends State<FindScreen> {
                                   // can process the destination correctly.
                                   Destination expanded = await DestinationFactory.make(item);
                                   Storage().setDestination(expanded);
-                                  if (Destination.isAirport(expanded.type)) {
-                                    Storage().settings.setCurrentPlateAirport(expanded.locationID);
-                                  }
                                   MapScreenState.showOnMap(expanded.coordinate);
                                   MainScreenState.gotoMap();
                                 },

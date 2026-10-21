@@ -15,19 +15,22 @@ if __name__ == "__main__":
     if not args:
         args = [input("Enter file name:")]
     if fast:
-        import socket
         import time
+        from gdl90_replay import destinations, open_sender
         infile = args[0]
-        print("Reading ADSB data from file: " + infile)
+        targets = destinations(4000)
+        where = ", ".join(f"{h}:{p}" for h, p in targets)
+        print(f"Reading ADSB data from file: {infile} -> {where}")
         while True:
             file = open(infile, "rb")
-            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock = open_sender()
             while True:
                 data = file.read(256)
                 if len(data) == 0:
                     print("rewind")
                     break
-                sock.sendto(data, ("127.0.0.1", 43211))
+                for dest in targets:
+                    sock.sendto(data, dest)
                 time.sleep(0.01)
             file.close()
             sock.close()

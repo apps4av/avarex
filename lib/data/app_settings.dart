@@ -304,6 +304,14 @@ class AppSettings {
     provider.setBool("key-show-airport-diagram-on-landing", value);
   }
 
+  bool isSyncPlateToActiveWaypoint() {
+    return provider.getValue("key-sync-plate-to-active-waypoint", defaultValue: true) as bool;
+  }
+
+  void setSyncPlateToActiveWaypoint(bool value) {
+    provider.setBool("key-sync-plate-to-active-waypoint", value);
+  }
+
   double getInstrumentScaleFactor() {
     return provider.getValue("key-instrument-scale-factor", defaultValue: 1.0) as double;
   }

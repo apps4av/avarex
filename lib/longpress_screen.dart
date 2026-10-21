@@ -435,9 +435,6 @@ class LongPressScreenState extends State<LongPressScreen> {
                     child: const Text("\u2192D", style: TextStyle(fontSize: 40),),
                     onPressed: () {
                       Storage().setDestination(showDestination);
-                      if (showDestination is AirportDestination) {
-                        Storage().settings.setCurrentPlateAirport(showDestination.locationID);
-                      }
                       MapScreenState.showOnMap(showDestination.coordinate);
                       MainScreenState.gotoMap();
                       Navigator.of(context).pop();
