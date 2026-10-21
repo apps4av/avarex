@@ -15,11 +15,15 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.135**
+
+- Share the active plan from Menu `Link`. One device is Master. Slave devices copy that plan and the active waypoint.
+- Sync plates to the active airport waypoint.
+
 **0.0.134**
 
 - Open the PFD from `Menu`.
 - Show an Apps4Av message when you open the app. Tap `OK`.
-- Sync plates to the active airport waypoint.
 
 **0.0.133**
 
