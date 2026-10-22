@@ -19,7 +19,7 @@ This manual documents all features in the current AvareX app, including:
 
 - Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 - Sync plates to the active airport waypoint.
-- PLAN altitude is per leg. Calc counts climb and names the aircraft.
+- PLAN altitude is per leg. Altitude icon counts climb and names the aircraft.
 - PLAN reads cruise speed and fuel flow from the aircraft.
 - An approach profile sets fix altitudes. Nav log and 3D follow.
 - PLAN + and delete sit by the nav log.
@@ -563,15 +563,15 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 - When this device is a **Slave** in `Link`, the plan and the active waypoint follow the master. Edits made on the slave are replaced by the master's next update.
 - **Insert waypoint**: tap a waypoint to select it, then press **+** (left of the navigation-log button) to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
 - Long press (grab) a waypoint to move it up and down
-- Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel). Column labels are **Dist**, **GSpd**, **Crs**, **Time**, **Fuel**, **Alt**. The second line, under **Alt**, is **Calc**
+- Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel). Column labels are **Dist**, **GSpd**, **Crs**, **Time**, **Fuel**, **Alt**
 - Each waypoint row has an **Alt** field (feet): the cruise altitude for the leg that ends at that waypoint. It starts at the plan default (3000 ft, or the map altitude slider). The first and last waypoints, when they are airports, use that airport's field elevation. Type a new altitude and leave the field to use it for that leg only (ground speed, time, and fuel update). Clear the field to go back to the plan default. Fixes inside an airway or procedure each have their own **Alt**.
 - **Delete entire plan** (trash icon, right of the navigation-log button): confirms, then removes all waypoints from the active plan (hidden when the plan is empty)
 - Airways and procedures show as expandable items with nested waypoints
 
-Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the forecast, **+**, the navigation log, and delete:
+Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the forecast, the altitude icon, **+**, the navigation log, and delete:
 
 - Opening PLAN reads cruise speed and fuel flow once from the selected aircraft. That aircraft is the **Performance** screen app-bar **dropdown** (latest selection). Cruise is interpolated at the plan default altitude using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
-- **Calc** (second line of the plan header, under **Alt**): fills each waypoint **Alt** with the cruise altitude that makes that leg fastest, including the time to climb there. The first leg starts at the altitude already set on the waypoint you are leaving (the plan default when that row has none). Each later leg starts at the altitude just chosen. It tries your current altitude and each 1,000 ft step inside that aircraft's cruise table, at the saved cruise power % and standard-day (ISA deviation 0). Wind is the winds-aloft forecast for that leg (headwind, tailwind, and crosswind — the same wind triangle as the plan totals). Climb uses **Best Climb Speed** and **Best Climb Rate** from My Aircraft when those are filled in. Otherwise climb true airspeed is three quarters of the cruise true airspeed, and climb rate is about 700 ft/min near the surface and about 100 ft/min at the top of the cruise table. If the leg is too short to reach that altitude in a straight climb, the airplane finishes the climb in a circle at climb speed, and that time is counted. A descent does not add time. The leg then uses that altitude's cruise true airspeed and fuel flow. A leg whose **Alt** you type yourself uses the cruise speed and fuel flow read when PLAN opened. When elevation charts are installed, a leg will not be set below 1,000 ft above the terrain on that leg. A toast says: Calculated altitudes for shortest flight time based on winds aloft and performance of the aircraft name. If winds aloft are not available, it still picks each leg's fastest altitude.
+- **Altitude icon** (next to the forecast dropdown): fills each waypoint **Alt** with the cruise altitude that makes that leg fastest, including the time to climb there. The first leg starts at the altitude already set on the waypoint you are leaving (the plan default when that row has none). Each later leg starts at the altitude just chosen. It tries your current altitude and each 1,000 ft step inside that aircraft's cruise table, at the saved cruise power % and standard-day (ISA deviation 0). Wind is the winds-aloft forecast for that leg (headwind, tailwind, and crosswind — the same wind triangle as the plan totals). Climb uses **Best Climb Speed** and **Best Climb Rate** from My Aircraft when those are filled in. Otherwise climb true airspeed is three quarters of the cruise true airspeed, and climb rate is about 700 ft/min near the surface and about 100 ft/min at the top of the cruise table. If the leg is too short to reach that altitude in a straight climb, the airplane finishes the climb in a circle at climb speed, and that time is counted. A descent does not add time. The leg then uses that altitude's cruise true airspeed and fuel flow. A leg whose **Alt** you type yourself uses the cruise speed and fuel flow read when PLAN opened. When elevation charts are installed, a leg will not be set below 1,000 ft above the terrain on that leg. A toast says: Calculated altitudes for shortest flight time based on winds aloft and performance of the aircraft name. If winds aloft are not available, it still picks each leg's fastest altitude.
 - **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
 - **Analytics icon** (chart): opens full-screen Navigation Log
 
@@ -990,8 +990,8 @@ Create and manage your saved aircraft profiles:
 **Glide circle (MAP `Circles` layer):**
 - **Best Glide Speed** — POH best-glide speed of the **selected** aircraft (Performance dropdown). Used instead of current GPS ground speed. Entered in the same speed units as the rest of the app (onboarding unit setting).
 - **Sink Rate** (fpm) — power-off sink rate at best glide
-- **Best Climb Speed** — best-rate-of-climb speed, in the same speed units as the rest of the app. PLAN **Calc** uses it for the climb
-- **Best Climb Rate** (fpm) — best rate of climb. PLAN **Calc** uses it for the climb. If either climb field is empty, Calc uses three quarters of cruise speed and a rate that slows from about 700 ft/min to about 100 ft/min
+- **Best Climb Speed** — best-rate-of-climb speed, in the same speed units as the rest of the app. The plan altitude icon uses it for the climb
+- **Best Climb Rate** (fpm) — best rate of climb. The plan altitude icon uses it for the climb. If either climb field is empty, the altitude icon uses three quarters of cruise speed and a rate that slows from about 700 ft/min to about 100 ft/min
 - If Best Glide Speed is empty, Cruise Speed is used; if that is also empty, 65 is assumed.
 
 **Performance Data:**
@@ -1560,7 +1560,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
 | Runway crossing alert | Automatic when `Audible Alerts` is on; uses closest-airport runways |
 | Fuel burn in plan | `PLAN tab` — cruise speed and fuel flow are read once from the selected aircraft when PLAN opens |
-| Best cruise altitude | `PLAN tab` → **Calc** (plan header, under **Alt**) |
+| Best cruise altitude | `PLAN tab` → altitude icon (next to the forecast dropdown) |
 | Waypoint cruise altitude | `PLAN tab` → **Alt** column on the waypoint row |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
@@ -1721,7 +1721,7 @@ There are three ways to add a waypoint to the plan; the fastest for a brand-new 
 7. Adjust the bottom controls as needed:
    - Cruise speed and fuel flow come from the selected aircraft, read once when PLAN opens
    - Each waypoint **Alt** column is that leg's cruise altitude. Clear it to use the plan default (3000 ft, or the map altitude slider)
-   - **Calc** — on the plan header's second line, under **Alt**. Fills each leg's `Alt` with the fastest altitude for that leg, including climb time. A short leg stays low instead of circling to a high altitude
+   - **Altitude icon** — next to the forecast dropdown. Fills each leg's `Alt` with the fastest altitude for that leg, including climb time. A short leg stays low instead of circling to a high altitude
    - **Forecast horizon** — `06H / 12H / 24H` (winds aloft window for nav-log calculations)
 8. To **reorder** legs: long-press and drag rows. To **set a different leg active**, tap its row. To **delete** a leg, swipe right-to-left.
 9. To **save** the plan: tap **Load & Save** at the bottom → press **Save** and give it a name.

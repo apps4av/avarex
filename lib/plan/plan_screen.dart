@@ -161,6 +161,7 @@ class PlanScreenState extends State<PlanScreen> {
                   ),
                 ),
                 const SizedBox(width: 4),
+                _calcButton(),
                 IconButton(
                   icon: const Icon(Icons.add),
                   tooltip: "Insert waypoint",
@@ -473,29 +474,16 @@ class PlanScreenState extends State<PlanScreen> {
   }
 
   Widget _calcButton() {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Tooltip(
-        message: "Set each leg's altitude for the shortest time, including the climb",
-        child: TextButton(
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            side: BorderSide(color: Theme.of(context).colorScheme.outline),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          ),
-          onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
-          child: _findingBestAltitude
-              ? const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Text("Calc"),
-        ),
-      ),
+    return IconButton(
+      tooltip: "Set each leg's altitude for the shortest time, including the climb",
+      onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
+      icon: _findingBestAltitude
+          ? const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.height),
     );
   }
 
@@ -512,7 +500,6 @@ class PlanScreenState extends State<PlanScreen> {
                 title: PlanLineWidgetState.getHeading(),
                 subtitle: PlanLineWidgetState.getFieldsFromCalculations(
                   Storage().route.totalCalculations,
-                  altitudeCell: _calcButton(),
                 ),
               );
             }),

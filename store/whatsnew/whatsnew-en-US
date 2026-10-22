@@ -1,6 +1,6 @@
 Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 Sync plates to the active airport waypoint.
-PLAN altitude is per leg. Calc counts climb and names the aircraft.
+PLAN altitude is per leg. Altitude icon counts climb and names the aircraft.
 PLAN reads cruise speed and fuel flow from the aircraft.
 An approach profile sets fix altitudes. Nav log and 3D follow.
 PLAN + and delete sit by the nav log.
