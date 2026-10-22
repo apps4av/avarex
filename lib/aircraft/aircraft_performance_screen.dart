@@ -160,6 +160,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
   final _customFuelEnduranceController = TextEditingController();
   final _customSinkRateController = TextEditingController();
   final _customBestGlideController = TextEditingController();
+  final _customBestClimbSpeedController = TextEditingController();
+  final _customBestClimbRateController = TextEditingController();
   
   // Dynamic POH entries (combined tables)
   List<_TakeoffLandingEntry> _customTakeoffEntries = [];
@@ -457,6 +459,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _customFuelEnduranceController.text = aircraft.fuelEndurance;
       _customSinkRateController.text = aircraft.sinkRate;
       _customBestGlideController.text = aircraft.bestGlide;
+      _customBestClimbSpeedController.text = aircraft.bestClimbSpeed;
+      _customBestClimbRateController.text = aircraft.bestClimbRate;
     } catch (e) {
       // Aircraft not in database (predefined), use defaults
       _customWake = 'LIGHT';
@@ -473,6 +477,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _customFuelEnduranceController.clear();
       _customSinkRateController.clear();
       _customBestGlideController.clear();
+      _customBestClimbSpeedController.clear();
+      _customBestClimbRateController.clear();
     }
     
     if (a.hasRawEntries) {
@@ -866,6 +872,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     _customOtherController.dispose();
     _customCruiseTasController.dispose();
     _customFuelEnduranceController.dispose();
+    _customBestClimbSpeedController.dispose();
+    _customBestClimbRateController.dispose();
     _customSinkRateController.dispose();
     _customBestGlideController.dispose();
     super.dispose();
@@ -1976,6 +1984,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
               _buildTextField('Fuel Endurance (hrs)', _customFuelEnduranceController, keyboard: const TextInputType.numberWithOptions(decimal: true)),
               _buildTextField('Best Glide Speed', _customBestGlideController, keyboard: TextInputType.number, tooltip: 'POH best-glide speed used by the map glide circle'),
               _buildTextField('Sink Rate (fpm)', _customSinkRateController, keyboard: TextInputType.number, tooltip: 'Power-off sink rate at best glide, used by the map glide circle'),
+              _buildTextField('Best Climb Speed', _customBestClimbSpeedController, keyboard: TextInputType.number, tooltip: 'POH best-rate-of-climb speed. PLAN Calc uses it for the climb'),
+              _buildTextField('Best Climb Rate (fpm)', _customBestClimbRateController, keyboard: TextInputType.number, tooltip: 'POH best rate of climb in feet per minute. PLAN Calc uses it for the climb'),
               _buildWakeDropdown(),
             ],
           ),
@@ -2502,6 +2512,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       picInfo: _customPicInfoController.text.toUpperCase().trim(),
       sinkRate: _customSinkRateController.text.trim(),
       bestGlide: _customBestGlideController.text.trim(),
+      bestClimbSpeed: _customBestClimbSpeedController.text.trim(),
+      bestClimbRate: _customBestClimbRateController.text.trim(),
       fuelBurn: usableFuel > 0 && _customCruiseEntries.isNotEmpty
           ? _customCruiseEntries.first.gph.toStringAsFixed(1)
           : '',
@@ -2628,6 +2640,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
     _customFuelEnduranceController.clear();
     _customSinkRateController.clear();
     _customBestGlideController.clear();
+    _customBestClimbSpeedController.clear();
+    _customBestClimbRateController.clear();
   }
 
   Widget _buildPohNoteCard() {

@@ -136,6 +136,58 @@ List<List<NmPoint>> clipPathToView(List<NmPoint> points, {double radiusNm = airs
   return pieces;
 }
 
+class _AltNm {
+  final NmPoint point;
+  final double altitudeFt;
+
+  const _AltNm(this.point, this.altitudeFt);
+}
+
+double _altitudeOnSegment(_AltNm from, _AltNm to, NmPoint at) {
+  final double de = to.point.e - from.point.e;
+  final double dn = to.point.n - from.point.n;
+  final double length2 = de * de + dn * dn;
+  if (length2 <= 0) {
+    return from.altitudeFt;
+  }
+  final double t = ((at.e - from.point.e) * de + (at.n - from.point.n) * dn) / length2;
+  return from.altitudeFt + (to.altitudeFt - from.altitudeFt) * t.clamp(0.0, 1.0);
+}
+
+/// Same clipping as [clipPathToView], keeping each point's altitude.
+List<List<_AltNm>> _clipAltPath(List<_AltNm> points, {double radiusNm = airspaceViewRadiusNm}) {
+  final List<List<_AltNm>> pieces = [];
+  List<_AltNm>? current;
+  for (int index = 0; index < points.length - 1; index++) {
+    final _AltNm from = points[index];
+    final _AltNm to = points[index + 1];
+    final (NmPoint, NmPoint)? clipped = _clipSegment(from.point, to.point, radiusNm);
+    if (clipped == null) {
+      if (current != null) {
+        pieces.add(current);
+        current = null;
+      }
+      continue;
+    }
+    final _AltNm start = _AltNm(clipped.$1, _altitudeOnSegment(from, to, clipped.$1));
+    final _AltNm end = _AltNm(clipped.$2, _altitudeOnSegment(from, to, clipped.$2));
+    if (current == null ||
+        (current.last.point.e - start.point.e).abs() > 0.05 ||
+        (current.last.point.n - start.point.n).abs() > 0.05) {
+      if (current != null) {
+        pieces.add(current);
+      }
+      current = [start, end];
+    } else {
+      current.add(end);
+    }
+  }
+  if (current != null) {
+    pieces.add(current);
+  }
+  return pieces;
+}
+
 List<NmPoint> _planOffsets(LatLng center, List<LatLng> path) {
   final points = <NmPoint>[];
   for (final point in path) {
@@ -1531,7 +1583,7 @@ class _AirspacePainter extends CustomPainter {
 
   void _drawPlan(Canvas canvas, _Proj Function(double, double, double) project, double maxAlt) {
     final route = Storage().route;
-    final altitude = route.altitude.toDouble().clamp(0.0, maxAlt).toDouble();
+    final double fallback = route.altitude.toDouble().clamp(0.0, maxAlt).toDouble();
     final border = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5
@@ -1543,27 +1595,32 @@ class _AirspacePainter extends CustomPainter {
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
-    void stroke(List<LatLng> path, Color color) {
-      for (final piece in clipPathToView(_planOffsets(center, path))) {
-        if (piece.length < 2) {
+    void stroke(List<LatLng> path, List<double> altitudes, Color color) {
+      final List<_AltNm> located = [];
+      for (int index = 0; index < path.length; index++) {
+        final offset = ownshipOffsetNm(center, path[index], radiusNm: null);
+        if (offset == null) {
           continue;
         }
-        final drawn = ui.Path();
-        final first = project(piece.first.e, piece.first.n, altitude);
-        drawn.moveTo(first.x, first.y);
-        for (final point in piece.skip(1)) {
-          final at = project(point.e, point.n, altitude);
-          drawn.lineTo(at.x, at.y);
+        final double altitude = index < altitudes.length ? altitudes[index] : fallback;
+        located.add(_AltNm(offset, altitude.clamp(0.0, maxAlt).toDouble()));
+      }
+      line.color = color;
+      for (final List<_AltNm> piece in _clipAltPath(located)) {
+        for (int index = 1; index < piece.length; index++) {
+          final _AltNm from = piece[index - 1];
+          final _AltNm to = piece[index];
+          final _Proj start = project(from.point.e, from.point.n, from.altitudeFt);
+          final _Proj end = project(to.point.e, to.point.n, to.altitudeFt);
+          canvas.drawLine(start.o, end.o, border);
+          canvas.drawLine(start.o, end.o, line);
         }
-        canvas.drawPath(drawn, border);
-        line.color = color;
-        canvas.drawPath(drawn, line);
       }
     }
 
-    stroke(route.getPathPassed(), Constants.planPassedColor);
-    stroke(route.getPathCurrent(), Constants.planCurrentColor);
-    stroke(route.getPathNext(), Constants.planNextColor);
+    stroke(route.getPathPassed(), route.getPathPassedAltitudes(), Constants.planPassedColor);
+    stroke(route.getPathCurrent(), route.getPathCurrentAltitudes(), Constants.planCurrentColor);
+    stroke(route.getPathNext(), route.getPathNextLineAltitudes(), Constants.planNextColor);
   }
 
   /// Translucent cone from the aircraft down to the glide ring.

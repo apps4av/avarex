@@ -17,8 +17,13 @@ This manual documents all features in the current AvareX app, including:
 
 **0.0.135**
 
-- Share the active plan from Menu `Link`. One device is Master. Slave devices copy that plan and the active waypoint.
+- Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 - Sync plates to the active airport waypoint.
+- PLAN altitude is per leg. Calc counts climb and names the aircraft.
+- PLAN reads cruise speed and fuel flow from the aircraft.
+- An approach profile sets fix altitudes. Nav log and 3D follow.
+- PLAN + and delete sit by the nav log.
+- Plan names stay on the row. End airports use field elevation in 3D too.
 
 **0.0.134**
 
@@ -544,7 +549,7 @@ Turning a control off stops only that automatic change. The airport selector, pl
 
 Tap bottom tab **PLAN**.
 
-![PLAN tab — empty state with totals header and bottom action buttons plus ASpd/GPH/Alt controls](assets/docs/screenshots/19_plan_tab_empty.png)
+![PLAN tab — empty state with totals header and bottom action buttons](assets/docs/screenshots/19_plan_tab_empty.png)
 
 After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/ground speed/course/time/fuel calculations:
 
@@ -556,18 +561,17 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 - Swipe row right-to-left to delete waypoint
 - Tap row to set current waypoint (highlighted in purple with "ACTIVE" badge)
 - When this device is a **Slave** in `Link`, the plan and the active waypoint follow the master. Edits made on the slave are replaced by the master's next update.
-- **Insert waypoint**: tap a waypoint to select it, then press the **+** button to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
+- **Insert waypoint**: tap a waypoint to select it, then press **+** (left of the navigation-log button) to insert a new waypoint after that position (opens FIND tab; next selection inserts after the selected waypoint)
 - Long press (grab) a waypoint to move it up and down
-- Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel)
-- **Delete entire plan** (trash icon, top-right of header): confirms, then removes all waypoints from the active plan (hidden when the plan is empty)
+- Header row shows plan-wide calculated totals (Distance, Ground Speed, Course, Time, Fuel). Column labels are **Dist**, **GSpd**, **Crs**, **Time**, **Fuel**, **Alt**. The second line, under **Alt**, is **Calc**
+- Each waypoint row has an **Alt** field (feet): the cruise altitude for the leg that ends at that waypoint. It starts at the plan default (3000 ft, or the map altitude slider). The first and last waypoints, when they are airports, use that airport's field elevation. Type a new altitude and leave the field to use it for that leg only (ground speed, time, and fuel update). Clear the field to go back to the plan default. Fixes inside an airway or procedure each have their own **Alt**.
+- **Delete entire plan** (trash icon, right of the navigation-log button): confirms, then removes all waypoints from the active plan (hidden when the plan is empty)
 - Airways and procedures show as expandable items with nested waypoints
 
-Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the plan calculation controls:
+Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds the forecast, **+**, the navigation log, and delete:
 
-- **ASpd** field: true airspeed used in calculations (knots)
-- **GPH** field: fuel burn (gallons per hour)
-- **Alt** field: plan altitude (feet, default 3000)
-- **Aircraft icon** (next to Alt): loads **ASpd** and **GPH** using the same aircraft as the **Performance** screen app-bar **dropdown** (latest selection), interpolated at the plan **Alt** using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
+- Opening PLAN reads cruise speed and fuel flow once from the selected aircraft. That aircraft is the **Performance** screen app-bar **dropdown** (latest selection). Cruise is interpolated at the plan default altitude using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
+- **Calc** (second line of the plan header, under **Alt**): fills each waypoint **Alt** with the cruise altitude that makes that leg fastest, including the time to climb there. The first leg starts at the altitude already set on the waypoint you are leaving (the plan default when that row has none). Each later leg starts at the altitude just chosen. It tries your current altitude and each 1,000 ft step inside that aircraft's cruise table, at the saved cruise power % and standard-day (ISA deviation 0). Wind is the winds-aloft forecast for that leg (headwind, tailwind, and crosswind — the same wind triangle as the plan totals). Climb uses **Best Climb Speed** and **Best Climb Rate** from My Aircraft when those are filled in. Otherwise climb true airspeed is three quarters of the cruise true airspeed, and climb rate is about 700 ft/min near the surface and about 100 ft/min at the top of the cruise table. If the leg is too short to reach that altitude in a straight climb, the airplane finishes the climb in a circle at climb speed, and that time is counted. A descent does not add time. The leg then uses that altitude's cruise true airspeed and fuel flow. A leg whose **Alt** you type yourself uses the cruise speed and fuel flow read when PLAN opened. When elevation charts are installed, a leg will not be set below 1,000 ft above the terrain on that leg. A toast says: Calculated altitudes for shortest flight time based on winds aloft and performance of the aircraft name. If winds aloft are not available, it still picks each leg's fastest altitude.
 - **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
 - **Analytics icon** (chart): opens full-screen Navigation Log
 
@@ -578,7 +582,7 @@ The **tab row** (below the settings row) switches what the PLAN tab shows; the a
 
 ### 7.3 Navigation Log dialog
 
-Open from the PLAN tab by tapping the **analytics** icon (graph, tooltip *"Navigation log and terrain"*) at the far right of the bottom row.
+Open from the PLAN tab by tapping the **analytics** icon (graph, tooltip *"Navigation log and terrain"*) on the settings row, between **+** and the trash icon.
 
 ![Navigation Log full-screen dialog — per-leg grid on top, Winds & Terrain En Route diagram on the bottom; back/save/copy icons in the app bar](assets/docs/screenshots/23_plan_navlog.png)
 
@@ -588,8 +592,8 @@ Includes:
   - Grid is zoomable/pannable; **double-tap** to reset zoom
 - **Winds & Terrain En Route diagram**: combined visualization showing wind components and terrain profile:
   - **Wind heat map**: color-coded cells at altitudes 0-18000 ft along route (green = tailwind, red = headwind, darker = lighter winds, brighter = stronger winds up to 50 kt scale)
-  - **Plan altitude line**: cyan horizontal line showing your planned altitude
-  - **Terrain profile overlay**: terrain elevation curve with color coding (green = safe below plan altitude, red = at or above plan altitude)
+  - **Plan altitude line**: cyan line following each leg's **Alt**. Level along the leg, then a step at the next waypoint
+  - **Terrain profile overlay**: terrain elevation curve. Green where terrain is below that leg's altitude, red where it is at or above it
   - **Waypoint markers**: cyan tick marks at the bottom showing waypoint positions along the route
   - **Interactive tap**: tap anywhere on the diagram to display a tooltip with:
     - Nearest waypoint (if within 5% of route position)
@@ -922,7 +926,7 @@ Speed and distance values follow the app unit setting and are shown without unit
 Enter cruise conditions:
 - **Altitude** (ft) — prefilled from the **PLAN** tab **Alt** when you open the Cruise tab (or open Aircraft & Performance); you can still edit it for what-if
 - **Temperature deviation** (°C from standard)
-- **Power setting** (%) — remembered between app sessions via **app settings** (same preference store as **ASpd** / **GPH** on the Plan tab), not the aircraft database table
+- **Power setting** (%) — remembered between app sessions in app settings, not the aircraft database table
 
 Below altitude and temperature deviation, the screen shows **density altitude** (ft) for those inputs (read-only).
 
@@ -986,6 +990,8 @@ Create and manage your saved aircraft profiles:
 **Glide circle (MAP `Circles` layer):**
 - **Best Glide Speed** — POH best-glide speed of the **selected** aircraft (Performance dropdown). Used instead of current GPS ground speed. Entered in the same speed units as the rest of the app (onboarding unit setting).
 - **Sink Rate** (fpm) — power-off sink rate at best glide
+- **Best Climb Speed** — best-rate-of-climb speed, in the same speed units as the rest of the app. PLAN **Calc** uses it for the climb
+- **Best Climb Rate** (fpm) — best rate of climb. PLAN **Calc** uses it for the climb. If either climb field is empty, Calc uses three quarters of cruise speed and a rate that slows from about 700 ft/min to about 100 ft/min
 - If Best Glide Speed is empty, Cruise Speed is used; if that is also empty, 65 is assumed.
 
 **Performance Data:**
@@ -1107,7 +1113,7 @@ Same view as the destination popup `3D` tab, centered on the aircraft, without t
 
 - **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
-- **Plan**: the active plan at its altitude, cyan behind, purple on the current leg, and grey ahead
+- **Plan**: the active plan at each leg's altitude, cyan behind, purple on the current leg, and grey ahead. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation
 - **Glide ring**: the map glide circle on the surface, and a cone from the aircraft down to it
 - **TFR**: when the `TFR` layer is on, red if in effect and brown if later, from the published floor to the published ceiling
 - **Game TFR**: when that layer is on, an orange 3 NM cylinder from the surface to 3000 ft above the ground
@@ -1524,7 +1530,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Create logbook from track | `Documents → tracks → tap KML → 2D Map → Log Flight` |
 | Create folder for documents | `MAP → Menu → Documents → folder icon in app bar` |
 | Build or modify plan | `PLAN tab` |
-| Delete entire plan | `PLAN tab` → trash icon (top-right of header) |
+| Delete entire plan | `PLAN tab` → trash icon (right of the navigation log) |
 | File FAA plan | `PLAN → Brief & File` |
 | Manage filed plans | `PLAN → Manage` |
 | Load reversed plan | `PLAN → Load & Save → 3-dot menu → Load Reversed` |
@@ -1543,6 +1549,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Delete airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW → trash icon` |
 | Configure aircraft | `MAP → Menu → Aircraft & Performance → My Aircraft tab` |
 | Set best glide / sink rate | `MAP → Menu → Aircraft & Performance → My Aircraft tab` (Best Glide Speed, Sink Rate) |
+| Set best climb speed and rate | `MAP → Menu → Aircraft & Performance → My Aircraft tab` (Best Climb Speed, Best Climb Rate) |
 | Change aircraft map icon | `MAP → Menu → Aircraft & Performance → My Aircraft tab → icon dropdown` |
 | Checklist operations | `MAP → Menu → Check Lists` |
 | Save map settings as a profile | `MAP → Map Settings → Profiles` |
@@ -1552,7 +1559,9 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |
 | Cruise performance | `MAP → Menu → Aircraft & Performance → Cruise tab` (fixed-wing icon only; hidden for helicopter) |
 | Runway crossing alert | Automatic when `Audible Alerts` is on; uses closest-airport runways |
-| Fuel burn in plan | `PLAN tab` — set **GPH** manually or use the aircraft icon to load from performance data |
+| Fuel burn in plan | `PLAN tab` — cruise speed and fuel flow are read once from the selected aircraft when PLAN opens |
+| Best cruise altitude | `PLAN tab` → **Calc** (plan header, under **Alt**) |
+| Waypoint cruise altitude | `PLAN tab` → **Alt** column on the waypoint row |
 | Logbook + dashboard | `MAP → Menu → Log Book` |
 | Logbook statistics | `MAP → Menu → Log Book → Details` |
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
@@ -1710,10 +1719,9 @@ There are three ways to add a waypoint to the plan; the fastest for a brand-new 
 
 6. Verify the totals header (Dist 148, GSpd 91, Time 01:55, Fuel 18.6 in the example).
 7. Adjust the bottom controls as needed:
-   - **ASpd** — true airspeed in knots (or mph if Imperial units)
-   - **GPH** — fuel burn (gallons per hour)
-   - **Alt** — planned altitude (feet)
-   - **Aircraft icon** — auto-fills `ASpd` and `GPH` from your selected aircraft's Performance data at the chosen `Alt`
+   - Cruise speed and fuel flow come from the selected aircraft, read once when PLAN opens
+   - Each waypoint **Alt** column is that leg's cruise altitude. Clear it to use the plan default (3000 ft, or the map altitude slider)
+   - **Calc** — on the plan header's second line, under **Alt**. Fills each leg's `Alt` with the fastest altitude for that leg, including climb time. A short leg stays low instead of circling to a high altitude
    - **Forecast horizon** — `06H / 12H / 24H` (winds aloft window for nav-log calculations)
 8. To **reorder** legs: long-press and drag rows. To **set a different leg active**, tap its row. To **delete** a leg, swipe right-to-left.
 9. To **save** the plan: tap **Load & Save** at the bottom → press **Save** and give it a name.
@@ -1780,7 +1788,7 @@ Prereq: set your 1800wxbrief-compatible email in onboarding.
 2. Select airport (bottom-right selector).
 3. Select desired plate (bottom-left selector, color-coded by type).
 4. Use procedure menu (plus/road icon):
-   - Choose a procedure to show its profile card, draw the **CIFP route** on georeferenced plates (green→yellow→brown→blue→red→orange from final back, matched on the vertical profile), and append it to the plan.
+   - Choose a procedure to show its profile card, draw the **CIFP route** on georeferenced plates (green→yellow→brown→blue→red→orange from final back, matched on the vertical profile), and append it to the plan. Each fix that has an altitude on that profile gets that altitude in the plan **Alt** column.
 5. If other IAFs exist for the same chart, tap a **black IAF chip** to switch transition (route and profile update; plan is not duplicated).
 6. Fly the approach using the colored route overlay and vertical profile.
 7. Keep instruments visible on plate using top-right show/hide toggle.
@@ -1951,12 +1959,12 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 1. Open the **PLAN** tab.
 2. Ensure your route has at least 2 waypoints (build one with **UC-04** if needed).
 
-![Step 3 — bottom row of the PLAN tab; the **analytics** icon (graph) at the far right opens the Navigation Log](assets/docs/screenshots/22_plan_with_route.png)
+![Step 3 — PLAN settings row; the **analytics** icon (graph) between **+** and the trash icon opens the Navigation Log](assets/docs/screenshots/22_plan_with_route.png)
 
-3. Set your planned altitude using the **Alt** field at the bottom.
+3. Set each leg's altitude in the **Alt** column. An empty cell uses the plan default (3000 ft, or the map altitude slider).
 4. Set the **Forecast horizon** dropdown (`06H / 12H / 24H`) so wind data matches your departure window.
-5. (Optional) Tap the **Aircraft icon** next to **Alt** to load TAS/GPH from your stored aircraft profile.
-6. Tap the **analytics icon** (graph, far right of the bottom row, tooltip *"Navigation log and terrain"*). The **Navigation Log** opens as a full-screen dialog.
+5. Cruise speed and fuel flow are read once from the selected aircraft when PLAN opens.
+6. Tap the **analytics icon** (graph, between **+** and the trash icon, tooltip *"Navigation log and terrain"*). The **Navigation Log** opens as a full-screen dialog.
 
 ![Navigation Log — per-leg grid (top) and Winds & Terrain En Route diagram (bottom)](assets/docs/screenshots/23_plan_navlog.png)
 
@@ -1966,7 +1974,7 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
    |-----|---------|
    | **FM** | From waypoint |
    | **TO** | To waypoint |
-   | **AL** | Plan altitude (ft) |
+   | **AL** | Cruise altitude for that leg (ft). A waypoint **Alt** when set, otherwise the plan **Alt** |
    | **TC** | True course (°) |
    | **VR** | Magnetic variation (°) |
    | **MC** | Magnetic course (°) |
@@ -1986,8 +1994,8 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
    - Y-axis: altitude bands (0, 3000, 6000, 9000, 12000, 18000 ft)
    - X-axis: position along the route from departure (left) to destination (right)
    - **Wind heat map**: each cell colored by tailwind/headwind component — **green = tailwind**, **red = headwind** (darker = lighter winds, brighter = stronger winds, scaled up to 50 kt)
-   - **Cyan horizontal line**: your planned altitude (`Alt` from the PLAN tab)
-   - **Green/red terrain curve**: terrain elevation; green where it's safely below your plan altitude, red where it's at or above your plan altitude
+   - **Cyan altitude line**: each leg's **Alt** from the plan. Level along the leg, then a step at the next waypoint
+   - **Green/red terrain curve**: terrain elevation; green where it is below that leg's altitude, red where it is at or above it
    - **Cyan tick marks** along the bottom edge: waypoint positions
 9. **Tap anywhere on the diagram** to display a tooltip showing:
    - Nearest waypoint (only if your tap is within ~5% of that waypoint's position)

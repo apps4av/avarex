@@ -49,7 +49,7 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
   String _remarks = "";
 
   bool _sending = false;
-  String _error = Storage().settings.getEmail().isEmpty ? "Set 1800wxbrief.com account in the app introduction screen." : "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
+  String _error = Storage().settings.getEmail().isEmpty ? LmfsInterface.missingAccountMessage : "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
   Color? _errorColor;
   List<Aircraft>? _aircraft;
 
@@ -105,6 +105,15 @@ class PlanFileWidgetState extends State<PlanFileWidget> {
     _aircraft = aircraft;
     if(null == aircraft) {
       return Container();
+    }
+
+    if (Storage().settings.getEmail().isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(LmfsInterface.missingAccountMessage, textAlign: TextAlign.center),
+        ),
+      );
     }
 
     PlanRoute route = Storage().route;

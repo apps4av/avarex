@@ -26,6 +26,10 @@ class PlanRoute {
   List<LatLng> _pointsCurrent = [];
   List<LatLng> _pointsNext = [];
   List<LatLng> _pointsNextHighResolution = [];
+  List<double> _pathPassedAltitudes = [];
+  List<double> _pathCurrentAltitudes = [];
+  List<double> _pathNextLineAltitudes = [];
+  List<double> _pathNextAltitudes = [];
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
@@ -155,6 +159,54 @@ class PlanRoute {
     return points;
   }
 
+  /// Altitude stored for [destination]: the leg that arrives there, or field elevation at an airport endpoint.
+  double _storedAltitude(Destination destination) {
+    for (final Waypoint waypoint in _waypoints) {
+      if (waypoint.destinationsOnRoute.isNotEmpty) {
+        final int index = waypoint.destinationsOnRoute.indexOf(destination);
+        if (index >= 0) {
+          return waypoint.effectiveAltitude(_altitude, index).toDouble();
+        }
+      } else if (identical(waypoint.planDestination, destination)) {
+        return waypoint.effectiveAltitude(_altitude).toDouble();
+      }
+    }
+    return destination.calculations?.altitude ?? _altitude.toDouble();
+  }
+
+  /// One altitude per point [_makePathPoints] would emit.
+  /// Level legs use the altitude of the waypoint they arrive at.
+  /// [slope] rises from the altitude you leave to the altitude you arrive, so a 3D route
+  /// starts at the departure field elevation and ends at the arrival field elevation.
+  List<double> _altitudesAlong(List<Destination> path, {bool fine = false, bool slope = false}) {
+    final List<double> altitudes = [];
+    if (path.length < 2) {
+      return altitudes;
+    }
+    final GeoCalculations calc = GeoCalculations();
+    for (int index = 0; index < path.length - 1; index++) {
+      final double toAltitude = path[index + 1].calculations?.altitude ?? _storedAltitude(path[index + 1]);
+      final double fromAltitude = slope ? _storedAltitude(path[index]) : toAltitude;
+      List<LatLng> routeIntermediate = fine
+          ? calc.findPoints(path[index].coordinate, path[index + 1].coordinate, 1)
+          : calc.findPoints(path[index].coordinate, path[index + 1].coordinate);
+      final int fullCount = routeIntermediate.length;
+      if (index > 0 && routeIntermediate.isNotEmpty) {
+        routeIntermediate = routeIntermediate.sublist(1);
+      }
+      for (int point = 0; point < routeIntermediate.length; point++) {
+        if (!slope || fullCount <= 1) {
+          altitudes.add(toAltitude);
+          continue;
+        }
+        final int sample = index > 0 ? point + 1 : point;
+        final double t = sample / (fullCount - 1);
+        altitudes.add(fromAltitude + (toAltitude - fromAltitude) * t);
+      }
+    }
+    return altitudes;
+  }
+
   void _update(bool changeInPath) {
 
     if(_waypoints.isNotEmpty) {
@@ -165,6 +217,10 @@ class PlanRoute {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNextHighResolution = [];
+      _pathPassedAltitudes = [];
+      _pathCurrentAltitudes = [];
+      _pathNextLineAltitudes = [];
+      _pathNextAltitudes = [];
       _pointsNext = [];
       _allDestinations = [];
       _nextDestinations = [];
@@ -175,6 +231,7 @@ class PlanRoute {
 
     // On change in path, adjust airway
     if(changeInPath) {
+      applyEndpointFieldElevations();
       for (int index = 0; index < _waypoints.length; index++) {
         Destination destination = _waypoints[index].destination;
         if (Destination.isAirway(destination.type)) {
@@ -186,57 +243,35 @@ class PlanRoute {
       }
     }
 
-    int cIndex = _current == null ? 0 : _waypoints.indexOf(_current!);
-    List<Waypoint> waypointsPassed = cIndex == 0 ? [] : _waypoints.sublist(0, cIndex);
-    Waypoint current = _waypoints[cIndex];
-    List<Waypoint> waypointsNext = cIndex == (_waypoints.length - 1) ? [] : _waypoints.sublist(cIndex + 1, _waypoints.length);
-
-    // passed
-    List<Destination> destinationsPassed = _expand(waypointsPassed);
-    // next
-    List<Destination> destinationsNext = _expand(waypointsNext);
-    // current
-    List<Destination> destinationsCurrent = [];
-    Destination destination = current.destination;
-    if(Destination.isAirway(destination.type) || Destination.isProcedure(destination.type)) {
-      destinationsPassed.addAll(current.getDestinationsPassed());
-      destinationsNext.insertAll(0, current.getDestinationsNext());
-      destinationsCurrent.addAll(current.getDestinationsCurrent());
-    }
-    else {
-      destinationsCurrent.add(current.destination);
-    }
-
-    // everything in plan needs to be calculated in plan
-    _allDestinations = [];
-    _nextDestinations = [];
-    _allDestinations.addAll(destinationsPassed);
-    _allDestinations.addAll(destinationsCurrent);
-    _allDestinations.addAll(destinationsNext);
-    _nextDestinations.addAll(destinationsNext);
+    final _DestinationSplit split = _destinationSplit()!;
+    _allDestinations = split.all;
+    _nextDestinations = split.nextBeforeConnect;
 
     // calculate plan
     for(int index = 0; index < _allDestinations.length - 1; index++) {
       _allDestinations[0].calculations = null;
+      Destination to = _allDestinations[index + 1];
       DestinationCalculations calc;
       // calculate total from current position to active route
-      if(current.destination == _allDestinations[index + 1]) {
+      final ({double tas, double gph, double altitude}) numbers = _legNumbers(to);
+      if(split.active == to) {
         calc = DestinationCalculations(
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
-          _allDestinations[index + 1],
-          Storage().settings.getTas(),
-          Storage().settings.getFuelBurn(), altitude.toDouble());
+          to,
+          numbers.tas,
+          numbers.gph,
+          numbers.altitude);
       }
       else {
         calc = DestinationCalculations(
-            _allDestinations[index], _allDestinations[index + 1],
-            Storage().settings.getTas(),
-            Storage().settings.getFuelBurn(),
-            altitude.toDouble()
+            _allDestinations[index], to,
+            numbers.tas,
+            numbers.gph,
+            numbers.altitude
         );
       }
       calc.calculateTo();
-      _allDestinations[index + 1].calculations = calc;
+      to.calculations = calc;
     }
 
     // calculate passage
@@ -253,10 +288,6 @@ class PlanRoute {
       }
     }
 
-    //make connections to paths
-    _connect(destinationsPassed, destinationsCurrent); // current now has last passed
-    _connect(destinationsCurrent, destinationsNext); // next has now current
-
     // do total calculations
     double speed = 0;
     double distance = 0;
@@ -264,7 +295,7 @@ class PlanRoute {
     double fuel = 0;
     double total = 0;
 
-    if(destinationsNext.isEmpty) {
+    if(split.next.isEmpty) {
       // last leg
       if(_allDestinations.isNotEmpty) {
         totalCalculations = _allDestinations[_allDestinations.length - 1].calculations;
@@ -275,14 +306,14 @@ class PlanRoute {
     }
     // sum
     else {
-      for (int index = 0; index < destinationsNext.length; index++) {
-        if (destinationsNext[index].calculations != null) {
+      for (int index = 0; index < split.next.length; index++) {
+        if (split.next[index].calculations != null) {
           total++;
-          totalCalculations ??= destinationsNext[index].calculations;
-          speed += destinationsNext[index].calculations!.groundSpeed;
-          distance += destinationsNext[index].calculations!.distance;
-          time += destinationsNext[index].calculations!.time;
-          fuel += destinationsNext[index].calculations!.fuel;
+          totalCalculations ??= split.next[index].calculations;
+          speed += split.next[index].calculations!.groundSpeed;
+          distance += split.next[index].calculations!.distance;
+          time += split.next[index].calculations!.time;
+          fuel += split.next[index].calculations!.fuel;
         }
       }
       if(totalCalculations != null) {
@@ -295,12 +326,229 @@ class PlanRoute {
     }
 
     // make paths
-    _pointsPassed = _makePathPoints(destinationsPassed);
-    _pointsNext = _makePathPoints(destinationsNext);
-    _pointsCurrent = _makePathPoints(destinationsCurrent);
-    _pointsNextHighResolution = _makePathPoints(destinationsNext, fine: true);
+    _pointsPassed = _makePathPoints(split.passed);
+    _pathPassedAltitudes = _altitudesAlong(split.passed, slope: true);
+    if (_pathPassedAltitudes.length != _pointsPassed.length) {
+      _pathPassedAltitudes = [];
+    }
+    _pointsNext = _makePathPoints(split.next);
+    _pathNextLineAltitudes = _altitudesAlong(split.next, slope: true);
+    if (_pathNextLineAltitudes.length != _pointsNext.length) {
+      _pathNextLineAltitudes = [];
+    }
+    _pointsCurrent = _makePathPoints(split.current);
+    _pathCurrentAltitudes = _altitudesAlong(split.current, slope: true);
+    if (_pathCurrentAltitudes.length != _pointsCurrent.length) {
+      _pathCurrentAltitudes = [];
+    }
+    _pointsNextHighResolution = _makePathPoints(split.next, fine: true);
+    _pathNextAltitudes = _altitudesAlong(split.next, fine: true);
+    if (_pathNextAltitudes.length != _pointsNextHighResolution.length) {
+      _pathNextAltitudes = [];
+    }
 
     change.value++;
+  }
+
+  /// Cruise altitude, true airspeed, and fuel flow for the leg that arrives at [to].
+  ({double tas, double gph, double altitude}) _legNumbers(Destination to) {
+    final double planTas = Storage().settings.getTas();
+    final double planGph = Storage().settings.getFuelBurn();
+    for (final Waypoint waypoint in _waypoints) {
+      if (waypoint.destinationsOnRoute.isNotEmpty) {
+        final int index = waypoint.destinationsOnRoute.indexOf(to);
+        if (index >= 0) {
+          final double? legTas = waypoint.fixCruiseKtas[index];
+          final double? legGph = waypoint.fixCruiseGph[index];
+          return (
+            tas: legTas != null && legTas > 0 ? legTas : planTas,
+            gph: legGph != null && legGph > 0 ? legGph : planGph,
+            altitude: waypoint.effectiveAltitude(altitude, index).toDouble(),
+          );
+        }
+      } else if (identical(waypoint.planDestination, to)) {
+        final double? legTas = waypoint.cruiseKtas;
+        final double? legGph = waypoint.cruiseGph;
+        return (
+          tas: legTas != null && legTas > 0 ? legTas : planTas,
+          gph: legGph != null && legGph > 0 ? legGph : planGph,
+          altitude: waypoint.effectiveAltitude(altitude).toDouble(),
+        );
+      }
+    }
+    return (tas: planTas, gph: planGph, altitude: altitude.toDouble());
+  }
+
+  /// Departure and arrival airports show field elevation. Returns true when an altitude changes.
+  bool applyEndpointFieldElevations() {
+    if (_waypoints.isEmpty) {
+      return false;
+    }
+    bool changed = _setAirportFieldElevation(_waypoints.first);
+    if (_waypoints.length > 1) {
+      changed = _setAirportFieldElevation(_waypoints.last) || changed;
+    }
+    return changed;
+  }
+
+  /// The leg into the last airport stays at field elevation.
+  bool isArrivalAirport(Waypoint waypoint) {
+    return _waypoints.length > 1 &&
+        identical(waypoint, _waypoints.last) &&
+        Waypoint.airportFieldElevationFt(waypoint.planDestination.type, waypoint.planDestination.elevation) != null;
+  }
+
+  bool _setAirportFieldElevation(Waypoint waypoint) {
+    final int? feet = Waypoint.airportFieldElevationFt(
+      waypoint.planDestination.type,
+      waypoint.planDestination.elevation,
+    );
+    if (feet == null) {
+      return false;
+    }
+    if (waypoint.altitudeFt == feet && waypoint.cruiseKtas == null && waypoint.cruiseGph == null) {
+      return false;
+    }
+    waypoint.setAltitudeOnly(null, feet);
+    return true;
+  }
+
+  /// Drop per-waypoint altitudes so every leg uses the plan altitude.
+  void clearAltitudeOverrides() {
+    for (final Waypoint waypoint in _waypoints) {
+      waypoint.altitudeFt = null;
+      waypoint.cruiseKtas = null;
+      waypoint.cruiseGph = null;
+      waypoint.fixAltitudeFt.clear();
+      waypoint.fixCruiseKtas.clear();
+      waypoint.fixCruiseGph.clear();
+    }
+  }
+
+  /// Included in the saved-plan signature so an altitude edit is written to disk.
+  String altitudeSignature() {
+    return _waypoints.map((Waypoint waypoint) {
+      final List<int> indexes = {
+        ...waypoint.fixAltitudeFt.keys,
+        ...waypoint.fixCruiseKtas.keys,
+        ...waypoint.fixCruiseGph.keys,
+      }.toList()
+        ..sort();
+      final String fixes = indexes
+          .map((int index) =>
+              "$index:${waypoint.fixAltitudeFt[index] ?? ""}@${waypoint.fixCruiseKtas[index] ?? ""}/${waypoint.fixCruiseGph[index] ?? ""}")
+          .join(",");
+      return "${waypoint.altitudeFt ?? ""}@${waypoint.cruiseKtas ?? ""}/${waypoint.cruiseGph ?? ""}[$fixes]";
+    }).join(";");
+  }
+
+  /// Every calculated leg, with the waypoint column that shows its altitude.
+  /// The active leg starts at the current GPS position, matching the navigation log.
+  List<PlanLegTarget> cruiseLegs() {
+    final _DestinationSplit? split = _destinationSplit();
+    if (split == null) {
+      return [];
+    }
+    final LatLng gps = Gps.toLatLng(Storage().position);
+    final List<PlanLegTarget> legs = [];
+    for (int index = 0; index < split.all.length - 1; index++) {
+      final Destination to = split.all[index + 1];
+      final LatLng from = split.active == to ? gps : split.all[index].coordinate;
+      final int fromAltitudeFt = _legNumbers(split.all[index]).altitude.round();
+      final PlanLegTarget? target = _targetFor(to, from, fromAltitudeFt);
+      if (target != null) {
+        legs.add(target);
+      }
+    }
+    return legs;
+  }
+
+  PlanLegTarget? _targetFor(Destination to, LatLng from, int fromAltitudeFt) {
+    for (final Waypoint waypoint in _waypoints) {
+      if (waypoint.destinationsOnRoute.isNotEmpty) {
+        final int index = waypoint.destinationsOnRoute.indexOf(to);
+        if (index >= 0) {
+          return PlanLegTarget(
+            from: from,
+            to: to.coordinate,
+            waypoint: waypoint,
+            fixIndex: index,
+            fromAltitudeFt: fromAltitudeFt,
+          );
+        }
+      } else if (identical(waypoint.planDestination, to)) {
+        return PlanLegTarget(
+          from: from,
+          to: to.coordinate,
+          waypoint: waypoint,
+          fixIndex: null,
+          fromAltitudeFt: fromAltitudeFt,
+        );
+      }
+    }
+    return null;
+  }
+
+  /// Remaining legs that make up the plan total, in flight order.
+  /// The active leg starts at the current GPS position, matching the navigation log.
+  List<({LatLng from, LatLng to})> remainingLegs() {
+    final _DestinationSplit? split = _destinationSplit();
+    if(split == null) {
+      return [];
+    }
+    final Set<Destination> keep = split.next.toSet();
+    final LatLng gps = Gps.toLatLng(Storage().position);
+    final List<({LatLng from, LatLng to})> legs = [];
+    for(int index = 0; index < split.all.length - 1; index++) {
+      final Destination to = split.all[index + 1];
+      if(!keep.contains(to)) {
+        continue;
+      }
+      final LatLng from = split.active == to ? gps : split.all[index].coordinate;
+      legs.add((from: from, to: to.coordinate));
+    }
+    return legs;
+  }
+
+  _DestinationSplit? _destinationSplit() {
+    if(_waypoints.isEmpty) {
+      return null;
+    }
+    final int cIndex = _current == null ? 0 : _waypoints.indexOf(_current!);
+    final List<Waypoint> waypointsPassed = cIndex == 0 ? [] : _waypoints.sublist(0, cIndex);
+    final Waypoint current = _waypoints[cIndex];
+    final List<Waypoint> waypointsNext = cIndex == (_waypoints.length - 1) ? [] : _waypoints.sublist(cIndex + 1, _waypoints.length);
+
+    final List<Destination> destinationsPassed = _expand(waypointsPassed);
+    final List<Destination> destinationsNext = _expand(waypointsNext);
+    final List<Destination> destinationsCurrent = [];
+    final Destination destination = current.destination;
+    if(Destination.isAirway(destination.type) || Destination.isProcedure(destination.type)) {
+      destinationsPassed.addAll(current.getDestinationsPassed());
+      destinationsNext.insertAll(0, current.getDestinationsNext());
+      destinationsCurrent.addAll(current.getDestinationsCurrent());
+    }
+    else {
+      destinationsCurrent.add(current.destination);
+    }
+
+    final List<Destination> all = [];
+    all.addAll(destinationsPassed);
+    all.addAll(destinationsCurrent);
+    all.addAll(destinationsNext);
+    final List<Destination> nextBeforeConnect = List<Destination>.from(destinationsNext);
+
+    _connect(destinationsPassed, destinationsCurrent); // current now has last passed
+    _connect(destinationsCurrent, destinationsNext); // next has now current
+
+    return _DestinationSplit(
+      all: all,
+      nextBeforeConnect: nextBeforeConnect,
+      passed: destinationsPassed,
+      current: destinationsCurrent,
+      next: destinationsNext,
+      active: current.destination,
+    );
   }
 
   void advance() {
@@ -382,6 +630,58 @@ class PlanRoute {
     _update(true);
   }
 
+  /// Published altitudes from an approach profile, keyed by fix index on the procedure.
+  static Map<int, int> profileAltitudesForFixes(
+    List<String> fixIds,
+    List<({String fix, double? altitudeFt})> points,
+  ) {
+    final Map<String, int> byFix = {};
+    for (final ({String fix, double? altitudeFt}) point in points) {
+      final double? altitude = point.altitudeFt;
+      if (altitude == null) {
+        continue;
+      }
+      byFix[point.fix.trim().toUpperCase()] = altitude.round();
+    }
+    final Map<int, int> matched = {};
+    for (int index = 0; index < fixIds.length; index++) {
+      final int? altitude = byFix[fixIds[index].trim().toUpperCase()];
+      if (altitude != null) {
+        matched[index] = altitude;
+      }
+    }
+    return matched;
+  }
+
+  /// Set each fix altitude on the plan procedure that matches [procedureName].
+  void applyProcedureProfileAltitudes(
+    String procedureName,
+    List<({String fix, double? altitudeFt})> points,
+  ) {
+    Waypoint? match;
+    for (final Waypoint waypoint in _waypoints.reversed) {
+      if (waypoint.planDestination.locationID == procedureName) {
+        match = waypoint;
+        break;
+      }
+    }
+    if (match == null || match.destinationsOnRoute.isEmpty) {
+      return;
+    }
+    final List<String> fixIds = match.destinationsOnRoute.map((Destination destination) {
+      final String name = destination.secondaryName ?? '';
+      return name.isNotEmpty ? name : destination.locationID;
+    }).toList();
+    final Map<int, int> altitudes = profileAltitudesForFixes(fixIds, points);
+    if (altitudes.isEmpty) {
+      return;
+    }
+    for (final MapEntry<int, int> entry in altitudes.entries) {
+      match.setAltitudeOnly(entry.key, entry.value);
+    }
+    update();
+  }
+
   void moveWaypoint(int from, int to) {
     Waypoint waypoint = _waypoints.removeAt(from);
     _waypoints.insert(to, waypoint);
@@ -424,16 +724,35 @@ class PlanRoute {
     return _pointsPassed;
   }
 
+  List<double> getPathPassedAltitudes() {
+    return _pathPassedAltitudes;
+  }
+
   List<LatLng> getPathCurrent() {
     return _pointsCurrent;
+  }
+
+  List<double> getPathCurrentAltitudes() {
+    return _pathCurrentAltitudes;
   }
 
   List<LatLng> getPathNext() {
     return _pointsNext;
   }
 
+  /// Cruise altitude for each point of [getPathNext], level on a leg and stepping at the next fix.
+  List<double> getPathNextLineAltitudes() {
+    return _pathNextLineAltitudes;
+  }
+
   List<LatLng> getPathNextHighResolution() {
     return _pointsNextHighResolution;
+  }
+
+  /// Cruise altitude in feet for each point of [getPathNextHighResolution].
+  /// Each leg holds the altitude from the plan, then steps at the next waypoint.
+  List<double> getPathNextAltitudes() {
+    return _pathNextAltitudes;
   }
 
   List<Destination> getNextDestinations() {
@@ -507,12 +826,13 @@ class PlanRoute {
 
   // convert route to json
   String toJson(String name) {
+    return jsonEncode(_waypoints.map(_savedWaypointMap).toList());
+  }
 
-    // put all destinations in json
-    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
-    String json = jsonEncode(maps);
-
-    return json;
+  Map<String, Object?> _savedWaypointMap(Waypoint waypoint) {
+    final Map<String, Object?> map = Map<String, Object?>.from(waypoint.destination.toMap());
+    waypoint.writeAltitudes(map);
+    return map;
   }
 
   // default constructor creates empty route
@@ -540,14 +860,19 @@ class PlanRoute {
   static Future<PlanRoute> fromJson(String json, String name, bool reverse) async {
     PlanRoute route = PlanRoute(name);
     List<dynamic> decoded = jsonDecode(json);
-    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
-
-    if(reverse) {
-      destinations = destinations.reversed.toList();
+    List<Map<String, dynamic>> maps = [];
+    for (dynamic entry in decoded) {
+      if (entry is Map) {
+        maps.add(Map<String, dynamic>.from(entry));
+      }
     }
-    for (Destination d in destinations) {
-      Destination expanded = await DestinationFactory.make(d);
+    if(reverse) {
+      maps = maps.reversed.toList();
+    }
+    for (Map<String, dynamic> map in maps) {
+      Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
       Waypoint w = Waypoint(expanded);
+      w.readAltitudes(map);
       route.addWaypoint(w);
     }
     return route;
@@ -573,7 +898,9 @@ class PlanRoute {
         map["ARPLongitude"] = lon.toDouble();
       }
       Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
-      route.addWaypoint(Waypoint(expanded));
+      Waypoint w = Waypoint(expanded);
+      w.readAltitudes(map);
+      route.addWaypoint(w);
     }
     if (waypointIndex >= 0 && waypointIndex < route.length) {
       route.setCurrentWaypoint(waypointIndex);
@@ -780,9 +1107,7 @@ class PlanRoute {
   // convert route to json
   Map<String, Object?> toMap(String name) {
 
-    // put all destinations in json
-    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
-    String json = jsonEncode(maps);
+    String json = jsonEncode(_waypoints.map(_savedWaypointMap).toList());
 
     Map<String, Object?> jsonMap = {'name' : name, 'route' : json};
 
@@ -794,14 +1119,19 @@ class PlanRoute {
     PlanRoute route = PlanRoute(maps['name'] as String);
     String json = maps['route'] as String;
     List<dynamic> decoded = jsonDecode(json);
-    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
-
-    if(reverse) {
-      destinations = destinations.reversed.toList();
+    List<Map<String, dynamic>> saved = [];
+    for (dynamic entry in decoded) {
+      if (entry is Map) {
+        saved.add(Map<String, dynamic>.from(entry));
+      }
     }
-    for (Destination d in destinations) {
-      Destination expanded = await DestinationFactory.make(d);
+    if(reverse) {
+      saved = saved.reversed.toList();
+    }
+    for (Map<String, dynamic> map in saved) {
+      Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
       Waypoint w = Waypoint(expanded);
+      w.readAltitudes(map);
       route.addWaypoint(w);
     }
     return route;
@@ -816,9 +1146,49 @@ class PlanRoute {
   /// JSON array of the plan as entered. Airways and procedures stay the
   /// airway or procedure, not the fix currently being flown.
   String toLinkJson() {
-    List<Map<String, Object?>> maps =
-        _waypoints.map((Waypoint w) => w.planDestination.toMap()).toList();
+    List<Map<String, Object?>> maps = _waypoints.map((Waypoint w) {
+      final Map<String, Object?> map = Map<String, Object?>.from(w.planDestination.toMap());
+      w.writeAltitudes(map);
+      return map;
+    }).toList();
     return jsonEncode(maps);
   }
 
+}
+
+/// One calculated leg and the waypoint row whose Alt column shows it.
+class PlanLegTarget {
+  final LatLng from;
+  final LatLng to;
+  final Waypoint waypoint;
+  final int? fixIndex;
+
+  /// Altitude the airplane is already at when this leg begins.
+  final int fromAltitudeFt;
+
+  const PlanLegTarget({
+    required this.from,
+    required this.to,
+    required this.waypoint,
+    required this.fixIndex,
+    required this.fromAltitudeFt,
+  });
+}
+
+class _DestinationSplit {
+  final List<Destination> all;
+  final List<Destination> nextBeforeConnect;
+  final List<Destination> passed;
+  final List<Destination> current;
+  final List<Destination> next;
+  final Destination active;
+
+  _DestinationSplit({
+    required this.all,
+    required this.nextBeforeConnect,
+    required this.passed,
+    required this.current,
+    required this.next,
+    required this.active,
+  });
 }

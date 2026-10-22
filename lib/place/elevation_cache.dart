@@ -74,18 +74,42 @@ class ElevationCache {
   }
 
   /// Load each unique tile once, then sample every point from memory.
+  /// The shared cache keeps only [_cacheSize] tiles and drops the oldest.
+  /// This route can cross more tiles than that, so the images stay in a local
+  /// map until every point has been read. Otherwise the start of the route
+  /// is sampled after its tiles have already been dropped.
   static Future<List<double?>> getElevationOfPoints(List<LatLng> position) async {
     if (position.isEmpty) return [];
     final int zoom = ChartCategory.chartTypeToZoom(ChartCategory.elevation);
     final double zd = zoom.toDouble();
-    final Set<String> tiles = {};
-    for (final LatLng p in position) {
-      final Epsg900913 proj = Epsg900913.fromLatLon(p.latitude, p.longitude, zd);
-      tiles.add(_tilePath(zoom, proj.getTilex(), proj.getTiley()));
+    final List<Epsg900913> projections = [
+      for (final LatLng p in position)
+        Epsg900913.fromLatLon(p.latitude, p.longitude, zd),
+    ];
+    final Map<String, img.Image?> tiles = {};
+    for (final Epsg900913 proj in projections) {
+      final String name = _tilePath(zoom, proj.getTilex(), proj.getTiley());
+      if (tiles.containsKey(name)) {
+        continue;
+      }
+      tiles[name] = await _loadTile(name);
     }
-    for (final String name in tiles) {
-      await _loadTile(name);
-    }
-    return [for (final LatLng p in position) _elevAt(p, zoom)];
+    return [
+      for (int i = 0; i < position.length; i++)
+        _sampleHeld(tiles, projections[i], position[i], zoom),
+    ];
+  }
+
+  static double? _sampleHeld(Map<String, img.Image?> tiles, Epsg900913 proj,
+      LatLng position, int zoom) {
+    final img.Image? decoded =
+        tiles[_tilePath(zoom, proj.getTilex(), proj.getTiley())];
+    if (decoded == null) return null;
+    final double zd = zoom.toDouble();
+    final double pixelX =
+        Epsg900913.getOffsetX(proj.getLonUpperLeft(), position.longitude, zd);
+    final double pixelY =
+        Epsg900913.getOffsetY(proj.getLatUpperLeft(), position.latitude, zd);
+    return _sample(decoded, pixelX, pixelY);
   }
 }

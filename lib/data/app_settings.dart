@@ -167,11 +167,11 @@ class AppSettings {
   }
 
   void setEmail(String name) {
-    provider.setString("key-user-email", name);
+    provider.setString("key-user-email", name.trim());
   }
 
   String getEmail() {
-    return provider.getValue("key-user-email", defaultValue: "") as String;
+    return (provider.getValue("key-user-email", defaultValue: "") as String).trim();
   }
 
   void setLastRouteEntry(String value) {

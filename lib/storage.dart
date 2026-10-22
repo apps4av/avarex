@@ -145,7 +145,7 @@ class Storage {
   // waypoint index + airway sub-index) so we can detect changes without
   // re-serializing the whole plan every second.
   String _planSignature() {
-    return "${_route.toString()}|${_route.currentWaypointIndex}|${_route.getCurrentWaypoint()?.currentDestinationIndex ?? 0}";
+    return "${_route.toString()}|${_route.currentWaypointIndex}|${_route.getCurrentWaypoint()?.currentDestinationIndex ?? 0}|${_route.altitudeSignature()}";
   }
 
   // Save the active plan and the waypoint it is on so it can be reloaded after

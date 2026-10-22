@@ -90,7 +90,7 @@ class UserDatabaseHelper {
     return
       await openDatabase(
           path,
-          version: 9,
+          version: 10,
           onUpgrade: (Database db, int oldVersion, int newVersion) async {
             if (oldVersion <= 4 && newVersion > 4) {
               await db.execute("create table aiQueries("
@@ -139,6 +139,14 @@ class UserDatabaseHelper {
                   "name         text, "
                   "settings     text, "
                   "unique(name) on conflict replace);");
+            }
+
+            // Migration to version 10: best climb speed and rate for plan Best.
+            if (oldVersion <= 9 && newVersion > 9) {
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN bestClimbSpeed TEXT DEFAULT '';");
+              await db.execute(
+                  "ALTER TABLE aircraft ADD COLUMN bestClimbRate TEXT DEFAULT '';");
             }
           },
 
@@ -239,6 +247,8 @@ class UserDatabaseHelper {
                 "picInfo      text, "
                 "sinkRate     text, "
                 "bestGlide    text, "
+                "bestClimbSpeed text, "
+                "bestClimbRate text, "
                 "fuelBurn     text, "
                 "base         text, "
                 "other        text, "

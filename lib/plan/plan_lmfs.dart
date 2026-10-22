@@ -114,27 +114,104 @@ class LmfsPlanListPlan {
   LmfsPlanListPlan(this.id, this.currentState, this.versionStamp, this.aircraftId, this.destination, this.departure);
 }
 
+String _messageText(dynamic val) {
+  if (val is List) {
+    return val.map((e) => e.toString().trim()).where((s) => s.isNotEmpty).join(" ");
+  }
+  if (val == null) {
+    return "";
+  }
+  final String text = val.toString().trim();
+  if (text == "null" || text == "[]") {
+    return "";
+  }
+  return text;
+}
+
+/// LMFS puts the pilot-facing text in returnMessage, and sometimes only in returnCodedMessage.
+String _lmfsFailureMessage(Map<dynamic, dynamic> json) {
+  if (json['returnStatus'] != false) {
+    return "";
+  }
+  final String direct = _messageText(json['returnMessage']);
+  if (direct.isNotEmpty) {
+    return direct;
+  }
+  final dynamic coded = json['returnCodedMessage'];
+  if (coded is List) {
+    final List<String> parts = [];
+    for (final dynamic item in coded) {
+      if (item is Map && item['message'] != null) {
+        final String text = item['message'].toString().trim();
+        if (text.isNotEmpty) {
+          parts.add(text);
+        }
+      }
+    }
+    if (parts.isNotEmpty) {
+      return parts.join(" ");
+    }
+  }
+  return "Failed";
+}
+
+String _locationId(Map<dynamic, dynamic> plan, String end) {
+  final dynamic icao = plan['icaoSummaryFields'];
+  final dynamic nas = plan['nasSummaryFields'];
+  final dynamic fields = icao is Map ? icao : (nas is Map ? nas : null);
+  if (fields == null) {
+    return "";
+  }
+  final dynamic point = fields[end];
+  if (point is Map && point['locationIdentifier'] != null) {
+    return point['locationIdentifier'].toString();
+  }
+  return "";
+}
+
 class LmfsPlanList {
   final List<LmfsPlanListPlan> _plans = [];
+  String error = "";
+
+  LmfsPlanList.message(this.error);
 
   LmfsPlanList(String data) {
+    final String trimmed = data.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    final dynamic decoded;
     try {
-      var json = jsonDecode(data);
-      var array = json['flightPlanSummary'] as List;
-      for (var plan in array) {
-        var obj = plan as Map<String, dynamic>;
-        var pl = LmfsPlanListPlan(
-            obj['flightId'],
-            obj['currentState'],
-            obj['versionStamp'],
-            obj['aircraftIdentifier'],
-            obj['icaoSummaryFields']['destination']['locationIdentifier'],
-            obj['icaoSummaryFields']['departure']['locationIdentifier']);
-        _plans.add(pl);
-      }
+      decoded = jsonDecode(trimmed);
     } catch (e) {
-      AppLog.logMessage("LMFS parse error: $e");
-      // Handle exception
+      // Leidos rejects a bad username with plain text, not the usual JSON envelope.
+      error = trimmed;
+      return;
+    }
+    if (decoded is! Map) {
+      error = trimmed;
+      return;
+    }
+    error = _lmfsFailureMessage(decoded);
+    final dynamic array = decoded['flightPlanSummary'];
+    if (array is! List) {
+      return;
+    }
+    for (final dynamic plan in array) {
+      if (plan is! Map) {
+        continue;
+      }
+      try {
+        _plans.add(LmfsPlanListPlan(
+            plan['flightId']?.toString() ?? "",
+            plan['currentState']?.toString() ?? "",
+            plan['versionStamp']?.toString() ?? "",
+            plan['aircraftIdentifier']?.toString() ?? "",
+            _locationId(plan, 'destination'),
+            _locationId(plan, 'departure')));
+      } catch (e) {
+        AppLog.logMessage("LMFS parse error: $e");
+      }
     }
   }
 
@@ -144,6 +221,8 @@ class LmfsPlanList {
 }
 
 class LmfsInterface {
+  static const String missingAccountMessage =
+      "Set 1800wxbrief.com account in the app introduction screen.";
   static const String _avareLmfsUrl = "https://www.apps4av.org/site/lmfs.php";
   static const String _avareRegisterUrl = "https://www.apps4av.org/site/register.php";
   static const String _avareUnregisterUrl = "https://www.apps4av.org/site/unregister.php";
@@ -155,17 +234,19 @@ class LmfsInterface {
   }
 
   String _parseError(String ret) {
-    try {
-      Map<String, dynamic> json = jsonDecode(ret);
-      bool status = json['returnStatus'];
-      if (!status) {
-        dynamic val = json['returnMessage'];
-        return val.toString();
-      }
-    } catch (e) {
+    final String trimmed = ret.trim();
+    if (trimmed.isEmpty) {
       return "Failed";
     }
-    return "";
+    try {
+      final dynamic decoded = jsonDecode(trimmed);
+      if (decoded is! Map) {
+        return trimmed;
+      }
+      return _lmfsFailureMessage(decoded);
+    } catch (e) {
+      return trimmed;
+    }
   }
 
   Future<String> _post(String url) async {
@@ -182,15 +263,23 @@ class LmfsInterface {
   }
 
   Future<LmfsPlanList> getFlightPlans() async {
-    String webUserName = Storage().settings.getEmail();
+    String webUserName = Storage().settings.getEmail().trim();
+    if (webUserName.isEmpty) {
+      error = missingAccountMessage;
+      return LmfsPlanList.message(error);
+    }
     String avareMethod = "FP/$webUserName/retrieveFlightPlanSummaries";
     String httpMethod = "GET";
     _params['webUserName'] = webUserName;
     _params['avareMethod'] = avareMethod;
     _params['httpMethod'] = httpMethod;
     String ret = await _post(_avareLmfsUrl);
+    final LmfsPlanList list = LmfsPlanList(ret);
     error = _parseError(ret);
-    return LmfsPlanList(ret);
+    if (list.error.isEmpty && error.isNotEmpty) {
+      list.error = error;
+    }
+    return list;
   }
 
   Future<String> closeFlightPlan(String id) async {
@@ -274,7 +363,18 @@ class LmfsInterface {
     return ret;
   }
 
+  bool _hasAccount() {
+    if (Storage().settings.getEmail().trim().isEmpty) {
+      error = missingAccountMessage;
+      return false;
+    }
+    return true;
+  }
+
   Future<String> fileFlightPlan(PlanLmfs plan) async {
+    if (!_hasAccount()) {
+      return "";
+    }
     String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/file";
     String httpMethod = "POST";
@@ -288,6 +388,9 @@ class LmfsInterface {
   }
 
   Future<void> getBriefing(PlanLmfs pl) async {
+    if (!_hasAccount()) {
+      return;
+    }
     String webUserName = Storage().settings.getEmail();
     String avareMethod = "FP/routeBriefing";
     String httpMethod = "POST";

@@ -1,3 +1,8 @@
-Share the active plan from Menu `Link`. One device is Master. Slave devices copy that plan and the active waypoint.
+Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 Sync plates to the active airport waypoint.
+PLAN altitude is per leg. Calc counts climb and names the aircraft.
+PLAN reads cruise speed and fuel flow from the aircraft.
+An approach profile sets fix altitudes. Nav log and 3D follow.
+PLAN + and delete sit by the nav log.
+Plan names stay on the row. End airports use field elevation in 3D too.
 Thank you for flying with AvareX. Send feedback at the Apps4Av forum.

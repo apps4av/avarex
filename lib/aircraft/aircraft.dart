@@ -87,6 +87,8 @@ class Aircraft {
   final String picInfo;
   final String sinkRate;
   final String bestGlide;
+  final String bestClimbSpeed;
+  final String bestClimbRate;
   final String fuelBurn;
   final String base;
   final String other;
@@ -115,6 +117,8 @@ class Aircraft {
     required this.picInfo,
     required this.sinkRate,
     this.bestGlide = '',
+    this.bestClimbSpeed = '',
+    this.bestClimbRate = '',
     required this.fuelBurn,
     required this.base,
     required this.other,
@@ -143,6 +147,8 @@ class Aircraft {
       picInfo: "",
       sinkRate: "",
       bestGlide: "",
+      bestClimbSpeed: "",
+      bestClimbRate: "",
       fuelBurn: "",
       base: "",
       other: "",
@@ -164,6 +170,8 @@ class Aircraft {
       picInfo: ((map['picInfo'] ?? '') as String).toUpperCase(),
       sinkRate: ((map['sinkRate'] ?? '') as String).toUpperCase(),
       bestGlide: ((map['bestGlide'] ?? '') as String).toUpperCase(),
+      bestClimbSpeed: ((map['bestClimbSpeed'] ?? '') as String).toUpperCase(),
+      bestClimbRate: ((map['bestClimbRate'] ?? '') as String).toUpperCase(),
       fuelBurn: ((map['fuelBurn'] ?? '') as String).toUpperCase(),
       base: ((map['base'] ?? '') as String).toUpperCase(),
       other: ((map['other'] ?? '') as String).toUpperCase(),
@@ -193,6 +201,8 @@ class Aircraft {
       'picInfo': picInfo.toUpperCase(),
       'sinkRate': sinkRate.toUpperCase(),
       'bestGlide': bestGlide.toUpperCase(),
+      'bestClimbSpeed': bestClimbSpeed.toUpperCase(),
+      'bestClimbRate': bestClimbRate.toUpperCase(),
       'fuelBurn': fuelBurn.toUpperCase(),
       'base': base.toUpperCase(),
       'other': other.toUpperCase(),
@@ -226,6 +236,8 @@ class Aircraft {
     String? picInfo,
     String? sinkRate,
     String? bestGlide,
+    String? bestClimbSpeed,
+    String? bestClimbRate,
     String? fuelBurn,
     String? base,
     String? other,
@@ -252,6 +264,8 @@ class Aircraft {
       picInfo: picInfo ?? this.picInfo,
       sinkRate: sinkRate ?? this.sinkRate,
       bestGlide: bestGlide ?? this.bestGlide,
+      bestClimbSpeed: bestClimbSpeed ?? this.bestClimbSpeed,
+      bestClimbRate: bestClimbRate ?? this.bestClimbRate,
       fuelBurn: fuelBurn ?? this.fuelBurn,
       base: base ?? this.base,
       other: other ?? this.other,
