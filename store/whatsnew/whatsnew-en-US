@@ -1,8 +1,6 @@
 Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 Sync plates to the active airport waypoint.
-PLAN altitude is per leg. Altitude icon counts climb and names the aircraft.
+PLAN altitude icon climbs and descends with the aircraft, holds an altitude for 50 miles, and keeps the plan chart and ground speed 1,000 ft above the terrain.
+Typing a PLAN altitude changes that leg only. Later legs keep their altitudes.
 PLAN reads cruise speed and fuel flow from the aircraft.
 An approach profile sets fix altitudes. Nav log and 3D follow.
-PLAN + and delete sit by the nav log.
-Plan names stay on the row. End airports use field elevation in 3D too.
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.

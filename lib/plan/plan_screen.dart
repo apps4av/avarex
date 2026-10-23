@@ -18,6 +18,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:universal_io/io.dart';
 import 'best_cruise_altitude.dart';
 import 'plan_create_widget.dart';
+import 'waypoint.dart';
 import 'plan_file_widget.dart';
 import 'plan_item_widget.dart';
 import 'plan_line_widget.dart';
@@ -231,37 +232,6 @@ class PlanScreenState extends State<PlanScreen> {
     return null;
   }
 
-  /// Highest terrain along the remaining route, plus 1,000 ft. Zero when elevation is unavailable.
-  Future<int> _terrainFloorFt(List<({LatLng from, LatLng to})> legs) async {
-    final List<LatLng> points = [];
-    final GeoCalculations geo = GeoCalculations();
-    for (final ({LatLng from, LatLng to}) leg in legs) {
-      final List<LatLng> segment = geo.findPoints(leg.from, leg.to, 10);
-      if (segment.isEmpty) {
-        points.add(leg.from);
-        points.add(leg.to);
-      } else {
-        points.addAll(segment);
-      }
-    }
-    if (points.isEmpty) {
-      return 0;
-    }
-    final List<double?> elevations = await AltitudeProfile.getAltitudeProfile(points);
-    double highest = -100000;
-    bool any = false;
-    for (final double? elevation in elevations) {
-      if (elevation != null && elevation > highest) {
-        highest = elevation;
-        any = true;
-      }
-    }
-    if (!any) {
-      return 0;
-    }
-    return (highest + 1000).ceil();
-  }
-
   Future<void> _applyBestCruiseAltitude() async {
     if (_findingBestAltitude) {
       return;
@@ -319,61 +289,85 @@ class PlanScreenState extends State<PlanScreen> {
         }
       } catch (_) {}
       if (!mounted) return;
-      int startAlt = legs.first.fromAltitudeFt;
-      int setCount = 0;
-      bool terrainBlocked = false;
-      int skippedArrival = 0;
-      for (final PlanLegTarget leg in legs) {
-        if (leg.fixIndex == null && Storage().route.isArrivalAirport(leg.waypoint)) {
-          skippedArrival++;
-          continue;
-        }
-        int floor = 0;
-        try {
-          floor = await _terrainFloorFt([(from: leg.from, to: leg.to)]);
-        } catch (_) {}
-        if (!mounted) {
-          break;
-        }
-        final BestCruiseAltitudeResult result = BestCruiseAltitude.search(
-          legs: [(from: leg.from, to: leg.to)],
-          altitudesFt: altitudes,
-          minAltitudeFt: floor,
-          fromAltitudeFt: startAlt,
-          climbTrueAirspeedKt: climbKt,
-          climbRateConstantFpm: climbFpm,
-          cruiseAt: (int altitude) => perf.getCruisePerformance(altitude, powerPct, 0),
-          windAt: (LatLng point, int altitude) =>
-              WindsCache.getWindsAt(point, altitude.toDouble(), fore),
-        );
-        terrainBlocked = terrainBlocked || result.terrainBlockedAll;
-        final CruiseAltitudeSample? best = result.best;
-        if (best == null) {
-          continue;
-        }
-        leg.waypoint.setLegCruise(
-          leg.fixIndex,
-          altitudeFt: best.altitudeFt,
-          ktas: best.ktas,
-          gph: best.gph,
-        );
-        startAlt = best.altitudeFt;
-        setCount++;
+      final List<Destination> planned = Storage().route.getAllDestinations();
+      if (planned.length < 2) {
+        return;
       }
-      final bool endpoints = Storage().route.applyEndpointFieldElevations();
-      if (setCount > 0 || endpoints) {
-        Storage().route.update();
-      }
+      final RouteTrack track = BestCruiseAltitude.buildTrack([
+        for (int index = 0; index < planned.length - 1; index++)
+          (from: planned[index].coordinate, to: planned[index + 1].coordinate),
+      ], spacingNm: BestCruiseAltitude.terrainSpacingNm);
+      List<double?> terrain = [];
+      try {
+        terrain = await AltitudeProfile.getAltitudeProfile(
+          track.points.map((({double nm, LatLng at}) point) => point.at).toList(),
+        );
+      } catch (_) {}
       if (!mounted) return;
-      if (setCount == 0) {
-        if (skippedArrival == legs.length) {
-          return;
-        }
+      final int startAlt = legs.first.fromAltitudeFt;
+      final bool arrive = Storage().route.isArrivalAirport(legs.last.waypoint);
+      final int? field = arrive
+          ? Waypoint.airportFieldElevationFt(
+              legs.last.waypoint.planDestination.type,
+              legs.last.waypoint.planDestination.elevation,
+            )
+          : null;
+      final int endAlt = field ?? legs.last.waypoint.effectiveAltitude(Storage().route.altitude);
+      final int topAltitude = altitudes.reduce((int a, int b) => a > b ? a : b);
+      final RouteCruiseResult result = BestCruiseAltitude.choose(
+        track: track,
+        terrainFt: terrain,
+        altitudesFt: altitudes,
+        startAltitudeFt: startAlt,
+        endAltitudeFt: endAlt,
+        arriveAtEnd: arrive,
+        climbTrueAirspeedKt: climbKt,
+        climbRateConstantFpm: climbFpm,
+        topAltitudeFt: topAltitude,
+        cruiseAt: (int altitude) => perf.getCruisePerformance(altitude, powerPct, 0),
+        windAt: (LatLng point, int altitude) =>
+            WindsCache.getWindsAt(point, altitude.toDouble(), fore),
+      );
+      final CruiseProfile? profile = result.profile;
+      if (profile == null) {
+        if (!mounted) return;
         Toast.showToast(
           context,
-          terrainBlocked
+          result.terrainShort
               ? 'No cruise altitude clears terrain by 1,000 ft'
               : 'Wind is too strong for cruise speed on these legs',
+          const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+          5,
+        );
+        return;
+      }
+      if (legs.length == track.legEndNm.length) {
+        for (int index = 0; index < legs.length; index++) {
+          final PlanLegTarget leg = legs[index];
+          final double startNm = index == 0 ? 0 : track.legEndNm[index - 1];
+          final CruiseStep step = profile.stepAt(track.legEndNm[index]);
+          if (leg.fixIndex == null) {
+            leg.waypoint.navAltitudeFt = profile.stepAt((startNm + track.legEndNm[index]) / 2).altitudeFt;
+          }
+          if (leg.fixIndex == null && Storage().route.isArrivalAirport(leg.waypoint)) {
+            continue;
+          }
+          leg.waypoint.setLegCruise(
+            leg.fixIndex,
+            altitudeFt: step.altitudeFt,
+            ktas: step.ktas,
+            gph: step.gph,
+          );
+        }
+      }
+      Storage().route.applyEndpointFieldElevations();
+      Storage().route.cruiseProfile = profile;
+      Storage().route.update();
+      if (!mounted) return;
+      if (result.terrainShort) {
+        Toast.showToast(
+          context,
+          'No cruise altitude clears terrain by 1,000 ft',
           const Icon(Icons.warning_amber_rounded, color: Colors.orange),
           5,
         );
@@ -475,7 +469,7 @@ class PlanScreenState extends State<PlanScreen> {
 
   Widget _calcButton() {
     return IconButton(
-      tooltip: "Set each leg's altitude for the shortest time, including the climb",
+      tooltip: "Set altitudes for the shortest time. Climb and descent use best climb speed and rate, and a new altitude waits 50 miles",
       onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
       icon: _findingBestAltitude
           ? const SizedBox(

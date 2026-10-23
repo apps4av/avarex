@@ -10,6 +10,10 @@ class Waypoint {
   /// Cruise altitude for the leg to this waypoint. Null uses the plan altitude.
   int? altitudeFt;
 
+  /// Altitude the navigation log uses for this leg. Null uses [altitudeFt].
+  /// The arrival airport's row stays at field elevation while this keeps the cruise altitude.
+  int? navAltitudeFt;
+
   /// Cruise true airspeed and fuel flow chosen for this leg. Null uses the plan ASpd and GPH.
   double? cruiseKtas;
   double? cruiseGph;
@@ -60,6 +64,7 @@ class Waypoint {
   void clearLegCruise(int? fixIndex) {
     if (fixIndex == null) {
       altitudeFt = null;
+      navAltitudeFt = null;
       cruiseKtas = null;
       cruiseGph = null;
     } else {
@@ -85,6 +90,7 @@ class Waypoint {
     Waypoint.writeAltitudeFields(
       map,
       altitudeFt: altitudeFt,
+      navAltitudeFt: navAltitudeFt,
       fixAltitudeFt: fixAltitudeFt,
       ktas: cruiseKtas,
       gph: cruiseGph,
@@ -96,6 +102,7 @@ class Waypoint {
   void readAltitudes(Map<String, dynamic> map) {
     final ({
       int? altitudeFt,
+      int? navAltitudeFt,
       Map<int, int> fixAltitudeFt,
       double? ktas,
       double? gph,
@@ -103,6 +110,7 @@ class Waypoint {
       Map<int, double> fixGph,
     }) saved = Waypoint.readAltitudeFields(map);
     altitudeFt = saved.altitudeFt;
+    navAltitudeFt = saved.navAltitudeFt;
     cruiseKtas = saved.ktas;
     cruiseGph = saved.gph;
     fixAltitudeFt
@@ -119,6 +127,7 @@ class Waypoint {
   static void writeAltitudeFields(
     Map<String, Object?> map, {
     int? altitudeFt,
+    int? navAltitudeFt,
     Map<int, int> fixAltitudeFt = const {},
     double? ktas,
     double? gph,
@@ -127,6 +136,9 @@ class Waypoint {
   }) {
     if (altitudeFt != null) {
       map['Alt'] = altitudeFt;
+    }
+    if (navAltitudeFt != null && navAltitudeFt != altitudeFt) {
+      map['NavAlt'] = navAltitudeFt;
     }
     if (ktas != null) {
       map['Tas'] = ktas;
@@ -150,6 +162,7 @@ class Waypoint {
 
   static ({
     int? altitudeFt,
+    int? navAltitudeFt,
     Map<int, int> fixAltitudeFt,
     double? ktas,
     double? gph,
@@ -161,6 +174,11 @@ class Waypoint {
     if (alt is num && alt >= -2000 && alt <= 60000) {
       altitudeFt = alt.toInt();
     }
+    int? navAltitudeFt;
+    final Object? nav = map['NavAlt'];
+    if (nav is num && nav >= -2000 && nav <= 60000) {
+      navAltitudeFt = nav.toInt();
+    }
     final Map<int, int> fixAltitudeFt = {};
     _readFixNumbers(map['FixAlts'], (int index, double value) {
       if (value >= 0 && value <= 60000) {
@@ -169,6 +187,7 @@ class Waypoint {
     });
     return (
       altitudeFt: altitudeFt,
+      navAltitudeFt: navAltitudeFt,
       fixAltitudeFt: fixAltitudeFt,
       ktas: _positive(map['Tas']),
       gph: _positive(map['Gph']),

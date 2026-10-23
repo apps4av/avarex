@@ -269,4 +269,217 @@ void main() {
     );
     expect(result.best!.altitudeFt, 8000);
   });
+
+  RouteTrack northbound(double miles) {
+    return BestCruiseAltitude.buildTrack([
+      (from: const LatLng(0, 0), to: LatLng(miles / 60.0, 0)),
+    ]);
+  }
+
+  List<double?> flat(RouteTrack track, {double atNm = -1, double elevation = 0}) {
+    return [
+      for (final ({double nm, LatLng at}) point in track.points)
+        (atNm >= 0 && (point.nm - atNm).abs() <= 5) ? elevation : 0.0,
+    ];
+  }
+
+  test("altitude changes wait 50 miles and follow the wind", () {
+    final RouteTrack track = northbound(100);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      // Northbound. Before 50 nm, 4,000 ft has the tailwind. After that, 8,000 ft does.
+      windAt: (LatLng point, int altitude) {
+        final double miles = point.latitude * 60;
+        if (miles < 50) {
+          return altitude <= 4000 ? (180.0, 40.0) : (0.0, 40.0);
+        }
+        return altitude >= 8000 ? (180.0, 40.0) : (0.0, 40.0);
+      },
+    );
+    final List<CruiseStep> steps = result.profile!.steps;
+    expect(steps.first.altitudeFt, 4000);
+    expect(steps[1].altitudeFt, 8000);
+    expect(steps[1].startNm, greaterThanOrEqualTo(50));
+    for (int index = 1; index < steps.length; index++) {
+      expect(steps[index].startNm - steps[index - 1].startNm, greaterThanOrEqualTo(50));
+    }
+  });
+
+  test("the first 50 miles clears terrain that far ahead", () {
+    final RouteTrack track = northbound(100);
+    final RouteCruiseResult blocked = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track, atNm: 30, elevation: 5000),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      windAt: (LatLng point, int altitude) =>
+          altitude <= 4000 ? (180.0, 40.0) : (0.0, 40.0),
+    );
+    expect(blocked.profile!.steps.first.altitudeFt, 8000);
+
+    final RouteCruiseResult later = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track, atNm: 70, elevation: 5000),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      windAt: (LatLng point, int altitude) =>
+          altitude <= 4000 ? (180.0, 40.0) : (0.0, 40.0),
+    );
+    expect(later.profile!.steps.first.altitudeFt, 4000);
+    expect(later.profile!.stepAt(70).altitudeFt, 8000);
+  });
+
+  test("a route shorter than 50 miles is one altitude", () {
+    final RouteTrack track = northbound(30);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      windAt: (LatLng point, int altitude) {
+        final double miles = point.latitude * 60;
+        if (miles < 10) {
+          return altitude <= 4000 ? (180.0, 50.0) : (0.0, 40.0);
+        }
+        return altitude >= 8000 ? (180.0, 50.0) : (0.0, 40.0);
+      },
+    );
+    expect(result.profile!.steps.length, 1);
+  });
+
+  test("the arrival descent uses climb speed for time and fuel", () {
+    final RouteTrack track = northbound(100);
+    ProfileFlight fly(double climbTas) {
+      return CruiseProfile(
+        steps: [
+          CruiseStep(startNm: 0, altitudeFt: 8000, ktas: 120, gph: 8),
+        ],
+        climbTasKt: climbTas,
+        climbRateFpm: 1000,
+        topAltitudeFt: 12000,
+        startAltitudeFt: 0,
+        endAltitudeFt: 0,
+        arriveAtEnd: true,
+        totalNm: track.totalNm,
+      ).fly(track, (LatLng point, int altitude) => (0.0, 0.0));
+    }
+
+    final ProfileFlight slow = fly(60);
+    final ProfileFlight fast = fly(120);
+    expect(slow.timeAt(track.totalNm), greaterThan(fast.timeAt(track.totalNm)));
+    expect(slow.fuelAt(track.totalNm), greaterThan(fast.fuelAt(track.totalNm)));
+    expect(slow.altitudeAt(track.totalNm), lessThan(500));
+    expect(slow.altitudeAt(40), greaterThan(7000));
+    expect(slow.timeAt(track.totalNm), greaterThan(track.totalNm / 120 * 3600));
+  });
+
+  test("ground speed stays 1000 feet above the terrain", () {
+    final RouteTrack track = northbound(100);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track, atNm: 90, elevation: 6000),
+      altitudesFt: [4000, 8000, 12000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: true,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) => (0.0, 0.0),
+    );
+    final List<int> winds = [];
+    final ProfileFlight flight = result.profile!.fly(track, (LatLng point, int altitude) {
+      final double miles = point.latitude * 60;
+      if ((miles - 90).abs() <= 2) {
+        winds.add(altitude);
+      }
+      return (0.0, 0.0);
+    });
+    expect(flight.altitudeAt(90), greaterThanOrEqualTo(7000));
+    expect(winds, isNotEmpty);
+    expect(winds.every((int altitude) => altitude >= 7000), isTrue);
+    expect(flight.altitudeAt(track.totalNm), lessThan(500));
+  });
+
+  test("a peak between five-mile samples still raises the altitude", () {
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: const LatLng(0, 0), to: const LatLng(100 / 60.0, 0)),
+    ], spacingNm: BestCruiseAltitude.terrainSpacingNm);
+    final List<double?> terrain = [
+      for (final ({double nm, LatLng at}) point in track.points)
+        (point.nm - 12).abs() < 0.6 ? 8000.0 : 0.0,
+    ];
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: terrain,
+      altitudesFt: [4000, 8000, 12000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) => (0.0, 0.0),
+    );
+    expect(result.profile!.steps.first.altitudeFt, greaterThanOrEqualTo(9000));
+    final ProfileFlight flight = result.profile!.fly(
+      track,
+      (LatLng point, int altitude) => (0.0, 0.0),
+    );
+    expect(flight.altitudeAt(12), greaterThanOrEqualTo(9000));
+  });
+
+  test("a typed altitude replaces one leg and leaves the legs after it", () {
+    final CruiseProfile profile = CruiseProfile(
+      steps: const [
+        CruiseStep(startNm: 0, altitudeFt: 6000, ktas: 110, gph: 8),
+        CruiseStep(startNm: 50, altitudeFt: 8000, ktas: 115, gph: 8),
+        CruiseStep(startNm: 100, altitudeFt: 10000, ktas: 120, gph: 9),
+      ],
+      climbTasKt: 80,
+      climbRateFpm: 1000,
+      topAltitudeFt: 12000,
+      startAltitudeFt: 6000,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      totalNm: 180,
+    );
+    final CruiseProfile edited = profile.replaceSpan(
+      fromNm: 20,
+      toNm: 40,
+      altitudeFt: 4500,
+      ktas: 100,
+      gph: 7,
+    );
+    expect(edited.stepAt(10).altitudeFt, 6000);
+    expect(edited.stepAt(30).altitudeFt, 4500);
+    expect(edited.stepAt(30).ktas, 100);
+    expect(edited.stepAt(45).altitudeFt, 6000);
+    expect(edited.stepAt(45).ktas, 110);
+    expect(edited.stepAt(70).altitudeFt, 8000);
+    expect(edited.stepAt(140).altitudeFt, 10000);
+  });
 }

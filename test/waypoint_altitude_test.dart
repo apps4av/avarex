@@ -30,9 +30,30 @@ void main() {
     expect(saved.altitudeFt, -11);
   });
 
+  test("navigation altitude stays when the row shows field elevation", () {
+    final Map<String, Object?> map = {"LocationID": "KSBA"};
+    Waypoint.writeAltitudeFields(map, altitudeFt: 13, navAltitudeFt: 8000);
+    expect(map['NavAlt'], 8000);
+
+    final saved = Waypoint.readAltitudeFields(Map<String, dynamic>.from(map));
+    expect(saved.altitudeFt, 13);
+    expect(saved.navAltitudeFt, 8000);
+  });
+
+  test("a navigation altitude matching the row is the row altitude", () {
+    final Map<String, Object?> map = {"LocationID": "KHPN"};
+    Waypoint.writeAltitudeFields(map, altitudeFt: 8000, navAltitudeFt: 8000);
+    expect(map.containsKey('NavAlt'), isFalse);
+
+    final saved = Waypoint.readAltitudeFields(Map<String, dynamic>.from(map));
+    expect(saved.altitudeFt, 8000);
+    expect(saved.navAltitudeFt, isNull);
+  });
+
   test("missing altitude fields stay on the plan altitude", () {
     final saved = Waypoint.readAltitudeFields({"LocationID": "KBOS"});
     expect(saved.altitudeFt, isNull);
+    expect(saved.navAltitudeFt, isNull);
     expect(saved.fixAltitudeFt, isEmpty);
     expect(saved.ktas, isNull);
     expect(saved.gph, isNull);

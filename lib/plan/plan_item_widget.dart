@@ -110,12 +110,10 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
       destination: destination,
       altitude: widget.waypoint.effectiveAltitude(planAltitude, fixIndex),
       onAltitudeChanged: (int value) {
-        widget.waypoint.setAltitudeOnly(fixIndex, value);
-        Storage().route.update();
+        Storage().route.setLegAltitude(widget.waypoint, fixIndex, value);
       },
       onAltitudeCleared: () {
-        widget.waypoint.clearLegCruise(fixIndex);
-        Storage().route.update();
+        Storage().route.clearLegAltitude(widget.waypoint, fixIndex);
       },
     );
   }
