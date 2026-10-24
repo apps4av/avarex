@@ -38,7 +38,10 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
   @override
   void didUpdateWidget(PlanLineWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!_altitudeFocus.hasFocus && widget.altitude != oldWidget.altitude) {
+    final bool differentPlace =
+        widget.destination.locationID != oldWidget.destination.locationID;
+    if (!_altitudeFocus.hasFocus &&
+        (widget.altitude != oldWidget.altitude || differentPlace)) {
       _altitudeController.text = widget.altitude.toString();
     }
   }

@@ -258,6 +258,9 @@ class PlanScreenState extends State<PlanScreen> {
         );
         return;
       }
+      // An airport moved to either end keeps field elevation, including a cruise
+      // altitude it had when it sat farther down the route.
+      Storage().route.applyEndpointFieldElevations();
       final List<PlanLegTarget> legs = Storage().route.cruiseLegs();
       if (legs.isEmpty) {
         if (!mounted) return;

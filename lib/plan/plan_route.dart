@@ -578,8 +578,17 @@ class PlanRoute {
 
   /// Altitude in the plan Alt field. With a profile, a short leg stays on the
   /// climb. Once the cruise altitude has been reached, Alt stays there while
-  /// the path descends to the runway. Field elevation stays stored.
+  /// the path descends to the runway. The departure airport stays at field elevation.
   int rowAltitude(Waypoint waypoint, [int? fixIndex]) {
+    if (fixIndex == null && _waypoints.isNotEmpty && identical(waypoint, _waypoints.first)) {
+      final int? field = Waypoint.airportFieldElevationFt(
+        waypoint.planDestination.type,
+        waypoint.planDestination.elevation,
+      );
+      if (field != null) {
+        return field;
+      }
+    }
     final ProfileFlight? flight = _flight;
     if (fixIndex == null && isArrivalAirport(waypoint)) {
       if (flight != null && flight.fixNm.length >= 2) {
@@ -629,10 +638,16 @@ class PlanRoute {
     if (feet == null) {
       return false;
     }
-    if (waypoint.altitudeFt == feet && waypoint.cruiseKtas == null && waypoint.cruiseGph == null) {
+    if (waypoint.altitudeFt == feet &&
+        waypoint.navAltitudeFt == null &&
+        waypoint.cruiseKtas == null &&
+        waypoint.cruiseGph == null) {
       return false;
     }
     waypoint.setAltitudeOnly(null, feet);
+    // A cruise altitude from when this airport was farther down the route
+    // must not stay on the departure or arrival.
+    waypoint.navAltitudeFt = null;
     return true;
   }
 
@@ -746,7 +761,16 @@ class PlanRoute {
     for (int index = 0; index < split.all.length - 1; index++) {
       final Destination to = split.all[index + 1];
       final LatLng from = split.active == to ? gps : split.all[index].coordinate;
-      final int fromAltitudeFt = _legNumbers(split.all[index]).altitude.round();
+      int fromAltitudeFt = _legNumbers(split.all[index]).altitude.round();
+      if (index == 0) {
+        final int? field = Waypoint.airportFieldElevationFt(
+          split.all[index].type,
+          split.all[index].elevation,
+        );
+        if (field != null) {
+          fromAltitudeFt = field;
+        }
+      }
       final PlanLegTarget? target = _targetFor(to, from, fromAltitudeFt);
       if (target != null) {
         legs.add(target);
