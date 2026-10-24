@@ -133,7 +133,7 @@ class PlanScreenState extends State<PlanScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                IconButton(
+                _planToolButton(
                   icon: const Icon(Icons.add),
                   tooltip: "Insert waypoint",
                   onPressed: () {
@@ -141,19 +141,27 @@ class PlanScreenState extends State<PlanScreen> {
                     MainScreenState.gotoFind();
                   },
                 ),
-                DropdownButtonHideUnderline(
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
-                    isDense: true,
                     buttonStyleData: ButtonStyleData(
+                      height: _planToolExtent,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(_planToolExtent / 2),
                         border: Border.all(color: Theme.of(context).colorScheme.outline),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    iconStyleData: IconStyleData(
+                      iconSize: 20,
+                      iconEnabledColor: Theme.of(context).colorScheme.onSurface,
                     ),
                     dropdownStyleData: DropdownStyleData(
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
                     ),
+                    menuItemStyleData: const MenuItemStyleData(height: 44),
+                    style: Theme.of(context).textTheme.bodyLarge,
                     isExpanded: false,
                     value: "${Storage().route.fore.toString().padLeft(2, "0")}H",
                     items: ["06H", "12H", "24H"].map((String item) {
@@ -170,9 +178,9 @@ class PlanScreenState extends State<PlanScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 4),
+                ),
                 _calcButton(),
-                IconButton(
+                _planToolButton(
                   icon: const Icon(Icons.analytics_outlined),
                   tooltip: "Navigation log and terrain",
                   onPressed: () => showDialog(
@@ -181,7 +189,7 @@ class PlanScreenState extends State<PlanScreen> {
                   ),
                 ),
                 if (route.length > 0)
-                  IconButton(
+                  _planToolButton(
                     icon: const Icon(Icons.delete_outline),
                     tooltip: "Delete entire plan",
                     onPressed: _confirmDeleteEntirePlan,
@@ -484,17 +492,54 @@ class PlanScreenState extends State<PlanScreen> {
     });
   }
 
+  static const double _planToolExtent = 40;
+
+  ButtonStyle get _planToolStyle {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return IconButton.styleFrom(
+      iconSize: 22,
+      minimumSize: const Size(_planToolExtent, _planToolExtent),
+      fixedSize: const Size(_planToolExtent, _planToolExtent),
+      padding: EdgeInsets.zero,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      foregroundColor: scheme.onSurface,
+      disabledForegroundColor: scheme.onSurface.withAlpha(120),
+      side: BorderSide(color: scheme.outline),
+      shape: const CircleBorder(),
+    );
+  }
+
+  Widget _planToolButton({
+    required Widget icon,
+    required String tooltip,
+    required VoidCallback? onPressed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: IconButton(
+        style: _planToolStyle,
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: icon,
+      ),
+    );
+  }
+
   Widget _calcButton() {
-    return IconButton(
-      tooltip: "Set altitudes for the shortest time. Climb and descent use best climb speed and rate. A climb starts when a higher altitude is faster for the rest of the route, then waits 50 miles. A descent waits 20 miles",
-      onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
-      icon: _findingBestAltitude
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.height),
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: IconButton(
+        style: _planToolStyle,
+        tooltip: "Calculate altitudes",
+        onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
+        icon: _findingBestAltitude
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.height),
+      ),
     );
   }
 
@@ -1226,7 +1271,7 @@ class _WindFieldDiagramPainter extends CustomPainter {
       );
     }
 
-    // Draw the plan altitude. Each leg keeps its own altitude, then steps at the next waypoint.
+    // Draw the altitude flown. A short leg rises only as far as the climb has reached.
     final Paint planLinePaint = Paint()
       ..color = Colors.cyan
       ..style = PaintingStyle.stroke

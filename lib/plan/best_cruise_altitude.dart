@@ -1303,8 +1303,10 @@ _LegFly? _integrate({
       target = floor.ceil();
     }
     // Wind, time, and fuel use an altitude at least 1,000 ft above the terrain here.
+    // The airplane still climbs toward that altitude at its climb rate. Jumping
+    // to the clearance in one mile is steeper than the aircraft can fly.
     final double calcAlt = safeAlt;
-    final bool changing = rate > 0 && (target - calcAlt).abs() > 1;
+    final bool changing = rate > 0 && (target - altitude).abs() > 1;
     final double tas = changing ? verticalTas : (cruiseTas > 0 ? cruiseTas : verticalTas);
     double windFeet = changing ? calcAlt : target.toDouble();
     if (floor != null && windFeet < floor) {
@@ -1333,9 +1335,6 @@ _LegFly? _integrate({
       } else {
         altitude = math.max(target.toDouble(), altitude - delta);
       }
-    }
-    if (floor != null && altitude < floor) {
-      altitude = floor;
     }
     time += hours * 3600.0;
     fuel += (burn > 0 ? burn : 0) * hours;

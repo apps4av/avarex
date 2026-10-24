@@ -366,6 +366,42 @@ void main() {
     expect(flight.altitudeAt(track.totalNm), greaterThan(7000));
   });
 
+  test("a one mile leg climbs at the aircraft rate", () {
+    const LatLng kbos = LatLng(42.3629444444444, -71.0063888888889);
+    const LatLng bos = LatLng(42.35745, -70.9895483333333);
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: kbos, to: bos),
+      (from: bos, to: const LatLng(40.0, -74.0)),
+    ], spacingNm: 1);
+    expect(track.legEndNm.first, lessThan(1.2));
+    final List<double?> terrain = [
+      for (final ({double nm, LatLng at}) point in track.points) 38.0,
+    ];
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: terrain,
+      altitudesFt: [9000],
+      startAltitudeFt: 19,
+      endAltitudeFt: 19,
+      arriveAtEnd: true,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 600,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) => (0.0, 0.0),
+    );
+    final ProfileFlight flight = result.profile!.fly(
+      track,
+      (LatLng point, int altitude) => (0.0, 0.0),
+    );
+    expect(result.profile!.steps.first.altitudeFt, 9000);
+    // 600 ft/min at 80 kt is 450 ft per mile. The clearance floor is about
+    // 1,038 ft, and the leg is shorter than a mile.
+    final double atBos = flight.altitudeAt(track.legEndNm.first);
+    expect(atBos, greaterThan(300));
+    expect(atBos, lessThan(550));
+    expect(flight.altitudeAt(40), greaterThan(8000));
+  });
+
   test("a descent can begin 20 miles after the last altitude", () {
     final RouteTrack track = northbound(180);
     final RouteCruiseResult result = BestCruiseAltitude.choose(

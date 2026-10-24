@@ -166,8 +166,13 @@ class PlanRoute {
     return points;
   }
 
-  /// Altitude stored for [destination]: the leg that arrives there, or field elevation at an airport endpoint.
+  /// Altitude stored for [destination]: the altitude reached there when a profile
+  /// is flying, otherwise the leg that arrives there, or field elevation at an airport endpoint.
   double _storedAltitude(Destination destination) {
+    final double? reached = _reachedAltitude(destination);
+    if (reached != null) {
+      return reached;
+    }
     for (final Waypoint waypoint in _waypoints) {
       if (waypoint.destinationsOnRoute.isNotEmpty) {
         final int index = waypoint.destinationsOnRoute.indexOf(destination);
@@ -179,6 +184,42 @@ class PlanRoute {
       }
     }
     return destination.calculations?.altitude ?? _altitude.toDouble();
+  }
+
+  int _fixIndex(Destination destination) {
+    final int exact = _allDestinations.indexOf(destination);
+    if (exact >= 0) {
+      return exact;
+    }
+    return _allDestinations.indexWhere(
+      (Destination other) => other.coordinate == destination.coordinate,
+    );
+  }
+
+  /// Altitude the airplane has reached at [destination] along the flown profile.
+  double? _reachedAltitude(Destination destination) {
+    final ProfileFlight? flight = _flight;
+    if (flight == null) {
+      return null;
+    }
+    final int index = _fixIndex(destination);
+    if (index < 0 || index >= flight.fixNm.length) {
+      return null;
+    }
+    return flight.altitudeAt(flight.fixNm[index]);
+  }
+
+  Destination? _altitudeDestination(Waypoint waypoint, int? fixIndex) {
+    if (fixIndex != null) {
+      if (fixIndex < 0 || fixIndex >= waypoint.destinationsOnRoute.length) {
+        return null;
+      }
+      return waypoint.destinationsOnRoute[fixIndex];
+    }
+    if (waypoint.destinationsOnRoute.isNotEmpty) {
+      return null;
+    }
+    return waypoint.planDestination;
   }
 
   /// One altitude per point [_makePathPoints] would emit.
@@ -197,10 +238,15 @@ class PlanRoute {
       }
     }
     final GeoCalculations calc = GeoCalculations();
+    // A flown profile rises only as far as the climb has reached. Painting the
+    // cruise target across a one-mile leg draws a climb the airplane cannot fly.
+    final bool climbed = _flight != null;
     for (int index = 0; index < path.length - 1; index++) {
       final double storedTo = _storedAltitude(path[index + 1]);
-      final double toAltitude = slope ? storedTo : (path[index + 1].calculations?.altitude ?? storedTo);
-      final double fromAltitude = slope ? _storedAltitude(path[index]) : toAltitude;
+      final double toAltitude = (slope || climbed)
+          ? storedTo
+          : (path[index + 1].calculations?.altitude ?? storedTo);
+      final double fromAltitude = (slope || climbed) ? _storedAltitude(path[index]) : toAltitude;
       List<LatLng> routeIntermediate = fine
           ? calc.findPoints(path[index].coordinate, path[index + 1].coordinate, 1)
           : calc.findPoints(path[index].coordinate, path[index + 1].coordinate);
@@ -209,7 +255,7 @@ class PlanRoute {
         routeIntermediate = routeIntermediate.sublist(1);
       }
       for (int point = 0; point < routeIntermediate.length; point++) {
-        if (!slope || fullCount <= 1) {
+        if ((!slope && !climbed) || fullCount <= 1) {
           altitudes.add(toAltitude);
           continue;
         }
@@ -245,7 +291,7 @@ class PlanRoute {
     if (flight == null || path.length < 2) {
       return [];
     }
-    final int startIndex = _allDestinations.indexOf(path[0]);
+    final int startIndex = _fixIndex(path[0]);
     if (startIndex < 0 || startIndex >= flight.fixNm.length) {
       return [];
     }
@@ -358,7 +404,14 @@ class PlanRoute {
       }
       final double tas = step != null && step.ktas > 0 ? step.ktas : numbers.tas;
       final double gph = step != null && step.gph > 0 ? step.gph : numbers.gph;
-      final double altitude = step?.altitudeFt.toDouble() ?? numbers.altitude;
+      // The cruise step is the altitude being climbed toward. A one-mile leg
+      // is still on that climb, so the log shows the altitude reached at the fix.
+      double altitude = step?.altitudeFt.toDouble() ?? numbers.altitude;
+      if (flight != null && index + 1 < flight.fixNm.length) {
+        final bool lastLeg = flight.profile.arriveAtEnd &&
+            index + 1 == flight.fixNm.length - 1;
+        altitude = flight.altitudeAt(flight.fixNm[lastLeg ? index : index + 1]);
+      }
       if(split.active == to) {
         calc = DestinationCalculations(
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
@@ -506,15 +559,28 @@ class PlanRoute {
     return changed;
   }
 
-  /// Altitude in the plan Alt field. The arrival row shows the altitude that leg
-  /// starts at. Field elevation stays stored so the path still meets the runway.
+  /// Altitude in the plan Alt field. With a profile, this is the altitude the
+  /// airplane has reached at that fix, so a short leg stays on the climb.
+  /// The arrival row shows the altitude that leg starts at. Field elevation
+  /// stays stored so the path still meets the runway.
   int rowAltitude(Waypoint waypoint, [int? fixIndex]) {
-    if (fixIndex != null || !isArrivalAirport(waypoint)) {
+    final ProfileFlight? flight = _flight;
+    if (fixIndex == null && isArrivalAirport(waypoint)) {
+      if (flight != null && flight.fixNm.length >= 2) {
+        return flight.altitudeAt(flight.fixNm[flight.fixNm.length - 2]).round();
+      }
+    } else if (flight != null) {
+      final Destination? destination = _altitudeDestination(waypoint, fixIndex);
+      if (destination != null) {
+        final double? reached = _reachedAltitude(destination);
+        if (reached != null) {
+          return reached.round();
+        }
+      }
       return waypoint.effectiveAltitude(_altitude, fixIndex);
     }
-    final ProfileFlight? flight = _flight;
-    if (flight != null && flight.fixNm.length >= 2) {
-      return flight.profile.stepAt(flight.fixNm[flight.fixNm.length - 2]).altitudeFt;
+    if (fixIndex != null || !isArrivalAirport(waypoint)) {
+      return waypoint.effectiveAltitude(_altitude, fixIndex);
     }
     if (waypoint.navAltitudeFt != null) {
       return waypoint.navAltitudeFt!;
