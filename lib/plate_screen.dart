@@ -781,47 +781,39 @@ class PlateScreenState extends State<PlateScreen> {
           if(Storage().settings.isInstrumentsVisiblePlate())
             const Positioned.fill(child: InstrumentList()),
 
-          // Instrument toggle button (top right)
+          // Instrument, landing, and sync toggles share one column so the circles line up.
           Positioned(
             top: 8,
             right: 8,
-            child: Container(
-              decoration: BoxDecoration(
-                color: overlayBg,
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: () {
-                  setState(() {
-                    Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
-                  });
-                },
-                icon: Icon(
-                  Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft,
-                  size: 20,
-                ),
-                tooltip: Storage().settings.isInstrumentsVisiblePlate() ? "Hide instruments" : "Show instruments",
-              ),
-            ),
-          ),
-
-          // Auto-show airport diagram toggle (top right, below instruments toggle)
-          if (!notAd)
-            Positioned(
-              top: 60, // sit below the show/hide instruments button (~48px tall at top:8)
-              right: 12,
-              child: Container(
-                  padding: const EdgeInsets.all(4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
                   decoration: BoxDecoration(
                     color: overlayBg,
-                    borderRadius: BorderRadius.circular(24),
+                    shape: BoxShape.circle,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  child: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        Storage().settings.setInstrumentsVisiblePlate(!Storage().settings.isInstrumentsVisiblePlate());
+                      });
+                    },
+                    icon: Icon(
+                      Storage().settings.isInstrumentsVisiblePlate() ? MdiIcons.arrowCollapseRight : MdiIcons.arrowCollapseLeft,
+                      size: 20,
+                    ),
+                    tooltip: Storage().settings.isInstrumentsVisiblePlate() ? "Hide instruments" : "Show instruments",
+                  ),
+                ),
+                if (!notAd) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: overlayBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
                       tooltip: "Airport diagram on landing",
                       onPressed: () {
                         setState(() {
@@ -834,27 +826,35 @@ class PlateScreenState extends State<PlateScreen> {
                           );
                         });
                       },
-                      icon: Icon(Storage().settings.isShowAirportDiagramOnLanding() ? Icons.flight_land : Icons.flight_rounded)),
-
-                    IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                        tooltip: "Sync plates with the active waypoint",
-                        onPressed: () {
-                          setState(() {
-                            Storage().settings.setSyncPlateToActiveWaypoint(!Storage().settings.isSyncPlateToActiveWaypoint());
-                            Toast.showToast(
-                              context,
-                              Storage().settings.isSyncPlateToActiveWaypoint() ?  "Sync plates with the current waypoint" : "Disconnect plates from the current waypoint",
-                              null,
-                              3,
-                            );
-                          });
-                        },
-                        icon: Icon(Storage().settings.isSyncPlateToActiveWaypoint() ? Icons.sync : Icons.sync_disabled_sharp)),
-                  ]),
-                ),
-              ),
+                      icon: Icon(Storage().settings.isShowAirportDiagramOnLanding() ? Icons.flight_land : Icons.flight_rounded, size: 20),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: overlayBg,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      tooltip: "Sync plates with the active waypoint",
+                      onPressed: () {
+                        setState(() {
+                          Storage().settings.setSyncPlateToActiveWaypoint(!Storage().settings.isSyncPlateToActiveWaypoint());
+                          Toast.showToast(
+                            context,
+                            Storage().settings.isSyncPlateToActiveWaypoint() ?  "Sync plates with the current waypoint" : "Disconnect plates from the current waypoint",
+                            null,
+                            3,
+                          );
+                        });
+                      },
+                      icon: Icon(Storage().settings.isSyncPlateToActiveWaypoint() ? Icons.sync : Icons.sync_disabled_sharp, size: 20),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
 
           // Center button (bottom center)
           Positioned(

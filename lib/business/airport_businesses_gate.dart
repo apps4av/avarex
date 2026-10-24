@@ -23,8 +23,17 @@ class AirportBusinessesGate {
 
   /// True when the businesses feature is usable right now (platform supports
   /// the cloud backend and a pilot is signed in).
-  static bool get isReady =>
-      available && FirebaseAuth.instance.currentUser != null;
+  static bool get isReady {
+    if (!available) {
+      return false;
+    }
+    try {
+      return FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      // Firebase is marked available on this platform, but the app was not created.
+      return false;
+    }
+  }
 
   /// Businesses with a map coordinate for the plate airport-diagram overlay.
   /// Best-effort: returns an empty list when the feature isn't available, the
