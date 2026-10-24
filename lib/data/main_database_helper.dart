@@ -41,6 +41,7 @@ class MainDatabaseHelper {
   /// Close the cached connection after [main.db] was replaced or removed on disk
   /// (e.g. DatabasesX download/delete) so the next open uses the new file.
   static Future<void> invalidateConnection() async {
+    Storage().faaNames.clear();
     final db = _database;
     if (db != null) {
       await db.close();
@@ -272,15 +273,23 @@ class MainDatabaseHelper {
   }
 
   Future<String> getFaaName(String icao) async {
-    final db = await database;
-    if (db != null) {
-      String qry = "select FaaID from airports where LocationID = '$icao'";
-      List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
-      if(maps.isNotEmpty) {
-        return maps[0]['FaaID'] as String;
-      }
+    final Map<String, String> faaNames = Storage().faaNames;
+    final String? cached = faaNames[icao];
+    if(cached != null) {
+      return cached;
     }
-    return icao;
+    final db = await database;
+    if (db == null) {
+      return icao;
+    }
+    String name = icao;
+    String qry = "select FaaID from airports where LocationID = '$icao'";
+    List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
+    if(maps.isNotEmpty) {
+      name = maps[0]['FaaID'] as String;
+    }
+    faaNames[icao] = name;
+    return name;
   }
 
   Future<List<Destination>> findNearestAirportsWithRunways(LatLng point, int runwayLength) async {

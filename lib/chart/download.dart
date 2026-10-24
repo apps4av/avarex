@@ -140,6 +140,7 @@ class Download {
   // download close db
   static Future<void> _invalidateSqlite() async {
       await MainDatabaseHelper.invalidateConnection();
+      Storage().invalidatePlateListCache();
   }
 
   static Future<void> _deleteZipFile(File file) async {

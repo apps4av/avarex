@@ -52,6 +52,7 @@ class AirportSatellite {
     if (await f.exists()) {
       await f.delete();
     }
+    Storage().invalidatePlateListCache();
   }
 
   /// Stitches Google satellite tiles around [center], georeferences the result
@@ -115,6 +116,7 @@ class AirportSatellite {
     final File f = File(p);
     await f.create(recursive: true);
     await f.writeAsBytes(withExif);
+    Storage().invalidatePlateListCache();
   }
 
   /// Encodes [image] to PNG with an EXIF `UserComment` georef block. The

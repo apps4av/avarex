@@ -146,9 +146,28 @@ class PlatesFuture {
   AirportDestination? _airportDestination;
   String _currentPlateAirport = Storage().settings.getCurrentPlateAirport();
 
-  Future<void> _getAll() async {
+  /// Chart already decoded in [Storage], shown while the selectors load again.
+  PlatesFuture.cached({
+    required String airport,
+    required String plate,
+    AirportDestination? destination,
+  }) {
+    _currentPlateAirport = airport;
+    _airports = airport.isEmpty ? <String>[] : <String>[airport];
+    _plates = plate.isEmpty ? <String>[] : <String>[plate];
+    _airportDestination = destination;
+  }
 
-    // get location ID only
+  PlatesFuture();
+
+  /// Plate names and the recent-airport list. Enough to draw the chart.
+  Future<void> loadChart() async {
+    final String selected = _currentPlateAirport;
+    // Directory listing overlaps the recent-airport query when the airport is known.
+    final Future<List<String>> platesFuture = selected.isEmpty
+        ? Future<List<String>>.value(<String>[])
+        : PathUtils.getPlatesAndCSupSorted(Storage().dataDir, selected);
+
     _airports = (await UserDatabaseHelper.db.getRecentAirports()).map((e) => e.locationID).toList();
 
     if(_currentPlateAirport.isEmpty) {
@@ -164,22 +183,41 @@ class PlatesFuture {
     _airports = _airports.toSet().toList();
 
     _plates = [];
-    if(_currentPlateAirport.isNotEmpty) {
+    if(_currentPlateAirport.isEmpty) {
+      return;
+    }
+    if(selected.isNotEmpty && selected == _currentPlateAirport) {
+      _plates = await platesFuture;
+    }
+    else {
       _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
-      _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
-      _airportDestination = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
-      // Businesses drawn on the airport diagram come from the crowd-sourced
-      // cloud directory; the gate handles platform/sign-in and returns empty
-      // when unavailable.
-      _businesses = await AirportBusinessesGate.businessesForPlate(
-          _currentPlateAirport,
-          origin: _airportDestination?.coordinate);
     }
   }
 
-  Future<PlatesFuture> getAll() async {
-    await _getAll();
-    return this;
+  /// Procedures, airport row, and cloud businesses. The chart does not wait for these.
+  Future<void> loadDetails(void Function() onUpdate) async {
+    final String airport = _currentPlateAirport;
+    if(airport.isEmpty) {
+      return;
+    }
+    final Future<List<String>> proceduresFuture = MainDatabaseHelper.db.findProcedures(airport);
+    final Future<AirportDestination?> airportFuture = MainDatabaseHelper.db.findAirport(airport);
+    _procedures = await proceduresFuture;
+    _airportDestination = await airportFuture;
+    if(airport != _currentPlateAirport) {
+      return;
+    }
+    onUpdate();
+    // Businesses drawn on the airport diagram come from the crowd-sourced
+    // cloud directory; the gate handles platform/sign-in and returns empty
+    // when unavailable.
+    _businesses = await AirportBusinessesGate.businessesForPlate(
+        airport,
+        origin: _airportDestination?.coordinate);
+    if(airport != _currentPlateAirport) {
+      return;
+    }
+    onUpdate();
   }
 
   AirportDestination? get airportDestination => _airportDestination;
@@ -340,6 +378,8 @@ class PlateScreenState extends State<PlateScreen> {
   String _loadedProcedureRoute = "";
   String _terrainCacheKey = "";
   int _terrainLoadId = 0;
+  PlatesFuture? _plates;
+  int _loadGeneration = 0;
   final TransformationController _transformationController = TransformationController();
   // landing and plate sync both switch the airport while this screen is up
   final Listenable _plateScreenReload = Listenable.merge([
@@ -352,6 +392,12 @@ class PlateScreenState extends State<PlateScreen> {
     super.initState();
     _transformationController.value = Storage().plateTransform;
     _transformationController.addListener(_onTransformChanged);
+    Storage().plateChange.addListener(_onPlateChanged);
+    Storage().gpsChange.addListener(_notifyPaint);
+    Storage().planeIconChange.addListener(_notifyPaint);
+    _plateScreenReload.addListener(_onPlateScreenReload);
+    _startLoad();
+    _ensureProcedureRouteLoaded();
   }
 
   void _onTransformChanged() {
@@ -360,39 +406,103 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   void dispose() {
+    _plateScreenReload.removeListener(_onPlateScreenReload);
     _transformationController.removeListener(_onTransformChanged);
     _transformationController.dispose();
-    super.dispose();
-    Storage().plateChange.removeListener(_notifyPaint);
+    Storage().plateChange.removeListener(_onPlateChanged);
     Storage().gpsChange.removeListener(_notifyPaint);
     Storage().planeIconChange.removeListener(_notifyPaint);
+    super.dispose();
+  }
+
+  void _onPlateChanged() {
+    _notifyPaint();
+    if(mounted) {
+      setState(() {});
+    }
+  }
+
+  void _onPlateScreenReload() {
+    final String airport = Storage().settings.getCurrentPlateAirport();
+    // Takeoff ticks this too. Reload only when the airport actually changed.
+    if(_plates != null && _plates!.currentPlateAirport == airport && Storage().lastPlateAirport == airport) {
+      return;
+    }
+    _startLoad();
+  }
+
+  void _startLoad() {
+    final int generation = ++_loadGeneration;
+    final String airport = Storage().settings.getCurrentPlateAirport();
+    // Decode the chart already selected while the plate list loads.
+    if(Storage().currentPlate.isNotEmpty && Storage().lastPlateAirport == airport) {
+      _loadPlate();
+    }
+    final PlatesFuture future = PlatesFuture();
+    () async {
+      await future.loadChart();
+      if(!mounted || generation != _loadGeneration) {
+        return;
+      }
+      _publish(future);
+      await future.loadDetails(() {
+        if(!mounted || generation != _loadGeneration) {
+          return;
+        }
+        setState(() {});
+      });
+    }();
+  }
+
+  void _publish(PlatesFuture future) {
+    Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
+    if(future.airports.isEmpty) {
+      setState(() {
+        _plates = future;
+      });
+      return;
+    }
+    if(future.plates.isNotEmpty && Storage().lastPlateAirport != future.currentPlateAirport) {
+      Storage().currentPlate = future.plates[0]; // new airport, change to plate 0
+      _transformationController.value = Matrix4.identity();
+    }
+    setState(() {
+      _plates = future;
+    });
+    _loadPlate();
+    _ensureProcedureRouteLoaded();
   }
 
   @override
   Widget build(BuildContext context) {
-    // landing and plate sync switch the airport from outside this screen
-    return AnimatedBuilder(animation: _plateScreenReload, builder: (BuildContext context, Widget? child) {
-      return FutureBuilder(
-        future: PlatesFuture().getAll(),
-        builder: (context, snapshot) {
-          if(snapshot.hasData) {
-            return _makeContent(snapshot.data);
-          }
-          else {
-            return _makeContent(null);
-          }
-        }
-      );
-    });
+    final PlatesFuture? future = _plates;
+    if(future != null) {
+      return _makeContent(future);
+    }
+    // imagePlate survives leaving this tab. Keep that chart up while the list reloads.
+    final String airport = Storage().settings.getCurrentPlateAirport();
+    if(Storage().imagePlate != null && airport.isNotEmpty) {
+      return _makeContent(PlatesFuture.cached(
+        airport: airport,
+        plate: Storage().currentPlate,
+        destination: Storage().plateAirportDestination is AirportDestination
+            ? Storage().plateAirportDestination as AirportDestination
+            : null,
+      ));
+    }
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
   }
 
   // on change of airport, reload first item of the new airport
-  Future _loadPlate() async {
+  Future<void> _loadPlate() async {
     // load plate in background. If the airport changed while this was loading
     // (landing or plate sync), leave lastPlateAirport clear so the next build
     // selects the new airport's plate instead of keeping this one.
     final String airport = Storage().settings.getCurrentPlateAirport();
     final String plate = Storage().currentPlate;
+    final bool already = Storage().hasPlate(airport, plate);
     await Storage().loadPlate();
     if(!mounted) {
       return;
@@ -401,7 +511,9 @@ class PlateScreenState extends State<PlateScreen> {
       return;
     }
     Storage().lastPlateAirport = airport;
-    _refreshTerrainOverlay();
+    if(!already) {
+      _refreshTerrainOverlay();
+    }
   }
 
 
@@ -531,11 +643,11 @@ class PlateScreenState extends State<PlateScreen> {
     }
   }
 
-  Widget _makeContent(PlatesFuture? future) {
+  Widget _makeContent(PlatesFuture future) {
 
     double height = 0;
 
-    if(future == null || future.airports.isEmpty) {
+    if(future.airports.isEmpty) {
       return makePlateView([], [], [], [], height, _notifier, null);
     }
 
@@ -543,20 +655,6 @@ class PlateScreenState extends State<PlateScreen> {
     List<AirportBusiness> business = future.business;
     List<String> airports = future.airports;
     List<String> procedures = future.procedures;
-    Storage().settings.setCurrentPlateAirport(future.currentPlateAirport);
-
-    if(plates.isNotEmpty && (Storage().lastPlateAirport !=  Storage().settings.getCurrentPlateAirport())) {
-      Storage().currentPlate = plates[0]; // new airport, change to plate 0
-      _transformationController.value = Matrix4.identity();
-    }
-
-    _loadPlate();
-    _ensureProcedureRouteLoaded();
-
-    // plate load notification, repaint
-    Storage().plateChange.addListener(_notifyPaint);
-    Storage().gpsChange.addListener(_notifyPaint);
-    Storage().planeIconChange.addListener(_notifyPaint);
 
     List<String> procedureNames = [];
     for(String prec in procedures) {
@@ -577,6 +675,8 @@ class PlateScreenState extends State<PlateScreen> {
         setState(() {
           _transformationController.value = Matrix4.identity();
         });
+        _loadPlate();
+        _startLoad();
       }
     }
     catch (e) {
@@ -591,11 +691,13 @@ class PlateScreenState extends State<PlateScreen> {
       await AirportSatellite.delete(airport.locationID);
       if (Storage().currentPlate == AirportSatellite.plateName) {
         Storage().currentPlate = "";
+        Storage().lastPlateAirport = "";
       }
       if (mounted) {
         setState(() {
           _transformationController.value = Matrix4.identity();
         });
+        _startLoad();
         Toast.showToast(context, "Deleted ${AirportSatellite.plateName}", null, 3);
       }
     }
@@ -671,6 +773,9 @@ class PlateScreenState extends State<PlateScreen> {
               )),
             ),
           ),
+
+          if(Storage().imagePlate == null)
+            const Center(child: CircularProgressIndicator()),
 
           // Instruments overlay (full screen, free-floating draggable tiles)
           if(Storage().settings.isInstrumentsVisiblePlate())
@@ -862,10 +967,10 @@ class PlateScreenState extends State<PlateScreen> {
                         }
                         return;
                       }
-                      setState(() {
-                        Storage(  ).currentPlate = selected;
-                        _transformationController.value = Matrix4.identity();
-                      });
+                      Storage().currentPlate = selected;
+                      _transformationController.value = Matrix4.identity();
+                      _loadPlate();
+                      setState(() {});
                     },
                   ),
                 ),
@@ -1009,13 +1114,13 @@ class PlateScreenState extends State<PlateScreen> {
                           );
                         }).toList(),
                         onChanged: (value) {
-                          setState(() {
-                            Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
-                            Storage().settings.setPlateProfileVisible(false);
-                            Storage().settings.setPlateProfile("");
-                            _clearProcedureRoute();
-                            _transformationController.value = Matrix4.identity();
-                          });
+                          Storage().settings.setCurrentPlateAirport(value ?? airports[0]);
+                          Storage().settings.setPlateProfileVisible(false);
+                          Storage().settings.setPlateProfile("");
+                          Storage().lastPlateAirport = "";
+                          _clearProcedureRoute();
+                          _transformationController.value = Matrix4.identity();
+                          _startLoad();
                         },
                       ),
                     ),
@@ -1240,7 +1345,7 @@ class _PlatePainter extends CustomPainter {
     _matrix = Storage().matrixPlate;
     Destination? center = Storage().plateAirportDestination;
 
-    if(_image != null && center != null) {
+    if(_image != null) {
 
       // make in center
       double h = size.height;
@@ -1262,7 +1367,7 @@ class _PlatePainter extends CustomPainter {
         _drawTerrainOverlay(canvas);
       }
 
-      if(null != _matrix) {
+      if(_matrix != null && center != null) {
 
         double heading = Storage().position.heading;
         Offset offsetCircle = const Offset(0, 0);

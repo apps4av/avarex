@@ -2,6 +2,7 @@ import 'package:universal_io/io.dart';
 
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/storage.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart';
 import 'package:path/path.dart' as path;
@@ -273,20 +274,30 @@ class PathUtils {
 
 
   static Future<List<String>> getPlatesAndCSupSorted(String base, String airportId) async {
-    List<String> plates = [];
-    List<String> csup = [];
+    final Map<String, List<String>> plateListCache = Storage().plateListCache;
+    final String cacheKey = "$base|$airportId";
+    final List<String>? cached = plateListCache[cacheKey];
+    if(cached != null) {
+      return List<String>.from(cached);
+    }
 
     //XXX: Plates and CSUP are not in ICAO
     String airport = await MainDatabaseHelper.db.getFaaName(airportId);
 
-    plates = await _getPlateNames(base, airport);
-    csup = await _getCsupNames(base, airport);
-    plates.addAll(csup);
+    final List<List<String>> names = await Future.wait([
+      _getPlateNames(base, airport),
+      _getCsupNames(base, airport),
+    ]);
+    final List<String> plates = names[0];
+    plates.addAll(names[1]);
 
     // combine plates and csup
-    plates = plates.toSet().toList();
-    plates.sort();
-    return(plates);
+    final List<String> sorted = plates.toSet().toList();
+    sorted.sort();
+    if(sorted.isNotEmpty) {
+      plateListCache[cacheKey] = List<String>.from(sorted);
+    }
+    return sorted;
   }
 
   static Future<String> getPlatePath(String base, String airportId, String name) async {
@@ -314,10 +325,11 @@ class PathUtils {
   }
 
 
+  /// Plate name of the airport diagram, when that chart is the first plate.
   static Future<String?> getAirportDiagram(String base, String airportId) async {
     List<String> plates = await PathUtils.getPlatesAndCSupSorted(base, airportId);
     if (plates.isNotEmpty && isAirportDiagram(plates[0])) {
-      return getPlatePath(base, airportId, plates[0]);
+      return plates[0];
     }
     return null;
   }

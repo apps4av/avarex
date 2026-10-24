@@ -235,9 +235,18 @@ class Storage {
     return (_key++).toString();
   }
 
-  // make it double buffer to get rid of plate load flicker
+  // The one decoded plate. The previous image is disposed when a new chart replaces it.
   ui.Image? imagePlate;
   ui.Image? imagePlane;
+  // Which chart imagePlate is, so the same chart is not decoded again.
+  String _shownPlateKey = "";
+  Future<void>? _plateLoadInFlight;
+  String _plateLoadInFlightKey = "";
+  int _plateLoadToken = 0;
+  // FAA id for an ICAO id. Cleared when main.db is replaced.
+  final Map<String, String> faaNames = {};
+  // Plate filenames per airport. Cleared when charts are installed or removed.
+  final Map<String, List<String>> plateListCache = {};
   LatLng? topLeftPlate;
   LatLng? bottomRightPlate;
 
@@ -672,45 +681,90 @@ class Storage {
     chartsMissing = !(await DownloadScreenState.doesAnyChartExists());
   }
 
+  bool hasPlate(String airport, String name) {
+    return imagePlate != null && _shownPlateKey == "$airport\n$name";
+  }
+
+  /// Chart files changed. Forget the filename list and read the next plate from disk.
+  /// The image on screen stays until that load replaces it.
+  void invalidatePlateListCache() {
+    plateListCache.clear();
+    _shownPlateKey = "";
+  }
+
   Future<void> loadPlate() async {
-    String plateAirport = settings.getCurrentPlateAirport();
-    String plateName = currentPlate;
-    AirportDestination? airport = await MainDatabaseHelper.db.findAirport(plateAirport);
-    String path = await PathUtils.getPlatePath(dataDir, plateAirport, plateName);
-    File file = File(path);
-    Completer<ui.Image> completerPlate = Completer();
+    final String plateAirport = settings.getCurrentPlateAirport();
+    final String plateName = currentPlate;
+    final String key = "$plateAirport\n$plateName";
+    if(imagePlate != null && _shownPlateKey == key) {
+      return;
+    }
+    // A second caller for the same chart waits for the decode already running.
+    if(_plateLoadInFlight != null && _plateLoadInFlightKey == key) {
+      return _plateLoadInFlight;
+    }
+    final int token = ++_plateLoadToken;
+    _plateLoadInFlightKey = key;
+    final Future<void> future = _loadPlateImage(token, plateAirport, plateName, key);
+    _plateLoadInFlight = future;
+    try {
+      await future;
+    }
+    finally {
+      if(token == _plateLoadToken) {
+        _plateLoadInFlight = null;
+        _plateLoadInFlightKey = "";
+      }
+    }
+  }
+
+  Future<void> _loadPlateImage(int token, String plateAirport, String plateName, String key) async {
+    // The airport row overlaps the file read and decode.
+    final Future<Destination?> airportFuture = plateAirportDestination?.locationID == plateAirport
+        ? Future<Destination?>.value(plateAirportDestination)
+        : MainDatabaseHelper.db.findAirport(plateAirport).then<Destination?>((AirportDestination? airport) => airport);
+    final String path = await PathUtils.getPlatePath(dataDir, plateAirport, plateName);
+    if(token != _plateLoadToken) {
+      return;
+    }
+    final File file = File(path);
     Uint8List bytes;
+    bool fromFile = true;
     try {
       bytes = await file.readAsBytes();
     }
     catch(e) {
-      ByteData bd = await rootBundle.load('assets/images/black.png');
+      fromFile = false;
+      final ByteData bd = await rootBundle.load('assets/images/black.png');
       // file bad or not found
       bytes = bd.buffer.asUint8List();
     }
-    ui.decodeImageFromList(bytes, (ui.Image img) {
-      return completerPlate.complete(img);
-    });
-    ui.Image image = await completerPlate.future; // double buffering
+    if(token != _plateLoadToken) {
+      return;
+    }
+    final Completer<ui.Image> completerPlate = Completer<ui.Image>();
+    ui.decodeImageFromList(bytes, completerPlate.complete);
+    // Georef parse overlaps the image decode.
+    final Future<Map<String, IfdTag>> exifFuture = readExifFromBytes(bytes);
+    final ui.Image image = await completerPlate.future;
+    Map<String, IfdTag> exif = {};
+    try {
+      exif = await exifFuture;
+    }
+    catch(e) {
+      exif = {};
+    }
     // A newer plate (sync, landing, or a long-press) won while this decoded.
-    if(settings.getCurrentPlateAirport() != plateAirport || currentPlate != plateName) {
+    if(token != _plateLoadToken || settings.getCurrentPlateAirport() != plateAirport || currentPlate != plateName) {
       image.dispose();
       return;
     }
-    plateAirportDestination = airport;
     topLeftPlate = null;
     bottomRightPlate = null;
-    if(imagePlate != null) {
-      imagePlate!.dispose();
-      imagePlate = null;
-    }
-    imagePlate = image;
-
-    Map<String, IfdTag> exif = await readExifFromBytes(bytes);
     matrixPlate = null;
-    IfdTag? tag = exif["EXIF UserComment"];
+    final IfdTag? tag = exif["EXIF UserComment"];
     if(null != tag) {
-      List<String> tokens = tag.toString().split("|");
+      final List<String> tokens = tag.toString().split("|");
       if(tokens.length == 4) {
         matrixPlate = [];
         matrixPlate!.add(double.parse(tokens[0]));
@@ -718,12 +772,12 @@ class Storage {
         matrixPlate!.add(double.parse(tokens[2]));
         matrixPlate!.add(double.parse(tokens[3]));
 
-        double dx = matrixPlate![0];
-        double dy = matrixPlate![1];
-        double lonTopLeft = matrixPlate![2];
-        double latTopLeft = matrixPlate![3];
-        double latBottomRight = latTopLeft + image.height / dy;
-        double lonBottomRight = lonTopLeft + image.width / dx;
+        final double dx = matrixPlate![0];
+        final double dy = matrixPlate![1];
+        final double lonTopLeft = matrixPlate![2];
+        final double latTopLeft = matrixPlate![3];
+        final double latBottomRight = latTopLeft + image.height / dy;
+        final double lonBottomRight = lonTopLeft + image.width / dx;
         topLeftPlate = LatLng(latTopLeft, lonTopLeft);
         bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
       }
@@ -737,8 +791,21 @@ class Storage {
         matrixPlate!.add(double.parse(tokens[5]));
       }
     }
+    final ui.Image? previous = imagePlate;
+    imagePlate = image;
+    // A missing file shows black, but the next open should try the real chart again.
+    _shownPlateKey = fromFile ? key : "";
+    plateChange.value++;
+    previous?.dispose();
 
-    plateChange.value++; // change in storage
+    final Destination? airport = await airportFuture;
+    if(token != _plateLoadToken || settings.getCurrentPlateAirport() != plateAirport || currentPlate != plateName) {
+      return;
+    }
+    if(!identical(plateAirportDestination, airport)) {
+      plateAirportDestination = airport;
+      plateChange.value++;
+    }
   }
 
   // route.change fires on every GPS update. Remember the active waypoint and
