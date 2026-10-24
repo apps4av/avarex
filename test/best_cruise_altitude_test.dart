@@ -402,6 +402,63 @@ void main() {
     expect(flight.altitudeAt(40), greaterThan(8000));
   });
 
+  test("east is an odd thousand and west is an even thousand", () {
+    expect(BestCruiseAltitude.matchesCourse(5000, 90), isTrue);
+    expect(BestCruiseAltitude.matchesCourse(9000, 0), isTrue);
+    expect(BestCruiseAltitude.matchesCourse(4000, 90), isFalse);
+    expect(BestCruiseAltitude.matchesCourse(8000, 179), isFalse);
+    expect(BestCruiseAltitude.matchesCourse(4500, 90), isFalse);
+    expect(BestCruiseAltitude.matchesCourse(4000, 180), isTrue);
+    expect(BestCruiseAltitude.matchesCourse(8000, 270), isTrue);
+    expect(BestCruiseAltitude.matchesCourse(9000, 270), isFalse);
+    expect(BestCruiseAltitude.matchesCourse(5500, 180), isFalse);
+  });
+
+  test("an east course does not cruise at an even thousand", () {
+    final RouteTrack track = northbound(80);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 5000, 6000, 8000, 9000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 90,
+      climbRateConstantFpm: 700,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      // 8,000 has the strongest tailwind. East still uses 9,000.
+      windAt: (LatLng point, int altitude) {
+        if (altitude == 8000) return (180.0, 50.0);
+        if (altitude == 9000) return (180.0, 20.0);
+        return (0.0, 0.0);
+      },
+    );
+    expect(result.profile!.steps.first.altitudeFt, 9000);
+  });
+
+  test("a west course does not cruise at an odd thousand", () {
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: const LatLng(80 / 60.0, 0), to: const LatLng(0, 0)),
+    ]);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 5000, 6000, 8000, 9000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 90,
+      climbRateConstantFpm: 700,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) {
+        if (altitude == 9000) return (0.0, 50.0);
+        if (altitude == 8000) return (0.0, 20.0);
+        return (0.0, 0.0);
+      },
+    );
+    expect(result.profile!.steps.first.altitudeFt, 8000);
+  });
+
   test("a descent can begin 20 miles after the last altitude", () {
     final RouteTrack track = northbound(180);
     final RouteCruiseResult result = BestCruiseAltitude.choose(
@@ -637,5 +694,40 @@ void main() {
     expect(edited.stepAt(45).ktas, 110);
     expect(edited.stepAt(70).altitudeFt, 8000);
     expect(edited.stepAt(140).altitudeFt, 10000);
+  });
+
+  test("a fix in the arrival descent stays on the cruise altitude already reached", () {
+    const LatLng kbos = LatLng(42.3629444444444, -71.0063888888889);
+    const LatLng bos = LatLng(42.35745, -70.9895483333333);
+    const LatLng cmk = LatLng(41.2800894444444, -73.5813263888889);
+    const LatLng khpn = LatLng(41.0669530555556, -73.7075661111111);
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: kbos, to: bos),
+      (from: bos, to: cmk),
+      (from: cmk, to: khpn),
+    ], spacingNm: 1);
+    final CruiseProfile profile = CruiseProfile(
+      steps: const [
+        CruiseStep(startNm: 0, altitudeFt: 11000, ktas: 164, gph: 14),
+        CruiseStep(startNm: 50, altitudeFt: 12000, ktas: 166, gph: 14),
+      ],
+      climbTasKt: 100,
+      climbRateFpm: 1000,
+      topAltitudeFt: 12000,
+      startAltitudeFt: 19,
+      endAltitudeFt: 439,
+      arriveAtEnd: true,
+      totalNm: track.totalNm,
+    );
+    final ProfileFlight flight = profile.fly(track, (LatLng point, int altitude) => (null, null));
+    final double atBos = flight.fixNm[1];
+    final double atCmk = flight.fixNm[2];
+    expect(flight.altitudeAt(atBos), greaterThan(300));
+    expect(flight.altitudeAt(atBos), lessThan(1500));
+    expect(flight.reportedAltitudeAt(atBos), flight.altitudeAt(atBos));
+    expect(flight.altitudeAt(atCmk), greaterThan(8000));
+    expect(flight.altitudeAt(atCmk), lessThan(11000));
+    expect(flight.reportedAltitudeAt(atCmk).round(), 12000);
+    expect(flight.reportedAltitudeAt(flight.fixNm[flight.fixNm.length - 2]).round(), 12000);
   });
 }

@@ -209,6 +209,21 @@ class PlanRoute {
     return flight.altitudeAt(flight.fixNm[index]);
   }
 
+  /// Altitude shown in the plan Alt field. Still climbing: the altitude reached.
+  /// After the cruise step has been reached, that step, including through the
+  /// arrival descent.
+  double? _reportedAltitude(Destination destination) {
+    final ProfileFlight? flight = _flight;
+    if (flight == null) {
+      return null;
+    }
+    final int index = _fixIndex(destination);
+    if (index < 0 || index >= flight.fixNm.length) {
+      return null;
+    }
+    return flight.reportedAltitudeAt(flight.fixNm[index]);
+  }
+
   Destination? _altitudeDestination(Waypoint waypoint, int? fixIndex) {
     if (fixIndex != null) {
       if (fixIndex < 0 || fixIndex >= waypoint.destinationsOnRoute.length) {
@@ -406,11 +421,13 @@ class PlanRoute {
       final double gph = step != null && step.gph > 0 ? step.gph : numbers.gph;
       // The cruise step is the altitude being climbed toward. A one-mile leg
       // is still on that climb, so the log shows the altitude reached at the fix.
+      // After the airplane has leveled at that step, the arrival descent leaves
+      // the number there.
       double altitude = step?.altitudeFt.toDouble() ?? numbers.altitude;
       if (flight != null && index + 1 < flight.fixNm.length) {
         final bool lastLeg = flight.profile.arriveAtEnd &&
             index + 1 == flight.fixNm.length - 1;
-        altitude = flight.altitudeAt(flight.fixNm[lastLeg ? index : index + 1]);
+        altitude = flight.reportedAltitudeAt(flight.fixNm[lastLeg ? index : index + 1]);
       }
       if(split.active == to) {
         calc = DestinationCalculations(
@@ -559,20 +576,19 @@ class PlanRoute {
     return changed;
   }
 
-  /// Altitude in the plan Alt field. With a profile, this is the altitude the
-  /// airplane has reached at that fix, so a short leg stays on the climb.
-  /// The arrival row shows the altitude that leg starts at. Field elevation
-  /// stays stored so the path still meets the runway.
+  /// Altitude in the plan Alt field. With a profile, a short leg stays on the
+  /// climb. Once the cruise altitude has been reached, Alt stays there while
+  /// the path descends to the runway. Field elevation stays stored.
   int rowAltitude(Waypoint waypoint, [int? fixIndex]) {
     final ProfileFlight? flight = _flight;
     if (fixIndex == null && isArrivalAirport(waypoint)) {
       if (flight != null && flight.fixNm.length >= 2) {
-        return flight.altitudeAt(flight.fixNm[flight.fixNm.length - 2]).round();
+        return flight.reportedAltitudeAt(flight.fixNm[flight.fixNm.length - 2]).round();
       }
     } else if (flight != null) {
       final Destination? destination = _altitudeDestination(waypoint, fixIndex);
       if (destination != null) {
-        final double? reached = _reachedAltitude(destination);
+        final double? reached = _reportedAltitude(destination);
         if (reached != null) {
           return reached.round();
         }

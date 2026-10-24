@@ -2,4 +2,3 @@ Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 Sync plates to the active airport waypoint.
 PLAN altitude icon starts a climb when a higher altitude is faster for the rest of the route, holds that climb for 50 miles, and can descend after 20 miles. The cruise altitude and ground speed stay 1,000 ft above the terrain.
 PLAN Alt follows best climb rate. A one-mile leg does not jump to the 1,000 ft terrain clearance.
-PLAN altitude icon stays responsive on a long route.

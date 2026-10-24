@@ -45,9 +45,11 @@ class BestCruiseAltitudeResult {
 ///
 /// [choose] walks the whole route. A climb is the fastest altitude for the
 /// rest of the route, at least [terrainClearanceFt] above the terrain in the
-/// next [holdNm] miles, and that climb then waits [holdNm] miles. A lower
-/// altitude can be chosen after [descentHoldNm] miles, once the airplane is at
-/// the current altitude, when the lower one is faster over that stretch.
+/// next [holdNm] miles, and that climb then waits [holdNm] miles. Once level,
+/// an east magnetic course uses an odd thousand and a west course an even
+/// thousand. A lower altitude can be chosen after [descentHoldNm] miles, once
+/// the airplane is at the current altitude, when the lower one is faster over
+/// that stretch.
 /// Climb and descent use the aircraft climb speed and climb rate. Time and
 /// fuel while the altitude is changing use that climb speed.
 ///
@@ -79,6 +81,19 @@ class BestCruiseAltitude {
 
   /// Feet per minute at the top of the cruise table.
   static const double climbRateTopFpm = 100;
+
+  /// Level cruise altitude for a magnetic course. East (0–179) is an odd
+  /// thousand. West (180–359) is an even thousand. Both are multiples of 500.
+  /// An altitude still being climbed toward is not required to match.
+  static bool matchesCourse(int altitudeFt, double magneticCourseDeg) {
+    if (altitudeFt <= 0 || altitudeFt % 500 != 0 || altitudeFt % 1000 != 0) {
+      return false;
+    }
+    final double course = (magneticCourseDeg % 360 + 360) % 360;
+    final bool east = course < 180;
+    final bool oddThousand = (altitudeFt ~/ 1000).isOdd;
+    return east ? oddThousand : !oddThousand;
+  }
 
   static double climbRateFpm({required int altitudeFt, required int topAltitudeFt}) {
     if (topAltitudeFt <= 0) {
@@ -435,6 +450,7 @@ class BestCruiseAltitude {
     double? climbTrueAirspeedKt,
     double? climbRateConstantFpm,
     int? topAltitudeFt,
+    double Function(double nm)? variationAt,
   }) {
     return _planRoute(
       track: track,
@@ -448,6 +464,7 @@ class BestCruiseAltitude {
       climbTasKt: climbTrueAirspeedKt ?? 0,
       climbRateFpm: climbRateConstantFpm ?? 0,
       topAltitudeFt: topAltitudeFt ?? 0,
+      variationAt: variationAt,
     );
   }
 }
@@ -710,6 +727,32 @@ class ProfileFlight {
 
   double altitudeAt(double nm) => _valueAt(nm, (FlownSample sample) => sample.altitudeFt);
 
+  /// Altitude for a plan row or a navigation-log column. A climb that has not
+  /// reached its cruise step keeps the altitude flown so far. Once that step
+  /// has been reached, the arrival descent leaves the number on the step.
+  double reportedAltitudeAt(double nm) {
+    final double flown = altitudeAt(nm);
+    final CruiseStep step = profile.stepAt(nm);
+    if ((flown - step.altitudeFt).abs() <= 100) {
+      return step.altitudeFt.toDouble();
+    }
+    if (flown > step.altitudeFt) {
+      return flown;
+    }
+    for (final FlownSample sample in samples) {
+      if (sample.nm + 0.05 < step.startNm) {
+        continue;
+      }
+      if (sample.nm > nm + 0.05) {
+        break;
+      }
+      if ((sample.altitudeFt - step.altitudeFt).abs() <= 100) {
+        return step.altitudeFt.toDouble();
+      }
+    }
+    return flown;
+  }
+
   ({double timeSeconds, double fuelGal, double distanceNm}) span(double fromNm, double toNm) {
     final double end = profile.totalNm;
     final double a = fromNm.clamp(0.0, end).toDouble();
@@ -819,6 +862,7 @@ RouteCruiseResult _planRoute({
   required double climbTasKt,
   required double climbRateFpm,
   required int topAltitudeFt,
+  double Function(double nm)? variationAt,
 }) {
   if (track.points.length < 2 || track.totalNm <= 0 || altitudesFt.isEmpty) {
     return const RouteCruiseResult(profile: null, usedWind: false, terrainShort: false);
@@ -1008,7 +1052,19 @@ RouteCruiseResult _planRoute({
     final bool allowDescent = !first && pos - lastChangeNm >= BestCruiseAltitude.descentHoldNm - 0.05;
     final double terrainEnd = math.min(pos + BestCruiseAltitude.holdNm, total);
     final int floor = _terrainFloor(track, terrainFt, pos, terrainEnd);
-    final List<int> candidates = _cruiseCandidates(sorted, floor, altitude, lowest);
+    final double course = _magneticCourseAt(track.points, pos, variationAt);
+    final List<int> forCourse = [
+      for (final int altitude in sorted)
+        if (BestCruiseAltitude.matchesCourse(altitude, course)) altitude,
+    ];
+    // A cruise table with only one side still flies. Otherwise the leg uses
+    // an odd thousand eastbound and an even thousand westbound.
+    final List<int> pool = forCourse.isEmpty ? sorted : forCourse;
+    final List<int> opened = [
+      for (final int altitude in _cruiseCandidates(pool, floor, altitude, lowest))
+        if (pool.contains(altitude)) altitude,
+    ];
+    final List<int> candidates = opened.isEmpty ? pool : opened;
     if (candidates.isEmpty) {
       break;
     }
@@ -1480,4 +1536,14 @@ double _courseAt(List<({double nm, LatLng at})> points, double nm) {
   }
   final int index = _segmentEnd(points, nm);
   return GeoCalculations().calculateBearing(points[index - 1].at, points[index].at);
+}
+
+double _magneticCourseAt(
+  List<({double nm, LatLng at})> points,
+  double nm,
+  double Function(double nm)? variationAt,
+) {
+  final double trueCourse = _courseAt(points, nm);
+  final double variation = variationAt?.call(nm) ?? 0;
+  return GeoCalculations.getMagneticHeading(trueCourse, variation);
 }

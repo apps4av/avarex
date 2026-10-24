@@ -352,6 +352,7 @@ class PlanScreenState extends State<PlanScreen> {
         topAltitudeFt: topAltitude,
         cruiseAt: (int altitude) => perf.getCruisePerformance(altitude, powerPct, 0),
         windAt: windFor,
+        variationAt: (double nm) => _variationAlong(track, planned, nm),
       );
       final CruiseProfile? profile = result.profile;
       if (profile == null) {
@@ -417,6 +418,28 @@ class PlanScreenState extends State<PlanScreen> {
         setState(() => _findingBestAltitude = false);
       }
     }
+  }
+
+  /// Magnetic variation along [track], interpolated between the fixes.
+  double _variationAlong(RouteTrack track, List<Destination> fixes, double nm) {
+    if (fixes.length < 2 || track.legEndNm.isEmpty) {
+      return 0;
+    }
+    for (int index = 0; index < track.legEndNm.length && index + 1 < fixes.length; index++) {
+      final double end = track.legEndNm[index];
+      if (nm > end + 0.05 && index < track.legEndNm.length - 1) {
+        continue;
+      }
+      final double start = index == 0 ? 0 : track.legEndNm[index - 1];
+      final double? fromVariation = fixes[index].geoVariation;
+      final double? toVariation = fixes[index + 1].geoVariation;
+      final double begin = fromVariation ?? toVariation ?? 0;
+      final double finish = toVariation ?? fromVariation ?? 0;
+      final double span = end - start;
+      final double fraction = span <= 0.05 ? 0 : ((nm - start) / span).clamp(0.0, 1.0);
+      return begin + (finish - begin) * fraction;
+    }
+    return fixes.last.geoVariation ?? 0;
   }
 
   Widget _planButton() {
