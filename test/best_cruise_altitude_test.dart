@@ -459,6 +459,39 @@ void main() {
     expect(result.profile!.steps.first.altitudeFt, 8000);
   });
 
+  test("east and west follow the course from the start to the end", () {
+    // Ten miles west, then 80 miles east. The first leg is west. The course
+    // from start to end is east, so 8,000 is not used.
+    const double lat = 42;
+    const double nmToDeg = 1 / (60 * 0.7431);
+    const LatLng start = LatLng(lat, -71);
+    final LatLng west = LatLng(lat, -71 - 10 * nmToDeg);
+    final LatLng end = LatLng(lat, -71 - 10 * nmToDeg + 80 * nmToDeg);
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: start, to: west),
+      (from: west, to: end),
+    ]);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 5000, 6000, 8000, 9000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 90,
+      climbRateConstantFpm: 700,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) {
+        if (altitude == 8000) return (270.0, 50.0);
+        if (altitude == 9000) return (270.0, 20.0);
+        return (0.0, 0.0);
+      },
+    );
+    final List<CruiseStep> steps = result.profile!.steps;
+    expect(steps.first.altitudeFt, 9000);
+    expect(steps.every((CruiseStep step) => (step.altitudeFt ~/ 1000).isOdd), isTrue);
+  });
+
   test("a descent can begin 20 miles after the last altitude", () {
     final RouteTrack track = northbound(180);
     final RouteCruiseResult result = BestCruiseAltitude.choose(

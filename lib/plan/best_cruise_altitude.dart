@@ -46,8 +46,9 @@ class BestCruiseAltitudeResult {
 /// [choose] walks the whole route. A climb is the fastest altitude for the
 /// rest of the route, at least [terrainClearanceFt] above the terrain in the
 /// next [holdNm] miles, and that climb then waits [holdNm] miles. Once level,
-/// an east magnetic course uses an odd thousand and a west course an even
-/// thousand. A lower altitude can be chosen after [descentHoldNm] miles, once
+/// the course from the first fix to the last sets the altitude: east is an
+/// odd thousand and west is an even thousand. A lower altitude can be chosen
+/// after [descentHoldNm] miles, once
 /// the airplane is at the current altitude, when the lower one is faster over
 /// that stretch.
 /// Climb and descent use the aircraft climb speed and climb rate. Time and
@@ -889,6 +890,8 @@ RouteCruiseResult _planRoute({
   double lastChangeNm = 0;
   double lastClimbNm = 0;
   final double total = track.totalNm;
+  // One course for the whole plan: first fix to last fix.
+  final double routeCourse = _routeMagneticCourse(track.points, variationAt);
   // Miles of climb or descent to simulate before using the level-flight time.
   // Far enough to finish a climb, and short enough that a long route is not
   // integrated again at every decision.
@@ -1052,13 +1055,13 @@ RouteCruiseResult _planRoute({
     final bool allowDescent = !first && pos - lastChangeNm >= BestCruiseAltitude.descentHoldNm - 0.05;
     final double terrainEnd = math.min(pos + BestCruiseAltitude.holdNm, total);
     final int floor = _terrainFloor(track, terrainFt, pos, terrainEnd);
-    final double course = _magneticCourseAt(track.points, pos, variationAt);
     final List<int> forCourse = [
       for (final int altitude in sorted)
-        if (BestCruiseAltitude.matchesCourse(altitude, course)) altitude,
+        if (BestCruiseAltitude.matchesCourse(altitude, routeCourse)) altitude,
     ];
-    // A cruise table with only one side still flies. Otherwise the leg uses
-    // an odd thousand eastbound and an even thousand westbound.
+    // A cruise table with only one side still flies. Otherwise the route uses
+    // an odd thousand when the course from start to end is east, and an even
+    // thousand when that course is west.
     final List<int> pool = forCourse.isEmpty ? sorted : forCourse;
     final List<int> opened = [
       for (final int altitude in _cruiseCandidates(pool, floor, altitude, lowest))
@@ -1538,12 +1541,16 @@ double _courseAt(List<({double nm, LatLng at})> points, double nm) {
   return GeoCalculations().calculateBearing(points[index - 1].at, points[index].at);
 }
 
-double _magneticCourseAt(
+/// Magnetic course from the first point to the last. East and west altitudes
+/// use this course for the whole route.
+double _routeMagneticCourse(
   List<({double nm, LatLng at})> points,
-  double nm,
   double Function(double nm)? variationAt,
 ) {
-  final double trueCourse = _courseAt(points, nm);
-  final double variation = variationAt?.call(nm) ?? 0;
+  if (points.length < 2) {
+    return 0;
+  }
+  final double trueCourse = GeoCalculations().calculateBearing(points.first.at, points.last.at);
+  final double variation = variationAt?.call(points.last.nm / 2) ?? 0;
   return GeoCalculations.getMagneticHeading(trueCourse, variation);
 }
