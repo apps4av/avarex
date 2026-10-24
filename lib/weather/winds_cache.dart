@@ -222,16 +222,60 @@ class WindsCache extends WeatherCache {
     return null;
   }
 
+  static Map<int, List<MapEntry<String, LatLng>>>? _stationGrid;
+
+  static int _stationCell(int latitudeCell, int longitudeCell) =>
+      latitudeCell * 1000 + longitudeCell;
+
+  static Map<int, List<MapEntry<String, LatLng>>> _stationsByCell() {
+    final Map<int, List<MapEntry<String, LatLng>>>? grid = _stationGrid;
+    if (grid != null) {
+      return grid;
+    }
+    final Map<int, List<MapEntry<String, LatLng>>> built = {};
+    for (final MapEntry<String, LatLng> entry in _stationMap.entries) {
+      final int latitudeCell = entry.value.latitude.floor();
+      final int longitudeCell = entry.value.longitude.floor();
+      built
+          .putIfAbsent(_stationCell(latitudeCell, longitudeCell), () => [])
+          .add(entry);
+    }
+    return _stationGrid = built;
+  }
+
+  /// Nearest winds-aloft station. Cells are one degree. The square grows until
+  /// the nearest station inside it is closer than the square's edge, so a
+  /// station outside that square cannot be closer.
   static String? locateNearestStation(LatLng location) {
-    // find distance
-    GeoCalculations geo = GeoCalculations();
+    final GeoCalculations geo = GeoCalculations();
+    final Map<int, List<MapEntry<String, LatLng>>> grid = _stationsByCell();
+    final int latitudeCell = location.latitude.floor();
+    final int longitudeCell = location.longitude.floor();
     double distanceMin = double.maxFinite;
     String? station;
-    for(MapEntry<String, LatLng> map in _stationMap.entries) {
-      double distance = geo.calculateDistance(map.value, location);
-      if(distance < distanceMin) {
-        distanceMin = distance;
-        station = map.key;
+    for (int radius = 1; radius <= 40; radius++) {
+      for (int dLat = -radius; dLat <= radius; dLat++) {
+        for (int dLon = -radius; dLon <= radius; dLon++) {
+          if (radius > 1 && dLat.abs() < radius && dLon.abs() < radius) {
+            continue;
+          }
+          final List<MapEntry<String, LatLng>>? nearby =
+              grid[_stationCell(latitudeCell + dLat, longitudeCell + dLon)];
+          if (nearby == null) {
+            continue;
+          }
+          for (final MapEntry<String, LatLng> entry in nearby) {
+            final double distance = geo.calculateDistance(entry.value, location);
+            if (distance < distanceMin) {
+              distanceMin = distance;
+              station = entry.key;
+            }
+          }
+        }
+      }
+      // One degree of longitude is about 10 nm at 80° latitude.
+      if (station != null && distanceMin <= radius * 10.0) {
+        return station;
       }
     }
     return station;

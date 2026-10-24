@@ -43,11 +43,13 @@ class BestCruiseAltitudeResult {
 
 /// Picks cruise altitudes for the shortest time to the destination.
 ///
-/// [choose] walks the whole route. About every [holdNm] miles it picks the
-/// fastest cruise altitude that is at least [terrainClearanceFt] above the
-/// terrain in the next [holdNm] miles, then holds that altitude. Climb and
-/// descent use the aircraft climb speed and climb rate. Time and fuel while
-/// the altitude is changing use that climb speed.
+/// [choose] walks the whole route. A climb is the fastest altitude for the
+/// rest of the route, at least [terrainClearanceFt] above the terrain in the
+/// next [holdNm] miles, and that climb then waits [holdNm] miles. A lower
+/// altitude can be chosen after [descentHoldNm] miles, once the airplane is at
+/// the current altitude, when the lower one is faster over that stretch.
+/// Climb and descent use the aircraft climb speed and climb rate. Time and
+/// fuel while the altitude is changing use that climb speed.
 ///
 /// [search] scores one altitude for a whole leg. A climb starts at
 /// [fromAltitudeFt], at [climbSpeedFraction] of cruise speed. Climb rate is
@@ -57,8 +59,11 @@ class BestCruiseAltitudeResult {
 class BestCruiseAltitude {
   BestCruiseAltitude._();
 
-  /// Miles between altitude changes. The altitude also has to clear the terrain this far ahead.
+  /// Miles before the altitude may go up. The altitude also has to clear the terrain this far ahead.
   static const double holdNm = 50;
+
+  /// Miles before the altitude may go down, when the lower altitude is faster.
+  static const double descentHoldNm = 20;
 
   /// Feet above the highest terrain in the next [holdNm] miles.
   static const int terrainClearanceFt = 1000;
@@ -409,7 +414,9 @@ class BestCruiseAltitude {
     return RouteTrack(points: points, legEndNm: legEndNm);
   }
 
-  /// Cruise altitudes along [track]. A new altitude is chosen every [holdNm] miles.
+  /// Cruise altitudes along [track]. A climb is the fastest altitude for the
+  /// rest of the route, then it waits [holdNm] miles. A descent can be chosen
+  /// every [descentHoldNm] miles after the airplane reaches that altitude.
   ///
   /// Each choice stays [terrainClearanceFt] above the terrain until the next choice.
   /// The airplane climbs and descends at [climbTrueAirspeedKt] and [climbRateConstantFpm]
@@ -735,6 +742,56 @@ class ProfileFlight {
   }
 }
 
+/// One altitude flown level from the start, so later decisions can reuse its time.
+class _LevelFlight {
+  final _LegFly? flown;
+  final List<FlownSample> samples;
+
+  const _LevelFlight(this.flown, this.samples);
+
+  double? remainingSeconds(double nm) {
+    if (flown == null || samples.isEmpty) {
+      return null;
+    }
+    final double rest = samples.last.timeSeconds - _flownValue(samples, nm, (FlownSample sample) => sample.timeSeconds);
+    return rest < 0 ? 0 : rest;
+  }
+
+  double altitudeAt(double nm) {
+    if (samples.isEmpty) {
+      return 0;
+    }
+    return _flownValue(samples, nm, (FlownSample sample) => sample.altitudeFt);
+  }
+}
+
+double _flownValue(List<FlownSample> samples, double nm, double Function(FlownSample sample) read) {
+  if (samples.isEmpty) {
+    return 0;
+  }
+  if (nm <= samples.first.nm) {
+    return read(samples.first);
+  }
+  if (nm >= samples.last.nm) {
+    return read(samples.last);
+  }
+  int lo = 1;
+  int hi = samples.length - 1;
+  while (lo < hi) {
+    final int mid = (lo + hi) >> 1;
+    if (samples[mid].nm < nm) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  final FlownSample before = samples[lo - 1];
+  final FlownSample after = samples[lo];
+  final double span = after.nm - before.nm;
+  final double t = span <= 0 ? 0 : (nm - before.nm) / span;
+  return read(before) + (read(after) - read(before)) * t;
+}
+
 /// Altitudes chosen for a route, and whether terrain or wind limited them.
 class RouteCruiseResult {
   final CruiseProfile? profile;
@@ -785,18 +842,119 @@ RouteCruiseResult _planRoute({
   final List<CruiseStep> steps = [];
   double pos = 0;
   double altitude = startAltitudeFt.toDouble();
+  double lastChangeNm = 0;
+  double lastClimbNm = 0;
   final double total = track.totalNm;
+  // Miles of climb or descent to simulate before using the level-flight time.
+  // Far enough to finish a climb, and short enough that a long route is not
+  // integrated again at every decision.
+  const double climbLookNm = 250;
+  final Map<int, _LevelFlight> levelFlights = {};
 
-  while (pos < total - 0.05) {
-    final double windowEnd = math.min(pos + BestCruiseAltitude.holdNm, total);
-    if (windowEnd <= pos + 0.01) {
-      break;
+  _LegFly? flyCandidate({
+    required int candidate,
+    required CruiseResult cruise,
+    required double fromNm,
+    required double toNm,
+    required double startAlt,
+    List<FlownSample>? samples,
+  }) {
+    return _integrate(
+      track: track,
+      fromNm: fromNm,
+      toNm: toNm,
+      startAlt: startAlt,
+      totalNm: total,
+      endAltitudeFt: endAltitudeFt,
+      arriveAtEnd: arriveAtEnd,
+      climbTasKt: climbTasKt,
+      climbRateFpm: climbRateFpm,
+      topAltitudeFt: topAltitudeFt,
+      cruiseAltAt: (double nm) => candidate,
+      cruiseTasAt: (double nm) => cruise.ktas,
+      gphAt: (double nm) => cruise.gph,
+      windAt: remember,
+      strict: true,
+      terrain: terrain,
+      samples: samples,
+    );
+  }
+
+  _LevelFlight levelFlight(int candidate, CruiseResult cruise) {
+    final _LevelFlight? saved = levelFlights[candidate];
+    if (saved != null) {
+      return saved;
     }
-    final int floor = _terrainFloor(track, terrainFt, pos, windowEnd);
-    final List<int> candidates = _cruiseCandidates(sorted, floor, altitude, lowest);
-    if (candidates.isEmpty) {
-      break;
+    final List<FlownSample> samples = [];
+    final _LegFly? flown = flyCandidate(
+      candidate: candidate,
+      cruise: cruise,
+      fromNm: 0,
+      toNm: total,
+      startAlt: candidate.toDouble(),
+      samples: samples,
+    );
+    final _LevelFlight flight = _LevelFlight(flown, samples);
+    levelFlights[candidate] = flight;
+    return flight;
+  }
+
+  /// Time from [pos] to the end at [candidate]. The level cruise is computed
+  /// once per altitude. A climb or descent is simulated only until that altitude.
+  _LegFly? timeOverRest(int candidate, CruiseResult cruise) {
+    final _LevelFlight level = levelFlight(candidate, cruise);
+    if (level.flown == null) {
+      return null;
     }
+    if ((altitude - level.altitudeAt(pos)).abs() <= 100) {
+      final double? rest = level.remainingSeconds(pos);
+      if (rest == null) {
+        return null;
+      }
+      return _LegFly(timeSeconds: rest, fuelGal: 0, endAltitude: candidate.toDouble());
+    }
+    final double climbEnd = math.min(pos + climbLookNm, total);
+    final _LegFly? climb = flyCandidate(
+      candidate: candidate,
+      cruise: cruise,
+      fromNm: pos,
+      toNm: climbEnd,
+      startAlt: altitude,
+    );
+    if (climb == null) {
+      return null;
+    }
+    if (climbEnd >= total - 0.05) {
+      return climb;
+    }
+    if ((climb.endAltitude - level.altitudeAt(climbEnd)).abs() > 250) {
+      return flyCandidate(
+        candidate: candidate,
+        cruise: cruise,
+        fromNm: pos,
+        toNm: total,
+        startAlt: altitude,
+      );
+    }
+    final double? rest = level.remainingSeconds(climbEnd);
+    if (rest == null) {
+      return climb;
+    }
+    return _LegFly(
+      timeSeconds: climb.timeSeconds + rest,
+      fuelGal: climb.fuelGal,
+      endAltitude: climb.endAltitude,
+    );
+  }
+
+  ({CruiseStep step, double endAltitude, double timeSeconds})? bestOver(
+    double windowEnd,
+    List<int> candidates,
+  ) {
+    if (windowEnd <= pos + 0.01 || candidates.isEmpty) {
+      return null;
+    }
+    final bool wholeRoute = windowEnd >= total - 0.05;
     CruiseStep? best;
     double? bestTime;
     double bestEnd = altitude;
@@ -805,24 +963,15 @@ RouteCruiseResult _planRoute({
       if (cruise.ktas <= 0 || !cruise.ktas.isFinite) {
         continue;
       }
-      final _LegFly? flown = _integrate(
-        track: track,
-        fromNm: pos,
-        toNm: windowEnd,
-        startAlt: altitude,
-        totalNm: total,
-        endAltitudeFt: endAltitudeFt,
-        arriveAtEnd: arriveAtEnd,
-        climbTasKt: climbTasKt,
-        climbRateFpm: climbRateFpm,
-        topAltitudeFt: topAltitudeFt,
-        cruiseAltAt: (double nm) => candidate,
-        cruiseTasAt: (double nm) => cruise.ktas,
-        gphAt: (double nm) => cruise.gph,
-        windAt: remember,
-        strict: true,
-        terrain: terrain,
-      );
+      final _LegFly? flown = wholeRoute
+          ? timeOverRest(candidate, cruise)
+          : flyCandidate(
+              candidate: candidate,
+              cruise: cruise,
+              fromNm: pos,
+              toNm: windowEnd,
+              startAlt: altitude,
+            );
       if (flown == null) {
         continue;
       }
@@ -839,17 +988,120 @@ RouteCruiseResult _planRoute({
         bestEnd = flown.endAltitude;
       }
     }
-    if (best == null) {
+    if (best == null || bestTime == null) {
+      return null;
+    }
+    return (step: best, endAltitude: bestEnd, timeSeconds: bestTime);
+  }
+
+  double nextAfter(double origin, double step) {
+    double at = origin + step;
+    while (at <= pos + 0.05) {
+      at += step;
+    }
+    return at;
+  }
+
+  while (pos < total - 0.05) {
+    final bool first = steps.isEmpty;
+    final bool allowClimb = first || pos - lastClimbNm >= BestCruiseAltitude.holdNm - 0.05;
+    final bool allowDescent = !first && pos - lastChangeNm >= BestCruiseAltitude.descentHoldNm - 0.05;
+    final double terrainEnd = math.min(pos + BestCruiseAltitude.holdNm, total);
+    final int floor = _terrainFloor(track, terrainFt, pos, terrainEnd);
+    final List<int> candidates = _cruiseCandidates(sorted, floor, altitude, lowest);
+    if (candidates.isEmpty) {
       break;
     }
-    if (best.altitudeFt < floor) {
+    final int? current = first ? null : steps.last.altitudeFt;
+    ({CruiseStep step, double endAltitude, double timeSeconds})? chosen;
+    // A 20-mile descent check while still climbing would give back an altitude
+    // that is faster for the rest of the route.
+    final bool atCruise = current != null && altitude >= current - 100;
+
+    // A descent is scored over the next 20 miles against staying put.
+    // Terrain clearance still looks 50 miles ahead, so a step down stays
+    // 1,000 ft above the terrain in that longer stretch.
+    if (allowDescent && atCruise) {
+      final List<int> lower = [
+        for (final int candidate in candidates)
+          if (candidate < current) candidate,
+      ];
+      final double descentEnd = math.min(pos + BestCruiseAltitude.descentHoldNm, total);
+      final stay = bestOver(descentEnd, [current]);
+      final down = bestOver(descentEnd, lower);
+      if (down != null && (stay == null || down.timeSeconds < stay.timeSeconds)) {
+        chosen = down;
+      }
+    }
+    if (chosen == null && allowClimb) {
+      // Score the climb over the miles still ahead. A 50-mile window can be
+      // spent entirely in the climb, so a higher altitude that is faster for
+      // the rest of the route would never be chosen.
+      chosen = bestOver(total, candidates);
+    }
+    double nextLook() {
+      return math.min(
+        total,
+        math.min(
+          nextAfter(lastChangeNm, BestCruiseAltitude.descentHoldNm),
+          nextAfter(lastClimbNm, BestCruiseAltitude.holdNm),
+        ),
+      );
+    }
+
+    void flyTo(double endNm, CruiseStep flying) {
+      if (endNm <= pos + 0.01) {
+        return;
+      }
+      final _LegFly? state = _integrate(
+        track: track,
+        fromNm: pos,
+        toNm: endNm,
+        startAlt: altitude,
+        totalNm: total,
+        endAltitudeFt: endAltitudeFt,
+        arriveAtEnd: arriveAtEnd,
+        climbTasKt: climbTasKt,
+        climbRateFpm: climbRateFpm,
+        topAltitudeFt: topAltitudeFt,
+        cruiseAltAt: (double nm) => flying.altitudeFt,
+        cruiseTasAt: (double nm) => flying.ktas,
+        gphAt: (double nm) => flying.gph,
+        windAt: remember,
+        strict: false,
+        terrain: terrain,
+      );
+      if (state != null) {
+        altitude = state.endAltitude;
+      }
+    }
+
+    if (chosen == null) {
+      final double next = nextLook();
+      if (next <= pos + 0.05 || steps.isEmpty) {
+        break;
+      }
+      flyTo(next, steps.last);
+      pos = next;
+      continue;
+    }
+    if (chosen.step.altitudeFt < floor) {
       terrainShort = true;
     }
-    if (steps.isEmpty || steps.last.altitudeFt != best.altitudeFt) {
-      steps.add(best);
+    final bool changed = first || steps.last.altitudeFt != chosen.step.altitudeFt;
+    if (changed) {
+      steps.add(chosen.step);
+      lastChangeNm = pos;
+      lastClimbNm = pos;
+    } else if (allowClimb) {
+      lastClimbNm = pos;
     }
-    altitude = bestEnd;
-    pos = windowEnd;
+    final double next = nextLook();
+    if (next <= pos + 0.05) {
+      break;
+    }
+    flyTo(next, chosen.step);
+    pos = next;
   }
   if (steps.isEmpty) {
     return RouteCruiseResult(profile: null, usedWind: usedWind, terrainShort: terrainShort);
@@ -925,6 +1177,62 @@ class _LegFly {
   });
 }
 
+/// Mile where the arrival descent begins so the airplane reaches [endAltitudeFt]
+/// at [totalNm]. Each mile uses the wind on that mile, and the point does not move.
+double? _arrivalDescentNm({
+  required RouteTrack track,
+  required double totalNm,
+  required int endAltitudeFt,
+  required double climbTasKt,
+  required double climbRateFpm,
+  required int topAltitudeFt,
+  required int Function(double nm) cruiseAltAt,
+  required double Function(double nm) cruiseTasAt,
+  required (double?, double?) Function(LatLng point, int altitudeFt) windAt,
+  required List<({double nm, double ft})> terrain,
+}) {
+  if (track.points.length < 2 || totalNm <= 0) {
+    return null;
+  }
+  double nm = totalNm;
+  double alt = endAltitudeFt.toDouble();
+  while (nm > 0.05) {
+    final double step = math.min(1.0, nm);
+    final double mid = nm - step / 2;
+    final int cruiseTarget = cruiseAltAt(mid);
+    if (alt >= cruiseTarget - 1) {
+      return nm;
+    }
+    final double cruiseTas = cruiseTasAt(mid);
+    final double rate = climbRateFpm > 0
+        ? climbRateFpm
+        : BestCruiseAltitude.climbRateFpm(altitudeFt: alt.round(), topAltitudeFt: topAltitudeFt);
+    final double verticalTas = climbTasKt > 0
+        ? climbTasKt
+        : (cruiseTas > 0 ? cruiseTas * BestCruiseAltitude.climbSpeedFraction : 0);
+    if (rate <= 0 || verticalTas <= 0) {
+      return nm;
+    }
+    final LatLng point = _pointAt(track.points, mid);
+    final double? floor = _clearanceFt(terrain, mid);
+    final double windAlt = floor == null ? alt : math.max(alt, floor);
+    final (double? direction, double? windSpeed) = windAt(point, windAlt.round());
+    final double? groundSpeed = BestCruiseAltitude._groundSpeedKt(
+      trueAirspeedKt: verticalTas,
+      courseDeg: _courseAt(track.points, mid),
+      windFrom: direction,
+      windSpeed: windSpeed,
+    );
+    final double speed = (groundSpeed != null && groundSpeed > 0) ? groundSpeed : verticalTas;
+    alt += rate * (step / speed) * 60.0;
+    nm -= step;
+    if (alt >= cruiseAltAt(math.max(0, nm)) - 1) {
+      return nm;
+    }
+  }
+  return 0;
+}
+
 _LegFly? _integrate({
   required RouteTrack track,
   required double fromNm,
@@ -948,6 +1256,23 @@ _LegFly? _integrate({
   double altitude = startAlt;
   double time = 0;
   double fuel = 0;
+  // One descent point for the whole arrival. Recomputing it from the ground
+  // speed at each mile starts down in a tailwind, then climbs back when the
+  // next leg is slower.
+  final double? descentFromNm = arriveAtEnd
+      ? _arrivalDescentNm(
+          track: track,
+          totalNm: totalNm,
+          endAltitudeFt: endAltitudeFt,
+          climbTasKt: climbTasKt,
+          climbRateFpm: climbRateFpm,
+          topAltitudeFt: topAltitudeFt,
+          cruiseAltAt: cruiseAltAt,
+          cruiseTasAt: cruiseTasAt,
+          windAt: windAt,
+          terrain: terrain,
+        )
+      : null;
   samples?.add(FlownSample(nm: nm, altitudeFt: altitude, timeSeconds: time, fuelGal: fuel));
   while (nm < toNm - 1e-6) {
     final double step = math.min(1.0, toNm - nm);
@@ -968,22 +1293,9 @@ _LegFly? _integrate({
 
     final double? floor = _clearanceFt(terrain, mid);
     final double safeAlt = floor == null ? altitude : math.max(altitude, floor);
-    bool finish = false;
-    if (arriveAtEnd && (safeAlt - endAltitudeFt).abs() > 1 && rate > 0 && verticalTas > 0) {
-      final (double? climbDirection, double? climbSpeed) = windAt(point, safeAlt.round());
-      final double? climbGs = BestCruiseAltitude._groundSpeedKt(
-        trueAirspeedKt: verticalTas,
-        courseDeg: _courseAt(track.points, mid),
-        windFrom: climbDirection,
-        windSpeed: climbSpeed,
-      );
-      final double speed = (climbGs != null && climbGs > 0) ? climbGs : verticalTas;
-      final double needNm = (safeAlt - endAltitudeFt).abs() / rate / 60.0 * speed;
-      // Start within this step so the arrival is at the field, not still descending.
-      if (totalNm - nm <= needNm + step) {
-        finish = true;
-      }
-    }
+    final bool finish = descentFromNm != null &&
+        (safeAlt - endAltitudeFt).abs() > 1 &&
+        mid >= descentFromNm;
 
     final bool landing = arriveAtEnd && (nm + step) >= totalNm - 1e-6;
     int target = finish ? endAltitudeFt : cruiseTarget;
@@ -1086,16 +1398,22 @@ double? _terrainElevation(List<({double nm, double ft})> terrain, double nm) {
   if (terrain.isEmpty) {
     return null;
   }
-  ({double nm, double ft})? before;
-  ({double nm, double ft})? after;
-  for (final ({double nm, double ft}) sample in terrain) {
-    if (sample.nm <= nm) {
-      before = sample;
-    }
-    if (sample.nm >= nm) {
-      after ??= sample;
+  int lo = 0;
+  int hi = terrain.length - 1;
+  int found = -1;
+  while (lo <= hi) {
+    final int mid = (lo + hi) >> 1;
+    if (terrain[mid].nm <= nm) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
     }
   }
+  final ({double nm, double ft})? before = found >= 0 ? terrain[found] : null;
+  final ({double nm, double ft})? after = found >= 0 && terrain[found].nm >= nm
+      ? terrain[found]
+      : (found + 1 < terrain.length ? terrain[found + 1] : null);
   if (before != null && after != null) {
     final double span = after.nm - before.nm;
     if (span <= 0) {
@@ -1120,35 +1438,47 @@ double? _terrainElevation(List<({double nm, double ft})> terrain, double nm) {
   return nearest.ft;
 }
 
+/// First point index at or after [nm]. The segment is the previous point to this one.
+int _segmentEnd(List<({double nm, LatLng at})> points, double nm) {
+  if (nm <= points[1].nm) {
+    return 1;
+  }
+  if (nm >= points.last.nm) {
+    return points.length - 1;
+  }
+  int lo = 1;
+  int hi = points.length - 1;
+  while (lo < hi) {
+    final int mid = (lo + hi) >> 1;
+    if (points[mid].nm < nm) {
+      lo = mid + 1;
+    } else {
+      hi = mid;
+    }
+  }
+  return lo;
+}
+
 LatLng _pointAt(List<({double nm, LatLng at})> points, double nm) {
   if (points.isEmpty) {
     return const LatLng(0, 0);
   }
-  if (nm <= points.first.nm) {
+  if (points.length == 1 || nm <= points.first.nm) {
     return points.first.at;
   }
-  for (int index = 1; index < points.length; index++) {
-    if (nm <= points[index].nm) {
-      final double span = points[index].nm - points[index - 1].nm;
-      final double t = span <= 0 ? 0 : (nm - points[index - 1].nm) / span;
-      return LatLng(
-        points[index - 1].at.latitude + (points[index].at.latitude - points[index - 1].at.latitude) * t,
-        points[index - 1].at.longitude + (points[index].at.longitude - points[index - 1].at.longitude) * t,
-      );
-    }
-  }
-  return points.last.at;
+  final int index = _segmentEnd(points, nm);
+  final double span = points[index].nm - points[index - 1].nm;
+  final double t = span <= 0 ? 0 : (nm - points[index - 1].nm) / span;
+  return LatLng(
+    points[index - 1].at.latitude + (points[index].at.latitude - points[index - 1].at.latitude) * t,
+    points[index - 1].at.longitude + (points[index].at.longitude - points[index - 1].at.longitude) * t,
+  );
 }
 
 double _courseAt(List<({double nm, LatLng at})> points, double nm) {
   if (points.length < 2) {
     return 0;
   }
-  final GeoCalculations geo = GeoCalculations();
-  for (int index = 1; index < points.length; index++) {
-    if (nm <= points[index].nm) {
-      return geo.calculateBearing(points[index - 1].at, points[index].at);
-    }
-  }
-  return geo.calculateBearing(points[points.length - 2].at, points.last.at);
+  final int index = _segmentEnd(points, nm);
+  return GeoCalculations().calculateBearing(points[index - 1].at, points[index].at);
 }

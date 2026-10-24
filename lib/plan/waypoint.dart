@@ -11,7 +11,6 @@ class Waypoint {
   int? altitudeFt;
 
   /// Altitude the navigation log uses for this leg. Null uses [altitudeFt].
-  /// The arrival airport's row stays at field elevation while this keeps the cruise altitude.
   int? navAltitudeFt;
 
   /// Cruise true airspeed and fuel flow chosen for this leg. Null uses the plan ASpd and GPH.

@@ -30,6 +30,7 @@ import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/data/altitude_profile.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
+import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:avaremp/weather/winds_cache.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -132,6 +133,14 @@ class PlanScreenState extends State<PlanScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: "Insert waypoint",
+                  onPressed: () {
+                    Storage().planSearch = true;
+                    MainScreenState.gotoFind();
+                  },
+                ),
                 DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
                     isDense: true,
@@ -163,14 +172,6 @@ class PlanScreenState extends State<PlanScreen> {
                 ),
                 const SizedBox(width: 4),
                 _calcButton(),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  tooltip: "Insert waypoint",
-                  onPressed: () {
-                    Storage().planSearch = true;
-                    MainScreenState.gotoFind();
-                  },
-                ),
                 IconButton(
                   icon: const Icon(Icons.analytics_outlined),
                   tooltip: "Navigation log and terrain",
@@ -314,6 +315,23 @@ class PlanScreenState extends State<PlanScreen> {
           : null;
       final int endAlt = field ?? legs.last.waypoint.effectiveAltitude(Storage().route.altitude);
       final int topAltitude = altitudes.reduce((int a, int b) => a > b ? a : b);
+      // Let the spinner paint before the route search runs on this isolate.
+      await Future<void>.delayed(Duration.zero);
+      if (!mounted) return;
+      final String foreString = fore.toString().padLeft(2, "0");
+      final Map<String, (double?, double?)> windMemo = {};
+      (double?, double?) windFor(LatLng point, int altitude) {
+        final String? station = WindsCache.locateNearestStation(point);
+        final String key = "$station|$altitude";
+        return windMemo.putIfAbsent(key, () {
+          final Object? stored = Storage().winds.get("$station${foreString}H");
+          return WindsCache.getWindAtAltitude(
+            altitude.toDouble(),
+            stored is WindsAloft ? stored : null,
+          );
+        });
+      }
+
       final RouteCruiseResult result = BestCruiseAltitude.choose(
         track: track,
         terrainFt: terrain,
@@ -325,8 +343,7 @@ class PlanScreenState extends State<PlanScreen> {
         climbRateConstantFpm: climbFpm,
         topAltitudeFt: topAltitude,
         cruiseAt: (int altitude) => perf.getCruisePerformance(altitude, powerPct, 0),
-        windAt: (LatLng point, int altitude) =>
-            WindsCache.getWindsAt(point, altitude.toDouble(), fore),
+        windAt: windFor,
       );
       final CruiseProfile? profile = result.profile;
       if (profile == null) {
@@ -469,7 +486,7 @@ class PlanScreenState extends State<PlanScreen> {
 
   Widget _calcButton() {
     return IconButton(
-      tooltip: "Set altitudes for the shortest time. Climb and descent use best climb speed and rate, and a new altitude waits 50 miles",
+      tooltip: "Set altitudes for the shortest time. Climb and descent use best climb speed and rate. A climb starts when a higher altitude is faster for the rest of the route, then waits 50 miles. A descent waits 20 miles",
       onPressed: _findingBestAltitude ? null : _applyBestCruiseAltitude,
       icon: _findingBestAltitude
           ? const SizedBox(
@@ -605,7 +622,20 @@ class _NavLogContentState extends State<_NavLogContent> {
   final TransformationController _tableZoomController = TransformationController();
 
   @override
+  void initState() {
+    super.initState();
+    Storage().winds.change.addListener(_onWinds);
+  }
+
+  void _onWinds() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
   void dispose() {
+    Storage().winds.change.removeListener(_onWinds);
     _tableZoomController.dispose();
     super.dispose();
   }

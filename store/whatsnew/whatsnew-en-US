@@ -1,6 +1,4 @@
 Share the active plan from Menu `Link`. Slaves copy the plan and waypoint.
 Sync plates to the active airport waypoint.
-PLAN altitude icon climbs and descends with the aircraft, holds an altitude for 50 miles, and keeps the plan chart and ground speed 1,000 ft above the terrain.
+PLAN altitude icon starts a climb when a higher altitude is faster for the rest of the route, holds that climb for 50 miles, and can descend after 20 miles. The plan chart and ground speed stay 1,000 ft above the terrain.
 Typing a PLAN altitude changes that leg only. Later legs keep their altitudes.
-PLAN reads cruise speed and fuel flow from the aircraft.
-An approach profile sets fix altitudes. Nav log and 3D follow.

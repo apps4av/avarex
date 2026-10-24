@@ -105,10 +105,9 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
   }
 
   Widget _altitudeLine(Destination destination, int? fixIndex) {
-    final int planAltitude = Storage().route.altitude;
     return PlanLineWidget(
       destination: destination,
-      altitude: widget.waypoint.effectiveAltitude(planAltitude, fixIndex),
+      altitude: Storage().route.rowAltitude(widget.waypoint, fixIndex),
       onAltitudeChanged: (int value) {
         Storage().route.setLegAltitude(widget.waypoint, fixIndex, value);
       },

@@ -284,7 +284,7 @@ void main() {
   }
 
   test("altitude changes wait 50 miles and follow the wind", () {
-    final RouteTrack track = northbound(100);
+    final RouteTrack track = northbound(200);
     final RouteCruiseResult result = BestCruiseAltitude.choose(
       track: track,
       terrainFt: flat(track),
@@ -295,10 +295,11 @@ void main() {
       climbTrueAirspeedKt: 80,
       climbRateConstantFpm: 1000,
       cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
-      // Northbound. Before 50 nm, 4,000 ft has the tailwind. After that, 8,000 ft does.
+      // Northbound. The higher tailwind is only on the last 40 miles, so the
+      // climb waits until that part is what remains.
       windAt: (LatLng point, int altitude) {
         final double miles = point.latitude * 60;
-        if (miles < 50) {
+        if (miles < 160) {
           return altitude <= 4000 ? (180.0, 40.0) : (0.0, 40.0);
         }
         return altitude >= 8000 ? (180.0, 40.0) : (0.0, 40.0);
@@ -311,6 +312,89 @@ void main() {
     for (int index = 1; index < steps.length; index++) {
       expect(steps[index].startNm - steps[index - 1].startNm, greaterThanOrEqualTo(50));
     }
+  });
+
+  test("a long route still picks the faster altitude", () {
+    final RouteTrack track = BestCruiseAltitude.buildTrack([
+      (from: const LatLng(0, 0), to: const LatLng(1600 / 60.0, 0)),
+    ], spacingNm: 1);
+    final Stopwatch watch = Stopwatch()..start();
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: true,
+      climbTrueAirspeedKt: 90,
+      climbRateConstantFpm: 500,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 120, gph: 8),
+      windAt: (LatLng point, int altitude) =>
+          altitude >= 8000 ? (180.0, 30.0) : (0.0, 30.0),
+    );
+    watch.stop();
+    expect(result.profile!.steps.first.altitudeFt, 8000);
+    expect(watch.elapsedMilliseconds, lessThan(1500));
+  });
+
+  test("a climb starts now when the higher altitude is faster for the whole route", () {
+    final RouteTrack track = northbound(200);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 70,
+      climbRateConstantFpm: 80,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      // Tailwind only at 8,000 ft. The climb is slow enough that the first
+      // 50 miles are spent climbing, and the tailwind is what pays for it.
+      windAt: (LatLng point, int altitude) =>
+          altitude >= 8000 ? (180.0, 40.0) : (0.0, 40.0),
+    );
+    final List<CruiseStep> steps = result.profile!.steps;
+    expect(steps.single.altitudeFt, 8000);
+    expect(steps.single.startNm, 0);
+    final ProfileFlight flight = result.profile!.fly(
+      track,
+      (LatLng point, int altitude) => altitude >= 8000 ? (180.0, 40.0) : (0.0, 40.0),
+    );
+    expect(flight.altitudeAt(15), greaterThan(500));
+    expect(flight.altitudeAt(15), lessThan(7000));
+    expect(flight.altitudeAt(track.totalNm), greaterThan(7000));
+  });
+
+  test("a descent can begin 20 miles after the last altitude", () {
+    final RouteTrack track = northbound(180);
+    final RouteCruiseResult result = BestCruiseAltitude.choose(
+      track: track,
+      terrainFt: flat(track),
+      altitudesFt: [4000, 8000],
+      startAltitudeFt: 0,
+      endAltitudeFt: 0,
+      arriveAtEnd: false,
+      climbTrueAirspeedKt: 80,
+      climbRateConstantFpm: 1000,
+      cruiseAt: (int altitude) => CruiseResult(ktas: 100, gph: 8),
+      // Northbound. 8,000 ft is faster until 140 miles, then 4,000 ft is.
+      windAt: (LatLng point, int altitude) {
+        final double miles = point.latitude * 60;
+        if (miles < 140) {
+          return altitude >= 8000 ? (180.0, 40.0) : (0.0, 40.0);
+        }
+        return altitude <= 4000 ? (180.0, 40.0) : (0.0, 40.0);
+      },
+    );
+    final List<CruiseStep> steps = result.profile!.steps;
+    expect(steps.first.altitudeFt, 8000);
+    expect(steps.first.startNm, 0);
+    final CruiseStep down = steps[1];
+    expect(down.altitudeFt, 4000);
+    expect(down.startNm, greaterThanOrEqualTo(20));
+    expect(down.startNm, greaterThanOrEqualTo(100));
+    expect(down.startNm, lessThanOrEqualTo(160));
   });
 
   test("the first 50 miles clears terrain that far ahead", () {
@@ -394,6 +478,42 @@ void main() {
     expect(slow.altitudeAt(track.totalNm), lessThan(500));
     expect(slow.altitudeAt(40), greaterThan(7000));
     expect(slow.timeAt(track.totalNm), greaterThan(track.totalNm / 120 * 3600));
+  });
+
+  test("a wind change does not climb back during the arrival descent", () {
+    final RouteTrack track = northbound(100);
+    final ProfileFlight flight = CruiseProfile(
+      steps: [
+        const CruiseStep(startNm: 0, altitudeFt: 6000, ktas: 120, gph: 8),
+      ],
+      climbTasKt: 90,
+      climbRateFpm: 500,
+      topAltitudeFt: 12000,
+      startAltitudeFt: 6000,
+      endAltitudeFt: 0,
+      arriveAtEnd: true,
+      totalNm: track.totalNm,
+    ).fly(track, (LatLng point, int altitude) {
+      final double miles = point.latitude * 60;
+      // Tailwind before the turn, headwind after it.
+      return miles < 85 ? (180.0, 40.0) : (0.0, 40.0);
+    });
+    expect(flight.altitudeAt(50), greaterThan(5500));
+    expect(flight.altitudeAt(track.totalNm), lessThan(500));
+    double lowest = flight.samples.first.altitudeFt;
+    bool descending = false;
+    for (final FlownSample sample in flight.samples) {
+      if (!descending && sample.altitudeFt < 5500) {
+        descending = true;
+      }
+      if (descending) {
+        expect(sample.altitudeFt, lessThanOrEqualTo(lowest + 50));
+      }
+      if (sample.altitudeFt < lowest) {
+        lowest = sample.altitudeFt;
+      }
+    }
+    expect(descending, isTrue);
   });
 
   test("ground speed stays 1000 feet above the terrain", () {

@@ -506,6 +506,32 @@ class PlanRoute {
     return changed;
   }
 
+  /// Altitude in the plan Alt field. The arrival row shows the altitude that leg
+  /// starts at. Field elevation stays stored so the path still meets the runway.
+  int rowAltitude(Waypoint waypoint, [int? fixIndex]) {
+    if (fixIndex != null || !isArrivalAirport(waypoint)) {
+      return waypoint.effectiveAltitude(_altitude, fixIndex);
+    }
+    final ProfileFlight? flight = _flight;
+    if (flight != null && flight.fixNm.length >= 2) {
+      return flight.profile.stepAt(flight.fixNm[flight.fixNm.length - 2]).altitudeFt;
+    }
+    if (waypoint.navAltitudeFt != null) {
+      return waypoint.navAltitudeFt!;
+    }
+    final int? field = Waypoint.airportFieldElevationFt(
+      waypoint.planDestination.type,
+      waypoint.planDestination.elevation,
+    );
+    if (waypoint.altitudeFt != null && waypoint.altitudeFt != field) {
+      return waypoint.altitudeFt!;
+    }
+    if (_waypoints.length >= 2) {
+      return _waypoints[_waypoints.length - 2].effectiveAltitude(_altitude);
+    }
+    return waypoint.effectiveAltitude(_altitude);
+  }
+
   /// The leg into the last airport stays at field elevation.
   bool isArrivalAirport(Waypoint waypoint) {
     return _waypoints.length > 1 &&
