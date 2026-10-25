@@ -12,6 +12,7 @@ import 'aircraft/aircraft_performance_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'ai/ai_screen.dart';
 import 'checklist/checklist_screen.dart';
 import 'community/community_screen.dart';
@@ -26,6 +27,7 @@ import 'main_screen.dart';
 import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
 import 'services/backup_screen.dart';
+import 'splash_screen.dart';
 
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
   @override
@@ -66,7 +68,44 @@ class CustomWidgetsBinding extends WidgetsFlutterBinding {
 void main() {
   // this is to control cache. Nexrad needs it or image caching will make it impossible to animate weather
   CustomWidgetsBinding();
-  Storage().init().then((accentColor) async {
+  runApp(const StartupApp());
+}
+
+class StartupApp extends StatefulWidget {
+  const StartupApp({super.key});
+
+  @override
+  State<StartupApp> createState() => _StartupAppState();
+}
+
+class _StartupAppState extends State<StartupApp> {
+  /// Long enough to read the logo on a hot restart, when there is no native splash.
+  static const Duration _minimumVisible = Duration(milliseconds: 1500);
+  bool _initialized = false;
+  bool _minimumElapsed = false;
+
+  bool get _openApp => _initialized && _minimumElapsed;
+
+  @override
+  void initState() {
+    super.initState();
+    // Drop the native/web splash once this logo screen has actually painted.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
+    _start();
+    Future<void>.delayed(_minimumVisible, () {
+      if(!mounted) {
+        return;
+      }
+      setState(() {
+        _minimumElapsed = true;
+      });
+    });
+  }
+
+  Future<void> _start() async {
+    await Storage().init();
     if(Constants.firebaseAvailable) {
       try {
         await Firebase.initializeApp(
@@ -84,9 +123,28 @@ void main() {
         // ignore errors here
       }
     }
-    runApp(const MainApp());
-  });
+    if(!mounted) {
+      return;
+    }
+    setState(() {
+      _initialized = true;
+    });
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    if(!_openApp) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: SplashScreen.background,
+        ),
+        home: const SplashScreen(),
+      );
+    }
+    return const MainApp();
+  }
 }
 
 class MainApp extends StatelessWidget {

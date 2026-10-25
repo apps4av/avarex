@@ -103,6 +103,7 @@ dependencies:
   purchases_flutter: ^10.12.0
   purchases_flutter_ui: ^0.0.1
   purchases_ui_flutter: ^10.12.0
+  flutter_native_splash: ^2.4.8
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -121,6 +122,18 @@ flutter_launcher_icons:
   macos:
     generate: true
     image_path: "assets/images/logo.png"
+
+# Launch screen. color must match SplashScreen.background in lib/splash_screen.dart.
+flutter_native_splash:
+  color: "#141218"
+  color_dark: "#141218"
+  image: assets/splash/logo.png
+  image_dark: assets/splash/logo.png
+  android_12:
+    color: "#141218"
+    color_dark: "#141218"
+    image: assets/splash/logo_android12.png
+    image_dark: assets/splash/logo_android12.png
 
 dev_dependencies:
   flutter_test:
