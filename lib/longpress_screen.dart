@@ -37,82 +37,79 @@ class LongPressScreen extends StatefulWidget {
 
 }
 
-class LongPressFuture {
-
-  final Destination _destination;
-  Destination show;
-  List<Saa> saa = [];
-  List<NavDestination>? navs;
-
-  LongPressFuture(this._destination) : show =
-      Destination(
-          locationID: Destination.toSexagesimal(
-              _destination.coordinate),
-              type: Destination.typeGps,
-              facilityName: Destination.typeGps,
-              coordinate: _destination.coordinate);
-
-  Future<void> _getAll() async {
-    show = await DestinationFactory.make(_destination);
-    navs = await MainDatabaseHelper.db.findNearestVOR(_destination.coordinate);
-    saa = await MainDatabaseHelper.db.getSaa(_destination.coordinate);
-  }
-
-  Future<LongPressFuture> getAll() async {
-    await _getAll();
-    return this;
-  }
-}
-
 class LongPressScreenState extends State<LongPressScreen> {
 
   int _index = 0;
   static const List<String> labels = ["Main", "AD", "METAR", "NOTAM", "SUA", "Wind", "3D", "ST", "Business"];
 
-  late Future<LongPressFuture> _loadFuture;
+  late List<Destination> _nearby;
+  late Destination _show;
+  List<NavDestination>? _navs;
+  List<Saa> _saa = [];
+  bool _ready = false;
+  int _loadId = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadFuture = LongPressFuture(widget.destinations[0]).getAll();
+    _nearby = List<Destination>.of(widget.destinations);
+    _show = _nearby.first;
+    _load();
+  }
+
+  /// The sheet is already up. Find what was under the finger, then load the
+  /// airport record, nearest VORs, and special-use airspace together.
+  Future<void> _load() async {
+    final int loadId = ++_loadId;
+    List<Destination> nearby = _nearby;
+    if (nearby.length == 1 && Destination.isGps(nearby.first.type)) {
+      nearby = await MainDatabaseHelper.db.findNear(nearby.first.coordinate);
+      if (!mounted || loadId != _loadId) {
+        return;
+      }
+      setState(() {
+        _nearby = nearby;
+        _show = nearby.first;
+      });
+    }
+    final Destination primary = nearby.first;
+    final List<Object> details = await Future.wait([
+      DestinationFactory.make(primary),
+      MainDatabaseHelper.db.findNearestVOR(primary.coordinate),
+      MainDatabaseHelper.db.getSaa(primary.coordinate),
+    ]);
+    if (!mounted || loadId != _loadId) {
+      return;
+    }
+    setState(() {
+      _show = details[0] as Destination;
+      _navs = details[1] as List<NavDestination>;
+      _saa = details[2] as List<Saa>;
+      _ready = true;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-
-    return FutureBuilder<LongPressFuture>(
-        future: _loadFuture,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            Storage().setException('${snapshot.error}\n${snapshot.stackTrace}');
-          }
-          if (snapshot.hasData) {
-            return _makeContent(snapshot.data);
-          }
-          return _makeContent(null);
-        }
-    );
+    return _makeContent();
   }
 
-  Widget _makeContent(LongPressFuture? future) {
-
-    if (null == future) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _makeContent() {
 
     double width = Constants.screenWidth(context);
     double height = Constants.screenHeight(context);
-    Destination showDestination = future.show;
+    Destination showDestination = _show;
 
     GeoCalculations geo = GeoCalculations();
     LatLng ll = LatLng(Storage().position.latitude, Storage().position.longitude);
-    double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
-    double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
+    double distance = geo.calculateDistance(ll, _nearby.first.coordinate);
+    double bearing = geo.calculateBearing(ll, _nearby.first.coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
     String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
     List<Widget?> pages = List.generate(labels.length, (index) => null);
     String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
 
+    if (_ready) {
     if (showDestination is AirportDestination) {
 
       pages[labels.indexOf("Main")] = Airport.parse(showDestination);
@@ -238,9 +235,9 @@ class LongPressScreenState extends State<LongPressScreen> {
         },
       );
     } else {
-      if (future.navs != null && future.navs!.isNotEmpty) {
+      if (_navs != null && _navs!.isNotEmpty) {
         List<Widget> navRows = [];
-        for (NavDestination nav in future.navs!) {
+        for (NavDestination nav in _navs!) {
           List<String> vorData = Nav.getVorLine(nav);
           navRows.add(
             Padding(
@@ -344,11 +341,11 @@ class LongPressScreenState extends State<LongPressScreen> {
     );
     pages[labels.indexOf("ST")] = Sounding.getSoundingImage(showDestination.coordinate, context);
 
-    if (future.saa.isNotEmpty) {
+    if (_saa.isNotEmpty) {
       pages[labels.indexOf("SUA")] = ListView(
         padding: const EdgeInsets.all(8),
         children: [
-          for (Saa s in future.saa)
+          for (Saa s in _saa)
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -418,6 +415,7 @@ class LongPressScreenState extends State<LongPressScreen> {
         ],
       );
     }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -474,7 +472,7 @@ class LongPressScreenState extends State<LongPressScreen> {
               ),
             ),
           ),
-          if (widget.destinations.length > 1)
+          if (_nearby.length > 1)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -483,7 +481,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     child: Text(
-                      "Nearby (${widget.destinations.length - 1})",
+                      "Nearby (${_nearby.length - 1})",
                       style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.outline),
                     ),
                   ),
@@ -491,7 +489,7 @@ class LongPressScreenState extends State<LongPressScreen> {
                 ],
               ),
             ),
-          if (widget.destinations.length > 1)
+          if (_nearby.length > 1)
             SizedBox(
               height: 40,
               child: SingleChildScrollView(
@@ -499,14 +497,14 @@ class LongPressScreenState extends State<LongPressScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Row(
                   children: [
-                    for (int index = 1; index < widget.destinations.length; index++)
+                    for (int index = 1; index < _nearby.length; index++)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2),
                         child: ActionChip(
-                          avatar: DestinationFactory.getIcon(widget.destinations[index].type, Theme.of(context).colorScheme.primary),
-                          label: Text(widget.destinations[index].locationID, style: const TextStyle(fontSize: 12)),
+                          avatar: DestinationFactory.getIcon(_nearby[index].type, Theme.of(context).colorScheme.primary),
+                          label: Text(_nearby[index].locationID, style: const TextStyle(fontSize: 12)),
                           onPressed: () {
-                            Navigator.of(context).pushReplacementNamed("/popup", arguments: [widget.destinations[index]]);
+                            Navigator.of(context).pushReplacementNamed("/popup", arguments: [_nearby[index]]);
                           },
                         ),
                       ),
@@ -516,7 +514,9 @@ class LongPressScreenState extends State<LongPressScreen> {
             ),
           Expanded(
             flex: 10,
-            child: pages[_index] == null
+            child: !_ready
+                ? const Center(child: CircularProgressIndicator())
+                : pages[_index] == null
                 ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

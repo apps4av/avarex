@@ -17,7 +17,6 @@ import 'package:avaremp/gdl90/nexrad_cache.dart';
 import 'package:avaremp/gdl90/traffic_cache.dart';
 import 'package:avaremp/utils/compass_rose.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
-import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/io/gps_recorder.dart';
 import 'package:avaremp/instruments/cdi_vdi.dart';
 import 'package:avaremp/instruments/instrument_list.dart';
@@ -59,6 +58,10 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
+  // The map stays mounted while other tabs are showing. This is the live
+  // instance, so Find / Plan can move the camera without rebuilding it.
+  static MapScreenState? _active;
+  bool _visible = true;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
@@ -120,46 +123,71 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _metarListen() {
-    setState(() {
-      _metarCluster = null;
-    });
+    _metarCluster = null;
+    _rebuildIfVisible();
   }
 
   void _tafListen() {
-    setState(() {
-      _tafCluster = null;
-    });
+    _tafCluster = null;
+    _rebuildIfVisible();
   }
 
   void _airepListen() {
-    setState(() {
-      _airepCluster = null;
-    });
+    _airepCluster = null;
+    _rebuildIfVisible();
   }
 
   void _airSigmetListen() {
-    setState(() {
-      _airSigmetCluster = null;
-      _airSigmetLayer = null;
-    });
+    _airSigmetCluster = null;
+    _airSigmetLayer = null;
+    _rebuildIfVisible();
   }
 
   void _tfrListen() {
-    setState(() {
-      _tfrCluster = null;
-      _tfrLayer = null;
-    });
+    _tfrCluster = null;
+    _tfrLayer = null;
+    _rebuildIfVisible();
   }
 
   void _geoJsonListen() {
-    setState(() {
-      _geojsonCluster = null;
-      _geoJsonLayer = null;
-    });
+    _geojsonCluster = null;
+    _geoJsonLayer = null;
+    _rebuildIfVisible();
+  }
+
+  // Weather still updates while Plate or Find is up. Skip the rebuild until
+  // the map is on screen again.
+  void _rebuildIfVisible() {
+    if (_visible && mounted) {
+      setState(() {});
+    }
+  }
+
+  /// Called when the map tab is shown or covered. While covered, GPS moves and
+  /// weather rebuilds wait. Coming back leaves the chart where it was.
+  static void setVisible(bool visible) {
+    _active?._setVisible(visible);
+  }
+
+  void _setVisible(bool visible) {
+    if (_visible == visible) {
+      return;
+    }
+    _visible = visible;
+    if (!mounted) {
+      return;
+    }
+    if (visible) {
+      // Drop GPS deltas from while this tab was covered, so the chart does not
+      // jump by the distance flown on another tab.
+      _previousPosition = Gps.toLatLng(Storage().position);
+    }
+    setState(() {});
   }
 
   @override
   void initState() {
+    _active = this;
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
     Storage().metar.change.addListener(_metarListen);
@@ -176,6 +204,9 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    if (identical(_active, this)) {
+      _active = null;
+    }
     // save ptz when we switch out
     Storage().gpsChange.removeListener(_gpsListen);
     Storage().metar.change.removeListener(_metarListen);
@@ -185,6 +216,7 @@ class MapScreenState extends State<MapScreen> {
     Storage().tfr.change.removeListener(_tfrListen);
     Storage().geoParser.change.removeListener(_geoJsonListen);
     _previousPosition = null;
+    _longPressTimer?.cancel();
     _mbtilesManager.close();
     super.dispose();
   }
@@ -237,6 +269,9 @@ class MapScreenState extends State<MapScreen> {
 
   // this pans camera on move
   void _gpsListen() {
+    if (!_visible) {
+      return;
+    }
     final LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
     try {
@@ -516,17 +551,6 @@ class MapScreenState extends State<MapScreen> {
       // no rotation in track up
       initialRotation: Storage().settings.getRotation(),
       backgroundColor: Storage().settings.isLightMode() ? Constants.mapBackgroundColorLight: Constants.mapBackgroundColorDark,
-      onLongPress: (tap, point) async {
-        if(_ruler.isMeasuring()) {
-          _ruler.setPoint(point); // on long press when measuring, set ruler point
-        }
-        else { // otherwise show destination screen
-          List<Destination> items = await MainDatabaseHelper.db.findNear(point);
-          setState(() {
-            showDestination(this.context, items);
-          });
-        }
-      },
       onMapEvent: (MapEvent mapEvent) {
         if(mapEvent is MapEventLongPress) {
           // dismiss all dialogs
@@ -542,8 +566,9 @@ class MapScreenState extends State<MapScreen> {
           Toastification().dismissAll();
         }
         if (mapEvent is MapEventMoveEnd) {
-          // save location for next start
-          showOnMap(_controller.camera.center);
+          // save location for next start. This call is the map persisting
+          // where it already is, so it must not move the camera again.
+          showOnMap(_controller.camera.center, moveCamera: false);
           Storage().settings.setZoom(_controller.camera.zoom);
           Storage().settings.setRotation(_controller.camera.rotation);
           _interacting = false;
@@ -1406,7 +1431,14 @@ class MapScreenState extends State<MapScreen> {
         endDrawerEnableOpenDragGesture: false,
         body: Stack(
             children: [
-              RepaintBoundary(child: map), // map
+              RepaintBoundary(child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: _onMapPointerDown,
+                onPointerMove: _onMapPointerMove,
+                onPointerUp: _cancelMapLongPress,
+                onPointerCancel: _cancelMapLongPress,
+                child: map,
+              )), // map
               if(_layersOpacity[_layers.indexOf('PFD')] > 0)
                 Positioned(
                     top: Constants.screenHeightForInstruments(context),
@@ -1426,7 +1458,7 @@ class MapScreenState extends State<MapScreen> {
                         )
                     )
                 ),
-              Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration)))),
+              Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration), active: _visible))),
               // warn
               Positioned(
                 child: Align(
@@ -1948,11 +1980,95 @@ class MapScreenState extends State<MapScreen> {
     );
   }
 
-  // set it in settings so map can show it
-  static void showOnMap(LatLng coordinate) {
+  // Shorter than the platform long-press delay. The popup opens on the
+  // press point immediately; the facility search fills it in after.
+  static const Duration _longPressDelay = Duration(milliseconds: 300);
+  static const double _longPressSlop = 18;
+  Timer? _longPressTimer;
+  Offset? _longPressDown;
+  int _mapPointers = 0;
+
+  void _onMapPointerDown(PointerDownEvent event) {
+    _mapPointers++;
+    if (_mapPointers != 1) {
+      _stopMapLongPress();
+      return;
+    }
+    _longPressDown = event.localPosition;
+    _longPressTimer = Timer(_longPressDelay, () {
+      final Offset? down = _longPressDown;
+      if (down == null || !mounted) {
+        return;
+      }
+      try {
+        _openLongPress(_controller.camera.screenOffsetToLatLng(down));
+      }
+      catch (e) {
+        AppLog.logMessage("MapScreen: long press $e");
+      }
+    });
+  }
+
+  void _onMapPointerMove(PointerMoveEvent event) {
+    final Offset? down = _longPressDown;
+    if (down == null) {
+      return;
+    }
+    if ((event.localPosition - down).distance > _longPressSlop) {
+      _stopMapLongPress();
+    }
+  }
+
+  void _cancelMapLongPress(PointerEvent event) {
+    _mapPointers = _mapPointers > 0 ? _mapPointers - 1 : 0;
+    _stopMapLongPress();
+  }
+
+  void _stopMapLongPress() {
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
+    _longPressDown = null;
+  }
+
+  void _openLongPress(LatLng point) {
+    Toastification().dismissAll();
+    if (_ruler.isMeasuring()) {
+      _ruler.setPoint(point);
+      return;
+    }
+    final String gps = Destination.toSexagesimal(point);
+    showDestination(context, [
+      Destination(
+        locationID: gps,
+        type: Destination.typeGps,
+        facilityName: Destination.typeGps,
+        coordinate: point,
+      ),
+    ]);
+  }
+
+  // set it in settings so map can show it, and move the live camera when the
+  // map is already built (it stays mounted across tabs)
+  static void showOnMap(LatLng coordinate, {bool moveCamera = true}) {
+    final double zoom = ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble();
     Storage().settings.setCenterLongitude(coordinate.longitude);
     Storage().settings.setCenterLatitude(coordinate.latitude);
-    Storage().settings.setZoom(ChartCategory.chartTypeToZoom(Storage().settings.getChartType()).toDouble());
+    Storage().settings.setZoom(zoom);
+    if (!moveCamera) {
+      return;
+    }
+    final MapScreenState? map = _active;
+    if (map == null || !map.mounted) {
+      return;
+    }
+    try {
+      map._controller.move(coordinate, zoom);
+    }
+    catch (e) {
+      // Controller is not attached until the first frame. Settings above are
+      // what that first frame uses for its initial camera.
+      AppLog.logMessage("MapScreen: showOnMap $e");
+    }
   }
 }
 

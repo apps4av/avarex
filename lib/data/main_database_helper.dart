@@ -225,6 +225,19 @@ class MainDatabaseHelper {
     return(Destination(locationID: gps, type: Destination.typeGps, facilityName: Destination.typeGps, coordinate: point));
   }
 
+  /// Half-span, in degrees, that contains every point whose squared degree
+  /// distance is below [factor]. Longitude grows as latitude approaches the poles.
+  (double, double) _searchHalfSpan(LatLng point, double factor) {
+    final double latHalf = sqrt(factor) * 1.01;
+    final double cosLat = cos(point.latitude * pi / 180).abs().clamp(0.2, 1.0);
+    return (latHalf, latHalf / cosLat);
+  }
+
+  String _latLonBox(String latCol, String lonCol, LatLng point, double latHalf, double lonHalf) {
+    return "$latCol > ${point.latitude - latHalf} and $latCol < ${point.latitude + latHalf} and "
+        "$lonCol > ${point.longitude - lonHalf} and $lonCol < ${point.longitude + lonHalf}";
+  }
+
   Future<List<Destination>> findNear(LatLng point, {double factor = 0.001}) async {
     final db = await database;
     List<Destination> ret = [];
@@ -234,11 +247,13 @@ class MainDatabaseHelper {
           .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
           .toDouble()} + (ARPLatitude - ${point
           .latitude}) * (ARPLatitude - ${point.latitude}))";
+      final (double latHalf, double lonHalf) = _searchHalfSpan(point, factor);
+      final String box = _latLonBox("ARPLatitude", "ARPLongitude", point, latHalf, lonHalf);
 
       String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < $factor and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor and (Type != 'VOT') "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
+          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where $box and distance < $factor and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where $box and distance < $factor and (Type != 'VOT') "
+          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where $box and distance < $factor "
           "order by Type asc, distance asc limit $_limit";
       List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
@@ -324,6 +339,17 @@ class MainDatabaseHelper {
   }
 
   Future<List<NavDestination>> findNearestVOR(LatLng point) async {
+    // VORs are sparse. A few degrees around the press covers the nearest four
+    // almost everywhere; fall back to the whole table only when it does not.
+    const double nearbyDegrees = 4;
+    final List<NavDestination> nearby = await _nearestVor(point, nearbyDegrees);
+    if (nearby.length >= 4) {
+      return nearby;
+    }
+    return _nearestVor(point, null);
+  }
+
+  Future<List<NavDestination>> _nearestVor(LatLng point, double? latHalf) async {
     final db = await database;
     List<NavDestination> ret = [];
     if (db != null) {
@@ -332,8 +358,13 @@ class MainDatabaseHelper {
           .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
           .toDouble()} + (ARPLatitude - ${point
           .latitude}) * (ARPLatitude - ${point.latitude}))";
+      String box = "";
+      if (latHalf != null) {
+        final double cosLat = cos(point.latitude * pi / 180).abs().clamp(0.2, 1.0);
+        box = " and ${_latLonBox("ARPLatitude", "ARPLongitude", point, latHalf, latHalf / cosLat)}";
+      }
 
-      String qry = "select * from nav where (Type = 'VOR' or Type = 'VORTAC' or Type = 'VOR/DME') order by $asDistance asc limit 4";
+      String qry = "select * from nav where (Type = 'VOR' or Type = 'VORTAC' or Type = 'VOR/DME')$box order by $asDistance asc limit 4";
       List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       // get rid of duplicates
@@ -378,9 +409,14 @@ class MainDatabaseHelper {
         return null;
       }
       String dlid = mapsAirports[0]['DLID'] as String;
-      mapsFreq = await DbGeneral.query(db,     "select * from airportfreq    where DLID = '$dlid'");
-      mapsRunways = await DbGeneral.query(db,  "select * from airportrunways where DLID = '$dlid'");
-      mapsAwos = await DbGeneral.query(db,     "select * from awos           where DLID = '$dlid'");
+      final List<List<Map<String, dynamic>>> details = await Future.wait([
+        DbGeneral.query(db, "select * from airportfreq    where DLID = '$dlid'"),
+        DbGeneral.query(db, "select * from airportrunways where DLID = '$dlid'"),
+        DbGeneral.query(db, "select * from awos           where DLID = '$dlid'"),
+      ]);
+      mapsFreq = details[0];
+      mapsRunways = details[1];
+      mapsAwos = details[2];
       return AirportDestination.fromMap(mapsAirports[0], mapsFreq, mapsAwos, mapsRunways);
     }
 

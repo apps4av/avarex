@@ -18,7 +18,11 @@ import '../io/gps.dart';
 
 
 class InstrumentList extends StatefulWidget {
-  const InstrumentList({super.key});
+  // False while this list's tab is covered, so GPS and the clock do not
+  // rebuild an instrument bar that is off screen.
+  final bool active;
+
+  const InstrumentList({super.key, this.active = true});
 
   @override
   State<InstrumentList> createState() => InstrumentListState();
@@ -96,7 +100,20 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
 
+  @override
+  void didUpdateWidget(InstrumentList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) {
+      _gpsListener();
+      _routeListener();
+      _timeListener();
+    }
+  }
+
   void _gpsListener() {
+    if (!widget.active) {
+      return;
+    }
     // connect to GPS
     double variation = Storage().area.variation;
     setState(() {
@@ -184,6 +201,9 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
   void _routeListener() {
+    if (!widget.active) {
+      return;
+    }
     setState(() {
       PlanRoute? route = Storage().route;
       Destination? d = route.getCurrentWaypoint()?.destination;
@@ -214,6 +234,9 @@ class InstrumentListState extends State<InstrumentList> {
   }
 
   void _timeListener() {
+    if (!widget.active) {
+      return;
+    }
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));

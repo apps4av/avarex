@@ -19,11 +19,79 @@ class FindScreen extends StatefulWidget {
 }
 
 class FindScreenState extends State<FindScreen> {
+  static FindScreenState? _active;
 
   List<Destination>? _currentItems;
   String _searchText = "";
   bool _recent = true;
   int _runwayLength = 0;
+  bool _visible = false;
+  Future<List<Destination>>? _results;
+  String _resultsKey = "";
+
+  /// Find stays mounted under the other tabs. Showing it again refreshes the
+  /// list without blanking the one already on screen.
+  static void setVisible(bool visible) {
+    _active?._setVisible(visible);
+  }
+
+  void _setVisible(bool visible) {
+    if (_visible == visible) {
+      return;
+    }
+    _visible = visible;
+    if (visible) {
+      _load(force: true);
+    }
+  }
+
+  String get _queryKey => "$_searchText|$_recent|$_runwayLength";
+
+  Future<List<Destination>> _query() {
+    if (_searchText.isNotEmpty) {
+      return MainDatabaseHelper.db.findDestinations(_searchText);
+    }
+    if (_recent) {
+      return UserDatabaseHelper.db.getRecent();
+    }
+    return MainDatabaseHelper.db.findNearestAirportsWithRunways(
+      Gps.toLatLng(Storage().position),
+      _runwayLength,
+    );
+  }
+
+  void _load({bool force = false}) {
+    final String key = _queryKey;
+    if (!force && _results != null && key == _resultsKey) {
+      return;
+    }
+    _resultsKey = key;
+    final Future<List<Destination>> next = _query();
+    if (!mounted) {
+      _results = next;
+      return;
+    }
+    setState(() {
+      _results = next;
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _active = this;
+    _visible = true;
+    _resultsKey = _queryKey;
+    _results = _query();
+  }
+
+  @override
+  void dispose() {
+    if (identical(_active, this)) {
+      _active = null;
+    }
+    super.dispose();
+  }
 
   String _getFilterLabel() {
     if (_searchText.isNotEmpty) return "Search Results";
@@ -34,13 +102,12 @@ class FindScreenState extends State<FindScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool searching = true;
-    return FutureBuilder(
-      future: _searchText.isNotEmpty? (MainDatabaseHelper.db.findDestinations(_searchText)) : (_recent ? UserDatabaseHelper.db.getRecent() : MainDatabaseHelper.db.findNearestAirportsWithRunways(Gps.toLatLng(Storage().position), _runwayLength)),
+    return FutureBuilder<List<Destination>>(
+      future: _results,
       builder: (context, snapshot) {
+        final bool searching = snapshot.connectionState != ConnectionState.done;
         if (snapshot.connectionState == ConnectionState.done) {
           _currentItems = snapshot.data;
-          searching = false;
         }
         return _makeContent(_currentItems, searching);
       },
@@ -76,19 +143,19 @@ class FindScreenState extends State<FindScreen> {
                       ? IconButton(
                           icon: const Icon(Icons.clear),
                           onPressed: () {
-                            setState(() {
-                              _searchText = "";
-                            });
+                            _searchText = "";
+                            _load();
                           },
                         )
                       : null,
                   isDense: true,
                 ),
                 onChanged: (value) {
-                  setState(() {
-                    _searchText = value;
-                    items != null && items.isNotEmpty ? widget.controller.jumpTo(0) : ();
-                  });
+                  _searchText = value;
+                  if (items != null && items.isNotEmpty) {
+                    widget.controller.jumpTo(0);
+                  }
+                  _load();
                 },
               ),
             ),
@@ -341,10 +408,9 @@ class FindScreenState extends State<FindScreen> {
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
                       onPressed: () {
-                        setState(() {
-                          _recent = true;
-                          _searchText = "";
-                        });
+                        _recent = true;
+                        _searchText = "";
+                        _load();
                       },
                       child: const Text("Recent"),
                     ),
@@ -354,11 +420,10 @@ class FindScreenState extends State<FindScreen> {
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
                       onPressed: () {
-                        setState(() {
-                          _recent = false;
-                          _runwayLength = 0;
-                          _searchText = "";
-                        });
+                        _recent = false;
+                        _runwayLength = 0;
+                        _searchText = "";
+                        _load();
                       },
                       child: const Text("Nearest"),
                     ),
@@ -368,11 +433,10 @@ class FindScreenState extends State<FindScreen> {
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
                       onPressed: () {
-                        setState(() {
-                          _runwayLength = 2000;
-                          _recent = false;
-                          _searchText = "";
-                        });
+                        _runwayLength = 2000;
+                        _recent = false;
+                        _searchText = "";
+                        _load();
                       },
                       child: const Text("Nearest 2K"),
                     ),
@@ -382,11 +446,10 @@ class FindScreenState extends State<FindScreen> {
                           ? TextButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.primaryContainer)
                           : null,
                       onPressed: () {
-                        setState(() {
-                          _runwayLength = 4000;
-                          _recent = false;
-                          _searchText = "";
-                        });
+                        _runwayLength = 4000;
+                        _recent = false;
+                        _searchText = "";
+                        _load();
                       },
                       child: const Text("Nearest 4K"),
                     ),

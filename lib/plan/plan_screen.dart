@@ -41,15 +41,39 @@ class PlanScreen extends StatefulWidget {
 }
 
 class PlanScreenState extends State<PlanScreen> {
+  static PlanScreenState? _active;
   final ScrollController _scrollController = ScrollController();
 
   // null shows the plan (waypoint) editor; 0-4 show an action sub-page inline
   int? _actionTab;
   bool _findingBestAltitude = false;
+  bool _visible = false;
+
+  /// Plan stays mounted under the other tabs. The one-second route refresh
+  /// waits until this tab is showing.
+  static void setVisible(bool visible) {
+    _active?._setVisible(visible);
+  }
+
+  void _setVisible(bool visible) {
+    if (_visible == visible) {
+      return;
+    }
+    _visible = visible;
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    if (visible) {
+      _loadPlanCruiseFromAircraft();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _active = this;
+    _visible = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToCurrentWaypoint();
       _loadPlanCruiseFromAircraft();
@@ -61,6 +85,9 @@ class PlanScreenState extends State<PlanScreen> {
 
   @override
   void dispose() {
+    if (identical(_active, this)) {
+      _active = null;
+    }
     _scrollController.dispose();
     super.dispose();
   }
@@ -116,7 +143,11 @@ class PlanScreenState extends State<PlanScreen> {
   @override
   Widget build(BuildContext context) {
     final PlanRoute route = Storage().route;
-    Storage().planSearch = false;
+    // Cleared only while this tab is up. Insert-waypoint sets the flag and
+    // then leaves for Find; a rebuild on the way out must not clear it.
+    if (_visible) {
+      Storage().planSearch = false;
+    }
 
     double bottom = Constants.bottomPaddingSize(context);
 
@@ -574,9 +605,7 @@ class PlanScreenState extends State<PlanScreen> {
       children: [
         Expanded(
           flex: 1,
-          child: ValueListenableBuilder<int>( // update in plan change
-            valueListenable: route.change,
-            builder: (context, value, _) {
+          child: _whileVisible(route.change, (context) {
               return ListTile(
                 key: Key(Storage().getKey()),
                 title: PlanLineWidgetState.getHeading(),
@@ -639,9 +668,7 @@ class PlanScreenState extends State<PlanScreen> {
                               route.removeWaypointAt(index);
                             });
                           },
-                          child: ValueListenableBuilder<int>(
-                            valueListenable: route.change,
-                            builder: (context, value, _) {
+                          child: _whileVisible(route.change, (context) {
                               return Card(
                                 margin: const EdgeInsets.symmetric(vertical: 2),
                                 color: route.isCurrent(index)
@@ -657,8 +684,7 @@ class PlanScreenState extends State<PlanScreen> {
                                   },
                                 ),
                               );
-                            },
-                          ),
+                            }),
                         ),
                       ),
                   ],
@@ -673,9 +699,64 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
+  Widget _whileVisible(Listenable listenable, WidgetBuilder builder) {
+    return _LiveWhileVisible(
+      visible: _visible,
+      listenable: listenable,
+      builder: builder,
+    );
+  }
+
   Widget _makeNavLog() {
     return _NavLogContent();
   }
+}
+
+class _LiveWhileVisible extends StatefulWidget {
+  final bool visible;
+  final Listenable listenable;
+  final WidgetBuilder builder;
+
+  const _LiveWhileVisible({
+    required this.visible,
+    required this.listenable,
+    required this.builder,
+  });
+
+  @override
+  State<_LiveWhileVisible> createState() => _LiveWhileVisibleState();
+}
+
+class _LiveWhileVisibleState extends State<_LiveWhileVisible> {
+  @override
+  void initState() {
+    super.initState();
+    widget.listenable.addListener(_onTick);
+  }
+
+  @override
+  void didUpdateWidget(_LiveWhileVisible old) {
+    super.didUpdateWidget(old);
+    if (old.listenable != widget.listenable) {
+      old.listenable.removeListener(_onTick);
+      widget.listenable.addListener(_onTick);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.listenable.removeListener(_onTick);
+    super.dispose();
+  }
+
+  void _onTick() {
+    if (widget.visible && mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
 }
 
 class _NavLogContent extends StatefulWidget {

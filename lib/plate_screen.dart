@@ -381,6 +381,8 @@ class PlateScreenState extends State<PlateScreen> {
   PlatesFuture? _plates;
   int _loadGeneration = 0;
   final TransformationController _transformationController = TransformationController();
+  static PlateScreenState? _active;
+  bool _visible = false;
   // landing and plate sync both switch the airport while this screen is up
   final Listenable _plateScreenReload = Listenable.merge([
     Storage().flightStatus.flightStateChange,
@@ -390,6 +392,8 @@ class PlateScreenState extends State<PlateScreen> {
   @override
   void initState() {
     super.initState();
+    _active = this;
+    _visible = true;
     _transformationController.value = Storage().plateTransform;
     _transformationController.addListener(_onTransformChanged);
     Storage().plateChange.addListener(_onPlateChanged);
@@ -406,6 +410,9 @@ class PlateScreenState extends State<PlateScreen> {
 
   @override
   void dispose() {
+    if (identical(_active, this)) {
+      _active = null;
+    }
     _plateScreenReload.removeListener(_onPlateScreenReload);
     _transformationController.removeListener(_onTransformChanged);
     _transformationController.dispose();
@@ -517,7 +524,30 @@ class PlateScreenState extends State<PlateScreen> {
   }
 
 
+  /// Plate stays mounted under the other tabs. GPS own-ship updates wait
+  /// until this tab is showing.
+  static void setVisible(bool visible) {
+    _active?._setVisible(visible);
+  }
+
+  void _setVisible(bool visible) {
+    if (_visible == visible) {
+      return;
+    }
+    _visible = visible;
+    if (!mounted) {
+      return;
+    }
+    if (visible) {
+      _notifyPaint();
+    }
+    setState(() {});
+  }
+
   void _notifyPaint() {
+    if (!_visible) {
+      return;
+    }
     _notifier.value++;
   }
 
@@ -779,7 +809,7 @@ class PlateScreenState extends State<PlateScreen> {
 
           // Instruments overlay (full screen, free-floating draggable tiles)
           if(Storage().settings.isInstrumentsVisiblePlate())
-            const Positioned.fill(child: InstrumentList()),
+            Positioned.fill(child: InstrumentList(active: _visible)),
 
           // Instrument, landing, and sync toggles share one column so the circles line up.
           Positioned(
@@ -1168,7 +1198,10 @@ class PlateScreenState extends State<PlateScreen> {
                     ),
                   Stack(
                     children: [
-                      IgnorePointer(child: PlateProfileWidget(selectedProcedure: Storage().settings.getPlateProfile())),
+                      IgnorePointer(child: PlateProfileWidget(
+                        selectedProcedure: Storage().settings.getPlateProfile(),
+                        active: _visible,
+                      )),
                       Positioned(
                         top: 0,
                         right: 8,

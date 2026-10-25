@@ -17,8 +17,10 @@ const double _metersToNm = 0.000539957;
 class PlateProfileWidget extends StatefulWidget {
 
   final String selectedProcedure;
+  final bool active;
 
   const PlateProfileWidget({required this.selectedProcedure,
+    this.active = true,
     super.key});
 
   @override
@@ -31,11 +33,24 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
   final List<_VerticalProfilePoint> _points = [];
   int _loadId = 0;
   ValueNotifier<int> notifier = ValueNotifier(0);
+  late Future<void> _profileFuture;
 
   @override
   void initState() {
     super.initState();
     Storage().gpsChange.addListener(_onGps);
+    _profileFuture = loadProfile(widget.selectedProcedure);
+  }
+
+  @override
+  void didUpdateWidget(PlateProfileWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedProcedure != widget.selectedProcedure) {
+      _profileFuture = loadProfile(widget.selectedProcedure);
+    }
+    if (widget.active && !oldWidget.active) {
+      notifier.value++;
+    }
   }
 
   @override
@@ -46,13 +61,16 @@ class PlateProfileWidgetState extends State<PlateProfileWidget> {
   }
 
   void _onGps() {
+    if (!widget.active) {
+      return;
+    }
     notifier.value++;
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: loadProfile(widget.selectedProcedure),
+      future: _profileFuture,
       builder: (context, snapshot) {
         return _buildProfile(context);
       },

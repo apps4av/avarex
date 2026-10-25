@@ -31,6 +31,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   bool _drawerOpen = false;
   int _selectedIndex = tabLocationMap; // for various tab screens
+  // Map is showing at launch. The other tabs are built on first visit and
+  // then kept, so coming back does not reload plates, the plan, or search.
+  final List<bool> _tabMounted = [true, false, false, false];
   bool _noticesOpen = false;
   DateTime _noticesCheckedAt = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -47,7 +50,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   void mOnItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _tabMounted[index] = true;
     });
+    MapScreenState.setVisible(index == tabLocationMap);
+    PlateScreenState.setVisible(index == tabLocationPlates);
+    PlanScreenState.setVisible(index == tabLocationPlan);
+    FindScreenState.setVisible(index == tabLocationFind);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
@@ -495,8 +503,21 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             ),
           ),
         ),
-        body: Center(
-          child: _widgetOptions.elementAt(_selectedIndex),
+        // Keep each tab after it has been opened. Swapping them out reloaded
+        // the chart, the plate image, the plan, and the search results.
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            for (int i = 0; i < _widgetOptions.length; i++)
+              if (_tabMounted[i])
+                Offstage(
+                  offstage: _selectedIndex != i,
+                  child: TickerMode(
+                    enabled: _selectedIndex == i,
+                    child: _widgetOptions[i],
+                  ),
+                ),
+          ],
         ),
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(5),
