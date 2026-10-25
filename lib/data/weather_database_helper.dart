@@ -20,13 +20,29 @@ class WeatherDatabaseHelper {
 
   static WeatherDatabaseHelper get db => _db;
   static Database? _database;
+  // One in-flight open. Seven weather caches call this together at startup.
+  // Checking only _database lets each of them call openDatabase, and sqflite
+  // waits forever when those opens overlap.
+  static Future<Database>? _opening;
 
-  Future<Database?> get database async {
-    if (_database != null) {
-      return _database;
+  Future<Database?> get database {
+    final Database? open = _database;
+    if (open != null) {
+      return Future<Database?>.value(open);
     }
-    _database = await _initDB();
-    return _database;
+    return _opening ??= _open();
+  }
+
+  Future<Database> _open() async {
+    try {
+      final Database db = await _initDB();
+      _database = db;
+      return db;
+    }
+    catch (e) {
+      _opening = null;
+      rethrow;
+    }
   }
 
   Future<Database> _initDB() async {

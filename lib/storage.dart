@@ -169,14 +169,19 @@ class Storage {
     if(json.isEmpty || json == "[]") {
       return; // no saved plan
     }
+    final String before = _planSignature();
     try {
       PlanRoute restored = await PlanRoute.fromJson(json, settings.getActivePlanName(), false);
+      if(_planSignature() != before) {
+        return; // the pilot edited the plan while it was loading
+      }
       _route.copyFrom(restored);
       int index = settings.getActivePlanIndex();
       if(index >= 0 && index < _route.length) {
         _route.setCurrentWaypoint(index);
         _route.setCurrentWaypointDestinationIndex(settings.getActivePlanDestinationIndex());
       }
+      _lastSavedPlanSignature = _planSignature();
     }
     catch(e) {
       // saved plan is unusable (e.g. corrupt/missing data), start with empty plan
@@ -534,11 +539,12 @@ class Storage {
     // set area
     await area.update(position);
 
-    // reload the active plan (and the waypoint it was on) if the app was
-    // previously closed or crashed while a plan was active
-    await _restoreActivePlan();
-    // snapshot the restored waypoint first so opening the app does not switch plates
-    _listenForPlateSync();
+    // The empty route is not a change. Writing it now would replace the saved
+    // plan while that plan is still being read back.
+    _lastSavedPlanSignature = _planSignature();
+    // Expand the saved plan after the map is up. Plate sync starts once the
+    // restored waypoint is in place, so opening the app does not switch plates.
+    unawaited(_restoreActivePlan().whenComplete(_listenForPlateSync));
 
     Timer.periodic(const Duration(seconds: 1), (tim) async {
       // send AP data

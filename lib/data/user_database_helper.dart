@@ -23,13 +23,27 @@ class UserDatabaseHelper {
 
   static UserDatabaseHelper get db => _db;
   static Database? _database;
+  // Shared by every caller that arrives while the first open is still running.
+  static Future<Database>? _opening;
 
-  Future<Database?> get database async {
-    if (_database != null) {
-      return _database;
+  Future<Database?> get database {
+    final Database? open = _database;
+    if (open != null) {
+      return Future<Database?>.value(open);
     }
-    _database = await _initDB();
-    return _database;
+    return _opening ??= _open();
+  }
+
+  Future<Database> _open() async {
+    try {
+      final Database db = await _initDB();
+      _database = db;
+      return db;
+    }
+    catch (e) {
+      _opening = null;
+      rethrow;
+    }
   }
 
   static String getPath() {
@@ -45,6 +59,7 @@ class UserDatabaseHelper {
     if (db != null) {
       await db.close();
       _database = null;
+      _opening = null;
     }
   }
 

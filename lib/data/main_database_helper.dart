@@ -20,15 +20,29 @@ class MainDatabaseHelper {
 
   static MainDatabaseHelper get db => _db;
   static Database? _database;
+  // Shared by every caller that arrives while the first open is still running.
+  static Future<Database>? _opening;
 
   static const String _limit = "20"; // limit results
 
-  Future<Database?> get database async {
-    if (_database != null) {
-      return _database;
+  Future<Database?> get database {
+    final Database? open = _database;
+    if (open != null) {
+      return Future<Database?>.value(open);
     }
-    _database = await _initDB();
-    return _database;
+    return _opening ??= _open();
+  }
+
+  Future<Database> _open() async {
+    try {
+      final Database db = await _initDB();
+      _database = db;
+      return db;
+    }
+    catch (e) {
+      _opening = null;
+      rethrow;
+    }
   }
 
   Future<Database> _initDB() async {
@@ -46,6 +60,7 @@ class MainDatabaseHelper {
     if (db != null) {
       await db.close();
       _database = null;
+      _opening = null;
     }
   }
 
