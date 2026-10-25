@@ -30,6 +30,7 @@ This manual documents all features in the current AvareX app, including:
 - Navigation log winds and terrain stay up while a new winds-aloft forecast downloads.
 - The last plan Alt shows the altitude that leg starts at. The path still meets the runway.
 - Long-press 3D draws Elevation terrain, the same as Menu 3D.
+- First-run setup downloads the Elevation chart for the GPS region.
 - 3D airspace floors sit on the terrain instead of extending below it.
 - TFR altitudes from ADS-B and the Internet say AGL or MSL. 3D draws AGL above the terrain, including where the ground is higher than nearby shelves. A TFR whose floor is above the picture is arrows at the top of the scale.
 - PLAN reads cruise speed and fuel flow from the aircraft.
@@ -154,7 +155,7 @@ On first run, complete onboarding pages (titles match the screens):
    - **Display Theme**: `Night` / `Day`
    - **Measurement Units**: `NM / Knots` (Maritime) or `SM / MPH` (Imperial)
 3. **Internet and GPS**: confirm GPS permissions (`GPS Permissions`) and note that GPS can come from the device or an external ADS-B/GPS stream.
-4. **Databases and Maps**: AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, and **CSUP** — in one blocking step. Nothing to tap. Use **Choose Manually** to open the full `Download` screen if you want to pick specific data.
+4. **Databases and Maps**: AvareX **automatically** downloads what is missing for your current GPS region — the **DatabasesX** package plus the region's **Sectional**, **Plates**, **CSUP**, and **Elevation** — in one blocking step. Nothing to tap. Use **Choose Manually** to open the full `Download` screen if you want to pick specific data.
 5. **Keep Warnings in Check**: when the red warning icon appears, tap it for troubleshooting.
 6. **Optimize Performance**: turn off unused map layers (layers icon on the MAP screen) for best performance.
 7. **File Flight Plans** (optional): enter the same email you use at 1800wxbrief.com to register for FAA flight-plan workflows.
@@ -783,7 +784,7 @@ Major download categories include:
 - **VFR Charts**: Sectional, TAC, Flyway, Helicopter
 - **IFR Charts**: IFR Low, IFR High, IFR Area
 - **Procedures**: Plates, CSUP
-- **Terrain**: Elevation
+- **Terrain**: Elevation (fetched automatically during onboarding for your GPS region)
 
 Regional coverage (9 regions): Northeast, North Central, Northwest, Southeast, South Central, Southwest, East Central, Alaska, Pacific
 
@@ -1519,7 +1520,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 
 ## 13) Data Lifecycle and Auto-Update Behavior
 
-- On reaching the onboarding **Databases and Maps** page, AvareX automatically downloads the **DatabasesX** package plus the **Sectional**, **Plates**, and **CSUP** for your current GPS region whenever any of them are missing/expired (skips items already current).
+- On reaching the onboarding **Databases and Maps** page, AvareX automatically downloads the **DatabasesX** package plus the **Sectional**, **Plates**, **CSUP**, and **Elevation** for your current GPS region whenever any of them are missing/expired (skips items already current). Elevation does not expire with the chart cycle.
 - Weather downloads refresh periodically (10-minute cycle in storage timer).
 - GPS source modes (tap `SRC` tile to cycle):
   - **Auto**: Prefers external GPS when available, falls back to internal after 30s timeout. Shows `Internal-A` or `External-A`.
@@ -1664,7 +1665,7 @@ Without **DatabasesX** the airport database is empty and the FIND/PLAN tabs retu
 8. Wait for downloads to complete before leaving the screen — exiting can abort an in-flight download.
 9. To refresh expired data later, just press **Update** instead — it queues every expired item automatically.
 
-> Tip: During **first-run onboarding**, the *Databases and Maps* page automatically downloads your GPS region's databases, Sectional, Plates, and CSUP. It also offers **Choose Manually** (opens this Download screen) if you prefer to pick data yourself. The manual flow is the same as above.
+> Tip: During **first-run onboarding**, the *Databases and Maps* page automatically downloads your GPS region's databases, Sectional, Plates, CSUP, and Elevation. It also offers **Choose Manually** (opens this Download screen) if you prefer to pick data yourself. The manual flow is the same as above.
 
 ---
 

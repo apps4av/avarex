@@ -54,9 +54,10 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
     );
   }
 
-  // Automatically download the required databases plus the Sectional and Plates
-  // for the region the device is currently in, but only when any of them are
-  // missing. Runs once, silently doing nothing when everything is present.
+  // Automatically download the required databases plus the Sectional, Plates,
+  // CSUP, and Elevation for the region the device is currently in, but only
+  // when any of them are missing. Runs once, silently doing nothing when
+  // everything is present.
   Future<void> _autoDownloadRegionIfNeeded() async {
     if (_regionDownloadTriggered) {
       return;
@@ -97,6 +98,8 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
           DownloadScreenState.getChartByFilename("${prefix}_TPP");
       final Chart? csup =
           DownloadScreenState.getChartByFilename("${prefix}_CSUP");
+      final Chart? elevation =
+          DownloadScreenState.getChartByFilename("${prefix}_ELEVATION");
       if (sectional != null) {
         candidates.add(sectional);
       }
@@ -105,6 +108,9 @@ class OnBoardingScreenState extends State<OnBoardingScreen>
       }
       if (csup != null) {
         candidates.add(csup);
+      }
+      if (elevation != null) {
+        candidates.add(elevation);
       }
     }
 
