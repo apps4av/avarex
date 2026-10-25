@@ -512,9 +512,14 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               if (_tabMounted[i])
                 Offstage(
                   offstage: _selectedIndex != i,
-                  child: TickerMode(
-                    enabled: _selectedIndex == i,
-                    child: _widgetOptions[i],
+                  child: ExcludeFocus(
+                    // A hidden tab stays mounted. Its text fields must not take
+                    // focus when a route such as 3D is popped, or the keyboard opens.
+                    excluding: _selectedIndex != i,
+                    child: TickerMode(
+                      enabled: _selectedIndex == i,
+                      child: _widgetOptions[i],
+                    ),
                   ),
                 ),
           ],

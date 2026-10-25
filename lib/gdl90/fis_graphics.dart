@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:avaremp/weather/tfr.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'dlac.dart';
@@ -184,7 +185,8 @@ class FisGraphics {
               // do not need altitude for shapes
               int alt = (((data[4].toInt() & 0x03) << 8) +
                   (data[5].toInt() & 0xFF)) * 100;
-              altitudeTop = alt.toString();
+              altitudeTop = formatTfrAltitude(alt, agl: false);
+              altitudeBottom = formatTfrAltitude(0, agl: false);
 
               LatLng c = _parseLatLon(lat, lon, false);
               coordinates.add(c);
@@ -203,7 +205,8 @@ class FisGraphics {
                   ((data[4].toInt() & 0xFC) >> 2);
 
               int alt = (((data[4].toInt() & 0x03) << 8) + (data[5].toInt() & 0xFF)) * 100;
-              altitudeTop = alt.toString();
+              altitudeTop = formatTfrAltitude(alt, agl: true);
+              altitudeBottom = formatTfrAltitude(0, agl: true);
 
               final LatLng center = _parseLatLon(lat, lon, false);
               // Same minimum outline as circular prism so map layers get a closed ring.
@@ -237,8 +240,8 @@ class FisGraphics {
               int topAlt = ((((data[9].toInt() & 0x01) << 6) +
                       ((data[10].toInt() & 0xFC) >> 2))) *
                   500;
-              altitudeBottom = bottomAlt.toString();
-              altitudeTop = topAlt.toString();
+              altitudeBottom = formatTfrAltitude(bottomAlt, agl: geometryOverlayOptions == shapePrismAgl);
+              altitudeTop = formatTfrAltitude(topAlt, agl: geometryOverlayOptions == shapePrismAgl);
 
               final int rLonRaw = ((data[10].toInt() & 0x03) << 7) +
                   ((data[11].toInt() & 0xFE) >> 1);

@@ -24,9 +24,33 @@ class PlanLineWidget extends StatefulWidget {
   State<StatefulWidget> createState() => PlanLineWidgetState();
 }
 
+/// Accepts focus only after a tap. A route popping back (nav log, 3D) must
+/// not restore this field and open the keyboard.
+class _AltitudeFocusNode extends FocusNode {
+  bool armed = false;
+
+  @override
+  bool get canRequestFocus => armed && super.canRequestFocus;
+}
+
 class PlanLineWidgetState extends State<PlanLineWidget> {
+  /// Altitude fields currently open. The one-second plan refresh skips those
+  /// rows so the keyboard is not dismissed by the rebuild.
+  static int editingCount = 0;
+  static bool get isEditing => editingCount > 0;
+
+  /// The plan tab stays mounted under the map. Drop the field so the keyboard
+  /// does not stay up on a screen where nothing is being edited.
+  static void endEditing() {
+    if (!isEditing) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   final TextEditingController _altitudeController = TextEditingController();
-  final FocusNode _altitudeFocus = FocusNode();
+  final _AltitudeFocusNode _altitudeFocus = _AltitudeFocusNode();
+  bool _editing = false;
 
   @override
   void initState() {
@@ -48,6 +72,7 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
 
   @override
   void dispose() {
+    _setEditing(false);
     _altitudeFocus.removeListener(_onAltitudeFocus);
     _altitudeFocus.dispose();
     _altitudeController.dispose();
@@ -55,8 +80,25 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
   }
 
   void _onAltitudeFocus() {
-    if (!_altitudeFocus.hasFocus) {
+    final bool focused = _altitudeFocus.hasFocus;
+    if (!focused) {
+      _altitudeFocus.armed = false;
+    }
+    _setEditing(focused);
+    if (!focused) {
       _commitAltitude();
+    }
+  }
+
+  void _setEditing(bool editing) {
+    if (_editing == editing) {
+      return;
+    }
+    _editing = editing;
+    if (editing) {
+      editingCount++;
+    } else if (editingCount > 0) {
+      editingCount--;
     }
   }
 
@@ -87,19 +129,41 @@ class PlanLineWidgetState extends State<PlanLineWidget> {
   }
 
   Widget _altitudeField() {
-    return TextField(
-      controller: _altitudeController,
-      focusNode: _altitudeFocus,
-      keyboardType: TextInputType.number,
-      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-      style: DefaultTextStyle.of(context).style,
-      decoration: const InputDecoration(
-        isCollapsed: true,
-        border: InputBorder.none,
-        contentPadding: EdgeInsets.zero,
+    return Semantics(
+      label: 'Altitude',
+      value: _altitudeController.text,
+      child: ExcludeSemantics(
+        child: Listener(
+          onPointerDown: (_) {
+            _altitudeFocus.armed = true;
+          },
+          onPointerUp: (_) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_altitudeFocus.hasFocus) {
+                _altitudeFocus.armed = false;
+              }
+            });
+          },
+          onPointerCancel: (_) {
+            if (!_altitudeFocus.hasFocus) {
+              _altitudeFocus.armed = false;
+            }
+          },
+          child: TextField(
+            controller: _altitudeController,
+            focusNode: _altitudeFocus,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            style: DefaultTextStyle.of(context).style,
+            decoration: const InputDecoration(
+              isCollapsed: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
+            onSubmitted: (_) => _commitAltitude(),
+          ),
+        ),
       ),
-      onSubmitted: (_) => _commitAltitude(),
-      onTap: () {},
     );
   }
 

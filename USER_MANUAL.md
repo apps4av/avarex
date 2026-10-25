@@ -29,6 +29,9 @@ This manual documents all features in the current AvareX app, including:
 - The navigation log descends to the arrival airport in one steady descent when the wind changes.
 - Navigation log winds and terrain stay up while a new winds-aloft forecast downloads.
 - The last plan Alt shows the altitude that leg starts at. The path still meets the runway.
+- Long-press 3D draws Elevation terrain, the same as Menu 3D.
+- 3D airspace floors sit on the terrain instead of extending below it.
+- TFR altitudes from ADS-B and the Internet say AGL or MSL. 3D draws AGL above the terrain, including where the ground is higher than nearby shelves. A TFR whose floor is above the picture is arrows at the top of the scale.
 - PLAN reads cruise speed and fuel flow from the aircraft.
 - An approach profile sets fix altitudes. Nav log and 3D follow.
 - PLAN + sits left of the wind forecast. Delete sits by the nav log.
@@ -368,7 +371,7 @@ Interactions:
   - **Ownship**: ICAO, position, altitude, ground speed, track/heading with track type, vertical speed, NIC/NACp, report (updated/extrapolated), and airborne state.
   - **FIS-B uplink**: ground station position, position-valid flag, slot ID, TIS-B site ID, and each weather product carried in the frame, decoded individually:
     - **METAR/SPECI/TAF/PIREP/Winds Aloft**: the full textual report.
-    - **NOTAM / NOTAM-TFR**: NOTAM text, or for TFRs the report number, polygon vertex count, altitude band, and effective/expiry times.
+    - **NOTAM / NOTAM-TFR**: NOTAM text, or for TFRs the report number, polygon vertex count, altitude band (`AGL` or `MSL`), and effective/expiry times.
     - **D-ATIS / TWIP**: airport digital ATIS and terminal weather text (also stored for the airport **NOTAM** tab).
     - **NEXRAD radar** (regional or CONUS): the bin block number and whether the block carries precipitation or is empty.
     - **Icing / Turbulence / Cloud tops / Lightning**: block number, scale, altitude band (icing and turbulence), and whether the block carries data or is empty.
@@ -415,7 +418,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 - **TAF tap**: Shows TAF forecast
 - **PIREP tap**: Shows pilot report
 - **AIRMET/SIGMET tap**: Shows advisory text. **Long-press**: toggles shape visibility on map
-- **TFR tap**: Shows TFR details (altitudes, times)
+- **TFR tap**: Shows TFR details, including whether each altitude is `AGL` or `MSL`
 - **Game TFR tap**: Shows venue name and `Game TFR (3 NM, SFC-3000' AGL when active)`
 
 ### 4.9 Ruler/measurement tool
@@ -458,7 +461,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
-- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. The ownship is a larger white dot with a black ring that pulses once a second, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at its altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. The glide ring is a white circle with an orange halo on the surface, and an orange cone from the aircraft down to that circle. When the `TFR` layer is on, areas in effect are red volumes and later ones are brown. When `Game TFR` is on, each venue is an orange cylinder 3 NM across, from the surface to 3000 ft above the ground. Chips along the bottom show or hide Class `B`, `C`, and `D`, `SUA` (restricted, warning, prohibited, and MOA), terrain, `TFR`, `Game TFR`, the plan, and obstacles. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. Downloaded Elevation tiles are drawn as terrain, brown and red within 500 ft of altitude. A shelf floor that is below that terrain, including surface Class D, is drawn from the ground up so the volume does not continue under the surface. The ownship is a larger white dot with a black ring that pulses once a second, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at its altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. The glide ring is a white circle with an orange halo on the surface, and an orange cone from the aircraft down to that circle. When the `TFR` layer is on, areas in effect are red volumes and later ones are brown. A TFR whose floor is above the picture is a dashed outline at the top of the scale with arrows pointing up. When `Game TFR` is on, each venue is an orange cylinder 3 NM across, from the surface to 3000 ft above the ground. Chips along the bottom show or hide Class `B`, `C`, and `D`, `SUA` (restricted, warning, prohibited, and MOA), terrain, `TFR`, `Game TFR`, the plan, and obstacles. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -1120,11 +1123,11 @@ Open: **Menu → 3D** (under `Write a Note`)
 
 Same view as the destination popup `3D` tab, centered on the aircraft, without the yellow long-press mark.
 
-- **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude
+- **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude. Shelf floors sit on that surface instead of extending below it
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
 - **Plan**: the active plan at each leg's altitude, cyan behind, purple on the current leg, and grey ahead. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation
 - **Glide ring**: the map glide circle on the surface, and a cone from the aircraft down to it
-- **TFR**: when the `TFR` layer is on, red if in effect and brown if later, from the published floor to the published ceiling
+- **TFR**: when the `TFR` layer is on, red if in effect and brown if later. `AGL` is height above the terrain, and the picture grows to include that ground. `MSL` is a fixed altitude, and the floor still sits on the ground when the terrain is higher. A floor above the picture, such as 15,000–17,999 ft MSL, is a dashed outline at the top of the scale with arrows pointing up. The map marker text uses the same `AGL` or `MSL` label
 - **Game TFR**: when that layer is on, an orange 3 NM cylinder from the surface to 3000 ft above the ground
 - **Filters**: `B`, `C`, `D`, `SUA`, `TFR`, `Game`, `Plan`, `Obstacles`, and `Terrain` show or hide those parts. `SUA` is restricted, warning, prohibited, and MOA. `TFR` and `Game` still follow the map layers
 - **Drag** to rotate, **pinch** to zoom, **two fingers** to pan

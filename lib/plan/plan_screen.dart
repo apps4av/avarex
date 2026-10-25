@@ -60,6 +60,9 @@ class PlanScreenState extends State<PlanScreen> {
       return;
     }
     _visible = visible;
+    if (!visible) {
+      PlanLineWidgetState.endEditing();
+    }
     if (!mounted) {
       return;
     }
@@ -214,10 +217,13 @@ class PlanScreenState extends State<PlanScreen> {
                 _planToolButton(
                   icon: const Icon(Icons.analytics_outlined),
                   tooltip: "Navigation log and terrain",
-                  onPressed: () => showDialog(
-                    context: context,
-                    builder: (BuildContext context) => Dialog.fullscreen(child: _makeNavLog()),
-                  ),
+                  onPressed: () {
+                    PlanLineWidgetState.endEditing();
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) => Dialog.fullscreen(child: _makeNavLog()),
+                    );
+                  },
                 ),
                 if (route.length > 0)
                   _planToolButton(
@@ -533,12 +539,14 @@ class PlanScreenState extends State<PlanScreen> {
             "Delete the entire plan? All waypoints will be removed. This cannot be undone."),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text("Cancel")),
-          FilledButton.tonal(
-            style: FilledButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text("Delete"),
+          ),
+          FilledButton(
+            autofocus: true,
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
           ),
         ],
       ),
@@ -605,9 +613,8 @@ class PlanScreenState extends State<PlanScreen> {
       children: [
         Expanded(
           flex: 1,
-          child: _whileVisible(route.change, (context) {
+            child: _whileVisible(route.change, (context) {
               return ListTile(
-                key: Key(Storage().getKey()),
                 title: PlanLineWidgetState.getHeading(),
                 subtitle: PlanLineWidgetState.getFieldsFromCalculations(
                   Storage().route.totalCalculations,
@@ -650,7 +657,7 @@ class PlanScreenState extends State<PlanScreen> {
                     for (int index = 0; index < route.length; index++)
                       ReorderableDelayedDragStartListener(
                         index: index,
-                        key: Key(index.toString()),
+                        key: ObjectKey(route.getWaypointAt(index)),
                         child: Dismissible(
                           background: Container(
                             alignment: Alignment.centerRight,
@@ -661,7 +668,7 @@ class PlanScreenState extends State<PlanScreen> {
                             ),
                             child: const Icon(Icons.delete, color: Colors.red),
                           ),
-                          key: Key(Storage().getKey()),
+                          key: ObjectKey(route.getWaypointAt(index)),
                           direction: DismissDirection.endToStart,
                           onDismissed: (direction) {
                             setState(() {
@@ -750,7 +757,8 @@ class _LiveWhileVisibleState extends State<_LiveWhileVisible> {
   }
 
   void _onTick() {
-    if (widget.visible && mounted) {
+    // Rebuilding the row drops the mobile keyboard that is editing altitude.
+    if (widget.visible && mounted && !PlanLineWidgetState.isEditing) {
       setState(() {});
     }
   }

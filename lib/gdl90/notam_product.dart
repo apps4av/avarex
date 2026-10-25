@@ -96,7 +96,7 @@ class NotamProduct extends Product {
     if (_isTfr()) {
       return "NOTAM-TFR #${fisGraphics.reportNumber}\n"
           "Vertices: ${fisGraphics.coordinates.length}\n"
-          "Altitude: ${fisGraphics.altitudeBottom}-${fisGraphics.altitudeTop} ft\n"
+          "Altitude: ${fisGraphics.altitudeBottom} to ${fisGraphics.altitudeTop}\n"
           "Effective: ${fisGraphics.startTime.isEmpty ? "-" : fisGraphics.startTime}\n"
           "Until: ${fisGraphics.endTime.isEmpty ? "-" : fisGraphics.endTime}";
     }

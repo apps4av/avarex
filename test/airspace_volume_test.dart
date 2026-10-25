@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:avaremp/place/airspace_3d_view.dart';
 import 'package:avaremp/place/airspace_volume.dart';
+import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/utils/mbtiles_layer.dart';
 import 'package:mbtiles/mbtiles.dart';
 import 'package:vector_tile/vector_tile.dart';
@@ -546,13 +547,54 @@ void main() {
   }
 
   test('TFR altitudes and the glide ring', () {
-    expect(parseTfrAltitude('SFC')?.$1, 0);
-    expect(parseTfrAltitude('050')?.$1, 5000);
-    expect(parseTfrAltitude('3000')?.$1, 3000);
-    expect(parseTfrAltitude('UNL')?.$2, isTrue);
-    expect(parseTfrAltitude('Check NOTAMs'), isNull);
+    expect(parseTfrLevel('SFC')?.feet, 0);
+    expect(parseTfrLevel('SFC')?.agl, isTrue);
+    expect(parseTfrLevel('050')?.feet, 5000);
+    expect(parseTfrLevel('050')?.agl, isFalse);
+    expect(parseTfrLevel('3000')?.feet, 3000);
+    expect(parseTfrLevel('400 AGL')?.feet, 400);
+    expect(parseTfrLevel('400 AGL')?.agl, isTrue);
+    expect(parseTfrLevel('17999 MSL')?.feet, 17999);
+    expect(parseTfrLevel('17999 MSL')?.agl, isFalse);
+    expect(parseTfrLevel('0 AGL')?.agl, isTrue);
+    expect(parseTfrLevel('0 MSL')?.agl, isFalse);
+    expect(parseTfrLevel('UNL')?.unlimited, isTrue);
+    expect(parseTfrLevel('Check NOTAMs'), isNull);
+    expect(formatTfrLimit('400', 'HEI', 'FT'), '400 AGL');
+    expect(formatTfrLimit('17999', 'ALT', 'FT'), '17999 MSL');
+    expect(formatTfrLimit('0', 'HEI', 'FT'), '0 AGL');
+    expect(formatTfrLimit('0', 'ALT', 'FT'), '0 MSL');
+    expect(tfrLevelFeet(1000, agl: true, groundFt: 7664), 8664);
+    expect(tfrLevelFeet(0, agl: true, groundFt: 7664), 7664);
+    expect(tfrLevelFeet(1000, agl: false, groundFt: 7664), 1000);
+    expect(tfrAboveScale(parseTfrLevel('15000 MSL'), 10000), isTrue);
+    expect(tfrAboveScale(parseTfrLevel('17999 MSL'), 10000), isTrue);
+    expect(tfrAboveScale(parseTfrLevel('1000 AGL'), 4000), isFalse);
+    expect(tfrAboveScale(parseTfrLevel('0'), 4000), isFalse);
+    expect(airspaceScaleAltitude(4000, [null, 6200, 9100]), 9100);
+    expect(airspaceScaleAltitude(9500, [7014, 6800]), 9500);
     expect(glideRingHasReach(const [LatLng(1, 1), LatLng(1, 1)]), isFalse);
     expect(glideRingHasReach(const [LatLng(42, -71), LatLng(42.1, -71), LatLng(42, -71)]), isTrue);
+  });
+
+  test('surface airspace sits on terrain instead of sea level', () {
+    expect(airspaceAboveGround(0, 7014), 7014);
+    expect(airspaceAboveGround(8000, 7014), 8000);
+    expect(airspaceAboveGround(5000, null), 5000);
+    final inside = clipRingToRing(
+      const [NmPoint(-0.5, -0.5), NmPoint(0.5, -0.5), NmPoint(0.5, 0.5), NmPoint(-0.5, 0.5)],
+      const [NmPoint(-2, -2), NmPoint(2, -2), NmPoint(2, 2), NmPoint(-2, 2)],
+    );
+    expect(inside.length, 4);
+    final cut = clipRingToRing(
+      const [NmPoint(-2, -2), NmPoint(2, -2), NmPoint(2, 2), NmPoint(-2, 2)],
+      const [NmPoint(-1, -1), NmPoint(1, -1), NmPoint(1, 1), NmPoint(-1, 1)],
+    );
+    expect(cut.length, 4);
+    for (final point in cut) {
+      expect(point.e.abs(), lessThanOrEqualTo(1.01));
+      expect(point.n.abs(), lessThanOrEqualTo(1.01));
+    }
   });
 
   test('plan path is cut to the 25 NM square', () {
