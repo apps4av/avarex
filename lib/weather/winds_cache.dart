@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:avaremp/utils/app_log.dart';
@@ -241,6 +242,29 @@ class WindsCache extends WeatherCache {
           .add(entry);
     }
     return _stationGrid = built;
+  }
+
+  /// Nearest winds-aloft stations, closest first, inside [maxNm].
+  static List<({String id, LatLng at})> stationsNear(LatLng location, {int count = 3, double maxNm = 350}) {
+    final ranked = <({String id, LatLng at, double nm})>[];
+    for (final MapEntry<String, LatLng> entry in _stationMap.entries) {
+      final double nm = _nmApart(location, entry.value);
+      if (nm <= maxNm) {
+        ranked.add((id: entry.key, at: entry.value, nm: nm));
+      }
+    }
+    ranked.sort((a, b) => a.nm.compareTo(b.nm));
+    final int take = count < ranked.length ? count : ranked.length;
+    return [
+      for (int i = 0; i < take; i++) (id: ranked[i].id, at: ranked[i].at),
+    ];
+  }
+
+  static double _nmApart(LatLng a, LatLng b) {
+    final double cosLat = math.cos(((a.latitude + b.latitude) / 2) * math.pi / 180).abs().clamp(0.2, 1.0);
+    final double east = (b.longitude - a.longitude) * 60.0 * cosLat;
+    final double north = (b.latitude - a.latitude) * 60.0;
+    return math.sqrt(east * east + north * north);
   }
 
   /// Nearest winds-aloft station. Cells are one degree. The square grows until
