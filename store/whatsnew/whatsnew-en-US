@@ -1,5 +1,9 @@
-Share the active plan from Menu `Link`. One device is Master. Slave devices copy that plan and the active waypoint.
-Sync plates to the active airport waypoint.
-3D `Wind` starts off. Turn it on for colored winds-aloft streaks.
-Wind streaks in 3D stay above the terrain.
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
+Type an altitude on each PLAN waypoint.
+The altitude icon picks the fastest cruise altitude from winds and the aircraft.
+Add Best Climb Speed and Best Climb Rate. The altitude icon uses them.
+Opening PLAN fills cruise speed and fuel flow from the aircraft.
+A procedure altitude is copied into the plan Alt column.
+3D draws the plan at each leg's altitude.
+3D shelf floors sit on the terrain.
+3D TFR shows AGL or MSL, and the picture includes that ground.
+TFR details show AGL or MSL.

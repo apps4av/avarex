@@ -15,12 +15,29 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.136**
+
+- Type an altitude on each PLAN waypoint.
+- The altitude icon picks the fastest cruise altitude from winds and the aircraft.
+- Add Best Climb Speed and Best Climb Rate. The altitude icon uses them.
+- Opening PLAN fills cruise speed and fuel flow from the aircraft.
+- A procedure altitude is copied into the plan Alt column.
+- 3D draws the plan at each leg's altitude.
+- 3D shelf floors sit on the terrain.
+- 3D TFR shows AGL or MSL, and the picture includes that ground.
+- TFR details show AGL or MSL.
+- Onboarding downloads Elevation with the other charts.
+- Tap the MT tile to switch North Up and Track Up. Olive means track-up.
+- The weather altitude slider sits under the Pro icon.
+- Map and Plate stay loaded when you switch between them.
+- 3D Wind starts off. Turn it on for colored winds-aloft streaks.
+- Wind streaks in 3D stay above the terrain.
+- The plan wind chart keeps the last forecast while a new one downloads.
+
 **0.0.135**
 
 - Share the active plan from Menu `Link`. One device is Master. Slave devices copy that plan and the active waypoint.
 - Sync plates to the active airport waypoint.
-- 3D `Wind` starts off. Turn it on for colored winds-aloft streaks.
-- Wind streaks in 3D stay above the terrain.
 
 **0.0.134**
 
