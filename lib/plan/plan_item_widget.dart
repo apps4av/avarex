@@ -1,5 +1,6 @@
 import 'plan_line_widget.dart';
 import 'package:avaremp/plan/waypoint.dart';
+import 'package:avaremp/storage.dart';
 import 'package:flutter/material.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/destination/destination.dart';
@@ -17,10 +18,60 @@ class PlanItemWidget extends StatefulWidget {
 
 class PlanItemWidgetState extends State<PlanItemWidget> {
 
+  /// Name plus the ACTIVE badge, kept inside the tile width. A plain [Row] lets a long procedure name paint past the edge.
+  Widget _waypointTitle(String name) {
+    final Color primaryColor = Theme.of(context).colorScheme.primary;
+    final Color currentColor = Constants.planCurrentColor;
+    final Text label = Text(
+      name,
+      maxLines: 1,
+      softWrap: false,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        color: widget.current ? currentColor : primaryColor,
+      ),
+    );
+    if (!widget.current) {
+      return label;
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const double badgeSlot = 72;
+        final double nameWidth = constraints.maxWidth.isFinite
+            ? (constraints.maxWidth - badgeSlot).clamp(0, constraints.maxWidth).toDouble()
+            : 0;
+        return Row(
+          children: [
+            SizedBox(width: nameWidth, child: label),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: badgeSlot - 8,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: currentColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    "ACTIVE",
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: currentColor),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final currentColor = Constants.planCurrentColor;
 
     return Destination.isAirway(widget.waypoint.destination.type) || Destination.isProcedure(widget.waypoint.destination.type)
         ? ExpansionTile(
@@ -28,34 +79,11 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
               widget.waypoint.destination.type,
               widget.waypoint.destinationsOnRoute.isEmpty ? Colors.red : primaryColor,
             ),
-            title: Row(
-              children: [
-                Text(
-                  widget.waypoint.destination.locationID,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: widget.current ? currentColor : primaryColor,
-                  ),
-                ),
-                if (widget.current)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: currentColor.withAlpha(30),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        "ACTIVE",
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: currentColor),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            title: _waypointTitle(widget.waypoint.destination.locationID),
             subtitle: Text(
               widget.waypoint.destination.secondaryName ?? widget.waypoint.destination.locationID,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             children: <Widget>[
@@ -64,39 +92,29 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
           )
         : ListTile(
             leading: DestinationFactory.getIcon(widget.waypoint.destination.type, primaryColor),
-            title: Row(
-              children: [
-                Text(
-                  widget.waypoint.destination.type == Destination.typeGps
-                      ? widget.waypoint.destination.facilityName
-                      : widget.waypoint.destination.locationID,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: widget.current ? currentColor : primaryColor,
-                  ),
-                ),
-                if (widget.current)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: currentColor.withAlpha(30),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        "ACTIVE",
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: currentColor),
-                      ),
-                    ),
-                  ),
-              ],
+            title: _waypointTitle(
+              widget.waypoint.destination.type == Destination.typeGps
+                  ? widget.waypoint.destination.facilityName
+                  : widget.waypoint.destination.locationID,
             ),
-            subtitle: PlanLineWidget(destination: widget.waypoint.destination),
+            subtitle: _altitudeLine(widget.waypoint.destination, null),
             onTap: () {
               widget.onTap();
             },
           );
+  }
+
+  Widget _altitudeLine(Destination destination, int? fixIndex) {
+    return PlanLineWidget(
+      destination: destination,
+      altitude: Storage().route.rowAltitude(widget.waypoint, fixIndex),
+      onAltitudeChanged: (int value) {
+        Storage().route.setLegAltitude(widget.waypoint, fixIndex, value);
+      },
+      onAltitudeCleared: () {
+        Storage().route.clearLegAltitude(widget.waypoint, fixIndex);
+      },
+    );
   }
 
   List<Widget> _buildExpandableContent() {
@@ -114,12 +132,14 @@ class PlanItemWidgetState extends State<PlanItemWidget> {
           child: ListTile(
             title: Text(
               destinations[index].secondaryName ?? destinations[index].locationID,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isCurrentInAirway ? currentColor : primaryColor,
                 fontWeight: isCurrentInAirway ? FontWeight.bold : FontWeight.normal,
               ),
             ),
-            subtitle: PlanLineWidget(destination: destinations[index]),
+            subtitle: _altitudeLine(destinations[index], index),
             leading: DestinationFactory.getIcon(widget.waypoint.destination.type, primaryColor),
             dense: true,
             onTap: () {

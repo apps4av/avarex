@@ -58,7 +58,7 @@ class PlanCreateWidgetState extends State<PlanCreateWidget> {
                       triggerMode: TooltipTriggerMode.tap,
                       message: "Create As Entered: Enter all the waypoints separated by spaces.\n\n"
                           "Create IFR Preferred Route / Show IFR ATC Routes: Enter departure and destination separated by a space.\n\n"
-                          "${Storage().settings.getEmail().isEmpty ? 'Set 1800wxbrief.com account in the app introduction screen.' : 'Using 1800wxbrief.com account ${Storage().settings.getEmail()}'}",
+                          "${Storage().settings.getEmail().isEmpty ? LmfsInterface.missingAccountMessage : 'Using 1800wxbrief.com account ${Storage().settings.getEmail()}'}",
                       child: Icon(Icons.help_outline, color: Theme.of(context).colorScheme.outline),
                     ),
                   ],

@@ -129,6 +129,18 @@ Future<void> _restorePlan(
   await Future.delayed(const Duration(milliseconds: 1200));
 }
 
+Future<void> _closeDrawer(WidgetTester tester) async {
+  final Finder scaffolds = find.byType(Scaffold);
+  final int n = scaffolds.evaluate().length;
+  for (int i = 0; i < n; i++) {
+    final ScaffoldState state = tester.state<ScaffoldState>(scaffolds.at(i));
+    if (state.hasDrawer && state.isDrawerOpen) {
+      state.closeDrawer();
+    }
+  }
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
 Future<void> _closeOverlay(WidgetTester tester) async {
   try {
     final close = find.byIcon(Icons.close);
@@ -229,9 +241,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 700));
       await _shot(tester, '04_drawer_menu');
 
-      // Close drawer
-      await tester.tapAt(const Offset(700, 300));
-      await tester.pump(const Duration(milliseconds: 400));
+      await _closeDrawer(tester);
     }
 
     // ===========================================
@@ -342,6 +352,8 @@ void main() {
     // The map's Center control sits over the PLAN nav item, so drive the
     // bar callback. Action tabs are inline buttons, not a separate screen.
     // ===========================================
+    await _closeDrawer(tester);
+    Storage().route.clear();
     MainScreenState.gotoPlan();
     await tester.pump(const Duration(milliseconds: 700));
     await _shot(tester, '19_plan_tab_empty');
@@ -380,6 +392,14 @@ void main() {
     await _shot(tester, '26_plan_actions_brief_file');
 
     await _press(tester, find.widgetWithText(TextButton, 'Manage'), 'Manage');
+    for (int i = 0; i < 30; i++) {
+      if (tester.any(find.text('No flight plans on file')) ||
+          !tester.any(find.byType(CircularProgressIndicator))) {
+        break;
+      }
+      await Future.delayed(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 200));
+    }
     await _shot(tester, '27_plan_actions_manage');
 
     await _press(tester, find.widgetWithText(TextButton, 'Plan'), 'Plan');

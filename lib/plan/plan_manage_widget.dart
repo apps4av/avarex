@@ -18,14 +18,21 @@ class PlanManageWidget extends StatefulWidget {
 class PlanManageWidgetState extends State<PlanManageWidget> {
 
   bool _sending = false;
-  String _error = "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
+  String _error = Storage().settings.getEmail().isEmpty
+      ? LmfsInterface.missingAccountMessage
+      : "Using 1800wxbrief.com account '${Storage().settings.getEmail()}'";
   Color? _errorColor;
+  late Future<LmfsPlanList> _plansFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _plansFuture = getPlans();
+  }
 
   Future<LmfsPlanList> getPlans() async {
-    LmfsPlanList ret;
     LmfsInterface interface = LmfsInterface();
-    ret = await interface.getFlightPlans();
-    return ret;
+    return interface.getFlightPlans();
   }
 
   Color _getStateColor(String state) {
@@ -54,21 +61,24 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
     }
   }
 
-  Widget _makeContent(LmfsPlanList? plans) {
-
-    bool getting = false;
-    if (plans == null) {
-      getting = true;
-      plans = LmfsPlanList("{}");
+  Widget _makeContent(AsyncSnapshot<LmfsPlanList> snapshot) {
+    if (snapshot.connectionState != ConnectionState.done || snapshot.data == null) {
+      return const Center(child: CircularProgressIndicator());
     }
 
+    final LmfsPlanList plans = snapshot.data!;
     List<LmfsPlanListPlan> items = plans.getPlans();
     DateTime? sunset;
     DateTime? sunrise;
     (sunrise, sunset) = TwilightCalculator.calculateTwilight(Storage().position.latitude, Storage().position.longitude);
 
-    if (getting) {
-      return const Center(child: CircularProgressIndicator());
+    if (plans.error.isNotEmpty && items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(plans.error, textAlign: TextAlign.center),
+        ),
+      );
     }
 
     if (items.isEmpty) {
@@ -186,6 +196,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                                     _errorColor = Colors.red;
                                   }
                                   _sending = false;
+                                  _plansFuture = getPlans();
                                 }));
                               },
                               child: const Text("Cancel"),
@@ -216,6 +227,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                                           _errorColor = Colors.red;
                                         }
                                         _sending = false;
+                                        _plansFuture = getPlans();
                                       }));
                                     },
                                   ),
@@ -238,6 +250,7 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
                                     _errorColor = Colors.red;
                                   }
                                   _sending = false;
+                                  _plansFuture = getPlans();
                                 }));
                               },
                               child: const Text("Close"),
@@ -259,10 +272,10 @@ class PlanManageWidgetState extends State<PlanManageWidget> {
   @override
   Widget build(BuildContext context) {
 
-    return FutureBuilder(
-        future: getPlans(),
+    return FutureBuilder<LmfsPlanList>(
+        future: _plansFuture,
         builder: (context, snapshot) {
-          return _makeContent(snapshot.data);
+          return _makeContent(snapshot);
         });
   }
 

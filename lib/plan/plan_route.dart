@@ -8,6 +8,7 @@ import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/plan/passage.dart';
 import 'package:avaremp/plan/route_generator.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/plan/best_cruise_altitude.dart';
 import 'package:avaremp/plan/waypoint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:geolocator/geolocator.dart';
@@ -26,6 +27,10 @@ class PlanRoute {
   List<LatLng> _pointsCurrent = [];
   List<LatLng> _pointsNext = [];
   List<LatLng> _pointsNextHighResolution = [];
+  List<double> _pathPassedAltitudes = [];
+  List<double> _pathCurrentAltitudes = [];
+  List<double> _pathNextLineAltitudes = [];
+  List<double> _pathNextAltitudes = [];
   Waypoint? _current; // current one we are flying to
   String name;
   final change = ValueNotifier<int>(0);
@@ -46,6 +51,11 @@ class PlanRoute {
   List<Destination> _nextDestinations = [];
 
   DestinationCalculations? totalCalculations;
+
+  /// Altitudes chosen along the route, with climb and descent between them.
+  CruiseProfile? cruiseProfile;
+
+  ProfileFlight? flight;
 
   int get length => _waypoints.length;
   bool get isNotEmpty => _waypoints.isNotEmpty;
@@ -131,12 +141,15 @@ class PlanRoute {
     d1.insert(0, d0[d0.length - 1]);
   }
 
-  List<LatLng> _makePathPoints(List<Destination> path, {bool fine = false}) {
+  List<LatLng> _makePathPoints(List<Destination> path, {bool fine = false, List<double>? altitudes, bool slope = false}) {
     GeoCalculations calc = GeoCalculations();
     List<LatLng> points = [];
+    altitudes?.clear();
     if(path.length < 2) {
       return [];
     }
+    final double Function(int leg, int sample, int fullCount, LatLng point)? altitudeAt =
+        altitudes == null ? null : PlanAltitudes(this).along(path, slope);
     // geo segments
     for(int index = 0; index < path.length - 1; index++) {
       LatLng destination1 = path[index].coordinate;
@@ -147,15 +160,26 @@ class PlanRoute {
       // Skip first point of subsequent legs to avoid duplicates at waypoint junctions.
       // findPoints includes both endpoints, so consecutive legs would have the shared
       // waypoint appearing twice, causing bearing calculations to return 0 (undefined).
+      final int fullCount = routeIntermediate.length;
       if(index > 0 && routeIntermediate.isNotEmpty) {
         routeIntermediate = routeIntermediate.sublist(1);
       }
-      points.addAll(routeIntermediate);
+      for(int point = 0; point < routeIntermediate.length; point++) {
+        points.add(routeIntermediate[point]);
+        if(altitudeAt != null) {
+          final int sample = index > 0 ? point + 1 : point;
+          altitudes!.add(altitudeAt(index, sample, fullCount, routeIntermediate[point]));
+        }
+      }
     }
     return points;
   }
 
   void _update(bool changeInPath) {
+    if (changeInPath) {
+      cruiseProfile = null;
+    }
+    flight = null;
 
     if(_waypoints.isNotEmpty) {
       _current ??= _waypoints[0];
@@ -165,6 +189,10 @@ class PlanRoute {
       _pointsPassed = [];
       _pointsCurrent = [];
       _pointsNextHighResolution = [];
+      _pathPassedAltitudes = [];
+      _pathCurrentAltitudes = [];
+      _pathNextLineAltitudes = [];
+      _pathNextAltitudes = [];
       _pointsNext = [];
       _allDestinations = [];
       _nextDestinations = [];
@@ -175,6 +203,7 @@ class PlanRoute {
 
     // On change in path, adjust airway
     if(changeInPath) {
+      applyEndpointFieldElevations();
       for (int index = 0; index < _waypoints.length; index++) {
         Destination destination = _waypoints[index].destination;
         if (Destination.isAirway(destination.type)) {
@@ -214,28 +243,40 @@ class PlanRoute {
     _allDestinations.addAll(destinationsCurrent);
     _allDestinations.addAll(destinationsNext);
     _nextDestinations.addAll(destinationsNext);
+    flight = PlanAltitudes(this).profileFlight();
 
     // calculate plan
     for(int index = 0; index < _allDestinations.length - 1; index++) {
       _allDestinations[0].calculations = null;
       DestinationCalculations calc;
       // calculate total from current position to active route
+      final FlownLeg flown = PlanAltitudes(this).flownLeg(
+          index, _allDestinations[index + 1], current.destination == _allDestinations[index + 1]);
       if(current.destination == _allDestinations[index + 1]) {
         calc = DestinationCalculations(
           Destination.fromLatLng(Gps.toLatLng(Storage().position)),
           _allDestinations[index + 1],
-          Storage().settings.getTas(),
-          Storage().settings.getFuelBurn(), altitude.toDouble());
+          flown.tas,
+          flown.gph,
+          flown.altitude);
       }
       else {
         calc = DestinationCalculations(
             _allDestinations[index], _allDestinations[index + 1],
-            Storage().settings.getTas(),
-            Storage().settings.getFuelBurn(),
-            altitude.toDouble()
+            flown.tas,
+            flown.gph,
+            flown.altitude
         );
       }
       calc.calculateTo();
+      if (flown.timeSeconds != null) {
+        calc.time = flown.timeSeconds!;
+        calc.fuel = flown.fuelGal!;
+        calc.distance = flown.distanceNm!;
+        if (flown.groundSpeed != null) {
+          calc.groundSpeed = flown.groundSpeed!;
+        }
+      }
       _allDestinations[index + 1].calculations = calc;
     }
 
@@ -295,13 +336,30 @@ class PlanRoute {
     }
 
     // make paths
-    _pointsPassed = _makePathPoints(destinationsPassed);
-    _pointsNext = _makePathPoints(destinationsNext);
-    _pointsCurrent = _makePathPoints(destinationsCurrent);
-    _pointsNextHighResolution = _makePathPoints(destinationsNext, fine: true);
+    _pointsPassed = _makePathPoints(destinationsPassed, altitudes: _pathPassedAltitudes, slope: true);
+    _pointsNext = _makePathPoints(destinationsNext, altitudes: _pathNextLineAltitudes, slope: true);
+    _pointsCurrent = _makePathPoints(destinationsCurrent, altitudes: _pathCurrentAltitudes, slope: true);
+    _pointsNextHighResolution = _makePathPoints(destinationsNext, altitudes: _pathNextAltitudes, fine: true);
 
     change.value++;
   }
+
+  bool applyEndpointFieldElevations() => PlanAltitudes(this).applyEndpointFieldElevations();
+
+  int rowAltitude(Waypoint waypoint, [int? fixIndex]) =>
+      PlanAltitudes(this).rowAltitude(waypoint, fixIndex);
+
+  bool isArrivalAirport(Waypoint waypoint) => PlanAltitudes(this).isArrivalAirport(waypoint);
+
+  void setLegAltitude(Waypoint waypoint, int? fixIndex, int value) =>
+      PlanAltitudes(this).setLegAltitude(waypoint, fixIndex, value);
+
+  void clearLegAltitude(Waypoint waypoint, int? fixIndex) =>
+      PlanAltitudes(this).clearLegAltitude(waypoint, fixIndex);
+
+  String altitudeSignature() => PlanAltitudes(this).altitudeSignature();
+
+  List<PlanLegTarget> cruiseLegs() => PlanAltitudes(this).cruiseLegs();
 
   void advance() {
     if(_current != null) {
@@ -382,6 +440,16 @@ class PlanRoute {
     _update(true);
   }
 
+  static Map<int, int> profileAltitudesForFixes(
+    List<String> fixIds,
+    List<({String fix, double? altitudeFt})> points,
+  ) => PlanAltitudes.profileAltitudesForFixes(fixIds, points);
+
+  void applyProcedureProfileAltitudes(
+    String procedureName,
+    List<({String fix, double? altitudeFt})> points,
+  ) => PlanAltitudes(this).applyProcedureProfileAltitudes(procedureName, points);
+
   void moveWaypoint(int from, int to) {
     Waypoint waypoint = _waypoints.removeAt(from);
     _waypoints.insert(to, waypoint);
@@ -425,7 +493,7 @@ class PlanRoute {
   }
 
   List<double> getPathPassedAltitudes() {
-    return const [];
+    return _pathPassedAltitudes;
   }
 
   List<LatLng> getPathCurrent() {
@@ -433,7 +501,7 @@ class PlanRoute {
   }
 
   List<double> getPathCurrentAltitudes() {
-    return const [];
+    return _pathCurrentAltitudes;
   }
 
   List<LatLng> getPathNext() {
@@ -442,11 +510,17 @@ class PlanRoute {
 
   /// Cruise altitude for each point of [getPathNext], level on a leg and stepping at the next fix.
   List<double> getPathNextLineAltitudes() {
-    return const [];
+    return _pathNextLineAltitudes;
   }
 
   List<LatLng> getPathNextHighResolution() {
     return _pointsNextHighResolution;
+  }
+
+  /// Cruise altitude in feet for each point of [getPathNextHighResolution].
+  /// Each leg holds the altitude from the plan, then steps at the next waypoint.
+  List<double> getPathNextAltitudes() {
+    return _pathNextAltitudes;
   }
 
   List<Destination> getNextDestinations() {
@@ -520,12 +594,29 @@ class PlanRoute {
 
   // convert route to json
   String toJson(String name) {
+    return jsonEncode(_savedMaps());
+  }
 
-    // put all destinations in json
-    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
-    String json = jsonEncode(maps);
+  static Future<Waypoint> _waypointFromMap(Map<String, dynamic> map) async {
+    Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
+    Waypoint waypoint = Waypoint(expanded);
+    waypoint.readAltitudes(map);
+    return waypoint;
+  }
 
-    return json;
+  List<Map<String, Object?>> _savedMaps() {
+    final List<Map<String, Object?>> maps = _waypoints.map(_savedWaypointMap).toList();
+    if (maps.isNotEmpty && cruiseProfile != null) {
+      maps.first['_cruiseProfile'] = cruiseProfile!.toJson();
+    }
+    return maps;
+  }
+
+  Map<String, Object?> _savedWaypointMap(Waypoint waypoint, {bool plan = false}) {
+    final Destination destination = plan ? waypoint.planDestination : waypoint.destination;
+    final Map<String, Object?> map = Map<String, Object?>.from(destination.toMap());
+    waypoint.writeAltitudes(map);
+    return map;
   }
 
   // default constructor creates empty route
@@ -547,21 +638,34 @@ class PlanRoute {
     for(Waypoint w in other._waypoints) {
       addWaypoint(w);
     }
+    cruiseProfile = other.cruiseProfile;
+    update();
   }
 
   // convert json to Route
   static Future<PlanRoute> fromJson(String json, String name, bool reverse) async {
     PlanRoute route = PlanRoute(name);
     List<dynamic> decoded = jsonDecode(json);
-    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
-
-    if(reverse) {
-      destinations = destinations.reversed.toList();
+    List<Map<String, dynamic>> maps = [];
+    for (dynamic entry in decoded) {
+      if (entry is Map) {
+        maps.add(Map<String, dynamic>.from(entry));
+      }
     }
-    for (Destination d in destinations) {
-      Destination expanded = await DestinationFactory.make(d);
-      Waypoint w = Waypoint(expanded);
-      route.addWaypoint(w);
+    if(reverse) {
+      maps = maps.reversed.toList();
+    }
+    CruiseProfile? profile;
+    for (Map<String, dynamic> map in maps) {
+      final Object? raw = map['_cruiseProfile'];
+      if (!reverse && raw is Map) {
+        profile = CruiseProfile.tryParse(Map<String, dynamic>.from(raw));
+      }
+      route.addWaypoint(await _waypointFromMap(map));
+    }
+    route.cruiseProfile = profile;
+    if (profile != null) {
+      route.update();
     }
     return route;
   }
@@ -585,8 +689,7 @@ class PlanRoute {
       if (lon is num) {
         map["ARPLongitude"] = lon.toDouble();
       }
-      Destination expanded = await DestinationFactory.make(Destination.fromMap(map));
-      route.addWaypoint(Waypoint(expanded));
+      route.addWaypoint(await _waypointFromMap(map));
     }
     if (waypointIndex >= 0 && waypointIndex < route.length) {
       route.setCurrentWaypoint(waypointIndex);
@@ -792,32 +895,12 @@ class PlanRoute {
 
   // convert route to json
   Map<String, Object?> toMap(String name) {
-
-    // put all destinations in json
-    List<Map<String, Object?>> maps = _waypoints.map((e) => e.destination.toMap()).toList();
-    String json = jsonEncode(maps);
-
-    Map<String, Object?> jsonMap = {'name' : name, 'route' : json};
-
-    return jsonMap;
+    return {'name' : name, 'route' : toJson(name)};
   }
 
   // convert json to Route
   static Future<PlanRoute> fromMap(Map<String, Object?> maps, bool reverse) async {
-    PlanRoute route = PlanRoute(maps['name'] as String);
-    String json = maps['route'] as String;
-    List<dynamic> decoded = jsonDecode(json);
-    List<Destination> destinations = decoded.map((e) => Destination.fromMap(e)).toList();
-
-    if(reverse) {
-      destinations = destinations.reversed.toList();
-    }
-    for (Destination d in destinations) {
-      Destination expanded = await DestinationFactory.make(d);
-      Waypoint w = Waypoint(expanded);
-      route.addWaypoint(w);
-    }
-    return route;
+    return fromJson(maps['route'] as String, maps['name'] as String, reverse);
   }
 
   /// `id|type` of each waypoint as entered, one per line.
@@ -829,9 +912,9 @@ class PlanRoute {
   /// JSON array of the plan as entered. Airways and procedures stay the
   /// airway or procedure, not the fix currently being flown.
   String toLinkJson() {
-    List<Map<String, Object?>> maps =
-        _waypoints.map((Waypoint w) => w.planDestination.toMap()).toList();
+    List<Map<String, Object?>> maps = _waypoints.map((Waypoint w) => _savedWaypointMap(w, plan: true)).toList();
     return jsonEncode(maps);
   }
 
 }
+

@@ -87,18 +87,20 @@ class WeatherCache {
     }
     Weather? w = _map[station];
 
-    // if not found or if found and expired, return null
     if(w == null) {
       return(null);
     }
+    // Keep showing the last forecast while a refresh is due. Returning null
+    // here blanked the navigation-log wind chart for a minute after the
+    // 10-minute expiry, because the plan asks for wind every second.
     if(w.isExpired()) {
-      if(_lastDownload.containsKey(w.runtimeType)) {
-        if((DateTime.now().toUtc().millisecondsSinceEpoch - _lastDownload[w.runtimeType]!.millisecondsSinceEpoch) < _maxAge) {
-          return null;
-        }
+      final DateTime? last = _lastDownload[w.runtimeType];
+      final int now = DateTime.now().toUtc().millisecondsSinceEpoch;
+      final bool recently = last != null && (now - last.millisecondsSinceEpoch) < _maxAge;
+      if(!recently) {
+        _lastDownload[w.runtimeType] = DateTime.now().toUtc();
+        download(station);
       }
-      _lastDownload[w.runtimeType] = DateTime.now().toUtc();
-      download(station);
     }
     return w;
   }

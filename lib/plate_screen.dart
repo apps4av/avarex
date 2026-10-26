@@ -207,6 +207,18 @@ class PlateScreenState extends State<PlateScreen> {
       return;
     }
     Storage().route.addWaypoint(Waypoint(procedure));
+    final List<ProcedureProfilePoint> profile =
+        await MainDatabaseHelper.db.findProcedureProfile(procedureName);
+    if (!mounted) {
+      return;
+    }
+    Storage().route.applyProcedureProfileAltitudes(
+      procedure.locationID,
+      [
+        for (final ProcedureProfilePoint point in profile)
+          (fix: point.fixIdentifier, altitudeFt: point.altitudeFt),
+      ],
+    );
     Toast.showToast(
         context, "Added ${procedure.facilityName} to Plan", null, 3);
   }
