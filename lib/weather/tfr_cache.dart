@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/storage.dart';
@@ -70,18 +69,8 @@ class TfrCache extends WeatherCache {
         String lower = "Check NOTAMs";
         List<String> effectiveGroup = [];
         List<String> expireGroup = [];
-        try {
-          upper = tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString();
-        }
-        catch(e) {
-          AppLog.logMessage("Error parsing TFR upper altitude: $e");
-        }
-        try {
-          lower = tfrGroup.findAllElements("valDistVerLower").first.innerText.toString();
-        }
-        catch(e) {
-          AppLog.logMessage("Error parsing TFR lower altitude: $e");
-        }
+        upper = _tfrLimit(tfrGroup, "Upper");
+        lower = _tfrLimit(tfrGroup, "Lower");
         try {
           scheduledGroups = tfrGroup.findAllElements("ScheduleGroup");
           for(var scheduledGroup in scheduledGroups) {
@@ -164,5 +153,22 @@ class TfrCache extends WeatherCache {
 
     await WeatherDatabaseHelper.db.addTfrs(tfrs);
   }
+}
+
+String _tfrField(XmlElement group, String name) {
+  try {
+    return group.findAllElements(name).first.innerText.trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+/// `HEI` is AGL and `ALT` is MSL, from the same TFR area group as the number.
+String _tfrLimit(XmlElement group, String end) {
+  final value = _tfrField(group, 'valDistVer$end');
+  if (value.isEmpty) {
+    return 'Check NOTAMs';
+  }
+  return formatTfrLimit(value, _tfrField(group, 'codeDistVer$end'), _tfrField(group, 'uomDistVer$end'));
 }
 

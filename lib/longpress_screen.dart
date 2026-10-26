@@ -341,6 +341,7 @@ class LongPressScreenState extends State<LongPressScreen> {
       center: showDestination.coordinate,
       ownship: Storage().gpsChange,
       showPressPoint: true,
+      showTerrain: true,
     );
     pages[labels.indexOf("ST")] = Sounding.getSoundingImage(showDestination.coordinate, context);
 

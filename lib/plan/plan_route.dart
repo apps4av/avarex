@@ -424,12 +424,25 @@ class PlanRoute {
     return _pointsPassed;
   }
 
+  List<double> getPathPassedAltitudes() {
+    return const [];
+  }
+
   List<LatLng> getPathCurrent() {
     return _pointsCurrent;
   }
 
+  List<double> getPathCurrentAltitudes() {
+    return const [];
+  }
+
   List<LatLng> getPathNext() {
     return _pointsNext;
+  }
+
+  /// Cruise altitude for each point of [getPathNext], level on a leg and stepping at the next fix.
+  List<double> getPathNextLineAltitudes() {
+    return const [];
   }
 
   List<LatLng> getPathNextHighResolution() {

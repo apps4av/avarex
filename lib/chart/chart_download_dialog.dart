@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 /// one after another and blocks the user from continuing until they all finish.
 ///
 /// Used during onboarding to automatically fetch the DatabasesX package plus the
-/// Sectional and Plates for the region the device is currently located in.
+/// Sectional, Plates, CSUP, and Elevation for the region the device is currently located in.
 class ChartDownloadDialog extends StatefulWidget {
   final List<Chart> charts;
   final String title;
