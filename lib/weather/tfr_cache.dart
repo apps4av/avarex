@@ -70,14 +70,27 @@ class TfrCache extends WeatherCache {
         String lower = "Check NOTAMs";
         List<String> effectiveGroup = [];
         List<String> expireGroup = [];
+        // Each limit is a value plus a unit (FT/FL) and a reference code
+        // (HEI = above ground, ALT = MSL). Keep the formatted form so the
+        // map label and toast read like a sectional.
+        String textOf(String tag) {
+          final Iterable<XmlElement> found = tfrGroup.findAllElements(tag);
+          return found.isEmpty ? "" : found.first.innerText.toString();
+        }
         try {
-          upper = tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString();
+          upper = Tfr.formatAltitude(
+              tfrGroup.findAllElements("valDistVerUpper").first.innerText.toString(),
+              textOf("uomDistVerUpper"),
+              textOf("codeDistVerUpper"));
         }
         catch(e) {
           AppLog.logMessage("Error parsing TFR upper altitude: $e");
         }
         try {
-          lower = tfrGroup.findAllElements("valDistVerLower").first.innerText.toString();
+          lower = Tfr.formatAltitude(
+              tfrGroup.findAllElements("valDistVerLower").first.innerText.toString(),
+              textOf("uomDistVerLower"),
+              textOf("codeDistVerLower"));
         }
         catch(e) {
           AppLog.logMessage("Error parsing TFR lower altitude: $e");
