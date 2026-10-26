@@ -31,6 +31,9 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   bool _drawerOpen = false;
   int _selectedIndex = tabLocationMap; // for various tab screens
+  // Map is showing at launch. Plate is built on the first visit and then kept,
+  // so switching between Map and Plate does not reload the chart or the plate.
+  final List<bool> _tabMounted = [true, false, false, false];
   bool _noticesOpen = false;
   DateTime _noticesCheckedAt = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -44,10 +47,17 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     _widgetOptions.insert(tabLocationFind, FindScreen());
   }
 
+  bool _keptTab(int index) => index == tabLocationMap || index == tabLocationPlates;
+
   void mOnItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      if (_keptTab(index)) {
+        _tabMounted[index] = true;
+      }
     });
+    MapScreenState.setVisible(index == tabLocationMap);
+    PlateScreenState.setVisible(index == tabLocationPlates);
   }
 
   Widget _buildSectionHeader(BuildContext context, String title) {
@@ -495,8 +505,28 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
             ),
           ),
         ),
-        body: Center(
-          child: _widgetOptions.elementAt(_selectedIndex),
+        // Keep Map and Plate after they have been opened. Swapping them out
+        // reloaded the chart and the plate image.
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            for (int i = 0; i < _widgetOptions.length; i++)
+              if (_keptTab(i) && _tabMounted[i])
+                Offstage(
+                  offstage: _selectedIndex != i,
+                  child: ExcludeFocus(
+                    // A hidden tab stays mounted. Its controls must not take
+                    // focus when another route is popped.
+                    excluding: _selectedIndex != i,
+                    child: TickerMode(
+                      enabled: _selectedIndex == i,
+                      child: _widgetOptions[i],
+                    ),
+                  ),
+                ),
+            if (!_keptTab(_selectedIndex))
+              _widgetOptions[_selectedIndex],
+          ],
         ),
         bottomNavigationBar: Container(
           padding: const EdgeInsets.all(5),

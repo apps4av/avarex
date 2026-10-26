@@ -59,6 +59,9 @@ class MapScreen extends StatefulWidget {
 class MapScreenState extends State<MapScreen> {
 
   static const double iconRadius = 18;
+  // The map stays mounted while Plate is showing.
+  static MapScreenState? _active;
+  bool _visible = true;
 
   final List<String> _charts = DownloadScreenState.getCategories();
   LatLng? _previousPosition;
@@ -120,46 +123,71 @@ class MapScreenState extends State<MapScreen> {
   }
 
   void _metarListen() {
-    setState(() {
-      _metarCluster = null;
-    });
+    _metarCluster = null;
+    _rebuildIfVisible();
   }
 
   void _tafListen() {
-    setState(() {
-      _tafCluster = null;
-    });
+    _tafCluster = null;
+    _rebuildIfVisible();
   }
 
   void _airepListen() {
-    setState(() {
-      _airepCluster = null;
-    });
+    _airepCluster = null;
+    _rebuildIfVisible();
   }
 
   void _airSigmetListen() {
-    setState(() {
-      _airSigmetCluster = null;
-      _airSigmetLayer = null;
-    });
+    _airSigmetCluster = null;
+    _airSigmetLayer = null;
+    _rebuildIfVisible();
   }
 
   void _tfrListen() {
-    setState(() {
-      _tfrCluster = null;
-      _tfrLayer = null;
-    });
+    _tfrCluster = null;
+    _tfrLayer = null;
+    _rebuildIfVisible();
   }
 
   void _geoJsonListen() {
-    setState(() {
-      _geojsonCluster = null;
-      _geoJsonLayer = null;
-    });
+    _geojsonCluster = null;
+    _geoJsonLayer = null;
+    _rebuildIfVisible();
+  }
+
+  // Weather still updates while Plate is up. Skip the rebuild until the map
+  // is on screen again.
+  void _rebuildIfVisible() {
+    if (_visible && mounted) {
+      setState(() {});
+    }
+  }
+
+  /// Called when the map tab is shown or covered. While covered, GPS moves and
+  /// weather rebuilds wait. Coming back leaves the chart where it was.
+  static void setVisible(bool visible) {
+    _active?._setVisible(visible);
+  }
+
+  void _setVisible(bool visible) {
+    if (_visible == visible) {
+      return;
+    }
+    _visible = visible;
+    if (!mounted) {
+      return;
+    }
+    if (visible) {
+      // Drop GPS deltas from while this tab was covered, so the chart does not
+      // jump by the distance flown on Plate.
+      _previousPosition = Gps.toLatLng(Storage().position);
+    }
+    setState(() {});
   }
 
   @override
   void initState() {
+    _active = this;
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
     Storage().metar.change.addListener(_metarListen);
@@ -176,6 +204,9 @@ class MapScreenState extends State<MapScreen> {
 
   @override
   void dispose() {
+    if (identical(_active, this)) {
+      _active = null;
+    }
     // save ptz when we switch out
     Storage().gpsChange.removeListener(_gpsListen);
     Storage().metar.change.removeListener(_metarListen);
@@ -237,6 +268,9 @@ class MapScreenState extends State<MapScreen> {
 
   // this pans camera on move
   void _gpsListen() {
+    if (!_visible) {
+      return;
+    }
     final LatLng cur = Gps.toLatLng(Storage().position);
     _previousPosition ??= cur;
     try {
@@ -1426,7 +1460,7 @@ class MapScreenState extends State<MapScreen> {
                         )
                     )
                 ),
-              Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration)))),
+              Positioned.fill(child: RepaintBoundary(child: InstrumentList(key: ValueKey<int>(_profileGeneration), active: _visible))),
               // warn
               Positioned(
                 child: Align(
