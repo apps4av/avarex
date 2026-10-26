@@ -190,6 +190,7 @@ class MapScreenState extends State<MapScreen> {
     _active = this;
     // move with airplane but do not hold the map
     Storage().gpsChange.addListener(_gpsListen);
+    Storage().northUpChange.addListener(_onNorthUp);
     Storage().metar.change.addListener(_metarListen);
     Storage().taf.change.addListener(_tafListen);
     Storage().airep.change.addListener(_airepListen);
@@ -209,6 +210,7 @@ class MapScreenState extends State<MapScreen> {
     }
     // save ptz when we switch out
     Storage().gpsChange.removeListener(_gpsListen);
+    Storage().northUpChange.removeListener(_onNorthUp);
     Storage().metar.change.removeListener(_metarListen);
     Storage().taf.change.removeListener(_tafListen);
     Storage().airep.change.removeListener(_airepListen);
@@ -295,6 +297,27 @@ class MapScreenState extends State<MapScreen> {
       setState(() {
         _cacheBustElevation++;
       });
+    }
+  }
+
+  // North-up keeps the chart fixed; track-up rotates it to the aircraft heading.
+  void _onNorthUp() {
+    if (!mounted) {
+      return;
+    }
+    final bool northUp = Storage().settings.getNorthUp();
+    setState(() {
+      _northUp = northUp;
+    });
+    try {
+      _controller.moveAndRotate(
+        _controller.camera.center,
+        _controller.camera.zoom,
+        northUp ? 0 : -Storage().position.heading,
+      );
+    }
+    catch (e) {
+      AppLog.logMessage("MapScreen: orientation toggle error $e");
     }
   }
 
@@ -1474,37 +1497,29 @@ class MapScreenState extends State<MapScreen> {
                             builder: (context, value, _) {
                               return WarningsButtonWidget(warning: value);
                             }
-                        )]
-                        )
+                          ),
+                          if(showAltitudeSlider)
+                            RotatedBox(quarterTurns: -1, child:
+                              SizedBox(width: 192, height: 64, child:
+                                Slider(
+                                  label: "${(Storage().route.altitude / 1000).toInt()}K ft",
+                                  max: 30000,
+                                  min: 0,
+                                  divisions: 30,
+                                  value: Storage().route.altitude.toDouble(),
+                                  onChanged: (double value) {
+                                    setState(() {
+                                      Storage().route.altitude = value.toInt();
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                        ])
                     )
 
                 ),
               ),
-              if(showAltitudeSlider)
-              Positioned(
-                child: Align(
-                    alignment: Alignment.bottomRight,
-                    child: Padding(
-                        padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context) + iconRadius * 2 + 10), // buttons under have 5 padding and radius
-                        child: RotatedBox(quarterTurns: -1, child:
-                          SizedBox(width: 192, height: 64, child:
-                            Slider(
-                              label: "${(Storage().route.altitude / 1000).toInt()}K ft",
-                              max: 30000,
-                              min: 0,
-                              divisions: 30,
-                              value: Storage().route.altitude.toDouble(),
-                              onChanged: (double value) {
-                                setState(() {
-                                  Storage().route.altitude = value.toInt();
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      )
-                    )
-                ),
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomCenter,
@@ -1681,10 +1696,7 @@ class MapScreenState extends State<MapScreen> {
         label: _northUp ? "North Up" : "Track Up",
         isOn: !_northUp,
         onTap: () {
-          setState(() {
-            _northUp = !_northUp;
-          });
-          Storage().settings.setNorthUp(_northUp); // save
+          Storage().toggleNorthUp();
         },
       ),
     ];

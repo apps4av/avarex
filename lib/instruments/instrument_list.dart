@@ -38,6 +38,8 @@ class InstrumentList extends StatefulWidget {
 
 class InstrumentListState extends State<InstrumentList> {
   static final DateFormat _hourMinuteFormatter = DateFormat('HH:mm');
+  // Tile background while the map is track-up. North-up keeps the normal tile color.
+  static const Color _trackUpColor = Color(0xFF808000);
   final List<String> _items = Storage().settings.getInstruments().split(","); // get instruments
   late List<Color> _itemsColors;
   // Fractional (0..1) top-left position of each tile, keyed by tile code.
@@ -252,6 +254,8 @@ class InstrumentListState extends State<InstrumentList> {
           : (Storage().flightDownTimer.isStarted() ? Colors.green : defaultColor);
       // UPT: green when counting, default otherwise
       _itemsColors[_items.indexOf("UPT")] = Storage().flightTimer.isStarted() ? Colors.green : defaultColor;
+      // MT: olive while track-up, normal tile color while north-up
+      _itemsColors[_items.indexOf("MT")] = Storage().settings.getNorthUp() ? defaultColor : _trackUpColor;
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().getGpsSourceModeString();
       // Auto = default tile color, Green = Internal, Blue = External
@@ -327,6 +331,12 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _source = Storage().getGpsSourceModeString();
     });
+  }
+
+  // MT tile: flip the map between north-up and track-up.
+  void _toggleNorthUp() {
+    Storage().toggleNorthUp();
+    setState(() {});
   }
 
   // ADS-B tile tap: open the receiver status screen.
@@ -480,6 +490,7 @@ class InstrumentListState extends State<InstrumentList> {
         break;
       case "MT":
         value = _magneticHeading;
+        cb = _toggleNorthUp;
         break;
       case "PRV":
         value = _previousDestination;
@@ -593,7 +604,7 @@ class InstrumentListState extends State<InstrumentList> {
                     "Available Tiles:\n"
                     "GS  - Ground speed.\n"
                     "ALT - GPS altitude.\n"
-                    "MT  - Magnetic track.\n"
+                    "MT  - Magnetic track. Tap to toggle North Up and Track Up. Olive means Track Up.\n"
                     "PRV - Tap to go to the previous waypoint as shown.\n"
                     "NXT - Tap to go to the next waypoint as shown.\n"
                     "DIS - Distance to the next waypoint.\n"

@@ -215,7 +215,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 ### 4.2 Core interactions
 
 - Pan/zoom map
-- Track-up or North-up orientation toggle
+- Track-up or North-up orientation toggle (`Map Settings`, or tap the `MT` tile)
 - Long-press behavior:
   - If ruler mode OFF: opens destination popup near pressed location
   - If ruler mode ON: drops ruler points for distance/bearing measurement
@@ -225,6 +225,7 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 
 #### Top-right
 - **Pro icon** (iOS/Android): opens `Flight Intelligence` when you are signed in, or the `Account` sign-in screen if you are not. Manage the account from `MAP → Menu → Internet → Account`.
+- **Altitude slider** (under the Pro icon, when Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors are on): vertical slider, 0 to 30,000 ft.
 - **Red warning icon** (if active): opens troubleshooting drawer.
 
 #### Bottom center
@@ -246,7 +247,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 - **Measure Distance On / Measure Distance Off**: toggles measure mode; long-press map to add points.
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
-- **North Up / Track Up**: shows the current orientation mode; tap to switch.
+- **North Up / Track Up**: shows the current orientation mode; tap to switch. Tapping the **MT** instrument tile does the same thing. The tile is olive in track-up and the normal tile color in north-up.
 - **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile.
 
 #### Top-left
@@ -266,8 +267,8 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
   - `M`: 200 aircraft, 6000 ft, 50 NM
   - `L`: 1000 aircraft, 30000 ft, 500 NM
 
-#### Altitude slider (right side)
-- Appears with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
+#### Altitude slider (under the Pro icon)
+- Appears on the right, under the Pro icon, with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
 - Range: 0 to 30,000 ft (1,000 ft increments).
 
 ### 4.4 Map chart types
@@ -327,7 +328,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 |------|-------------|------------|
 | **GS** | Ground speed (knots/mph) | — |
 | **ALT** | GPS altitude (feet) | — |
-| **MT** | Magnetic track (degrees) | — |
+| **MT** | Magnetic track (degrees). Olive while the map is track-up; normal tile color while north-up. | Toggle North Up / Track Up |
 | **PRV** | Previous waypoint identifier | Jump to previous waypoint |
 | **NXT** | Next waypoint identifier | Jump to next waypoint |
 | **DIS** | Distance to next waypoint (NM/mi) | — |
@@ -1614,7 +1615,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Measure distances | `MAP → Map Settings → Measure Distance Off → long-press map to add points` |
 | Rubber band waypoints | `MAP → Map Settings → Rubber Banding Off → long-press and drag waypoints` |
 | Mute audible alerts | `MAP → Map Settings → Audible Alerts On` (label flips to `Audible Alerts Off`) |
-| North-up / track-up orientation | `MAP → Map Settings → North Up / Track Up` |
+| North-up / track-up orientation | Tap the `MT` tile, or `MAP → Map Settings → North Up / Track Up` (olive tile = track up) |
 | Insert waypoint at position | `PLAN → long-press waypoint row → FIND → select destination` |
 | View winds & terrain analysis | `PLAN → analytics icon → tap diagram for details` |
 

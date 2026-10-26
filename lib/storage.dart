@@ -90,6 +90,8 @@ class Storage {
   // so traffic map layers rebuild on real changes instead of every second
   final trafficChange = ValueNotifier<int>(0);
   final rubberBandChange = ValueNotifier<int>(0); // when route is changed via rubber band, for testing with GPS
+  // bumped when map orientation flips between north-up and track-up
+  final northUpChange = ValueNotifier<int>(0);
   final warningChange = ValueNotifier<bool>(false);
   final flightStatus = FlightStatus();
   AirportBusiness? business; // currently selected business on the plate diagram
@@ -137,6 +139,13 @@ class Storage {
     hold = pattern;
     holdChange.value++;
   }
+
+  // Flip north-up / track-up and tell the map and instrument tiles.
+  void toggleNorthUp() {
+    settings.setNorthUp(!settings.getNorthUp());
+    northUpChange.value++;
+  }
+
   // Signature of the last active plan persisted to settings. Used to only write
   // to user.db when the plan or its current index actually changes.
   String _lastSavedPlanSignature = "";
