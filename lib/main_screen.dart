@@ -487,10 +487,14 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             Navigator.pop(context);
                             final String pdfPath = '${Storage().dataDir}/USER_MANUAL.pdf';
                             final File pdfFile = File(pdfPath);
-                            if (!await pdfFile.exists()) {
-                              final ByteData data = await rootBundle.load('assets/docs/USER_MANUAL.pdf');
-                              await pdfFile.writeAsBytes(data.buffer.asUint8List());
-                            }
+                            // Replace the copy every time. Help used to write
+                            // the asset only when this file was missing, so a
+                            // manual saved by an older build stayed on screen.
+                            final ByteData data = await rootBundle.load('assets/docs/USER_MANUAL.pdf');
+                            await pdfFile.writeAsBytes(
+                              data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+                              flush: true,
+                            );
                             if (context.mounted) {
                               Navigator.of(context).push(
                                 MaterialPageRoute(builder: (context) => PdfViewer(pdfPath)),
