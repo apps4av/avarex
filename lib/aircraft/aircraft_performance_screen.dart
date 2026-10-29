@@ -473,12 +473,12 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
       _customEquipmentController.text = 'S';
       _customSurveillanceController.text = 'N';
       _customOtherController.clear();
-      _customCruiseTasController.clear();
-      _customFuelEnduranceController.clear();
-      _customSinkRateController.clear();
-      _customBestGlideController.clear();
-      _customBestClimbSpeedController.clear();
-      _customBestClimbRateController.clear();
+      _customCruiseTasController.text = _knotsText(a.cruiseSpeedKt);
+      _customFuelEnduranceController.text = _hoursText(a.fuelEnduranceHr);
+      _customSinkRateController.text = _fpmText(a.sinkRateFpm);
+      _customBestGlideController.text = _knotsText(a.bestGlideKt);
+      _customBestClimbSpeedController.text = _knotsText(a.bestClimbKt);
+      _customBestClimbRateController.text = _fpmText(a.bestClimbFpm);
     }
     
     if (a.hasRawEntries) {
@@ -2691,10 +2691,47 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
             const Divider(),
             _buildSpecRow('Max Gross Weight', '${_selectedAircraft.maxGrossWeight.round()} lbs'),
             _buildSpecRow('Usable Fuel', '${_selectedAircraft.usableFuel.round()} gal'),
+            if (_selectedAircraft.cruiseSpeedKt > 0)
+              _buildSpecRow('Cruise Speed', '${_knotsText(_selectedAircraft.cruiseSpeedKt)} ${_speedUnit()}'),
+            if (_selectedAircraft.fuelEnduranceHr > 0)
+              _buildSpecRow('Fuel Endurance', '${_hoursText(_selectedAircraft.fuelEnduranceHr)} hr'),
+            if (_selectedAircraft.bestGlideKt > 0)
+              _buildSpecRow('Best Glide Speed', '${_knotsText(_selectedAircraft.bestGlideKt)} ${_speedUnit()}'),
+            if (_selectedAircraft.sinkRateFpm > 0)
+              _buildSpecRow('Sink Rate', '${_fpmText(_selectedAircraft.sinkRateFpm)} fpm'),
+            if (_selectedAircraft.bestClimbKt > 0)
+              _buildSpecRow('Best Climb Speed', '${_knotsText(_selectedAircraft.bestClimbKt)} ${_speedUnit()}'),
+            if (_selectedAircraft.bestClimbFpm > 0)
+              _buildSpecRow('Best Climb Rate', '${_fpmText(_selectedAircraft.bestClimbFpm)} fpm'),
           ],
         ),
       ),
     );
+  }
+
+  String _speedUnit() => Storage().units.knotsTo == 1 ? 'kt' : 'mph';
+
+  String _knotsText(double knots) {
+    if (knots <= 0) {
+      return '';
+    }
+    final double factor = Storage().units.knotsTo == 0 ? 1 : Storage().units.knotsTo;
+    return (knots * factor).round().toString();
+  }
+
+  String _hoursText(double hours) {
+    if (hours <= 0) {
+      return '';
+    }
+    final String text = hours.toStringAsFixed(1);
+    return text.endsWith('.0') ? text.substring(0, text.length - 2) : text;
+  }
+
+  String _fpmText(double fpm) {
+    if (fpm <= 0) {
+      return '';
+    }
+    return fpm.round().toString();
   }
 
   Widget _buildSpecRow(String label, String value) {

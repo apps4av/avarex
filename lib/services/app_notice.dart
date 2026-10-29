@@ -164,3 +164,126 @@ class AppNotice {
     return hash;
   }
 }
+
+/// A copy of an [AppNotice] kept on this device. Firestore is not written.
+class StoredAppNotice {
+  final String id;
+  final String title;
+  final String body;
+  final String? url;
+  final DateTime updatedAt;
+  final String dismissKey;
+
+  const StoredAppNotice({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.url,
+    required this.updatedAt,
+    required this.dismissKey,
+  });
+
+  factory StoredAppNotice.fromNotice(AppNotice notice) {
+    return StoredAppNotice(
+      id: notice.id,
+      title: notice.title,
+      body: notice.body,
+      url: notice.url,
+      updatedAt: notice.updatedAt,
+      dismissKey: notice.dismissKey,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "title": title,
+      "body": body,
+      "url": url,
+      "updatedAt": updatedAt.toUtc().millisecondsSinceEpoch,
+      "dismissKey": dismissKey,
+    };
+  }
+
+  static StoredAppNotice? tryParse(dynamic value) {
+    if (value is! Map) {
+      return null;
+    }
+    final id = value["id"];
+    final title = value["title"];
+    final body = value["body"];
+    final dismissKey = value["dismissKey"];
+    final updatedAt = value["updatedAt"];
+    if (id is! String ||
+        id.isEmpty ||
+        title is! String ||
+        title.isEmpty ||
+        body is! String ||
+        body.isEmpty ||
+        dismissKey is! String ||
+        dismissKey.isEmpty ||
+        updatedAt is! int) {
+      return null;
+    }
+    final url = value["url"];
+    return StoredAppNotice(
+      id: id,
+      title: title,
+      body: body,
+      url: url is String && url.isNotEmpty ? url : null,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt, isUtc: true),
+      dismissKey: dismissKey,
+    );
+  }
+}
+
+/// Local inbox of Apps4Av messages. One row per notice id, newest first.
+class AppNoticeInbox {
+  static const int cap = 40;
+
+  /// Saves [current] into [saved]. A [deleted] dismiss key is not put back.
+  /// A new dismiss key for the same id replaces that row. Messages already
+  /// saved stay when they are absent from [current].
+  static List<StoredAppNotice> remember({
+    required List<StoredAppNotice> saved,
+    required List<AppNotice> current,
+    required Set<String> deleted,
+  }) {
+    final byId = <String, StoredAppNotice>{};
+    for (final item in saved) {
+      if (item.id.isEmpty || deleted.contains(item.dismissKey)) {
+        continue;
+      }
+      byId[item.id] = item;
+    }
+    for (final notice in current) {
+      if (deleted.contains(notice.dismissKey)) {
+        final existing = byId[notice.id];
+        if (existing != null && existing.dismissKey == notice.dismissKey) {
+          byId.remove(notice.id);
+        }
+        continue;
+      }
+      byId[notice.id] = StoredAppNotice.fromNotice(notice);
+    }
+    final list = byId.values.toList();
+    list.sort((a, b) {
+      final byTime = b.updatedAt.compareTo(a.updatedAt);
+      if (byTime != 0) {
+        return byTime;
+      }
+      return a.id.compareTo(b.id);
+    });
+    if (list.length <= cap) {
+      return list;
+    }
+    return list.sublist(0, cap);
+  }
+
+  static List<StoredAppNotice> without(
+    List<StoredAppNotice> saved,
+    String dismissKey,
+  ) {
+    return saved.where((item) => item.dismissKey != dismissKey).toList();
+  }
+}

@@ -25,6 +25,7 @@ import 'link/link_screen.dart';
 import 'main_screen.dart';
 import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
+import 'services/app_notices_screen.dart';
 import 'services/backup_screen.dart';
 
 class CustomWidgetsBinding extends WidgetsFlutterBinding {
@@ -119,6 +120,7 @@ class MainApp extends StatelessWidget {
               '/plan_actions': (context) => const PlanActionScreen(),
               '/ai': (context) => const AiScreen(),
               '/backup': (context) => const BackupScreen(),
+              '/messages': (context) => const AppNoticesScreen(),
               '/community': (context) => const CommunityScreen(),
               '/scheduler': (context) => const SchedulerScreen(),
               '/popup': (context) {

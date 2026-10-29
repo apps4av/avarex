@@ -1501,17 +1501,29 @@ class MapScreenState extends State<MapScreen> {
                           if(showAltitudeSlider)
                             RotatedBox(quarterTurns: -1, child:
                               SizedBox(width: 192, height: 64, child:
-                                Slider(
-                                  label: "${(Storage().route.altitude / 1000).toInt()}K ft",
-                                  max: 30000,
-                                  min: 0,
-                                  divisions: 30,
-                                  value: Storage().route.altitude.toDouble(),
-                                  onChanged: (double value) {
-                                    setState(() {
-                                      Storage().route.altitude = value.toInt();
-                                    });
-                                  },
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    // Indicator grows with the altitude label.
+                                    valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
+                                    valueIndicatorColor: Theme.of(context).colorScheme.primary,
+                                    valueIndicatorTextStyle: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context).colorScheme.onPrimary,
+                                    ),
+                                  ),
+                                  child: Slider(
+                                    label: "${(Storage().route.altitude / 1000).toInt()}K ft",
+                                    max: 30000,
+                                    min: 0,
+                                    divisions: 30,
+                                    value: Storage().route.altitude.toDouble(),
+                                    onChanged: (double value) {
+                                      setState(() {
+                                        Storage().route.altitude = value.toInt();
+                                      });
+                                    },
+                                  ),
                                 ),
                               ),
                             ),

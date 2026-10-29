@@ -337,6 +337,15 @@ class PlanScreenState extends State<PlanScreen> {
           climbFpm = rate;
         }
       } catch (_) {}
+      final AircraftPerformanceData? builtIn = CommonAircraftData.byName(selector);
+      if (builtIn != null) {
+        if ((climbKt == null || climbKt <= 0) && builtIn.bestClimbKt > 0) {
+          climbKt = builtIn.bestClimbKt;
+        }
+        if ((climbFpm == null || climbFpm <= 0) && builtIn.bestClimbFpm > 0) {
+          climbFpm = builtIn.bestClimbFpm;
+        }
+      }
       if (!mounted) return;
       final List<Destination> planned = Storage().route.getAllDestinations();
       if (planned.length < 2) {

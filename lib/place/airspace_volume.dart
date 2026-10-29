@@ -162,11 +162,45 @@ class AirspaceObstacle {
   String get label => AirspaceShelf.altitudeHundreds(heightFt);
 }
 
+/// One runway of an airport diagram, in nautical miles east/north of the view center.
+/// [low] is the end named by [lowIdent].
+class AirspaceRunway {
+  final NmPoint low;
+  final NmPoint high;
+  final double widthFt;
+  final String surface;
+  final String lowIdent;
+  final String highIdent;
+
+  const AirspaceRunway({
+    required this.low,
+    required this.high,
+    required this.widthFt,
+    required this.surface,
+    required this.lowIdent,
+    required this.highIdent,
+  });
+}
+
+/// Runway diagram for one airport whose reference point is inside the view.
+class AirspaceDiagram {
+  final String ident;
+  final NmPoint at;
+  final List<AirspaceRunway> runways;
+
+  const AirspaceDiagram({
+    required this.ident,
+    required this.at,
+    required this.runways,
+  });
+}
+
 class AirspaceScene {
   final double radiusNm;
   final List<AirspaceShelf> shelves;
   final List<AirspaceAirport> airports;
   final List<AirspaceObstacle> obstacles;
+  final List<AirspaceDiagram> diagrams;
   final String? message;
 
   const AirspaceScene({
@@ -174,14 +208,20 @@ class AirspaceScene {
     required this.shelves,
     this.airports = const [],
     this.obstacles = const [],
+    this.diagrams = const [],
     this.message,
   });
 
-  AirspaceScene copyWith({List<AirspaceObstacle>? obstacles}) => AirspaceScene(
+  AirspaceScene copyWith({
+    List<AirspaceObstacle>? obstacles,
+    List<AirspaceDiagram>? diagrams,
+  }) =>
+      AirspaceScene(
         radiusNm: radiusNm,
         shelves: shelves,
         airports: airports,
         obstacles: obstacles ?? this.obstacles,
+        diagrams: diagrams ?? this.diagrams,
         message: message,
       );
 
@@ -340,6 +380,203 @@ double? _asDouble(Object? value) {
     return double.tryParse(value);
   }
   return null;
+}
+
+/// Airport diagrams whose reference point is inside the 25 NM square.
+///
+/// Runway ends come from `airportrunways` latitude and longitude. A single
+/// runway with no ends is placed on the reference point from its length and
+/// true heading. Heliports and airports outside the square are left out.
+List<AirspaceDiagram> airportDiagramsInView(
+  List<Map<String, Object?>> airports,
+  List<Map<String, Object?>> runways, {
+  required LatLng center,
+  double radiusNm = airspaceViewRadiusNm,
+}) {
+  final byDlid = <String, List<Map<String, Object?>>>{};
+  for (final row in runways) {
+    final dlid = (row['DLID'] ?? '').toString();
+    if (dlid.isEmpty) {
+      continue;
+    }
+    byDlid.putIfAbsent(dlid, () => []).add(row);
+  }
+  final diagrams = <AirspaceDiagram>[];
+  for (final airport in airports) {
+    final type = (airport['Type'] ?? '').toString().trim();
+    if (type.isNotEmpty && type != 'AIRPORT') {
+      continue;
+    }
+    final lat = _asDouble(airport['ARPLatitude']);
+    final lon = _asDouble(airport['ARPLongitude']);
+    final ident = (airport['LocationID'] ?? '').toString().trim();
+    if (lat == null || lon == null || ident.isEmpty) {
+      continue;
+    }
+    final at = ownshipOffsetNm(center, LatLng(lat, lon), radiusNm: radiusNm);
+    if (at == null) {
+      continue;
+    }
+    final rows = byDlid[(airport['DLID'] ?? '').toString()] ?? const [];
+    final strips = <AirspaceRunway>[];
+    final missing = <Map<String, Object?>>[];
+    for (final row in rows) {
+      final built = _runwayFromEnds(row, center);
+      if (built != null) {
+        strips.add(built);
+      } else if (_runwayEndsMissing(row)) {
+        missing.add(row);
+      }
+    }
+    if (strips.isEmpty && missing.length == 1 && rows.length == 1) {
+      final built = _runwayFromLength(missing.single, at);
+      if (built != null) {
+        strips.add(built);
+      }
+    }
+    if (strips.isEmpty) {
+      continue;
+    }
+    diagrams.add(AirspaceDiagram(ident: ident, at: at, runways: strips));
+  }
+  return diagrams;
+}
+
+bool _runwayEndsMissing(Map<String, Object?> row) {
+  final leLat = _asDouble(row['LELatitude']) ?? 0;
+  final heLat = _asDouble(row['HELatitude']) ?? 0;
+  final leLon = _asDouble(row['LELongitude']) ?? 0;
+  final heLon = _asDouble(row['HELongitude']) ?? 0;
+  return leLat == 0 && heLat == 0 && leLon == 0 && heLon == 0;
+}
+
+AirspaceRunway? _runwayFromEnds(Map<String, Object?> row, LatLng center) {
+  if (_runwayEndsMissing(row)) {
+    return null;
+  }
+  final leLat = _asDouble(row['LELatitude']);
+  final leLon = _asDouble(row['LELongitude']);
+  final heLat = _asDouble(row['HELatitude']);
+  final heLon = _asDouble(row['HELongitude']);
+  if (leLat == null || leLon == null || heLat == null || heLon == null) {
+    return null;
+  }
+  final low = ownshipOffsetNm(center, LatLng(leLat, leLon), radiusNm: null);
+  final high = ownshipOffsetNm(center, LatLng(heLat, heLon), radiusNm: null);
+  if (low == null || high == null) {
+    return null;
+  }
+  final de = high.e - low.e;
+  final dn = high.n - low.n;
+  if (de * de + dn * dn < 0.05 * 0.05) {
+    return null;
+  }
+  return _runway(row, low, high);
+}
+
+/// Places the only runway of a field that published no end coordinates.
+AirspaceRunway? _runwayFromLength(Map<String, Object?> row, NmPoint at) {
+  final lengthFt = _asDouble(row['Length']);
+  if (lengthFt == null || lengthFt < 300) {
+    return null;
+  }
+  final ident = (row['LEIdent'] ?? '').toString().trim();
+  final published = _asDouble(row['LEHeadingT']);
+  final heading = (published != null && published > 0 && published <= 360)
+      ? published
+      : _headingFromIdent(ident);
+  if (heading == null) {
+    return null;
+  }
+  final half = (lengthFt / 6076.12) / 2;
+  final rad = heading * math.pi / 180;
+  final de = math.sin(rad) * half;
+  final dn = math.cos(rad) * half;
+  return _runway(row, NmPoint(at.e - de, at.n - dn), NmPoint(at.e + de, at.n + dn));
+}
+
+AirspaceRunway _runway(Map<String, Object?> row, NmPoint low, NmPoint high) {
+  final width = _asDouble(row['Width']);
+  return AirspaceRunway(
+    low: low,
+    high: high,
+    widthFt: width == null || width < 20 ? 50 : width,
+    surface: (row['Surface'] ?? '').toString(),
+    lowIdent: (row['LEIdent'] ?? '').toString().trim(),
+    highIdent: (row['HEIdent'] ?? '').toString().trim(),
+  );
+}
+
+/// True heading of a runway ident such as `27L` or `NE`. Magnetic variation is not applied.
+double? _headingFromIdent(String ident) {
+  var id = ident.trim().toUpperCase();
+  if (id.length > 2 && int.tryParse(id.substring(0, 2)) != null) {
+    id = id.substring(0, 2);
+  }
+  final number = int.tryParse(id);
+  if (number != null) {
+    return number * 10.0;
+  }
+  const words = {
+    'N': 0.0,
+    'NE': 45.0,
+    'E': 90.0,
+    'SE': 135.0,
+    'S': 180.0,
+    'SW': 225.0,
+    'W': 270.0,
+    'NW': 315.0,
+  };
+  return words[id];
+}
+
+/// Airport diagrams within [airspaceViewRadiusNm] of [center] from `main.db`.
+///
+/// A missing file or a database without these tables yields an empty list so the airspace view still opens.
+Future<List<AirspaceDiagram>> loadAirportDiagrams(String dbPath, LatLng center) async {
+  if (!File(dbPath).existsSync()) {
+    return const [];
+  }
+  Database? db;
+  try {
+    db = await openDatabase(dbPath, readOnly: true, singleInstance: false);
+    final lat = center.latitude;
+    final lon = center.longitude;
+    final cosLat = math.cos(lat * math.pi / 180).abs().clamp(0.2, 1.0);
+    final dLat = airspaceViewRadiusNm / 60.0;
+    final dLon = airspaceViewRadiusNm / (60.0 * cosLat);
+    final airports = await db.rawQuery(
+      'select LocationID, DLID, Type, ARPLatitude, ARPLongitude from airports '
+      'where Type = ? and ARPLatitude > ? and ARPLatitude < ? and ARPLongitude > ? and ARPLongitude < ?',
+      ['AIRPORT', lat - dLat, lat + dLat, lon - dLon, lon + dLon],
+    );
+    if (airports.isEmpty) {
+      return const [];
+    }
+    final dlids = <String>[];
+    for (final row in airports) {
+      final id = (row['DLID'] ?? '').toString();
+      if (id.isNotEmpty) {
+        dlids.add(id);
+      }
+    }
+    if (dlids.isEmpty) {
+      return const [];
+    }
+    final marks = List.filled(dlids.length, '?').join(',');
+    final runwayRows = await db.rawQuery(
+      'select DLID, LEIdent, HEIdent, LELatitude, HELatitude, LELongitude, HELongitude, '
+      'Length, Width, Surface, LEHeadingT from airportrunways where DLID in ($marks)',
+      dlids,
+    );
+    return airportDiagramsInView(airports, runwayRows, center: center);
+  } catch (_) {
+    return const [];
+  } finally {
+    try {
+      await db?.close();
+    } catch (_) {}
+  }
 }
 
 /// Obstacles within [airspaceViewRadiusNm] of [center] from the main database `obs` table.

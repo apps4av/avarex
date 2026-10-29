@@ -15,6 +15,17 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.137**
+
+- Built-in aircraft include cruise speed, fuel endurance, best glide, sink rate, and best climb.
+- The glide circle and the PLAN altitude icon use those figures when the profile leaves them empty.
+- 3D draws each airport's runway diagram at the field.
+- 3D leaves out the circle at a surface airport.
+- Help copies this version's manual into Documents, named with the version, and drops the copy from an older install.
+- The weather altitude slider label is larger.
+- Menu `Messages` keeps each Apps4Av message until you swipe it away.
+- Select the title, text, or web address in an Apps4Av message to copy it.
+
 **0.0.136**
 
 - Type an altitude on each PLAN waypoint.
@@ -180,7 +191,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
 | Internet drawer section (Account, Backup/Sync, Community, Aircraft Scheduler)                    | **iOS, Android, Windows, and macOS** |
-| Apps4Av message when the app opens                                                               | **iOS, Android, Windows, and macOS** |
+| Apps4Av messages (popup, and Menu `Messages` until you delete one)                               | **iOS, Android, Windows, and macOS** |
 | Airport Businesses & Reviews (free, sign-in required)                                            | **iOS, Android, Windows, and macOS** |
 | PDF viewing in Documents/Help                                                                    | Not available on Linux |
 | File sharing from Documents/Logbook export                                                       | Not available on Linux |
@@ -211,9 +222,9 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **RECORDS**: `Log Book`
 - **INTERNET** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
 - **CONNECTIVITY**: `Link` (share the active plan with other AvareX devices on the same Wi-Fi). `IO` (Android only; Bluetooth & connections)
-- **SUPPORT**: `Help` (User manual PDF; not available on Linux)
+- **SUPPORT**: `Messages` (Notices from Apps4Av; iOS, Android, Windows, and macOS), `Help` (User manual PDF; not available on Linux)
 
-`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). Shelf floors sit on that surface instead of extending below it. ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at each leg's altitude. The glide ring, and `TFR` and `Game TFR` volumes when those layers are on, are drawn here too. The `Wind` chip starts off. Turn it on for colored wind streaks. See Section 9.8.
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). Shelf floors sit on that surface instead of extending below it. ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at each leg's altitude. The glide ring, and `TFR` and `Game TFR` volumes when those layers are on, are drawn here too. Each airport inside 25 NM is drawn as its runway diagram at the field. The `Wind` chip starts off. Turn it on for colored wind streaks. See Section 9.8.
 
 `PFD`, under `3D`, opens the same Primary Flight Display as the map `PFD` layer, on its own screen. The map layer is unchanged. See Section 9.9.
 
@@ -288,7 +299,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 
 #### Altitude slider (under the Pro icon)
 - Appears on the right, under the Pro icon, with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
-- Range: 0 to 30,000 ft (1,000 ft increments).
+- Range: 0 to 30,000 ft (1,000 ft increments). The altitude label is larger while you drag.
 
 ### 4.4 Map chart types
 
@@ -464,7 +475,7 @@ Possible tabs:
 - **NOTAM**: fetched NOTAM list from the FAA production NOTAM service (downloaded async). On iOS/Android, each NOTAM has a **Translate** icon that opens `Flight Intelligence` with only that NOTAM, asking for a plain-English translation (Pro).
 - **SUA**: special-use airspace data for the area
 - **Wind**: nearest winds-aloft station data at multiple altitudes
-- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is marked with a flat circle on the ground and its name, such as `KMHT`. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf and have no circle. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. Downloaded Elevation tiles are drawn as terrain, brown and red within 500 ft of altitude. A shelf floor that is below that terrain, including surface Class D, is drawn from the ground up so the volume does not continue under the surface. The ownship is a larger white dot with a black ring that pulses once a second, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at each leg's altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation. The glide ring is a white circle with an orange halo on the surface, and an orange cone from the aircraft down to that circle. When the `TFR` layer is on, areas in effect are red volumes and later ones are brown. A TFR whose floor is above the picture is a dashed outline at the top of the scale with arrows pointing up. When `Game TFR` is on, each venue is an orange cylinder 3 NM across, from the surface to 3000 ft above the ground. The `Wind` chip starts off. Turn it on and winds aloft move through the box as streaks at their altitude. They are not drawn under the terrain. Blue is light wind, then cyan, green, yellow, and orange, and red is 60 kt or more. The arrow points downwind, from the 6-hour forecast. Chips along the bottom show or hide Class `B`, `C`, and `D`, `SUA` (restricted, warning, prohibited, and MOA), terrain, `TFR`, `Game TFR`, the plan, obstacles, and `Wind`. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
+- **3D**: Class B, C, and D shelves, plus restricted, warning, prohibited, and MOA areas, within 25 NM of this place, from the Vector Map database. Drag to rotate, pinch to zoom, and drag with two fingers to pan. Class colors match the Vector Map (B blue, C magenta, D light blue). Restricted areas are red, warning areas are brown, prohibited areas are purple, and MOAs are olive. Each shelf is labeled with its altitude range, for example `25-43`. An airport with surface airspace is named on the ground, such as `KMHT`. Each airport inside 25 NM is also drawn as its runway diagram on the ground at the field. The pavement follows the runway ends. A field with one runway and no ends uses that runway's length and heading. Pavement matches the AD tab, with the runway numbers at the ends. Areas without an airport, such as `R-4101A SF-25`, keep the name on the shelf. Altitudes are hundreds of feet MSL (`25-43` is 2500–4300; `05` is 500; `SF` is the surface; `UNL` is unlimited). Anything above 10,000 ft is cut there so a tall area does not cover the airport. The cut is an open dashed top with a fading outline and upward marks, and the label still shows the real ceiling (`R-5203 SF-500`). Obstacles from the main database are red lines from the ground to the obstacle top. A yellow line marks the long-press point. Downloaded Elevation tiles are drawn as terrain, brown and red within 500 ft of altitude. A shelf floor that is below that terrain, including surface Class D, is drawn from the ground up so the volume does not continue under the surface. The ownship is a larger white dot with a black ring that pulses once a second, so it is not a traffic dot, and it moves with the aircraft while it is inside this 25 NM area. The active plan is drawn at each leg's altitude: cyan for the part already flown, purple for the current leg, and grey ahead, matching the map. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation. The glide ring is a white circle with an orange halo on the surface, and an orange cone from the aircraft down to that circle. When the `TFR` layer is on, areas in effect are red volumes and later ones are brown. A TFR whose floor is above the picture is a dashed outline at the top of the scale with arrows pointing up. When `Game TFR` is on, each venue is an orange cylinder 3 NM across, from the surface to 3000 ft above the ground. The `Wind` chip starts off. Turn it on and winds aloft move through the box as streaks at their altitude. They are not drawn under the terrain. Blue is light wind, then cyan, green, yellow, and orange, and red is 60 kt or more. The arrow points downwind, from the 6-hour forecast. Chips along the bottom show or hide Class `B`, `C`, and `D`, `SUA` (restricted, warning, prohibited, and MOA), terrain, `TFR`, `Game TFR`, the plan, obstacles, and `Wind`. **Reset** restores the view. If Vector Map is not downloaded, the page says so.
 - **ST**: sounding chart/image for the area (Skew-T diagram)
 - **Business**: for airports, lists the crowd-sourced businesses/FBOs for that airport inline (free; sign-in required) with details and reviews shown in place — see Section 11.7
 
@@ -586,7 +597,7 @@ After waypoints are added (e.g. `KBOS BOS CMK KHPN`), each row shows distance/gr
 Bottom controls are arranged in two rows. The **settings row** (on top) is only shown on the **Plan** tab and holds **+**, the forecast, the altitude icon, the navigation log, and delete:
 
 - Opening PLAN reads cruise speed and fuel flow once from the selected aircraft. That aircraft is the **Performance** screen app-bar **dropdown** (latest selection). Cruise is interpolated at the plan default altitude using the **saved cruise power %** from the Performance **Cruise** tab (ISA deviation 0; custom *My Aircraft* cruise table when that tail is selected, otherwise built-in POH when a template is selected). If no power has been saved yet, **65%** is used. If you have never opened Performance, aircraft selection falls back to the map aircraft setting when set.
-- **Altitude icon** (next to the forecast dropdown, tooltip *"Calculate altitudes"*): chooses cruise altitudes for the shortest time from winds aloft and the selected aircraft, at the saved cruise power % and standard-day (ISA deviation 0). The route starts at the departure field elevation and ends with a descent to the arrival field elevation. A climb is the fastest altitude for the rest of the route, at least 1,000 ft above the highest terrain in the next 50 miles, and then it waits 50 miles. A descent can begin 20 miles after the airplane is at that altitude, when the lower altitude is faster over those miles. Climb and descent use **Best Climb Speed** and **Best Climb Rate** from the aircraft. When those fields are empty, climb uses three quarters of cruise speed and a rate that slows from about 700 ft/min near the surface to about 100 ft/min at the top of the cruise table. Time and fuel on each leg use climb speed while the altitude is changing and cruise speed while level. Alt at each waypoint is the altitude reached there while the airplane is still climbing, so a short leg stays low while the climb continues. After the airplane levels off, Alt stays on that cruise altitude through the arrival descent. That altitude is a multiple of 500 ft: an odd thousand when the course from the first waypoint to the last is east, and an even thousand when that course is west. Terrain is read every mile, the same spacing as the plan chart. The cruise altitude and the wind used for ground speed stay at least 1,000 ft above the terrain. The altitude line climbs to that clearance at best climb rate, so the first miles of a departure are only as high as that rate allows. The path still meets the runway at the departure and arrival airports. A waypoint **Alt** you type yourself changes that leg to that altitude, using the cruise speed and fuel flow read when PLAN opened. Legs after it keep the altitudes the icon chose. A toast says: Calculated altitudes for shortest flight time based on winds aloft and performance of the aircraft name. If winds aloft are not available, it still picks the fastest altitudes.
+- **Altitude icon** (next to the forecast dropdown, tooltip *"Calculate altitudes"*): chooses cruise altitudes for the shortest time from winds aloft and the selected aircraft, at the saved cruise power % and standard-day (ISA deviation 0). The route starts at the departure field elevation and ends with a descent to the arrival field elevation. A climb is the fastest altitude for the rest of the route, at least 1,000 ft above the highest terrain in the next 50 miles, and then it waits 50 miles. A descent can begin 20 miles after the airplane is at that altitude, when the lower altitude is faster over those miles. Climb and descent use **Best Climb Speed** and **Best Climb Rate** from the aircraft. When those fields are empty, the selected built-in aircraft supplies its handbook climb speed and rate. If they are still empty, climb uses three quarters of cruise speed and a rate that slows from about 700 ft/min near the surface to about 100 ft/min at the top of the cruise table. Time and fuel on each leg use climb speed while the altitude is changing and cruise speed while level. Alt at each waypoint is the altitude reached there while the airplane is still climbing, so a short leg stays low while the climb continues. After the airplane levels off, Alt stays on that cruise altitude through the arrival descent. That altitude is a multiple of 500 ft: an odd thousand when the course from the first waypoint to the last is east, and an even thousand when that course is west. Terrain is read every mile, the same spacing as the plan chart. The cruise altitude and the wind used for ground speed stay at least 1,000 ft above the terrain. The altitude line climbs to that clearance at best climb rate, so the first miles of a departure are only as high as that rate allows. The path still meets the runway at the departure and arrival airports. A waypoint **Alt** you type yourself changes that leg to that altitude, using the cruise speed and fuel flow read when PLAN opened. Legs after it keep the altitudes the icon chose. A toast says: Calculated altitudes for shortest flight time based on winds aloft and performance of the aircraft name. If winds aloft are not available, it still picks the fastest altitudes.
 - **Forecast horizon** selector: 06H / 12H / 24H (winds aloft forecast period)
 - **Analytics icon** (chart): opens full-screen Navigation Log
 
@@ -807,6 +818,7 @@ Includes:
   - Clouds Forecast charts (03-18HR)
   - Winds/Temperature at altitudes 5000-30000ft (06/12HR)
 - User documents (imported or generated)
+- This version's user manual, after `Help` has been opened (`User Manual`, named with the version). A copy from an older install is removed then
 - User database file (`user.db`) entry
 - Subfolders for organization:
   - `tracks/` — saved flight tracks (KML files)
@@ -986,7 +998,7 @@ Create and manage your saved aircraft profiles:
 
 **Aircraft list**: Tap a row to select that profile for the other tabs. Use the **edit** (pencil) icon to change an existing profile and **Save changes**; use **delete** to remove it from the database.
 
-**Add from template**: Starts a new profile using the currently selected built-in or saved aircraft as a starting point, then **Save aircraft** to store it.
+**Add from template**: Starts a new profile using the currently selected built-in or saved aircraft as a starting point, then **Save aircraft** to store it. A built-in template fills Cruise Speed, Fuel Endurance, Best Glide Speed, Sink Rate, Best Climb Speed, and Best Climb Rate from that airplane's handbook figures. Speeds use the app speed units from onboarding.
 
 **Aircraft Identification:**
 - Tail Number, Type, Wake Turbulence
@@ -1005,9 +1017,11 @@ Create and manage your saved aircraft profiles:
 **Glide circle (MAP `Circles` layer):**
 - **Best Glide Speed** — POH best-glide speed of the **selected** aircraft (Performance dropdown). Used instead of current GPS ground speed. Entered in the same speed units as the rest of the app (onboarding unit setting).
 - **Sink Rate** (fpm) — power-off sink rate at best glide
-- If Best Glide Speed is empty, Cruise Speed is used; if that is also empty, 65 is assumed.
+- If Best Glide Speed and Sink Rate are empty, the selected built-in aircraft supplies its handbook best glide and sink rate. If Best Glide Speed is still empty, Cruise Speed is used; if that is also empty, 65 is assumed.
 - **Best Climb Speed** — best-rate-of-climb speed, in the same speed units as the rest of the app. The plan altitude icon uses it to climb and descend
-- **Best Climb Rate** (fpm) — best rate of climb and descent. The plan altitude icon uses it, and time and fuel use the climb speed while the altitude is changing. If either climb field is empty, climb uses three quarters of cruise speed and a rate that slows from about 700 ft/min to about 100 ft/min
+- **Best Climb Rate** (fpm) — best rate of climb and descent. The plan altitude icon uses it, and time and fuel use the climb speed while the altitude is changing. If either climb field is empty, the selected built-in aircraft supplies its handbook climb speed and rate. If they are still empty, climb uses three quarters of cruise speed and a rate that slows from about 700 ft/min to about 100 ft/min
+
+**Current Aircraft Specs** (under the template button) shows max gross weight, usable fuel, and, for a built-in aircraft, cruise speed, fuel endurance, best glide, sink rate, and best climb.
 
 **Performance Data:**
 - Max Gross Weight, Usable Fuel, Empty Weight
@@ -1115,7 +1129,7 @@ Also used for autopilot output of navigation data.
 
 Open: **Menu → Help**
 
-- Opens the User Manual PDF for in-app reference.
+- Copies the User Manual PDF that shipped with this version into `Documents`, then opens it. The app bar says `User Manual`. The file is named with this version, and a copy from an older install is removed at that time.
 - Available on platforms that support PDF viewing (not Linux).
 
 ### 9.8 3D
@@ -1127,6 +1141,7 @@ Open: **Menu → 3D** (under `Write a Note`)
 Same view as the destination popup `3D` tab, centered on the aircraft, without the yellow long-press mark.
 
 - **Terrain**: downloaded Elevation tiles, brown, and red within 500 ft of altitude. Shelf floors sit on that surface instead of extending below it
+- **Airports**: each airport inside 25 NM is a runway diagram on the ground at the field. Pavement matches the AD tab, with the runway numbers at the ends. A surface Class B, C, or D airport still has its name
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
 - **Plan**: the active plan at each leg's altitude, cyan behind, purple on the current leg, and grey ahead. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation
 - **Glide ring**: the map glide circle on the surface, and a cone from the aircraft down to it
@@ -1491,9 +1506,12 @@ diagram using its business selector — see Section 6.6.
 
 On iOS, Android, Windows, and macOS, AvareX checks for a message from Apps4Av when you open the app and again when you bring it back to the foreground. If one is waiting, a popup shows its title and text. No account is required. These messages are separate from the Community reply notifications in Section 11.4.
 
-- **OK**: dismisses the message on this device. It stays dismissed until Apps4Av publishes a new message or updates that one.
-- A web address, when the message includes one, appears under the text. Select it to copy.
-- Nothing appears when there is no current message. A message that has already expired is not shown.
+Each current message is also kept on this device. Open `MAP → Menu → Messages`. The list stays until you delete a message. Swipe a row left to delete it on this device. Deleting does not change the message Apps4Av published.
+
+- **OK**: closes the popup. The message stays in `Messages`.
+- Select the title, the text, or the web address to copy. A web address, when the message includes one, appears under the text.
+- An update from Apps4Av shows the popup again and replaces the saved copy.
+- Nothing new appears in the popup when you have already tapped `OK`. A message that has expired is not shown in the popup. One already saved stays in `Messages` until you delete it.
 
 ---
 
@@ -1554,8 +1572,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Show recent ATC routes | `PLAN → Create → Show IFR ATC Routes` |
 | Send plan to / get plan from Avidyne IFD (Wi-Fi) | `PLAN → Transfer` |
 | Destination details | Long-press on map or tap FIND result |
-| 3D Class B/C/D, restricted, warning, prohibited, and MOA airspace, plus obstacles and wind flow | Destination popup `3D` tab (after `Wind`, before `ST`) |
-| 3D airspace around the aircraft, with terrain, ADS-B traffic, and wind flow | `MAP → Menu → 3D` (under `Write a Note`) |
+| 3D Class B/C/D, restricted, warning, prohibited, and MOA airspace, plus obstacles, runway diagrams, and wind flow | Destination popup `3D` tab (after `Wind`, before `ST`) |
+| 3D airspace around the aircraft, with terrain, runway diagrams, ADS-B traffic, and wind flow | `MAP → Menu → 3D` (under `Write a Note`) |
 | PFD on its own screen | `MAP → Menu → PFD` (under `3D`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
@@ -1601,7 +1619,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Load a shared flight plan into PLAN | `Community → group → tap Load on a post with a route` |
 | Reply to a topic | `Community → group → tap topic → Reply` |
 | View a topic's discussion thread | `Community → group → tap a topic in the Feed` |
-| Apps4Av message | Shown automatically when you open the app (iOS, Android, Windows, macOS). Tap `OK` |
+| Apps4Av message | Shown automatically when you open the app (iOS, Android, Windows, macOS). Tap `OK`. Read again at `MAP → Menu → Messages` |
 | View notifications | `Community → bell icon` (also shown on the `Community` row in the drawer's `INTERNET` section) |
 | Turn reply notifications off / mute a group | `Community → bell icon → gear icon` |
 | Aircraft Scheduler | `MAP → Menu → Internet → Scheduler` |

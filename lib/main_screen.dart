@@ -6,9 +6,9 @@ import 'package:avaremp/plate_screen.dart';
 import 'package:avaremp/services/login_screen.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
+import 'package:avaremp/utils/user_manual.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_material_design_icons/flutter_material_design_icons.dart';
-import 'package:universal_io/io.dart';
 import 'constants.dart';
 import 'map_screen.dart';
 import 'find_screen.dart';
@@ -477,6 +477,17 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ],
                       const SizedBox(height: 8),
                       _buildSectionHeader(context, "Support"),
+                      if (Constants.firebaseAvailable)
+                        _buildMenuItem(
+                          context,
+                          icon: Icons.campaign_outlined,
+                          title: "Messages",
+                          subtitle: "Notices from Apps4Av",
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.pushNamed(context, '/messages');
+                          },
+                        ),
                       if (Constants.shouldShowPdf)
                         _buildMenuItem(
                           context,
@@ -485,19 +496,10 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                           subtitle: "User manual",
                           onTap: () async {
                             Navigator.pop(context);
-                            final String pdfPath = '${Storage().dataDir}/USER_MANUAL.pdf';
-                            final File pdfFile = File(pdfPath);
-                            // Replace the copy every time. Help used to write
-                            // the asset only when this file was missing, so a
-                            // manual saved by an older build stayed on screen.
-                            final ByteData data = await rootBundle.load('assets/docs/USER_MANUAL.pdf');
-                            await pdfFile.writeAsBytes(
-                              data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-                              flush: true,
-                            );
-                            if (context.mounted) {
+                            final String? pdfPath = await UserManual.install();
+                            if (pdfPath != null && context.mounted) {
                               Navigator.of(context).push(
-                                MaterialPageRoute(builder: (context) => PdfViewer(pdfPath)),
+                                MaterialPageRoute(builder: (context) => PdfViewer(pdfPath, title: 'User Manual')),
                               );
                             }
                           },

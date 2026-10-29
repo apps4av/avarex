@@ -440,6 +440,24 @@ class AppSettings {
     provider.setString("key-dismissed-app-notices", value);
   }
 
+  /// JSON list of Apps4Av messages kept on this device until the pilot deletes them.
+  String getSavedAppNotices() {
+    return provider.getValue("key-saved-app-notices", defaultValue: "") as String;
+  }
+
+  void setSavedAppNotices(String value) {
+    provider.setString("key-saved-app-notices", value);
+  }
+
+  /// Dismiss keys the pilot removed from Messages. A later edit is a new key.
+  String getDeletedAppNotices() {
+    return provider.getValue("key-deleted-app-notices", defaultValue: "") as String;
+  }
+
+  void setDeletedAppNotices(String value) {
+    provider.setString("key-deleted-app-notices", value);
+  }
+
   // Identity and role for AvareX-to-AvareX plan sync on the local network.
   String getLinkDeviceId() {
     return provider.getValue("key-link-device-id", defaultValue: "") as String;

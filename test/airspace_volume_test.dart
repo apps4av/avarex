@@ -144,6 +144,203 @@ void main() {
         isTrue);
   });
 
+  test('airport diagrams sit on the runway ends inside 25 NM', () {
+    const center = LatLng(42.0, -71.0);
+    final diagrams = airportDiagramsInView(
+      [
+        {
+          'LocationID': 'MHT',
+          'DLID': '1',
+          'ARPLatitude': 42.0,
+          'ARPLongitude': -71.0,
+          'Type': 'AIRPORT',
+        },
+        {
+          'LocationID': 'FAR',
+          'DLID': '2',
+          'ARPLatitude': 43.0,
+          'ARPLongitude': -71.0,
+          'Type': 'AIRPORT',
+        },
+        {
+          'LocationID': 'H1',
+          'DLID': '3',
+          'ARPLatitude': 42.01,
+          'ARPLongitude': -71.0,
+          'Type': 'HELIPORT',
+        },
+      ],
+      [
+        {
+          'DLID': '1',
+          'LEIdent': '35',
+          'HEIdent': '17',
+          'LELatitude': 42.0 + 0.5 / 60,
+          'HELatitude': 42.0 - 0.5 / 60,
+          'LELongitude': -71.0,
+          'HELongitude': -71.0,
+          'Length': '6076',
+          'Width': '150',
+          'Surface': 'ASPH-G',
+        },
+        {
+          'DLID': '2',
+          'LEIdent': '18',
+          'HEIdent': '36',
+          'LELatitude': 43.0,
+          'HELatitude': 43.01,
+          'LELongitude': -71.0,
+          'HELongitude': -71.0,
+          'Length': '5000',
+          'Width': '100',
+          'Surface': 'CONC',
+        },
+      ],
+      center: center,
+    );
+    expect(diagrams, hasLength(1));
+    expect(diagrams.single.ident, 'MHT');
+    expect(diagrams.single.at.e, closeTo(0, 0.02));
+    expect(diagrams.single.at.n, closeTo(0, 0.02));
+    final runway = diagrams.single.runways.single;
+    expect(runway.low.n, closeTo(0.5, 0.02));
+    expect(runway.high.n, closeTo(-0.5, 0.02));
+    expect(runway.low.e.abs(), lessThan(0.02));
+    expect(runway.widthFt, 150);
+    expect(runway.surface, 'ASPH-G');
+    expect(runway.lowIdent, '35');
+    expect(runway.highIdent, '17');
+  });
+
+  test('a single runway without ends is placed from its length and heading', () {
+    const center = LatLng(42.0, -71.0);
+    final diagrams = airportDiagramsInView(
+      [
+        {
+          'LocationID': '1B9',
+          'DLID': '9',
+          'ARPLatitude': 42.0,
+          'ARPLongitude': -71.0,
+        },
+      ],
+      [
+        {
+          'DLID': '9',
+          'LEIdent': '36',
+          'HEIdent': '18',
+          'LELatitude': 0,
+          'HELatitude': 0,
+          'LELongitude': 0,
+          'HELongitude': 0,
+          'Length': '6076',
+          'Width': '',
+          'Surface': 'TURF',
+          'LEHeadingT': '360',
+        },
+      ],
+      center: center,
+    );
+    expect(diagrams, hasLength(1));
+    final runway = diagrams.single.runways.single;
+    expect(runway.low.n, closeTo(-0.5, 0.02));
+    expect(runway.high.n, closeTo(0.5, 0.02));
+    expect(runway.low.e.abs(), lessThan(0.02));
+    expect(runway.widthFt, 50);
+    expect(runway.surface, 'TURF');
+
+    final fromIdent = airportDiagramsInView(
+      [
+        {
+          'LocationID': '1B9',
+          'DLID': '9',
+          'ARPLatitude': 42.0,
+          'ARPLongitude': -71.0,
+        },
+      ],
+      [
+        {
+          'DLID': '9',
+          'LEIdent': '09',
+          'HEIdent': '27',
+          'LELatitude': '0',
+          'HELatitude': '0',
+          'LELongitude': '0',
+          'HELongitude': '0',
+          'Length': '6076',
+        },
+      ],
+      center: center,
+    );
+    final east = fromIdent.single.runways.single;
+    expect(east.low.e, closeTo(-0.5, 0.02));
+    expect(east.high.e, closeTo(0.5, 0.02));
+    expect(east.low.n.abs(), lessThan(0.02));
+  });
+
+  test('several runways with no ends are left off the diagram', () {
+    const center = LatLng(42.0, -71.0);
+    final diagrams = airportDiagramsInView(
+      [
+        {
+          'LocationID': 'PVT',
+          'DLID': '4',
+          'ARPLatitude': 42.0,
+          'ARPLongitude': -71.0,
+          'Type': 'AIRPORT',
+        },
+      ],
+      [
+        {
+          'DLID': '4',
+          'LEIdent': '18',
+          'HEIdent': '36',
+          'LELatitude': 0,
+          'HELatitude': 0,
+          'LELongitude': 0,
+          'HELongitude': 0,
+          'Length': '3000',
+        },
+        {
+          'DLID': '4',
+          'LEIdent': '09',
+          'HEIdent': '27',
+          'LELatitude': 0,
+          'HELatitude': 0,
+          'LELongitude': 0,
+          'HELongitude': 0,
+          'Length': '2500',
+        },
+      ],
+      center: center,
+    );
+    expect(diagrams, isEmpty);
+    final scene = AirspaceScene(
+      radiusNm: airspaceViewRadiusNm,
+      shelves: const [],
+      diagrams: [
+        AirspaceDiagram(
+          ident: 'MHT',
+          at: const NmPoint(1, 2),
+          runways: [
+            AirspaceRunway(
+              low: const NmPoint(1, 1),
+              high: const NmPoint(1, 3),
+              widthFt: 150,
+              surface: 'ASPH',
+              lowIdent: '17',
+              highIdent: '35',
+            ),
+          ],
+        ),
+      ],
+    );
+    final next = scene.copyWith(
+      obstacles: [AirspaceObstacle(e: 0, n: 0, heightFt: 500)],
+    );
+    expect(next.diagrams, same(scene.diagrams));
+    expect(next.obstacles, hasLength(1));
+  });
+
   test('obstacles inside 25 NM keep their MSL height in hundreds of feet', () {
     const center = LatLng(42.9328, -71.4357);
     final obstacles = obstaclesInView([
@@ -785,6 +982,47 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Obstacles'));
     await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('airport diagrams paint when the view has no shelves', (tester) async {
+    const center = LatLng(42.0, -71.0);
+    final scene = AirspaceScene(
+      radiusNm: airspaceViewRadiusNm,
+      shelves: const [],
+      diagrams: [
+        AirspaceDiagram(
+          ident: 'ASH',
+          at: const NmPoint(2, -1),
+          runways: [
+            AirspaceRunway(
+              low: const NmPoint(2, -1.6),
+              high: const NmPoint(2, -0.4),
+              widthFt: 75,
+              surface: 'ASPH',
+              lowIdent: '14',
+              highIdent: '32',
+            ),
+            AirspaceRunway(
+              low: const NmPoint(1.4, -1),
+              high: const NmPoint(2.6, -1),
+              widthFt: 75,
+              surface: 'TURF',
+              lowIdent: '05',
+              highIdent: '23',
+            ),
+          ],
+        ),
+      ],
+    );
+    Airspace3DView.debugSetScene(center, scene);
+    addTearDown(() => Airspace3DView.debugSetScene(center, null));
+
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: Airspace3DView(center: center)),
+    ));
+    expect(find.textContaining('Drag to rotate'), findsOneWidget);
+    expect(find.textContaining('No Class B'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

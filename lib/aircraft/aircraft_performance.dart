@@ -1230,6 +1230,25 @@ class AircraftPerformanceData {
   final double maxGrossWeight;
   final double usableFuel;
   final double emptyWeight;
+
+  /// Representative cruise true airspeed, knots.
+  final double cruiseSpeedKt;
+
+  /// Hours of usable fuel at [cruiseSpeedKt]. This is fuel on board, not the
+  /// POH range time (that already subtracts start, taxi, climb, and reserve).
+  final double fuelEnduranceHr;
+
+  /// Best-glide speed, knots.
+  final double bestGlideKt;
+
+  /// Power-off sink rate at [bestGlideKt], feet per minute.
+  final double sinkRateFpm;
+
+  /// Best-rate-of-climb speed at sea level, knots.
+  final double bestClimbKt;
+
+  /// Best rate of climb at sea level on a standard day, feet per minute.
+  final double bestClimbFpm;
   
   final PerformanceTable takeoffGroundRoll;
   final PerformanceTable takeoffOver50ft;
@@ -1256,6 +1275,12 @@ class AircraftPerformanceData {
     required this.maxGrossWeight,
     required this.usableFuel,
     required this.emptyWeight,
+    this.cruiseSpeedKt = 0,
+    this.fuelEnduranceHr = 0,
+    this.bestGlideKt = 0,
+    this.sinkRateFpm = 0,
+    this.bestClimbKt = 0,
+    this.bestClimbFpm = 0,
     required this.takeoffGroundRoll,
     required this.takeoffOver50ft,
     required this.landingGroundRoll,
@@ -1438,6 +1463,14 @@ class CommonAircraftData {
     maxGrossWeight: 2550,
     usableFuel: 53,
     emptyWeight: 1663,
+    // 124 KTAS is the POH 75% cruise at 8500 ft. 5.5 hr is 53 gal / 9.6 gph.
+    // Best glide 68 KIAS, 1.5 NM per 1000 ft. Vy 74 KIAS, 730 fpm at sea level.
+    cruiseSpeedKt: 124,
+    fuelEnduranceHr: 5.5,
+    bestGlideKt: 68,
+    sinkRateFpm: 756,
+    bestClimbKt: 74,
+    bestClimbFpm: 730,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -1539,6 +1572,14 @@ class CommonAircraftData {
     maxGrossWeight: 3100,
     usableFuel: 87,
     emptyWeight: 1970,
+    // 149 KTAS and 13.0 gph are the cruise table at 8000 ft and 75%. 6.7 hr is 87 gal / 13.0 gph.
+    // Best glide 76 KIAS at max weight, about 9.5:1. Vy 82 KIAS, 924 fpm at sea level.
+    cruiseSpeedKt: 149,
+    fuelEnduranceHr: 6.7,
+    bestGlideKt: 76,
+    sinkRateFpm: 810,
+    bestClimbKt: 82,
+    bestClimbFpm: 924,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -1639,6 +1680,14 @@ class CommonAircraftData {
     maxGrossWeight: 2550,
     usableFuel: 48,
     emptyWeight: 1642,
+    // 129 KTAS at 75% and 8000 ft, 10.5 gph. 4.6 hr is 48 gal / 10.5 gph.
+    // Best glide and Vy are both 76 KIAS. Sea-level climb is 667 fpm. Sink is about 10.5:1.
+    cruiseSpeedKt: 129,
+    fuelEnduranceHr: 4.6,
+    bestGlideKt: 76,
+    sinkRateFpm: 733,
+    bestClimbKt: 76,
+    bestClimbFpm: 667,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -1732,6 +1781,14 @@ class CommonAircraftData {
     icaoType: 'P28A',
     maxGrossWeight: 2440,
     usableFuel: 48,
+    // 117 KTAS and 8.9 gph are the cruise table at 6000 ft and 74%. 5.4 hr is 48 gal / 8.9 gph.
+    // Best glide 73 KIAS (POH chart about 1.87 NM per 1000 ft). Vy 79 KIAS, 644 fpm ISA at sea level.
+    cruiseSpeedKt: 117,
+    fuelEnduranceHr: 5.4,
+    bestGlideKt: 73,
+    sinkRateFpm: 652,
+    bestClimbKt: 79,
+    bestClimbFpm: 644,
     emptyWeight: 1531,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
@@ -1827,6 +1884,14 @@ class CommonAircraftData {
     maxGrossWeight: 3650,
     usableFuel: 74,
     emptyWeight: 2295,
+    // 168 KTAS and 15.6 gph are the cruise table at 6000 ft and 75%. 4.7 hr is 74 gal / 15.6 gph.
+    // Best glide 110 KIAS, about 2 NM per 1000 ft. Vy 100 KIAS, 1210 fpm at sea level.
+    cruiseSpeedKt: 168,
+    fuelEnduranceHr: 4.7,
+    bestGlideKt: 110,
+    sinkRateFpm: 917,
+    bestClimbKt: 100,
+    bestClimbFpm: 1210,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -1921,6 +1986,14 @@ class CommonAircraftData {
     maxGrossWeight: 3400,
     usableFuel: 81,
     emptyWeight: 2250,
+    // 174 KTAS and 14.7 gph are the cruise table at 8000 ft and 74%. 5.5 hr is 81 gal / 14.7 gph.
+    // Best glide 88 KIAS at 3400 lb, 9.6:1. Vy 101 KIAS, 1398 fpm ISA at sea level.
+    cruiseSpeedKt: 174,
+    fuelEnduranceHr: 5.5,
+    bestGlideKt: 88,
+    sinkRateFpm: 928,
+    bestClimbKt: 101,
+    bestClimbFpm: 1398,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -2015,6 +2088,14 @@ class CommonAircraftData {
     maxGrossWeight: 2535,
     usableFuel: 40,
     emptyWeight: 1755,
+    // 137 KTAS and 9.6 gph are the cruise table at 8000 ft and 70%. 4.2 hr is 40 gal / 9.6 gph.
+    // Best glide 73 KIAS at 1150 kg, 8.8:1. Vy 66 KIAS (flaps T/O), 1120 fpm at sea level.
+    cruiseSpeedKt: 137,
+    fuelEnduranceHr: 4.2,
+    bestGlideKt: 73,
+    sinkRateFpm: 840,
+    bestClimbKt: 66,
+    bestClimbFpm: 1120,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -2109,6 +2190,14 @@ class CommonAircraftData {
     maxGrossWeight: 1670,
     usableFuel: 24.5,
     emptyWeight: 1109,
+    // 107 KTAS is the POH 75% cruise at 8000 ft. 4.0 hr is 24.5 gal / 6.1 gph.
+    // Best glide 60 KIAS, about 9:1. Vy 67 KIAS, 715 fpm ISA at sea level.
+    cruiseSpeedKt: 107,
+    fuelEnduranceHr: 4.0,
+    bestGlideKt: 60,
+    sinkRateFpm: 675,
+    bestClimbKt: 67,
+    bestClimbFpm: 715,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -2200,6 +2289,14 @@ class CommonAircraftData {
     maxGrossWeight: 3800,
     usableFuel: 108,
     emptyWeight: 2354,
+    // 164 KTAS and 15.0 gph (both engines) are the cruise table at 8000 ft and 68%. 7.2 hr is 108 gal / 15.0 gph.
+    // Vy is 88 KIAS and sea-level climb is 1340 fpm. Glide 90 KIAS is the usual both-engines-out speed; sink is about 9.5:1.
+    cruiseSpeedKt: 164,
+    fuelEnduranceHr: 7.2,
+    bestGlideKt: 90,
+    sinkRateFpm: 960,
+    bestClimbKt: 88,
+    bestClimbFpm: 1340,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -2294,6 +2391,15 @@ class CommonAircraftData {
     maxGrossWeight: 1850,
     usableFuel: 32,
     emptyWeight: 1156,
+    // 162 KTAS and 8.9 gph are 75% at 8000 ft (186 mph). 3.6 hr is 32 gal / 8.9 gph.
+    // Climb 1320 fpm scales Van's 1400 fpm at 1750 lb to 1850 lb. Vy 83 kt is 95 mph.
+    // Best glide 80 KIAS; sink is about 11.5:1. Confirm against this airplane's flight test.
+    cruiseSpeedKt: 162,
+    fuelEnduranceHr: 3.6,
+    bestGlideKt: 80,
+    sinkRateFpm: 705,
+    bestClimbKt: 83,
+    bestClimbFpm: 1320,
     takeoffGroundRoll: PerformanceTable(
       pressureAltitudes: [0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000],
       temperatures: [0, 10, 20, 30, 40],
@@ -2396,6 +2502,19 @@ class CommonAircraftData {
     } catch (e) {
       return null;
     }
+  }
+
+  static AircraftPerformanceData? byName(String name) {
+    final String trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    for (final AircraftPerformanceData aircraft in all) {
+      if (aircraft.name == trimmed) {
+        return aircraft;
+      }
+    }
+    return null;
   }
 }
 

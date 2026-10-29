@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/io/gps.dart';
@@ -64,13 +65,23 @@ class GlideProfile {
     LatLng ll = Gps.toLatLng(Storage().position);
 
     Aircraft? aircraft = await Aircraft.getActiveAircraft();
-    if(aircraft == null) {
+    final AircraftPerformanceData? builtIn = CommonAircraftData.byName(
+      Storage().settings.getLastPerformanceAircraft(),
+    );
+    if (aircraft == null && builtIn == null) {
       publish();
       return; // no aircraft, cannot compute glide
     }
-    double sinkRate = (double.tryParse(aircraft.sinkRate) ?? 100) / 60.0; // feet per second (sink rate was fpm if not specified use 100 fpm)
+    double sinkFpm = double.tryParse(aircraft?.sinkRate ?? '') ?? 0;
+    if (sinkFpm <= 0) {
+      sinkFpm = builtIn?.sinkRateFpm ?? 0;
+    }
+    if (sinkFpm <= 0) {
+      sinkFpm = 100; // feet per minute when neither the profile nor a built-in table has one
+    }
+    final double sinkRate = sinkFpm / 60.0; // feet per second
     // Best glide of the active airplane in app speed units (not GPS ground speed).
-    final double bestGlideSpeed = aircraft.bestGlideSpeed * Storage().units.toMps * _feetPerMeter;
+    final double bestGlideSpeed = _glideSpeedAppUnits(aircraft, builtIn) * Storage().units.toMps * _feetPerMeter;
 
     WindsAloft? wa = Storage().area.windsAloft;
     // Missing winds still glide, with the wind taken as calm.
@@ -98,6 +109,23 @@ class GlideProfile {
     }
     publish();
     } catch (_) {}
+  }
+
+  /// Best-glide speed in the app's speed units. A saved Best Glide Speed wins.
+  /// Otherwise the selected built-in aircraft supplies its POH speed.
+  static double _glideSpeedAppUnits(Aircraft? aircraft, AircraftPerformanceData? builtIn) {
+    final double? saved = double.tryParse(aircraft?.bestGlide ?? '');
+    if (saved != null && saved > 0) {
+      return saved;
+    }
+    if (builtIn != null && builtIn.bestGlideKt > 0) {
+      final double factor = Storage().units.knotsTo == 0 ? 1 : Storage().units.knotsTo;
+      return builtIn.bestGlideKt * factor;
+    }
+    if (aircraft != null) {
+      return aircraft.bestGlideSpeed;
+    }
+    return 65.0;
   }
 
   /// Shortest angular distance between two headings in degrees in range [0, 180].

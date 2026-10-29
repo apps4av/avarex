@@ -100,4 +100,72 @@ void main() {
       expect(pending.map((notice) => notice.id), ["c", "b"]);
     });
   });
+
+  group("AppNoticeInbox.remember", () {
+    test("replaces the saved row for the same id", () {
+      final original = _notice(id: "cycle", body: "First text");
+      final edited = _notice(id: "cycle", body: "Updated text");
+      final saved = AppNoticeInbox.remember(
+        saved: [StoredAppNotice.fromNotice(original)],
+        current: [edited],
+        deleted: const {},
+      );
+      expect(saved, hasLength(1));
+      expect(saved.single.body, "Updated text");
+      expect(saved.single.dismissKey, edited.dismissKey);
+    });
+
+    test("a deleted revision is not saved again", () {
+      final notice = _notice(id: "cycle");
+      final saved = AppNoticeInbox.remember(
+        saved: const [],
+        current: [notice],
+        deleted: {notice.dismissKey},
+      );
+      expect(saved, isEmpty);
+    });
+
+    test("an edit of a deleted message is saved again", () {
+      final original = _notice(id: "cycle", body: "First text");
+      final edited = _notice(
+        id: "cycle",
+        body: "Updated text",
+        updatedAt: DateTime.utc(2026, 10, 3),
+      );
+      final saved = AppNoticeInbox.remember(
+        saved: [StoredAppNotice.fromNotice(original)],
+        current: [edited],
+        deleted: {original.dismissKey},
+      );
+      expect(saved.map((notice) => notice.body), ["Updated text"]);
+    });
+
+    test("keeps a saved message that is no longer current", () {
+      final kept = _notice(id: "old", updatedAt: DateTime.utc(2026, 1, 1));
+      final fresh = _notice(id: "new", updatedAt: DateTime.utc(2026, 3, 1));
+      final saved = AppNoticeInbox.remember(
+        saved: [StoredAppNotice.fromNotice(kept)],
+        current: [fresh],
+        deleted: const {},
+      );
+      expect(saved.map((notice) => notice.id), ["new", "old"]);
+    });
+
+    test("drops the oldest past the cap", () {
+      final current = List<AppNotice>.generate(AppNoticeInbox.cap + 1, (index) {
+        return _notice(
+          id: "n$index",
+          updatedAt: DateTime.utc(2026, 1, 1).add(Duration(days: index)),
+        );
+      });
+      final saved = AppNoticeInbox.remember(
+        saved: const [],
+        current: current,
+        deleted: const {},
+      );
+      expect(saved, hasLength(AppNoticeInbox.cap));
+      expect(saved.map((notice) => notice.id), isNot(contains("n0")));
+      expect(saved.first.id, "n${AppNoticeInbox.cap}");
+    });
+  });
 }

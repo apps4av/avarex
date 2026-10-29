@@ -10,8 +10,9 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 class PdfViewer extends StatefulWidget {
 
   final String url;
+  final String? title;
 
-  const PdfViewer(this.url, {super.key});
+  const PdfViewer(this.url, {super.key, this.title});
 
   @override
   State<StatefulWidget> createState() => PdfViewerState();
@@ -91,7 +92,7 @@ class PdfViewerState extends State<PdfViewer> {
       )
           : AppBar(
         title: Text(
-          PathUtils.filename(widget.url),
+          widget.title ?? PathUtils.filename(widget.url),
         ),
         leading:  const BackButton(),
         actions: [

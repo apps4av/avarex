@@ -660,11 +660,10 @@ class _Airspace3DViewState extends State<Airspace3DView> {
       // Yield so the progress indicator can paint before the tile decode.
       scene = await Future(() => loadClassAirspace(path, center));
       if (scene.message == null) {
-        final obstacles = await loadObstacles(
-          PathUtils.getFilePath(Storage().dataDir, 'main.db'),
-          center,
-        );
-        scene = scene.copyWith(obstacles: obstacles);
+        final mainDb = PathUtils.getFilePath(Storage().dataDir, 'main.db');
+        final obstacles = await loadObstacles(mainDb, center);
+        final diagrams = await loadAirportDiagrams(mainDb, center);
+        scene = scene.copyWith(obstacles: obstacles, diagrams: diagrams);
       }
     }
     if (!mounted || generation != _generation) {
@@ -709,6 +708,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     }
     if (scene.shelves.isEmpty &&
         scene.obstacles.isEmpty &&
+        scene.diagrams.isEmpty &&
         !widget.followAircraft &&
         !_planInView(_center) &&
         !_layerOn('TFR') &&
@@ -959,6 +959,29 @@ Color _classColor(String cls) {
   }
 }
 
+/// Same pavement colors as the long-press AD diagram.
+Color _diagramSurface(String surface) {
+  final surf = surface.toUpperCase();
+  if (surf.length >= 5 && surf.substring(0, 5) == 'WATER') {
+    return Colors.blue;
+  }
+  if (surf.length >= 4) {
+    switch (surf.substring(0, 4)) {
+      case 'ASPH':
+        return Colors.grey.shade700;
+      case 'CONC':
+        return Colors.grey;
+      case 'TURF':
+        return Colors.green;
+      case 'DIRT':
+        return Colors.brown;
+      case 'SAND':
+        return Colors.amber.shade200;
+    }
+  }
+  return Colors.grey;
+}
+
 class _Ownship {
   final NmPoint offset;
   final double altFt;
@@ -1156,6 +1179,7 @@ class _AirspacePainter extends CustomPainter {
       _drawObstacles(canvas, project);
     }
     _drawAirports(canvas, project);
+    _drawDiagrams(canvas, project);
     for (final shelf in scene.shelves) {
       if (_classOn(shelf.airspaceClass) &&
           shelf.showLabel &&
@@ -2071,43 +2095,194 @@ class _AirspacePainter extends CustomPainter {
 
   void _drawAirports(
       Canvas canvas, _Proj Function(double, double, double) project) {
-    const radiusNm = 0.55;
-    const steps = 28;
     for (final airport in scene.airports) {
       if (!_classOn(airport.airspaceClass)) {
         continue;
       }
-      final color = _classColor(airport.airspaceClass);
-      final disk = ui.Path();
-      for (var i = 0; i < steps; i++) {
-        final angle = i * 2 * math.pi / steps;
-        final p = project(
-          airport.e + radiusNm * math.sin(angle),
-          airport.n + radiusNm * math.cos(angle),
-          _onSurface(airport.e, airport.n, 0),
-        );
-        if (i == 0) {
-          disk.moveTo(p.x, p.y);
-        } else {
-          disk.lineTo(p.x, p.y);
-        }
-      }
-      disk.close();
-      canvas.drawPath(disk, Paint()..color = color);
-      canvas.drawPath(
-        disk,
-        Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4,
-      );
       final at =
           project(airport.e, airport.n, _onSurface(airport.e, airport.n, 0));
+      if (at.depth < -2.6) {
+        continue;
+      }
       _text(canvas, airport.ident, at.o + const Offset(12, -14), Colors.white,
           13, FontWeight.w700,
-          halo: color);
+          halo: _classColor(airport.airspaceClass));
     }
   }
+
+  /// Runway diagram on the ground at each airport inside the view.
+  void _drawDiagrams(
+      Canvas canvas, _Proj Function(double, double, double) project) {
+    final marks = <({AirspaceDiagram diagram, _Proj at})>[];
+    for (final diagram in scene.diagrams) {
+      final at = project(diagram.at.e, diagram.at.n,
+          _onSurface(diagram.at.e, diagram.at.n, 0));
+      if (at.depth < -2.6) {
+        continue;
+      }
+      marks.add((diagram: diagram, at: at));
+    }
+    marks.sort((a, b) => b.at.depth.compareTo(a.at.depth));
+    for (final mark in marks) {
+      final reach = _drawAirportDiagram(canvas, project, mark.diagram);
+      if (_diagramLabeled(mark.diagram)) {
+        continue;
+      }
+      _text(
+        canvas,
+        airspaceIdent(mark.diagram.ident),
+        mark.at.o + Offset(0, -(reach + 10)),
+        Colors.white,
+        11,
+        FontWeight.w700,
+        halo: const Color(0xFF212121),
+      );
+    }
+  }
+
+  /// The surface-airspace name already labels this field when it sits on the airport.
+  bool _diagramLabeled(AirspaceDiagram diagram) {
+    final key = airspaceIdent(diagram.ident);
+    for (final airport in scene.airports) {
+      if (!_classOn(airport.airspaceClass) || airport.ident != key) {
+        continue;
+      }
+      final de = airport.e - diagram.at.e;
+      final dn = airport.n - diagram.at.n;
+      if (de * de + dn * dn < 2.25) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Runway strips on the ground, drawn like the long-press AD tab.
+  /// Stroke width is runway feet / 30 and the ends are square. The field is
+  /// enlarged on the ground, and each sample sits on the terrain under it.
+  double _drawAirportDiagram(Canvas canvas,
+      _Proj Function(double, double, double) project, AirspaceDiagram diagram) {
+    final origin = project(diagram.at.e, diagram.at.n,
+        _onSurface(diagram.at.e, diagram.at.n, 0));
+    var longest = 0.0;
+    for (final runway in diagram.runways) {
+      final low = project(runway.low.e, runway.low.n,
+          _onSurface(runway.low.e, runway.low.n, 0));
+      final high = project(runway.high.e, runway.high.n,
+          _onSurface(runway.high.e, runway.high.n, 0));
+      if (low.depth < -2.6 || high.depth < -2.6) {
+        continue;
+      }
+      final span = (high.o - low.o).distance;
+      if (span > longest) {
+        longest = span;
+      }
+    }
+    if (longest == 0) {
+      return 12;
+    }
+    // Half of an AD diagram is the runway. Keep at least that long on screen.
+    final target = (48.0 * math.pow(zoom.clamp(0.45, 8), 0.4))
+        .clamp(36.0, 140.0)
+        .toDouble();
+    final grow = longest < 0.75 ? 1.0 : (target / longest).clamp(1.0, 16.0);
+    var reach = 0.0;
+    for (final runway in diagram.runways) {
+      // Enlarge in east/north, then sit every point on the terrain. Scaling
+      // the screen point lifts the uphill end off a slope.
+      final lowE = diagram.at.e + (runway.low.e - diagram.at.e) * grow;
+      final lowN = diagram.at.n + (runway.low.n - diagram.at.n) * grow;
+      final highE = diagram.at.e + (runway.high.e - diagram.at.e) * grow;
+      final highN = diagram.at.n + (runway.high.n - diagram.at.n) * grow;
+      final lengthNm = math.sqrt(
+          math.pow(highE - lowE, 2) + math.pow(highN - lowN, 2));
+      final steps = (lengthNm / (scene.radiusNm / 16)).ceil().clamp(2, 24);
+      final pts = <Offset>[];
+      var hidden = false;
+      for (var i = 0; i <= steps; i++) {
+        final t = i / steps;
+        final e = lowE + (highE - lowE) * t;
+        final n = lowN + (highN - lowN) * t;
+        final p = project(e, n, _onSurface(e, n, 0));
+        if (p.depth < -2.6) {
+          hidden = true;
+          break;
+        }
+        pts.add(p.o);
+      }
+      if (hidden || pts.length < 2) {
+        continue;
+      }
+      var drawn = 0.0;
+      for (var i = 1; i < pts.length; i++) {
+        drawn += (pts[i] - pts[i - 1]).distance;
+      }
+      if (drawn < 1) {
+        continue;
+      }
+      for (final p in pts) {
+        reach = math.max(reach, (p - origin.o).distance);
+      }
+      var stroke = runway.widthFt / 30.0 * drawn / 160.0;
+      if (stroke < 1.2) {
+        stroke = 1.2;
+      }
+      if (stroke > drawn * 0.08) {
+        stroke = drawn * 0.08;
+      }
+      final path = ui.Path()..moveTo(pts.first.dx, pts.first.dy);
+      for (final p in pts.skip(1)) {
+        path.lineTo(p.dx, p.dy);
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.butt
+          ..strokeJoin = StrokeJoin.bevel
+          ..color = _diagramSurface(runway.surface).withValues(alpha: 0.8),
+      );
+      if (drawn > 28) {
+        _runwayIdent(canvas, runway.lowIdent, pts.first, pts.first - pts[1]);
+        _runwayIdent(
+            canvas, runway.highIdent, pts.last, pts.last - pts[pts.length - 2]);
+      }
+    }
+    return reach < 12 ? 12 : reach;
+  }
+
+  /// Runway number just past the pavement, turned along the runway as on the AD tab.
+  void _runwayIdent(Canvas canvas, String ident, Offset at, Offset outward) {
+  if (ident.isEmpty) {
+    return;
+  }
+  final angle = math.atan2(outward.dy, outward.dx);
+  TextPainter painter(Paint? foreground) => TextPainter(
+        text: TextSpan(
+          text: ident,
+          style: TextStyle(
+            color: foreground == null ? Colors.white : null,
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            foreground: foreground,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+  final halo = painter(Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1.1
+    ..strokeJoin = StrokeJoin.round
+    ..color = const Color(0xFF212121));
+  final fill = painter(null);
+  canvas.save();
+  canvas.translate(at.dx, at.dy);
+  canvas.rotate(angle);
+  final pos = Offset(3, -fill.height / 2);
+  halo.paint(canvas, pos);
+  fill.paint(canvas, pos);
+  canvas.restore();
+}
 
   void _drawHere(Canvas canvas, _Proj Function(double, double, double) project,
       double maxAlt) {
