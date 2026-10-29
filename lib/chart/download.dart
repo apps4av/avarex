@@ -265,14 +265,10 @@ class Download {
     File localFile = File(zipPath);
     callback!(chart, 0); // download start signal
 
-    String currentCycle;
-    try {
-      currentCycle = await http.read(Uri.parse("$server/version.php"));
-      if(nextCycle) {
-        currentCycle = FaaDates.getNextCycle(currentCycle);
-      }
-    }
-    catch(e) {
+    final String currentCycle = nextCycle
+        ? FaaDates.getNextCycle(FaaDates.getCurrentCycle())
+        : FaaDates.getCurrentCycle();
+    if (currentCycle == "0000") {
       callback(chart, -1); // cycle not known
       return;
     }
