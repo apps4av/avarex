@@ -278,7 +278,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
 - **North Up / Track Up**: shows the current orientation mode; tap to switch. Tapping the **MT** instrument tile does the same thing. The tile is olive in track-up and the normal tile color in north-up.
-- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile.
+- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile. The red `Emergency` profile is always first. It opens the Emergency map instead of applying settings (see 9.4.2).
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
@@ -1058,6 +1058,20 @@ Each checkbox stores the current value with the profile. **Layers**, **Weather**
 - **Save**: stores the checked items under that name. Saving an existing name replaces it.
 - **Profile list**: tap the three-dot menu on a profile and choose **Delete** to remove it. A profile shows the items it will restore under its name.
 - Apply a saved profile from the same `Profiles` list in `MAP → Map Settings` by tapping its name. That list shows the profile name. The `Profiles` heading opens this screen.
+- **Emergency** is a permanent profile at the top of the list. It cannot be saved over, renamed, or deleted. Its tile looks like the others, in red, and shows the checklist in use. Its three-dot menu lists the checklists imported under `MAP → Menu → Check Lists`. `Default` uses a built-in engine-out checklist. Choosing a checklist here changes only the Emergency profile, not the checklist chosen on the `Check Lists` screen.
+
+### 9.4.2 Emergency Mode
+
+Open: **MAP → Map Settings → Profiles → Emergency**
+
+For an engine failure, fire, or running out of fuel. Emergency mode opens its own map and changes none of your settings: layers, weather, chart type, zoom, plan, and checklist selection stay as they were. The map shows the chart you were using, always north up, with ownship at the center and the glide ring around it. Pinch or scroll to zoom. The map cannot be panned, and ownship stays centered. It opens at the same zoom as a long-press on `Center`.
+
+The aircraft is the one chosen in the dropdown on `MAP → Menu → Aircraft & Performance`. The glide ring and the cards all use that aircraft.
+
+- **A, top left**: best glide speed of the aircraft in your speed units, and your current indicated airspeed estimated from ground speed and winds aloft. The card flashes red when the airspeed is more than 5 knots from best glide.
+- **B, top right**: the best runway you can glide to. A runway counts when its landing end is inside the glide ring; the far end can be outside. Among runways at least as long as the aircraft needs to land, it picks the one with the most headwind, the nearest if tied. A red line runs from ownship to the runway and a large red outlined arrow at the landing end points the landing direction. If no runway is long enough, B shows the longest one and flashes. If no runway is in range but an airport in the glide ring publishes no runway data, B flashes `NO RUNWAY DATA` with that airport and the arrow points into the wind (straight to the field if there is no wind data). If there is nothing in range, B flashes `No runway identified` and shows an arrow pointing directly into the wind (the current track if there is no wind data). The `LOCK` button on the B card holds the current runway so it stops changing as you fly; the distance and bearing keep updating. Tap `LOCKED` to release it and choose again. If the locked runway is no longer inside the glide ring, B flashes and shows `OUTSIDE GLIDE RING`.
+- **C, bottom right**: the Emergency checklist, one step at a time. Tap the card for the next step; after the last step it goes back to the first. `EXIT` asks for confirmation and returns to the map as you left it. The Back button asks the same.
+- **D, bottom left**: the CTAF or UNICOM frequency of the airport of the chosen runway, `121.5`, and squawk `7700`.
 
 ### 9.5 Log Book
 
@@ -1589,6 +1603,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Checklist operations | `MAP → Menu → Check Lists` |
 | Save map settings as a profile | `MAP → Map Settings → Profiles` |
 | Apply a saved profile | `MAP → Map Settings → Profiles` |
+| Emergency mode (glide speed, best runway, checklist, declare) | `MAP → Map Settings → Profiles → Emergency` |
+| Choose the Emergency checklist | `MAP → Map Settings → Profiles` heading → `Emergency` tile three-dot menu |
 | Weight and balance | `MAP → Menu → Aircraft & Performance → W&B tab` |
 | Takeoff performance | `MAP → Menu → Aircraft & Performance → Takeoff tab` (fixed-wing icon only; hidden for helicopter) |
 | Landing performance | `MAP → Menu → Aircraft & Performance → Landing tab` (fixed-wing icon only; hidden for helicopter) |

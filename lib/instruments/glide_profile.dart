@@ -64,10 +64,10 @@ class GlideProfile {
     double heading = Storage().position.heading; // track true north
     LatLng ll = Gps.toLatLng(Storage().position);
 
-    Aircraft? aircraft = await Aircraft.getActiveAircraft();
-    final AircraftPerformanceData? builtIn = CommonAircraftData.byName(
-      Storage().settings.getLastPerformanceAircraft(),
-    );
+    // The aircraft chosen in the Aircraft & Performance dropdown.
+    final SelectedAircraft selected = await Aircraft.resolveSelected();
+    final Aircraft? aircraft = selected.saved;
+    final AircraftPerformanceData? builtIn = selected.builtIn;
     if (aircraft == null && builtIn == null) {
       publish();
       return; // no aircraft, cannot compute glide
@@ -81,7 +81,7 @@ class GlideProfile {
     }
     final double sinkRate = sinkFpm / 60.0; // feet per second
     // Best glide of the active airplane in app speed units (not GPS ground speed).
-    final double bestGlideSpeed = _glideSpeedAppUnits(aircraft, builtIn) * Storage().units.toMps * _feetPerMeter;
+    final double bestGlideSpeed = glideSpeedAppUnits(selected) * Storage().units.toMps * _feetPerMeter;
 
     WindsAloft? wa = Storage().area.windsAloft;
     // Missing winds still glide, with the wind taken as calm.
@@ -113,7 +113,9 @@ class GlideProfile {
 
   /// Best-glide speed in the app's speed units. A saved Best Glide Speed wins.
   /// Otherwise the selected built-in aircraft supplies its POH speed.
-  static double _glideSpeedAppUnits(Aircraft? aircraft, AircraftPerformanceData? builtIn) {
+  static double glideSpeedAppUnits(SelectedAircraft selected) {
+    final Aircraft? aircraft = selected.saved;
+    final AircraftPerformanceData? builtIn = selected.builtIn;
     final double? saved = double.tryParse(aircraft?.bestGlide ?? '');
     if (saved != null && saved > 0) {
       return saved;

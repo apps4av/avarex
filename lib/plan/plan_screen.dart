@@ -254,11 +254,8 @@ class PlanScreenState extends State<PlanScreen> {
   }
 
   String _planAircraftSelector() {
-    final String lastPerf = Storage().settings.getLastPerformanceAircraft().trim();
-    if (lastPerf.isNotEmpty) {
-      return lastPerf;
-    }
-    return Storage().settings.getAircraft().trim();
+    // Only the aircraft chosen in the Aircraft & Performance dropdown.
+    return Storage().settings.getLastPerformanceAircraft().trim();
   }
 
   Future<AircraftPerformanceData?> _loadPlanPerformance(String selector) async {

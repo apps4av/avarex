@@ -378,6 +378,56 @@ class MainDatabaseHelper {
     return null;
   }
 
+  /// Airports inside a latitude/longitude box with their runways, frequencies and
+  /// AWOS, for the glide-range runway search. Three queries in all, not three per
+  /// airport.
+  Future<List<AirportDestination>> findAirportsInBounds(
+      double minLat, double maxLat, double minLon, double maxLon) async {
+    final List<AirportDestination> ret = [];
+    final db = await database;
+    if (db == null) {
+      return ret;
+    }
+    final List<Map<String, dynamic>> airports = await DbGeneral.query(db,
+        "select * from airports where Type = 'AIRPORT' and ARPLatitude > ? and ARPLatitude < ? and ARPLongitude > ? and ARPLongitude < ?",
+        params: [minLat, maxLat, minLon, maxLon]);
+    if (airports.isEmpty) {
+      return ret;
+    }
+    final List<String> dlids = [];
+    for (final Map<String, dynamic> a in airports) {
+      final String id = (a['DLID'] ?? '').toString();
+      if (id.isNotEmpty) {
+        dlids.add(id);
+      }
+    }
+    final Map<String, List<Map<String, dynamic>>> runways = {};
+    final Map<String, List<Map<String, dynamic>>> freqs = {};
+    // keep the number of bound parameters under the SQLite limit
+    const int chunk = 500;
+    for (int i = 0; i < dlids.length; i += chunk) {
+      final List<String> part = dlids.sublist(i, min(i + chunk, dlids.length));
+      final String marks = List.filled(part.length, '?').join(',');
+      for (final Map<String, dynamic> r in await DbGeneral.query(db,
+          "select * from airportrunways where DLID in ($marks)", params: part)) {
+        runways.putIfAbsent((r['DLID'] ?? '').toString(), () => []).add(r);
+      }
+      for (final Map<String, dynamic> f in await DbGeneral.query(db,
+          "select * from airportfreq where DLID in ($marks)", params: part)) {
+        freqs.putIfAbsent((f['DLID'] ?? '').toString(), () => []).add(f);
+      }
+    }
+    for (final Map<String, dynamic> a in airports) {
+      final String id = (a['DLID'] ?? '').toString();
+      try {
+        ret.add(AirportDestination.fromMap(a, freqs[id] ?? [], [], runways[id] ?? []));
+      } catch (_) {
+        // skip an airport with unreadable fields
+      }
+    }
+    return ret;
+  }
+
   Future<NavDestination?> findNav(String nav) async {
     List<Map<String, dynamic>> maps = [];
     final db = await database;

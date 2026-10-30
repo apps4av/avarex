@@ -1,3 +1,4 @@
+import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/image_utils.dart';
@@ -6,56 +7,78 @@ class AircraftIconType {
   static const List<String> all = ["plane", "helicopter", "canard"];
 }
 
-class Aircraft {
-  /// Candidate tails for the **active** aircraft: Performance dropdown, then
-  /// the map / **My Aircraft** profile setting.
-  static List<String> _activeAircraftTails() {
-    return [
-      Storage().settings.getLastPerformanceAircraft().trim(),
-      Storage().settings.getAircraft().trim(),
-    ];
-  }
+/// The aircraft selected in the Aircraft & Performance dropdown: its display
+/// name, the saved aircraft row of that name if any, and the built-in model of
+/// that name if any. Both come from the same selection.
+class SelectedAircraft {
+  final String name;
+  final Aircraft? saved;
+  final AircraftPerformanceData? builtIn;
 
-  /// Loads [Storage.imagePlane] from the **selected** aircraft when present in
-  /// `user.db` (last Performance dropdown tail, then **My Aircraft** profile tail),
-  /// otherwise from app setting `key-aircraft-icon`.
-  static Future<void> reloadAircraftIcon() async {
-    String iconType = Storage().settings.getAircraftIcon();
-    final seen = <String>{};
-    for (final String tail in _activeAircraftTails()) {
-      if (tail.isEmpty || !seen.add(tail)) {
-        continue;
-      }
+  const SelectedAircraft(this.name, this.saved, this.builtIn);
+
+  /// Performance data used for landing distance. A saved aircraft with its own
+  /// landing table uses that, otherwise the built-in model of the selection or
+  /// of the saved aircraft's ICAO type.
+  AircraftPerformanceData? get landingPerformance {
+    final Aircraft? ac = saved;
+    if (ac != null && ac.landingData.isNotEmpty) {
       try {
-        final Aircraft ac = await UserDatabaseHelper.db.getAircraft(tail);
-        if (ac.icon.isNotEmpty && AircraftIconType.all.contains(ac.icon)) {
-          iconType = ac.icon;
-          break;
+        final AircraftPerformanceData data = aircraftPerformanceDataFromAircraft(ac);
+        if (data.rawLandingRollEntries != null || data.rawLanding50ftEntries != null) {
+          return data;
         }
       } catch (_) {}
+    }
+    if (builtIn != null) {
+      return builtIn;
+    }
+    if (ac != null && ac.type.trim().isNotEmpty) {
+      return CommonAircraftData.getByIcao(ac.type.trim());
+    }
+    return null;
+  }
+}
+
+class Aircraft {
+  /// The aircraft chosen in the dropdown on the Aircraft & Performance screen.
+  /// That dropdown is the single source of truth. When nothing was ever chosen
+  /// the screen shows the Cessna 172SP, and so does this.
+  static Future<SelectedAircraft> resolveSelected() async {
+    String name = Storage().settings.getLastPerformanceAircraft().trim();
+    if (name.isEmpty) {
+      name = CommonAircraftData.cessna172sp.name;
+    }
+    Aircraft? saved;
+    try {
+      saved = await UserDatabaseHelper.db.getAircraft(name);
+    } catch (_) {}
+    AircraftPerformanceData? builtIn = CommonAircraftData.byName(name);
+    if (saved == null && builtIn == null) {
+      // The chosen aircraft was deleted. The screen falls back to the same one.
+      name = CommonAircraftData.cessna172sp.name;
+      builtIn = CommonAircraftData.cessna172sp;
+    }
+    return SelectedAircraft(name, saved, builtIn);
+  }
+
+  /// Loads [Storage.imagePlane] from the aircraft selected in the Performance
+  /// dropdown when it is in `user.db`, otherwise from app setting
+  /// `key-aircraft-icon`.
+  static Future<void> reloadAircraftIcon() async {
+    String iconType = Storage().settings.getAircraftIcon();
+    final Aircraft? saved = (await resolveSelected()).saved;
+    if (saved != null && saved.icon.isNotEmpty && AircraftIconType.all.contains(saved.icon)) {
+      iconType = saved.icon;
     }
     Storage().imagePlane = await ImageUtils.loadImageFromAssets("$iconType.png");
     Storage().planeIconChange.value++;
   }
 
-  /// Aircraft used for map features such as the glide circle.
-  /// Performance dropdown first, then the map aircraft setting, then the
-  /// most recently saved profile.
+  /// The saved aircraft behind the Performance dropdown, if the selection is a
+  /// saved aircraft and not a built-in model.
   static Future<Aircraft?> getActiveAircraft() async {
-    final seen = <String>{};
-    for (final String tail in _activeAircraftTails()) {
-      if (tail.isEmpty || !seen.add(tail)) {
-        continue;
-      }
-      try {
-        return await UserDatabaseHelper.db.getAircraft(tail);
-      } catch (_) {}
-    }
-    final List<Aircraft> all = await UserDatabaseHelper.db.getAllAircraft();
-    if (all.isEmpty) {
-      return null;
-    }
-    return all.first;
+    return (await resolveSelected()).saved;
   }
 
   /// Best-glide speed in the app's current speed units. Prefers the dedicated

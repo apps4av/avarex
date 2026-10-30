@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/checklist/checklist.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/emergency/emergency_map_screen.dart';
+import 'package:avaremp/emergency/emergency_profile.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/toast.dart';
@@ -41,6 +44,9 @@ class SettingsProfile {
 
   const SettingsProfile(this.name, this.settings);
 
+  /// The permanent Emergency profile. It is not applied like the others.
+  bool get isEmergency => EmergencyProfile.isReserved(name);
+
   factory SettingsProfile.fromRow(Map<String, dynamic> row) {
     final String name = (row['name'] as String?)?.trim() ?? '';
     final Map<String, String> settings = {};
@@ -65,7 +71,7 @@ class ProfileStore {
   static Future<bool> saveCurrent(String name,
       {ProfileSaveOptions options = const ProfileSaveOptions()}) async {
     final String trimmed = name.trim();
-    if (trimmed.isEmpty) {
+    if (trimmed.isEmpty || EmergencyProfile.isReserved(trimmed)) {
       return false;
     }
     return UserDatabaseHelper.db
@@ -109,11 +115,7 @@ class ProfileStore {
   static String currentAircraftLabel() {
     final String performance =
         Storage().settings.getLastPerformanceAircraft().trim();
-    if (performance.isNotEmpty) {
-      return performance;
-    }
-    final String aircraft = Storage().settings.getAircraft().trim();
-    return aircraft.isEmpty ? 'None' : aircraft;
+    return performance.isEmpty ? 'None' : performance;
   }
 
   static String currentChecklistLabel() {
@@ -174,6 +176,12 @@ class ProfileStore {
   /// Short line of the items a profile will restore.
   static String includedSummary(SettingsProfile profile) {
     final Map<String, String> saved = profile.settings;
+    if (profile.isEmergency) {
+      final String checklist = (saved['checklist'] ?? '').trim();
+      return checklist.isEmpty
+          ? 'Checklist: Default'
+          : 'Checklist: $checklist';
+    }
     final List<String> parts = [];
     if (_included(saved, 'saveLayers', 'layers')) {
       parts.add('Layers');
@@ -215,16 +223,29 @@ class ProfileStore {
   }
 
   static Future<void> delete(String name) async {
+    if (EmergencyProfile.isReserved(name)) {
+      return;
+    }
     await UserDatabaseHelper.db.deleteProfile(name);
   }
 
   static Future<List<SettingsProfile>> loadAll() async {
     final List<Map<String, dynamic>> rows =
         await UserDatabaseHelper.db.getAllProfiles();
-    return rows
+    final List<SettingsProfile> all = rows
         .map(SettingsProfile.fromRow)
         .where((SettingsProfile profile) => profile.name.isNotEmpty)
         .toList();
+    // Emergency is always first, even if its row was never written.
+    final Map<String, String> emergency = {};
+    for (final SettingsProfile profile in all) {
+      if (profile.isEmergency) {
+        emergency.addAll(profile.settings);
+      }
+    }
+    all.removeWhere((SettingsProfile profile) => profile.isEmergency);
+    all.insert(0, SettingsProfile(EmergencyProfile.name, emergency));
+    return all;
   }
 
   static Map<String, String> _capture(ProfileSaveOptions options) {
@@ -282,9 +303,7 @@ class ProfileStore {
     if (options.aircraft) {
       final String performance = settings.getLastPerformanceAircraft().trim();
       captured['saveAircraft'] = 'true';
-      captured['aircraft'] = performance.isNotEmpty
-          ? performance
-          : settings.getAircraft().trim();
+      captured['aircraft'] = performance;
     }
     if (options.checklist) {
       captured['saveChecklist'] = 'true';
@@ -298,6 +317,9 @@ class ProfileStore {
   /// is applied by name so a new layer does not disappear.
   static Future<void> apply(SettingsProfile profile) async {
     final settings = Storage().settings;
+    if (profile.isEmergency) {
+      return; // Emergency opens its own screen and changes no settings
+    }
     final Map<String, String> saved = profile.settings;
     if (saved.isEmpty) {
       return;
@@ -474,6 +496,7 @@ class SettingsProfileScreen extends StatefulWidget {
 class SettingsProfileScreenState extends State<SettingsProfileScreen> {
   final TextEditingController _name = TextEditingController();
   List<SettingsProfile> _profiles = [];
+  List<String> _checklistNames = [];
   bool _loading = true;
   bool _saveLayers = true;
   bool _saveWeather = true;
@@ -499,11 +522,14 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
 
   Future<void> _reload() async {
     final List<SettingsProfile> profiles = await ProfileStore.loadAll();
+    final List<Checklist> checklists =
+        await UserDatabaseHelper.db.getAllChecklist();
     if (!mounted) {
       return;
     }
     setState(() {
       _profiles = profiles;
+      _checklistNames = checklists.map((Checklist c) => c.name).toList();
       _loading = false;
     });
   }
@@ -513,6 +539,11 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     if (name.isEmpty) {
       Toast.showToast(
           context, 'Enter a profile name.', const Icon(Icons.info), 2);
+      return;
+    }
+    if (EmergencyProfile.isReserved(name)) {
+      Toast.showToast(context, 'Emergency is a permanent profile.',
+          const Icon(Icons.info), 3);
       return;
     }
     final String stored = name.length > 40 ? name.substring(0, 40) : name;
@@ -555,9 +586,14 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
         title: const Text('Profile'),
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: _sectionHeader('New profile'),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
             child: Row(
               children: [
                 Expanded(
@@ -683,7 +719,76 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
     );
   }
 
+  Widget _emergencyCard(SettingsProfile profile) {
+    final String chosen = (profile.settings['checklist'] ?? '').trim();
+    final String value = _checklistNames.contains(chosen) ? chosen : '';
+    PopupMenuItem<String> choice(String name, String label) {
+      return PopupMenuItem<String>(
+        value: name,
+        child: Row(
+          children: [
+            SizedBox(
+                width: 24,
+                child: name == value
+                    ? const Icon(Icons.check, size: 18, color: Colors.red)
+                    : null),
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      );
+    }
+
+    // Same tile as the other profiles, in red: name, what it holds, three-dot menu.
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.red.withAlpha(160), width: 1.5),
+      ),
+      child: ListTile(
+        title: Text(profile.name,
+            style: const TextStyle(
+                color: Colors.red, fontWeight: FontWeight.bold)),
+        subtitle: Text(ProfileStore.includedSummary(profile),
+            maxLines: 2, overflow: TextOverflow.ellipsis),
+        trailing: PopupMenuButton<String>(
+          tooltip: 'Emergency checklist',
+          onSelected: (String next) async {
+            await EmergencyProfile.setChecklistName(next);
+            await _reload();
+          },
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            const PopupMenuItem<String>(
+              enabled: false,
+              child: Text('Emergency checklist'),
+            ),
+            choice('', 'Default'),
+            for (final String name in _checklistNames) choice(name, name),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+      child: Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.6,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+
   Widget _profileCard(SettingsProfile profile) {
+    if (profile.isEmergency) {
+      return _emergencyCard(profile);
+    }
     final String summary = ProfileStore.includedSummary(profile);
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -720,18 +825,22 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       children: [
         _saveOptions(),
+        const SizedBox(height: 8),
+        const Divider(thickness: 2, height: 24),
+        _sectionHeader('Saved profiles'),
         if (_loading)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (_profiles.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: Text('No profiles saved')),
-          )
-        else
+        else ...[
           for (final SettingsProfile profile in _profiles) _profileCard(profile),
+          if (_profiles.length == 1)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('No other profiles saved')),
+            ),
+        ],
       ],
     );
   }
@@ -750,6 +859,13 @@ class ProfileToolsList extends StatefulWidget {
 class _ProfileToolsListState extends State<ProfileToolsList> {
   late final Future<List<SettingsProfile>> _profiles = ProfileStore.loadAll();
   bool _busy = false;
+
+  void _openEmergency() {
+    final NavigatorState navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.push(
+        MaterialPageRoute<void>(builder: (_) => const EmergencyMapScreen()));
+  }
 
   void _openProfileScreen() {
     final NavigatorState navigator = Navigator.of(context);
@@ -800,15 +916,6 @@ class _ProfileToolsListState extends State<ProfileToolsList> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2))),
               )
-            else if (profiles.isEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: Text(
-                  'No saved profiles',
-                  style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              )
             else
               for (final SettingsProfile profile in profiles)
                 _profileRow(profile),
@@ -820,6 +927,31 @@ class _ProfileToolsListState extends State<ProfileToolsList> {
   }
 
   Widget _profileRow(SettingsProfile profile) {
+    if (profile.isEmergency) {
+      return InkWell(
+        onTap: _openEmergency,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          child: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  size: 24, color: Colors.red),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  profile.name,
+                  style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return InkWell(
       onTap: _busy
           ? null

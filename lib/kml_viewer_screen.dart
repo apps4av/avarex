@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
+import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/chart/chart.dart';
 import 'package:avaremp/utils/epsg900913.dart';
 import 'package:universal_io/io.dart';
@@ -401,8 +402,9 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
     final startCoord = points.first.coordinate;
     final endCoord = points.last.coordinate;
 
-    final aircraftName = Storage().settings.getAircraft();
-    if (aircraftName.isEmpty) {
+    // The aircraft chosen in the Aircraft & Performance dropdown, when saved.
+    final Aircraft? aircraft = (await Aircraft.resolveSelected()).saved;
+    if (aircraft == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No aircraft selected. Please select an aircraft first.')),
@@ -410,8 +412,6 @@ class _KmlViewerScreenState extends State<KmlViewerScreen> {
       }
       return;
     }
-
-    final aircraft = await UserDatabaseHelper.db.getAircraft(aircraftName);
 
     final startAirports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(startCoord, 0);
     final endAirports = await MainDatabaseHelper.db.findNearestAirportsWithRunways(endCoord, 0);
