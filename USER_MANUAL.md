@@ -15,6 +15,13 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.138**
+
+- Added Emergency mode under Map Settings, Profiles, Emergency. It opens a north-up map with the glide ring and four cards for best glide speed, the best runway to land on, a checklist, and the frequencies to declare.
+- Pick the Emergency checklist from the Emergency tile on the Profile screen.
+- The glide circle, plan cruise, and aircraft icon use the aircraft chosen on Aircraft & Performance.
+- Chart downloads work out the chart cycle from the date.
+
 **0.0.137**
 
 - Built-in aircraft include cruise speed, fuel endurance, best glide, sink rate, and best climb.
@@ -1062,16 +1069,54 @@ Each checkbox stores the current value with the profile. **Layers**, **Weather**
 
 ### 9.4.2 Emergency Mode
 
-Open: **MAP → Map Settings → Profiles → Emergency**
+Open: **MAP → Map Settings → Profiles → Emergency** (the red entry at the top of the list)
 
-For an engine failure, fire, or running out of fuel. Emergency mode opens its own map and changes none of your settings: layers, weather, chart type, zoom, plan, and checklist selection stay as they were. The map shows the chart you were using, always north up, with ownship at the center and the glide ring around it. Pinch or scroll to zoom. The map cannot be panned, and ownship stays centered. It opens at the same zoom as a long-press on `Center`.
+Emergency mode is for an engine failure, a fire, or running out of fuel. It opens a simple map and four cards, A, B, C, and D, that follow the usual emergency steps: **A**viate with best glide speed, pick the best place to land (**B**), run the **C**hecklist, and **D**eclare the emergency.
 
-The aircraft is the one chosen in the dropdown on `MAP → Menu → Aircraft & Performance`. The glide ring and the cards all use that aircraft.
+It is an aid. It does not replace flying the airplane: fly first, then navigate, then communicate.
 
-- **A, top left**: best glide speed of the aircraft in your speed units, and your current indicated airspeed estimated from ground speed and winds aloft. The card flashes red when the airspeed is more than 5 knots from best glide.
-- **B, top right**: the best runway you can glide to. A runway counts when its landing end is inside the glide ring; the far end can be outside. Among runways at least as long as the aircraft needs to land, it picks the one with the most headwind, the nearest if tied. A red line runs from ownship to the runway and a large red outlined arrow at the landing end points the landing direction. If no runway is long enough, B shows the longest one and flashes. If no runway is in range but an airport in the glide ring publishes no runway data, B flashes `NO RUNWAY DATA` with that airport and the arrow points into the wind (straight to the field if there is no wind data). If there is nothing in range, B flashes `No runway identified` and shows an arrow pointing directly into the wind (the current track if there is no wind data). The `LOCK` button on the B card holds the current runway so it stops changing as you fly; the distance and bearing keep updating. Tap `LOCKED` to release it and choose again. If the locked runway is no longer inside the glide ring, B flashes and shows `OUTSIDE GLIDE RING`.
-- **C, bottom right**: the Emergency checklist, one step at a time. Tap the card for the next step; after the last step it goes back to the first. `EXIT` asks for confirmation and returns to the map as you left it. The Back button asks the same.
-- **D, bottom left**: the CTAF or UNICOM frequency of the airport of the chosen runway, `121.5`, and squawk `7700`.
+**The map**
+
+- The map shows the chart you were using, always north up, with ownship at the center and the glide ring around it.
+- It opens at the same zoom as a long-press on `Center`.
+- Pinch or scroll to zoom. The map cannot be panned or rotated, and ownship stays centered.
+- Emergency mode changes none of your settings: layers, weather, chart type, zoom, plan, and your checklist choice all stay as they were. `EXIT`, or the Back button, asks for confirmation and returns to the map exactly as you left it.
+
+**The aircraft**
+
+The aircraft is the one chosen in the dropdown on `MAP → Menu → Aircraft & Performance`. The glide ring, the glide speed on A, and the landing length that B needs all use that aircraft. If nothing was ever chosen there, the Cessna 172SP is used. Check before a flight that the right aircraft is chosen and has a best glide speed.
+
+**A, top left: best glide speed**
+
+- Shows the best glide speed of the aircraft in your speed units, with your current indicated airspeed under it. Airspeed is estimated from GPS ground speed and the winds aloft.
+- The card flashes red when the airspeed is more than 5 knots from best glide.
+
+**B, top right: best place to land**
+
+- **Which runways count**: any runway at an airport (public or private) whose landing end is inside the glide ring. The far end of the runway can be outside the ring. Helipads, heliports, and seaplane bases are never chosen.
+- **How one is chosen**: among runways at least as long as the aircraft needs to land, B picks the one with the most headwind, and the nearest if tied. The length needed is the landing distance over a 50 ft obstacle at the field's elevation on a standard day, at maximum gross weight, from the aircraft's landing data. If the aircraft has no landing data, length is not checked.
+- **On the map**: a red line runs from ownship to the runway, and a large red outlined arrow at the landing end points the landing direction. The outline lets you see the airport under it.
+- **The card**: airport, runway, length (and the length needed), headwind or tailwind and crosswind, distance, bearing, and landing heading.
+- **Short runway**: if no reachable runway is long enough, B shows the longest one and flashes with `SHORT RUNWAY`.
+- **No runway data**: many fields, private ones especially, publish no usable runway. If no runway is in reach but such an airport is inside the glide ring, B flashes `NO RUNWAY DATA` with that airport. The arrow points into the wind, or straight to the field if there is no wind data.
+- **Nothing in range**: B flashes `No runway identified` and shows an arrow pointing directly into the wind. Without wind data the arrow shows the current track.
+- **Lock**: tap `LOCK` on the B card to hold the current choice so it stops changing as you fly. The distance and bearing keep updating. Tap `LOCKED` to release it and choose again. If a locked runway is no longer inside the glide ring, B flashes and shows `OUTSIDE GLIDE RING`.
+
+**C, bottom right: checklist**
+
+- Shows the emergency checklist one step at a time, as `step/total`. Tap the card for the next step. After the last step it goes back to the first.
+- `EXIT` is on this card. It asks for confirmation before leaving.
+- The checklist is the one chosen for the Emergency profile (below), or a built-in engine-out checklist.
+
+**D, bottom left: declare**
+
+- The CTAF or UNICOM frequency of the airport of the runway shown on B, then `121.5` and squawk `7700`.
+
+**Before you need it**
+
+1. Choose your aircraft on `Aircraft & Performance`. Fill in its Best Glide Speed and Sink Rate under `My Aircraft`, and its landing table if you have one.
+2. To use your own checklist, import it under `MAP → Menu → Check Lists`. Open the `Profiles` heading, tap the three dots on the `Emergency` tile, and pick it. `Default` uses the built-in checklist.
+3. Open Emergency mode once on the ground to see the layout, then `EXIT`.
 
 ### 9.5 Log Book
 
@@ -2146,6 +2191,16 @@ The navigation log gives you per-leg headings, magnetic variation, wind correcti
 4. Build or change the plan on the master, and tap the waypoint to fly. Each slave loads that plan and sets the same active waypoint, including the current fix on an airway or procedure.
 5. Open **Messages** on either device to see the JSON sent (**TX**) and received (**RX**). Tap a row to read it.
 6. Tap **Off** on a device to stop following, or to stop sending.
+
+### UC-28: Use Emergency mode
+
+1. Before the flight, choose your aircraft on `Aircraft & Performance` and, if you want your own checklist, pick it on the `Emergency` tile (`Profiles` heading, three-dot menu).
+2. If the engine quits, catches fire, or runs out of fuel, fly the airplane first. Then open `MAP → Map Settings → Profiles → Emergency`.
+3. Read **A** and fly the best glide speed. The card flashes if you are more than 5 knots away.
+4. Read **B**: it shows the runway to glide to, with the red arrow on the map for the landing direction. Tap `LOCK` once you have decided, so it stops changing.
+5. Work through **C**, tapping the card for each next step.
+6. Use **D** to call on the CTAF or UNICOM shown, or on `121.5`, and set the transponder to `7700`.
+7. Tap `EXIT` and confirm to return to the normal map.
 
 ---
 

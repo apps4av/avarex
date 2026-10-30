@@ -781,20 +781,20 @@ class PlateScreenState extends State<PlateScreen> {
             ),
           ),
 
-          // Center button (bottom center)
+          // Center button (bottom center). Same spot and size as Center on the Map.
           Positioned(
-            bottom: Constants.bottomPaddingSize(context) + 8,
+            bottom: Constants.bottomPaddingSize(context),
             left: 0,
             right: 0,
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: overlayBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
+            child: SizedBox(
+              height: Constants.bottomRowHeight,
+              child: Center(
                 child: TextButton(
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.all(5.0),
+                    textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
+                    minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
+                    backgroundColor: overlayBg,
                   ),
                   onPressed: () {
                     final double currentScale = _transformationController.value.getMaxScaleOnAxis();
@@ -811,20 +811,36 @@ class PlateScreenState extends State<PlateScreen> {
 
           // Plate selector (bottom left)
           if (plates.isNotEmpty && plates[0].isNotEmpty)
+            // Same spot and size as Menu on the Map.
             Positioned(
-              bottom: Constants.bottomPaddingSize(context) + 8,
-              left: 12,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: overlayBg,
-                  shape: BoxShape.circle,
-                ),
-                child: DropdownButtonHideUnderline(
+              bottom: Constants.bottomPaddingSize(context),
+              left: Constants.bottomMenuLeft,
+              child: SizedBox(
+                height: Constants.bottomRowHeight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+              DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
                     isDense: true,
-                    customButton: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Icon(Icons.menu, color: Theme.of(context).colorScheme.primary),
+                    // A real TextButton laid out like the Map's Menu button (invisible
+                    // "Menu" label sizes it), so size, shape and padding are identical.
+                    customButton: IgnorePointer(
+                      child: TextButton(
+                        onPressed: () {},
+                        style: TextButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
+                          minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
+                          backgroundColor: overlayBg,
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            const Opacity(opacity: 0, child: Text("Menu")),
+                            Icon(Icons.menu, color: Theme.of(context).colorScheme.primary),
+                          ],
+                        ),
+                      ),
                     ),
                     buttonStyleData: ButtonStyleData(
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), color: Colors.transparent),
@@ -899,6 +915,8 @@ class PlateScreenState extends State<PlateScreen> {
                     },
                   ),
                 ),
+                  ],
+                ),
               ),
             ),
 
@@ -952,10 +970,12 @@ class PlateScreenState extends State<PlateScreen> {
               ),
             ),
 
-          // Airport selector and procedures (bottom right)
+          // Airport selector and procedures (bottom right). The airport selector sits
+          // on the row of the Map's Settings / Layers buttons and ends where the
+          // Layers circle ends, with the procedures circle above Layers.
           Positioned(
-            bottom: Constants.bottomPaddingSize(context) + 8,
-            right: 8,
+            bottom: Constants.bottomPaddingSize(context),
+            right: Constants.bottomRightInset + Constants.bottomIconPadding,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.end,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -974,7 +994,7 @@ class PlateScreenState extends State<PlateScreen> {
                         child: DropdownButton2<String>(
                           isDense: true,
                           customButton: Padding(
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all((Constants.bottomIconCircle - 24) / 2),
                             child: Icon(Icons.add_road, color: Theme.of(context).colorScheme.primary),
                           ),
                           buttonStyleData: ButtonStyleData(
@@ -1007,6 +1027,11 @@ class PlateScreenState extends State<PlateScreen> {
 
                 // Airport selector
                 if (airports.isNotEmpty && airports[0].isNotEmpty)
+                  SizedBox(
+                    height: Constants.bottomRowHeight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                   Container(
                     decoration: BoxDecoration(
                       color: overlayBg,
@@ -1048,6 +1073,9 @@ class PlateScreenState extends State<PlateScreen> {
                           });
                         },
                       ),
+                    ),
+                  ),
+                      ],
                     ),
                   ),
               ],

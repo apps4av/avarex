@@ -78,6 +78,18 @@ class Constants {
     return isPortrait(context) ? 0.625 : 2.5;
   }
 
+  // Bottom button row shared by the Map and Plate screens. Pilots find these by
+  // feel, so the Menu / plate selector, Center, and the right-hand buttons sit at
+  // the same spot on both screens.
+  static const double bottomRowHeight = 56; // box every bottom button is centered in
+  static const double bottomMenuLeft = 35; // left edge of Menu / plate selector
+  static const double bottomButtonWidth = 68; // Menu, Center, plate selector
+  static const double bottomButtonHeight = 52; // a bit oversized to hit in turbulence
+  static const double bottomLabelSize = 16;
+  static const double bottomRightInset = 8; // right edge of the right-hand icon buttons
+  static const double bottomIconPadding = 3; // IconButton padding around the circle
+  static const double bottomIconCircle = 42;
+
   static double bottomPaddingSize(BuildContext context) {
     return MediaQuery.of(context).padding.bottom;
   }

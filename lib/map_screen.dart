@@ -1538,9 +1538,11 @@ class MapScreenState extends State<MapScreen> {
                       child: Padding(
                           padding: EdgeInsets.fromLTRB(5, 5, 5, Constants.bottomPaddingSize(context)),
                           // same box height as the icon row on the right so the labels line up with the circle buttons
-                          child: SizedBox(height: iconRadius * 2 + 16, child: Center(child: TextButton(
+                          child: SizedBox(height: Constants.bottomRowHeight, child: Center(child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.all(5.0),
+                              textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
+                              minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                               backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                             ),
                             onPressed: () {
@@ -1575,9 +1577,9 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomLeft,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(35, 0, 0, Constants.bottomPaddingSize(context)),
+                          padding: EdgeInsets.fromLTRB(Constants.bottomMenuLeft, 0, 0, Constants.bottomPaddingSize(context)),
                           // same box height as the icon row on the right so the labels line up with the circle buttons
-                          child: SizedBox(height: iconRadius * 2 + 16, child: Row(children:[
+                          child: SizedBox(height: Constants.bottomRowHeight, child: Row(children:[
                             // menu
                             TextButton(
                               onPressed: () {
@@ -1618,6 +1620,8 @@ class MapScreenState extends State<MapScreen> {
                                 }
                               },
                               style: TextButton.styleFrom(
+                                textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
+                                minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                                 backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)
                               ),
                               child: const Text("Menu"),
@@ -1631,26 +1635,29 @@ class MapScreenState extends State<MapScreen> {
                   child: Align(
                       alignment: Alignment.bottomRight,
                       child: Padding(
-                          padding: EdgeInsets.fromLTRB(0, 0, 5, Constants.bottomPaddingSize(context)),
+                          padding: EdgeInsets.fromLTRB(0, 0, Constants.bottomRightInset, Constants.bottomPaddingSize(context)),
                           child: SingleChildScrollView(scrollDirection: Axis.horizontal, child:
                               Row(mainAxisAlignment: MainAxisAlignment.end,
                                 children:[
                                   IconButton(
                                       tooltip: "Map settings",
-                                      icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                      padding: const EdgeInsets.all(Constants.bottomIconPadding),
+                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                           child: const Icon(Icons.settings)),
                                       onPressed: () => _showSettingSelector(context)),
 
                                   IconButton(
                                     tooltip: "Select the chart type",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    padding: const EdgeInsets.all(Constants.bottomIconPadding),
+                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.map)),
                                     onPressed: () => _showChartSelector(context),
                                   ),
 
                                   IconButton(
                                     tooltip: "Select the layers to show on the Map screen",
-                                    icon: CircleAvatar(radius: iconRadius, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                    padding: const EdgeInsets.all(Constants.bottomIconPadding),
+                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
                                         child: const Icon(Icons.layers)),
                                     onPressed: () => _showLayerSelector(context),
                                   ),

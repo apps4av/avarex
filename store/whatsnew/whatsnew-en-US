@@ -1,6 +1,4 @@
-Built-in aircraft include cruise speed, fuel endurance, best glide, sink rate, and best climb.
-The glide circle and the PLAN altitude icon use those figures when the profile leaves them empty.
-3D draws each airport's runway diagram at the field.
-3D leaves out the circle at a surface airport.
-Help copies this version's manual into Documents, named with the version, and drops the copy from an older install.
-The weather altitude slider label is larger.
+Added Emergency mode under Map Settings, Profiles, Emergency. It opens a north-up map with the glide ring and four cards for best glide speed, the best runway to land on, a checklist, and the frequencies to declare.
+Pick the Emergency checklist from the Emergency tile on the Profile screen.
+The glide circle, plan cruise, and aircraft icon use the aircraft chosen on Aircraft & Performance.
+Chart downloads work out the chart cycle from the date.
