@@ -9,10 +9,13 @@ import 'package:avaremp/place/airspace_volume.dart';
 import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/path_utils.dart';
+import 'package:avaremp/weather/dafs_cache.dart';
 import 'package:avaremp/weather/game_tfr.dart';
+import 'package:avaremp/weather/lightning_cache.dart';
 import 'package:avaremp/weather/nexrad_level2.dart';
 import 'package:avaremp/weather/nexrad_volume_cache.dart';
 import 'package:avaremp/weather/tfr.dart';
+import 'package:avaremp/weather/weather_snapshot.dart';
 import 'package:avaremp/weather/wind_flow_3d.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +24,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:universal_io/io.dart';
 
 part 'airspace_radar_layer.dart';
+part 'airspace_weather_layers.dart';
 part 'airspace_wind_layer.dart';
 
 /// Elevation samples over the 25 NM square. Row 0 is south, column 0 is west.
@@ -436,23 +440,38 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   static bool _showObstacles = true;
   static bool _showSua = true;
   static bool _showTerrain = true;
-  /// Per opening, so radar is never downloaded until Build NEXRAD is pressed.
-  bool _showRadar = false;
-  bool _radarExpired = false;
+
+  /// Weather layers that are on. Per opening, so nothing is downloaded until its
+  /// button is pressed.
+  final Set<_WeatherLayer> _on = {};
+
+  /// Layers that were hidden because their build ran out. They show `Rebuild`.
+  final Set<_WeatherLayer> _expired = {};
+
+  /// Winds aloft show when the weather screen opens. The Wind button hides them.
+  bool _showWind = true;
+
   /// Checks to skip after a press, so a build that is still starting is not judged old.
-  int _radarGraceChecks = 0;
-  Timer? _radarClock;
+  int _graceChecks = 0;
+  Timer? _lifeClock;
+
+  bool get _showRadar => _on.contains(_WeatherLayer.radar);
 
   /// Kept between openings.
   static double _radarMinDbz = 20;
+  static int _iceMin = 2;
+  static int _turbMin = 15;
 
   @override
   void initState() {
     super.initState();
     _attachTfr();
-    NexradVolumeCache.instance.addListener(_onRadar);
     if (widget.weather) {
-      _radarClock = Timer.periodic(const Duration(seconds: 15), (_) => _checkRadarLife());
+      for (final layer in _WeatherLayer.values) {
+        _snapshotOf(layer).addListener(_onSnapshot);
+      }
+      _lifeClock =
+          Timer.periodic(const Duration(seconds: 15), (_) => _checkLife());
     }
     _center = widget.center;
     if (widget.followAircraft) {
@@ -486,8 +505,12 @@ class _Airspace3DViewState extends State<Airspace3DView> {
 
   @override
   void dispose() {
-    _radarClock?.cancel();
-    NexradVolumeCache.instance.removeListener(_onRadar);
+    _lifeClock?.cancel();
+    if (widget.weather) {
+      for (final layer in _WeatherLayer.values) {
+        _snapshotOf(layer).removeListener(_onSnapshot);
+      }
+    }
     if (_tfrListening) {
       Storage().tfr.change.removeListener(_onTfr);
     }
@@ -536,24 +559,31 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     }
   }
 
-  /// A build lasts 10 minutes. Then the radar is hidden until it is built again,
-  /// so an old picture is never mistaken for the current one.
-  void _checkRadarLife() {
-    final cache = NexradVolumeCache.instance;
-    if (_radarGraceChecks > 0) {
-      _radarGraceChecks--;
+  /// A build has a limited life: 10 minutes for radar and lightning, an hour for the
+  /// icing and turbulence guidance. Then the layer is hidden until it is built
+  /// again, so an old picture is never mistaken for the current one.
+  void _checkLife() {
+    if (_graceChecks > 0) {
+      _graceChecks--;
       return;
     }
-    if (mounted && _showRadar && !cache.loading && cache.expired) {
+    if (!mounted) {
+      return;
+    }
+    final gone = [
+      for (final layer in _on)
+        if (!_snapshotOf(layer).loading && _snapshotOf(layer).expired) layer,
+    ];
+    if (gone.isNotEmpty) {
       setState(() {
-        _showRadar = false;
-        _radarExpired = true;
+        _on.removeAll(gone);
+        _expired.addAll(gone);
       });
     }
   }
 
-  void _onRadar() {
-    if (mounted && _showRadar) {
+  void _onSnapshot() {
+    if (mounted && _on.isNotEmpty) {
       setState(() {});
     }
   }
@@ -567,6 +597,24 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     }
     return (math.min(top, 50000) / 2000).ceil() * 2000.0;
   }
+
+  /// Highest icing or turbulence cell shown, up to [_hazardTopCapFt], so the box
+  /// holds it. Higher cells are clipped. Zero when neither is on.
+  double get _hazardTopFt {
+    var top = 0.0;
+    final ice = DafsCache.icing.grid;
+    if (_on.contains(_WeatherLayer.icing) && ice != null) {
+      top = math.max(top, ice.topFt(_iceMin));
+    }
+    final turb = DafsCache.turbulence.grid;
+    if (_on.contains(_WeatherLayer.turbulence) && turb != null) {
+      top = math.max(top, turb.topFt(_turbMin));
+    }
+    return (math.min(top, _hazardTopCapFt) / 2000).ceil() * 2000.0;
+  }
+
+  /// The box does not grow past this for icing and turbulence.
+  static const double _hazardTopCapFt = 18000;
 
   void _onTfr() {
     if (mounted) {
@@ -814,7 +862,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
             child: _canvas(scene, dark, scheme),
           ),
         ),
-        _filters(scheme),
+        if (!widget.weather) _filters(scheme),
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 2, 4, 2),
           child: Row(
@@ -878,7 +926,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
           ),
           child: const SizedBox.expand(),
         ),
-        if (widget.weather)
+        if (widget.weather && _showWind)
           _AirspaceWindLayer(
             center: center,
             radiusNm: scene.radiusNm,
@@ -903,6 +951,22 @@ class _Airspace3DViewState extends State<Airspace3DView> {
             panY: _panY,
             terrain: _terrainOn ? _terrain : null,
           ),
+        if (widget.weather && _on.contains(_WeatherLayer.turbulence))
+          _hazardLayer(Hazard.turbulence, _turbMin, center, scene, scaleAlt),
+        if (widget.weather && _on.contains(_WeatherLayer.icing))
+          _hazardLayer(Hazard.icing, _iceMin, center, scene, scaleAlt),
+        if (widget.weather && _on.contains(_WeatherLayer.lightning))
+          _AirspaceLightningLayer(
+            center: center,
+            radiusNm: scene.radiusNm,
+            maxAltitudeFt: scaleAlt,
+            pitch: _pitch,
+            yaw: _yaw,
+            zoom: _zoom,
+            panX: _panX,
+            panY: _panY,
+            terrain: _terrainOn ? _terrain : null,
+          ),
         _OwnshipPulse(
           center: center,
           ownship: widget.followAircraft ? Storage().gpsChange : widget.ownship,
@@ -914,9 +978,43 @@ class _Airspace3DViewState extends State<Airspace3DView> {
           panX: _panX,
           panY: _panY,
         ),
-        if (widget.weather)
+        if (widget.weather &&
+            (_on.contains(_WeatherLayer.lightning) ||
+                _on.contains(_WeatherLayer.icing) ||
+                _on.contains(_WeatherLayer.turbulence)))
+          Positioned(
+            right: 8,
+            top: 6,
+            child: _WeatherKeys(
+              lightning: _on.contains(_WeatherLayer.lightning),
+              icing: _on.contains(_WeatherLayer.icing),
+              turbulence: _on.contains(_WeatherLayer.turbulence),
+              iceMin: _iceMin,
+              turbMin: _turbMin,
+            ),
+          ),
+        if (widget.weather && _showWind)
           const Positioned(right: 8, bottom: 6, child: _WindLegend()),
+        if (widget.weather) _weatherMenu(scheme),
       ],
+    );
+  }
+
+  Widget _hazardLayer(Hazard hazard, int minValue, LatLng center,
+      AirspaceScene scene, double scaleAlt) {
+    return _AirspaceHazardLayer(
+      key: ValueKey(hazard),
+      hazard: hazard,
+      center: center,
+      radiusNm: scene.radiusNm,
+      maxAltitudeFt: scaleAlt,
+      minValue: minValue,
+      pitch: _pitch,
+      yaw: _yaw,
+      zoom: _zoom,
+      panX: _panX,
+      panY: _panY,
+      terrain: _terrainOn ? _terrain : null,
     );
   }
 
@@ -927,21 +1025,17 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   static const double _weatherTopFt = 12000;
 
   /// Extra height the box needs beyond the airspace: the weather floor and the storm tops.
-  double get _extraTopFt =>
-      widget.weather ? math.max(_weatherTopFt, _radarTopFt) : 0;
+  double get _extraTopFt => widget.weather
+      ? math.max(_weatherTopFt, math.max(_radarTopFt, _hazardTopFt))
+      : 0;
 
   double _scaleAltitudeFt(AirspaceScene scene) => airspaceScaleAltitude(
         scene.maxAltitudeFt,
-        _terrainOn
-            ? _terrain?.elevFt ?? const <double?>[]
-            : const <double?>[],
+        _terrainOn ? _terrain?.elevFt ?? const <double?>[] : const <double?>[],
         extraFt: _extraTopFt,
       );
 
   Widget _filters(ColorScheme scheme) {
-    if (widget.weather) {
-      return _weatherBar(scheme);
-    }
     Widget chip(String label, bool on, Color color, void Function(bool) set) {
       return Padding(
         padding: const EdgeInsets.only(right: 6),
@@ -988,95 +1082,241 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     );
   }
 
-  /// The 3D Weather buttons: build or hide NEXRAD, and the weakest echo to show.
-  Widget _weatherBar(ColorScheme scheme) {
-    final cache = NexradVolumeCache.instance;
+  /// Winds aloft are on at the start, so this one only hides and shows them.
+  Widget _windButton(ColorScheme scheme) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          minimumSize: const Size(0, 30),
+          textStyle: const TextStyle(fontSize: 12),
+          backgroundColor: _showWind ? const Color(0xFF2E7D32) : null,
+          foregroundColor: _showWind ? Colors.white : null,
+        ),
+        icon:
+            Icon(_showWind ? Icons.layers_clear_outlined : Icons.air, size: 16),
+        label: Text(_showWind ? 'Hide Wind' : 'Show Wind'),
+        onPressed: () => setState(() => _showWind = !_showWind),
+      ),
+    );
+  }
+
+  /// A layer's button: build it, show how far the build is, hide it, or rebuild it.
+  Widget _layerButton(
+      _WeatherLayer layer, String name, IconData icon, ColorScheme scheme) {
+    final cache = _snapshotOf(layer);
+    final on = _on.contains(layer);
     final String label;
-    final IconData icon;
-    if (!_showRadar) {
-      label = _radarExpired ? 'Rebuild NEXRAD' : 'Build NEXRAD';
-      icon = Icons.radar;
-    } else if (cache.loading && cache.expectedCount > 0) {
-      final done = math.min(cache.loadedCount + 1, cache.expectedCount);
-      label = 'Building $done/${cache.expectedCount}';
-      icon = Icons.hourglass_top;
-    } else if (cache.loading && cache.grid == null) {
-      label = 'Finding radar';
-      icon = Icons.hourglass_top;
+    final IconData shown;
+    if (!on) {
+      label = _expired.contains(layer) ? 'Rebuild $name' : 'Build $name';
+      shown = icon;
+    } else if (cache.progress != null) {
+      label = cache.progress!;
+      shown = Icons.hourglass_top;
     } else {
-      label = 'Hide NEXRAD';
-      icon = Icons.layers_clear_outlined;
+      label = 'Hide $name';
+      shown = Icons.layers_clear_outlined;
     }
-    const levels = <(double, String)>[
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          visualDensity: VisualDensity.compact,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          minimumSize: const Size(0, 30),
+          textStyle: const TextStyle(fontSize: 12),
+          backgroundColor: on ? const Color(0xFF2E7D32) : null,
+          foregroundColor: on ? Colors.white : null,
+        ),
+        icon: Icon(shown, size: 16),
+        label: Text(label),
+        onPressed: () => setState(() {
+          if (!_on.remove(layer)) {
+            _on.add(layer);
+          }
+          _expired.remove(layer);
+          _graceChecks = 2;
+        }),
+      ),
+    );
+  }
+
+  /// A rounded menu button that picks the weakest value shown.
+  Widget _thresholdMenu<T>({
+    required ColorScheme scheme,
+    required String tooltip,
+    required String text,
+    required T current,
+    required List<(T, String)> items,
+    required void Function(T) onSelected,
+  }) {
+    // Indented: it belongs to the button above it.
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, bottom: 3),
+      child: PopupMenuButton<T>(
+        tooltip: tooltip,
+        initialValue: current,
+        onSelected: (value) => setState(() => onSelected(value)),
+        itemBuilder: (context) => [
+          for (final item in items)
+            CheckedPopupMenuItem<T>(
+              value: item.$1,
+              checked: current == item.$1,
+              child: Text(item.$2),
+            ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            border: Border.all(color: scheme.outline),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(text,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600)),
+              ),
+              const Icon(Icons.arrow_drop_down, size: 18),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Red note beside the buttons for a layer that is off but has something to say.
+  Widget? _layerNote(
+      _WeatherLayer layer, String name, String stale, ColorScheme scheme) {
+    final cache = _snapshotOf(layer);
+    if (_on.contains(layer) ||
+        !(_expired.contains(layer) || cache.message != null)) {
+      return null;
+    }
+    return Text(
+      _expired.contains(layer) && cache.message == null
+          ? stale
+          : cache.message ?? '',
+      style: TextStyle(fontSize: 11, color: scheme.error),
+    );
+  }
+
+  /// The 3D Weather buttons, a column down the left side: one row per layer, with
+  /// the setting that belongs to a layer indented under its button.
+  Widget _weatherMenu(ColorScheme scheme) {
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, box) {
+          // The radar key sits at the top left when radar is on: stay below it.
+          final reserved = _showRadar ? 150.0 : 12.0;
+          return Align(
+            alignment: Alignment.bottomLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8, bottom: 6),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxHeight: math.max(80, box.maxHeight - reserved),
+                    maxWidth: math.min(148, box.maxWidth * 0.4)),
+                child: _weatherBar(scheme),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _weatherBar(ColorScheme scheme) {
+    const dbzLevels = <(double, String)>[
       (10, 'haze'),
       (20, 'light rain'),
       (30, 'moderate rain'),
       (40, 'heavy rain'),
       (50, 'intense, hail'),
     ];
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        children: [
-          FilledButton.tonalIcon(
-            style: FilledButton.styleFrom(
-              visualDensity: VisualDensity.compact,
-              backgroundColor:
-                  _showRadar ? const Color(0xFF2E7D32) : null,
-              foregroundColor: _showRadar ? Colors.white : null,
-            ),
-            icon: Icon(icon, size: 18),
-            label: Text(label),
-            onPressed: () => setState(() {
-              _showRadar = !_showRadar;
-              _radarExpired = false;
-              _radarGraceChecks = 2;
-            }),
-          ),
-          const SizedBox(width: 8),
-          PopupMenuButton<double>(
-            tooltip: 'dBZ setting',
-            initialValue: _radarMinDbz,
-            onSelected: (value) => setState(() => _radarMinDbz = value),
-            itemBuilder: (context) => [
-              for (final level in levels)
-                CheckedPopupMenuItem<double>(
-                  value: level.$1,
-                  checked: _radarMinDbz == level.$1,
-                  child: Text('${level.$1.round()}+ dBZ  ${level.$2}'),
-                ),
-            ],
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                border: Border.all(color: scheme.outline),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('dBZ ${_radarMinDbz.round()}+',
-                      style: const TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w600)),
-                  const Icon(Icons.arrow_drop_down, size: 18),
+    final notes = [
+      _layerNote(_WeatherLayer.radar, 'NEXRAD',
+          'NEXRAD is 10 min old. Rebuild for current radar.', scheme),
+      _layerNote(_WeatherLayer.lightning, 'Lightning',
+          'Lightning is 10 min old. Rebuild for current flashes.', scheme),
+      _layerNote(_WeatherLayer.icing, 'Icing',
+          'Icing is 60 min old. Rebuild for the current forecast.', scheme),
+      _layerNote(
+          _WeatherLayer.turbulence,
+          'Turbulence',
+          'Turbulence is 60 min old. Rebuild for the current forecast.',
+          scheme),
+    ].whereType<Widget>().toList();
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: scheme.surface.withAlpha(110),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: SingleChildScrollView(
+        child: IntrinsicWidth(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _windButton(scheme),
+              _layerButton(
+                  _WeatherLayer.lightning, 'Lightning', Icons.bolt, scheme),
+              _layerButton(_WeatherLayer.radar, 'NEXRAD', Icons.radar, scheme),
+              _thresholdMenu<double>(
+                scheme: scheme,
+                tooltip: 'dBZ setting',
+                text: 'dBZ ${_radarMinDbz.round()}+',
+                current: _radarMinDbz,
+                items: [
+                  for (final level in dbzLevels)
+                    (level.$1, '${level.$1.round()}+ dBZ  ${level.$2}'),
                 ],
+                onSelected: (value) => _radarMinDbz = value,
               ),
-            ),
+              _layerButton(_WeatherLayer.icing, 'Icing', Icons.ac_unit, scheme),
+              _thresholdMenu<int>(
+                scheme: scheme,
+                tooltip: 'Icing setting',
+                text:
+                    'Ice ${_iceLevels.firstWhere((l) => l.$1 == _iceMin).$2}+',
+                current: _iceMin,
+                items: [
+                  for (final level in _iceLevels) (level.$1, '${level.$2}+')
+                ],
+                onSelected: (value) => _iceMin = value,
+              ),
+              _layerButton(
+                  _WeatherLayer.turbulence, 'Turbulence', Icons.waves, scheme),
+              _thresholdMenu<int>(
+                scheme: scheme,
+                tooltip: 'Turbulence setting',
+                text:
+                    'Turb ${_turbLevels.firstWhere((l) => l.$1 == _turbMin).$2}+',
+                current: _turbMin,
+                items: [
+                  for (final level in _turbLevels)
+                    (level.$1, '${level.$2}+  EDR ${level.$3}'),
+                ],
+                onSelected: (value) => _turbMin = value,
+              ),
+              // Notes get their own lines under the buttons.
+              for (final note in notes)
+                Padding(
+                    padding: const EdgeInsets.only(top: 2, left: 2, right: 2),
+                    child: note),
+            ],
           ),
-          if (!_showRadar && (_radarExpired || cache.message != null)) ...[
-            const SizedBox(width: 10),
-            Center(
-              child: Text(
-                _radarExpired && cache.message == null
-                    ? 'NEXRAD is 10 min old. Rebuild for current radar.'
-                    : cache.message ?? '',
-                style: TextStyle(fontSize: 11, color: scheme.error),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -1145,6 +1385,22 @@ Color _diagramSurface(String surface) {
     }
   }
   return Colors.grey;
+}
+
+/// The data layers of the 3D Weather screen.
+enum _WeatherLayer { radar, lightning, icing, turbulence }
+
+SnapshotCache _snapshotOf(_WeatherLayer layer) {
+  switch (layer) {
+    case _WeatherLayer.radar:
+      return NexradVolumeCache.instance;
+    case _WeatherLayer.lightning:
+      return LightningCache.instance;
+    case _WeatherLayer.icing:
+      return DafsCache.icing;
+    case _WeatherLayer.turbulence:
+      return DafsCache.turbulence;
+  }
 }
 
 class _Ownship {
@@ -1326,7 +1582,7 @@ class _AirspacePainter extends CustomPainter {
     }
 
     _drawGround(canvas, project, radius);
-    _drawAxis(canvas, project, radius, maxAlt);
+    _drawAxis(canvas, size, project, radius, maxAlt);
 
     final faces = <_Face>[];
     for (final shelf in scene.shelves) {
@@ -1424,8 +1680,6 @@ class _AirspacePainter extends CustomPainter {
       stroke(g, -radius, g, radius);
     }
 
-    final north = project(0, radius, heightAt(0, radius));
-    _text(canvas, 'N', north.o, axisColor, 12, FontWeight.w700);
     final scaleA = project(-radius, radius, heightAt(-radius, radius));
     final scaleB = project(-radius + 5, radius, heightAt(-radius + 5, radius));
     canvas.drawLine(
@@ -1549,8 +1803,12 @@ class _AirspacePainter extends CustomPainter {
     }
   }
 
-  void _drawAxis(Canvas canvas, _Proj Function(double, double, double) project,
-      double radius, double maxAlt) {
+  void _drawAxis(
+      Canvas canvas,
+      Size size,
+      _Proj Function(double, double, double) project,
+      double radius,
+      double maxAlt) {
     final paint = Paint()
       ..color = axisColor
       ..strokeWidth = 1.2;
@@ -1571,6 +1829,49 @@ class _AirspacePainter extends CustomPainter {
       _text(canvas, label, p.o + const Offset(-28, -6), axisColor, 10,
           FontWeight.w500);
     }
+    _drawNorthArrow(canvas, size, project, radius, maxAlt, top.o);
+  }
+
+  /// A red arrow above the top of the altitude scale that points to north as the
+  /// view is turned, with an N past its head.
+  void _drawNorthArrow(
+      Canvas canvas,
+      Size size,
+      _Proj Function(double, double, double) project,
+      double radius,
+      double maxAlt,
+      Offset scaleTop) {
+    final from = project(-radius, -radius, maxAlt).o;
+    final ahead = project(-radius, -radius + 1, maxAlt).o;
+    var direction = ahead - from;
+    // North points straight at or away from the camera: the arrow has no length
+    // on the screen, so point it up and let the N say the rest.
+    final flat = direction.distance < 0.01;
+    direction = flat ? const Offset(0, -1) : direction / direction.distance;
+    const red = Color(0xFFE53935);
+    const length = 30.0;
+    // Above the scale, but kept on the screen when the scale is near the top.
+    final above = scaleTop + const Offset(0, -30);
+    final middle = Offset(above.dx.clamp(30.0, math.max(30.0, size.width - 30)),
+        above.dy.clamp(30.0, math.max(30.0, size.height - 30)));
+    final tail = middle - direction * (length / 2);
+    final head = tail + direction * length;
+    final side = Offset(-direction.dy, direction.dx);
+    final paint = Paint()
+      ..color = red
+      ..strokeWidth = 3
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(tail, head - direction * 5, paint);
+    canvas.drawPath(
+        ui.Path()
+          ..moveTo(head.dx, head.dy)
+          ..lineTo((head - direction * 11 + side * 6).dx,
+              (head - direction * 11 + side * 6).dy)
+          ..lineTo((head - direction * 11 - side * 6).dx,
+              (head - direction * 11 - side * 6).dy)
+          ..close(),
+        Paint()..color = red);
+    _text(canvas, 'N', head + direction * 11, red, 14, FontWeight.w800);
   }
 
   bool _classOn(String cls) {
@@ -2336,8 +2637,8 @@ class _AirspacePainter extends CustomPainter {
   /// enlarged on the ground, and each sample sits on the terrain under it.
   double _drawAirportDiagram(Canvas canvas,
       _Proj Function(double, double, double) project, AirspaceDiagram diagram) {
-    final origin = project(diagram.at.e, diagram.at.n,
-        _onSurface(diagram.at.e, diagram.at.n, 0));
+    final origin = project(
+        diagram.at.e, diagram.at.n, _onSurface(diagram.at.e, diagram.at.n, 0));
     var longest = 0.0;
     for (final runway in diagram.runways) {
       final low = project(runway.low.e, runway.low.n,
@@ -2368,8 +2669,8 @@ class _AirspacePainter extends CustomPainter {
       final lowN = diagram.at.n + (runway.low.n - diagram.at.n) * grow;
       final highE = diagram.at.e + (runway.high.e - diagram.at.e) * grow;
       final highN = diagram.at.n + (runway.high.n - diagram.at.n) * grow;
-      final lengthNm = math.sqrt(
-          math.pow(highE - lowE, 2) + math.pow(highN - lowN, 2));
+      final lengthNm =
+          math.sqrt(math.pow(highE - lowE, 2) + math.pow(highN - lowN, 2));
       final steps = (lengthNm / (scene.radiusNm / 16)).ceil().clamp(2, 24);
       final pts = <Offset>[];
       var hidden = false;
@@ -2428,36 +2729,36 @@ class _AirspacePainter extends CustomPainter {
 
   /// Runway number just past the pavement, turned along the runway as on the AD tab.
   void _runwayIdent(Canvas canvas, String ident, Offset at, Offset outward) {
-  if (ident.isEmpty) {
-    return;
-  }
-  final angle = math.atan2(outward.dy, outward.dx);
-  TextPainter painter(Paint? foreground) => TextPainter(
-        text: TextSpan(
-          text: ident,
-          style: TextStyle(
-            color: foreground == null ? Colors.white : null,
-            fontSize: 9,
-            fontWeight: FontWeight.w600,
-            foreground: foreground,
+    if (ident.isEmpty) {
+      return;
+    }
+    final angle = math.atan2(outward.dy, outward.dx);
+    TextPainter painter(Paint? foreground) => TextPainter(
+          text: TextSpan(
+            text: ident,
+            style: TextStyle(
+              color: foreground == null ? Colors.white : null,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              foreground: foreground,
+            ),
           ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-  final halo = painter(Paint()
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.1
-    ..strokeJoin = StrokeJoin.round
-    ..color = const Color(0xFF212121));
-  final fill = painter(null);
-  canvas.save();
-  canvas.translate(at.dx, at.dy);
-  canvas.rotate(angle);
-  final pos = Offset(3, -fill.height / 2);
-  halo.paint(canvas, pos);
-  fill.paint(canvas, pos);
-  canvas.restore();
-}
+          textDirection: TextDirection.ltr,
+        )..layout();
+    final halo = painter(Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..strokeJoin = StrokeJoin.round
+      ..color = const Color(0xFF212121));
+    final fill = painter(null);
+    canvas.save();
+    canvas.translate(at.dx, at.dy);
+    canvas.rotate(angle);
+    final pos = Offset(3, -fill.height / 2);
+    halo.paint(canvas, pos);
+    fill.paint(canvas, pos);
+    canvas.restore();
+  }
 
   void _drawHere(Canvas canvas, _Proj Function(double, double, double) project,
       double maxAlt) {

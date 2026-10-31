@@ -366,7 +366,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                         context,
                         icon: Icons.thunderstorm_outlined,
                         title: "3D Weather",
-                        subtitle: "Winds aloft and 3D NEXRAD radar",
+                        subtitle: "Winds aloft, radar, lightning, icing, and turbulence",
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/weather3d');

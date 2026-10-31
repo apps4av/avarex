@@ -177,13 +177,20 @@ class _AirspaceRadarLayerState extends State<_AirspaceRadarLayer> {
         if (grid != null && offset != null)
           IgnorePointer(
             child: CustomPaint(
-              painter: _AirspaceRadarPainter(
-                grid: grid,
+              painter: _AirspaceVoxelPainter(
+                values: grid.dbz,
+                colors: _radarColors,
+                cols: grid.cols,
+                levels: grid.levels,
+                cellNm: grid.cellNm,
+                halfNm: grid.radiusNm,
+                levelFt: grid.levelFt,
+                firstLevelFt: grid.levelFt * 0.5,
+                minValue: widget.minDbz.round().clamp(NexradGrid.minDbz, 95),
                 offsetEast: offset.e,
                 offsetNorth: offset.n,
                 viewRadiusNm: widget.radiusNm,
                 maxAltitudeFt: widget.maxAltitudeFt,
-                minDbz: widget.minDbz,
                 pitch: widget.pitch,
                 yaw: widget.yaw,
                 zoom: widget.zoom,
@@ -337,191 +344,4 @@ class _RadarRampPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _AirspaceRadarPainter extends CustomPainter {
-  final NexradGrid grid;
-  final double offsetEast;
-  final double offsetNorth;
-  final double viewRadiusNm;
-  final double maxAltitudeFt;
-  final double minDbz;
-  final double pitch;
-  final double yaw;
-  final double zoom;
-  final double panX;
-  final double panY;
-  final _AirspaceTerrain? terrain;
-
-  _AirspaceRadarPainter({
-    required this.grid,
-    required this.offsetEast,
-    required this.offsetNorth,
-    required this.viewRadiusNm,
-    required this.maxAltitudeFt,
-    required this.minDbz,
-    required this.pitch,
-    required this.yaw,
-    required this.zoom,
-    required this.panX,
-    required this.panY,
-    required this.terrain,
-  });
-
-  /// Quads per draw call. Four vertices each must stay under 65536 for 16 bit indices.
-  static const int _batch = 12000;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final radius = viewRadiusNm;
-    final maxAlt = maxAltitudeFt <= 0 ? 4000.0 : maxAltitudeFt;
-    final altScale = radius * 0.72 / maxAlt;
-    final cosY = math.cos(yaw);
-    final sinY = math.sin(yaw);
-    final cosP = math.cos(pitch);
-    final sinP = math.sin(pitch);
-    final s = math.min(size.width, size.height) * 0.36 * zoom;
-    const camera = 3.2;
-    final cols = grid.cols;
-    final cell = grid.cellNm;
-    final half = grid.radiusNm;
-    final minByte = minDbz.round().clamp(NexradGrid.minDbz, 95);
-
-    // Cells whose center is inside the 25 NM square of the view.
-    int colFor(double east) => ((east - offsetEast + half) / cell).floor();
-    int rowFor(double north) => ((north - offsetNorth + half) / cell).floor();
-    final colMin = math.max(0, colFor(-radius));
-    final colMax = math.min(cols - 1, colFor(radius));
-    final rowMin = math.max(0, rowFor(-radius));
-    final rowMax = math.min(cols - 1, rowFor(radius));
-    if (colMin > colMax || rowMin > rowMax) {
-      return;
-    }
-
-    // Farthest cell first. Depth grows with east when sinY*cosP > 0 and with
-    // north when cosY*cosP > 0. Higher cells are nearer the camera.
-    final eastForward = sinY * cosP > 0;
-    final northForward = cosY * cosP > 0;
-
-    final mesh = terrain;
-    final vertScale = grid.levelFt * altScale / radius * 0.5;
-    final horizScale = cell / radius * 0.5;
-
-    var positions = Float32List(_batch * 8);
-    var colors = Int32List(_batch * 4);
-    var count = 0;
-    final indices = Uint16List(_batch * 6);
-    for (var q = 0; q < _batch; q++) {
-      final v = q * 4;
-      indices[q * 6] = v;
-      indices[q * 6 + 1] = v + 1;
-      indices[q * 6 + 2] = v + 2;
-      indices[q * 6 + 3] = v;
-      indices[q * 6 + 4] = v + 2;
-      indices[q * 6 + 5] = v + 3;
-    }
-    final paint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..isAntiAlias = false;
-
-    void flush() {
-      if (count == 0) {
-        return;
-      }
-      final vertices = ui.Vertices.raw(
-        ui.VertexMode.triangles,
-        Float32List.sublistView(positions, 0, count * 8),
-        colors: Int32List.sublistView(colors, 0, count * 4),
-        indices: Uint16List.sublistView(indices, 0, count * 6),
-      );
-      canvas.drawVertices(vertices, BlendMode.modulate, paint);
-      vertices.dispose();
-      count = 0;
-    }
-
-    final dbz = grid.dbz;
-    final slab = cols * cols;
-    for (var level = 0; level < grid.levels; level++) {
-      final altFt = (level + 0.5) * grid.levelFt;
-      if (altFt > maxAlt) {
-        break;
-      }
-      final y = altFt * altScale / radius;
-      final base = level * slab;
-      for (var ri = 0; ri <= rowMax - rowMin; ri++) {
-        final row = northForward ? rowMax - ri : rowMin + ri;
-        final north = -half + (row + 0.5) * cell + offsetNorth;
-        final rowBase = base + row * cols;
-        for (var ci = 0; ci <= colMax - colMin; ci++) {
-          final col = eastForward ? colMax - ci : colMin + ci;
-          final value = dbz[rowBase + col];
-          if (value < minByte) {
-            continue;
-          }
-          final east = -half + (col + 0.5) * cell + offsetEast;
-          if (mesh != null) {
-            final ground = sampleTerrainFt(
-                mesh.elevFt, mesh.cols, mesh.rows, east, north, radius);
-            if (ground != null && altFt + grid.levelFt * 0.5 < ground) {
-              continue;
-            }
-          }
-          final x = east / radius;
-          final z = north / radius;
-          final x1 = x * cosY - z * sinY;
-          final z1 = x * sinY + z * cosY;
-          final y2 = y * cosP + z1 * sinP;
-          final z2 = -y * sinP + z1 * cosP;
-          final persp = camera / (camera + z2);
-          if (persp <= 0 || z2 < -2.6) {
-            continue;
-          }
-          final sx = size.width / 2 + x1 * s * persp + panX;
-          final sy = size.height / 2 - y2 * s * persp + panY;
-          final spread = cosY.abs() + sinY.abs();
-          final hw = horizScale * spread * s * persp * 1.05;
-          final hh = (vertScale * cosP + horizScale * spread * sinP) *
-              s *
-              persp *
-              1.05;
-          final p = count * 8;
-          positions[p] = sx - hw;
-          positions[p + 1] = sy - hh;
-          positions[p + 2] = sx + hw;
-          positions[p + 3] = sy - hh;
-          positions[p + 4] = sx + hw;
-          positions[p + 5] = sy + hh;
-          positions[p + 6] = sx - hw;
-          positions[p + 7] = sy + hh;
-          final argb = _radarColors[value];
-          final c = count * 4;
-          colors[c] = argb;
-          colors[c + 1] = argb;
-          colors[c + 2] = argb;
-          colors[c + 3] = argb;
-          count++;
-          if (count == _batch) {
-            flush();
-          }
-        }
-      }
-    }
-    flush();
-  }
-
-  @override
-  bool shouldRepaint(covariant _AirspaceRadarPainter old) {
-    return !identical(old.grid, grid) ||
-        old.offsetEast != offsetEast ||
-        old.offsetNorth != offsetNorth ||
-        old.viewRadiusNm != viewRadiusNm ||
-        old.maxAltitudeFt != maxAltitudeFt ||
-        old.minDbz != minDbz ||
-        old.pitch != pitch ||
-        old.yaw != yaw ||
-        old.zoom != zoom ||
-        old.panX != panX ||
-        old.panY != panY ||
-        old.terrain != terrain;
-  }
 }

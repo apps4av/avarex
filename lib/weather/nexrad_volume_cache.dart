@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:avaremp/weather/nexrad_level2.dart';
 import 'package:avaremp/weather/nexrad_sites.dart';
+import 'package:avaremp/weather/weather_snapshot.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
@@ -9,7 +10,7 @@ import 'package:xml/xml.dart';
 /// Decoded 3D radar for the 3D view, a loop of the last half hour. Level II volumes
 /// come straight from the free NOAA archive on AWS (`unidata-nexrad-level2`), are
 /// decoded on this device and cut down to small grids, so no server of ours is involved.
-class NexradVolumeCache extends ChangeNotifier {
+class NexradVolumeCache extends SnapshotCache {
   NexradVolumeCache._();
 
   static final NexradVolumeCache instance = NexradVolumeCache._();
@@ -69,33 +70,38 @@ class NexradVolumeCache extends ChangeNotifier {
   }
 
   /// When the loop was last confirmed against the NOAA archive, or null.
+  @override
   DateTime? get builtAt => _builtAt;
 
-  /// True once the build is older than [buildLife].
-  bool get expired {
-    final built = _builtAt;
-    return built != null && DateTime.now().difference(built) > buildLife;
-  }
+  @override
+  Duration get life => buildLife;
 
-  /// Time left before the build expires, never negative. Null with no build.
-  Duration? get lifeLeft {
-    final built = _builtAt;
-    if (built == null) {
+  @override
+  bool get hasPicture => _sorted.isNotEmpty;
+
+  @override
+  String? get progress {
+    if (!_loading) {
       return null;
     }
-    final left = buildLife - DateTime.now().difference(built);
-    return left.isNegative ? Duration.zero : left;
+    if (_expected > 0) {
+      return 'Building ${math.min(_loaded + 1, _expected)}/$_expected';
+    }
+    return _sorted.isEmpty ? 'Finding radar' : null;
   }
 
   /// Whether the aircraft has moved far enough that the grids no longer cover it.
+  @override
   bool needsRegrid(double lat, double lon) {
     final newest = grid;
     return newest != null && _driftNm(newest, lat, lon) >= _regridNm;
   }
 
   /// Why there is no picture, or null.
+  @override
   String? get message => _message;
 
+  @override
   bool get loading => _loading;
 
   /// What the loader is doing right now.
@@ -129,6 +135,7 @@ class NexradVolumeCache extends ChangeNotifier {
 
   /// Makes sure the loop covers [lat]/[lon] and ends on the newest volume.
   /// Calls made while a load is running join that load.
+  @override
   Future<void> refresh(double lat, double lon, {bool force = false}) {
     final running = _running;
     if (running != null) {
