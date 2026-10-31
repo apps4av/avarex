@@ -263,8 +263,9 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
         title: const Text('Exit emergency mode?'),
         content: const Text('You will return to the map as you left it.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Stay')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Exit')),
+          // No is the default: highlighted, focused, and what a tap outside does.
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes')),
+          FilledButton(autofocus: true, onPressed: () => Navigator.pop(context, false), child: const Text('No')),
         ],
       ),
     );

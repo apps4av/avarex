@@ -1081,7 +1081,7 @@ It is an aid. It does not replace flying the airplane: fly first, then navigate,
 - The map shows the chart you were using, always north up, with ownship at the center and the glide ring around it.
 - It opens at the same zoom as a long-press on `Center`.
 - Pinch or scroll to zoom. The map cannot be panned or rotated, and ownship stays centered.
-- Emergency mode changes none of your settings: layers, weather, chart type, zoom, plan, and your checklist choice all stay as they were. `EXIT`, or the Back button, asks for confirmation and returns to the map exactly as you left it.
+- Emergency mode changes none of your settings: layers, weather, chart type, zoom, plan, and your checklist choice all stay as they were. `EXIT`, or the Back button, asks `Exit emergency mode?` with `Yes` and `No`. `No` is the default, and tapping outside the dialog also answers No. `Yes` returns to the map exactly as you left it.
 
 **The aircraft**
 

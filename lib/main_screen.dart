@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:avaremp/community/notifications_screen.dart';
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/services/app_notice_service.dart';
@@ -196,11 +198,20 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                 actions: <Widget>[
                   TextButton(
                     child: const Text('Yes'),
-                    onPressed: () {
-                      SystemNavigator.pop();
+                    onPressed: () async {
+                      await SystemNavigator.pop();
+                      // On Android pop() only closes the screen and leaves the
+                      // process cached in the background. Kill the process so
+                      // GPS, downloads, and timers stop too. Other platforms
+                      // keep the normal pop.
+                      if (Platform.isAndroid) {
+                        exit(0);
+                      }
                     },
                   ),
-                  TextButton(
+                  // No is the default: highlighted and focused.
+                  FilledButton(
+                    autofocus: true,
                     child: const Text('No'),
                     onPressed: () {
                       Navigator.of(context).pop();
