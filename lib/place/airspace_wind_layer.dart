@@ -329,3 +329,59 @@ class _AirspaceWindPainter extends CustomPainter {
         oldDelegate.terrain != terrain;
   }
 }
+
+/// Wind speed key for the 3D Weather screen, from the same colors the streaks use.
+class _WindLegend extends StatelessWidget {
+  const _WindLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final top = windSpeedColors.last.knots;
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: scheme.surface.withAlpha(190),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Winds aloft',
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface)),
+            const SizedBox(height: 3),
+            Container(
+              width: 120,
+              height: 8,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [
+                  for (final stop in windSpeedColors) stop.color,
+                ], stops: [
+                  for (final stop in windSpeedColors) stop.knots / top,
+                ]),
+              ),
+            ),
+            SizedBox(
+              width: 120,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final label in ['0', '24', '48', '60+ kt'])
+                    Text(label,
+                        style: TextStyle(fontSize: 9, color: scheme.outline)),
+                ],
+              ),
+            ),
+            Text('arrow points downwind',
+                style: TextStyle(fontSize: 9, color: scheme.outline)),
+          ],
+        ),
+      ),
+    );
+  }
+}

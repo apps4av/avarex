@@ -353,6 +353,16 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                       ),
                       _buildMenuItem(
                         context,
+                        icon: Icons.thunderstorm_outlined,
+                        title: "3D Weather",
+                        subtitle: "Winds aloft and 3D NEXRAD radar",
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/weather3d');
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
                         icon: MdiIcons.airplaneCog,
                         title: "PFD",
                         subtitle: "Attitude, speed, altitude, course",

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:avaremp/constants.dart';
@@ -8,6 +10,8 @@ import 'package:avaremp/place/elevation_cache.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/weather/game_tfr.dart';
+import 'package:avaremp/weather/nexrad_level2.dart';
+import 'package:avaremp/weather/nexrad_volume_cache.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/weather/wind_flow_3d.dart';
 import 'package:flutter/foundation.dart';
@@ -16,6 +20,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:universal_io/io.dart';
 
+part 'airspace_radar_layer.dart';
 part 'airspace_wind_layer.dart';
 
 /// Elevation samples over the 25 NM square. Row 0 is south, column 0 is west.
@@ -391,6 +396,11 @@ class Airspace3DView extends StatefulWidget {
   /// Draw ADS-B targets as dots.
   final bool showTraffic;
 
+  /// The 3D Weather screen: ownship, terrain, runway diagrams, winds aloft, and
+  /// 3D NEXRAD. No airspace, TFRs, plan, obstacles, glide, or traffic. Winds show
+  /// at once, and the radar is built from a button.
+  final bool weather;
+
   const Airspace3DView({
     super.key,
     this.center,
@@ -399,6 +409,7 @@ class Airspace3DView extends StatefulWidget {
     this.followAircraft = false,
     this.showTerrain = false,
     this.showTraffic = false,
+    this.weather = false,
   });
 
   /// Seeds the in-memory shelf cache so a test can open the view without the database path.
@@ -448,12 +459,24 @@ class _Airspace3DViewState extends State<Airspace3DView> {
   static bool _showObstacles = true;
   static bool _showSua = true;
   static bool _showTerrain = true;
-  static bool _showWind = false;
+  /// Per opening, so radar is never downloaded until Build NEXRAD is pressed.
+  bool _showRadar = false;
+  bool _radarExpired = false;
+  /// Checks to skip after a press, so a build that is still starting is not judged old.
+  int _radarGraceChecks = 0;
+  Timer? _radarClock;
+
+  /// Kept between openings.
+  static double _radarMinDbz = 20;
 
   @override
   void initState() {
     super.initState();
     _attachTfr();
+    NexradVolumeCache.instance.addListener(_onRadar);
+    if (widget.weather) {
+      _radarClock = Timer.periodic(const Duration(seconds: 15), (_) => _checkRadarLife());
+    }
     _center = widget.center;
     if (widget.followAircraft) {
       Storage().gpsChange.addListener(_onGps);
@@ -472,7 +495,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
       _loading = false;
       return;
     }
-    final cached = _cached(_placeKey);
+    final cached = widget.weather ? null : _cached(_placeKey);
     if (cached != null) {
       _scene = cached;
       _loading = false;
@@ -486,6 +509,8 @@ class _Airspace3DViewState extends State<Airspace3DView> {
 
   @override
   void dispose() {
+    _radarClock?.cancel();
+    NexradVolumeCache.instance.removeListener(_onRadar);
     if (_tfrListening) {
       Storage().tfr.change.removeListener(_onTfr);
     }
@@ -514,7 +539,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (widget.showTerrain) {
       _loadTerrain(_center!);
     }
-    final cached = _cached(_placeKey);
+    final cached = widget.weather ? null : _cached(_placeKey);
     if (cached != null) {
       _scene = cached;
       _loading = false;
@@ -532,6 +557,38 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     } catch (_) {
       _tfrListening = false;
     }
+  }
+
+  /// A build lasts 10 minutes. Then the radar is hidden until it is built again,
+  /// so an old picture is never mistaken for the current one.
+  void _checkRadarLife() {
+    final cache = NexradVolumeCache.instance;
+    if (_radarGraceChecks > 0) {
+      _radarGraceChecks--;
+      return;
+    }
+    if (mounted && _showRadar && !cache.loading && cache.expired) {
+      setState(() {
+        _showRadar = false;
+        _radarExpired = true;
+      });
+    }
+  }
+
+  void _onRadar() {
+    if (mounted && _showRadar) {
+      setState(() {});
+    }
+  }
+
+  /// Highest echo top in the loop, so the 3D box grows to hold the storm.
+  /// Zero when radar is off.
+  double get _radarTopFt {
+    final top = NexradVolumeCache.instance.echoTopFt;
+    if (!_showRadar || top <= 0) {
+      return 0;
+    }
+    return (math.min(top, 50000) / 2000).ceil() * 2000.0;
   }
 
   void _onTfr() {
@@ -587,7 +644,13 @@ class _Airspace3DViewState extends State<Airspace3DView> {
         ));
       }
     }
-    final heights = await ElevationCache.getElevationOfPoints(points);
+    List<double?> heights;
+    try {
+      heights = await ElevationCache.getElevationOfPoints(points);
+    } catch (_) {
+      // Elevation tiles are not available yet: draw without terrain.
+      heights = List<double?>.filled(points.length, null);
+    }
     if (!mounted || generation != _terrainGeneration) {
       return;
     }
@@ -638,6 +701,11 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     return null;
   }
 
+  String get _nasrPath => PathUtils.getFilePath(
+        Storage().dataDir,
+        PathUtils.getFilePath('maps', 'nasr.mbtiles'),
+      );
+
   Future<void> _load() async {
     final center = _center;
     if (center == null) {
@@ -645,12 +713,24 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     }
     final generation = ++_generation;
     final key = _placeKey;
-    final path = PathUtils.getFilePath(
-      Storage().dataDir,
-      PathUtils.getFilePath('maps', 'nasr.mbtiles'),
-    );
     AirspaceScene scene;
-    if (!File(path).existsSync()) {
+    if (widget.weather) {
+      // Needs no airspace tiles: only the runway diagrams from the main database.
+      var diagrams = const <AirspaceDiagram>[];
+      try {
+        final mainDb = PathUtils.getFilePath(Storage().dataDir, 'main.db');
+        if (File(mainDb).existsSync()) {
+          diagrams = await loadAirportDiagrams(mainDb, center);
+        }
+      } catch (_) {
+        // No database yet: the weather picture still works without runways.
+      }
+      scene = AirspaceScene(
+        radiusNm: airspaceViewRadiusNm,
+        shelves: const [],
+        diagrams: diagrams,
+      );
+    } else if (!File(_nasrPath).existsSync()) {
       scene = const AirspaceScene(
         radiusNm: airspaceViewRadiusNm,
         shelves: [],
@@ -658,7 +738,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
       );
     } else {
       // Yield so the progress indicator can paint before the tile decode.
-      scene = await Future(() => loadClassAirspace(path, center));
+      scene = await Future(() => loadClassAirspace(_nasrPath, center));
       if (scene.message == null) {
         final mainDb = PathUtils.getFilePath(Storage().dataDir, 'main.db');
         final obstacles = await loadObstacles(mainDb, center);
@@ -669,7 +749,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (!mounted || generation != _generation) {
       return;
     }
-    if (scene.message == null) {
+    if (scene.message == null && !widget.weather) {
       _cache = scene;
       _cacheKey = key;
     }
@@ -706,14 +786,14 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (scene.message != null) {
       return _message(context, scene.message!);
     }
-    if (scene.shelves.isEmpty &&
+    if (!widget.weather &&
+        scene.shelves.isEmpty &&
         scene.obstacles.isEmpty &&
         scene.diagrams.isEmpty &&
         !widget.followAircraft &&
         !_planInView(_center) &&
         !_layerOn('TFR') &&
-        !_layerOn(GameTfr.layerName) &&
-        !_showWind) {
+        !_layerOn(GameTfr.layerName)) {
       return _message(context,
           'No Class B, C, or D, restricted, warning, prohibited, or MOA airspace within ${airspaceViewRadiusNm.round()} NM');
     }
@@ -796,6 +876,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (center == null) {
       return const SizedBox.expand();
     }
+    final scaleAlt = _scaleAltitudeFt(scene);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -818,28 +899,25 @@ class _Airspace3DViewState extends State<Airspace3DView> {
             hereColor: const Color(0xFFFF9800),
             terrain: _terrain,
             traffic: _traffic,
-            showClassB: _showB,
-            showClassC: _showC,
-            showClassD: _showD,
-            showTfr: _showTfr,
-            showGame: _showGame,
-            showPlan: _showPlan,
-            showObstacles: _showObstacles,
-            showSua: _showSua,
-            showTerrainMesh: _showTerrain,
+            showClassB: _showB && !widget.weather,
+            showClassC: _showC && !widget.weather,
+            showClassD: _showD && !widget.weather,
+            showTfr: _showTfr && !widget.weather,
+            showGame: _showGame && !widget.weather,
+            showPlan: _showPlan && !widget.weather,
+            showObstacles: _showObstacles && !widget.weather,
+            showSua: _showSua && !widget.weather,
+            showTerrainMesh: _terrainOn,
+            showGlide: !widget.weather,
+            extraTopFt: _extraTopFt,
           ),
           child: const SizedBox.expand(),
         ),
-        if (_showWind)
+        if (widget.weather)
           _AirspaceWindLayer(
             center: center,
             radiusNm: scene.radiusNm,
-            maxAltitudeFt: airspaceScaleAltitude(
-              scene.maxAltitudeFt,
-              _showTerrain
-                  ? _terrain?.elevFt ?? const <double?>[]
-                  : const <double?>[],
-            ),
+            maxAltitudeFt: scaleAlt,
             pitch: _pitch,
             yaw: _yaw,
             zoom: _zoom,
@@ -847,15 +925,23 @@ class _Airspace3DViewState extends State<Airspace3DView> {
             panY: _panY,
             terrain: _terrain,
           ),
+        if (widget.weather && _showRadar)
+          _AirspaceRadarLayer(
+            center: center,
+            radiusNm: scene.radiusNm,
+            maxAltitudeFt: scaleAlt,
+            minDbz: _radarMinDbz,
+            pitch: _pitch,
+            yaw: _yaw,
+            zoom: _zoom,
+            panX: _panX,
+            panY: _panY,
+            terrain: _terrainOn ? _terrain : null,
+          ),
         _OwnshipPulse(
           center: center,
           ownship: widget.followAircraft ? Storage().gpsChange : widget.ownship,
-          maxAltitudeFt: airspaceScaleAltitude(
-            scene.maxAltitudeFt,
-            _showTerrain
-                ? _terrain?.elevFt ?? const <double?>[]
-                : const <double?>[],
-          ),
+          maxAltitudeFt: scaleAlt,
           radiusNm: scene.radiusNm,
           pitch: _pitch,
           yaw: _yaw,
@@ -863,11 +949,34 @@ class _Airspace3DViewState extends State<Airspace3DView> {
           panX: _panX,
           panY: _panY,
         ),
+        if (widget.weather)
+          const Positioned(right: 8, bottom: 6, child: _WindLegend()),
       ],
     );
   }
 
+  /// Terrain is part of the weather picture, and a chip in the airspace one.
+  bool get _terrainOn => widget.weather || _showTerrain;
+
+  /// The weather box is at least this tall, so winds aloft have room.
+  static const double _weatherTopFt = 12000;
+
+  /// Extra height the box needs beyond the airspace: the weather floor and the storm tops.
+  double get _extraTopFt =>
+      widget.weather ? math.max(_weatherTopFt, _radarTopFt) : 0;
+
+  double _scaleAltitudeFt(AirspaceScene scene) => airspaceScaleAltitude(
+        scene.maxAltitudeFt,
+        _terrainOn
+            ? _terrain?.elevFt ?? const <double?>[]
+            : const <double?>[],
+        extraFt: _extraTopFt,
+      );
+
   Widget _filters(ColorScheme scheme) {
+    if (widget.weather) {
+      return _weatherBar(scheme);
+    }
     Widget chip(String label, bool on, Color color, void Function(bool) set) {
       return Padding(
         padding: const EdgeInsets.only(right: 6),
@@ -909,8 +1018,99 @@ class _Airspace3DViewState extends State<Airspace3DView> {
               (value) => _showObstacles = value),
           chip('Terrain', _showTerrain, const Color(0xFF5D4037),
               (value) => _showTerrain = value),
-          chip('Wind', _showWind, const Color(0xFF1E88E5),
-              (value) => _showWind = value),
+        ],
+      ),
+    );
+  }
+
+  /// The 3D Weather buttons: build or hide NEXRAD, and the weakest echo to show.
+  Widget _weatherBar(ColorScheme scheme) {
+    final cache = NexradVolumeCache.instance;
+    final String label;
+    final IconData icon;
+    if (!_showRadar) {
+      label = _radarExpired ? 'Rebuild NEXRAD' : 'Build NEXRAD';
+      icon = Icons.radar;
+    } else if (cache.loading && cache.expectedCount > 0) {
+      final done = math.min(cache.loadedCount + 1, cache.expectedCount);
+      label = 'Building $done/${cache.expectedCount}';
+      icon = Icons.hourglass_top;
+    } else if (cache.loading && cache.grid == null) {
+      label = 'Finding radar';
+      icon = Icons.hourglass_top;
+    } else {
+      label = 'Hide NEXRAD';
+      icon = Icons.layers_clear_outlined;
+    }
+    const levels = <(double, String)>[
+      (10, 'haze'),
+      (20, 'light rain'),
+      (30, 'moderate rain'),
+      (40, 'heavy rain'),
+      (50, 'intense, hail'),
+    ];
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        children: [
+          FilledButton.tonalIcon(
+            style: FilledButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              backgroundColor:
+                  _showRadar ? const Color(0xFF2E7D32) : null,
+              foregroundColor: _showRadar ? Colors.white : null,
+            ),
+            icon: Icon(icon, size: 18),
+            label: Text(label),
+            onPressed: () => setState(() {
+              _showRadar = !_showRadar;
+              _radarExpired = false;
+              _radarGraceChecks = 2;
+            }),
+          ),
+          const SizedBox(width: 8),
+          PopupMenuButton<double>(
+            tooltip: 'dBZ setting',
+            initialValue: _radarMinDbz,
+            onSelected: (value) => setState(() => _radarMinDbz = value),
+            itemBuilder: (context) => [
+              for (final level in levels)
+                CheckedPopupMenuItem<double>(
+                  value: level.$1,
+                  checked: _radarMinDbz == level.$1,
+                  child: Text('${level.$1.round()}+ dBZ  ${level.$2}'),
+                ),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                border: Border.all(color: scheme.outline),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('dBZ ${_radarMinDbz.round()}+',
+                      style: const TextStyle(
+                          fontSize: 13, fontWeight: FontWeight.w600)),
+                  const Icon(Icons.arrow_drop_down, size: 18),
+                ],
+              ),
+            ),
+          ),
+          if (!_showRadar && (_radarExpired || cache.message != null)) ...[
+            const SizedBox(width: 10),
+            Center(
+              child: Text(
+                _radarExpired && cache.message == null
+                    ? 'NEXRAD is 10 min old. Rebuild for current radar.'
+                    : cache.message ?? '',
+                style: TextStyle(fontSize: 11, color: scheme.error),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -991,8 +1191,9 @@ class _Ownship {
 
 /// Shelf tops, or the terrain when the ground is higher, so a slab on the ground stays in frame.
 @visibleForTesting
-double airspaceScaleAltitude(double shelfMaxFt, Iterable<double?> terrainFt) {
-  var maxFt = shelfMaxFt;
+double airspaceScaleAltitude(double shelfMaxFt, Iterable<double?> terrainFt,
+    {double extraFt = 0}) {
+  var maxFt = math.max(shelfMaxFt, extraFt);
   for (final height in terrainFt) {
     if (height != null && height.isFinite && height > maxFt) {
       maxFt = height;
@@ -1079,6 +1280,8 @@ class _AirspacePainter extends CustomPainter {
   final bool showObstacles;
   final bool showSua;
   final bool showTerrainMesh;
+  final bool showGlide;
+  final double extraTopFt;
 
   _AirspacePainter({
     required this.scene,
@@ -1105,6 +1308,8 @@ class _AirspacePainter extends CustomPainter {
     required this.showObstacles,
     required this.showSua,
     required this.showTerrainMesh,
+    this.showGlide = true,
+    this.extraTopFt = 0,
   }) : super(
             repaint: Listenable.merge(
                 [ownship, Storage().route.change, Storage().area.change]));
@@ -1136,6 +1341,7 @@ class _AirspacePainter extends CustomPainter {
       showTerrainMesh
           ? terrain?.elevFt ?? const <double?>[]
           : const <double?>[],
+      extraFt: extraTopFt,
     );
 
     _Proj project(double east, double north, double altFt) {
@@ -1164,7 +1370,9 @@ class _AirspacePainter extends CustomPainter {
       }
     }
     _addEnabledAreas(faces, project, maxAlt);
-    _addGlideCone(faces, project, maxAlt);
+    if (showGlide) {
+      _addGlideCone(faces, project, maxAlt);
+    }
     _addTerrain(faces, project);
     faces.sort((a, b) => b.depth.compareTo(a.depth));
     for (final face in faces) {
@@ -1190,7 +1398,9 @@ class _AirspacePainter extends CustomPainter {
     if (showPlan) {
       _drawPlan(canvas, project, maxAlt);
     }
-    _drawGlide(canvas, project, maxAlt);
+    if (showGlide) {
+      _drawGlide(canvas, project, maxAlt);
+    }
     _drawTraffic(canvas, project, maxAlt);
   }
 
@@ -2542,6 +2752,8 @@ class _AirspacePainter extends CustomPainter {
         oldDelegate.showPlan != showPlan ||
         oldDelegate.showObstacles != showObstacles ||
         oldDelegate.showSua != showSua ||
+        oldDelegate.showGlide != showGlide ||
+        oldDelegate.extraTopFt != extraTopFt ||
         oldDelegate.showTerrainMesh != showTerrainMesh;
   }
 }

@@ -975,7 +975,7 @@ void main() {
     expect(find.text('B'), findsOneWidget);
     expect(find.text('SUA'), findsOneWidget);
     expect(find.text('Terrain'), findsOneWidget);
-    expect(find.text('Wind'), findsOneWidget);
+    expect(find.text('Wind'), findsNothing);
     expect(find.text('Obstacles'), findsOneWidget);
     expect(find.textContaining('No Class B'), findsNothing);
     await tester.tap(find.text('Obstacles'));
