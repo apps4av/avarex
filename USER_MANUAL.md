@@ -350,6 +350,7 @@ Layer list from settings (with per-layer opacity 0-100%):
 | **Weather** | METAR/TAF/PIREP/AIRMET/SIGMET symbols plus selectable weather products (multiple at once) listed under **Weather** in this popup: ADS-B Radar, ADS-B Cloud Tops, ADS-B Icing, ADS-B Turbulence, ADS-B Lightning, Radar (internet), Ceiling, and Wind Vectors — each with its own opacity slider like map layers. Use the altitude slider when tops/icing/turbulence/ceiling/winds are on. |
 | **TFR** | Temporary flight restriction shapes/markers with time validity. Red=active, orange=future. |
 | **Game TFR** | Stadium / motor speedway TFRs (14 CFR 99.7): orange 3 NM rings and a stadium marker at NFL, MLB, NCAA Division I football, and major speedway venues. Applies when the event is in progress, SFC–3000 ft AGL. Tap a marker for the venue name. |
+| **Cameras** | FAA WeatherCams (weathercams.faa.gov) camera sites as a black camera icon at each site (grey if the site is in maintenance). Icons show at zoom level 10+. Needs internet; not on the web build. Tap an icon to open that site's latest picture from every camera. |
 | **Plate** | Georeferenced plate overlay on map (when loaded). |
 | **Traffic** | Avare-style simple traffic dots with a 1-minute projection line drawn in the direction of travel. Cyan circle (with black outline) for normal/proximate traffic, red circle (with black outline) for threat traffic (advisory or resolution alert). Each dot is annotated with the relative flight-level offset, vertical trend arrow, and callsign. Integrates with audible alerts. |
 | **Obstacles** (under Nav) | Obstacle markers (red squares) in your vicinity. |
@@ -451,6 +452,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 - **AIRMET/SIGMET tap**: Shows advisory text. **Long-press**: toggles shape visibility on map
 - **TFR tap**: Shows TFR details, including whether each altitude is `AGL` or `MSL`
 - **Game TFR tap**: Shows venue name and `Game TFR (3 NM, SFC-3000' AGL when active)`
+- **Cameras tap**: Opens the pictures from that camera site. Each camera shows its direction (with an arrow for the bearing), the age and UTC time of the picture, and a note if it is out of order or in maintenance. Tap a picture to open it full screen with pinch zoom. Pull down to reload.
 
 ### 4.9 Ruler/measurement tool
 
@@ -1741,6 +1743,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | PFD terrain and synthetic runway | `MAP → Layers → PFD > 0` (Elevation charts for terrain; runway when lined up within 10 NM) |
 | Set an OBS course | `MAP → PFD → hold an OBS knob` (double-tap either knob to return to the GPS course) |
 | Enable Game TFR overlay | `MAP → Layers → Game TFR slider > 0` |
+| Enable Cameras overlay | `MAP → Layers → Cameras slider > 0` (zoom to level 10+, tap a camera icon) |
 | CAP Grid overlay | `MAP → Layers → Nav > 0 → CAP Grid slider > 0` (zoom to level 9+) |
 | Enable wind vectors | `MAP → Layers → Weather > 0 → Wind Vectors > 0` (use altitude slider) |
 | Enable ceiling overlay | `MAP → Layers → Weather > 0 → Ceiling > 0` (use altitude slider) |

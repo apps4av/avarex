@@ -45,6 +45,11 @@ void _chartDownloadIsolateEntry(Map<String, Object?> start) {
       final int total = int.parse(r.headers["content-length"] ?? "0");
       final request = http.Request('GET', Uri.parse(url));
       final streamedResponse = await request.send();
+      if (streamedResponse.statusCode != 200) {
+        throw Exception("HTTP ${streamedResponse.statusCode}");
+      }
+      // size of the body actually being sent (more reliable than the HEAD size)
+      final int expected = streamedResponse.contentLength ?? -1;
       out = File(zipPath).openWrite();
       int downloaded = 0;
       double lastProgress = 0;
@@ -62,8 +67,20 @@ void _chartDownloadIsolateEntry(Map<String, Object?> start) {
           }
         }
       }
+      await out.flush();
       await out.close();
       out = null;
+      // A connection that drops early can end the stream without an error;
+      // never hand a truncated zip to the extractor.
+      if (expected > 0 && downloaded != expected) {
+        throw Exception("Incomplete download $downloaded of $expected");
+      }
+      if (downloaded == 0) {
+        throw Exception("Empty download");
+      }
+      if (await File(zipPath).length() != downloaded) {
+        throw Exception("Short write");
+      }
       mainSend.send({_kOk: true});
     } catch (e) {
       try {
@@ -100,8 +117,25 @@ void _chartUnzipIsolateEntry(Map<String, Object?> start) {
           PathUtils.getLocalFilePath(dataDir, chartFilename));
       final archive = ZipDecoder().decodeStream(inputStream);
 
+      // The manifest (named after the chart; it holds the cycle and the list of
+      // files to delete) is what marks a chart as installed. Extract it LAST so
+      // a cancelled or failed extraction never looks like a complete install.
+      final List<ArchiveFile> ordered = <ArchiveFile>[];
+      ArchiveFile? manifest;
+      for (final ArchiveFile file in archive) {
+        if (file.isFile && file.name == chartFilename) {
+          manifest = file;
+        }
+        else {
+          ordered.add(file);
+        }
+      }
+      if (manifest != null) {
+        ordered.add(manifest);
+      }
+
       double num = 1;
-      for (var file in archive) {
+      for (var file in ordered) {
         if (cancelled) {
           inputStream.close();
           mainSend.send({_kOk: false});
@@ -109,10 +143,12 @@ void _chartUnzipIsolateEntry(Map<String, Object?> start) {
           return;
         }
         if (file.isFile) {
+          // Writes to a temp file, verifies size/CRC, then atomically renames.
+          // Throws on a truncated/damaged entry (caught below -> failure).
           extractFileStreaming(
               file, PathUtils.getUnzipFilePath(dataDir, file.name));
         }
-        final double fraction = num++ / archive.length.toDouble();
+        final double fraction = num++ / ordered.length.toDouble();
         final double progress = 0.5 + (fraction / 2);
         mainSend.send({_kProgress: progress});
       }
@@ -137,9 +173,20 @@ class Download {
   SendPort? _chartDownloadCancelSendPort;
   SendPort? _chartUnzipCancelSendPort;
 
-  // download close db
-  static Future<void> _invalidateSqlite() async {
-      await MainDatabaseHelper.invalidateConnection();
+  // While chart files (main.db in DatabasesX) are replaced or removed, keep the
+  // database closed and block re-opening so it is never touched half written.
+  bool _dbReplaceActive = false;
+
+  Future<void> _beginDbReplace() async {
+    _dbReplaceActive = true;
+    await MainDatabaseHelper.beginReplace();
+  }
+
+  Future<void> _endDbReplace() async {
+    if (_dbReplaceActive) {
+      _dbReplaceActive = false;
+      await MainDatabaseHelper.endReplace();
+    }
   }
 
   static Future<void> _deleteZipFile(File file) async {
@@ -191,6 +238,15 @@ class Download {
   }
 
   Future<void> delete(Chart chart, Function(Chart, int)? callback) async {
+    try {
+      await _delete(chart, callback);
+    }
+    finally {
+      await _endDbReplace();
+    }
+  }
+
+  Future<void> _delete(Chart chart, Function(Chart, int)? callback) async {
     _cancelDownloadAndDelete = false;
     if(null != callback) {
       callback(chart, 0); // start
@@ -210,7 +266,7 @@ class Download {
       return;
     }
 
-    await _invalidateSqlite();
+    await _beginDbReplace();
 
     double progress = 0;
     double lastProgress = 0;
@@ -226,6 +282,17 @@ class Download {
       }
       catch(e) {
         continue; // try all
+      }
+      // a leftover -wal/-journal of a deleted database would be replayed into
+      // the next database downloaded under the same name
+      for(final String side in const ['-wal', '-shm', '-journal']) {
+        try {
+          final File sf = File(path.join(dir, "${s[index]}$side"));
+          if(await sf.exists()) {
+            await sf.delete();
+          }
+        }
+        catch(e) { /* best effort */ }
       }
       if(_cancelDownloadAndDelete) {
         if(null != callback) {
@@ -246,7 +313,7 @@ class Download {
     await Storage().checkChartsExist();
     await Storage().checkDataExpiry();
 
-    await _invalidateSqlite();
+    await _endDbReplace();
 
     if(null != callback) {
       callback(chart, 100); // done
@@ -254,6 +321,15 @@ class Download {
   }
 
   Future<void> download(Chart chart, bool nextCycle, bool backupServer, Function(Chart, int)? callback) async {
+    try {
+      await _download(chart, nextCycle, backupServer, callback);
+    }
+    finally {
+      await _endDbReplace();
+    }
+  }
+
+  Future<void> _download(Chart chart, bool nextCycle, bool backupServer, Function(Chart, int)? callback) async {
 
     String server = backupServer ? "https://avare.bubble.org/" : "http://www.apps4av.org/regions/";
     _cancelDownloadAndDelete = false;
@@ -341,13 +417,15 @@ class Download {
 
     if(_cancelDownloadAndDelete) {
       callback(chart, -1);
+      await _deleteZipFile(localFile);
       return;
     }
 
-    await _invalidateSqlite();
+    await _beginDbReplace();
 
     if(_cancelDownloadAndDelete) {
       callback(chart, -1);
+      await _deleteZipFile(localFile);
       return;
     }
 
@@ -405,7 +483,7 @@ class Download {
     try {
       await Storage().checkDataExpiry();
       await Storage().checkChartsExist();
-      await _invalidateSqlite();
+      await _endDbReplace();
       callback(chart, 100); // done
     } catch (e) {
       callback(chart, -1);

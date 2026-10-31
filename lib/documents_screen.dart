@@ -3,12 +3,15 @@ import 'package:avaremp/utils/toast.dart';
 import 'package:universal_io/io.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
+import 'package:avaremp/utils/zoomable_view.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/kml_viewer_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show KeyDownEvent, LogicalKeyboardKey;
 import 'package:share_plus/share_plus.dart';
 import 'package:widget_zoom/widget_zoom.dart';
 
@@ -364,6 +367,30 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
+  // Open an internet picture full screen. The pictures currently listed (same
+  // filter, same order as the grid) are passed along so the viewer can slide to
+  // the previous / next one without being closed.
+  void _openWebPicture(Document product) {
+    final String filter = Storage().settings.getDocumentPage();
+    final List<Document> pictures = products
+        .where((p) => p.type != DocumentsScreen.userDocuments &&
+            (filter == DocumentsScreen.allDocuments || p.type == filter))
+        .toList();
+    int index = pictures.indexWhere((p) => p.url == product.url);
+    if (index < 0) {
+      pictures
+        ..clear()
+        ..add(product);
+      index = 0;
+    }
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => WebPictureViewer(pictures: pictures, initialIndex: index),
+      ),
+    );
+  }
+
   //if you don't want widget full screen then use center widget
   Widget smallImage(Document product) {
      Widget widget;
@@ -432,10 +459,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
          ), product));
      }
      else {
-       // pictures
-       widget = WidgetZoom(
-           heroAnimationTag: product.name,
-           zoomWidget: CachedNetworkImage(
+       // pictures from the internet (WPC, SigWx, ...). Tap opens a full screen viewer
+       // where swiping slides to the previous / next picture.
+       widget = GestureDetector(
+           onTap: () => _openWebPicture(product),
+           child: CachedNetworkImage(
              imageUrl: product.url,
              cacheManager: FileCacheManager().documentsCacheManager,));
      }
@@ -723,6 +751,144 @@ class Document {
   final String url;
   final String type;
   Document(this.type, this.name, this.url);
+}
+
+/// Full screen, zoomable viewer for the internet pictures (WPC, SigWx, ...).
+/// Swipe left / right (slide animation) to go to the next / previous picture
+/// without closing the viewer. While a picture is zoomed in, dragging pans the
+/// picture instead; zoom back out to swipe again.
+class WebPictureViewer extends StatefulWidget {
+  final List<Document> pictures;
+  final int initialIndex;
+
+  const WebPictureViewer({super.key, required this.pictures, this.initialIndex = 0});
+
+  @override
+  State<WebPictureViewer> createState() => _WebPictureViewerState();
+}
+
+class _WebPictureViewerState extends State<WebPictureViewer> {
+  late int _index = widget.initialIndex.clamp(0, widget.pictures.length - 1);
+  late final PageController _controller = PageController(initialPage: _index);
+  final FocusNode _focusNode = FocusNode();
+  bool _zoomed = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _slideTo(int page) {
+    if (page < 0 || page >= widget.pictures.length || _zoomed) {
+      return;
+    }
+    _controller.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is KeyDownEvent) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+        _slideTo(_index - 1);
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+        _slideTo(_index + 1);
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Constants.appBarBackgroundColor,
+        title: Text(
+          widget.pictures[_index].name,
+          style: const TextStyle(fontSize: 16),
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          if (widget.pictures.length > 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Center(child: Text("${_index + 1} / ${widget.pictures.length}")),
+            ),
+        ],
+      ),
+      body: Focus(
+        autofocus: true,
+        focusNode: _focusNode,
+        onKeyEvent: _onKey,
+        child: ScrollConfiguration(
+          // allow mouse / trackpad dragging on desktop too
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.trackpad,
+              PointerDeviceKind.stylus,
+            },
+          ),
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.pictures.length,
+            // when zoomed, drags pan the picture rather than change the page
+            physics: _zoomed ? const NeverScrollableScrollPhysics() : const PageScrollPhysics(),
+            onPageChanged: (int page) {
+              setState(() {
+                _index = page;
+                _zoomed = false;
+              });
+            },
+            itemBuilder: (context, i) => _ZoomableWebPicture(
+              key: ValueKey(widget.pictures[i].url),
+              url: widget.pictures[i].url,
+              onLockChanged: (bool locked) {
+                if (i == _index && locked != _zoomed) {
+                  setState(() {
+                    _zoomed = locked;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZoomableWebPicture extends StatelessWidget {
+  final String url;
+  final ValueChanged<bool> onLockChanged;
+
+  const _ZoomableWebPicture({super.key, required this.url, required this.onLockChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return ZoomableView(
+      onLockChanged: onLockChanged,
+      child: Center(
+        child: CachedNetworkImage(
+          imageUrl: url,
+          cacheManager: FileCacheManager().documentsCacheManager,
+          fit: BoxFit.contain,
+          placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+          errorWidget: (context, url, error) =>
+              const Icon(Icons.broken_image, color: Colors.white54, size: 64),
+        ),
+      ),
+    );
+  }
 }
 
 

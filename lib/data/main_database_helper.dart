@@ -23,12 +23,38 @@ class MainDatabaseHelper {
 
   static const String _limit = "20"; // limit results
 
+  // True while main.db is being replaced/removed on disk (DatabasesX
+  // download/delete). Nobody may open the file during that time: a connection
+  // opened on a half written database (or one that picks up the old database's
+  // -wal/-journal file) is how main.db gets corrupted.
+  static bool _replacing = false;
+  static Future<Database>? _opening;
+  static int _generation = 0; // bumped on every invalidateConnection()
+
   Future<Database?> get database async {
-    if (_database != null) {
-      return _database;
+    if (_replacing) {
+      return null; // callers already treat a null database as "no data"
     }
-    _database = await _initDB();
-    return _database;
+    final Database? existing = _database;
+    if (existing != null) {
+      return existing;
+    }
+    // Share one in-flight open so invalidateConnection() can wait for it.
+    final int generation = _generation;
+    final Future<Database> opening = _opening ??= _initDB();
+    try {
+      final Database db = await opening;
+      if (_replacing || generation != _generation) {
+        return null; // invalidated while opening; the connection was closed
+      }
+      _database = db;
+      return db;
+    }
+    finally {
+      if (identical(_opening, opening)) {
+        _opening = null;
+      }
+    }
   }
 
   Future<Database> _initDB() async {
@@ -38,13 +64,40 @@ class MainDatabaseHelper {
       await openDatabase(path, onOpen: (db) {});
   }
 
+  /// Call before main.db is replaced or removed on disk. Closes the connection
+  /// and keeps it closed (queries return no data) until [endReplace].
+  static Future<void> beginReplace() async {
+    _replacing = true;
+    await invalidateConnection();
+  }
+
+  /// Call after main.db was replaced or removed; the next query reopens it.
+  static Future<void> endReplace() async {
+    await invalidateConnection();
+    _replacing = false;
+  }
+
   /// Close the cached connection after [main.db] was replaced or removed on disk
   /// (e.g. DatabasesX download/delete) so the next open uses the new file.
   static Future<void> invalidateConnection() async {
+    _generation++;
+    // an open that is still in flight would otherwise be cached afterwards
+    final Future<Database>? opening = _opening;
+    if (opening != null) {
+      try {
+        final Database db = await opening;
+        await db.close();
+      }
+      catch (_) {}
+      _opening = null;
+    }
     final db = _database;
+    _database = null;
     if (db != null) {
-      await db.close();
-      _database = null;
+      try {
+        await db.close();
+      }
+      catch (_) {}
     }
   }
 

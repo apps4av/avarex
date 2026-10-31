@@ -32,6 +32,8 @@ import 'package:avaremp/weather/taf.dart';
 import 'package:avaremp/weather/tfr.dart';
 import 'package:avaremp/widgets/warnings_widget.dart';
 import 'package:avaremp/weather/weather.dart';
+import 'package:avaremp/weather/weather_cams.dart';
+import 'package:avaremp/weather/weather_cams_screen.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -523,6 +525,54 @@ class MapScreenState extends State<MapScreen> {
     return _tfrCluster!;
   }
 
+  // FAA weather camera sites. The list is fetched the first time the layer is
+  // on; the markers are built once it arrives.
+  MarkerClusterLayerWidget? _camCluster;
+  bool _camsLoading = false;
+  DateTime? _camsFailed;
+
+  void _loadCams() {
+    if (_camsLoading || !WeatherCams.available) {
+      return;
+    }
+    final DateTime? failed = _camsFailed;
+    if (failed != null && DateTime.now().difference(failed) < const Duration(minutes: 1)) {
+      return; // do not hammer the service while it is down
+    }
+    _camsLoading = true;
+    WeatherCams.loadSites().then((_) {
+      _camsFailed = null;
+      _camCluster = null;
+    }).catchError((Object e) {
+      _camsFailed = DateTime.now();
+      AppLog.logMessage("Weather cams unavailable: $e");
+    }).whenComplete(() {
+      _camsLoading = false;
+      _rebuildIfVisible();
+    });
+  }
+
+  Widget? _makeCamCluster() {
+    final List<WeatherCamSite>? sites = WeatherCams.cachedSites;
+    if (sites == null) {
+      _loadCams();
+      return null;
+    }
+    _camCluster ??= makeCluster([
+      for (final WeatherCamSite s in sites)
+        Marker(
+          point: s.coordinate,
+          alignment: Alignment.center,
+          child: GestureDetector(
+            onTap: () => WeatherCamsScreen.open(context, s),
+            child: Icon(Icons.videocam,
+                color: s.inMaintenance ? Colors.grey : Colors.black),
+          ),
+        ),
+    ]);
+    return _camCluster;
+  }
+
   MarkerClusterLayerWidget? _geojsonCluster;
   MarkerClusterLayerWidget _makeGeoJsonCluster() {
     _geojsonCluster ??= makeCluster(Storage().geoParser.markers);
@@ -880,6 +930,17 @@ class MapScreenState extends State<MapScreen> {
       if (opacity > 0) {
         layers.add(GameTfr.buildLayer(opacity: opacity));
         layers.add(GameTfr.buildCluster(context, opacity: opacity));
+      }
+    }
+
+    lIndex = _layers.indexOf(WeatherCams.layerName);
+    if (lIndex >= 0) {
+      opacity = _layersOpacity[lIndex];
+      if (opacity > 0) {
+        final Widget? cams = _makeCamCluster();
+        if (cams != null) {
+          layers.add(Opacity(opacity: opacity, child: cams));
+        }
       }
     }
 
@@ -1851,6 +1912,7 @@ class MapScreenState extends State<MapScreen> {
       case "Weather": return Icons.cloud;
       case "TFR": return MdiIcons.clockAlert;
       case "Game TFR": return MdiIcons.stadium;
+      case "Cameras": return Icons.videocam;
       case "Traffic": return MdiIcons.airplaneTakeoff;
       case "Nav": return MdiIcons.navigation;
       case "Plate": return MdiIcons.fileDocument;
