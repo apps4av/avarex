@@ -59,7 +59,9 @@ class GeoJsonParser {
 
   void _processGeometry(GeoJSONGeometry geometry, String label) {
     label = label.replaceAll(",", "\n");
-    label = label.substring(1, label.length - 2); // remove { and }
+    if (label.length >= 2 && label.startsWith("{") && label.endsWith("}")) {
+      label = label.substring(1, label.length - 1); // remove { and }
+    }
 
     if (geometry.type == GeoJSONType.point) {
       _addMarker(geometry as GeoJSONPoint, label);
