@@ -15,6 +15,13 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.140**
+
+- Added the `Cameras` map layer: FAA WeatherCams sites show as camera icons from zoom level 10. Tap one for the latest picture from each camera.
+- Map layers return to their defaults once.
+- In Documents, tap an internet picture to open it full screen, then swipe for the next one.
+- Interrupted or damaged chart downloads no longer break the database.
+
 **0.0.139**
 
 - Added 3D Weather, under Menu and as the `3DW` tab on a long press. It shows winds aloft with the terrain, runways, and aircraft. `Hide Wind` and `Show Wind` turn the wind on and off.
@@ -789,6 +796,7 @@ Purpose:
 
 - Install/update/delete downloadable data sets by chart category and region
 - Monitor progress with per-item progress ring and stop button
+- Each download is checked for size and damage before it replaces the old copy. If a download stops early, is cancelled, or is damaged, the old data stays in place and the item is left as not installed so it can be tried again
 
 **Status Summary Card:**
 - Shows counts of Current, Expired, To Download, and To Delete items
@@ -870,6 +878,7 @@ Document behavior:
 - GeoJSON: parsed into map shapes (visible when GeoJSON layer is on)
 - KML: opens Track Viewer with 2D map, altitude profile, and 3D terrain view
 - Images: zoomable preview
+- Internet pictures (WPC, SigWx, and others): tap one to open it full screen. Swipe left or right (or use the left and right arrow keys on a computer) to slide to the previous or next picture in the current filter; the app bar shows `n / total`. Pinch to zoom. While a picture is zoomed in, dragging pans it; zoom back out to swipe again.
 - Share button available where supported (not Linux)
 - Swipe delete for user files (preserves User Data entry)
 
