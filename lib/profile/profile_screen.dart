@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:avaremp/aircraft/aircraft.dart';
+import 'package:avaremp/aircraft/aircraft_performance.dart';
 import 'package:avaremp/checklist/checklist.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
@@ -115,7 +116,7 @@ class ProfileStore {
   static String currentAircraftLabel() {
     final String performance =
         Storage().settings.getLastPerformanceAircraft().trim();
-    return performance.isEmpty ? 'None' : performance;
+    return performance.isEmpty ? CommonAircraftData.cessna172sp.name : performance;
   }
 
   static String currentChecklistLabel() {

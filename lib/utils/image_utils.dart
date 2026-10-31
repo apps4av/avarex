@@ -30,8 +30,11 @@ class UiImageProvider extends ImageProvider<UiImageProvider> {
 
   @override
   ImageStreamCompleter loadImage(UiImageProvider key, ImageDecoderCallback decode) {
+    // Synchronous, so a widget that loads this again (remount, new config) has
+    // its image in the same frame instead of one blank frame first. That blank
+    // frame showed as a flash on the plate overlay.
     return OneFrameImageStreamCompleter(
-      Future<ImageInfo>.value(ImageInfo(image: image.clone(), scale: 1.0)),
+      SynchronousFuture<ImageInfo>(ImageInfo(image: image.clone(), scale: 1.0)),
     );
   }
 

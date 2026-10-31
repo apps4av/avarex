@@ -155,6 +155,18 @@ class MapScreenState extends State<MapScreen> {
     _rebuildIfVisible();
   }
 
+  UiImageProvider? _plateImageProvider;
+
+  /// One provider per plate image, so rebuilds hand the Image widget the same
+  /// provider instead of a new one each time.
+  UiImageProvider _plateProvider(ui.Image image) {
+    final UiImageProvider? current = _plateImageProvider;
+    if (current != null && identical(current.image, image)) {
+      return current;
+    }
+    return _plateImageProvider = UiImageProvider(image);
+  }
+
   // Weather still updates while Plate is up. Skip the rebuild until the map
   // is on screen again.
   void _rebuildIfVisible() {
@@ -888,7 +900,9 @@ class MapScreenState extends State<MapScreen> {
                           Storage().topLeftPlate!,
                           Storage().bottomRightPlate!
                       ),
-                      imageProvider: UiImageProvider(Storage().imagePlate!),
+                      imageProvider: _plateProvider(Storage().imagePlate!),
+                      // Keep the last frame up while the image is reloaded.
+                      gaplessPlayback: true,
                     ),
                 ],
               );

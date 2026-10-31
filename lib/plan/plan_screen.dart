@@ -111,7 +111,7 @@ class PlanScreenState extends State<PlanScreen> {
 
   /// Cruise speed and fuel flow from the selected aircraft. Once per visit, not on the one-second plan refresh.
   Future<void> _loadPlanCruiseFromAircraft() async {
-    final String selector = _planAircraftSelector();
+    final String selector = await _planAircraftSelector();
     if (selector.isEmpty || !mounted) {
       return;
     }
@@ -253,9 +253,11 @@ class PlanScreenState extends State<PlanScreen> {
     );
   }
 
-  String _planAircraftSelector() {
-    // Only the aircraft chosen in the Aircraft & Performance dropdown.
-    return Storage().settings.getLastPerformanceAircraft().trim();
+  Future<String> _planAircraftSelector() async {
+    // The aircraft chosen in the Aircraft & Performance dropdown. On a fresh
+    // install nothing was chosen yet and that screen shows the first built-in
+    // model, so resolve it the same way.
+    return (await Aircraft.resolveSelected()).name;
   }
 
   Future<AircraftPerformanceData?> _loadPlanPerformance(String selector) async {
@@ -281,7 +283,7 @@ class PlanScreenState extends State<PlanScreen> {
     }
     setState(() => _findingBestAltitude = true);
     try {
-      final String selector = _planAircraftSelector();
+      final String selector = await _planAircraftSelector();
       if (selector.isEmpty) {
         if (!mounted) return;
         Toast.showToast(
@@ -1170,12 +1172,10 @@ class _NavLogContentState extends State<_NavLogContent> {
     const int maxColumns = 40;
     final int columnCount = math.min(maxColumns, path.length).toInt();
     final int fore = Storage().route.fore;
-    final int lastIndex = path.length - 1;
-    final double step = columnCount > 1 ? lastIndex / (columnCount - 1) : 0;
     final List<_WindFieldSample> samples = [];
 
     for(int column = 0; column < columnCount; column++) {
-      final int index = columnCount == 1 ? 0 : (column * step).round();
+      final int index = _pathIndexForColumn(column, columnCount, path.length);
       final LatLng coordinate = path[index];
       final double course = _courseAtPathIndex(path, index);
       for(final int altitude in altitudes) {
@@ -1223,6 +1223,17 @@ class _NavLogContentState extends State<_NavLogContent> {
     return GeoCalculations().calculateBearing(path[startIndex], path[endIndex]);
   }
 
+}
+
+/// Route point behind a column of the wind chart. A column covers an equal slice
+/// of the route, so it samples the middle of that slice. Sampling the slice
+/// edges would pin the first and last columns to the airports.
+int _pathIndexForColumn(int column, int columns, int pathLength) {
+  final int lastIndex = pathLength - 1;
+  if(lastIndex <= 0 || columns <= 1) {
+    return 0;
+  }
+  return (((column + 0.5) / columns) * lastIndex).round().clamp(0, lastIndex);
 }
 
 class _WindFieldData {
@@ -1382,12 +1393,16 @@ class _WindFieldDiagramPainter extends CustomPainter {
         // No wind component: neutral gray
         color = const Color(0xFF1A1A1A);
       }
+      // Cells share edges. Edges on whole pixels with no anti-aliasing leave no
+      // darker seam where two cells meet.
       final Paint cellPaint = Paint()
         ..color = color
-        ..style = PaintingStyle.fill;
-      final double x = leftPadding + sample.column * cellWidth;
+        ..style = PaintingStyle.fill
+        ..isAntiAlias = false;
+      final double x0 = (leftPadding + sample.column * cellWidth).roundToDouble();
+      final double x1 = (leftPadding + (sample.column + 1) * cellWidth).roundToDouble();
       canvas.drawRect(
-        Rect.fromLTWH(x, bandTop, cellWidth, bandBottom - bandTop),
+        Rect.fromLTRB(x0, bandTop.roundToDouble(), x1, bandBottom.roundToDouble()),
         cellPaint,
       );
     }
@@ -1542,9 +1557,7 @@ class _WindFieldDiagramPainter extends CustomPainter {
     final int tappedColumn = ((tapX - leftPadding) / cellWidth).floor().clamp(0, columns - 1);
     
     // Calculate path index using the same formula as _buildWindFieldData
-    final int lastIndex = path!.length - 1;
-    final double step = columns > 1 ? lastIndex / (columns - 1) : 0;
-    final int pathIndex = columns == 1 ? 0 : (tappedColumn * step).round().clamp(0, lastIndex);
+    final int pathIndex = _pathIndexForColumn(tappedColumn, columns, path!.length);
     final LatLng coordinate = path![pathIndex];
     
     // Calculate altitude at tap position and snap to nearest altitude band

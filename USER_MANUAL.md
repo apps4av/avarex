@@ -231,7 +231,7 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **CONNECTIVITY**: `Link` (share the active plan with other AvareX devices on the same Wi-Fi). `IO` (Android only; Bluetooth & connections)
 - **SUPPORT**: `Messages` (Notices from Apps4Av; iOS, Android, Windows, and macOS), `Help` (User manual PDF; not available on Linux)
 
-`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). Shelf floors sit on that surface instead of extending below it. ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at each leg's altitude. The glide ring, and `TFR` and `Game TFR` volumes when those layers are on, are drawn here too. Each airport inside 25 NM is drawn as its runway diagram at the field. See Section 9.8. For winds aloft and 3D radar, use `3D Weather` (Section 9.8.1).
+`3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). Shelf floors sit on that surface instead of extending below it. ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at each leg's altitude. The glide ring, and `TFR` and `Game TFR` volumes, are drawn here too, whatever the map layers are set to. Each airport inside 25 NM is drawn as its runway diagram at the field. See Section 9.8. For winds aloft and 3D radar, use `3D Weather` (Section 9.8.1).
 
 `PFD`, under `3D`, opens the same Primary Flight Display as the map `PFD` layer, on its own screen. The map layer is unchanged. See Section 9.9.
 
@@ -1205,9 +1205,9 @@ Same view as the destination popup `3D` tab, centered on the aircraft, without t
 - **Traffic**: ADS-B targets inside 25 NM, drawn as dots
 - **Plan**: the active plan at each leg's altitude, cyan behind, purple on the current leg, and grey ahead. The line leaves a departure airport at field elevation and arrives at a destination airport at field elevation
 - **Glide ring**: the map glide circle on the surface, and a cone from the aircraft down to it
-- **TFR**: when the `TFR` layer is on, red if in effect and brown if later. `AGL` is height above the terrain, and the picture grows to include that ground. `MSL` is a fixed altitude, and the floor still sits on the ground when the terrain is higher. A floor above the picture, such as 15,000–17,999 ft MSL, is a dashed outline at the top of the scale with arrows pointing up. The map marker text uses the same `AGL` or `MSL` label
-- **Game TFR**: when that layer is on, an orange 3 NM cylinder from the surface to 3000 ft above the ground
-- **Filters**: `B`, `C`, `D`, `SUA`, `TFR`, `Game`, `Plan`, `Obstacles`, and `Terrain` show or hide those parts. `SUA` is restricted, warning, prohibited, and MOA. `TFR` and `Game` still follow the map layers
+- **TFR**: when the `TFR` filter is on, red if in effect and brown if later. `AGL` is height above the terrain, and the picture grows to include that ground. `MSL` is a fixed altitude, and the floor still sits on the ground when the terrain is higher. A floor above the picture, such as 15,000–17,999 ft MSL, is a dashed outline at the top of the scale with arrows pointing up. The map marker text uses the same `AGL` or `MSL` label
+- **Game TFR**: when the `Game` filter is on, an orange 3 NM cylinder from the surface to 3000 ft above the ground
+- **Filters**: `B`, `C`, `D`, `SUA`, `TFR`, `Game`, `Plan`, `Obstacles`, and `Terrain` show or hide those parts. `SUA` is restricted, warning, prohibited, and MOA. The filters alone decide what is drawn. The map layer settings do not affect this view
 - **Drag** to rotate, **pinch** to zoom, **two fingers** to pan
 - **Reset** restores the view
 - Shelf colors, altitude labels, obstacles, and the ownship dot match the destination `3D` tab (Section 5.3)

@@ -349,29 +349,6 @@ NmPoint _ringHit(NmPoint s, NmPoint e, NmPoint a, NmPoint b) {
   return NmPoint(s.e + seE * t, s.n + seN * t);
 }
 
-bool _layerOn(String name) {
-  try {
-    final layers = Storage().settings.getLayers();
-    final opacity = Storage().settings.getLayersOpacity();
-    final index = layers.indexOf(name);
-    return index >= 0 && index < opacity.length && opacity[index] > 0;
-  } catch (_) {
-    return false;
-  }
-}
-
-bool _planInView(LatLng? center) {
-  if (center == null) {
-    return false;
-  }
-  final route = Storage().route;
-  bool any(List<LatLng> path) =>
-      clipPathToView(_planOffsets(center, path)).isNotEmpty;
-  return any(route.getPathPassed()) ||
-      any(route.getPathCurrent()) ||
-      any(route.getPathNext());
-}
-
 /// 3D Class B/C/D shelves and obstacles.
 ///
 /// The long-press tab passes [center] and [showPressPoint]. The menu screen
@@ -786,18 +763,6 @@ class _Airspace3DViewState extends State<Airspace3DView> {
     if (scene.message != null) {
       return _message(context, scene.message!);
     }
-    if (!widget.weather &&
-        scene.shelves.isEmpty &&
-        scene.obstacles.isEmpty &&
-        scene.diagrams.isEmpty &&
-        !widget.followAircraft &&
-        !_planInView(_center) &&
-        !_layerOn('TFR') &&
-        !_layerOn(GameTfr.layerName)) {
-      return _message(context,
-          'No Class B, C, or D, restricted, warning, prohibited, or MOA airspace within ${airspaceViewRadiusNm.round()} NM');
-    }
-
     final scheme = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1623,7 +1588,7 @@ class _AirspacePainter extends CustomPainter {
 
   void _addEnabledAreas(List<_Face> faces,
       _Proj Function(double, double, double) project, double maxAlt) {
-    if (showTfr && _layerOn('TFR')) {
+    if (showTfr) {
       try {
         for (final weather in Storage().tfr.getAll()) {
           final tfr = weather as Tfr;
@@ -1656,7 +1621,7 @@ class _AirspacePainter extends CustomPainter {
         }
       } catch (_) {}
     }
-    if (!showGame || !_layerOn(GameTfr.layerName)) {
+    if (!showGame) {
       return;
     }
     const radiusNm = 3.0;

@@ -706,46 +706,51 @@ class Storage {
       image.dispose();
       return;
     }
+    // Read the georeference first and swap everything in one step. Clearing the
+    // old plate before the awaits finished let the map rebuild with no plate in
+    // between, which showed as a flash.
+    List<double>? matrix;
+    LatLng? topLeft;
+    LatLng? bottomRight;
+    try {
+      Map<String, IfdTag> exif = await readExifFromBytes(bytes);
+      IfdTag? tag = exif["EXIF UserComment"];
+      if(null != tag) {
+        List<String> tokens = tag.toString().split("|");
+        if(tokens.length == 4) {
+          matrix = tokens.map(double.parse).toList();
+          double dx = matrix[0];
+          double dy = matrix[1];
+          double lonTopLeft = matrix[2];
+          double latTopLeft = matrix[3];
+          double latBottomRight = latTopLeft + image.height / dy;
+          double lonBottomRight = lonTopLeft + image.width / dx;
+          topLeft = LatLng(latTopLeft, lonTopLeft);
+          bottomRight = LatLng(latBottomRight, lonBottomRight);
+        }
+        else if(tokens.length == 6) { //could be made same as for other plates
+          matrix = tokens.map(double.parse).toList();
+        }
+      }
+    }
+    catch(e) {
+      matrix = null;
+      topLeft = null;
+      bottomRight = null;
+    }
+    // A newer plate won while the exif was read.
+    if(settings.getCurrentPlateAirport() != plateAirport || currentPlate != plateName) {
+      image.dispose();
+      return;
+    }
+
+    final ui.Image? previous = imagePlate;
     plateAirportDestination = airport;
-    topLeftPlate = null;
-    bottomRightPlate = null;
-    if(imagePlate != null) {
-      imagePlate!.dispose();
-      imagePlate = null;
-    }
     imagePlate = image;
-
-    Map<String, IfdTag> exif = await readExifFromBytes(bytes);
-    matrixPlate = null;
-    IfdTag? tag = exif["EXIF UserComment"];
-    if(null != tag) {
-      List<String> tokens = tag.toString().split("|");
-      if(tokens.length == 4) {
-        matrixPlate = [];
-        matrixPlate!.add(double.parse(tokens[0]));
-        matrixPlate!.add(double.parse(tokens[1]));
-        matrixPlate!.add(double.parse(tokens[2]));
-        matrixPlate!.add(double.parse(tokens[3]));
-
-        double dx = matrixPlate![0];
-        double dy = matrixPlate![1];
-        double lonTopLeft = matrixPlate![2];
-        double latTopLeft = matrixPlate![3];
-        double latBottomRight = latTopLeft + image.height / dy;
-        double lonBottomRight = lonTopLeft + image.width / dx;
-        topLeftPlate = LatLng(latTopLeft, lonTopLeft);
-        bottomRightPlate = LatLng(latBottomRight, lonBottomRight);
-      }
-      else if(tokens.length == 6) { //could be made same as for other plates
-        matrixPlate = [];
-        matrixPlate!.add(double.parse(tokens[0]));
-        matrixPlate!.add(double.parse(tokens[1]));
-        matrixPlate!.add(double.parse(tokens[2]));
-        matrixPlate!.add(double.parse(tokens[3]));
-        matrixPlate!.add(double.parse(tokens[4]));
-        matrixPlate!.add(double.parse(tokens[5]));
-      }
-    }
+    matrixPlate = matrix;
+    topLeftPlate = topLeft;
+    bottomRightPlate = bottomRight;
+    previous?.dispose();
 
     plateChange.value++; // change in storage
   }
