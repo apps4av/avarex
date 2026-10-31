@@ -1,4 +1,3 @@
-Added Emergency mode under Map Settings, Profiles, Emergency. It opens a north-up map with the glide ring and four cards for best glide speed, the best runway to land on, a checklist, and the frequencies to declare.
-Pick the Emergency checklist from the Emergency tile on the Profile screen.
-The glide circle, plan cruise, and aircraft icon use the aircraft chosen on Aircraft & Performance.
-Chart downloads work out the chart cycle from the date.
+Added 3D Weather, under Menu and as the `3DW` tab on a long press. It shows winds aloft with the terrain, runways, and aircraft. `Hide Wind` and `Show Wind` turn the wind on and off.
+3D Weather has buttons to build 3D NEXRAD radar, lightning, icing, and turbulence. The radar plays the last half hour. Each layer has a key, and must be rebuilt after its time runs out.
+3D shows a red arrow with an N above the altitude scale, pointing north as you turn the view.

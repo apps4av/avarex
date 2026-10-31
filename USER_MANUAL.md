@@ -15,6 +15,16 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.139**
+
+- Added 3D Weather, under Menu and as the `3DW` tab on a long press. It shows winds aloft with the terrain, runways, and aircraft. `Hide Wind` and `Show Wind` turn the wind on and off.
+- 3D Weather has buttons to build 3D NEXRAD radar, lightning, icing, and turbulence. The radar plays the last half hour. Each layer has a key, and must be rebuilt after its time runs out.
+- 3D shows a red arrow with an N above the altitude scale, pointing north as you turn the view.
+- Exit asks Yes or No, with No as the default. On Android, Yes also stops GPS and downloads.
+- The PLAN wind chart samples the middle of each column of the route, and has no seams between cells.
+- The plan uses the first built-in aircraft when none was picked on Aircraft & Performance.
+- Fixed a flash on the plate overlay.
+
 **0.0.138**
 
 - Added Emergency mode under Map Settings, Profiles, Emergency. It opens a north-up map with the glide ring and four cards for best glide speed, the best runway to land on, a checklist, and the frequencies to declare.
@@ -1105,7 +1115,7 @@ The aircraft is the one chosen in the dropdown on `MAP → Menu → Aircraft & P
 
 **C, bottom right: checklist**
 
-- Shows the emergency checklist one step at a time, as `step/total`. Tap the card for the next step. After the last step it goes back to the first.
+- Shows the emergency checklist one step at a time, as `step/total`. Tap the card for the next step. After the last step it goes back to the first. Swipe right on the card to go back one step (from the first step it goes to the last). Swipe left to go forward.
 - `EXIT` is on this card. It asks for confirmation before leaving.
 - The checklist is the one chosen for the Emergency profile (below), or a built-in engine-out checklist.
 
@@ -1224,6 +1234,7 @@ Open: **Menu → 3D Weather** (under `3D`), or the destination popup `3DW` tab (
 The same 3D box as `3D`, for weather instead of airspace. It shows the terrain, the runway diagrams, the aircraft, the winds aloft, and four layers you build when you want them: 3D NEXRAD radar, lightning, icing, and turbulence. It has no airspace shelves, SUA, TFRs, plan, obstacles, glide ring, or traffic. The menu screen follows the aircraft. The popup tab is centered on that place, with the yellow long-press mark. The box is at least 12,000 ft tall. It grows to hold storm tops when radar is on, and icing or turbulence up to 18,000 ft. Higher cells are clipped.
 
 - **Buttons**: a column down the left side, one button per row. A layer's setting menu (`dBZ`, `Ice`, `Turb`) sits indented under its button. The column scrolls when the screen is short
+- **Terrain**: plain brown shading by height. Unlike `3D`, it is not turned red by the aircraft's altitude
 - **Winds aloft**: on as soon as the screen opens. The `Hide Wind` button at the top of the left column hides the arrows and their key, and `Show Wind` brings them back. Winds inside 25 NM, drawn at their altitude and not under the terrain, from the 6-hour forecast. The arrow points downwind. The `Winds aloft` key at the bottom right shows the colors: blue is light wind, then cyan, green, yellow, and orange, and red is 60 kt or more
 - **Build NEXRAD**: turns on 3D radar from the nearest WSR-88D radar. Nothing is downloaded until you press it. The button shows `Building 2/5` while it loads, and then `Hide NEXRAD`. Press it again to hide the radar
 - **10-minute life**: the radar keeps the time it was built. The NEXRAD key shows `Built 1542Z  rebuild in 7 min`. Ten minutes after the build the radar hides, and the button changes to `Rebuild NEXRAD` with a red note, `NEXRAD is 10 min old. Rebuild for current radar.` Press it to download the newest scans and build again

@@ -409,7 +409,7 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
   // -------------------------------------------------------------- cards
 
   /// Dark card that flashes red when [alert] is set.
-  Widget _card({required Widget child, required bool alert, VoidCallback? onTap, double maxWidth = 200}) {
+  Widget _card({required Widget child, required bool alert, VoidCallback? onTap, GestureDragEndCallback? onHorizontalDragEnd, double maxWidth = 200}) {
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
       child: AnimatedBuilder(
@@ -423,10 +423,13 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
               borderRadius: BorderRadius.circular(12),
               side: BorderSide(color: alert ? Colors.red : Colors.white24, width: alert ? 3 : 1),
             ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: onTap,
-              child: Padding(padding: const EdgeInsets.all(10), child: content),
+            child: GestureDetector(
+              onHorizontalDragEnd: onHorizontalDragEnd,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: onTap,
+                child: Padding(padding: const EdgeInsets.all(10), child: content),
+              ),
             ),
           );
         },
@@ -618,8 +621,19 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
     return _card(
       alert: false,
       maxWidth: 240,
-      // Tapping goes to the next step and wraps back to the first.
+      // Tapping goes to the next step and wraps back to the first. Swiping right goes
+      // back one step (wrapping to the last); swiping left goes forward.
       onTap: total == 0 ? null : () => setState(() => _step = (_step + 1) % total),
+      onHorizontalDragEnd: total == 0
+          ? null
+          : (DragEndDetails d) {
+              final double v = d.primaryVelocity ?? 0;
+              if (v > 150) {
+                setState(() => _step = (_step - 1 + total) % total);
+              } else if (v < -150) {
+                setState(() => _step = (_step + 1) % total);
+              }
+            },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -646,7 +660,7 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
                 minFontSize: 12,
                 maxLines: 6),
           ),
-          const Text('Tap for next step', style: TextStyle(color: Colors.white54, fontSize: 11)),
+          const Text('Tap or swipe', style: TextStyle(color: Colors.white54, fontSize: 11)),
         ],
       ),
     );

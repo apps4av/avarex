@@ -922,6 +922,7 @@ class _Airspace3DViewState extends State<Airspace3DView> {
             showSua: _showSua && !widget.weather,
             showTerrainMesh: _terrainOn,
             showGlide: !widget.weather,
+            terrainByOwnship: !widget.weather,
             extraTopFt: _extraTopFt,
           ),
           child: const SizedBox.expand(),
@@ -1502,6 +1503,9 @@ class _AirspacePainter extends CustomPainter {
   final bool showSua;
   final bool showTerrainMesh;
   final bool showGlide;
+
+  /// Red where the ground is within 500 ft of the aircraft's altitude or above it.
+  final bool terrainByOwnship;
   final double extraTopFt;
 
   _AirspacePainter({
@@ -1530,6 +1534,7 @@ class _AirspacePainter extends CustomPainter {
     required this.showSua,
     required this.showTerrainMesh,
     this.showGlide = true,
+    this.terrainByOwnship = true,
     this.extraTopFt = 0,
   }) : super(
             repaint: Listenable.merge(
@@ -1717,7 +1722,8 @@ class _AirspacePainter extends CustomPainter {
     if (minFt == double.infinity) {
       return;
     }
-    final ownAlt = _liveOwnship?.altFt;
+    // 3D Weather shows the ground as it is, not against the aircraft's altitude.
+    final ownAlt = terrainByOwnship ? _liveOwnship?.altFt : null;
     final radius = scene.radiusNm;
     for (var row = 0; row < mesh.rows - 1; row++) {
       for (var col = 0; col < mesh.cols - 1; col++) {
@@ -3019,6 +3025,7 @@ class _AirspacePainter extends CustomPainter {
         oldDelegate.showObstacles != showObstacles ||
         oldDelegate.showSua != showSua ||
         oldDelegate.showGlide != showGlide ||
+        oldDelegate.terrainByOwnship != terrainByOwnship ||
         oldDelegate.extraTopFt != extraTopFt ||
         oldDelegate.showTerrainMesh != showTerrainMesh;
   }
