@@ -343,6 +343,38 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
+  /// Asset holding the pre-rendered first page of a bundled FAA PDF, named after
+  /// the PDF (see tools/make_faa_thumbnails.sh). Null for anything that is not a PDF.
+  static String? _pdfThumbnailAsset(String url) {
+    if (!PathUtils.isPdfFile(url)) {
+      return null;
+    }
+    final String file = PathUtils.filename(url);
+    return "assets/pdf_thumbnails/${file.substring(0, file.lastIndexOf('.'))}.png";
+  }
+
+  /// The tile picture of a user document: the first page of a known FAA PDF,
+  /// otherwise the generic icon for its type.
+  Widget _documentIcon(Document product) {
+    final Widget icon = Icon(
+      getIcon(product).icon,
+      size: 36,
+      color: Theme.of(context).colorScheme.primary,
+    );
+    final String? thumbnail =
+        Constants.shouldShowPdf ? _pdfThumbnailAsset(product.url) : null;
+    if (thumbnail == null) {
+      return icon;
+    }
+    return Image.asset(
+      thumbnail,
+      fit: BoxFit.contain,
+      width: double.infinity,
+      height: double.infinity,
+      errorBuilder: (context, error, stackTrace) => icon, // PDF without a thumbnail
+    );
+  }
+
   IconData _getFilterIcon(String filter) {
     switch (filter) {
       case DocumentsScreen.allDocuments:
@@ -450,11 +482,7 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              borderRadius: BorderRadius.circular(8),
            ),
            child: Center(
-             child: Icon(
-               getIcon(product).icon,
-               size: 36,
-               color: Theme.of(context).colorScheme.primary,
-             ),
+             child: _documentIcon(product),
            ),
          ), product));
      }
