@@ -491,6 +491,9 @@ class DownloadScreenState extends State<DownloadScreen> {
 
     for(ChartCategory cg in _allCharts) {
       for(Chart chart in cg.charts) {
+        if(chart.filename.startsWith('FAA_')) {
+          continue; // reference PDFs only, they do not make the map usable
+        }
         bool exists = (await Download.getChartCycleLocal(chart)).isNotEmpty;
         if(exists) {
           return true;
@@ -670,6 +673,14 @@ class DownloadScreenState extends State<DownloadScreen> {
       _absentColor,
       [
         Chart('DatabasesX', _absentColor, _absentIcon, 'databasesx', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        // FAA reference PDFs, one zip per category, hosted next to the databases as
+        // <cycle>/<filename>.zip. Each zip's manifest (same name, no .zip) lists its files for delete.
+        Chart('FAA AIM',                  _absentColor, _absentIcon, 'FAA_AIM',                 _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('FAA 14 CFR',               _absentColor, _absentIcon, 'FAA_CFR14',               _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('FAA Handbooks',            _absentColor, _absentIcon, 'FAA_HANDBOOKS',           _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('FAA Handbooks Specialty',  _absentColor, _absentIcon, 'FAA_HANDBOOKS_SPECIALTY', _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('FAA ACS',                  _absentColor, _absentIcon, 'FAA_ACS',                 _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
+        Chart('FAA Advisory Circulars',   _absentColor, _absentIcon, 'FAA_AC',                  _stateAbsentNone, "", ValueNotifier<int>(0), true, Download(), true),
       ],
       false,
     ),
