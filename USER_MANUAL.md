@@ -1383,7 +1383,7 @@ Powered by Gemini 3.8 Flash with Google Search integration.
 Capabilities:
 
 - Ask free-form aviation/trip questions (internet required)
-- Question must be 256 characters or less
+- Question must be 2048 characters or less
 - Context limit: 10,000 tokens
 
 **Context toggles** (tap to highlight, highlighted context sent with question):

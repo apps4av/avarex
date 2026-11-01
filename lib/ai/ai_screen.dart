@@ -1,6 +1,7 @@
 import 'package:avaremp/aircraft/aircraft.dart';
 import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/logbook/log_entry.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/services/login_screen.dart';
@@ -84,17 +85,31 @@ class AiScreenState extends State<AiScreen> {
         List<Aircraft> aircraft = await UserDatabaseHelper.db.getAllAircraft();
         if(aircraft.isNotEmpty) {
           Aircraft ac = aircraft.first;
-          final acText = "Use aircraft ${ac.tail} and make/mode ${ac.type}";
+          final acText = "Use aircraft ${ac.tail} and make/model ${ac.type}";
           parts.add(TextPart(acText));
         }
       }
       if(includeLogbook) {
         List<LogEntry> entries = await UserDatabaseHelper.db.getAllLogbook();
         if(entries.isNotEmpty) {
-          String logText = "Last 50 log book entries are:\n";
-          logText += "${entries.first.toMap().keys.join(",")}\n";
+          // most recent first (database orders by date DESC). Skip ids and empty/zero fields to save tokens.
+          String logText = "Last ${entries.length < 50 ? entries.length : 50} log book entries, most recent first. Times are in hours:\n";
           for(int i = 0; i < entries.length && i < 50; i++) {
-            logText += "${entries[i].toMap().values.join(",")}\n";
+            final fields = <String>[];
+            entries[i].toMap().forEach((key, value) {
+              if(key == 'id' || value == null || value == 0 || value == false) {
+                return;
+              }
+              String text = value.toString().replaceAll(RegExp(r'[\r\n]+'), " ").trim();
+              if(key == 'date') {
+                text = text.split("T").first; // date only
+              }
+              if(text.isEmpty || text == "0" || text == "0.0") {
+                return;
+              }
+              fields.add("$key=$text");
+            });
+            logText += "${fields.join("; ")}\n";
           }
           parts.add(TextPart(logText));
         }
@@ -102,18 +117,21 @@ class AiScreenState extends State<AiScreen> {
       if(includeWeather) {
         String weatherText = "";
         PlanRoute route = Storage().route;
-        if (route.isNotEmpty) {
-          LatLng start = route.getAllDestinations().first.coordinate;
-          LatLng end = route.getAllDestinations().last.coordinate;
+        List<Destination> destinations = route.getAllDestinations();
+        if (route.isNotEmpty && destinations.isNotEmpty) {
+          LatLng start = destinations.first.coordinate;
+          LatLng end = destinations.last.coordinate;
           String? windsStart = WindsCache.getWindsAtAll(start, 6);
           String? windsEnd = WindsCache.getWindsAtAll(end, 6);
           if (windsStart != null) {
-            weatherText += "Winds at departure:\n$windsStart\n";
+            weatherText += "Winds aloft at departure (${destinations.first.locationID}):\n$windsStart\n";
           }
           if (windsEnd != null) {
-            weatherText += "Winds at destination:\n$windsStart\n";
+            weatherText += "Winds aloft at destination (${destinations.last.locationID}):\n$windsEnd\n";
           }
-          parts.add(TextPart(weatherText));
+          if (weatherText.isNotEmpty) {
+            parts.add(TextPart(weatherText));
+          }
         }
       }
       if(includePlan) {
@@ -126,12 +144,11 @@ class AiScreenState extends State<AiScreen> {
       String ret = "Unable to get an answer.";
       try {
         final query = Content.multi(parts);
-        final responseT = await _model.countTokens([query]);
-        final totalTokens = responseT.totalTokens;
+        int totalTokens = 0;
         if(myQuery.length > 2048) {
           ret = "Question length must be less than 2048 characters";
         }
-        else if (totalTokens > 10000) {
+        else if ((totalTokens = (await _model.countTokens([query])).totalTokens) > 10000) {
           ret = "Please reduce the amount of context included to 10000 tokens - total tokens $totalTokens";
         }
         else {
