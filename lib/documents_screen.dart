@@ -625,15 +625,20 @@ class DocumentsScreenState extends State<DocumentsScreen> {
       products.addAll(productsStatic);
     }
 
+    // User documents, with "User Data" (user.db) among them, sorted by name.
+    final List<Document> userDocs = [
+      for(String doc in docs)
+        Document(DocumentsScreen.userDocuments, PathUtils.filename(doc), doc),
+    ];
     if (!_isInSubfolder) {
-      Document db = Document(DocumentsScreen.userDocuments, "User Data",
-          PathUtils.getFilePath(Storage().dataDir, "user.db"));
-      products.add(db);
+      userDocs.add(Document(DocumentsScreen.userDocuments, "User Data",
+          PathUtils.getFilePath(Storage().dataDir, "user.db")));
     }
-
-    for(String doc in docs) {
-      products.add(Document(DocumentsScreen.userDocuments, PathUtils.filename(doc), doc));
-    }
+    userDocs.sort((a, b) {
+      final int byName = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return byName != 0 ? byName : a.url.compareTo(b.url);
+    });
+    products.addAll(userDocs);
 
     List<String> ctypes = products.map((e) => e.type).toSet().toList();
     ctypes.insert(0, DocumentsScreen.allDocuments);

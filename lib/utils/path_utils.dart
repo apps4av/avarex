@@ -36,6 +36,16 @@ class PathUtils {
     return path.equals(path.normalize(a), path.normalize(b));
   }
 
+  /// Sorts paths by file / folder name, ignoring case, so listings are stable
+  /// ([Directory.list] returns entries in arbitrary order).
+  static List<String> _sortedByName(List<String> paths) {
+    return paths
+      ..sort((a, b) {
+        final int byName = filename(a).toLowerCase().compareTo(filename(b).toLowerCase());
+        return byName != 0 ? byName : a.compareTo(b);
+      });
+  }
+
   static Future<List<String>> getDocumentsNames(String base) async {
     List<String> ret = [];
     try {
@@ -50,7 +60,7 @@ class PathUtils {
     catch(e) {
       ret = [];
     }
-    return(ret);
+    return _sortedByName(ret);
   }
 
   static Future<List<String>> getFolderNames(String base) async {
@@ -74,7 +84,7 @@ class PathUtils {
     catch(e) {
       ret = [];
     }
-    return ret;
+    return _sortedByName(ret);
   }
 
   static Future<bool> createFolder(String base, String folderName) async {
