@@ -33,6 +33,9 @@ class MainDatabaseHelper {
   // Cached sqlite_master lookup for findNear. Remove with [_hasNearIndexes]
   // once every installed main.db has the lat/lon indexes.
   static bool? _nearIndexes;
+  // Cached sqlite_master lookup for cifp. Remove with [_hasCifpIndex]
+  // once every installed main.db has idx_cifp_loc.
+  static bool? _cifpIndex;
 
   Future<Database?> get database async {
     if (_replacing) {
@@ -91,6 +94,26 @@ class MainDatabaseHelper {
     return ready;
   }
 
+  /// True when this main.db contains idx_cifp_loc on cifp(LocationID)
+  /// (added in apps4av/data x/importother.sql).
+  ///
+  /// Temporary. Older files have no such index, and the cifp queries fall
+  /// back to the old trim() query in the else branch. When those files are
+  /// gone, delete this method, [_cifpIndex], both [_cifpIndex] clears in
+  /// [invalidateConnection], and the else branch in findProcedures,
+  /// findDestinations, findProcedure, and findProcedureProfile.
+  static Future<bool> _hasCifpIndex(Database db) async {
+    final bool? known = _cifpIndex;
+    if (known != null) {
+      return known;
+    }
+    final List<Map<String, Object?>> rows = await DbGeneral.query(db,
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_cifp_loc'");
+    final bool ready = rows.isNotEmpty;
+    _cifpIndex = ready;
+    return ready;
+  }
+
   /// Search square in degrees. Longitude is widened by 1/cos(latitude) so each
   /// side covers about the same ground distance.
   (double, double, double, double) _nearBounds(LatLng point, double factor) {
@@ -126,6 +149,7 @@ class MainDatabaseHelper {
   static Future<void> invalidateConnection() async {
     _generation++;
     _nearIndexes = null; // remove with _hasNearIndexes
+    _cifpIndex = null; // remove with _hasCifpIndex
     // an open that is still in flight would otherwise be cached afterwards
     final Future<Database>? opening = _opening;
     if (opening != null) {
@@ -145,8 +169,9 @@ class MainDatabaseHelper {
       catch (_) {}
     }
     // A check that finished while this connection was closing belongs to the
-    // file just closed. Remove this clear with _hasNearIndexes.
+    // file just closed. Remove these clears with _hasNearIndexes and _hasCifpIndex.
     _nearIndexes = null;
+    _cifpIndex = null;
   }
 
   Future<List<LatLng>> findObstacles(LatLng point, double altitude) async {
@@ -165,8 +190,22 @@ class MainDatabaseHelper {
   Future<List<String>> findProcedures(String airportIdentifier) async {
     final db = await database;
     if (db != null) {
-      String qry = "select distinct LocationID, procedure, ifix from cifp where"
-          " trim(LocationID) = '$airportIdentifier'";
+      // The LocationID query needs idx_cifp_loc. Until every installed main.db
+      // has it, a file without the index uses the old query in the else branch.
+      // Delete that branch, [_hasCifpIndex], [_cifpIndex], and the [_cifpIndex]
+      // clears in [invalidateConnection] once those databases are gone. This
+      // method then always runs the LocationID query.
+      String qry;
+      if (await _hasCifpIndex(db)) {
+        qry = "select distinct LocationID, procedure, ifix from cifp where"
+            " LocationID = '$airportIdentifier'";
+      }
+      else {
+        // Old query for main.db files that predate idx_cifp_loc. Remove this
+        // branch together with _hasCifpIndex.
+        qry = "select distinct LocationID, procedure, ifix from cifp where"
+            " trim(LocationID) = '$airportIdentifier'";
+      }
       return DbGeneral.query(db, qry).then((maps) {
         return List.generate(maps.length, (i) {
           String id = (maps[i]['procedure'] as String).trim();
@@ -246,19 +285,41 @@ class MainDatabaseHelper {
       List<String> segments = match.split(".");
       if(segments.isNotEmpty) {
         airport = segments[0].toUpperCase();
-        String match = "";
-        if(segments.length == 2) {
-          match = exact ?
-            " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = ''" :
-            " and trim(procedure) like '${segments[1].toUpperCase()}%'";
+        String qry;
+        // idx_cifp_loc walks LocationID. The else branch is the old query.
+        // Remove it with _hasCifpIndex.
+        if (await _hasCifpIndex(db)) {
+          String match = "";
+          if(segments.length == 2) {
+            match = exact ?
+              " and procedure =    '${segments[1].toUpperCase()}'  and ifix = ''" :
+              " and procedure like '${segments[1].toUpperCase()}%'";
+          }
+          else if(segments.length >= 3) {
+            match = exact ?
+              " and procedure =    '${segments[1].toUpperCase()}'  and ifix = '${segments[2].toUpperCase()}'" :
+              " and procedure like '${segments[1].toUpperCase()}%' and ifix like '${segments[2].toUpperCase()}%'";
+          }
+          qry = "select distinct LocationID, procedure, ifix from cifp where"
+            " LocationID = '$airport' $match";
         }
-        else if(segments.length >= 3) {
-          match = exact ?
-            " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = '${segments[2].toUpperCase()}'" :
-            " and trim(procedure) like '${segments[1].toUpperCase()}%' and trim(ifix) like '${segments[2].toUpperCase()}%'";
+        else {
+          // Old query for main.db files that predate idx_cifp_loc. Remove this
+          // branch together with _hasCifpIndex.
+          String match = "";
+          if(segments.length == 2) {
+            match = exact ?
+              " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = ''" :
+              " and trim(procedure) like '${segments[1].toUpperCase()}%'";
+          }
+          else if(segments.length >= 3) {
+            match = exact ?
+              " and trim(procedure) =    '${segments[1].toUpperCase()}'  and trim(ifix) = '${segments[2].toUpperCase()}'" :
+              " and trim(procedure) like '${segments[1].toUpperCase()}%' and trim(ifix) like '${segments[2].toUpperCase()}%'";
+          }
+          qry = "select distinct LocationID, procedure, ifix from cifp where"
+            " trim(LocationID) = '$airport' $match";
         }
-        String qry = "select distinct LocationID, procedure, ifix from cifp where"
-          " trim(LocationID) = '$airport' $match";
         mapsProcedures = await DbGeneral.query(db, qry);
       }
     }
@@ -616,12 +677,23 @@ class MainDatabaseHelper {
       segments.add("");
     }
 
-    // sid/star/transition
-    qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
-        " and trim(procedure) = '${segments[1].toUpperCase()}'"
-        " and trim(ifix) = '${segments[2].toUpperCase()}'"
-        " order by trim(sequence) asc";
+    // sid/star/transition. idx_cifp_loc walks LocationID. The else branch is
+    // the old query. Remove it with _hasCifpIndex.
     final db = await database;
+    if (db != null && await _hasCifpIndex(db)) {
+      qry = "select * from cifp where LocationID = '${segments[0].toUpperCase()}'"
+          " and procedure = '${segments[1].toUpperCase()}'"
+          " and ifix = '${segments[2].toUpperCase()}'"
+          " order by sequence asc";
+    }
+    else {
+      // Old query for main.db files that predate idx_cifp_loc. Remove this
+      // branch together with _hasCifpIndex.
+      qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
+          " and trim(procedure) = '${segments[1].toUpperCase()}'"
+          " and trim(ifix) = '${segments[2].toUpperCase()}'"
+          " order by trim(sequence) asc";
+    }
     if (db != null) {
       maps = await DbGeneral.query(db, qry);
     }
@@ -687,11 +759,24 @@ class MainDatabaseHelper {
       segments.add("");
     }
 
-    String qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
-        " and trim(procedure) = '${segments[1].toUpperCase()}'"
-        " and trim(ifix) = '${segments[2].toUpperCase()}'"
-        " order by trim(sequence) asc";
+    // Same lookup as findProcedure. The else branch is the old query. Remove
+    // it with _hasCifpIndex.
     final db = await database;
+    String qry;
+    if (db != null && await _hasCifpIndex(db)) {
+      qry = "select * from cifp where LocationID = '${segments[0].toUpperCase()}'"
+          " and procedure = '${segments[1].toUpperCase()}'"
+          " and ifix = '${segments[2].toUpperCase()}'"
+          " order by sequence asc";
+    }
+    else {
+      // Old query for main.db files that predate idx_cifp_loc. Remove this
+      // branch together with _hasCifpIndex.
+      qry = "select * from cifp where trim(LocationID) = '${segments[0].toUpperCase()}'"
+          " and trim(procedure) = '${segments[1].toUpperCase()}'"
+          " and trim(ifix) = '${segments[2].toUpperCase()}'"
+          " order by trim(sequence) asc";
+    }
     if (db != null) {
       maps = await DbGeneral.query(db, qry);
     }
