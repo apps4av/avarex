@@ -30,6 +30,9 @@ class MainDatabaseHelper {
   static bool _replacing = false;
   static Future<Database>? _opening;
   static int _generation = 0; // bumped on every invalidateConnection()
+  // Cached sqlite_master lookup for findNear. Remove with [_hasNearIndexes]
+  // once every installed main.db has the lat/lon indexes.
+  static bool? _nearIndexes;
 
   Future<Database?> get database async {
     if (_replacing) {
@@ -60,8 +63,49 @@ class MainDatabaseHelper {
   Future<Database> _initDB() async {
     Directory documentsDirectory = Directory(Storage().dataDir);
     String path = join(documentsDirectory.path, "main.db");
-    return
-      await openDatabase(path, onOpen: (db) {});
+    return await openDatabase(path, onOpen: (db) {});
+  }
+
+  /// True when this main.db contains idx_airports_arp, idx_nav_arp, and
+  /// idx_fix_arp (added in apps4av/data x/importother.sql).
+  ///
+  /// Temporary. Databases from before that cycle have no such indexes, and
+  /// [findNear] falls back to the full-table query for them. When those files
+  /// are gone, delete this method, [_nearIndexes], and both [_nearIndexes]
+  /// clears in [invalidateConnection].
+  static Future<bool> _hasNearIndexes(Database db) async {
+    final bool? known = _nearIndexes;
+    if (known != null) {
+      return known;
+    }
+    final List<Map<String, Object?>> rows = await DbGeneral.query(db,
+        "SELECT name FROM sqlite_master WHERE type = 'index' AND name IN ('idx_airports_arp', 'idx_nav_arp', 'idx_fix_arp')");
+    final Set<String> names = {
+      for (final Map<String, Object?> row in rows)
+        if (row['name'] is String) row['name'] as String,
+    };
+    final bool ready = names.contains('idx_airports_arp') &&
+        names.contains('idx_nav_arp') &&
+        names.contains('idx_fix_arp');
+    _nearIndexes = ready;
+    return ready;
+  }
+
+  /// Search square in degrees. Longitude is widened by 1/cos(latitude) so each
+  /// side covers about the same ground distance.
+  (double, double, double, double) _nearBounds(LatLng point, double factor) {
+    final double latRadius = sqrt(factor);
+    double cosLat = cos(point.latitude * pi / 180.0).abs();
+    if (cosLat < 0.01) {
+      cosLat = 0.01;
+    }
+    final double lonRadius = latRadius / cosLat;
+    return (
+      point.latitude - latRadius,
+      point.latitude + latRadius,
+      point.longitude - lonRadius,
+      point.longitude + lonRadius,
+    );
   }
 
   /// Call before main.db is replaced or removed on disk. Closes the connection
@@ -81,6 +125,7 @@ class MainDatabaseHelper {
   /// (e.g. DatabasesX download/delete) so the next open uses the new file.
   static Future<void> invalidateConnection() async {
     _generation++;
+    _nearIndexes = null; // remove with _hasNearIndexes
     // an open that is still in flight would otherwise be cached afterwards
     final Future<Database>? opening = _opening;
     if (opening != null) {
@@ -99,6 +144,9 @@ class MainDatabaseHelper {
       }
       catch (_) {}
     }
+    // A check that finished while this connection was closing belongs to the
+    // file just closed. Remove this clear with _hasNearIndexes.
+    _nearIndexes = null;
   }
 
   Future<List<LatLng>> findObstacles(LatLng point, double altitude) async {
@@ -286,12 +334,32 @@ class MainDatabaseHelper {
           .longitude}) * (ARPLongitude - ${point.longitude}) * ${corrFactor
           .toDouble()} + (ARPLatitude - ${point
           .latitude}) * (ARPLatitude - ${point.latitude}))";
-
-      String qry =
-          "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < $factor and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor and (Type != 'VOT') "
-          "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
-          "order by Type asc, distance asc limit $_limit";
+      // The square query needs idx_airports_arp, idx_nav_arp, and idx_fix_arp.
+      // Until every installed main.db has them, a file without the indexes uses
+      // the old full-table query in the else branch. Delete that branch,
+      // [_hasNearIndexes], [_nearIndexes], and the [_nearIndexes] clears in
+      // [invalidateConnection] once those databases are gone. This method then
+      // always runs the square query.
+      String qry;
+      if (await _hasNearIndexes(db)) {
+        final (double minLat, double maxLat, double minLon, double maxLon) = _nearBounds(point, factor);
+        // distance is selected only so the rows can be sorted. The square is the search.
+        String box = "ARPLatitude > $minLat and ARPLatitude < $maxLat and ARPLongitude > $minLon and ARPLongitude < $maxLon";
+        qry =
+            "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where $box and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
+            "union all select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where $box and (Type != 'VOT') "
+            "union all select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where $box "
+            "order by Type asc, distance asc limit $_limit";
+      }
+      else {
+        // Old query for main.db files that predate the lat/lon indexes. Remove
+        // this branch together with _hasNearIndexes.
+        qry =
+            "      select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from airports where distance < $factor and (Type = 'AIRPORT' or Type = 'SEAPLANE BAS') " // only what shows on chart
+            "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from nav      where distance < $factor and (Type != 'VOT') "
+            "union select LocationID, ARPLatitude, ARPLongitude, FacilityName, Type, $asDistance as distance from fix      where distance < $factor "
+            "order by Type asc, distance asc limit $_limit";
+      }
       List<Map<String, dynamic>> maps = await DbGeneral.query(db, qry);
 
       ret = List.generate(maps.length, (i) {

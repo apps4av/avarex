@@ -847,10 +847,11 @@ Includes:
   - Winds/Temperature at altitudes 5000-30000ft (06/12HR)
 - User documents (imported or generated)
 - This version's user manual, after `Help` has been opened (`User Manual`, named with the version). A copy from an older install is removed then
-- User database file (`user.db`) entry
-- Subfolders for organization:
+- User database file (`user.db`) entry, shown with a cover picture
+- Subfolders for organization. `notes/`, `tracks/`, and the FAA folders show a cover picture. A PDF shows its first page.
   - `tracks/` — saved flight tracks (KML files)
   - `notes/` — saved notes screenshots
+  - `AIM/`, `CFR14/` (14 CFR), `Handbooks/`, `ACS/`, and `AC/` — FAA documents from Download. Specialty handbooks are stored in `Handbooks/`.
 
 **Folder management:**
 

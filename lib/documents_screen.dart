@@ -180,13 +180,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                       color: Theme.of(context).colorScheme.primaryContainer.withAlpha(100),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Center(
-                      child: Icon(
-                        Icons.folder_rounded,
-                        size: 48,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _folderPicture(folderName),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -343,6 +338,58 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     }
   }
 
+  /// Cover for a folder the app creates, keyed by the directory name in lower
+  /// case. FAA downloads unzip to AIM, CFR14 (the regulations), Handbooks, ACS,
+  /// and AC. Specialty handbooks unzip into that same Handbooks folder.
+  static const Map<String, String> _folderCovers = {
+    'notes': 'assets/folder_covers/notes.jpg',
+    'tracks': 'assets/folder_covers/tracks.jpg',
+    'aim': 'assets/folder_covers/aim.jpg',
+    'faa aim': 'assets/folder_covers/aim.jpg',
+    'cfr14': 'assets/folder_covers/far.jpg',
+    'far': 'assets/folder_covers/far.jpg',
+    '14 cfr': 'assets/folder_covers/far.jpg',
+    'faa 14 cfr': 'assets/folder_covers/far.jpg',
+    'handbooks': 'assets/pdf_thumbnails/PHAK_Pilots_Handbook_of_Aeronautical_Knowledge.png',
+    'faa handbooks': 'assets/pdf_thumbnails/PHAK_Pilots_Handbook_of_Aeronautical_Knowledge.png',
+    'acs': 'assets/folder_covers/acs.jpg',
+    'faa acs': 'assets/folder_covers/acs.jpg',
+    'ac': 'assets/folder_covers/ac.jpg',
+    'faa ac': 'assets/folder_covers/ac.jpg',
+    'advisory circulars': 'assets/folder_covers/ac.jpg',
+    'faa advisory circulars': 'assets/folder_covers/ac.jpg',
+  };
+
+  static String? _folderCoverAsset(String folderName) {
+    final String key = folderName
+        .trim()
+        .toLowerCase()
+        .replaceAll('_', ' ')
+        .replaceAll(RegExp(r'\s+'), ' ');
+    return _folderCovers[key];
+  }
+
+  /// Fills the folder tile. A folder the user created keeps the folder icon.
+  Widget _folderPicture(String folderName) {
+    final Widget icon = Icon(
+      Icons.folder_rounded,
+      size: 48,
+      color: Theme.of(context).colorScheme.primary,
+    );
+    final String? asset = _folderCoverAsset(folderName);
+    if (asset == null) {
+      return Center(child: icon);
+    }
+    // Expand to the tile. An infinite width and height collapses on a phone.
+    return SizedBox.expand(
+      child: Image.asset(
+        asset,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Center(child: icon),
+      ),
+    );
+  }
+
   /// Asset holding the pre-rendered first page of a bundled FAA PDF, named after
   /// the PDF (see tools/make_faa_thumbnails.sh). Null for anything that is not a PDF.
   static String? _pdfThumbnailAsset(String url) {
@@ -353,25 +400,36 @@ class DocumentsScreenState extends State<DocumentsScreen> {
     return "assets/pdf_thumbnails/${file.substring(0, file.lastIndexOf('.'))}.png";
   }
 
-  /// The tile picture of a user document: the first page of a known FAA PDF,
-  /// otherwise the generic icon for its type.
+  /// Cover for the User Data file tile. This is a file (user.db), not a folder,
+  /// so it stays out of [_folderCovers].
+  static const String _userDataCover = 'assets/folder_covers/user_data.jpg';
+
+  static bool _isUserDataDocument(Document product) {
+    return product.name == 'User Data' ||
+        PathUtils.filename(product.url).toLowerCase() == 'user.db';
+  }
+
+  /// The tile picture of a user document: the User Data cover, the first page
+  /// of a known FAA PDF, otherwise the generic icon for its type.
   Widget _documentIcon(Document product) {
     final Widget icon = Icon(
       getIcon(product).icon,
       size: 36,
       color: Theme.of(context).colorScheme.primary,
     );
-    final String? thumbnail =
-        Constants.shouldShowPdf ? _pdfThumbnailAsset(product.url) : null;
+    final String? thumbnail = _isUserDataDocument(product)
+        ? _userDataCover
+        : (Constants.shouldShowPdf ? _pdfThumbnailAsset(product.url) : null);
     if (thumbnail == null) {
-      return icon;
+      return Center(child: icon);
     }
-    return Image.asset(
-      thumbnail,
-      fit: BoxFit.contain,
-      width: double.infinity,
-      height: double.infinity,
-      errorBuilder: (context, error, stackTrace) => icon, // PDF without a thumbnail
+    // Fill the tile. An infinite width and height lays out with no area on a phone.
+    return SizedBox.expand(
+      child: Image.asset(
+        thumbnail,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => Center(child: icon),
+      ),
     );
   }
 
@@ -481,9 +539,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
              color: Theme.of(context).colorScheme.primaryContainer.withAlpha(80),
              borderRadius: BorderRadius.circular(8),
            ),
-           child: Center(
-             child: _documentIcon(product),
-           ),
+           clipBehavior: Clip.antiAlias,
+           child: _documentIcon(product),
          ), product));
      }
      else {
@@ -491,15 +548,26 @@ class DocumentsScreenState extends State<DocumentsScreen> {
        // where swiping slides to the previous / next picture.
        widget = GestureDetector(
            onTap: () => _openWebPicture(product),
-           child: CachedNetworkImage(
-             imageUrl: product.url,
-             cacheManager: FileCacheManager().documentsCacheManager,));
+           child: SizedBox.expand(
+             child: CachedNetworkImage(
+               imageUrl: product.url,
+               fit: BoxFit.contain,
+               cacheManager: FileCacheManager().documentsCacheManager,
+               errorWidget: (context, url, error) => Icon(
+                 Icons.broken_image,
+                 color: Theme.of(context).colorScheme.primary,
+               ),
+             ),
+           ));
      }
 
      // local picture files. deal with zoom widget
      if(PathUtils.isPictureFile(product.url) && product.type == DocumentsScreen.userDocuments) {
        // pictures
-       widget = _makeActions(WidgetZoom(heroAnimationTag: product.name, zoomWidget: Image.file(File(product.url))), product);
+       widget = _makeActions(WidgetZoom(
+         heroAnimationTag: product.name,
+         zoomWidget: Image.file(File(product.url), fit: BoxFit.contain),
+       ), product);
      }
 
      return Padding(

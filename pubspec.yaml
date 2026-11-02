@@ -165,6 +165,7 @@ flutter:
   - assets/images/
   - assets/docs/
   - assets/pdf_thumbnails/
+  - assets/folder_covers/
   - pubspec.yaml
   - assets/audio/traffic_alerts/
   - assets/audio/gpws/
