@@ -81,7 +81,7 @@ class AppSettings {
   // Default instrument tiles, in order. New tiles must be added here so they
   // become available to everyone (see getInstruments merge below).
   static const String _instrumentsDefault =
-      "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT,ADSB";
+      "GS,ALT,MT,PRV,NXT,DIS,BRG,GEL,ETA,ETE,VSR,UPT,DNT,UTC,SRC,FLT,ADSB,RES";
 
   void setInstruments(String instruments) {
     provider.setString("key-instruments-v16", instruments);

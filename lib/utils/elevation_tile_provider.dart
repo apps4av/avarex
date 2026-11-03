@@ -138,6 +138,7 @@ class ElevationImageProvider extends ImageProvider<ElevationImageProvider> {
       image.width,
       image.height,
     );
+    image.dispose(); // decoded source bitmap is no longer needed
     return ImageInfo(image: coloredImage, scale: 1.0);
   }
 

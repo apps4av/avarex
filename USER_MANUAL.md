@@ -15,6 +15,10 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.141**
+
+- Added the `RES` instrument tile. It shows the app's memory use in MB, current on top and maximum below.
+
 **0.0.140**
 
 - Added the `Cameras` map layer: FAA WeatherCams sites show as camera icons from zoom level 10. Tap one for the latest picture from each camera.
@@ -305,7 +309,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 - **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile. The red `Emergency` profile is always first. It opens the Emergency map instead of applying settings (see 9.4.2).
 
 #### Top-left
-- **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` tile).
+- **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` and `RES` tiles).
 
 #### Nav sub-layers (in the Layers popup)
 - With the **Nav** layer above 0%, **Obstacles**, **Tape**, **Circles**, and **CAP Grid** appear indented under it, each with its own opacity slider.
@@ -398,6 +402,7 @@ Instrument tiles float as a full-screen overlay on top of the map. Each tile can
 | **SRC** | GPS source mode. Shows `Internal`, `External`, `Internal-A`, or `External-A` (A=Auto mode) | Tap to cycle modes: Auto, Internal, External. Green=Internal, Blue=External |
 | **FLT** | Total flight time in hours | Reset timer |
 | **ADSB** | ADS-B receiver status (from GDL90 heartbeat + FIS-B uplinks). Shows your own tail number when the receiver reports it; otherwise a status circle — green filled circle ● = connected with GPS, yellow filled circle ● = connected without GPS (partial), empty circle ○ = disconnected. Only the text/circle is colored; the tile background is unchanged. Enable from the tiles menu. | Open the **ADS-B Status** screen |
+| **RES** | App memory use (resident set size) in MB. First line is current, second line is the maximum since the app started. Enable from the tiles menu. | — |
 
 Interactions:
 

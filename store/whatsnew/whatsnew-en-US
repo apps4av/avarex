@@ -1,5 +1,2 @@
-Added the `Cameras` map layer: FAA WeatherCams sites show as camera icons from zoom level 10. Tap one for the latest picture from each camera.
-Map layers return to their defaults once.
-In Documents, tap an internet picture to open it full screen, then swipe for the next one.
-Interrupted or damaged chart downloads no longer break the database.
+Added the `RES` instrument tile. It shows the app's memory use in MB, current on top and maximum below.
 Thank you for flying with AvareX. Send feedback at the Apps4Av forum.

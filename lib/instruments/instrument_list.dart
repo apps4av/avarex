@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:avaremp/gdl90/adsb_status_screen.dart';
@@ -66,6 +67,7 @@ class InstrumentListState extends State<InstrumentList> {
   String _flightTime = "00:00";
   String _gel = "DL";
   String _adsb = "\u25cb"; // ADSB tile value: ownship tail number, else status circle
+  String _res = "0\n0"; // RES tile: current and maximum RSS memory
   Color? _adsbColor; // callsign/circle color: null=default/disconnected, yellow=partial, green=connected
 
   @override
@@ -271,7 +273,20 @@ class InstrumentListState extends State<InstrumentList> {
       _adsb = adsbCallsign.isNotEmpty ? adsbCallsign : (connected ? "\u25cf" : "\u25cb");
       _adsbColor = !connected ? null : (gpsValid ? Colors.green : Colors.yellow);
       _flightTime = _truncate((Storage().flightStatus.flightTime.toDouble() / 3600).toStringAsFixed(2));
+      _res = _memoryString();
     });
+  }
+
+  // RES tile: resident set size of the app, current and maximum, in MB.
+  String _memoryString() {
+    try {
+      final int current = (ProcessInfo.currentRss / (1024 * 1024)).round();
+      final int maximum = (ProcessInfo.maxRss / (1024 * 1024)).round();
+      return "$current\n${max(current, maximum)}";
+    }
+    catch (e) {
+      return "-";
+    }
   }
 
   InstrumentListState() {
@@ -537,6 +552,9 @@ class InstrumentListState extends State<InstrumentList> {
         value = _flightTime;
         cb = _resetTacTimer;
         break;
+      case "RES":
+        value = _res;
+        break;
       case "ADSB":
         value = _adsb; // tail number when reported, otherwise the status circle
         valueColor = _adsbColor;
@@ -566,7 +584,7 @@ class InstrumentListState extends State<InstrumentList> {
           child: Column(
             children: [
               Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
-              Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: TextStyle(color: valueColor), maxLines: 1,)))),
+              Expanded(flex: 3, child: SizedBox(width: width - 10, child: FittedBox(child: Text(value,         style: TextStyle(color: valueColor), maxLines: value.contains("\n") ? 2 : 1, textAlign: TextAlign.center,)))),
             ]),
         ),
       ),
@@ -618,7 +636,8 @@ class InstrumentListState extends State<InstrumentList> {
                     "UTC - Coordinated Universal Time.\n"
                     "SRC - GPS source. Tap to cycle modes. Green=Internal, Blue=External, otherwise auto switch.\n"
                     "FLT - Total flight time in hours. Tap to reset.\n"
-                    "ADSB- ADS-B receiver status. Shows your tail number when the receiver reports it; otherwise a circle (green \u25cf=connected, yellow \u25cf=connected without GPS, \u25cb=disconnected). Click on the tile to open the status screen.\n",
+                    "ADSB- ADS-B receiver status. Shows your tail number when the receiver reports it; otherwise a circle (green \u25cf=connected, yellow \u25cf=connected without GPS, \u25cb=disconnected). Click on the tile to open the status screen.\n"
+                    "RES - App RSS memory use. First line is current, second is maximum, in MB.\n",
                     null, 30);
                 },
                 child: _menuRow(Icons.help_outline, "Help"),
