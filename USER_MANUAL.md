@@ -18,6 +18,7 @@ This manual documents all features in the current AvareX app, including:
 **0.0.141**
 
 - Added the `RES` instrument tile. It shows the app's memory use in MB, current on top and maximum below.
+- Added `Invert Colors` in Map Settings. It inverts the colors of the chart and topo map tiles and of plates.
 
 **0.0.140**
 
@@ -304,6 +305,7 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 
 - **Measure Distance On / Measure Distance Off**: toggles measure mode; long-press map to add points.
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
+- **Invert Colors On / Invert Colors Off**: inverts the colors of the `Chart` and `Topo` map tiles (also on the Emergency map) and of the plate picture on the `PLATE` tab. Ownship, routes, terrain warnings, and other layers keep their normal colors. Off by default, and the choice is remembered.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
 - **North Up / Track Up**: shows the current orientation mode; tap to switch. Tapping the **MT** instrument tile does the same thing. The tile is olive in track-up and the normal tile color in north-up.
 - **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile. The red `Emergency` profile is always first. It opens the Emergency map instead of applying settings (see 9.4.2).
@@ -540,6 +542,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 - **Instrument overlay show/hide** toggle (top-right arrow icon)
 - **Airport diagram on landing** (top-right, airport diagram only): landing icon under the instrument toggle. On shows the nearest airport diagram after landing. Off leaves the current plate in place.
 - **Sync plates** (directly under the landing icon, airport diagram only): on follows the active waypoint when that waypoint changes to a different airport, including while you are on another tab. The plate becomes that airport's diagram when one is downloaded, otherwise its first plate. A plate already open for that same airport stays. Off leaves whatever plate is showing. Opening `Plates` for a long-pressed airport still shows that airport.
+- **Invert colors**: plates follow the `Invert Colors` setting in `MAP → Map Settings`. Only the plate picture is inverted; ownship, route, and terrain overlays keep their colors.
 - **Profile close (X)** closes procedure profile card and clears the route overlay
 - **IAF chips** (black with white text, above profile when multiple transitions exist): switch IAF without re-adding to the plan
 
@@ -1767,6 +1770,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Measure distances | `MAP → Map Settings → Measure Distance Off → long-press map to add points` |
 | Rubber band waypoints | `MAP → Map Settings → Rubber Banding Off → long-press and drag waypoints` |
 | Mute audible alerts | `MAP → Map Settings → Audible Alerts On` (label flips to `Audible Alerts Off`) |
+| Invert map and plate colors | `MAP → Map Settings → Invert Colors Off` (label flips to `Invert Colors On`) |
 | North-up / track-up orientation | Tap the `MT` tile, or `MAP → Map Settings → North Up / Track Up` (olive tile = track up) |
 | Insert waypoint at position | `PLAN → long-press waypoint row → FIND → select destination` |
 | View winds & terrain analysis | `PLAN → analytics icon → tap diagram for details` |

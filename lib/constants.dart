@@ -39,6 +39,19 @@ class Constants {
   static Color mapBackgroundColorDark = Colors.grey.shade800;
   static Color mapBackgroundColorLight = Colors.white;
 
+  /// Inverts RGB (keeps alpha); used for the "Invert Colors" setting on map tiles and plates.
+  static const ColorFilter invertColorFilter = ColorFilter.matrix(<double>[
+    -1, 0, 0, 0, 255,
+    0, -1, 0, 0, 255,
+    0, 0, -1, 0, 255,
+    0, 0, 0, 1, 0,
+  ]);
+
+  /// Wraps a map tile layer so its colors are inverted when the setting is on.
+  static Widget invertIfNeeded(Widget layer, bool invert) {
+    return invert ? ColorFiltered(colorFilter: invertColorFilter, child: layer) : layer;
+  }
+
   static Color appBarBackgroundColor = Colors.transparent;
   static Color waypointBackgroundColor = Colors.black26.withAlpha(156);
 

@@ -46,6 +46,15 @@ class AppSettings {
     provider.setBool("key-light-mode", lightMode);
   }
 
+  /// Inverts colors of map tiles (chart, topo) and plates.
+  bool isInvertColors() {
+    return provider.getValue("key-invert-colors", defaultValue: false) as bool;
+  }
+
+  void setInvertColors(bool value) {
+    provider.setBool("key-invert-colors", value);
+  }
+
   void setZoom(double zoom) {
     provider.setDouble("key-chart-zoom", zoom);
   }

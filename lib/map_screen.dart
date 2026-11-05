@@ -597,6 +597,7 @@ class MapScreenState extends State<MapScreen> {
 
     //add layers
     final List<Widget> layers = [];
+    final bool invertColors = Storage().settings.isInvertColors();
 
     final TileLayer chartLayer = TileLayer(
         tms: true,
@@ -674,12 +675,12 @@ class MapScreenState extends State<MapScreen> {
     int lIndex = _layers.indexOf('Topo');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: _topoLayer));
+      layers.add(Opacity(opacity: opacity, child: Constants.invertIfNeeded(_topoLayer, invertColors)));
     }
     lIndex = _layers.indexOf('Chart');
     opacity = _layersOpacity[lIndex];
     if (opacity > 0) {
-      layers.add(Opacity(opacity: opacity, child: chartLayer));
+      layers.add(Opacity(opacity: opacity, child: Constants.invertIfNeeded(chartLayer, invertColors)));
     }
 
     // MBTiles vector/raster map layer
@@ -1751,6 +1752,7 @@ class MapScreenState extends State<MapScreen> {
     final bool alerts = Storage().settings.isAudibleAlertsEnabled();
     final bool measuring = _ruler.isMeasuring();
     final bool rubberBanding = Storage().settings.isRubberBanding();
+    final bool invertColors = Storage().settings.isInvertColors();
     return [
       _MapSetting(
         icon: MdiIcons.mathCompass,
@@ -1772,6 +1774,16 @@ class MapScreenState extends State<MapScreen> {
         onTap: () {
           setState(() {
             Storage().settings.setRubberBanding(!rubberBanding);
+          });
+        },
+      ),
+      _MapSetting(
+        icon: Icons.invert_colors,
+        label: invertColors ? "Invert Colors On" : "Invert Colors Off",
+        isOn: invertColors,
+        onTap: () {
+          setState(() {
+            Storage().settings.setInvertColors(!invertColors);
           });
         },
       ),

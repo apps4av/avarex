@@ -1227,6 +1227,10 @@ class _PlatePainter extends CustomPainter {
   final _paint = Paint()
     ..isAntiAlias = true
     ..filterQuality = FilterQuality.high;
+  final _paintPlate = Paint()
+    ..isAntiAlias = true
+    ..filterQuality = FilterQuality.high;
+
   // Define a paint object for circle
   final _paintCenter = Paint()
     ..style = PaintingStyle.fill
@@ -1317,7 +1321,9 @@ class _PlatePainter extends CustomPainter {
       canvas.save();
       canvas.translate(0, 0);
       canvas.scale(fac);
-      canvas.drawImage(_image!, const Offset(0, 0), _paint);
+      // only the plate itself is inverted; overlays keep their colors
+      _paintPlate.colorFilter = Storage().settings.isInvertColors() ? Constants.invertColorFilter : null;
+      canvas.drawImage(_image!, const Offset(0, 0), _paintPlate);
 
       if(_terrainCells.isNotEmpty) {
         _drawTerrainOverlay(canvas);

@@ -316,15 +316,18 @@ class _EmergencyMapScreenState extends State<EmergencyMapScreen> with SingleTick
       mapController: _controller,
       options: options,
       children: [
-        TileLayer(
-          tms: true,
-          maxNativeZoom: _zoom,
-          keepBuffer: 1,
-          tileProvider: ChartTileProvider(),
-          urlTemplate: "${Storage().dataDir}/tiles/"
-              "${ChartCategory.chartTypeToIndex(_chartType)}/"
-              "{z}/{x}/{y}."
-              "${ChartCategory.chartTypeToExtension(_chartType)}",
+        Constants.invertIfNeeded(
+          TileLayer(
+            tms: true,
+            maxNativeZoom: _zoom,
+            keepBuffer: 1,
+            tileProvider: ChartTileProvider(),
+            urlTemplate: "${Storage().dataDir}/tiles/"
+                "${ChartCategory.chartTypeToIndex(_chartType)}/"
+                "{z}/{x}/{y}."
+                "${ChartCategory.chartTypeToExtension(_chartType)}",
+          ),
+          Storage().settings.isInvertColors(),
         ),
         IgnorePointer(
           child: AnimatedBuilder(
