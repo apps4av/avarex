@@ -1,3 +1,3 @@
-Added the `RES` instrument tile. It shows the app's memory use in MB, current on top and maximum below.
-Added `Invert Colors` in Map Settings. It inverts the colors of the chart and topo map tiles and of plates.
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
+Added the `CSUP` tab, right of `PLATE`. It shows the Chart Supplement for the `PLATE` airport: the airport text page first, then the airport's CSUP pages, then the regional CSUP PDFs you have downloaded. CSUP pages are no longer in the `PLATE` list.
+Added a `CSUP` button after `Plates` on the destination popup.
+Changed the destination popup and `CSUP` text page to a new header card with the identifier, name, elevation, and distance.

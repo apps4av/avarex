@@ -165,7 +165,7 @@ class PlatesFuture {
 
     _plates = [];
     if(_currentPlateAirport.isNotEmpty) {
-      _plates = await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, _currentPlateAirport);
+      _plates = await PathUtils.getPlatesSorted(Storage().dataDir, _currentPlateAirport);
       _procedures = await MainDatabaseHelper.db.findProcedures(_currentPlateAirport);
       _airportDestination = await MainDatabaseHelper.db.findAirport(_currentPlateAirport);
       // Businesses drawn on the airport diagram come from the crowd-sourced
@@ -1161,8 +1161,6 @@ class PlateScreenState extends State<PlateScreen> {
       return Icons.satellite_alt;
     } else if (name.startsWith("APD")) {
       return Icons.local_airport;
-    } else if (name.startsWith("CSUP")) {
-      return Icons.info;
     } else if (name.startsWith("DP")) {
       return Icons.flight_takeoff;
     } else if (name.startsWith("IAP")) {
@@ -1185,9 +1183,6 @@ class PlateScreenState extends State<PlateScreen> {
     }
     else if(name.startsWith("APD")) {
       return Colors.green;
-    }
-    else if(name.startsWith("CSUP")) {
-      return Colors.blue;
     }
     else if(name.startsWith("DP")) {
       return Colors.pinkAccent;

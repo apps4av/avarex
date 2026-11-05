@@ -254,6 +254,9 @@ class Storage {
   // to move the plate
   String lastPlateAirport = "";
   String currentPlate = "";
+  // CSUP tab: page being shown, and the airport it was chosen for
+  String currentCsup = "";
+  String lastCsupAirport = "";
   List<double>? matrixPlate;
   bool dataExpired = false;
   bool chartsMissing = false;
@@ -807,7 +810,7 @@ class Storage {
   // Fills in the plate image when the plate screen is not showing. If the
   // screen, a long-press, or a profile already chose a plate, leave it.
   Future<void> _loadSyncedPlate(int token, String airportId) async {
-    List<String> plates = await PathUtils.getPlatesAndCSupSorted(dataDir, airportId);
+    List<String> plates = await PathUtils.getPlatesSorted(dataDir, airportId);
     if(token != _plateSyncToken) {
       return;
     }

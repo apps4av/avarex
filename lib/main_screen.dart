@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avaremp/community/notifications_screen.dart';
+import 'package:avaremp/csup_screen.dart';
 import 'package:avaremp/onboarding_screen.dart';
 import 'package:avaremp/services/app_notice_service.dart';
 import 'package:avaremp/plan/plan_screen.dart';
@@ -28,14 +29,15 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
 
   static const tabLocationMap = 0;
   static const tabLocationPlates = 1;
-  static const tabLocationPlan = 2;
-  static const tabLocationFind = 3;
+  static const tabLocationCsup = 2;
+  static const tabLocationPlan = 3;
+  static const tabLocationFind = 4;
 
   bool _drawerOpen = false;
   int _selectedIndex = tabLocationMap; // for various tab screens
   // Map is showing at launch. Plate is built on the first visit and then kept,
   // so switching between Map and Plate does not reload the chart or the plate.
-  final List<bool> _tabMounted = [true, false, false, false];
+  final List<bool> _tabMounted = [true, false, false, false, false];
   bool _noticesOpen = false;
   DateTime _noticesCheckedAt = DateTime.fromMillisecondsSinceEpoch(0);
 
@@ -45,6 +47,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
   MainScreenState() {
     _widgetOptions.insert(tabLocationMap, const MapScreen());
     _widgetOptions.insert(tabLocationPlates, const PlateScreen());
+    _widgetOptions.insert(tabLocationCsup, const CsupScreen());
     _widgetOptions.insert(tabLocationPlan, const PlanScreen());
     _widgetOptions.insert(tabLocationFind, FindScreen());
   }
@@ -153,6 +156,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
     final BottomNavigationBar navigationBar = Storage()
         .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
     navigationBar.onTap!(tabLocationPlates); // go to plate screen
+  }
+
+  static void gotoCsup() {
+    final BottomNavigationBar navigationBar = Storage()
+        .globalKeyBottomNavigationBar.currentWidget as BottomNavigationBar;
+    navigationBar.onTap!(tabLocationCsup); // go to CSUP screen
   }
 
   static void gotoFind() {
@@ -572,7 +581,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
               BottomNavigationBarItem(
                 icon: Icon(Icons.book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
                 label: 'PLATE',
-                tooltip: "Look at approach plates, airport diagrams, CSUP, Minimums, etc.",
+                tooltip: "Look at approach plates, airport diagrams, Minimums, etc.",
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.menu_book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
+                label: 'CSUP',
+                tooltip: "Look at the Chart Supplement (CSUP) for the airport",
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.route, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),

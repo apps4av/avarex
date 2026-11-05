@@ -15,6 +15,15 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.142**
+
+- Added the `CSUP` tab, right of `PLATE`. It shows the Chart Supplement for the `PLATE` airport: the airport text page first, then the airport's CSUP pages, then the regional CSUP PDFs you have downloaded. CSUP pages are no longer in the `PLATE` list.
+- Added a `CSUP` button after `Plates` on the destination popup.
+- Changed the destination popup and `CSUP` text page to a new header card with the identifier, name, elevation, and distance.
+- Changed Map Settings: `Profiles` are now at the top, above the other settings, with a divider. `Invert Colors` is now last.
+- Changed `FIND`: tapping a row now sets Direct-To, and the left icon (now labeled `info`) opens the popup. When `FIND` is opened from the `PLAN` insert button, tapping a row inserts it into the plan.
+- Added toasts when you set a destination or insert or append a waypoint in the plan.
+
 **0.0.141**
 
 - Added the `RES` instrument tile. It shows the app's memory use in MB, current on top and maximum below.
@@ -231,16 +240,17 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 
 After onboarding, the app opens to `MainScreen` with:
 
-- **Bottom tabs**: `MAP`, `PLATE`, `PLAN`, `FIND`
+- **Bottom tabs**: `MAP`, `PLATE`, `CSUP`, `PLAN`, `FIND`
 - **Left drawer menu** (opened by `Menu` button on map)
 - **Warnings drawer** (right side, opened by red warning icon when issues exist)
 
 ### 3.1 Bottom tabs
 
 1. **MAP** — moving map, overlays, weather, traffic, route visualization, tools.
-2. **PLATE** — approach plates/airport diagrams/CSUP with ownship overlay.
-3. **PLAN** — build, edit, brief/file, and manage flight plans.
-4. **FIND** — search destinations, recent list, nearest-airport shortcuts.
+2. **PLATE** — approach plates/airport diagrams/minimums with ownship overlay.
+3. **CSUP** — Chart Supplement pages and airport text page for the `PLATE` airport.
+4. **PLAN** — build, edit, brief/file, and manage flight plans.
+5. **FIND** — search destinations, recent list, nearest-airport shortcuts.
 
 ### 3.2 Drawer menu entries
 
@@ -303,12 +313,12 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 #### Map Settings popup
 Tap the gear icon in the bottom-right control row to open the `Map Settings` list. Each label shows that setting's current state, and active settings are highlighted. Tap the close (X) icon or outside the popup to dismiss it.
 
+- **Profiles** (top of the Map Settings list, above all the settings, with a divider under it): tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile. The red `Emergency` profile is always first. It opens the Emergency map instead of applying settings (see 9.4.2).
 - **Measure Distance On / Measure Distance Off**: toggles measure mode; long-press map to add points.
 - **Rubber Banding On / Rubber Banding Off**: toggles dragging route waypoints directly on map.
-- **Invert Colors On / Invert Colors Off**: inverts the colors of the `Chart` and `Topo` map tiles (also on the Emergency map) and of the plate picture on the `PLATE` tab. Ownship, routes, terrain warnings, and other layers keep their normal colors. Off by default, and the choice is remembered.
 - **Audible Alerts On / Audible Alerts Off**: toggles audible alerts (traffic, GPWS, runway awareness).
 - **North Up / Track Up**: shows the current orientation mode; tap to switch. Tapping the **MT** instrument tile does the same thing. The tile is olive in track-up and the normal tile color in north-up.
-- **Profiles**: tap the `Profiles` heading to open the Profile screen, where a name can be saved and a profile deleted. Saved profiles are listed under the heading by name. Tap a name to apply the items that were checked for that profile. The red `Emergency` profile is always first. It opens the Emergency map instead of applying settings (see 9.4.2).
+- **Invert Colors On / Invert Colors Off**: inverts the colors of the `Chart` and `Topo` map tiles (also on the Emergency map) and of the plate picture on the `PLATE` tab. Ownship, routes, terrain warnings, and other layers keep their normal colors. Off by default, and the choice is remembered. It is the last item in the list.
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` and `RES` tiles).
@@ -497,6 +507,7 @@ Alerts share the global **Audible Alerts** control (`MAP → Map Settings`) with
 - **+Plan**: insert destination into current plan at the current waypoint position
 - **↓Plan**: append destination to the end of the plan
 - **Plates** (airport only): jump to the `PLATE` tab for that airport, even when it is not the active waypoint
+- **CSUP** (airport only, right after `Plates`): jump to the `CSUP` tab for that airport
 
 ### 5.3 Information pages (shown when data exists)
 
@@ -528,7 +539,7 @@ If nearby alternatives exist, a horizontal "Nearby" selector appears.
 
 ### 6.2 What it does
 
-- Displays downloaded plates/diagrams/CSUP
+- Displays downloaded plates/diagrams (CSUP is on the `CSUP` tab, see 6.8)
 - Draws ownship and heading on georeferenced plates
 - Can overlay a selected business marker on airport diagrams (from the crowd-sourced Airport Businesses directory; iOS/Android/Windows/macOS, sign-in required)
 - Supports zoom/pan via InteractiveViewer (up to 8x)
@@ -570,7 +581,6 @@ Route geometry follows the CIFP fix sequence in the databases (great-circle chor
 | Color | Plate Type |
 |-------|------------|
 | Green | Airport Diagram (APD) |
-| Blue | CSUP |
 | Pink | Departure Procedure (DP) |
 | Purple | Instrument Approach (IAP) |
 | Cyan | STAR |
@@ -601,6 +611,15 @@ Two controls on an airport diagram, stacked under the instrument toggle, can cha
 - **Sync** (sync icon): when the active waypoint changes to a different airport, switch to that airport. This runs on the `PLATE` tab and while another tab is showing. A fix, navaid, airway, or a plate already open for that same airport does not change. `Plates` on a long-pressed airport still opens that airport.
 
 Turning a control off stops only that automatic change. The airport selector, plate selector, and long-press `Plates` button still work.
+
+### 6.8 CSUP tab
+
+Bottom tab **CSUP** (right of `PLATE`) shows the Chart Supplement for the airport the `PLATE` tab is showing. CSUP pages are no longer in the `PLATE` plate selector.
+
+- Same layout as `PLATE`: zoom/pan picture, `Center` button, airport selector (bottom-right), page selector (bottom-left).
+- **Airport selector**: changing the airport here also changes it on `PLATE`, and the other way around.
+- **Page selector**: the first item, **CSUP**, shows the airport text page: the same page as the `Main` tab of a long press on the map (frequencies, runways, remarks). The other items are the airport's CSUP pages. The `CSUP` text page opens whenever the airport changes. If you pick a CSUP image, it stays on screen (also when you leave the tab and come back) until you change the airport. The last items in the list are the regional Chart Supplement books you have downloaded, such as `Northeast PDF`. Tap one to open it in the PDF viewer; closing it returns to the page you were on. These items are not shown on Linux.
+- `Invert Colors` also applies to the CSUP picture.
 
 ---
 
@@ -784,8 +803,10 @@ Type into the **Search** box to find airports, navaids, fixes, or procedures by 
 
 ### 8.3 Row actions
 
-- Tap row: opens destination popup/details
-- Tap left icon (marked `→D`): **Direct-To** the destination (same as the `→D` button on the destination popup) — sets it as your active target, shows it on the map, and switches to MAP
+- Tap row: **Direct-To** the destination (same as the `→D` button on the destination popup) — sets it as your active target, shows it on the map, and switches to MAP
+- When Find was opened from the `PLAN` tab's insert (`+`) button, tapping a row **inserts** it into the plan instead and returns to `PLAN`
+- Tap left icon (marked `info`): opens destination popup/details
+- Each of these actions shows a toast with an icon, such as `KBVY inserted in the plan`, `KBVY appended to the plan`, or `Destination set to KBVY`
 - Right-side bearing@distance button: centers map on item and switches to MAP
 - Swipe right-to-left to delete recent entry
 - For GPS-type recents, tap edit icon to modify custom facility name
@@ -2073,7 +2094,8 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
 ![Search results for `KBOS` — airport at the top with `AIRPORT` chip; matching procedures listed below](assets/docs/screenshots/30_find_tab_search_kbos.png)
 
 4. Each row supports several actions:
-   - **Tap row** — open the destination popup with airport info, plates, METAR/TAF, NOTAMs, etc.
+   - **Tap row** — Direct-To that destination and switch to MAP.
+   - **Tap the left icon (marked `info`)** — open the destination popup with airport info, plates, METAR/TAF, NOTAMs, etc.
    - **Tap the bearing/distance pill on the right** — center the map on that destination and switch to MAP.
    - **Swipe right-to-left** — delete an entry from the Recent list.
    - For GPS-coordinate recent entries, an **edit (pencil) icon** lets you set a custom facility name.
@@ -2083,6 +2105,7 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
    - **Hold** beside the name and type on the Main tab of a fix or navaid opens the holding-pattern dialog
    - **↓Plan** append to the end of the plan
    - **Plates** (airports) jump to the PLATE tab for that airport, even when it is not the active waypoint
+   - **CSUP** (airports) jumps to the CSUP tab for that airport
 
 ---
 

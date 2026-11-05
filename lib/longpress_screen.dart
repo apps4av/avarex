@@ -1,4 +1,3 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:avaremp/ai/ai_screen.dart';
 import 'package:avaremp/business/airport_businesses_gate.dart';
 import 'package:avaremp/data/main_database_helper.dart';
@@ -25,6 +24,7 @@ import 'package:latlong2/latlong.dart';
 import 'destination/airport.dart';
 import 'constants.dart';
 import 'package:avaremp/destination/destination.dart';
+import 'package:avaremp/destination/destination_header.dart';
 import 'weather/metar.dart';
 
 class LongPressScreen extends StatefulWidget {
@@ -109,9 +109,11 @@ class LongPressScreenState extends State<LongPressScreen> {
     double distance = geo.calculateDistance(ll, widget.destinations[0].coordinate);
     double bearing = geo.calculateBearing(ll, widget.destinations[0].coordinate);
     String direction = ("${distance.round()} ${GeoCalculations.getGeneralDirectionFrom(bearing, Storage().area.variation)}");
-    String facility = showDestination.facilityName.length > 16 ? showDestination.facilityName.substring(0, 16) : showDestination.facilityName;
     List<Widget?> pages = List.generate(labels.length, (index) => null);
-    String label = "$facility (${showDestination.locationID}) $direction${showDestination.elevation != null ? "; EL ${showDestination.elevation!.round()}" : ""}";
+    final String titleName = showDestination.facilityName.trim();
+    final bool showTitleName = titleName.isNotEmpty &&
+        titleName.toUpperCase() != showDestination.locationID.trim().toUpperCase() &&
+        titleName.toUpperCase() != showDestination.type.toUpperCase();
 
     if (showDestination is AirportDestination) {
 
@@ -429,7 +431,22 @@ class LongPressScreenState extends State<LongPressScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: AutoSizeText(label, maxLines: 2, minFontSize: 10, maxFontSize: 16, style: const TextStyle(fontWeight: FontWeight.w700),),
+        toolbarHeight: 84,
+        titleSpacing: 0,
+        title: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: DestinationHeader(
+            icon: showDestination is AirportDestination
+                ? const Icon(Icons.local_airport)
+                : DestinationFactory.getIcon(showDestination.type, Colors.white),
+            id: showDestination.locationID,
+            name: showTitleName ? titleName : "",
+            chips: [
+              if (showDestination.elevation != null) (Icons.terrain, "${showDestination.elevation!.round()} ft"),
+              (Icons.near_me_outlined, direction),
+            ],
+          ),
+        ),
       ),
       body: Column(
         children: [
@@ -445,6 +462,12 @@ class LongPressScreenState extends State<LongPressScreen> {
                       Storage().setDestination(showDestination);
                       MapScreenState.showOnMap(showDestination.coordinate);
                       MainScreenState.gotoMap();
+                      Toast.showToast(
+                        context,
+                        "Destination set to ${showDestination.locationID}",
+                        Icon(Icons.near_me, size: 20, color: Theme.of(context).colorScheme.primary),
+                        3,
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
@@ -452,7 +475,12 @@ class LongPressScreenState extends State<LongPressScreen> {
                     child: const Text("+Plan"),
                     onPressed: () {
                       Storage().route.insertWaypoint(Waypoint(showDestination));
-                      Toast.showToast(context, "Inserted ${showDestination.facilityName} to Plan", null, 2);
+                      Toast.showToast(
+                        context,
+                        "${showDestination.locationID} inserted in the plan",
+                        Icon(Icons.playlist_add, size: 20, color: Theme.of(context).colorScheme.primary),
+                        3,
+                      );
                       Navigator.of(context).pop();
                       if(Storage().planSearch) {
                         Storage().planSearch = false;
@@ -464,7 +492,12 @@ class LongPressScreenState extends State<LongPressScreen> {
                     child: const Text("\u2193Plan"),
                     onPressed: () {
                       Storage().route.addWaypoint(Waypoint(showDestination));
-                      Toast.showToast(context, "Appended ${showDestination.facilityName} to Plan", null, 2);
+                      Toast.showToast(
+                        context,
+                        "${showDestination.locationID} appended to the plan",
+                        Icon(Icons.playlist_add, size: 20, color: Theme.of(context).colorScheme.primary),
+                        3,
+                      );
                       Navigator.of(context).pop();
                     },
                   ),
@@ -475,6 +508,16 @@ class LongPressScreenState extends State<LongPressScreen> {
                         Storage().settings.setCurrentPlateAirport(showDestination.locationID);
                         UserDatabaseHelper.db.addRecent(showDestination);
                         MainScreenState.gotoPlate();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  if (showDestination is AirportDestination)
+                    TextButton(
+                      child: const Text("CSUP"),
+                      onPressed: () {
+                        Storage().settings.setCurrentPlateAirport(showDestination.locationID);
+                        UserDatabaseHelper.db.addRecent(showDestination);
+                        MainScreenState.gotoCsup();
                         Navigator.of(context).pop();
                       },
                     ),

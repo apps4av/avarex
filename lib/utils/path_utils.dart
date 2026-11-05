@@ -282,21 +282,27 @@ class PathUtils {
   }
 
 
-  static Future<List<String>> getPlatesAndCSupSorted(String base, String airportId) async {
-    List<String> plates = [];
-    List<String> csup = [];
-
+  /// Plates for the airport (approaches, diagrams, minimums, etc.), sorted.
+  /// CSUP pages are not included; they are on the CSUP tab, see [getCsupSorted].
+  static Future<List<String>> getPlatesSorted(String base, String airportId) async {
     //XXX: Plates and CSUP are not in ICAO
     String airport = await MainDatabaseHelper.db.getFaaName(airportId);
 
-    plates = await _getPlateNames(base, airport);
-    csup = await _getCsupNames(base, airport);
-    plates.addAll(csup);
-
-    // combine plates and csup
-    plates = plates.toSet().toList();
+    List<String> plates = await _getPlateNames(base, airport);
+    plates = plates.where((String name) => !_expCsup.hasMatch(name)).toSet().toList();
     plates.sort();
     return(plates);
+  }
+
+  /// CSUP pages for the airport as page name to image file path, sorted by name.
+  static Future<Map<String, String>> getCsupPaths(String base, String airportId) async {
+    //XXX: Plates and CSUP are not in ICAO
+    String airport = await MainDatabaseHelper.db.getFaaName(airportId);
+
+    List<String> csup = await _getCsupNames(base, airport);
+    csup = csup.toSet().toList();
+    csup.sort();
+    return { for (final String name in csup) name: _getCsupFilePath(base, airport, name) };
   }
 
   static Future<String> getPlatePath(String base, String airportId, String name) async {
@@ -325,7 +331,7 @@ class PathUtils {
 
 
   static Future<String?> getAirportDiagram(String base, String airportId) async {
-    List<String> plates = await PathUtils.getPlatesAndCSupSorted(base, airportId);
+    List<String> plates = await PathUtils.getPlatesSorted(base, airportId);
     if (plates.isNotEmpty && isAirportDiagram(plates[0])) {
       return getPlatePath(base, airportId, plates[0]);
     }

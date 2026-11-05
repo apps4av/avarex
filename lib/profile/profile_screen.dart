@@ -847,7 +847,7 @@ class SettingsProfileScreenState extends State<SettingsProfileScreen> {
   }
 }
 
-/// Profile list shown under Map Settings. Selecting one applies that profile.
+/// Profile list shown at the top of Map Settings, above the settings. Selecting one applies that profile.
 class ProfileToolsList extends StatefulWidget {
   final VoidCallback onApplied;
 
@@ -885,7 +885,6 @@ class _ProfileToolsListState extends State<ProfileToolsList> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Divider(height: 16),
             InkWell(
               onTap: _openProfileScreen,
               child: Padding(
@@ -920,7 +919,8 @@ class _ProfileToolsListState extends State<ProfileToolsList> {
             else
               for (final SettingsProfile profile in profiles)
                 _profileRow(profile),
-            const SizedBox(height: 8),
+            // separates the profiles from the settings listed under them
+            const Divider(height: 16),
           ],
         );
       },

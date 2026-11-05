@@ -1778,16 +1778,6 @@ class MapScreenState extends State<MapScreen> {
         },
       ),
       _MapSetting(
-        icon: Icons.invert_colors,
-        label: invertColors ? "Invert Colors On" : "Invert Colors Off",
-        isOn: invertColors,
-        onTap: () {
-          setState(() {
-            Storage().settings.setInvertColors(!invertColors);
-          });
-        },
-      ),
-      _MapSetting(
         icon: alerts ? Icons.volume_up : Icons.volume_off,
         label: alerts ? "Audible Alerts On" : "Audible Alerts Off",
         isOn: alerts,
@@ -1803,6 +1793,17 @@ class MapScreenState extends State<MapScreen> {
         isOn: !_northUp,
         onTap: () {
           Storage().toggleNorthUp();
+        },
+      ),
+      // last item in the list
+      _MapSetting(
+        icon: Icons.invert_colors,
+        label: invertColors ? "Invert Colors On" : "Invert Colors Off",
+        isOn: invertColors,
+        onTap: () {
+          setState(() {
+            Storage().settings.setInvertColors(!invertColors);
+          });
         },
       ),
     ];
@@ -2316,10 +2317,11 @@ class _SettingSelectorOverlayState extends State<_SettingSelectorOverlay> {
                     shrinkWrap: true,
                     itemCount: settings.length + 1,
                     itemBuilder: (context, index) {
-                      if (index == settings.length) {
+                      // profiles first, then a divider, then the settings
+                      if (index == 0) {
                         return ProfileToolsList(onApplied: widget.onProfileApplied);
                       }
-                      final _MapSetting setting = settings[index];
+                      final _MapSetting setting = settings[index - 1];
                       return InkWell(
                         onTap: () {
                           setting.onTap();

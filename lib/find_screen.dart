@@ -1,7 +1,9 @@
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/map_screen.dart';
+import 'package:avaremp/plan/waypoint.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/utils/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'constants.dart';
@@ -178,17 +180,12 @@ class FindScreenState extends State<FindScreen> {
                             margin: const EdgeInsets.symmetric(vertical: 2),
                             child: ListTile(
                               leading: InkWell(
-                                // Tapping the icon does a Direct-To, same as the
-                                // "->D" button on the destination long-press popup.
-                                onTap: () async {
-                                  // List items come straight from the DB query and are
-                                  // not expanded into their concrete types (airway,
-                                  // procedure, airport, etc). Expand first so the plan
-                                  // can process the destination correctly.
-                                  Destination expanded = await DestinationFactory.make(item);
-                                  Storage().setDestination(expanded);
-                                  MapScreenState.showOnMap(expanded.coordinate);
-                                  MainScreenState.gotoMap();
+                                // Tapping the icon opens the destination info popup,
+                                // the same one a long press on the map opens.
+                                onTap: () {
+                                  setState(() {
+                                    MapScreenState.showDestination(context, [item]);
+                                  });
                                 },
                                 borderRadius: BorderRadius.circular(8),
                                 child: Column(
@@ -197,7 +194,7 @@ class FindScreenState extends State<FindScreen> {
                                   children: [
                                     DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary),
                                     Text(
-                                      "\u2192D",
+                                      "info",
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -319,10 +316,41 @@ class FindScreenState extends State<FindScreen> {
                                   ),
                                 ),
                               ),
-                              onTap: () {
-                                setState(() {
-                                  MapScreenState.showDestination(context, [item]);
-                                });
+                              // Tapping the tile does a Direct-To, same as the
+                              // "->D" button on the destination popup. When Find was
+                              // opened from the plan's insert button, it inserts the
+                              // destination into the plan instead.
+                              onTap: () async {
+                                // List items come straight from the DB query and are
+                                // not expanded into their concrete types (airway,
+                                // procedure, airport, etc). Expand first so the plan
+                                // can process the destination correctly.
+                                Destination expanded = await DestinationFactory.make(item);
+                                if (Storage().planSearch) {
+                                  Storage().route.insertWaypoint(Waypoint(expanded));
+                                  if (context.mounted) {
+                                    Toast.showToast(
+                                      context,
+                                      "${expanded.locationID} inserted in the plan",
+                                      Icon(Icons.playlist_add, size: 20, color: Theme.of(context).colorScheme.primary),
+                                      3,
+                                    );
+                                  }
+                                  Storage().planSearch = false;
+                                  MainScreenState.gotoPlan();
+                                  return;
+                                }
+                                Storage().setDestination(expanded);
+                                MapScreenState.showOnMap(expanded.coordinate);
+                                MainScreenState.gotoMap();
+                                if (context.mounted) {
+                                  Toast.showToast(
+                                    context,
+                                    "Destination set to ${expanded.locationID}",
+                                    Icon(Icons.near_me, size: 20, color: Theme.of(context).colorScheme.primary),
+                                    3,
+                                  );
+                                }
                               },
                             ),
                           ),
