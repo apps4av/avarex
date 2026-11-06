@@ -1,5 +1,6 @@
 import 'package:avaremp/utils/geojson_parser.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 // Real-world data from COPA_Practice_Areas_v7/KBJC Practice Areas.geojson
 // (Colorado pattern practice areas around KBJC).
@@ -55,5 +56,50 @@ void main() {
       '{"type":"Feature","properties":null,"geometry":{"type":"Point","coordinates":[-104.99,40.22]}}',
     );
     expect(parser.markers, hasLength(1));
+  });
+
+  test("multiPoint features become one marker per point", () async {
+    final GeoJsonParser parser = GeoJsonParser();
+    await parser.parse(
+      '{"type":"Feature","properties":{"Name":"Two Points"},"geometry":{"type":"MultiPoint","coordinates":[[-104.9,40.2],[-105.0,40.3]]}}',
+    );
+    expect(parser.polygons, isEmpty);
+    expect(parser.markers, hasLength(2));
+    expect(parser.markers[0].point, LatLng(40.2, -104.9));
+    expect(parser.markers[1].point, LatLng(40.3, -105.0));
+  });
+
+  test("multiPolygon features become one polygon per ring with transformed labels", () async {
+    final GeoJsonParser parser = GeoJsonParser();
+    await parser.parse(
+      '{"type":"Feature","properties":{"Name":"Split Range","Id":"42"},"geometry":{"type":"MultiPolygon","coordinates":[[[[-104.9,40.2],[-104.8,40.2],[-104.8,40.3],[-104.9,40.2]]],[[[-105.1,40.4],[-105.0,40.4],[-105.0,40.5],[-105.1,40.4]]]]}}',
+    );
+    expect(parser.polygons, hasLength(2));
+    expect(parser.markers, isEmpty);
+    // Multi-property labels are Dart Map.toString() output, then the
+    // comma-to-newline and outer-brace-strip transform is applied.
+    expect(parser.polygons[0].label, "Name: Split Range\n Id: 42");
+    expect(parser.polygons[1].label, "Name: Split Range\n Id: 42");
+  });
+
+  test("features without geometry are skipped", () async {
+    // Note: the geometry key must be present (even as null) — geojson_vi
+    // 2.2.5 asserts map.containsKey('geometry') and rejects features that
+    // omit it, even though RFC 7946 allows omission.
+    final GeoJsonParser parser = GeoJsonParser();
+    await parser.parse(
+      '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"Name":"No Geometry"},"geometry":null}]}',
+    );
+    expect(parser.polygons, isEmpty);
+    expect(parser.markers, isEmpty);
+  });
+
+  test("unsupported geometry types are ignored without crashing", () async {
+    final GeoJsonParser parser = GeoJsonParser();
+    await parser.parse(
+      '{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"Name":"Line"},"geometry":{"type":"LineString","coordinates":[[-104.9,40.2],[-104.8,40.3]]}},{"type":"Feature","properties":{"Name":"Multi Line"},"geometry":{"type":"MultiLineString","coordinates":[[[-104.9,40.2],[-104.8,40.3]],[[-105.1,40.4],[-105.0,40.5]]]}},{"type":"Feature","properties":{"Name":"Geom Coll"},"geometry":{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[-104.9,40.2]}]}}]}',
+    );
+    expect(parser.polygons, isEmpty);
+    expect(parser.markers, isEmpty);
   });
 }
