@@ -479,7 +479,7 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             },
                           ),
                       ],
-                      if (Constants.shouldShowBluetoothSpp || Constants.shouldShowDeviceLink) ...[
+                      if (Constants.shouldShowBluetoothSpp || Constants.shouldShowDeviceLink || Constants.shouldShowVisualTraffic) ...[
                         const SizedBox(height: 8),
                         _buildSectionHeader(context, "Connectivity"),
                         if (Constants.shouldShowDeviceLink)
@@ -491,6 +491,17 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                             onTap: () {
                               Navigator.pop(context);
                               Navigator.pushNamed(context, '/link');
+                            },
+                          ),
+                        if (Constants.shouldShowVisualTraffic)
+                          _buildMenuItem(
+                            context,
+                            icon: Icons.flight_takeoff,
+                            title: "Visual Traffic",
+                            subtitle: "Find aircraft with the camera",
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.pushNamed(context, '/visualtraffic');
                             },
                           ),
                         if (Constants.shouldShowBluetoothSpp)

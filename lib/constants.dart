@@ -131,6 +131,9 @@ class Constants {
   static final bool shouldShowBluetoothSpp = (Platform.isAndroid);
   // Phones and tablets on the same Wi-Fi can share a plan. No sockets on web.
   static final bool shouldShowDeviceLink = !kIsWeb;
+  // Camera-based aircraft spotting (Visual Traffic) needs a phone or tablet
+  // camera and on-device ML, so it is limited to iOS and Android.
+  static final bool shouldShowVisualTraffic = !kIsWeb && (Platform.isIOS || Platform.isAndroid);
   static final bool shouldShouldReview = (Platform.isMacOS || Platform.isIOS | Platform.isAndroid || Platform.isWindows);
   static final bool shouldShowProServices = (Platform.isIOS || Platform.isAndroid);
 

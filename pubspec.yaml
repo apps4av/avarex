@@ -86,6 +86,10 @@ dependencies:
   sqlite3_flutter_libs: any
   universal_io: ^2.2.2
   flutter_bluetooth_serial_ble: ^0.5.0
+  # Visual Traffic: camera preview, device attitude, on-device TFLite detector.
+  camera: ^0.11.0
+  sensors_plus: ^6.1.0
+  flutter_litert: ^3.9.4
   # 2024-07-20 Shane Lenagh: Old MSVC library crash issue workaround (for audioplayers in audible alerts): https://github.com/YehudaKremer/msix/issues/272#issuecomment-2181634105
   msvcredist:
     git:
@@ -170,6 +174,7 @@ flutter:
   - assets/audio/traffic_alerts/
   - assets/audio/gpws/
   - assets/audio/runway_incursion/
+  - assets/models/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

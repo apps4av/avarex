@@ -24,6 +24,7 @@ import 'firebase_options.dart';
 import 'io/io_screen.dart';
 import 'link/link_screen.dart';
 import 'main_screen.dart';
+import 'visual_traffic/visual_traffic_screen.dart';
 import 'scheduler/scheduler_screen.dart';
 import 'onboarding_screen.dart';
 import 'services/app_notices_screen.dart';
@@ -115,6 +116,7 @@ class MainApp extends StatelessWidget {
               '/pro': (context) => const LoginScreen(),
               if(Constants.shouldShowBluetoothSpp) '/io': (context) => const IoScreen(),
               if(Constants.shouldShowDeviceLink) '/link': (context) => const LinkScreen(),
+              if(Constants.shouldShowVisualTraffic) '/visualtraffic': (context) => const VisualTrafficScreen(),
               '/notes': (context) => const WritingScreen(),
               '/airspace3d': (context) => const Airspace3DScreen(),
               '/weather3d': (context) => const Weather3DScreen(),

@@ -492,4 +492,53 @@ class AppSettings {
     provider.setString("key-link-role", value);
   }
 
+  // Visual Traffic: camera spotting of aircraft outside the window.
+
+  /// Horizontal field of view of the phone camera, in degrees.
+  double getVisualTrafficFov() {
+    return provider.getValue("key-vt-fov", defaultValue: 65.0) as double;
+  }
+
+  void setVisualTrafficFov(double value) {
+    provider.setDouble("key-vt-fov", value);
+  }
+
+  /// 0.5 (clear targets only) to 1.5 (faint targets, more false ones).
+  double getVisualTrafficSensitivity() {
+    return provider.getValue("key-vt-sensitivity", defaultValue: 1.0) as double;
+  }
+
+  void setVisualTrafficSensitivity(double value) {
+    provider.setDouble("key-vt-sensitivity", value);
+  }
+
+  /// Extra clockwise quarter turns (0 to 3) added to the picture, for a phone
+  /// whose camera picture comes out sideways or upside down.
+  int getVisualTrafficRotation() {
+    return provider.getValue("key-vt-rotation", defaultValue: 0) as int;
+  }
+
+  void setVisualTrafficRotation(int value) {
+    provider.setInt("key-vt-rotation", value);
+  }
+
+  /// Beep and vibrate when a new airplane is boxed in red.
+  bool getVisualTrafficAlert() {
+    return provider.getValue("key-vt-alert", defaultValue: true) as bool;
+  }
+
+  void setVisualTrafficAlert(bool value) {
+    provider.setBool("key-vt-alert", value);
+  }
+
+  /// Send boxes (and the small picture, to devices that ask) to other
+  /// AvareX devices on the Wi-Fi.
+  bool getVisualTrafficShare() {
+    return provider.getValue("key-vt-share", defaultValue: true) as bool;
+  }
+
+  void setVisualTrafficShare(bool value) {
+    provider.setBool("key-vt-share", value);
+  }
+
 }

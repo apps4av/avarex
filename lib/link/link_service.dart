@@ -7,6 +7,7 @@ import 'package:avaremp/link/link_protocol.dart';
 import 'package:avaremp/plan/plan_route.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/app_log.dart';
+import 'package:avaremp/visual_traffic/detection_models.dart';
 import 'package:flutter/foundation.dart';
 import 'package:universal_io/io.dart';
 
@@ -25,6 +26,37 @@ class LinkPeer {
   LinkRole role;
   String address;
   DateTime lastSeen;
+}
+
+/// A device that is sending Visual Traffic detections, with the newest
+/// boxes and picture it sent.
+class VisualSource {
+  VisualSource({
+    required this.id,
+    required this.name,
+    required this.address,
+    required this.lastSeen,
+  });
+
+  final String id;
+  String name;
+  String address;
+  DateTime lastSeen;
+
+  DetectionFrame? frame;
+  DateTime? frameAt;
+
+  Uint8List? preview;
+  int previewWidth = 0;
+  int previewHeight = 0;
+  int previewSeq = 0;
+  DateTime? previewAt;
+}
+
+class _Watcher {
+  _Watcher(this.address, this.at);
+  String address;
+  DateTime at;
 }
 
 /// One line in the Link debug window.
@@ -68,7 +100,22 @@ class LinkService {
 
   final ValueNotifier<int> change = ValueNotifier<int>(0);
 
+  /// Ticks when Visual Traffic boxes or a picture arrive. Separate from
+  /// [change] so a busy video stream does not rebuild the Link screen.
+  final ValueNotifier<int> visualChange = ValueNotifier<int>(0);
+
+  // A camera device stops sending a viewer its picture this long after the
+  // viewer's last watch. A source drops off the viewer's list the same way.
+  static const Duration _watchFresh = Duration(seconds: 6);
+  static const Duration _sourceFresh = Duration(seconds: 6);
+  // A UDP datagram larger than this fails to send on iOS and macOS.
+  static const int _maxVisualDatagram = 9000;
+
   final Map<String, LinkPeer> _peers = {};
+  final Map<String, VisualSource> _visualSources = {};
+  final Map<String, _Watcher> _watchers = {};
+  String? _watchTarget;
+  Timer? _watchTimer;
   final List<LinkLogEntry> _log = [];
   final Map<String, _RxSeen> _seen = {};
 
@@ -187,6 +234,12 @@ class LinkService {
         _refreshSubnets();
       });
       _sendHello();
+      // A restart keeps showing the camera device that was being watched.
+      final String? watching = _watchTarget;
+      if (watching != null) {
+        _watchTarget = null;
+        watch(watching);
+      }
       change.value++;
     } catch (e) {
       if (generation != _generation) {
@@ -214,6 +267,10 @@ class LinkService {
     _socket?.close();
     _socket = null;
     _peers.clear();
+    _visualSources.clear();
+    _watchers.clear();
+    _watchTimer?.cancel();
+    _watchTimer = null;
     _pendingPlan = null;
     change.value++;
   }
@@ -256,6 +313,210 @@ class LinkService {
       return;
     }
     _sendHello();
+  }
+
+  /// Devices that sent Visual Traffic boxes in the last few seconds.
+  List<VisualSource> get visualSources {
+    final DateTime cutoff = DateTime.now().subtract(_sourceFresh);
+    final List<VisualSource> list = _visualSources.values
+        .where((VisualSource s) => s.lastSeen.isAfter(cutoff))
+        .toList();
+    list.sort((VisualSource a, VisualSource b) =>
+        a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return list;
+  }
+
+  VisualSource? visualSource(String id) => _visualSources[id];
+
+  /// Id of the camera device this device is showing, or null.
+  String? get watchTarget => _watchTarget;
+
+  /// True while some viewer has asked this device for its picture.
+  bool get hasWatchers {
+    final DateTime cutoff = DateTime.now().subtract(_watchFresh);
+    return _watchers.values.any((_Watcher w) => w.at.isAfter(cutoff));
+  }
+
+  /// Show the picture and boxes of camera device [id], or stop with null.
+  void watch(String? id) {
+    if (_watchTarget == id) {
+      return;
+    }
+    _watchTarget = id;
+    _watchTimer?.cancel();
+    _watchTimer = null;
+    if (id != null) {
+      _sendWatch();
+      _watchTimer = Timer.periodic(const Duration(seconds: 2), (_) => _sendWatch());
+    }
+    visualChange.value++;
+  }
+
+  /// Broadcasts the boxes found in one frame. Not logged.
+  void sendDetections(DetectionFrame frame) {
+    if (!_running) {
+      return;
+    }
+    final String body = LinkMessage.detections(
+      id: _id,
+      name: _name,
+      role: _role,
+      detections: frame,
+    ).encode();
+    _sendRaw(utf8.encode(body), broadcast: true, to: const []);
+  }
+
+  /// Sends the small picture to every viewer that is currently watching.
+  /// Returns false when nobody is watching or the picture is too large.
+  bool sendPreview({
+    required int seq,
+    required int width,
+    required int height,
+    required Uint8List jpeg,
+  }) {
+    if (!_running) {
+      return false;
+    }
+    final DateTime cutoff = DateTime.now().subtract(_watchFresh);
+    final List<String> addresses = _watchers.values
+        .where((_Watcher w) => w.at.isAfter(cutoff))
+        .map((_Watcher w) => w.address)
+        .toSet()
+        .toList();
+    if (addresses.isEmpty) {
+      return false;
+    }
+    final List<int> data = utf8.encode(LinkMessage.preview(
+      id: _id,
+      name: _name,
+      role: _role,
+      seq: seq,
+      width: width,
+      height: height,
+      jpeg: jpeg,
+    ).encode());
+    if (data.length > _maxVisualDatagram) {
+      return false;
+    }
+    final List<InternetAddress> targets = [];
+    for (final String address in addresses) {
+      try {
+        targets.add(InternetAddress(address));
+      } catch (_) {
+        // skip an address the stack will not send to
+      }
+    }
+    _sendRaw(data, broadcast: false, to: targets);
+    return true;
+  }
+
+  void _sendWatch() {
+    final String? target = _watchTarget;
+    if (!_running || target == null) {
+      return;
+    }
+    final VisualSource? source = _visualSources[target];
+    final List<int> data = utf8.encode(LinkMessage.watch(
+      id: _id,
+      name: _name,
+      role: _role,
+      target: target,
+    ).encode());
+    if (source != null) {
+      try {
+        _sendRaw(data, broadcast: false, to: [InternetAddress(source.address)]);
+        return;
+      } catch (_) {
+        // fall through to broadcast
+      }
+    }
+    // The source's address is not known yet. A broadcast reaches it.
+    _sendRaw(data, broadcast: true, to: const []);
+  }
+
+  void _sendRaw(List<int> data,
+      {required bool broadcast, required List<InternetAddress> to}) {
+    final RawDatagramSocket? socket = _socket;
+    if (socket == null) {
+      return;
+    }
+    final Set<String> sent = {};
+    void sendTo(InternetAddress address) {
+      if (!sent.add(address.address)) {
+        return;
+      }
+      try {
+        socket.send(data, address, LinkMessage.port);
+      } catch (e) {
+        AppLog.logMessage("Link send error: $e");
+      }
+    }
+
+    if (broadcast) {
+      sendTo(InternetAddress("255.255.255.255"));
+      for (final InternetAddress address in _subnetBroadcasts) {
+        sendTo(address);
+      }
+    }
+    for (final InternetAddress address in to) {
+      sendTo(address);
+    }
+  }
+
+  void _onVisual(LinkMessage message, String address) {
+    final DateTime now = DateTime.now();
+    if (message.isWatch) {
+      if (message.target == _id) {
+        final _Watcher? existing = _watchers[message.id];
+        if (existing == null) {
+          _watchers[message.id] = _Watcher(address, now);
+        } else {
+          existing.address = address;
+          existing.at = now;
+        }
+      }
+      return;
+    }
+    final VisualSource source = _visualSources.putIfAbsent(
+      message.id,
+      () => VisualSource(
+        id: message.id,
+        name: message.name,
+        address: address,
+        lastSeen: now,
+      ),
+    );
+    source.name = message.name;
+    source.address = address;
+    source.lastSeen = now;
+    if (message.isDetections) {
+      final DetectionFrame? frame = message.detections;
+      final DetectionFrame? previous = source.frame;
+      final DateTime? previousAt = source.frameAt;
+      // Datagrams can arrive out of order. A sender that restarted begins
+      // again at a low sequence number, so accept after a short silence.
+      if (frame != null &&
+          (previous == null ||
+              frame.seq > previous.seq ||
+              previousAt == null ||
+              now.difference(previousAt) > const Duration(seconds: 2))) {
+        source.frame = frame;
+        source.frameAt = now;
+      }
+    } else if (message.isPreview) {
+      final Uint8List? jpeg = message.preview;
+      if (jpeg != null &&
+          (message.previewSeq >= source.previewSeq ||
+              source.previewAt == null ||
+              now.difference(source.previewAt!) > const Duration(seconds: 2))) {
+        source.preview = jpeg;
+        source.previewWidth = message.previewWidth;
+        source.previewHeight = message.previewHeight;
+        source.previewSeq = message.previewSeq;
+        source.previewAt = now;
+      }
+    }
+    visualChange.value++;
   }
 
   void clearLog() {
@@ -468,6 +729,10 @@ class LinkService {
     if (message.id == _id) {
       return;
     }
+    if (message.isVisual) {
+      _onVisual(message, address);
+      return;
+    }
     if (_isDuplicate(message, raw)) {
       return;
     }
@@ -602,6 +867,11 @@ class LinkService {
     if (_peers.length != before) {
       change.value++;
     }
+    final DateTime visualCutoff = DateTime.now().subtract(const Duration(seconds: 30));
+    _visualSources.removeWhere(
+        (_, VisualSource source) => source.lastSeen.isBefore(visualCutoff));
+    _watchers.removeWhere(
+        (_, _Watcher watcher) => watcher.at.isBefore(visualCutoff));
   }
 
   Future<void> _refreshSubnets() async {

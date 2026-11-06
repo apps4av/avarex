@@ -235,6 +235,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 | CAP Grid layer                                                                                   | All supported platforms |
 | Bluetooth IO screen                                                                              | **Android only** |
 | Device Link (one device shares the plan with the others over Wi-Fi)                             | Not available on web |
+| Visual Traffic (camera finds aircraft; a second phone can watch over Link)                       | **iOS and Android only** |
 | Plan Transfer to/from Avidyne IFD (Wi-Fi)                                                        | All supported platforms |
 | Avidyne IFD ADS-B traffic & weather (Capstone GDL90 over Wi-Fi)                                  | All supported platforms |
 | Flight Intelligence (Pro)                                                                        | **iOS and Android only** |
@@ -270,7 +271,7 @@ Open from MAP with **Menu** button (bottom-left). Items are grouped by section h
 - **FLIGHT**: `Write a Note`, `3D`, `3D Weather`, `PFD`, `Check Lists`, `Aircraft & Performance`
 - **RECORDS**: `Log Book`
 - **INTERNET** (iOS/Android/Windows/macOS): `Account` (Sign in, profile, sign out), `Backup/Sync`, `Community` (unread notifications bell), `Scheduler`, and `Flight Intelligence` (iOS/Android only; Pro)
-- **CONNECTIVITY**: `Link` (share the active plan with other AvareX devices on the same Wi-Fi). `IO` (Android only; Bluetooth & connections)
+- **CONNECTIVITY**: `Link` (share the active plan with other AvareX devices on the same Wi-Fi). `Visual Traffic` (iOS/Android only; camera finds aircraft). `IO` (Android only; Bluetooth & connections)
 - **SUPPORT**: `Messages` (Notices from Apps4Av; iOS, Android, Windows, and macOS), `Help` (User manual PDF; not available on Linux)
 
 `3D`, under `Write a Note`, opens the same airspace view as the destination popup, centered on the aircraft, without the yellow long-press mark. Downloaded Elevation tiles are drawn as terrain (brown, and red within 500 ft of altitude). Shelf floors sit on that surface instead of extending below it. ADS-B traffic inside 25 NM is drawn as dots. The active plan is drawn at each leg's altitude. The glide ring, and `TFR` and `Game TFR` volumes, are drawn here too, whatever the map layers are set to. Each airport inside 25 NM is drawn as its runway diagram at the field. See Section 9.8. For winds aloft and 3D radar, use `3D Weather` (Section 9.8.1).
@@ -1324,6 +1325,45 @@ Shares the active flight plan with other phones and tablets running AvareX on th
 - Every device must be on the same Wi-Fi. On iOS, allow **Local Network** for AvareX. On Windows, allow AvareX on private networks if the firewall asks.
 - Use one master. If two devices are master, slaves follow whichever plan arrives last, and `Link` shows a warning.
 
+### 9.11 Visual Traffic
+
+Open: **Menu → Visual Traffic** (under `Connectivity`). iOS and Android only.
+
+Uses a phone camera looking out the windshield to find other aircraft and draw a box on them. A second phone can show the same picture and boxes over `Link`.
+
+**Not for collision avoidance.** It is a traffic awareness aid. It will miss aircraft and it will sometimes box things that are not aircraft. Keep looking outside.
+
+The start page has two choices:
+
+- **This phone is the camera**: opens the back camera. Mount the phone so it sees the sky and the horizon. Allow camera access when asked.
+- **Show another phone's camera**: shows a camera phone's picture and boxes. Both phones need AvareX open on the same Wi-Fi. If only one camera phone is found it opens right away. Otherwise pick one from the list, or from the phone icon at the top.
+
+What the boxes mean:
+
+- **Red box**: a moving target that the on-device model recognized as an airplane. The label shows how far off the camera's center it is, in degrees left or right and up or down.
+- **Thin yellow box**: a small spot in the sky that keeps moving but is not recognized yet. Many are clouds, glare, or birds. A yellow box turns red when the model confirms it, and disappears when the model says it is something else.
+- Cars, buildings, and terrain below the horizon are not boxed unless the model confirms an airplane there. Specks on the windshield are ignored.
+
+Camera screen:
+
+- The top-left note shows frames per second, time per frame, and how many red and yellow boxes there are. It also tells you when the model file is missing, the sky is too busy to trust yellow boxes, or no horizon was found.
+- The phone icon at the top-right appears while another device is watching this camera.
+- **Settings** (sliders icon):
+  - **Camera field of view**: how wide the camera sees. Set it to your phone's main camera, usually 60 to 70. A wrong value makes the angle labels wrong.
+  - **Sensitivity**: lower finds only clear targets. Higher also finds faint ones, with more false yellow boxes.
+  - **Picture rotation**: if boxes do not sit on what you see, tap **Rotate 90°** until they do. It is remembered.
+  - **Alert on a new red box**: beep and vibrate when a new airplane gets a red box, at most once every few seconds.
+  - **Share with other devices**: send boxes, and a small picture to a device that is showing this camera.
+  - **Show horizon line**: draws the sky and ground split the detector is using, to check it.
+
+Viewer screen:
+
+- Shows the camera phone's small picture with the boxes on it. The picture is low resolution on purpose so it fits one Wi-Fi message. **No data** appears when the camera phone stops sending.
+- The bell icon turns the alert for a new red box on or off. The horizon icon shows the horizon line.
+- A red label at the top-left shows how many airplanes are boxed.
+
+Tips: keep the windshield clean, keep the phone out of glare, and plug it in. The camera and detector warm the phone up. Small and distant aircraft are the hardest to find, and a plane that is not moving against the sky, such as one on a collision course, can look like a still dot. Use the camera as an extra pair of eyes only.
+
 ---
 
 ## 10) Notes Screen
@@ -1751,6 +1791,8 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | Currency status | `MAP → Menu → Log Book → Details` (currency card) |
 | Bluetooth pairing/connection | `MAP → Menu → IO` (Android) |
 | Share the plan with other AvareX devices | `MAP → Menu → Link` |
+| Find aircraft with the phone camera | `MAP → Menu → Visual Traffic → This phone is the camera` |
+| Watch another phone's camera and boxes | `MAP → Menu → Visual Traffic → Show another phone's camera` |
 | Check ADS-B receiver status | `MAP → ADSB instrument tile` (movable; tap opens ADS-B Status screen) |
 | Enable Stratus 3 Open ADS-B Mode | `MAP → ADSB instrument tile → antenna icon (top-right)` |
 | Notes/drawing | `MAP → Menu → Write a Note` |

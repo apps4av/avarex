@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:avaremp/visual_traffic/detection_models.dart';
 
 /// Role of this device on the local AvareX link.
 ///
@@ -51,6 +54,35 @@ enum LinkRole {
 ///
 /// A slave applies a `plan` message only when the sender's role is `master`
 /// and the id is not its own.
+///
+/// Visual Traffic (a camera device spotting aircraft, and a viewer showing
+/// them) adds three types. Older builds ignore all three. Roles do not matter
+/// for these, so a device with Link off still sends and receives them.
+///
+/// `detections`, about 10 times a second, broadcast by the camera device.
+/// Boxes are normalized to the upright picture (see `DetectionFrame`):
+///
+/// ```json
+/// {"avarex":1,"type":"detections","id":"<id>","name":"Pilot phone","role":"off",
+///  "seq":812,"ts":1790000000000,"fovH":65,"fovV":37,"hl":0.52,"hr":0.58,
+///  "boxes":[{"id":3,"x":0.41,"y":0.2,"w":0.02,"h":0.02,"c":0.62,"t":"airplane"}]}
+/// ```
+///
+/// `watch`, every 2 seconds, unicast by a viewer to the camera device it is
+/// showing. While a watch is fresh the camera device also sends `preview`.
+///
+/// ```json
+/// {"avarex":1,"type":"watch","id":"<viewer id>","name":"iPad","role":"off","target":"<camera id>"}
+/// ```
+///
+/// `preview`, a few times a second, unicast to each fresh viewer. A small
+/// grayscale JPEG (base64) of the upright picture. It is kept under about
+/// 8 KB so it fits one UDP datagram on every platform.
+///
+/// ```json
+/// {"avarex":1,"type":"preview","id":"<id>","name":"Pilot phone","role":"off",
+///  "seq":812,"pw":240,"ph":135,"jpg":"<base64>"}
+/// ```
 class LinkMessage {
   static const int version = 1;
   static const int port = 49090;
@@ -64,6 +96,18 @@ class LinkMessage {
   final int destinationIndex;
   final List<Map<String, dynamic>> plan;
 
+  /// `detections` only.
+  final DetectionFrame? detections;
+
+  /// `preview` only: JPEG bytes, their picture size, and the frame they match.
+  final Uint8List? preview;
+  final int previewWidth;
+  final int previewHeight;
+  final int previewSeq;
+
+  /// `watch` only: id of the camera device being watched.
+  final String target;
+
   LinkMessage._({
     required this.type,
     required this.id,
@@ -73,6 +117,12 @@ class LinkMessage {
     required this.waypointIndex,
     required this.destinationIndex,
     required this.plan,
+    this.detections,
+    this.preview,
+    this.previewWidth = 0,
+    this.previewHeight = 0,
+    this.previewSeq = 0,
+    this.target = "",
   });
 
   factory LinkMessage.hello({
@@ -113,8 +163,78 @@ class LinkMessage {
     );
   }
 
+  factory LinkMessage.detections({
+    required String id,
+    required String name,
+    required LinkRole role,
+    required DetectionFrame detections,
+  }) {
+    return LinkMessage._(
+      type: "detections",
+      id: id,
+      name: name,
+      role: role,
+      planName: "",
+      waypointIndex: -1,
+      destinationIndex: 0,
+      plan: const [],
+      detections: detections,
+    );
+  }
+
+  factory LinkMessage.preview({
+    required String id,
+    required String name,
+    required LinkRole role,
+    required int seq,
+    required int width,
+    required int height,
+    required Uint8List jpeg,
+  }) {
+    return LinkMessage._(
+      type: "preview",
+      id: id,
+      name: name,
+      role: role,
+      planName: "",
+      waypointIndex: -1,
+      destinationIndex: 0,
+      plan: const [],
+      preview: jpeg,
+      previewWidth: width,
+      previewHeight: height,
+      previewSeq: seq,
+    );
+  }
+
+  factory LinkMessage.watch({
+    required String id,
+    required String name,
+    required LinkRole role,
+    required String target,
+  }) {
+    return LinkMessage._(
+      type: "watch",
+      id: id,
+      name: name,
+      role: role,
+      planName: "",
+      waypointIndex: -1,
+      destinationIndex: 0,
+      plan: const [],
+      target: target,
+    );
+  }
+
   bool get isHello => type == "hello";
   bool get isPlan => type == "plan";
+  bool get isDetections => type == "detections";
+  bool get isPreview => type == "preview";
+  bool get isWatch => type == "watch";
+
+  /// Frequent Visual Traffic traffic. Kept out of the debug log and the
+  /// duplicate filter so it cannot push plan messages out of view.
+  bool get isVisual => isDetections || isPreview || isWatch;
 
   /// `id|type` for each plan row, in order. Coordinates are left out so two
   /// devices can treat the same airway as the same plan after each looks it
@@ -130,6 +250,15 @@ class LinkMessage {
           ? "$waypointIndex.$destinationIndex"
           : "$waypointIndex";
       return "plan  $name  $planName  wp $leg  (${plan.length})";
+    }
+    if (isDetections) {
+      return "detections  $name  ${detections?.boxes.length ?? 0} boxes";
+    }
+    if (isPreview) {
+      return "preview  $name  ${preview?.length ?? 0} bytes";
+    }
+    if (isWatch) {
+      return "watch  $name";
     }
     return "hello  $name  ${role.name}";
   }
@@ -148,6 +277,18 @@ class LinkMessage {
       map["destinationIndex"] = destinationIndex;
       map["plan"] = plan;
     }
+    if (isDetections && detections != null) {
+      map.addAll(detections!.toJson());
+    }
+    if (isPreview && preview != null) {
+      map["seq"] = previewSeq;
+      map["pw"] = previewWidth;
+      map["ph"] = previewHeight;
+      map["jpg"] = base64Encode(preview!);
+    }
+    if (isWatch) {
+      map["target"] = target;
+    }
     return jsonEncode(map);
   }
 
@@ -164,7 +305,11 @@ class LinkMessage {
         return null;
       }
       final Object? type = map["type"];
-      if (type != "hello" && type != "plan") {
+      if (type != "hello" &&
+          type != "plan" &&
+          type != "detections" &&
+          type != "preview" &&
+          type != "watch") {
         return null;
       }
       final Object? id = map["id"];
@@ -180,6 +325,37 @@ class LinkMessage {
           LinkRole.fromWire(roleRaw is String ? roleRaw : "");
       if (type == "hello") {
         return LinkMessage.hello(id: id, name: name, role: role);
+      }
+      if (type == "detections") {
+        final DetectionFrame? frame = DetectionFrame.fromJson(map);
+        if (frame == null) {
+          return null;
+        }
+        return LinkMessage.detections(
+            id: id, name: name, role: role, detections: frame);
+      }
+      if (type == "preview") {
+        final Object? jpg = map["jpg"];
+        if (jpg is! String || jpg.isEmpty) {
+          return null;
+        }
+        return LinkMessage.preview(
+          id: id,
+          name: name,
+          role: role,
+          seq: _asInt(map["seq"], fallback: 0),
+          width: _asInt(map["pw"], fallback: 0),
+          height: _asInt(map["ph"], fallback: 0),
+          jpeg: base64Decode(jpg),
+        );
+      }
+      if (type == "watch") {
+        final Object? target = map["target"];
+        if (target is! String || target.isEmpty) {
+          return null;
+        }
+        return LinkMessage.watch(
+            id: id, name: name, role: role, target: target);
       }
       final Object? planNameRaw = map["planName"];
       final String planName = planNameRaw is String && planNameRaw.isNotEmpty
