@@ -15,6 +15,12 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.143**
+
+- Fixed winds aloft, which stopped loading in the old feed. They now come from the AviationWeather.gov GFA forecast and refresh at most every 30 minutes.
+- Changed the destination popup and the `CSUP` text page back to a plain title. `CSUP` no longer shows an instrument bar.
+- Changed the `FIND` left icon: it no longer has a label under it, and its tap area is bigger.
+
 **0.0.142**
 
 - Added the `CSUP` tab, right of `PLATE`. It shows the Chart Supplement for the `PLATE` airport: the airport text page first, then the airport's CSUP pages, then the regional CSUP PDFs you have downloaded. CSUP pages are no longer in the `PLATE` list.
@@ -805,7 +811,7 @@ Type into the **Search** box to find airports, navaids, fixes, or procedures by 
 
 - Tap row: **Direct-To** the destination (same as the `→D` button on the destination popup) — sets it as your active target, shows it on the map, and switches to MAP
 - When Find was opened from the `PLAN` tab's insert (`+`) button, tapping a row **inserts** it into the plan instead and returns to `PLAN`
-- Tap left icon (marked `info`): opens destination popup/details
+- Tap left icon (the airport or place icon, with a large tap area): opens destination popup/details
 - Each of these actions shows a toast with an icon, such as `KBVY inserted in the plan`, `KBVY appended to the plan`, or `Destination set to KBVY`
 - Right-side bearing@distance button: centers map on item and switches to MAP
 - Swipe right-to-left to delete recent entry
@@ -2095,7 +2101,7 @@ The **FIND** tab is the fastest way to locate any airport, navaid, fix, or proce
 
 4. Each row supports several actions:
    - **Tap row** — Direct-To that destination and switch to MAP.
-   - **Tap the left icon (marked `info`)** — open the destination popup with airport info, plates, METAR/TAF, NOTAMs, etc.
+   - **Tap the left icon** — open the destination popup with airport info, plates, METAR/TAF, NOTAMs, etc.
    - **Tap the bearing/distance pill on the right** — center the map on that destination and switch to MAP.
    - **Swipe right-to-left** — delete an entry from the Recent list.
    - For GPS-coordinate recent entries, an **edit (pencil) icon** lets you set a custom facility name.

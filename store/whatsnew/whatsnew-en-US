@@ -1,3 +1,4 @@
-Added the `CSUP` tab, right of `PLATE`. It shows the Chart Supplement for the `PLATE` airport: the airport text page first, then the airport's CSUP pages, then the regional CSUP PDFs you have downloaded. CSUP pages are no longer in the `PLATE` list.
-Added a `CSUP` button after `Plates` on the destination popup.
-Changed the destination popup and `CSUP` text page to a new header card with the identifier, name, elevation, and distance.
+Fixed winds aloft, which stopped loading in the old feed. They now come from the AviationWeather.gov GFA forecast and refresh at most every 30 minutes.
+Changed the destination popup and the `CSUP` text page back to a plain title. `CSUP` no longer shows an instrument bar.
+Changed the `FIND` left icon: it no longer has a label under it, and its tap area is bigger.
+Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
