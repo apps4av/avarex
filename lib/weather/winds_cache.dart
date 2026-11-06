@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:avaremp/utils/app_log.dart';
-import 'package:avaremp/constants.dart';
 import 'package:avaremp/data/weather_database_helper.dart';
 import 'package:avaremp/utils/geo_calculations.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/weather/weather_cache.dart';
+import 'package:avaremp/weather/gfa_winds.dart';
 import 'package:avaremp/weather/winds_aloft.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -56,6 +56,29 @@ class WindsCache extends WeatherCache {
     return null;
   }
 
+  /// The forecast changes hourly at most, so do not refetch the winds more often than this.
+  /// Entries stay valid this long.
+  static const int _refreshMin = 30;
+
+  /// The GFA model run held for each forecast hour, so an unchanged run is not downloaded again.
+  final Map<int, String> _runs = {};
+
+  @override
+  Future<List<Uint8List>> fetch() async {
+    // fixed urls: the FD text feed that is still published (Pacific territories)
+    final List<Uint8List> responses = await super.fetch();
+    try {
+      final List<(String, double, double)> stations = [
+        for(final MapEntry<String, LatLng> e in _stationMap.entries) (e.key, e.value.latitude, e.value.longitude),
+      ];
+      responses.addAll(await GfaWinds.fetch(stations, Map<int, String>.of(_runs)));
+    }
+    catch(e) {
+      AppLog.logMessage("WINDS: GFA download failed: $e");
+    }
+    return responses;
+  }
+
   @override
   Future<void> parse(List<Uint8List> data, [String? argument]) async {
     if(data.isEmpty) {
@@ -63,9 +86,14 @@ class WindsCache extends WeatherCache {
     }
 
     List<WindsAloft> winds = [];
+    final Set<String> stillCurrent = {}; // like "06H": the GFA run held is the newest
 
     for(Uint8List datum in data)
     {
+      if(GfaWinds.isGfa(datum)) {
+        _takeForecast(datum, winds, stillCurrent);
+        continue;
+      }
       String dataString;
       try {
         dataString = utf8.decode(datum);
@@ -116,7 +144,7 @@ class WindsCache extends WeatherCache {
               continue; // not recognized need this
             }
             WindsAloft w = WindsAloft("$station$fore",
-                DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+                DateTime.now().toUtc().add(const Duration(minutes: _refreshMin)),
                 DateTime.now().toUtc(),
                 Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, k30, k34, k39);
             winds.add(w);
@@ -142,7 +170,7 @@ class WindsCache extends WeatherCache {
               continue; // not recognized need this
             }
             WindsAloft w = WindsAloft("$station$fore",
-                DateTime.now().toUtc().add(const Duration(minutes: Constants.weatherUpdateTimeMin)),
+                DateTime.now().toUtc().add(const Duration(minutes: _refreshMin)),
                 DateTime.now().toUtc(),
                 Weather.sourceInternet, getWind0kFromMetar(coordinate), k3, k6, k9, k12, k18, k24, '', '', '');
             winds.add(w);
@@ -153,7 +181,58 @@ class WindsCache extends WeatherCache {
         }
       }
     }
-    await WeatherDatabaseHelper.db.addWindsAlofts(winds);
+
+    if(winds.isEmpty && stillCurrent.isEmpty) {
+      return; // nothing usable came back, keep what is cached
+    }
+
+    // The table is replaced as a whole, so carry over stations that were not
+    // refreshed this time (a forecast hour that failed to download). Of two
+    // reports for a station the later one wins, and that is the GFA one.
+    final Map<String, WindsAloft> merged = {for(final WindsAloft w in winds) w.station: w};
+    final DateTime expires = DateTime.now().toUtc().add(const Duration(minutes: _refreshMin));
+    for(Weather old in getAll()) {
+      if(old is! WindsAloft || merged.containsKey(old.station)) {
+        continue;
+      }
+      if(old.source == Weather.sourceInternet && stillCurrent.any((String fore) => old.station.endsWith(fore))) {
+        merged[old.station] = WindsAloft(old.station, expires, old.received, old.source,
+            old.w0k, old.w3k, old.w6k, old.w9k, old.w12k, old.w18k, old.w24k, old.w30k, old.w34k, old.w39k);
+      }
+      else {
+        merged[old.station] = old;
+      }
+    }
+    await WeatherDatabaseHelper.db.addWindsAlofts(merged.values.toList());
+  }
+
+  /// Station winds from the GFA download, or word that the ones held are still the newest.
+  void _takeForecast(Uint8List datum, List<WindsAloft> winds, Set<String> stillCurrent) {
+    try {
+      final Map<String, dynamic> json = jsonDecode(utf8.decode(datum)) as Map<String, dynamic>;
+      final int fore = json["fore"] as int;
+      final String foreKey = "${fore.toString().padLeft(2, "0")}H";
+      if(json["gfa"] != 1) {
+        stillCurrent.add(foreKey);
+        return;
+      }
+      final DateTime now = DateTime.now().toUtc();
+      final DateTime expires = now.add(const Duration(minutes: _refreshMin));
+      final Map<String, dynamic> stations = json["s"] as Map<String, dynamic>;
+      for(final MapEntry<String, dynamic> e in stations.entries) {
+        final LatLng? coordinate = _stationMap[e.key];
+        final List<String> k = (e.value as List<dynamic>).cast<String>();
+        if(coordinate == null || k.length < 9) {
+          continue;
+        }
+        winds.add(WindsAloft("${e.key}$foreKey", expires, now, Weather.sourceInternet,
+            getWind0kFromMetar(coordinate), k[0], k[1], k[2], k[3], k[4], k[5], k[6], k[7], k[8]));
+      }
+      _runs[fore] = json["run"] as String;
+    }
+    catch(e) {
+      AppLog.logMessage("WINDS: bad GFA winds: $e");
+    }
   }
 
   static _WindsAloftProduct? _getWindsAloftProductType(List<String> lines) {

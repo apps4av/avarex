@@ -5,8 +5,6 @@ import 'package:avaremp/data/main_database_helper.dart';
 import 'package:avaremp/data/user_database_helper.dart';
 import 'package:avaremp/destination/airport.dart';
 import 'package:avaremp/destination/destination.dart';
-import 'package:avaremp/destination/destination_header.dart';
-import 'package:avaremp/instruments/instrument_list.dart';
 import 'package:avaremp/storage.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/utils/pdf_viewer.dart';
@@ -192,16 +190,11 @@ class CsupScreenState extends State<CsupScreen> {
       ...data.pages.keys,
       for (final String label in data.pdfs.keys) "$pdfPrefix$label",
     ];
-    final bool instruments = Storage().settings.isInstrumentsVisiblePlate();
 
     return Scaffold(
       body: Stack(
         children: [
           Positioned.fill(child: _makeBody(data, selected)),
-
-          // Instruments overlay (full screen, free-floating draggable tiles)
-          if (instruments)
-            const Positioned.fill(child: InstrumentList()),
 
           // Center button (bottom center), same spot and size as on the Plate tab
           if (selected != textPage)
@@ -435,24 +428,9 @@ class CsupScreenState extends State<CsupScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _makeTitle(airport),
-          const SizedBox(height: 4),
           Expanded(child: Airport.parse(airport)),
         ],
       ),
-    );
-  }
-
-  /// Airport identifier, name, and elevation as a header card.
-  Widget _makeTitle(AirportDestination airport) {
-    final double? elevation = airport.elevation;
-    return DestinationHeader(
-      icon: const Icon(Icons.local_airport),
-      id: airport.locationID,
-      name: airport.facilityName,
-      chips: [
-        if (elevation != null) (Icons.terrain, "${elevation.round()} ft"),
-      ],
     );
   }
 }

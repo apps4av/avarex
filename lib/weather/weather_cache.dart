@@ -53,14 +53,9 @@ class WeatherCache {
     return null;
   }
 
-  // Download and parse
-  Future<void> download([String? argument]) async {
-
-    // do not start download if one already happening
-    if(_isDownloading) {
-      return;
-    }
-    _isDownloading = true;
+  /// Downloads the raw responses to hand to [parse]. Caches whose source is not
+  /// just a fixed list of [urls] override this.
+  Future<List<Uint8List>> fetch() async {
     List<Uint8List> responses = [];
     for(String url in urls) {
         try {
@@ -75,6 +70,18 @@ class WeatherCache {
           }
         }
     }
+    return responses;
+  }
+
+  // Download and parse
+  Future<void> download([String? argument]) async {
+
+    // do not start download if one already happening
+    if(_isDownloading) {
+      return;
+    }
+    _isDownloading = true;
+    List<Uint8List> responses = await fetch();
     await parse(responses);
     await initialize();
     _isDownloading = false;
@@ -150,24 +157,14 @@ class WeatherCache {
       return cache;
     }
     else if(type == WindsCache) {
-      // default
+      // CONUS, Alaska and Hawaii come from the GFA winds (see GfaWinds).
+      // The legacy FD text feed is gone for those regions, so it is only used
+      // for the Pacific territories, which the GFA winds do not cover.
       WeatherCache cache = WindsCache(
           [
-            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=06&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=06&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=06&level=low", //HI Low (1k-24k)
             "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=06&level=low", //US Pac Territories Low (1k-24k)
-
-            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=12&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=12&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=12&level=low", //HI Low (1k-24k)
             "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=12&level=low", //US Pac Territories Low (1k-24k)
-
-            "https://aviationweather.gov/api/data/windtemp?region=us&fcst=24&level=low", //CONUS Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=alaska&fcst=24&level=low", //AK Low (3k-39k)
-            "https://aviationweather.gov/api/data/windtemp?region=hawaii&fcst=24&level=low", //HI Low (1k-24k)
             "https://aviationweather.gov/api/data/windtemp?region=other_pac&fcst=24&level=low", //US Pac Territories Low (1k-24k)
-
           ],
           WeatherDatabaseHelper.db.getAllWindsAloft);
       return cache;

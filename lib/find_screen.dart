@@ -179,6 +179,7 @@ class FindScreenState extends State<FindScreen> {
                           child: Card(
                             margin: const EdgeInsets.symmetric(vertical: 2),
                             child: ListTile(
+                              minLeadingWidth: 64,
                               leading: InkWell(
                                 // Tapping the icon opens the destination info popup,
                                 // the same one a long press on the map opens.
@@ -188,20 +189,13 @@ class FindScreenState extends State<FindScreen> {
                                   });
                                 },
                                 borderRadius: BorderRadius.circular(8),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary),
-                                    Text(
-                                      "info",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                  ],
+                                // Fixed, wider and taller box so the tap target is easy to hit.
+                                child: SizedBox(
+                                  width: 64,
+                                  height: 48,
+                                  child: Center(
+                                    child: DestinationFactory.getIcon(item.type, Theme.of(context).colorScheme.primary),
+                                  ),
                                 ),
                               ),
                               title: Text.rich(
