@@ -4,7 +4,9 @@ import 'dart:typed_data';
 
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/visual_traffic/aircraft_detector.dart';
+import 'package:avaremp/visual_traffic/decisions.dart';
 import 'package:avaremp/visual_traffic/frame_analyzer.dart';
+import 'package:avaremp/visual_traffic/gyro_motion.dart';
 import 'package:avaremp/visual_traffic/luma_frame.dart';
 import 'package:avaremp/visual_traffic/preview_encoder.dart';
 
@@ -103,6 +105,8 @@ class AnalyzerWorker {
     required int quarterTurns,
     required int timestampMs,
     GravityHint? gravity,
+    MotionHint? motion,
+    List<Cue> cues = const [],
     bool wantPreview = false,
   }) {
     if (_busy || _stopped) {
@@ -117,6 +121,8 @@ class AnalyzerWorker {
       quarterTurns,
       timestampMs,
       gravity,
+      motion,
+      cues,
       wantPreview,
     ));
     return true;
@@ -166,7 +172,8 @@ class _Ready {
 
 class _FrameCommand {
   const _FrameCommand(this.bytes, this.width, this.height, this.rowStride,
-      this.quarterTurns, this.timestampMs, this.gravity, this.wantPreview);
+      this.quarterTurns, this.timestampMs, this.gravity, this.motion, this.cues,
+      this.wantPreview);
   final TransferableTypedData bytes;
   final int width;
   final int height;
@@ -174,6 +181,8 @@ class _FrameCommand {
   final int quarterTurns;
   final int timestampMs;
   final GravityHint? gravity;
+  final MotionHint? motion;
+  final List<Cue> cues;
   final bool wantPreview;
 }
 
@@ -217,6 +226,8 @@ void _entry(_Start start) {
           frame,
           timestampMs: message.timestampMs,
           gravity: message.gravity,
+          motion: message.motion,
+          cues: message.cues,
         );
         final PreviewPicture? preview =
             message.wantPreview ? PreviewEncoder.encode(frame) : null;

@@ -42,6 +42,28 @@ class HorizonLine {
     return skyAbove ? v < line - margin : v > line + margin;
   }
 
+  /// How steeply the line runs, in degrees. Positive when it runs down toward
+  /// the right edge. [aspect] is picture width divided by height.
+  double tiltDegrees(double aspect) {
+    return atan2((vRight - vLeft) / aspect, 1) * 180 / pi;
+  }
+
+  /// How far above the horizon the camera looks, in degrees. Negative when it
+  /// looks below. [fovH] is the horizontal field of view in degrees.
+  ///
+  /// Null when the picture is upside down (the sky is below the line).
+  double? pitchDegrees(double fovH, double aspect) {
+    if (!skyAbove || aspect <= 0) {
+      return null;
+    }
+    final double centerV = (vLeft + vRight) / 2;
+    // Distance from the picture center to the line, in picture widths,
+    // measured square to the line.
+    final double offset = (centerV - 0.5) / aspect * cos(tiltDegrees(aspect) * pi / 180);
+    final double focal = 0.5 / tan(fovH * pi / 360);
+    return atan(offset / focal) * 180 / pi;
+  }
+
   /// Blends a new estimate into this one, so one noisy frame does not move it.
   HorizonLine blend(HorizonLine next, double weight) {
     if (skyAbove != next.skyAbove) {

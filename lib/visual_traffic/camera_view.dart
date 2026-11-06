@@ -3,11 +3,17 @@ import 'dart:async';
 import 'package:avaremp/utils/app_log.dart';
 import 'package:avaremp/link/link_service.dart';
 import 'package:avaremp/storage.dart';
+import 'package:avaremp/visual_traffic/adsb_matcher.dart';
+import 'package:avaremp/visual_traffic/adsb_source.dart';
 import 'package:avaremp/visual_traffic/analyzer_worker.dart';
+import 'package:avaremp/visual_traffic/attitude_filter.dart';
+import 'package:avaremp/visual_traffic/decision_board.dart';
+import 'package:avaremp/visual_traffic/decisions.dart';
 import 'package:avaremp/visual_traffic/detection_models.dart';
 import 'package:avaremp/visual_traffic/detection_painter.dart';
 import 'package:avaremp/visual_traffic/frame_analyzer.dart';
 import 'package:avaremp/visual_traffic/preview_encoder.dart';
+import 'package:avaremp/visual_traffic/why_panel.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,6 +42,7 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
   AnalyzerWorker? _worker;
   StreamSubscription<WorkerOutput>? _outputSub;
   StreamSubscription<AccelerometerEvent>? _accelSub;
+  StreamSubscription<GyroscopeEvent>? _gyroSub;
   Timer? _hudTimer;
 
   String? _error;
@@ -49,14 +56,26 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
   bool _alertOn = true;
   bool _share = true;
   bool _showHorizon = false;
+  double _yaw = 0;
+  bool _showWhy = false;
 
-  // Latest accelerometer reading, smoothed.
-  double _ax = 0, _ay = 0, _az = 0;
-  bool _haveAccel = false;
+  bool _fuseGyro = true;
+  bool _fuseAdsb = true;
+
+  // Which way is down and where the aircraft is heading, from the gyroscope,
+  // accelerometer, picture horizon, and GPS together.
+  AttitudeFilter _filter = AttitudeFilter();
+  int _deviceDegrees = 0;
+
+  // The boxes as shown and shared: the analyzer's boxes with ADS-B's
+  // confirmations applied.
+  List<DetectionBox> _boxes = const [];
 
   int _lastSubmitMs = 0;
   int _lastPreviewMs = 0;
   final TrafficAlert _alert = TrafficAlert();
+  final DecisionBoard _board = DecisionBoard();
+  AdsbPicture _adsbPicture = AdsbPicture.empty;
 
   AnalysisResult? _result;
   double _avgMs = 0;
@@ -73,6 +92,10 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     _rotation = settings.getVisualTrafficRotation() % 4;
     _alertOn = settings.getVisualTrafficAlert();
     _share = settings.getVisualTrafficShare();
+    _yaw = settings.getVisualTrafficYaw();
+    _fuseGyro = settings.getVisualTrafficFuseGyro();
+    _fuseAdsb = settings.getVisualTrafficFuseAdsb();
+    _filter = _newFilter();
     _hudTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) {
         return;
@@ -87,6 +110,11 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     ).listen(_onAccel, onError: (Object _) {
       // No accelerometer: the horizon comes from the picture alone.
     });
+    _gyroSub = gyroscopeEventStream(
+      samplingPeriod: SensorInterval.gameInterval,
+    ).listen(_onGyro, onError: (Object _) {
+      // No gyroscope: the picture alone follows the scene.
+    });
     _begin();
   }
 
@@ -95,6 +123,7 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     WidgetsBinding.instance.removeObserver(this);
     _hudTimer?.cancel();
     _accelSub?.cancel();
+    _gyroSub?.cancel();
     _outputSub?.cancel();
     final AnalyzerWorker? worker = _worker;
     if (worker != null) {
@@ -143,19 +172,22 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     }
   }
 
+  /// Without the gyroscope the accelerometer has to do more of the work, so
+  /// it is allowed to pull faster.
+  AttitudeFilter _newFilter() =>
+      AttitudeFilter(accelTimeConstant: _fuseGyro ? 60 : 1);
+
   void _onAccel(AccelerometerEvent event) {
-    // Smoothing keeps vibration out of the horizon fallback.
-    const double keep = 0.85;
-    if (!_haveAccel) {
-      _ax = event.x;
-      _ay = event.y;
-      _az = event.z;
-      _haveAccel = true;
+    final Vec3 a = deviceToCamera(_deviceDegrees, event.x, event.y, event.z);
+    _filter.onAccel(a, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  void _onGyro(GyroscopeEvent event) {
+    if (!_fuseGyro) {
       return;
     }
-    _ax = _ax * keep + event.x * (1 - keep);
-    _ay = _ay * keep + event.y * (1 - keep);
-    _az = _az * keep + event.z * (1 - keep);
+    final Vec3 w = deviceToCamera(_deviceDegrees, event.x, event.y, event.z);
+    _filter.onGyro(w, DateTime.now().millisecondsSinceEpoch);
   }
 
   Future<void> _begin() async {
@@ -241,36 +273,20 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
   /// phone is held, plus the user's correction.
   int _quarterTurns(CameraController controller) {
     final int sensor = controller.description.sensorOrientation;
-    final int device = switch (controller.value.deviceOrientation) {
+    final int device = _degreesOf(controller);
+    final int turns = (((sensor - device) % 360) + 360) % 360 ~/ 90;
+    return (turns + _rotation) % 4;
+  }
+
+  int _degreesOf(CameraController controller) {
+    final int degrees = switch (controller.value.deviceOrientation) {
       DeviceOrientation.portraitUp => 0,
       DeviceOrientation.landscapeLeft => 90,
       DeviceOrientation.portraitDown => 180,
       DeviceOrientation.landscapeRight => 270,
     };
-    final int turns = (((sensor - device) % 360) + 360) % 360 ~/ 90;
-    return (turns + _rotation) % 4;
-  }
-
-  /// Which way is down, in the camera's own axes: x to the right of the
-  /// upright picture, y toward its bottom, z out through the lens.
-  GravityHint? _gravity(CameraController controller) {
-    if (!_haveAccel || _rotation != 0) {
-      // With a manual rotation the axes below no longer line up.
-      return null;
-    }
-    // The accelerometer reports the push of the floor, so down is the
-    // opposite way.
-    final double dx = -_ax, dy = -_ay, dz = -_az;
-    switch (controller.value.deviceOrientation) {
-      case DeviceOrientation.portraitUp:
-        return GravityHint(dx, -dy, -dz);
-      case DeviceOrientation.portraitDown:
-        return GravityHint(-dx, dy, -dz);
-      case DeviceOrientation.landscapeLeft:
-        return GravityHint(-dy, -dx, -dz);
-      case DeviceOrientation.landscapeRight:
-        return GravityHint(dy, dx, -dz);
-    }
+    _deviceDegrees = degrees;
+    return degrees;
   }
 
   void _onImage(CameraImage image) {
@@ -283,6 +299,10 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     if (now - _lastSubmitMs < _minFrameGapMs || image.planes.isEmpty) {
       return;
     }
+    _degreesOf(controller);
+    // With a manual picture rotation the sensor axes no longer line up with
+    // the picture, so the sensors are left out.
+    final bool sensorsLineUp = _rotation == 0;
     final Plane plane = image.planes[0];
     final bool wantPreview = _share &&
         now - _lastPreviewMs >= _minPreviewGapMs &&
@@ -294,10 +314,14 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
       rowStride: plane.bytesPerRow,
       quarterTurns: _quarterTurns(controller),
       timestampMs: now,
-      gravity: _gravity(controller),
+      gravity: sensorsLineUp ? _filter.gravity : null,
+      motion: sensorsLineUp && _fuseGyro ? _filter.rotation : null,
+      cues: _fuseAdsb ? _adsbPicture.cues : const [],
       wantPreview: wantPreview,
     );
     if (sent) {
+      // The analyzer has this turn now. Start counting the next one.
+      _filter.clearRotation();
       _lastSubmitMs = now;
       if (wantPreview) {
         _lastPreviewMs = now;
@@ -309,8 +333,81 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
     final AnalysisResult result = output.result;
     _framesThisSecond++;
     _avgMs = _avgMs == 0 ? result.milliseconds : _avgMs * 0.9 + result.milliseconds * 0.1;
+
+    // The horizon in the picture is the most trustworthy, so it corrects the
+    // sensors' idea of down.
+    final HorizonReport horizon = result.horizonReport;
+    final double? tilt = horizon.tiltDegrees;
+    final double? pitch = horizon.pitchDegrees;
+    if (horizon.source == HorizonSource.picture && tilt != null && pitch != null) {
+      _filter.onPicture(tilt, pitch);
+    }
+
+    // GPS gives the heading once a second. The gyroscope carries it between.
+    final AdsbSnapshot snapshot = AdsbSource.read();
+    final OwnshipFix? gps = snapshot.ownship;
+    OwnshipFix? ownship = gps;
+    double? heading = gps?.trackDegrees;
+    if (gps != null) {
+      _filter.onGps(
+        gps.trackDegrees,
+        Object.hash(gps.latitude, gps.longitude, gps.trackDegrees),
+      );
+      if (_fuseGyro && gps.trackDegrees != null) {
+        heading = _filter.heading ?? gps.trackDegrees;
+        ownship = OwnshipFix(
+          latitude: gps.latitude,
+          longitude: gps.longitude,
+          altitudeFt: gps.altitudeFt,
+          speedKnots: gps.speedKnots,
+          trackDegrees: heading,
+        );
+      }
+    }
+
+    _adsbPicture = AdsbMatcher(
+      promoteDegrees: _fuseAdsb ? 3.5 : -1,
+      maxCues: _fuseAdsb ? 3 : 0,
+    ).match(
+      ownship: ownship,
+      traffic: snapshot.traffic,
+      boxes: result.frame.boxes,
+      fovH: result.frame.fovH,
+      fovV: result.frame.fovV,
+      pictureWidth: result.pictureWidth,
+      pictureHeight: result.pictureHeight,
+      horizon: horizon,
+      yawOffsetDegrees: _yaw,
+    );
+
+    // A steady mover that lines up with an ADS-B aircraft is shown red.
+    final List<DetectionBox> boxes = [
+      for (final DetectionBox b in result.frame.boxes)
+        _adsbPicture.promoted.containsKey(b.id)
+            ? DetectionBox(
+                id: b.id,
+                x: b.x,
+                y: b.y,
+                w: b.w,
+                h: b.h,
+                confidence: b.confidence,
+                tier: DetectionTier.airplane,
+              )
+            : b,
+    ];
+    _boxes = boxes;
+    final DetectionFrame shown = DetectionFrame(
+      seq: result.frame.seq,
+      timestampMs: result.frame.timestampMs,
+      fovH: result.frame.fovH,
+      fovV: result.frame.fovV,
+      boxes: boxes,
+      horizonLeft: result.frame.horizonLeft,
+      horizonRight: result.frame.horizonRight,
+    );
+
     if (_share) {
-      LinkService().sendDetections(result.frame);
+      LinkService().sendDetections(shown);
       final PreviewPicture? preview = output.preview;
       if (preview != null) {
         LinkService().sendPreview(
@@ -321,9 +418,16 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
         );
       }
     }
-    if (_alertOn && _alert.update(result.frame.boxes)) {
+    if (_alertOn && _alert.update(boxes)) {
       TrafficAlert.sound();
     }
+    _board.update(
+      result: result,
+      adsbPicture: _adsbPicture,
+      ownship: ownship,
+      heading: heading,
+      gpsTrack: gps?.trackDegrees,
+    );
     if (mounted) {
       setState(() => _result = result);
     }
@@ -396,6 +500,24 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
                         _applyAnalyzerSettings();
                       },
                     ),
+                    Text("Camera aim: ${_yaw.round().abs()}° ${_yaw >= 0 ? "right" : "left"} of the nose"),
+                    const Text(
+                      "Only used to place ADS-B aircraft in the picture. Leave at 0 when the phone looks straight ahead. AvareX assumes the nose points along the GPS track.",
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    Slider(
+                      value: _yaw,
+                      min: -60,
+                      max: 60,
+                      divisions: 120,
+                      label: "${_yaw.round()}°",
+                      onChanged: (double v) {
+                        both(() => _yaw = v);
+                      },
+                      onChangeEnd: (double v) {
+                        settings.setVisualTrafficYaw(v);
+                      },
+                    ),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text("Picture rotation: ${_rotation * 90}°"),
@@ -434,6 +556,33 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
+                      title: const Text("Use gyroscope"),
+                      subtitle: const Text(
+                        "Follow the scene through turns and carry the heading between GPS fixes. It is only used after it has been seen to agree with the picture.",
+                      ),
+                      value: _fuseGyro,
+                      onChanged: (bool v) {
+                        both(() {
+                          _fuseGyro = v;
+                          _filter = _newFilter();
+                        });
+                        settings.setVisualTrafficFuseGyro(v);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text("Use ADS-B to confirm"),
+                      subtitle: const Text(
+                        "Turn a yellow box red when it lines up closely with an ADS-B aircraft, and make the model look where ADS-B says an aircraft is.",
+                      ),
+                      value: _fuseAdsb,
+                      onChanged: (bool v) {
+                        both(() => _fuseAdsb = v);
+                        settings.setVisualTrafficFuseAdsb(v);
+                      },
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
                       title: const Text("Show horizon line"),
                       subtitle: const Text("For checking the sky and ground split."),
                       value: _showHorizon,
@@ -465,6 +614,11 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
               padding: EdgeInsets.symmetric(horizontal: 4),
               child: Icon(Icons.cast_connected),
             ),
+          IconButton(
+            icon: Icon(_showWhy ? Icons.fact_check : Icons.fact_check_outlined),
+            tooltip: "Why: how targets are chosen",
+            onPressed: () => setState(() => _showWhy = !_showWhy),
+          ),
           IconButton(
             icon: const Icon(Icons.tune),
             tooltip: "Settings",
@@ -503,12 +657,13 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
                 RepaintBoundary(
                   child: CustomPaint(
                     painter: DetectionPainter(
-                      boxes: frame?.boxes ?? const [],
+                      boxes: _boxes,
                       fovH: frame?.fovH ?? _fov,
                       fovV: frame?.fovV ?? _fov * 0.56,
                       horizonLeft: frame?.horizonLeft,
                       horizonRight: frame?.horizonRight,
                       showHorizon: _showHorizon,
+                      labels: _adsbPicture.labels,
                     ),
                   ),
                 ),
@@ -521,6 +676,16 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
           top: 8,
           child: _hud(result),
         ),
+        if (_showWhy)
+          Positioned(
+            left: 8,
+            right: 8,
+            bottom: 34,
+            child: WhyPanel(
+              board: _board,
+              onClose: () => setState(() => _showWhy = false),
+            ),
+          ),
         Positioned(
           left: 0,
           right: 0,
@@ -540,9 +705,8 @@ class _VisualTrafficCameraViewState extends State<VisualTrafficCameraView>
   }
 
   Widget _hud(AnalysisResult? result) {
-    final DetectionFrame? frame = result?.frame;
-    final int red = frame?.airplaneCount ?? 0;
-    final int yellow = (frame?.boxes.length ?? 0) - red;
+    final int red = _boxes.where((DetectionBox b) => b.tier == DetectionTier.airplane).length;
+    final int yellow = _boxes.length - red;
     final List<String> lines = [
       "$_fps fps  ${_avgMs.round()} ms",
       "red $red  yellow $yellow",

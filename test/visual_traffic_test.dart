@@ -5,10 +5,12 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:avaremp/visual_traffic/aircraft_detector.dart';
+import 'package:avaremp/visual_traffic/decisions.dart';
 import 'package:avaremp/visual_traffic/analyzer_worker.dart';
 import 'package:avaremp/visual_traffic/detection_models.dart';
 import 'package:avaremp/visual_traffic/dot_detector.dart';
 import 'package:avaremp/visual_traffic/frame_analyzer.dart';
+import 'package:avaremp/visual_traffic/gyro_motion.dart';
 import 'package:avaremp/visual_traffic/horizon.dart';
 import 'package:avaremp/visual_traffic/luma_frame.dart';
 import 'package:avaremp/visual_traffic/motion.dart';
@@ -161,6 +163,37 @@ List<DetectionBox> _run(
   return boxes;
 }
 
+AnalysisResult _runResult(
+  FrameAnalyzer analyzer,
+  _Scene scene,
+  int frames, {
+  double pan = 0,
+  GravityHint? gravity,
+  List<Cue> cues = const [],
+  MotionHint? Function(int frame)? motion,
+  double Function(int frame)? panAt,
+}) {
+  late AnalysisResult result;
+  for (int i = 0; i < frames; i++) {
+    result = analyzer.process(
+      LumaFrame.fromGray(scene.frame()),
+      timestampMs: 1000 + i * 100,
+      gravity: gravity,
+      cues: cues,
+      motion: motion?.call(i),
+    );
+    scene.step(pan: panAt?.call(i) ?? pan);
+  }
+  return result;
+}
+
+/// The gyroscope turn that makes a scene pan by [panPixels] full-size pixels
+/// in a 1280 wide picture with a 65 degree field of view.
+MotionHint _turn(double panPixels) {
+  final double focal = 320 / tan(65 * pi / 360);
+  return MotionHint(0, (panPixels / 2) / focal, 0);
+}
+
 void main() {
   group("LumaFrame", () {
     // A 4 wide by 2 tall source whose pixel value is its own index.
@@ -269,6 +302,32 @@ void main() {
       expect(line.isSky(0.5, 0.2), isTrue);
       expect(line.isSky(0.5, 0.49), isFalse);
       expect(line.isSky(0.5, 0.8), isFalse);
+    });
+
+    test("tilt and pitch come back out of the line", () {
+      final HorizonLine level = HorizonLine(vLeft: 0.5, vRight: 0.5);
+      expect(level.tiltDegrees(16 / 9), closeTo(0, 1e-9));
+      expect(level.pitchDegrees(65, 16 / 9), closeTo(0, 1e-9));
+      // Horizon low in the picture means the camera looks above it.
+      final HorizonLine low = HorizonLine(vLeft: 0.7, vRight: 0.7);
+      expect(low.pitchDegrees(65, 16 / 9)!, closeTo(8.2, 0.3));
+      final HorizonLine high = HorizonLine(vLeft: 0.3, vRight: 0.3);
+      expect(high.pitchDegrees(65, 16 / 9)!, closeTo(-8.2, 0.3));
+      // Runs down to the right: positive tilt.
+      final HorizonLine tilted = HorizonLine(vLeft: 0.4, vRight: 0.6);
+      expect(tilted.tiltDegrees(16 / 9), greaterThan(5));
+      // Going through the sensor path and back gives the same camera angles.
+      final double roll = 10 * pi / 180;
+      final HorizonLine fromSensors = HorizonLine.fromGravity(
+          gx: sin(roll), gy: cos(roll), gz: 0, fovH: 65, aspect: 16 / 9)!;
+      expect(fromSensors.tiltDegrees(16 / 9).abs(), closeTo(10, 1.5));
+      expect(fromSensors.pitchDegrees(65, 16 / 9)!.abs(), lessThan(1));
+    });
+
+    test("an upside down camera has no pitch", () {
+      final HorizonLine upside =
+          HorizonLine(vLeft: 0.5, vRight: 0.5, skyAbove: false);
+      expect(upside.pitchDegrees(65, 16 / 9), isNull);
     });
 
     test("an upside down camera has the sky below the line", () {
@@ -657,6 +716,325 @@ void main() {
       );
       expect(turned.pictureWidth, 720);
       expect(turned.pictureHeight, 1280);
+    });
+  });
+
+  group("FrameAnalyzer decisions", () {
+    TargetNote? find(AnalysisResult r, Verdict v) {
+      for (final TargetNote n in r.notes) {
+        if (n.verdict == v) {
+          return n;
+        }
+      }
+      return null;
+    }
+
+    test("a steady mover with no model is yellow and says why", () {
+      final _Scene scene = _Scene();
+      scene.things.add(_Thing(400, 150, 4, 60, vx: 1.2, vy: 0.2));
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 30);
+      final TargetNote? note = find(r, Verdict.yellow);
+      expect(note, isNotNull);
+      expect(note!.code, "no-model");
+      expect(note.reason, contains("No model"));
+      expect(note.x, closeTo((400 + 29 * 1.2) / 1280, 0.01));
+      expect(r.frame.boxes.single.id, note.id);
+    });
+
+    test("a model airplane call is red with its score", () {
+      final _Scene scene = _Scene();
+      scene.things.add(_Thing(400, 150, 4, 60, vx: 1.2));
+      final AnalysisResult r = _runResult(
+          FrameAnalyzer(confirmer: _FakeConfirmer(cocoAirplane, 0.7)), scene, 30);
+      final TargetNote note = find(r, Verdict.red)!;
+      expect(note.code, "airplane");
+      expect(note.reason, contains("0.70"));
+    });
+
+    test("a bird is rejected and named", () {
+      final _Scene scene = _Scene();
+      scene.things.add(_Thing(400, 150, 4, 60, vx: 1.2));
+      final AnalysisResult r = _runResult(
+          FrameAnalyzer(confirmer: _FakeConfirmer(cocoBird, 0.8)), scene, 40);
+      final TargetNote note = find(r, Verdict.rejected)!;
+      expect(note.code, "bird");
+      expect(note.reason, contains("0.80"));
+      expect(r.frame.boxes, isEmpty);
+    });
+
+    test("a windshield speck is rejected as glass", () {
+      final _Scene scene = _Scene();
+      scene.glass.add(_Thing(600, 120, 4, 40));
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 30, pan: 4);
+      expect(find(r, Verdict.rejected)!.code, "glass");
+      expect(r.frame.boxes, isEmpty);
+    });
+
+    test("a mover below the horizon is rejected for being below it", () {
+      final _Scene scene = _Scene(horizonY: 0.5);
+      scene.things.add(_Thing(400, 520, 6, 250, vx: 1.5));
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 30);
+      expect(find(r, Verdict.rejected)!.code, "below");
+    });
+
+    test("heavy clutter says the sky is busy", () {
+      final _Scene scene = _Scene(horizonY: 0.95);
+      for (int i = 0; i < 40; i++) {
+        scene.things.add(_Thing(60 + (i % 10) * 120.0, 40 + (i ~/ 10) * 70.0,
+            4, 60, vx: 1.0));
+      }
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 30);
+      expect(r.cluttered, isTrue);
+      expect(r.notes.where((TargetNote n) => n.code == "busy"), isNotEmpty);
+    });
+
+    test("there are never more notes than the window can hold", () {
+      final _Scene scene = _Scene(horizonY: 0.95);
+      for (int i = 0; i < 40; i++) {
+        scene.things.add(_Thing(60 + (i % 10) * 120.0, 40 + (i ~/ 10) * 70.0,
+            4, 60, vx: 1.0));
+      }
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 30);
+      expect(r.notes.length, lessThanOrEqualTo(FrameAnalyzer.maxNotes));
+    });
+
+    test("sensors that agree with the picture are reported as agreeing", () {
+      final _Scene scene = _Scene(horizonY: 0.5);
+      final AnalysisResult r = _runResult(
+          FrameAnalyzer(), scene, 3, gravity: const GravityHint(0, 1, 0));
+      final HorizonReport h = r.horizonReport;
+      expect(h.source, HorizonSource.picture);
+      expect(h.sensorsAvailable, isTrue);
+      expect(h.sensorsDisagree, isFalse);
+      expect(h.tiltDegrees!.abs(), lessThan(2));
+      expect(h.pitchDegrees!.abs(), lessThan(3));
+    });
+
+    test("sensors that are tilted against the picture are reported", () {
+      final _Scene scene = _Scene(horizonY: 0.5);
+      final double roll = 20 * pi / 180;
+      final AnalysisResult r = _runResult(FrameAnalyzer(), scene, 3,
+          gravity: GravityHint(sin(roll), cos(roll), 0));
+      final HorizonReport h = r.horizonReport;
+      expect(h.source, HorizonSource.picture);
+      expect(h.sensorsDisagree, isTrue);
+      expect(h.sensorTiltDiff!, greaterThan(15));
+    });
+
+    test("with no picture horizon the report says the sensors are used", () {
+      final Uint8List data = Uint8List(1280 * 720)..fillRange(0, 1280 * 720, 180);
+      final AnalysisResult r = FrameAnalyzer().process(
+        LumaFrame.fromGray(GrayImage(1280, 720, data)),
+        timestampMs: 1000,
+        gravity: const GravityHint(0, 1, 0),
+      );
+      expect(r.horizonReport.source, HorizonSource.sensors);
+      expect(r.horizonReport.sensorTiltDiff, isNull);
+    });
+
+    test("with no horizon at all the report says so", () {
+      final Uint8List data = Uint8List(1280 * 720)..fillRange(0, 1280 * 720, 180);
+      final AnalysisResult r = FrameAnalyzer().process(
+        LumaFrame.fromGray(GrayImage(1280, 720, data)),
+        timestampMs: 1000,
+      );
+      expect(r.horizonReport.source, HorizonSource.none);
+      expect(r.horizonReport.sensorsAvailable, isFalse);
+      expect(r.horizonReport.pitchDegrees, isNull);
+    });
+  });
+
+  group("FrameAnalyzer gyroscope", () {
+    // Pans that change from frame to frame, so there is something to match.
+    double pans(int i) => const [4.0, 8.0, 4.0, 10.0, 6.0][i % 5];
+    // Frame i differs from frame i - 1 by the pan applied after that one.
+    double slid(int i) => i == 0 ? 0 : pans(i - 1);
+
+    test("with no gyroscope readings the report says none", () {
+      final AnalysisResult r = _runResult(FrameAnalyzer(), _Scene(), 5, pan: 4);
+      expect(r.gyroReport.state, GyroState.none);
+    });
+
+    test("a gyroscope that matches the pan is learned and trusted", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(),
+        _Scene(),
+        30,
+        panAt: pans,
+        motion: (int i) => _turn(slid(i)),
+      );
+      expect(r.gyroReport.state, GyroState.agrees);
+      expect(r.gyroReport.scaleX!, closeTo(1, 0.25));
+      expect(r.gyroReport.correlation!, greaterThan(0.9));
+    });
+
+    test("a gyroscope with the opposite sign is learned as reversed", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(),
+        _Scene(),
+        30,
+        panAt: pans,
+        motion: (int i) => _turn(-slid(i)),
+      );
+      expect(r.gyroReport.state, GyroState.agrees);
+      expect(r.gyroReport.scaleX!, closeTo(-1, 0.25));
+    });
+
+    test("a gyroscope that disagrees with the picture is not trusted", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(),
+        _Scene(),
+        30,
+        pan: 4,
+        motion: (int i) => _turn(i.isEven ? 8 : -8),
+      );
+      expect(r.gyroReport.state, GyroState.mismatch);
+    });
+
+    test("small movements are not enough to judge", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(),
+        _Scene(),
+        10,
+        motion: (int i) => _turn(0.1),
+      );
+      expect(r.gyroReport.state, GyroState.learning);
+    });
+
+    test("once trusted, the gyroscope supplies the slide of a plain sky", () {
+      final FrameAnalyzer analyzer = FrameAnalyzer();
+      final _Scene scene = _Scene();
+      _runResult(analyzer, scene, 30,
+          panAt: pans, motion: (int i) => _turn(slid(i)));
+      final Uint8List sky = Uint8List(1280 * 720)..fillRange(0, 1280 * 720, 180);
+      final AnalysisResult plain = analyzer.process(
+        LumaFrame.fromGray(GrayImage(1280, 720, sky)),
+        timestampMs: 5000,
+        motion: _turn(6),
+      );
+      expect(plain.gyroReport.filledIn, isTrue);
+      expect(plain.gyroReport.predictedX, closeTo(3, 0.1));
+    });
+
+    test("an untrusted gyroscope does not fill in a plain sky", () {
+      final FrameAnalyzer analyzer = FrameAnalyzer();
+      final Uint8List sky = Uint8List(1280 * 720)..fillRange(0, 1280 * 720, 180);
+      AnalysisResult? last;
+      for (int i = 0; i < 5; i++) {
+        last = analyzer.process(
+          LumaFrame.fromGray(GrayImage(1280, 720, sky)),
+          timestampMs: 1000 + i * 100,
+          motion: _turn(6),
+        );
+      }
+      expect(last!.gyroReport.filledIn, isFalse);
+    });
+  });
+
+  group("FrameAnalyzer ADS-B cues", () {
+    const Cue cue = Cue(
+      key: "N123AB",
+      u: 0.5,
+      v: 0.3,
+      expectedPixels: 8,
+      distanceNm: 0.8,
+    );
+
+    test("the model is asked to look where ADS-B says and a find becomes a box", () {
+      final _FakeConfirmer confirmer = _FakeConfirmer(cocoAirplane, 0.7);
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(confirmer: confirmer),
+        _Scene(horizonY: 0.8),
+        5,
+        cues: const [cue],
+      );
+      expect(confirmer.calls, greaterThan(0));
+      final CueResult result = r.cueResults.single;
+      expect(result.airplane, isTrue);
+      expect(result.checks, 1);
+      expect(result.boxId, lessThan(0));
+      final DetectionBox box = r.frame.boxes.single;
+      expect(box.id, result.boxId);
+      expect(box.tier, DetectionTier.airplane);
+      expect(box.centerX, closeTo(0.5, 0.01));
+      expect(box.centerY, closeTo(0.3, 0.01));
+      final TargetNote note = r.notes.firstWhere((TargetNote n) => n.id == box.id);
+      expect(note.code, "adsb-cue");
+      expect(note.reason, contains("N123AB"));
+      expect(note.reason, contains("0.70"));
+    });
+
+    test("a model that sees nothing there makes no box and keeps its score", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(confirmer: _FakeConfirmer(cocoBird, 0.9)),
+        _Scene(horizonY: 0.8),
+        5,
+        cues: const [cue],
+      );
+      expect(r.frame.boxes, isEmpty);
+      expect(r.cueResults.single.checks, 1);
+      expect(r.cueResults.single.airplane, isFalse);
+    });
+
+    test("with no model a cue is only waiting", () {
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(),
+        _Scene(horizonY: 0.8),
+        5,
+        cues: const [cue],
+      );
+      expect(r.frame.boxes, isEmpty);
+      expect(r.cueResults.single.checks, 0);
+    });
+
+    test("a cue is looked at again after a while, not every frame", () {
+      final _FakeConfirmer confirmer = _FakeConfirmer(cocoBird, 0.9);
+      _runResult(FrameAnalyzer(confirmer: confirmer), _Scene(horizonY: 0.8), 10,
+          cues: const [cue]);
+      // Ten frames is a second, less than the recheck time.
+      expect(confirmer.calls, 1);
+      final _FakeConfirmer longer = _FakeConfirmer(cocoBird, 0.9);
+      _runResult(FrameAnalyzer(confirmer: longer), _Scene(horizonY: 0.8), 40,
+          cues: const [cue]);
+      expect(longer.calls, greaterThanOrEqualTo(2));
+      expect(longer.calls, lessThanOrEqualTo(4));
+    });
+
+    test("the box goes when the cue goes", () {
+      final FrameAnalyzer analyzer =
+          FrameAnalyzer(confirmer: _FakeConfirmer(cocoAirplane, 0.7));
+      final _Scene scene = _Scene(horizonY: 0.8);
+      expect(_runResult(analyzer, scene, 5, cues: const [cue]).frame.boxes, isNotEmpty);
+      final AnalysisResult after = _runResult(analyzer, scene, 3);
+      expect(after.frame.boxes, isEmpty);
+      expect(after.cueResults, isEmpty);
+    });
+
+    test("the box follows the cue as the camera moves", () {
+      final FrameAnalyzer analyzer =
+          FrameAnalyzer(confirmer: _FakeConfirmer(cocoAirplane, 0.7));
+      final _Scene scene = _Scene(horizonY: 0.8);
+      _runResult(analyzer, scene, 5, cues: const [cue]);
+      final AnalysisResult moved = _runResult(analyzer, scene, 1, cues: const [
+        Cue(key: "N123AB", u: 0.6, v: 0.3, expectedPixels: 8, distanceNm: 0.8),
+      ]);
+      expect(moved.frame.boxes.single.centerX, closeTo(0.6, 0.01));
+    });
+
+    test("a tracked spot where the model finds the airplane is the one made red", () {
+      final _Scene scene = _Scene();
+      scene.things.add(_Thing(640, 216, 4, 60));
+      final AnalysisResult r = _runResult(
+        FrameAnalyzer(confirmer: _FakeConfirmer(cocoAirplane, 0.7)),
+        scene,
+        30,
+        cues: const [
+          Cue(key: "N9", u: 0.5, v: 0.3, expectedPixels: 8, distanceNm: 1),
+        ],
+      );
+      expect(r.frame.boxes.length, 1);
+      expect(r.frame.boxes.single.id, greaterThan(0));
+      expect(r.frame.boxes.single.tier, DetectionTier.airplane);
     });
   });
 

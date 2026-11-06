@@ -531,6 +531,35 @@ class AppSettings {
     provider.setBool("key-vt-alert", value);
   }
 
+  /// Degrees the camera points to the right of the aircraft's track, negative
+  /// for left. Used to place ADS-B aircraft in the picture.
+  double getVisualTrafficYaw() {
+    return provider.getValue("key-vt-yaw", defaultValue: 0.0) as double;
+  }
+
+  void setVisualTrafficYaw(double value) {
+    provider.setDouble("key-vt-yaw", value);
+  }
+
+  /// Use the gyroscope to follow the scene and carry the heading.
+  bool getVisualTrafficFuseGyro() {
+    return provider.getValue("key-vt-fuse-gyro", defaultValue: true) as bool;
+  }
+
+  void setVisualTrafficFuseGyro(bool value) {
+    provider.setBool("key-vt-fuse-gyro", value);
+  }
+
+  /// Use ADS-B to confirm yellow boxes and to point the model at where an
+  /// aircraft should be.
+  bool getVisualTrafficFuseAdsb() {
+    return provider.getValue("key-vt-fuse-adsb", defaultValue: true) as bool;
+  }
+
+  void setVisualTrafficFuseAdsb(bool value) {
+    provider.setBool("key-vt-fuse-adsb", value);
+  }
+
   /// Send boxes (and the small picture, to devices that ask) to other
   /// AvareX devices on the Wi-Fi.
   bool getVisualTrafficShare() {

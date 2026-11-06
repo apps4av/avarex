@@ -1342,6 +1342,7 @@ What the boxes mean:
 
 - **Red box**: a moving target that the on-device model recognized as an airplane. The label shows how far off the camera's center it is, in degrees left or right and up or down.
 - **Thin yellow box**: a small spot in the sky that keeps moving but is not recognized yet. Many are clouds, glare, or birds. A yellow box turns red when the model confirms it, and disappears when the model says it is something else.
+- A yellow box also turns red when it lines up closely (about 3.5° or less) with an ADS-B aircraft. The Why window says so. Red boxes named `A1`, `A2` and so on were found by the model looking where ADS-B said an aircraft should be.
 - Cars, buildings, and terrain below the horizon are not boxed unless the model confirms an airplane there. Specks on the windshield are ignored.
 
 Camera screen:
@@ -1354,7 +1355,16 @@ Camera screen:
   - **Picture rotation**: if boxes do not sit on what you see, tap **Rotate 90°** until they do. It is remembered.
   - **Alert on a new red box**: beep and vibrate when a new airplane gets a red box, at most once every few seconds.
   - **Share with other devices**: send boxes, and a small picture to a device that is showing this camera.
+  - **Use gyroscope**: the phone's gyroscope helps follow the scene through turns and carries the heading between GPS updates. It is only used after it has been seen to agree with the picture. If its readings do not match what the camera sees, it is ignored and the Why window says so. On by default.
+  - **Use ADS-B to confirm**: lets ADS-B turn a yellow box red when it lines up with an ADS-B aircraft, and makes the model look where ADS-B says an aircraft is. Turn it off to get detections from the camera alone. On by default.
+  - **Camera aim**: how many degrees right (or left) of the aircraft's track the camera points. Only used to place ADS-B aircraft in the picture. Leave at 0 when the phone looks straight ahead.
   - **Show horizon line**: draws the sky and ground split the detector is using, to check it.
+- **Why** (checklist icon): opens a small window that says, in words, how each decision was made. It has four tabs:
+  - `Targets`: each target with its verdict and reason. Red means the model said airplane and shows its score. Yellow means a steady mover the model has not confirmed. Rejected targets say why, for example windshield speck, model says bird, below the horizon, busy sky, or the model looked several times and never saw an airplane. A red or yellow target also says which ADS-B aircraft it matches, or that no ADS-B aircraft is at that spot.
+  - `Sensors`: your GPS position, speed and altitude, and the heading in use (the GPS ground track, plus any turn the gyroscope has measured since the last fix). Heading is not trusted under 20 kt. A gyroscope line says whether it agrees with the picture, is still being checked, does not match, or is supplying the movement of a plain sky. It also shows where the horizon came from. It says when the phone's tilt sensors **disagree** with the horizon in the picture (common in turns, and the picture is used), when it has fallen back to the sensors because the picture has no clear horizon, whether the model is on, and whether the sky is too busy.
+  - `ADS-B`: every ADS-B aircraft with a reason. Matched to a box, in the picture but no box (with how many pixels wide it would look, and what the model saw when it looked there), outside the camera's field of view (which side, by how many degrees), behind the camera, too far for a phone camera (about 3 nm), or on the ground. It also says when ADS-B cannot be placed at all, for example no GPS, speed under 20 kt so the GPS heading is not trusted, or no horizon.
+  - `History`: the latest changes with the time, such as a box going from yellow to red, a target thrown out, a box lost, the sensors starting to disagree, or an ADS-B aircraft matching a box.
+- An ADS-B aircraft that lines up with a box is named on the box in blue. This uses the GPS ground track as the way the camera points, so it is rough in a strong crosswind, and ADS-B and GPS altitude differences add error for far aircraft. A yellow box that lines up closely turns red. A red box with no ADS-B match is not wrong, because many aircraft have no transponder or are out of range of your receiver.
 
 Viewer screen:
 

@@ -61,6 +61,13 @@ class Track {
   double airplaneScore = 0;
   bool bird = false;
   int birdChecks = 0;
+
+  /// Highest airplane score the model gave this target on any look, even a
+  /// score too low to count. For the Why window.
+  double bestAirplaneScore = 0;
+
+  /// Bird score from the look that made it a bird.
+  double birdScoreSeen = 0;
   int checks = 0;
   int airplaneMisses = 0;
   int lastCheckFrame = -1000;

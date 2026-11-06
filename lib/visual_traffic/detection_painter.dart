@@ -16,6 +16,7 @@ class DetectionPainter extends CustomPainter {
     this.horizonRight,
     this.showHorizon = false,
     this.dimmed = false,
+    this.labels = const {},
   });
 
   final List<DetectionBox> boxes;
@@ -24,6 +25,9 @@ class DetectionPainter extends CustomPainter {
   final double? horizonLeft;
   final double? horizonRight;
   final bool showHorizon;
+
+  /// Extra text for a box, by box id, such as the ADS-B aircraft it matches.
+  final Map<int, String> labels;
 
   /// Draws everything faintly, for data that has gone stale.
   final bool dimmed;
@@ -75,6 +79,30 @@ class DetectionPainter extends CustomPainter {
       final double cy = box.centerY * size.height;
       final Rect rect = Rect.fromCenter(center: Offset(cx, cy), width: w, height: h);
       canvas.drawRect(rect, stroke);
+      final String? extra = labels[box.id];
+      if (extra != null) {
+        final TextPainter tag = TextPainter(
+          text: TextSpan(
+            text: extra,
+            style: TextStyle(
+              color: Colors.cyanAccent.withValues(alpha: alpha),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        double ty = rect.top - tag.height - 2;
+        if (ty < 0) {
+          ty = rect.bottom + (airplane ? 18 : 2);
+        }
+        double tx = rect.left;
+        if (tx + tag.width > size.width) {
+          tx = size.width - tag.width;
+        }
+        tag.paint(canvas, Offset(tx < 0 ? 0 : tx, ty));
+      }
       if (airplane) {
         final TextPainter label = TextPainter(
           text: TextSpan(
@@ -110,7 +138,8 @@ class DetectionPainter extends CustomPainter {
         old.horizonLeft != horizonLeft ||
         old.horizonRight != horizonRight ||
         old.fovH != fovH ||
-        old.fovV != fovV;
+        old.fovV != fovV ||
+        old.labels != labels;
   }
 }
 
