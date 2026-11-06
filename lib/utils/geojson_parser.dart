@@ -68,7 +68,7 @@ class GeoJsonParser {
     }
     if (geometry.type == GeoJSONType.multiPoint) {
       for (var point in (geometry as GeoJSONMultiPoint).coordinates) {
-        _addMarker(point as GeoJSONPoint, label);
+        _addMarker(GeoJSONPoint(point), label);
       }
     }
     else if (geometry.type == GeoJSONType.polygon) {
