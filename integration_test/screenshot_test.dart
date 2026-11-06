@@ -11,6 +11,9 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:avaremp/data/main_database_helper.dart';
+import 'package:avaremp/data/user_database_helper.dart';
+import 'package:avaremp/destination/destination.dart';
 import 'package:avaremp/main.dart';
 import 'package:avaremp/main_screen.dart';
 import 'package:avaremp/plan/plan_route.dart';
@@ -441,10 +444,21 @@ void main() {
     final String savedPlateAirport = Storage().settings.getCurrentPlateAirport();
     final String savedPlate = Storage().currentPlate;
     final String savedLastPlate = Storage().lastPlateAirport;
+    // The plate screen lists recent airports and needs the airport destination, so set both.
+    final AirportDestination? kbvy = await tester.runAsync<AirportDestination?>(() async {
+      final AirportDestination? airport = await MainDatabaseHelper.db.findAirport('KBVY');
+      if (airport != null) {
+        await UserDatabaseHelper.db.addRecent(airport);
+      }
+      return airport;
+    });
+    if (kbvy != null) {
+      Storage().plateAirportDestination = kbvy;
+    }
     Storage().settings.setCurrentPlateAirport('KBVY');
     Storage().lastPlateAirport = '';
     final List<String> kbvyPlates =
-        await PathUtils.getPlatesAndCSupSorted(Storage().dataDir, 'KBVY');
+        await PathUtils.getPlatesSorted(Storage().dataDir, 'KBVY');
     final String diagram = kbvyPlates.firstWhere(
       PathUtils.isAirportDiagram,
       orElse: () => '',
@@ -454,8 +468,9 @@ void main() {
     }
     await _mark('plate KBVY diagram=$diagram count=${kbvyPlates.length}');
     if (diagram.isNotEmpty) {
-      await Storage().loadPlate();
+      await tester.runAsync(() => Storage().loadPlate());
     }
+    Storage().plateAirportChange.value++; // rebuild the plate screen for KBVY
     MainScreenState.gotoPlate();
     await tester.pump(const Duration(milliseconds: 400));
     bool plateReady = false;
@@ -474,6 +489,23 @@ void main() {
     await _mark('plate ready=$plateReady image=${Storage().imagePlate?.width}x${Storage().imagePlate?.height} plate=${Storage().currentPlate}');
     await tester.pump(const Duration(milliseconds: 600));
     await _shot(tester, '31_plate_tab');
+
+    // ===========================================
+    // CSUP tab — same airport as the Plate tab, opens on the airport text page
+    // ===========================================
+    MainScreenState.gotoCsup();
+    await tester.pump(const Duration(milliseconds: 400));
+    for (int i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 200));
+      if (!tester.any(find.byType(CircularProgressIndicator))) {
+        break;
+      }
+      await Future.delayed(const Duration(milliseconds: 200));
+    }
+    await Future.delayed(const Duration(milliseconds: 800));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _shot(tester, '34_csup_tab');
+
     Storage().settings.setCurrentPlateAirport(savedPlateAirport);
     Storage().currentPlate = savedPlate;
     Storage().lastPlateAirport = savedLastPlate;
@@ -500,5 +532,5 @@ void main() {
         );
       }
     }
-  }, timeout: const Timeout(Duration(minutes: 8)));
+  }, timeout: const Timeout(Duration(minutes: 25)));
 }

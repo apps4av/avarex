@@ -15,6 +15,10 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.144**
+
+- Updated the manual: new screenshots of the screens, and a screenshot of the `CSUP` tab.
+
 **0.0.143**
 
 - Fixed winds aloft, which stopped loading in the old feed. They now come from the AviationWeather.gov GFA forecast and refresh at most every 30 minutes.
@@ -622,9 +626,12 @@ Turning a control off stops only that automatic change. The airport selector, pl
 
 Bottom tab **CSUP** (right of `PLATE`) shows the Chart Supplement for the airport the `PLATE` tab is showing. CSUP pages are no longer in the `PLATE` plate selector.
 
+![CSUP tab at KBVY — airport text page with frequencies, runways, and remarks; page selector bottom-left, airport selector bottom-right](assets/docs/screenshots/34_csup_tab.png)
+
 - Same layout as `PLATE`: zoom/pan picture, `Center` button, airport selector (bottom-right), page selector (bottom-left).
 - **Airport selector**: changing the airport here also changes it on `PLATE`, and the other way around.
 - **Page selector**: the first item, **CSUP**, shows the airport text page: the same page as the `Main` tab of a long press on the map (frequencies, runways, remarks). The other items are the airport's CSUP pages. The `CSUP` text page opens whenever the airport changes. If you pick a CSUP image, it stays on screen (also when you leave the tab and come back) until you change the airport. The last items in the list are the regional Chart Supplement books you have downloaded, such as `Northeast PDF`. Tap one to open it in the PDF viewer; closing it returns to the page you were on. These items are not shown on Linux.
+- The `CSUP` tab has no title bar and never shows the instrument bar, whatever the instrument toggle on `PLATE` is set to.
 - `Invert Colors` also applies to the CSUP picture.
 
 ---
@@ -1718,6 +1725,7 @@ This is the most common cause of "AvareX traffic doesn't work" on iPhone/iPad an
 | PFD on its own screen | `MAP → Menu → PFD` (under `3D`) |
 | Draw a holding pattern | Long-press a fix or navaid → `Main` → `Hold` → `Draw on Map` |
 | Show plates for airport | Destination popup `Plates` or `PLATE tab` |
+| Show the Chart Supplement for an airport | Destination popup `CSUP` or `CSUP tab` |
 | Sync plates to the active airport | `PLATE` airport diagram → sync icon |
 | Airport diagram after landing | `PLATE` airport diagram → landing icon |
 | Get airport satellite view | `PLATE tab → Plate selector → APS-AERIAL VIEW (Get)` |

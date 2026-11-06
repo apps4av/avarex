@@ -1,4 +1,2 @@
-Fixed winds aloft, which stopped loading in the old feed. They now come from the AviationWeather.gov GFA forecast and refresh at most every 30 minutes.
-Changed the destination popup and the `CSUP` text page back to a plain title. `CSUP` no longer shows an instrument bar.
-Changed the `FIND` left icon: it no longer has a label under it, and its tap area is bigger.
+Updated the manual: new screenshots of the screens, and a screenshot of the `CSUP` tab.
 Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
