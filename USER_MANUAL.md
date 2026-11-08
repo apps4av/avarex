@@ -15,6 +15,11 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.146**
+
+- Updated the database libraries the app uses.
+- Bug fixes.
+
 **0.0.145**
 
 - Updated the libraries the app is built on: PDF viewer, file import and export, dropdown menus, sharing, and more.
