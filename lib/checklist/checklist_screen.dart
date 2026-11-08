@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:universal_io/io.dart';
 
 import 'package:avaremp/checklist/checklist.dart';
@@ -83,8 +84,8 @@ class ChecklistScreenState extends State<ChecklistScreen> {
                 width: Constants.screenWidth(context) / 2,
               ),
               isExpanded: false,
-              value: _selected,
-              items: items.map((Checklist e) => DropdownMenuItem<String>(value: e.name, child: Text(e.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
+              valueListenable: ValueNotifier(_selected),
+              items: items.map((Checklist e) => DropdownItem<String>(value: e.name, child: Text(e.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)))).toList(),
               onChanged: (value) {
                 setState(() {
                   _selected = value;
@@ -245,13 +246,15 @@ class ChecklistScreenState extends State<ChecklistScreen> {
   Future<List<String>> _pickFile() async {
     List<String> lines = [];
     // pick a file with txt as extension
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ["txt"]);
+    PlatformFile? result = await FilePicker.pickFile(type: FileType.custom, allowedExtensions: ["txt"]);
     if (result != null) {
-      String? path = result.files.single.path;
+      String? path = result.path;
       if(path != null) {
         File file = File(path);
         // copy now
         lines = await file.readAsLines();
+      } else {
+        lines = const LineSplitter().convert(utf8.decode(await result.readAsBytes(), allowMalformed: true));
       }
     }
     return lines;

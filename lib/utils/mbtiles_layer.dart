@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:avaremp/place/airspace_volume.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:mbtiles/mbtiles.dart';
 import 'package:vector_map_tiles/vector_map_tiles.dart';
 import 'package:vector_tile_renderer/vector_tile_renderer.dart' as vtr;
@@ -43,7 +42,7 @@ class MBTilesLayerManager {
         return false;
       }
 
-      _mbtiles = MbTiles(mbtilesPath: path);
+      _mbtiles = MbTiles(path: path);
       _metadata = _mbtiles!.getMetadata();
       _currentPath = path;
 
@@ -74,7 +73,7 @@ class MBTilesLayerManager {
   }
 
   void close() {
-    _mbtiles?.dispose();
+    _mbtiles?.close();
     _mbtiles = null;
     _metadata = null;
     _currentPath = null;

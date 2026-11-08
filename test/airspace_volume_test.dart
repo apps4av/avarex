@@ -10,7 +10,6 @@ import 'package:vector_tile/vector_tile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 List<String> _tileSeamWalls(AirspaceScene scene, LatLng center) {
@@ -462,7 +461,7 @@ void main() {
   final mainDb = Platform.environment['AVAREX_MAIN_DB'];
 
   test('New York airport names sit on JFK, Newark, and LaGuardia', () {
-    final db = MbTiles(mbtilesPath: mbtiles!);
+    final db = MbTiles(path: mbtiles!);
     try {
       const jfk = ChartAirport('KJFK', 40.6413, -73.7781);
       const ewr = ChartAirport('KEWR', 40.6895, -74.1745);
@@ -492,7 +491,7 @@ void main() {
               _km(label.point, ewr.latitude, ewr.longitude) < 5),
           isFalse);
     } finally {
-      db.dispose();
+      db.close();
     }
   },
       skip: mbtiles == null || mbtiles.isEmpty
@@ -500,7 +499,7 @@ void main() {
           : false);
 
   test('zoomed-out labels stay on the airspace instead of the camera', () {
-    final db = MbTiles(mbtilesPath: mbtiles!);
+    final db = MbTiles(path: mbtiles!);
     try {
       const lat = 42.3656;
       const lon = -71.0096;
@@ -543,7 +542,7 @@ void main() {
               label.text.contains('KBOS')),
           isFalse);
     } finally {
-      db.dispose();
+      db.close();
     }
   },
       skip: mbtiles == null || mbtiles.isEmpty
@@ -551,7 +550,7 @@ void main() {
           : false);
 
   test('KBOS labels stay visible when the airport is on a tile edge', () {
-    final db = MbTiles(mbtilesPath: mbtiles!);
+    final db = MbTiles(path: mbtiles!);
     try {
       const lat = 42.3656;
       const lon = -71.0096;
@@ -583,7 +582,7 @@ void main() {
               label.text.contains('20-70') || label.text.contains('30-70')),
           isFalse);
     } finally {
-      db.dispose();
+      db.close();
     }
   },
       skip: mbtiles == null || mbtiles.isEmpty
@@ -591,7 +590,7 @@ void main() {
           : false);
 
   test('Manchester vector tiles label each sector and the airport center', () {
-    final db = MbTiles(mbtilesPath: mbtiles!);
+    final db = MbTiles(path: mbtiles!);
     try {
       const z = 10;
       const x = 308;
@@ -618,7 +617,7 @@ void main() {
           labels.where((label) => label.startsWith('KMHT')), ['KMHT\nSF-43']);
       expect(labels.any((label) => label.contains('MANCHESTER')), isFalse);
     } finally {
-      db.dispose();
+      db.close();
     }
   },
       skip: mbtiles == null || mbtiles.isEmpty
@@ -858,7 +857,7 @@ void main() {
           ? 'Set AVAREX_NASR_MBTILES to the nasr.mbtiles path'
           : false);
 
-  Position _fix(double lat, double lon) {
+  Position fix1(double lat, double lon) {
     return Position(
       latitude: lat,
       longitude: lon,
@@ -1053,7 +1052,7 @@ void main() {
     Airspace3DView.debugSetScene(center, scene);
     addTearDown(() => Airspace3DView.debugSetScene(center, null));
 
-    final gps = ValueNotifier<Position>(_fix(42.05, -71.0));
+    final gps = ValueNotifier<Position>(fix1(42.05, -71.0));
     addTearDown(gps.dispose);
 
     await tester.pumpWidget(MaterialApp(
@@ -1062,11 +1061,11 @@ void main() {
     expect(find.textContaining('Drag to rotate'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    gps.value = _fix(44.0, -71.0);
+    gps.value = fix1(44.0, -71.0);
     await tester.pump();
     expect(tester.takeException(), isNull);
 
-    gps.value = _fix(0, 0);
+    gps.value = fix1(0, 0);
     await tester.pump();
     expect(tester.takeException(), isNull);
   });

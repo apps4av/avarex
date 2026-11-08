@@ -260,11 +260,11 @@ class CsupScreenState extends State<CsupScreen> {
                     maxHeight: Constants.screenHeight(context) * 0.6,
                   ),
                   isExpanded: false,
-                  value: selected,
+                  valueListenable: ValueNotifier(selected),
                   items: pageNames.map((String item) {
                     final bool isSelected = item == selected;
                     final bool isPdf = item.startsWith(pdfPrefix);
-                    return DropdownMenuItem<String>(
+                    return DropdownItem<String>(
                       value: item,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -336,10 +336,10 @@ class CsupScreenState extends State<CsupScreen> {
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
                     ),
                     isExpanded: false,
-                    value: data.airports.contains(data.currentAirport) ? data.currentAirport : data.airports[0],
+                    valueListenable: ValueNotifier(data.airports.contains(data.currentAirport) ? data.currentAirport : data.airports[0]),
                     items: data.airports.map((String item) {
                       final bool isSelected = item == data.currentAirport;
-                      return DropdownMenuItem<String>(
+                      return DropdownItem<String>(
                         value: item,
                         child: Text(
                           item,

@@ -194,13 +194,13 @@ class PlanScreenState extends State<PlanScreen> {
                     dropdownStyleData: DropdownStyleData(
                       decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
                     ),
-                    menuItemStyleData: const MenuItemStyleData(height: 44),
                     style: Theme.of(context).textTheme.bodyLarge,
                     isExpanded: false,
-                    value: "${Storage().route.fore.toString().padLeft(2, "0")}H",
+                    valueListenable: ValueNotifier("${Storage().route.fore.toString().padLeft(2, "0")}H"),
                     items: ["06H", "12H", "24H"].map((String item) {
-                      return DropdownMenuItem<String>(
+                      return DropdownItem<String>(
                         value: item,
+                        height: 44,
                         child: Text(item),
                       );
                     }).toList(),

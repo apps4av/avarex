@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:avaremp/logbook/filterable_logbook_dashboard.dart';
 import 'package:avaremp/utils/path_utils.dart';
 import 'package:avaremp/storage.dart';
@@ -41,18 +42,23 @@ class _LogbookScreenState extends State<LogbookScreen> {
   }
 
   Future<void> _importCsv() async {
-    final result = await FilePicker.platform.pickFiles(
+    final picked = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: ['csv'],
     );
-    if (result == null) return;
+    if (picked == null) return;
 
-    final file = File(result.files.single.path!);
-    final rawContent = await file.readAsString();
+    final String rawContent;
+    final pickedPath = picked.path;
+    if (pickedPath != null) {
+      rawContent = await File(pickedPath).readAsString();
+    } else {
+      rawContent = utf8.decode(await picked.readAsBytes(), allowMalformed: true);
+    }
     final csvContent = rawContent.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 
-    final rows = const CsvToListConverter(eol: "\n")
-        .convert(csvContent, shouldParseNumbers: false);
+    final rows = Csv(autoDetect: false)
+        .decode(csvContent);
 
     if (rows.isEmpty) return;
 
@@ -130,7 +136,7 @@ class _LogbookScreenState extends State<LogbookScreen> {
       ...entries.map((e) => headers.map((h) => e.toMap()[h]).toList()),
     ];
 
-    final csv = const ListToCsvConverter().convert(rows);
+    final csv = Csv().encode(rows);
     String? path = await PathUtils.writeLogbook(Storage().dataDir, csv);
 
     if(path != null) {
@@ -710,12 +716,12 @@ class LogbookCsv {
       }),
     ];
 
-    return const ListToCsvConverter().convert(rows);
+    return Csv().encode(rows);
   }
 
   static List<LogEntry> importCsv(String csvContent) {
     final normalized = csvContent.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
-    final rows = const CsvToListConverter().convert(normalized, eol: "\n");
+    final rows = Csv(autoDetect: false, dynamicTyping: true).decode(normalized);
     if (rows.isEmpty) return [];
 
     final header = rows.first.cast<String>();

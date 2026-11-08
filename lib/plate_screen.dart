@@ -851,12 +851,12 @@ class PlateScreenState extends State<PlateScreen> {
                       maxHeight: Constants.screenHeight(context) * 0.6,
                     ),
                     isExpanded: false,
-                    value: plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0],
+                    valueListenable: ValueNotifier(plates.contains(Storage().currentPlate) ? Storage().currentPlate : plates[0]),
                     items: plates.map((String item) {
                       final bool isSelected = item == Storage().currentPlate;
                       final bool isSatellitePlaceholder = item == AirportSatellite.plateName && !satelliteDownloaded;
                       final bool isSatelliteDownloaded = item == AirportSatellite.plateName && satelliteDownloaded;
-                      return DropdownMenuItem<String>(
+                      return DropdownItem<String>(
                         value: item,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -945,11 +945,11 @@ class PlateScreenState extends State<PlateScreen> {
                       width: Constants.screenWidth(context) * 0.75,
                     ),
                     isExpanded: false,
-                    value: business.any((b) => b.id == Storage().business?.id)
+                    valueListenable: ValueNotifier(business.any((b) => b.id == Storage().business?.id)
                         ? Storage().business!.id
-                        : business[0].id,
+                        : business[0].id),
                     items: business.map((AirportBusiness item) {
-                      return DropdownMenuItem<String>(
+                      return DropdownItem<String>(
                         value: item.id,
                         child: ListTile(
                           dense: true,
@@ -1005,9 +1005,9 @@ class PlateScreenState extends State<PlateScreen> {
                             width: Constants.screenWidth(context) * 0.8,
                           ),
                           isExpanded: false,
-                          value: procedures[0],
+                          valueListenable: ValueNotifier(procedures[0]),
                           items: procedures.map((String item) {
-                            return DropdownMenuItem<String>(
+                            return DropdownItem<String>(
                               value: item,
                               child: ListTile(
                                 dense: true,
@@ -1047,12 +1047,12 @@ class PlateScreenState extends State<PlateScreen> {
                           decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
                         ),
                         isExpanded: false,
-                        value: airports.contains(Storage().settings.getCurrentPlateAirport())
+                        valueListenable: ValueNotifier(airports.contains(Storage().settings.getCurrentPlateAirport())
                             ? Storage().settings.getCurrentPlateAirport()
-                            : airports[0],
+                            : airports[0]),
                         items: airports.map((String item) {
                           final bool isSelected = item == Storage().settings.getCurrentPlateAirport();
-                          return DropdownMenuItem<String>(
+                          return DropdownItem<String>(
                             value: item,
                             child: Text(
                               item,

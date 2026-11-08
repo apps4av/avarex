@@ -622,12 +622,11 @@ class DocumentsScreenState extends State<DocumentsScreen> {
   /// the write finishes (often seen on Windows).
   Future<bool> _pickFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles();
-      if (result == null || result.files.isEmpty) {
+      final picked = await FilePicker.pickFile();
+      if (picked == null) {
         return false;
       }
 
-      final picked = result.files.single;
       final String destPath =
           PathUtils.getFilePath(_currentBasePath, picked.name);
 
@@ -651,8 +650,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
 
       if (picked.path != null && picked.path!.isNotEmpty) {
         await File(picked.path!).copy(destPath);
-      } else if (picked.bytes != null) {
-        await File(destPath).writeAsBytes(picked.bytes!, flush: true);
+      } else if (await picked.length() != null) {
+        await File(destPath).writeAsBytes(await picked.readAsBytes(), flush: true);
       } else {
         if (mounted) {
           Toast.showToast(
@@ -765,8 +764,8 @@ class DocumentsScreenState extends State<DocumentsScreen> {
                     decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
                   ),
                   isExpanded: false,
-                  value: filter,
-                  items: ctypes.map((String e) => DropdownMenuItem<String>(
+                  valueListenable: ValueNotifier(filter),
+                  items: ctypes.map((String e) => DropdownItem<String>(
                     value: e,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

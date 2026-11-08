@@ -15,6 +15,11 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.145**
+
+- Updated the libraries the app is built on: PDF viewer, file import and export, dropdown menus, sharing, and more.
+- Bug fixes.
+
 **0.0.144**
 
 - Updated the manual: new screenshots of the screens, and a screenshot of the `CSUP` tab.

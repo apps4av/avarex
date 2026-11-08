@@ -914,8 +914,8 @@ class _AircraftPerformanceScreenState extends State<AircraftPerformanceScreen> {
                   maxHeight: 400,
                 ),
                 isExpanded: false,
-                value: _selectedAircraft,
-                items: _allAircraft.map((a) => DropdownMenuItem<AircraftPerformanceData>(
+                valueListenable: ValueNotifier(_selectedAircraft),
+                items: _allAircraft.map((a) => DropdownItem<AircraftPerformanceData>(
                   value: a,
                   child: Text(a.name, style: TextStyle(fontSize: Constants.dropDownButtonFontSize)),
                 )).toList(),

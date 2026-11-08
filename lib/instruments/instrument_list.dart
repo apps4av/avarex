@@ -609,7 +609,7 @@ class InstrumentListState extends State<InstrumentList> {
             });
           },
           items: [
-            DropdownMenuItem(
+            DropdownItem(
               value: "4",
               onTap:() {
                 // Make a toast and show
@@ -642,21 +642,21 @@ class InstrumentListState extends State<InstrumentList> {
                 },
                 child: _menuRow(Icons.help_outline, "Help"),
             ),
-            DropdownMenuItem(
+            DropdownItem(
               value: "1",
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() - 0.1);
               },
               child: _menuRow(Icons.zoom_in, "Expand"),
             ),
-            DropdownMenuItem(
+            DropdownItem(
               value: "2",
               onTap:() {
                 Storage().settings.setInstrumentScaleFactor(Storage().settings.getInstrumentScaleFactor() + 0.1);
               },
               child: _menuRow(Icons.zoom_out, "Contract"),
             ),
-            DropdownMenuItem(
+            DropdownItem(
               value: "lock",
               onTap:() {
                 setState(() {
@@ -667,13 +667,13 @@ class InstrumentListState extends State<InstrumentList> {
                   ? _menuRow(Icons.lock_open, "Unlock Tiles")
                   : _menuRow(Icons.lock_outline, "Lock Tiles"),
             ),
-            DropdownMenuItem(
+            DropdownItem(
               value: "3",
               onTap: _resetLayout,
               child: _menuRow(Icons.restart_alt, "Reset Layout"),
             ),
             for(final String code in _items.where((c) => c.isNotEmpty))
-              DropdownMenuItem(
+              DropdownItem(
                 value: "toggle-$code",
                 onTap: () => _toggleTile(code),
                 child: _menuRow(_visible.contains(code) ? Icons.remove_circle_outline : Icons.add_circle_outline, code),

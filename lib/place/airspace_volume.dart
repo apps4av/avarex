@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:latlong2/latlong.dart';
 import 'package:mbtiles/mbtiles.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:universal_io/io.dart';
@@ -1540,7 +1539,7 @@ const int _airspaceZoom = 10;
 AirspaceScene loadClassAirspace(String mbtilesPath, LatLng center) {
   MbTiles? db;
   try {
-    db = MbTiles(mbtilesPath: mbtilesPath);
+    db = MbTiles(path: mbtilesPath);
     final shelves = _readShelves(db, center);
     return AirspaceScene(
       radiusNm: airspaceViewRadiusNm,
@@ -1554,7 +1553,7 @@ AirspaceScene loadClassAirspace(String mbtilesPath, LatLng center) {
       message: 'Could not read the Vector Map.',
     );
   } finally {
-    db?.dispose();
+    db?.close();
   }
 }
 
