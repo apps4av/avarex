@@ -5,13 +5,24 @@ on: push
 jobs:
 
   build-and-release:
-    runs-on: macos-26
+    # macos-27 ships Xcode 27.x. Apps linked against an older iOS SDK run in
+    # compatibility mode on iPhone Duo (about a quarter of the screen), so
+    # the release must be built with the iOS 27.1 SDK or later. macos-26 only
+    # has Xcode 26.x.
+    runs-on: macos-27
 
     steps:
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      - name: Select Xcode 27.1
+        run: |
+          sudo xcode-select -s /Applications/Xcode_27.1.app
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i "iphoneos"
+
       - name: Set app version
         run: |
           echo "APP_VERSION=$(sed -n 's/^version: //p' pubspec.yaml)" >> "$GITHUB_ENV"
@@ -60,7 +71,7 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-          # No `xcodebuild -downloadPlatform iOS` here: the macos-26 image ships
+          # No `xcodebuild -downloadPlatform iOS` here: the macos-27 image ships
           # the iOS platform and simulator runtimes, and the command fails with
           # "Unable to connect to simulator" (exit 70) once a simulator is
           # booted. A release IPA is a device build and needs no runtime.
@@ -92,6 +103,19 @@ jobs:
 
       - name: Build artifacts
         run: flutter build ipa --release --export-options-plist=ios/GithubActionsExportOptions.plist
+
+      # iPhone Duo only resizes apps linked against the iOS 27.1 SDK or
+      # later. Fail the release instead of shipping a letterboxed app.
+      - name: Verify iOS SDK is 27.1 or later
+        run: |
+          BIN=build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app/Runner
+          xcrun vtool -show-build "$BIN"
+          SDK=$(xcrun vtool -show-build "$BIN" | awk '$1=="sdk"{print $2; exit}')
+          echo "Linked against iOS SDK $SDK"
+          if [ "$(printf '%s\n27.1\n' "$SDK" | sort -V | head -n1)" != "27.1" ]; then
+            echo "::error::Built with iOS SDK $SDK; need 27.1 or later for iPhone Duo"
+            exit 1
+          fi
 
       - name: Prepare upload artifact
         run: |
