@@ -40,8 +40,8 @@ dependencies:
   path: ^1.8.3
   path_provider: ^2.1.5
   path_provider_android: ^2.2.15
-  sqflite_common_ffi: ^2.3.6
-  sqflite_common_ffi_web: ^1.0.1+1
+  sqflite_common_ffi: ^2.4.5
+  sqflite_common_ffi_web: ^1.2.0
   flutter_material_design_icons: ^3.1.0+7447
   geolocator: ^14.0.2
   geolocator_linux: ^0.2.0+1
