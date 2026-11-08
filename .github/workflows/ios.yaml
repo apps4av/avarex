@@ -5,11 +5,13 @@ on: push
 jobs:
 
   build-and-release:
-    # macos-27 ships Xcode 27.x. Apps linked against an older iOS SDK run in
-    # compatibility mode on iPhone Duo (about a quarter of the screen), so
-    # the release must be built with the iOS 27.1 SDK or later. macos-26 only
-    # has Xcode 26.x.
-    runs-on: macos-27
+    # `xcode-27` is GitHub's preview image with Xcode 27.x (see
+    # actions/runner-images#14404). There is no `macos-27` label. Apps linked
+    # against an older iOS SDK run in compatibility mode on iPhone Duo (about
+    # a quarter of the screen), so the release must be built with the iOS 27.1
+    # SDK or later. macos-26 only has Xcode 26.x. Switch back to a plain
+    # macos-NN label once Xcode 27 is on a GA image.
+    runs-on: xcode-27
 
     steps:
 
@@ -71,7 +73,7 @@ jobs:
           # apply provisioning profile
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles
-          # No `xcodebuild -downloadPlatform iOS` here: the macos-27 image ships
+          # No `xcodebuild -downloadPlatform iOS` here: the xcode-27 image ships
           # the iOS platform and simulator runtimes, and the command fails with
           # "Unable to connect to simulator" (exit 70) once a simulator is
           # booted. A release IPA is a device build and needs no runtime.
