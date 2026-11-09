@@ -78,6 +78,7 @@ class CapGridLayer {
   double? _cachedCenterLat;
   double? _cachedCenterLon;
   double? _cachedZoom;
+  Brightness? _cachedBrightness;
 
   double _snapToGrid(double value) {
     double snapped = (value / gridSize).round() * gridSize;
@@ -101,6 +102,7 @@ class CapGridLayer {
   (PolylineLayer, MarkerLayer) build({
     required LatLng center,
     required double zoom,
+    required ThemeData theme, // day/night: grid border and labels follow it
   }) {
     if (zoom < 9) {
       _cachedPolylineLayer = PolylineLayer(polylines: []);
@@ -116,13 +118,15 @@ class CapGridLayer {
         _cachedMarkerLayer != null &&
         _cachedCenterLat == roundedLat &&
         _cachedCenterLon == roundedLon &&
-        _cachedZoom == roundedZoom) {
+        _cachedZoom == roundedZoom &&
+        _cachedBrightness == theme.brightness) {
       return (_cachedPolylineLayer!, _cachedMarkerLayer!);
     }
 
     _cachedCenterLat = roundedLat;
     _cachedCenterLon = roundedLon;
     _cachedZoom = roundedZoom;
+    _cachedBrightness = theme.brightness;
 
     int gridCount = 4;
 
@@ -141,7 +145,7 @@ class CapGridLayer {
         ],
         color: gridColor,
         strokeWidth: gridStrokeWidth,
-        borderColor: Colors.white,
+        borderColor: theme.cardColor,
         borderStrokeWidth: 1,
       ));
     }
@@ -154,7 +158,7 @@ class CapGridLayer {
         ],
         color: gridColor,
         strokeWidth: gridStrokeWidth,
-        borderColor: Colors.white,
+        borderColor: theme.cardColor,
         borderStrokeWidth: 1,
       ));
     }
@@ -171,14 +175,14 @@ class CapGridLayer {
             height: 24,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
+                color: theme.cardColor.withValues(alpha: 0.8),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Center(
                 child: Text(
                   gridName,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),

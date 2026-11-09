@@ -708,6 +708,7 @@ class MapScreenState extends State<MapScreen> {
                 var (polylineLayer, _) = _capGridLayer.build(
                   center: center,
                   zoom: zoom,
+                  theme: Theme.of(context),
                 );
                 return polylineLayer;
               },
@@ -728,6 +729,7 @@ class MapScreenState extends State<MapScreen> {
                 var (_, markerLayer) = _capGridLayer.build(
                   center: center,
                   zoom: zoom,
+                  theme: Theme.of(context),
                 );
                 return markerLayer;
               },
@@ -1157,7 +1159,7 @@ class MapScreenState extends State<MapScreen> {
                     for(int index = 0; index < value.$1.length; index++)
                       Marker(point: value.$1[index], width: 32, alignment: Alignment.center,
                           child: Container(width: 32,
-                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withValues(alpha: 0.6)),
+                              decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(12)), color: Theme.of(context).cardColor.withValues(alpha: 0.8)),
                               child: SizedBox(width: 32, child: FittedBox(
                                   child: Padding(padding: const EdgeInsets.all(3),
                                       child:Text(value.$2[index], style: const TextStyle(fontWeight: FontWeight.w600),)))
