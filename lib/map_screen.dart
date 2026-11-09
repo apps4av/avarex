@@ -1620,6 +1620,7 @@ class MapScreenState extends State<MapScreen> {
                               textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                               minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                               backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                              side: Constants.buttonSide(context),
                             ),
                             onPressed: () {
                               Position p = Storage().position;
@@ -1698,7 +1699,8 @@ class MapScreenState extends State<MapScreen> {
                               style: TextButton.styleFrom(
                                 textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                                 minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
-                                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)
+                                backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
+                                side: Constants.buttonSide(context),
                               ),
                               child: const Text("Menu"),
                             ),
@@ -1718,23 +1720,20 @@ class MapScreenState extends State<MapScreen> {
                                   IconButton(
                                       tooltip: "Map settings",
                                       padding: const EdgeInsets.all(Constants.bottomIconPadding),
-                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                          child: const Icon(Icons.settings)),
+                                      icon: _circleButton(Icons.settings),
                                       onPressed: () => _showSettingSelector(context)),
 
                                   IconButton(
                                     tooltip: "Select the chart type",
                                     padding: const EdgeInsets.all(Constants.bottomIconPadding),
-                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                        child: const Icon(Icons.map)),
+                                      icon: _circleButton(Icons.map),
                                     onPressed: () => _showChartSelector(context),
                                   ),
 
                                   IconButton(
                                     tooltip: "Select the layers to show on the Map screen",
                                     padding: const EdgeInsets.all(Constants.bottomIconPadding),
-                                      icon: CircleAvatar(radius: Constants.bottomIconCircle / 2, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7),
-                                        child: const Icon(Icons.layers)),
+                                      icon: _circleButton(Icons.layers),
                                     onPressed: () => _showLayerSelector(context),
                                   ),
                                 ]
@@ -1745,6 +1744,16 @@ class MapScreenState extends State<MapScreen> {
               ),
             ]
         )
+    );
+  }
+
+  // outlined round icon for the bottom right buttons
+  Widget _circleButton(IconData icon) {
+    return Container(
+      width: Constants.bottomIconCircle,
+      height: Constants.bottomIconCircle,
+      decoration: Constants.buttonDecoration(context, Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7)),
+      child: Icon(icon, color: Theme.of(context).colorScheme.onSurface),
     );
   }
 

@@ -714,10 +714,7 @@ class PlateScreenState extends State<PlateScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    color: overlayBg,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: Constants.buttonDecoration(context, overlayBg),
                   child: IconButton(
                     onPressed: () {
                       setState(() {
@@ -734,10 +731,7 @@ class PlateScreenState extends State<PlateScreen> {
                 if (!notAd) ...[
                   const SizedBox(height: 4),
                   Container(
-                    decoration: BoxDecoration(
-                      color: overlayBg,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: Constants.buttonDecoration(context, overlayBg),
                     child: IconButton(
                       tooltip: "Airport diagram on landing",
                       onPressed: () {
@@ -756,10 +750,7 @@ class PlateScreenState extends State<PlateScreen> {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    decoration: BoxDecoration(
-                      color: overlayBg,
-                      shape: BoxShape.circle,
-                    ),
+                    decoration: Constants.buttonDecoration(context, overlayBg),
                     child: IconButton(
                       tooltip: "Sync plates with the active waypoint",
                       onPressed: () {
@@ -795,6 +786,7 @@ class PlateScreenState extends State<PlateScreen> {
                     textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                     minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                     backgroundColor: overlayBg,
+                    side: Constants.buttonSide(context),
                   ),
                   onPressed: () {
                     final double currentScale = _transformationController.value.getMaxScaleOnAxis();
@@ -832,6 +824,7 @@ class PlateScreenState extends State<PlateScreen> {
                           textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                           minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                           backgroundColor: overlayBg,
+                          side: Constants.buttonSide(context),
                         ),
                         child: Stack(
                           alignment: Alignment.center,
@@ -926,10 +919,7 @@ class PlateScreenState extends State<PlateScreen> {
               right: 8,
               top: Constants.screenHeight(context) / 2 - 20,
               child: Container(
-                decoration: BoxDecoration(
-                  color: overlayBg,
-                  shape: BoxShape.circle,
-                ),
+                decoration: Constants.buttonDecoration(context, overlayBg),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
                     isDense: true,
@@ -986,10 +976,7 @@ class PlateScreenState extends State<PlateScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Container(
-                      decoration: BoxDecoration(
-                        color: overlayBg,
-                        shape: BoxShape.circle,
-                      ),
+                      decoration: Constants.buttonDecoration(context, overlayBg),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton2<String>(
                           isDense: true,
@@ -1033,10 +1020,7 @@ class PlateScreenState extends State<PlateScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                   Container(
-                    decoration: BoxDecoration(
-                      color: overlayBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    decoration: Constants.buttonDecoration(context, overlayBg, radius: 8),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton2<String>(
                         buttonStyleData: ButtonStyleData(
@@ -1129,10 +1113,7 @@ class PlateScreenState extends State<PlateScreen> {
                         top: 0,
                         right: 8,
                         child: Container(
-                          decoration: BoxDecoration(
-                            color: overlayBg,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: Constants.buttonDecoration(context, overlayBg),
                           child: IconButton(
                             iconSize: 18,
                             icon: const Icon(Icons.close),

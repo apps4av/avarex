@@ -584,7 +584,12 @@ class MainScreenState extends State<MainScreen> with WidgetsBindingObserver { //
                 tooltip: "Look at approach plates, airport diagrams, Minimums, etc.",
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book, size: 24, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))]),
+                icon: SizedBox(
+                  height: 24,
+                  child: Center(
+                    child: Text("CS", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 1, color: Constants.bottomNavBarIconColor, shadows: const [Shadow(offset: Offset(1, 1))])),
+                  ),
+                ),
                 label: 'CSUP',
                 tooltip: "Look at the Chart Supplement (CSUP) for the airport",
               ),

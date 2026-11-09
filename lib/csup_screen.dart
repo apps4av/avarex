@@ -211,6 +211,7 @@ class CsupScreenState extends State<CsupScreen> {
                       textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                       minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                       backgroundColor: overlayBg,
+                      side: Constants.buttonSide(context),
                     ),
                     onPressed: () {
                       final double currentScale = _transformationController.value.getMaxScaleOnAxis();
@@ -241,6 +242,7 @@ class CsupScreenState extends State<CsupScreen> {
                         textStyle: const TextStyle(fontSize: Constants.bottomLabelSize),
                         minimumSize: const Size(Constants.bottomButtonWidth, Constants.bottomButtonHeight),
                         backgroundColor: overlayBg,
+                        side: Constants.buttonSide(context),
                       ),
                       child: Stack(
                         alignment: Alignment.center,
@@ -322,10 +324,7 @@ class CsupScreenState extends State<CsupScreen> {
             child: SizedBox(
               height: Constants.bottomRowHeight,
               child: Container(
-                decoration: BoxDecoration(
-                  color: overlayBg,
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                decoration: Constants.buttonDecoration(context, overlayBg, radius: 8),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton2<String>(
                     buttonStyleData: ButtonStyleData(

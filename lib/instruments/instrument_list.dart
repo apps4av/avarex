@@ -249,7 +249,7 @@ class InstrumentListState extends State<InstrumentList> {
     setState(() {
       _timerUp = _truncate(Storage().flightTimer.getTime().toString().substring(2, 7));
       _timerDown = _truncate(Storage().flightDownTimer.getTime().toString().substring(2, 7));
-      Color defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
+      Color defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.8); // mostly opaque so text reads on any map
       // DNT: red when expired, green when counting, default otherwise
       _itemsColors[_items.indexOf("DNT")] = Storage().flightDownTimer.isExpired()
           ? Colors.red
@@ -261,7 +261,6 @@ class InstrumentListState extends State<InstrumentList> {
       _utc = _truncate(_hourMinuteFormatter.format(DateTime.now().toUtc()));
       _source = Storage().getGpsSourceModeString();
       // Auto = default tile color, Green = Internal, Blue = External
-      defaultColor = Theme.of(context).cardColor.withValues(alpha: 0.6);
       _itemsColors[_items.indexOf("SRC")] = {"Auto": defaultColor, "Internal": Colors.green, "External": Colors.blue}[Storage().gpsSourceMode] ?? defaultColor;
       // ADSB: show the ownship tail number when the receiver reports it;
       // otherwise fall back to a status circle (filled when connected, empty
@@ -580,7 +579,8 @@ class InstrumentListState extends State<InstrumentList> {
         onPanEnd: Storage().settings.isInstrumentsLocked() ? null : (_) => _savePositions(),
         child: Container(
           width: width,
-          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index]),
+          // outline and shadow separate the tile from light or dark maps
+          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index], border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)), boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(1, 1))]),
           child: Column(
             children: [
               Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
@@ -698,7 +698,7 @@ class InstrumentListState extends State<InstrumentList> {
 
   @override
   Widget build(BuildContext context) {
-    _itemsColors = List.generate(_items.length, (index) => Theme.of(context).cardColor.withValues(alpha: 0.6));
+    _itemsColors = List.generate(_items.length, (index) => Theme.of(context).cardColor.withValues(alpha: 0.8));
 
     // init everything
     _gpsListener();

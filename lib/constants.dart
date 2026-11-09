@@ -103,6 +103,19 @@ class Constants {
   static const double bottomIconPadding = 3; // IconButton padding around the circle
   static const double bottomIconCircle = 42;
 
+  // Outline for the buttons floating over the Map, Plate and CSUP screens. It is the
+  // opposite of the button fill (theme surface) so a button never blends into a
+  // same-colored background.
+  static BorderSide buttonSide(BuildContext context) =>
+      BorderSide(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), width: 1.5);
+
+  // Outlined fill for a floating button: a circle, or a rounded rectangle when radius is given.
+  static BoxDecoration buttonDecoration(BuildContext context, Color color, {double? radius}) => BoxDecoration(
+      color: color,
+      border: Border.fromBorderSide(buttonSide(context)),
+      shape: radius == null ? BoxShape.circle : BoxShape.rectangle,
+      borderRadius: radius == null ? null : BorderRadius.circular(radius));
+
   static double bottomPaddingSize(BuildContext context) {
     return MediaQuery.of(context).padding.bottom;
   }
