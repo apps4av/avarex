@@ -1,3 +1,4 @@
-Updated the database libraries the app uses.
-Bug fixes.
-Thank you for flying with AvareX. Send feedback at the Apps4Av forum.
+Added an outline to the floating buttons on `MAP`, `PLATE`, and `CSUP`, and to the instrument tiles and their menu button, so they stand out over light or dark maps.
+Made the instrument tiles, tape, and `CAP Grid` labels more opaque so they are easier to read.
+Changed the `CAP Grid` to follow day and night mode.
+Changed the radar progress bar to a timeline with the start and end times, next to the instrument tiles menu.

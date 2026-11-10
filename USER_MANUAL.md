@@ -15,6 +15,16 @@ This manual documents all features in the current AvareX app, including:
 
 ## AvareX Releases
 
+**0.0.147**
+
+- Added an outline to the floating buttons on `MAP`, `PLATE`, and `CSUP`, and to the instrument tiles and their menu button, so they stand out over light or dark maps.
+- Made the instrument tiles, tape, and `CAP Grid` labels more opaque so they are easier to read.
+- Changed the `CAP Grid` to follow day and night mode.
+- Changed the radar progress bar to a timeline with the start and end times, next to the instrument tiles menu.
+- Moved the altitude slider above the `Layers` button and show the current altitude above it.
+- Changed the `CSUP` tab icon to the text `CS`.
+- Fixed the `PLATE` tab showing no plates when the airport businesses lookup fails.
+
 **0.0.146**
 
 - Updated the database libraries the app uses.
@@ -260,7 +270,7 @@ You can reopen onboarding later from the drawer header icon (`Show intro screens
 
 After onboarding, the app opens to `MainScreen` with:
 
-- **Bottom tabs**: `MAP`, `PLATE`, `CSUP`, `PLAN`, `FIND`
+- **Bottom tabs**: `MAP`, `PLATE`, `CSUP` (shown as `CS`), `PLAN`, `FIND`
 - **Left drawer menu** (opened by `Menu` button on map)
 - **Warnings drawer** (right side, opened by red warning icon when issues exist)
 
@@ -314,7 +324,6 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 
 #### Top-right
 - **Pro icon** (iOS/Android): opens `Flight Intelligence` when you are signed in, or the `Account` sign-in screen if you are not. Manage the account from `MAP → Menu → Internet → Account`.
-- **Altitude slider** (under the Pro icon, when Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors are on): vertical slider, 0 to 30,000 ft.
 - **Red warning icon** (if active): opens troubleshooting drawer.
 
 #### Bottom center
@@ -324,6 +333,9 @@ The **instrument tiles** float as a movable overlay over the map (GS, ALT, MT, P
 
 #### Bottom-left
 - **Menu** button: opens drawer list (Download, Documents, etc.)
+
+#### Bottom-right, above the Layers button
+- **Altitude slider** (when Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors are on): vertical slider, 0 to 30,000 ft. The chosen altitude shows above it.
 
 #### Bottom-right control row (scrollable)
 - **Map Settings popup** (gear icon): opens the `Map Settings` list described below.
@@ -342,6 +354,9 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
 
 #### Top-left
 - **Instrument tiles menu** (arrow dropdown): tile sizing, lock/reset layout, and show/hide individual instrument tiles (including the `ADSB` and `RES` tiles).
+- **Radar timeline** (right of the instrument tiles menu, when the internet **Radar** weather product is on): shows the UTC time of the first and last radar frame with one bar segment per frame. The frame on screen is highlighted.
+
+All floating buttons and tiles on the `MAP`, `PLATE`, and `CSUP` screens have an outline so they stay visible over light or dark backgrounds.
 
 #### Nav sub-layers (in the Layers popup)
 - With the **Nav** layer above 0%, **Obstacles**, **Tape**, **Circles**, and **CAP Grid** appear indented under it, each with its own opacity slider.
@@ -357,9 +372,9 @@ Tap the gear icon in the bottom-right control row to open the `Map Settings` lis
   - `M`: 200 aircraft, 6000 ft, 50 NM
   - `L`: 1000 aircraft, 30000 ft, 500 NM
 
-#### Altitude slider (under the Pro icon)
-- Appears on the right, under the Pro icon, with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
-- Range: 0 to 30,000 ft (1,000 ft increments). The altitude label is larger while you drag.
+#### Altitude slider (above the Layers button)
+- Appears at the bottom right, above the **Layers** button, with the **Weather** layer when a product needing an altitude is on: Cloud tops, Icing, Turbulence, Ceiling, or Wind vectors.
+- Range: 0 to 30,000 ft (1,000 ft increments). The current altitude shows above the slider, and the label is larger while you drag.
 
 ### 4.4 Map chart types
 

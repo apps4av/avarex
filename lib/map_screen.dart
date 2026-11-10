@@ -792,17 +792,16 @@ class MapScreenState extends State<MapScreen> {
           )));
 
         layers.add(
-            Opacity(opacity: productOpacity, child: Container(height: 30, width: Constants.screenWidth(context) / 3, padding: EdgeInsets.fromLTRB(10, Constants.screenHeightForInstruments(context) + 20, 0, 0),
+          IgnorePointer(child: Opacity(opacity: productOpacity, child: Align(alignment: Alignment.topLeft,
+            // on the row of the instrument menu button (32px circle at 5,5), right of it, above the tiles
+            child: Padding(padding: const EdgeInsets.fromLTRB(45, 7, 0, 0),
               child: ValueListenableBuilder<int>(
                 valueListenable: Storage().timeRadarChange,
-                builder: (context, value, _) {
-                  int index = value % (_mesonets.length * 2);
-                  if(index > _mesonets.length - 1) {
-                    index = _mesonets.length - 1;
-                  }
-                  return Slider(value: index / (_mesonets.length - 1), onChanged: (double value) {  });
-            }),
-        )));
+                builder: (context, value, _) => _radarTimeline((value % (_mesonets.length * 2)).clamp(0, _mesonets.length - 1)),
+              ),
+            ),
+          ))),
+        );
       }
 
       // ADS-B NEXRAD.
@@ -1576,35 +1575,6 @@ class MapScreenState extends State<MapScreen> {
                               return WarningsButtonWidget(warning: value);
                             }
                           ),
-                          if(showAltitudeSlider)
-                            RotatedBox(quarterTurns: -1, child:
-                              SizedBox(width: 192, height: 64, child:
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    // Indicator grows with the altitude label.
-                                    valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
-                                    valueIndicatorColor: Theme.of(context).colorScheme.primary,
-                                    valueIndicatorTextStyle: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onPrimary,
-                                    ),
-                                  ),
-                                  child: Slider(
-                                    label: "${(Storage().route.altitude / 1000).toInt()}K ft",
-                                    max: 30000,
-                                    min: 0,
-                                    divisions: 30,
-                                    value: Storage().route.altitude.toDouble(),
-                                    onChanged: (double value) {
-                                      setState(() {
-                                        Storage().route.altitude = value.toInt();
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ),
                         ])
                     )
 
@@ -1711,6 +1681,49 @@ class MapScreenState extends State<MapScreen> {
                   )
               ),
 
+              // altitude slider, centered above the Layers button
+              if(showAltitudeSlider)
+                Positioned(
+                  right: 0,
+                  bottom: Constants.bottomPaddingSize(context) + Constants.bottomRowHeight + 8,
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    // current planned altitude
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: Constants.buttonDecoration(context, Theme.of(context).cardColor.withValues(alpha: 0.8), radius: 12),
+                      child: Text("${Storage().route.altitude ~/ 1000}K ft", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                    ),
+                    RotatedBox(quarterTurns: -1, child:
+                      SizedBox(width: 192, height: 64, child:
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            // Indicator grows with the altitude label.
+                            valueIndicatorShape: const RectangularSliderValueIndicatorShape(),
+                            valueIndicatorColor: Theme.of(context).colorScheme.primary,
+                            valueIndicatorTextStyle: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          ),
+                          child: Slider(
+                            label: "${(Storage().route.altitude / 1000).toInt()}K ft",
+                            max: 30000,
+                            min: 0,
+                            divisions: 30,
+                            value: Storage().route.altitude.toDouble(),
+                            onChanged: (double value) {
+                              setState(() {
+                                Storage().route.altitude = value.toInt();
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+
               Positioned(
                   child: Align(
                       alignment: Alignment.bottomRight,
@@ -1746,6 +1759,40 @@ class MapScreenState extends State<MapScreen> {
               ),
             ]
         )
+    );
+  }
+
+  // Radar loop position: UTC time of the first and last frame with one bar segment
+  // per frame, the frame on screen highlighted and the earlier ones filled.
+  Widget _radarTimeline(int frame) {
+    // small enough (about 28px tall) to fit on the instrument menu row above the tiles
+    final DateTime now = DateTime.now().toUtc();
+    final int last = _mesonets.length - 1;
+    String time(int f) {
+      final DateTime t = now.subtract(Duration(minutes: (last - f) * 10));
+      return "${t.hour.toString().padLeft(2, "0")}:${t.minute.toString().padLeft(2, "0")}Z";
+    }
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final TextStyle small = TextStyle(fontSize: 12, color: scheme.onSurface);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: Constants.buttonDecoration(context, Theme.of(context).cardColor.withValues(alpha: 0.8), radius: 12),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Text(time(0), style: small),
+        const SizedBox(width: 6),
+        for (int f = 0; f <= last; f++)
+          Container(
+            width: 20,
+            height: f == frame ? 8 : 5,
+            margin: const EdgeInsets.symmetric(horizontal: 1.5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4),
+              color: f == frame ? scheme.primary : (f < frame ? scheme.primary.withValues(alpha: 0.45) : scheme.onSurface.withValues(alpha: 0.2)),
+            ),
+          ),
+        const SizedBox(width: 6),
+        Text(time(last), style: small),
+      ]),
     );
   }
 

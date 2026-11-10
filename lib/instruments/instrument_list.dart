@@ -579,8 +579,7 @@ class InstrumentListState extends State<InstrumentList> {
         onPanEnd: Storage().settings.isInstrumentsLocked() ? null : (_) => _savePositions(),
         child: Container(
           width: width,
-          // outline and shadow separate the tile from light or dark maps
-          decoration: BoxDecoration(borderRadius: const BorderRadius.all(Radius.circular(20)), color: _itemsColors[index], border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)), boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(1, 1))]),
+          decoration: _tileDecoration(_itemsColors[index]),
           child: Column(
             children: [
               Expanded(flex: 2, child: SizedBox(width: width - 10, child: FittedBox(child: Text(_items[index], style: const TextStyle( ), maxLines: 1,)))),
@@ -590,6 +589,14 @@ class InstrumentListState extends State<InstrumentList> {
       ),
     );
   }
+
+  // tile and menu button look: outline and shadow separate them from light or dark maps
+  BoxDecoration _tileDecoration(Color color, {bool circle = false}) => BoxDecoration(
+      shape: circle ? BoxShape.circle : BoxShape.rectangle,
+      borderRadius: circle ? null : const BorderRadius.all(Radius.circular(20)),
+      color: color,
+      border: Border.all(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
+      boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 4, offset: Offset(1, 1))]);
 
   // corner menu: tile sizing, reset layout, and help. Lives top-left and is fixed.
   Widget _makeMenu() {
@@ -603,7 +610,7 @@ class InstrumentListState extends State<InstrumentList> {
             width: Constants.screenWidth(context) / 2,
           ),
           isExpanded: false,
-          customButton: CircleAvatar(radius: 16, backgroundColor: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), child: const Icon(Icons.arrow_drop_down),),
+          customButton: Container(width: 32, height: 32, decoration: _tileDecoration(Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.7), circle: true), child: const Icon(Icons.arrow_drop_down)),
           onChanged: (value) {
             setState(() {
             });

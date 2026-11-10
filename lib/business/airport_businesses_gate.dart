@@ -31,11 +31,16 @@ class AirportBusinessesGate {
   /// pilot isn't signed in, or the lookup fails.
   static Future<List<AirportBusiness>> businessesForPlate(
       String airport, {LatLng? origin}) async {
-    if (!isReady) {
+    // Never let Firebase (not started, offline, signed out) block the plates.
+    try {
+      if (!isReady) {
+        return const [];
+      }
+      return await AirportBusinessRepository.instance
+          .fetchBusinessesWithLocation(airport, origin: origin);
+    } catch (_) {
       return const [];
     }
-    return AirportBusinessRepository.instance
-        .fetchBusinessesWithLocation(airport, origin: origin);
   }
 }
 
